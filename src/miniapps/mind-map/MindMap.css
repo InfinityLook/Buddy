@@ -1,0 +1,123 @@
+.mm-app {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  background: rgba(18, 24, 40, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: #fff;
+  max-width: 400px;
+  margin: 0 auto;
+  backdrop-filter: blur(12px);
+}
+
+.mm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.mm-header h2 { font-size: 1.1rem; margin: 0; }
+
+.mm-badge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  background: rgba(6, 182, 212, 0.2);
+  color: #06b6d4;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+}
+
+.mm-viewport {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.6rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mm-back-btn {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #06b6d4;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.mm-label {
+  font-size: 0.6rem;
+  color: #64748b;
+  display: block;
+}
+
+.mm-current-node h3 {
+  font-size: 1rem;
+  margin: 0.2rem 0;
+  color: #06b6d4;
+  text-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+}
+
+.mm-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.mm-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mm-del-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.6rem;
+  cursor: pointer;
+}
+
+.mm-add-form {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.mm-add-form input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+}
+
+.mm-add-btn {
+  background: #06b6d4;
+  border: none;
+  color: #000;
+  font-weight: 800;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+}
