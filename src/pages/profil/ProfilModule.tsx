@@ -1,14 +1,14 @@
-import React from 'react';
-import { ProfilHeader } from './components/ProfilHeader';
-import { ProfilUserCard } from './components/ProfilUserCard';
-import { ProfilQuickStats } from './components/ProfilQuickStats';
-import { ProfilAchievements } from './components/ProfilAchievements';
-import { ProfilGoals } from './components/ProfilGoals';
-import { ProfilMenu } from './components/ProfilMenu';
-import './ProfilModule.css';
+import React from 'react'
+import { ProfilHeader } from './components/ProfilHeader'
+import { ProfilUserCard } from './components/ProfilUserCard'
+import { ProfilQuickStats } from './components/ProfilQuickStats'
+import { ProfilAchievements } from './components/ProfilAchievements'
+import { ProfilGoals } from './components/ProfilGoals'
+import { ProfilMenu } from './components/ProfilMenu'
+import './ProfilModule.css'
 
 interface ProfilModuleProps {
-  onBack?: () => void;
+  onBack?: () => void
 }
 
 export const ProfilModule: React.FC<ProfilModuleProps> = ({ onBack }) => {
@@ -25,7 +25,7 @@ export const ProfilModule: React.FC<ProfilModuleProps> = ({ onBack }) => {
 
       <ProfilMenu />
     </div>
-  );
-};
+  )
+}
 
-export default ProfilModule;
+export default ProfilModule
