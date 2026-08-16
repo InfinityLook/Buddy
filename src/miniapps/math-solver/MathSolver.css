@@ -1,0 +1,112 @@
+.ms-app {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  background: rgba(18, 24, 40, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: #fff;
+  max-width: 400px;
+  margin: 0 auto;
+  backdrop-filter: blur(12px);
+}
+
+.ms-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ms-header h2 { font-size: 1.1rem; margin: 0; }
+
+.ms-badge {
+  font-size: 0.6rem;
+  font-weight: 800;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  padding: 0.15rem 0.5rem;
+  border-radius: 10px;
+}
+
+.ms-screen {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.6rem;
+  text-align: right;
+  min-height: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.ms-expression {
+  font-size: 1.1rem;
+  color: #94a3b8;
+  word-break: break-all;
+}
+
+.ms-result {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #10b981;
+  text-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.ms-keypad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+}
+
+.ms-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.6rem 0;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ms-btn.op {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.ms-btn.equals {
+  background: #10b981;
+  color: #000;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+}
+
+.ms-btn.zero {
+  grid-column: span 2;
+}
+
+.ms-history {
+  font-size: 0.65rem;
+  color: #64748b;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding-top: 0.4rem;
+}
+
+.ms-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-top: 0.2rem;
+}
+
+.ms-history-item {
+  display: flex;
+  justify-content: space-between;
+  color: #94a3b8;
+}
+
+.ms-history-item strong {
+  color: #10b981;
+}
