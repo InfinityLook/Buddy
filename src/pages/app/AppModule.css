@@ -241,6 +241,7 @@
   overflow-x: auto;
   padding-bottom: 0.2rem;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .app-categories-row::-webkit-scrollbar {
@@ -256,6 +257,7 @@
   font-size: 0.8rem;
   font-weight: 600;
   white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -471,27 +473,102 @@
    RESPONSIVITA (MOBILNÍ OPTIMALIZACE)
    ------------------------------------------ */
 @media (max-width: 680px) {
+  .app-container {
+    padding: 0.75rem 0.75rem calc(2rem + env(safe-area-inset-bottom)) 0.75rem;
+    gap: 0.85rem;
+  }
+
+  .app-header-center h1 {
+    font-size: 1.2rem;
+  }
+
+  .app-header-center p {
+    display: none;
+  }
+
+  /* Statistiky - mřížka 2x2 */
   .app-stats-bar {
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.85rem;
+    gap: 0.6rem;
+    padding: 0.75rem;
   }
 
   .app-stat-item {
     border-right: none;
+    padding: 0.2rem;
+    gap: 0.5rem;
   }
 
+  .app-stat-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .app-stat-value {
+    font-size: 1.05rem;
+  }
+
+  .app-stat-label {
+    font-size: 0.65rem;
+  }
+
+  /* Lišta vyhledávání a filtrů */
+  .app-toolbar-top {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .app-search-box {
+    flex: 1 1 100%; /* Vyhledávání zabere celý horní řádek */
+  }
+
+  .app-filter-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Karty aplikací - kompaktnější */
   .app-grid-container {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.6rem;
   }
 
+  .app-card {
+    padding: 0.85rem 0.6rem 0.6rem 0.6rem;
+  }
+
+  .app-card-icon-wrap {
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    margin-bottom: 0.5rem;
+  }
+
+  .app-card-title {
+    font-size: 0.85rem;
+  }
+
+  .app-card-category {
+    font-size: 0.68rem;
+  }
+
+  .app-card-footer {
+    margin-top: 0.6rem;
+    padding-top: 0.4rem;
+  }
+
+  /* Banner */
   .app-banner {
     flex-direction: column;
     text-align: center;
+    padding: 1rem;
+    gap: 0.75rem;
   }
 
   .app-banner-cta-btn {
     width: 100%;
     justify-content: center;
   }
-  }
-    
+   }
+   
