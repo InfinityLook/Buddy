@@ -14,6 +14,7 @@ export interface AppItem {
 interface AppCardProps {
   app?: AppItem
   isCreateCard?: boolean
+  onClick?: (app: AppItem) => void
   onToggleFavorite?: (id: string) => void
   onCreateNew?: () => void
 }
@@ -21,6 +22,7 @@ interface AppCardProps {
 export const AppCard: React.FC<AppCardProps> = ({
   app,
   isCreateCard,
+  onClick,
   onToggleFavorite,
   onCreateNew,
 }) => {
@@ -36,8 +38,12 @@ export const AppCard: React.FC<AppCardProps> = ({
   }
 
   return (
-    <div className="app-card">
-      <button className="app-card-options" aria-label="Možnosti">
+    <div className="app-card" onClick={() => onClick?.(app)} style={{ cursor: 'pointer' }}>
+      <button 
+        className="app-card-options" 
+        aria-label="Možnosti"
+        onClick={(e) => e.stopPropagation()}
+      >
         <AppIcon name="dots" size={18} />
       </button>
 
@@ -56,7 +62,10 @@ export const AppCard: React.FC<AppCardProps> = ({
 
         <button
           className={`app-favorite-btn ${app.favorite ? 'is-favorite' : ''}`}
-          onClick={() => onToggleFavorite?.(app.id)}
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleFavorite?.(app.id)
+          }}
           aria-label="Oblíbené"
         >
           <AppIcon name={app.favorite ? 'star-filled' : 'star'} size={16} />
