@@ -8,16 +8,20 @@ const achievements = [
   { icon: 'star', color: 'yellow', title: 'Perfekcionista', desc: 'Získal jsi 5 hvězd hodnocení', date: '15. 6. 2024' },
 ]
 
-export const ProfilAchievements: React.FC = () => (
+interface ProfilAchievementsProps {
+  onShowAll: () => void
+}
+
+export const ProfilAchievements: React.FC<ProfilAchievementsProps> = ({ onShowAll }) => (
   <section className="profil-panel">
     <div className="profil-panel-header">
       <h3>Moje úspěchy</h3>
-      <button className="profil-link-btn">Zobrazit vše</button>
+      <button className="profil-link-btn" onClick={onShowAll}>Zobrazit vše</button>
     </div>
 
     <div className="profil-list">
       {achievements.map((item, index) => (
-        <div key={index} className="profil-item">
+        <div key={index} className="profil-item" title={`${item.desc} • ${item.date}`}>
           <div className={`profil-item-icon ${item.color}`}><ProfilIcon name={item.icon} size={18} /></div>
           <div className="profil-item-content">
             <div className="profil-item-title">{item.title}</div>
