@@ -1,8 +1,12 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
+
 import { DashboardTab } from './components/DashboardTab'
 import { SubjectsTab } from './components/SubjectsTab'
+import { FlashcardsTab } from './components/FlashcardsTab'
+import { SimulatorTab } from './components/SimulatorTab'
+
 import './ExamPrepApp.css'
 
 type TabType = 'dashboard' | 'subjects' | 'flashcards' | 'simulator'
@@ -15,6 +19,7 @@ export const ExamPrepApp: React.FC<ExamPrepAppProps> = ({ onBack }) => {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
 
+  // Gamifikace
   const { level, streakDays } = useGamificationStore()
 
   const handleBack = () => {
@@ -52,20 +57,8 @@ export const ExamPrepApp: React.FC<ExamPrepAppProps> = ({ onBack }) => {
       <main className="examprep-main-content">
         {activeTab === 'dashboard' && <DashboardTab />}
         {activeTab === 'subjects' && <SubjectsTab />}
-
-        {activeTab === 'flashcards' && (
-          <div className="examprep-tab-view">
-            <h2>🧠 Učebna & Kartičky</h2>
-            <p>Interaktivní opakovací režim s hodnocením znalostí (1–5) a získáváním XP.</p>
-          </div>
-        )}
-
-        {activeTab === 'simulator' && (
-          <div className="examprep-tab-view">
-            <h2>🎓 Simulátor Zkoušky</h2>
-            <p>Režim náhodného tahu otázky s časovačem na přípravu (potítkem).</p>
-          </div>
-        )}
+        {activeTab === 'flashcards' && <FlashcardsTab />}
+        {activeTab === 'simulator' && <SimulatorTab />}
       </main>
 
       {/* Bottom Bar */}
