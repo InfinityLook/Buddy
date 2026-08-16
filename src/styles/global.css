@@ -27,6 +27,7 @@
 
 * {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent; /* Odstraní modrý záblesk při tapnutí na mobilu */
 }
 
 html,
@@ -49,10 +50,20 @@ body {
 
 button {
   font-family: inherit;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Zrušení modrého/systémového obrysu při kliknutí pro všechna tlačítka */
+button:focus,
+button:focus-visible,
+button:active {
+  outline: none;
 }
 
 a {
   color: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* Respect reduced-motion preference */
