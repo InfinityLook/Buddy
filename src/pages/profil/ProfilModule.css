@@ -1,0 +1,464 @@
+.profil-container {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1.25rem 1rem 3rem 1rem;
+  color: #f3f4f6;
+  font-family: system-ui, -apple-system, sans-serif;
+  box-sizing: border-box;
+  background: #090a15;
+  min-height: 100dvh;
+  overflow-y: auto;
+}
+
+/* HORNÍ LIŠTA */
+.profil-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.profil-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #f3f4f6;
+  padding: 0.5rem 1rem;
+  border-radius: 99px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.profil-header-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.profil-icon-btn {
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  padding: 0.4rem;
+  cursor: pointer;
+  border-radius: 10px;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* TITULEK */
+.profil-title-section h1 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  margin: 0 0 0.25rem 0;
+}
+
+.profil-title-section p {
+  color: #9ca3af;
+  margin: 0 0 1.5rem 0;
+  font-size: 0.9rem;
+}
+
+/* HLAVNÍ KARTA UŽIVATELE */
+.profil-user-card {
+  background: linear-gradient(135deg, rgba(20, 25, 45, 0.9), rgba(12, 15, 30, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.profil-user-main {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.profil-avatar-wrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+}
+
+.profil-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.profil-avatar-edit {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: #1e243b;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.profil-badge {
+  background: rgba(138, 92, 246, 0.2);
+  color: #a855f7;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+}
+
+.profil-user-info h2 {
+  margin: 0.4rem 0 0.2rem 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.profil-motto {
+  margin: 0 0 0.6rem 0;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  max-width: 260px;
+}
+
+.profil-email {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.profil-user-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 200px;
+}
+
+.profil-level-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+}
+
+.profil-level-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 800;
+  font-size: 0.78rem;
+  color: #d1d5db;
+}
+
+.profil-crown-icon {
+  color: #f59e0b;
+}
+
+.profil-xp-text {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin: 0.4rem 0 0.3rem 0;
+}
+
+.profil-streak-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.profil-streak-fire {
+  color: #f97316;
+}
+
+.profil-streak-num {
+  font-size: 1.2rem;
+  font-weight: 800;
+  display: block;
+}
+
+.profil-streak-label {
+  font-size: 0.7rem;
+  color: #f97316;
+  font-weight: 700;
+}
+
+/* RYCHLÉ STATISTIKY */
+.profil-quick-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.profil-stat-card {
+  background: rgba(18, 22, 38, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  padding: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.profil-stat-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profil-stat-icon.purple { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+.profil-stat-icon.green { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+.profil-stat-icon.yellow { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.profil-stat-icon.blue { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.profil-stat-icon.orange { background: rgba(249, 115, 22, 0.15); color: #f97316; }
+.profil-stat-icon.cyan { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
+.profil-stat-icon.gold { background: rgba(234, 179, 8, 0.15); color: #eab308; }
+
+.profil-stat-value {
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.profil-stat-label {
+  font-size: 0.68rem;
+  color: #9ca3af;
+}
+
+/* DVOUSLOUPCOVÝ LAYOUT */
+.profil-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.profil-panel {
+  background: rgba(18, 22, 38, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  padding: 1rem;
+}
+
+.profil-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.profil-panel-header h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.profil-link-btn {
+  background: transparent;
+  border: none;
+  color: #3b82f6;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.profil-list, .profil-goals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.profil-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.5rem 0.6rem;
+  border-radius: 12px;
+}
+
+.profil-item-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profil-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.profil-item-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profil-item-sub {
+  font-size: 0.68rem;
+  color: #9ca3af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profil-item-date {
+  font-size: 0.65rem;
+  color: #6b7280;
+  margin-right: 0.25rem;
+}
+
+.profil-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* CÍLE */
+.profil-goal-item {
+  background: rgba(255, 255, 255, 0.02);
+  padding: 0.6rem 0.75rem;
+  border-radius: 12px;
+}
+
+.profil-goal-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.profil-goal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.profil-goal-value {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  font-weight: 600;
+}
+
+.profil-progress-bg {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.profil-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+}
+
+.profil-progress-fill.cyan { background: linear-gradient(90deg, #00f2fe, #3b82f6); }
+.profil-progress-fill.green { background: linear-gradient(90deg, #10b981, #34d399); }
+.profil-progress-fill.purple { background: linear-gradient(90deg, #a855f7, #ec4899); }
+
+/* MENU NASTAVENÍ */
+.profil-menu-panel {
+  background: rgba(18, 22, 38, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 18px;
+  padding: 0.5rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.profil-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.75rem 0.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+}
+
+.profil-menu-item:last-child {
+  border-bottom: none;
+}
+
+.profil-menu-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.profil-menu-text {
+  flex: 1;
+}
+
+.profil-menu-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.profil-menu-sub {
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+
+.profil-chevron {
+  color: #4b5563;
+}
+
+/* RESPONZIVITA PRO MOBILY */
+@media (max-width: 768px) {
+  .profil-quick-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .profil-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .profil-user-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .profil-user-stats {
+    width: 100%;
+  }
+  }
