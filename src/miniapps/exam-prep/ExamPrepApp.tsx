@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
+import { DashboardTab } from './components/DashboardTab'
 import './ExamPrepApp.css'
 
 type TabType = 'dashboard' | 'subjects' | 'flashcards' | 'simulator'
@@ -49,12 +50,7 @@ export const ExamPrepApp: React.FC<ExamPrepAppProps> = ({ onBack }) => {
 
       {/* Main view */}
       <main className="examprep-main-content">
-        {activeTab === 'dashboard' && (
-          <div className="examprep-tab-view">
-            <h2>📊 Přehled & Připravenost</h2>
-            <p>Zde bude Dashboard s Indexem připravenosti, odpočtem do zkoušek a dnešní frontou k opakování.</p>
-          </div>
-        )}
+        {activeTab === 'dashboard' && <DashboardTab />}
 
         {activeTab === 'subjects' && (
           <div className="examprep-tab-view">
@@ -117,4 +113,3 @@ export const ExamPrepApp: React.FC<ExamPrepAppProps> = ({ onBack }) => {
 }
 
 export default ExamPrepApp
-          
