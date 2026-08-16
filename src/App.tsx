@@ -1,10 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import Login from './pages/login/Login.tsx'
-import AppModule from '@/pages/app/AppModule.tsx'
-import AppModule from '@/features/apps/AppModule.tsx'
+import Hub from './pages/hub/Hub.tsx'
+// TADY JE TA ZMĚNA: Cesta nyní správně ukazuje do složky pages/app/
+import AppModule from '@/pages/app/AppModule.tsx' 
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
+
 export default function App() {
   const [isAuthed, setIsAuthed] = useState(false)
 
