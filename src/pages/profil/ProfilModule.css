@@ -1,372 +1,260 @@
 /* ==========================================
-   PROFIL MODULE - NEON & GLASS STUDENT DESIGN
+   PROFIL MODULE - COMPACT PRO DESIGN (NO SCROLL)
    ========================================== */
 
 :root {
-  --profil-bg: #070913;
-  --profil-card-bg: rgba(20, 26, 48, 0.65);
-  --profil-card-border: rgba(255, 255, 255, 0.12);
-  
-  /* Zářivé neónové gradienty */
-  --profil-cyan-glow: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-  --profil-purple-glow: linear-gradient(135deg, #b820e6 0%, #8a5cf6 100%);
-  --profil-fire-glow: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
-  --profil-gold-glow: linear-gradient(135deg, #ffb347 0%, #ffcc33 100%);
-  --profil-green-glow: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-
-  --profil-text-main: #ffffff;
-  --profil-text-muted: #94a3b8;
-  --profil-radius-lg: 16px;
-  --profil-radius-md: 12px;
-  --profil-radius-sm: 8px;
+  --profil-bg: #090d16;
+  --profil-card-bg: rgba(18, 24, 40, 0.75);
+  --profil-border: rgba(255, 255, 255, 0.08);
+  --profil-accent: #38bdf8;
+  --profil-accent-glow: rgba(56, 189, 248, 0.25);
+  --profil-text-main: #f8fafc;
+  --profil-text-sub: #94a3b8;
 }
 
-/* Hlavní kontejner s okrajovým neónovým podsvícením */
+/* Kontejner natvrdo na výšku displeje */
 .profil-container {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
   background: var(--profil-bg);
   background-image: 
-    radial-gradient(circle at 15% 15%, rgba(0, 242, 254, 0.18) 0%, transparent 45%),
-    radial-gradient(circle at 85% 85%, rgba(184, 32, 230, 0.18) 0%, transparent 45%);
+    radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 90% 90%, rgba(139, 92, 246, 0.08) 0%, transparent 40%);
   color: var(--profil-text-main);
-  padding: 0.5rem 0.8rem calc(0.5rem + env(safe-area-inset-bottom)) 0.8rem;
-  max-width: 600px;
+  padding: 0.4rem 0.75rem calc(0.4rem + env(safe-area-inset-bottom)) 0.75rem;
+  max-width: 480px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 0.4rem;
   box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* ------------------------------------------
-   HEADER
-   ------------------------------------------ */
+/* Top bar a nadpis */
 .profil-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: env(safe-area-inset-top);
-}
-
-.profil-back-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--profil-card-border);
-  color: var(--profil-text-main);
-  padding: 0.35rem 0.8rem;
-  border-radius: 30px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  backdrop-filter: blur(10px);
-}
-
-.profil-header-actions {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.profil-icon-btn {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--profil-card-border);
-  color: var(--profil-text-main);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .profil-title-section h1 {
-  font-size: 1.25rem;
-  font-weight: 800;
+  font-size: 1.15rem;
+  font-weight: 700;
   margin: 0;
-  background: linear-gradient(90deg, #fff 0%, #cbd5e1 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.3px;
 }
 
 .profil-title-section p {
-  color: var(--profil-text-muted);
-  font-size: 0.68rem;
+  color: var(--profil-text-sub);
+  font-size: 0.65rem;
   margin: 0;
 }
 
-/* ------------------------------------------
-   KARTA UŽIVATELE S PODSVÍCENÍM
-   ------------------------------------------ */
+/* Karta profilu */
 .profil-user-card {
   background: var(--profil-card-bg);
-  border: 1px solid var(--profil-card-border);
-  border-radius: var(--profil-radius-lg);
-  padding: 0.65rem 0.75rem;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--profil-border);
+  border-radius: 12px;
+  padding: 0.5rem 0.65rem;
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  backdrop-filter: blur(10px);
 }
 
 .profil-user-main {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.6rem;
 }
 
 .profil-avatar-img {
-  width: 52px;
-  height: 52px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid #00f2fe;
-  box-shadow: 0 0 12px rgba(0, 242, 254, 0.4);
-}
-
-.profil-badge {
-  align-self: flex-start;
-  font-size: 0.55rem;
-  font-weight: 800;
-  background: rgba(184, 32, 230, 0.25);
-  color: #e879f9;
-  border: 1px solid rgba(184, 32, 230, 0.5);
-  padding: 0.1rem 0.5rem;
-  border-radius: 20px;
-  letter-spacing: 0.5px;
-  box-shadow: 0 0 8px rgba(184, 32, 230, 0.3);
+  border: 2px solid var(--profil-accent);
 }
 
 .profil-user-info h2 {
-  font-size: 1.1rem;
-  font-weight: 800;
+  font-size: 1rem;
+  font-weight: 700;
   margin: 0;
 }
 
-.profil-motto {
-  font-size: 0.65rem;
-  color: var(--profil-text-muted);
+.profil-badge {
+  font-size: 0.55rem;
+  font-weight: 700;
+  background: rgba(139, 92, 246, 0.15);
+  color: #c084fc;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  padding: 0.08rem 0.4rem;
+  border-radius: 12px;
 }
 
-/* Level & Streak */
+.profil-motto, .profil-email {
+  font-size: 0.62rem;
+  color: var(--profil-text-sub);
+  margin: 0;
+}
+
+/* Level & Streak progress bar */
 .profil-level-box {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: var(--profil-radius-md);
-  padding: 0.4rem 0.6rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 0.35rem 0.5rem;
 }
 
 .profil-level-text {
-  font-size: 0.65rem;
-  font-weight: 800;
-  color: #00f2fe;
-  text-shadow: 0 0 8px rgba(0, 242, 254, 0.5);
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--profil-accent);
 }
 
 .profil-progress-bg {
   width: 100%;
-  height: 5px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
   overflow: hidden;
+  margin-top: 0.2rem;
 }
 
 .profil-progress-fill {
   height: 100%;
-  background: var(--profil-cyan-glow);
-  box-shadow: 0 0 10px #00f2fe;
-  border-radius: 10px;
+  background: linear-gradient(90deg, #38bdf8 0%, #8b5cf6 100%);
+  border-radius: 4px;
 }
 
 .profil-streak-box {
-  background: rgba(255, 8, 68, 0.12);
-  border: 1px solid rgba(255, 8, 68, 0.3);
-  border-radius: var(--profil-radius-md);
-  padding: 0.35rem 0.65rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 8px;
+  padding: 0.3rem 0.5rem;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  box-shadow: inset 0 0 12px rgba(255, 8, 68, 0.15);
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #fca5a5;
 }
 
-.profil-streak-num {
-  font-size: 1rem;
-  font-weight: 900;
-  color: #ffb199;
-  text-shadow: 0 0 8px rgba(255, 8, 68, 0.6);
-}
-
-/* ------------------------------------------
-   RYCHLÉ STATISTIKY (PODSVÍCENÉ IKONY)
-   ------------------------------------------ */
+/* Rychlé statistiky v jedné řadě */
 .profil-quick-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.35rem;
+  gap: 0.3rem;
 }
 
 .profil-stat-card {
   background: var(--profil-card-bg);
-  border: 1px solid var(--profil-card-border);
-  border-radius: var(--profil-radius-md);
-  padding: 0.4rem 0.2rem;
-  backdrop-filter: blur(12px);
+  border: 1px solid var(--profil-border);
+  border-radius: 10px;
+  padding: 0.35rem 0.15rem;
+  text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.2rem;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
 }
-
-.profil-stat-icon {
-  width: 26px;
-  height: 26px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-}
-
-.profil-stat-icon.purple { background: rgba(184, 32, 230, 0.2); color: #c084fc; box-shadow: 0 0 8px rgba(184, 32, 230, 0.3); }
-.profil-stat-icon.green  { background: rgba(16, 185, 129, 0.2); color: #34d399; box-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
-.profil-stat-icon.yellow { background: rgba(255, 179, 71, 0.2); color: #fbbf24; box-shadow: 0 0 8px rgba(255, 179, 71, 0.3); }
-.profil-stat-icon.blue   { background: rgba(0, 242, 254, 0.2);  color: #38bdf8; box-shadow: 0 0 8px rgba(0, 242, 254, 0.3); }
 
 .profil-stat-value {
-  font-size: 0.85rem;
-  font-weight: 800;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-top: 0.1rem;
 }
 
 .profil-stat-label {
-  font-size: 0.55rem;
-  color: var(--profil-text-muted);
+  font-size: 0.52rem;
+  color: var(--profil-text-sub);
 }
 
-/* ------------------------------------------
-   MOJE ÚSPĚCHY (ZÁŘÍCÍ ODZNAKY)
-   ------------------------------------------ */
+/* Úspěchy - OPRAVA: Skrytí dlouhých popisků a dat pro zachování výšky */
 .profil-panel {
   background: var(--profil-card-bg);
-  border: 1px solid var(--profil-card-border);
-  border-radius: var(--profil-radius-lg);
-  padding: 0.55rem 0.75rem;
-  backdrop-filter: blur(14px);
-  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+  border: 1px solid var(--profil-border);
+  border-radius: 12px;
+  padding: 0.45rem 0.6rem;
 }
 
 .profil-panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.3rem;
 }
 
 .profil-panel-header h3 {
-  font-size: 0.85rem;
-  font-weight: 800;
+  font-size: 0.78rem;
+  font-weight: 700;
   margin: 0;
 }
 
-.profil-link-btn {
-  background: none;
-  border: none;
-  color: #00f2fe;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-shadow: 0 0 6px rgba(0, 242, 254, 0.4);
-}
-
 .profil-list {
-  display: flex;
-  gap: 0.35rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.3rem;
 }
 
 .profil-item {
-  flex: 1;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--profil-border);
+  border-radius: 8px;
+  padding: 0.3rem 0.1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 0.4rem 0.15rem;
-  border-radius: var(--profil-radius-md);
-}
-
-.profil-item-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
+  text-align: center;
 }
 
 .profil-item-title {
   font-size: 0.58rem;
-  color: var(--profil-text-muted);
-  margin-top: 0.2rem;
   font-weight: 600;
+  color: var(--profil-text-main);
+  margin-top: 0.15rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
-/* ------------------------------------------
-   MOJE CÍLE (OPRAVA ROZLOŽENÍ + NEON EFFECT)
-   ------------------------------------------ */
+/* Skrytí dlouhého textu a datumu z karet úspěchů */
+.profil-item p,
+.profil-item-desc,
+.profil-item-date,
+.profil-item .check-icon {
+  display: none !important;
+}
+
+/* Moje cíle - OPRAVA: Čisté řádkové rozložení */
 .profil-goals-list {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.25rem;
 }
 
 .profil-goal-item {
-  background: rgba(0, 0, 0, 0.25);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: var(--profil-radius-sm);
-  padding: 0.35rem 0.55rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--profil-border);
+  border-radius: 6px;
+  padding: 0.3rem 0.45rem;
 }
 
-.profil-goal-header {
+.profil-goal-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
-}
-
-.profil-goal-title {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.68rem;
+  font-size: 0.65rem;
   font-weight: 600;
-  color: #e2e8f0;
-}
-
-.profil-goal-title i, 
-.profil-goal-title svg {
-  color: #00f2fe;
-  font-size: 0.75rem;
 }
 
 .profil-goal-value {
-  font-size: 0.68rem;
-  font-weight: 800;
-  color: #00f2fe;
-  text-shadow: 0 0 6px rgba(0, 242, 254, 0.5);
+  color: var(--profil-accent);
+  font-weight: 700;
 }
 
 .profil-goal-item .profil-progress-bg {
-  height: 4px;
-}
-
-.profil-goal-item .profil-progress-fill {
-  background: var(--profil-purple-glow);
-  box-shadow: 0 0 8px #b820e6;
-}
+  height: 3px;
+  margin-top: 0.15rem;
+     }
+   
