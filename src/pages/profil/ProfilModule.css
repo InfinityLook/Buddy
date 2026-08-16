@@ -453,3 +453,10 @@
 .profil-goal-item .profil-progress-bg {
   height: 4px;
 }
+/* Skrytí spodního menu nastavení pro zachování 100dvh layoutu */
+.profil-menu, 
+.profil-settings, 
+.profil-settings-section {
+  display: none !important;
+}
+
