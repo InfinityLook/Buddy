@@ -1,0 +1,120 @@
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
+import './ExamPrepApp.css'
+
+type TabType = 'dashboard' | 'subjects' | 'flashcards' | 'simulator'
+
+interface ExamPrepAppProps {
+  onBack?: () => void
+}
+
+export const ExamPrepApp: React.FC<ExamPrepAppProps> = ({ onBack }) => {
+  const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState<TabType>('dashboard')
+
+  // Načtení gamifikačních dat
+  const { level, streakDays } = useGamificationStore()
+
+  const handleBack = () => {
+    if (onBack) {
+      onBack()
+    } else {
+      navigate('/apps')
+    }
+  }
+
+  return (
+    <div className="examprep-container">
+      {/* Header */}
+      <header className="examprep-header">
+        <button 
+          className="examprep-back-btn" 
+          onClick={handleBack}
+          aria-label="Zpět do aplikací"
+        >
+          ←
+        </button>
+
+        <div className="examprep-title-group">
+          <h1 className="examprep-title">Maturitní Centrum</h1>
+          <p className="examprep-subtitle">ExamPrep Hub</p>
+        </div>
+
+        <div className="examprep-stats-badge">
+          <span className="examprep-stat-item">⭐ Lvl {level}</span>
+          <span className="examprep-stat-item">🔥 {streakDays}d</span>
+        </div>
+      </header>
+
+      {/* Main view */}
+      <main className="examprep-main-content">
+        {activeTab === 'dashboard' && (
+          <div className="examprep-tab-view">
+            <h2>📊 Přehled & Připravenost</h2>
+            <p>Zde bude Dashboard s Indexem připravenosti, odpočtem do zkoušek a dnešní frontou k opakování.</p>
+          </div>
+        )}
+
+        {activeTab === 'subjects' && (
+          <div className="examprep-tab-view">
+            <h2>📚 Předměty & Okruhy</h2>
+            <p>Zde bude správa předmětů, maturitních otázek a výpisků.</p>
+          </div>
+        )}
+
+        {activeTab === 'flashcards' && (
+          <div className="examprep-tab-view">
+            <h2>🧠 Učebna & Kartičky</h2>
+            <p>Interaktivní opakovací režim s hodnocením znalostí (1–5) a získáváním XP.</p>
+          </div>
+        )}
+
+        {activeTab === 'simulator' && (
+          <div className="examprep-tab-view">
+            <h2>🎓 Simulátor Zkoušky</h2>
+            <p>Režim náhodného tahu otázky s časovačem na přípravu (potítkem).</p>
+          </div>
+        )}
+      </main>
+
+      {/* Bottom Bar */}
+      <nav className="examprep-tab-bar" aria-label="Navigace zkouškového centra">
+        <button
+          className={`examprep-tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+          onClick={() => setActiveTab('dashboard')}
+        >
+          <span className="tab-icon">📈</span>
+          <span className="tab-label">Přehled</span>
+        </button>
+
+        <button
+          className={`examprep-tab-btn ${activeTab === 'subjects' ? 'active' : ''}`}
+          onClick={() => setActiveTab('subjects')}
+        >
+          <span className="tab-icon">📚</span>
+          <span className="tab-label">Okruhy</span>
+        </button>
+
+        <button
+          className={`examprep-tab-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
+          onClick={() => setActiveTab('flashcards')}
+        >
+          <span className="tab-icon">🧠</span>
+          <span className="tab-label">Učebna</span>
+        </button>
+
+        <button
+          className={`examprep-tab-btn ${activeTab === 'simulator' ? 'active' : ''}`}
+          onClick={() => setActiveTab('simulator')}
+        >
+          <span className="tab-icon">🎓</span>
+          <span className="tab-label">Simulátor</span>
+        </button>
+      </nav>
+    </div>
+  )
+}
+
+export default ExamPrepApp
+          
