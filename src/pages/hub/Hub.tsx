@@ -1,7 +1,9 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import './HubModule.css'
 
 interface HubModuleProps {
+  onLogout?: () => void
   onOpenApps?: () => void
   onOpenProfile?: () => void
   onOpenSettings?: () => void
@@ -9,11 +11,22 @@ interface HubModuleProps {
 }
 
 export const HubModule: React.FC<HubModuleProps> = ({
+  onLogout,
   onOpenApps,
   onOpenProfile,
   onOpenSettings,
   onTalk,
 }) => {
+  const navigate = useNavigate()
+
+  const handleAppsClick = () => {
+    if (onOpenApps) {
+      onOpenApps()
+    } else {
+      navigate('/apps')
+    }
+  }
+
   return (
     <div className="hub-container">
       {/* Header */}
@@ -22,9 +35,13 @@ export const HubModule: React.FC<HubModuleProps> = ({
           ✦ SchoolBuddy
         </div>
         <div className="hub-level-badge">
-          ⭐ ÚROVEŇ 12
+          ⭐ ÚROVEŇ 1
         </div>
-        <button className="hub-logout-btn" aria-label="Odhlásit se">
+        <button 
+          className="hub-logout-btn" 
+          aria-label="Odhlásit se"
+          onClick={onLogout}
+        >
           ➔
         </button>
       </div>
@@ -42,18 +59,18 @@ export const HubModule: React.FC<HubModuleProps> = ({
           <span>Profil</span>
         </button>
 
-        <button className="hub-btn-card">
+        <button className="hub-btn-card" onClick={() => alert('Shop bude brzy dostupný!')}>
           <span className="hub-card-icon" style={{ color: '#fbbf24' }}>🛍️</span>
           <span>Shop</span>
         </button>
 
-        <button className="hub-btn-card">
+        <button className="hub-btn-card" onClick={() => alert('Rewards budou brzy dostupné!')}>
           <span className="hub-card-icon" style={{ color: '#34d399' }}>🎁</span>
           <span>Rewards</span>
           <span className="hub-badge-new">NEW</span>
         </button>
 
-        <button className="hub-btn-card">
+        <button className="hub-btn-card" onClick={() => alert('Cloud zálohování vyžaduje nastavení Supabase.')}>
           <span className="hub-card-icon" style={{ color: '#818cf8' }}>☁️</span>
           <span>Cloud</span>
         </button>
@@ -73,17 +90,17 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
       {/* Middle Square Buttons (Apps, Play, Library) */}
       <div className="hub-grid-squares">
-        <button className="hub-btn-card hub-btn-square" onClick={onOpenApps}>
+        <button className="hub-btn-card hub-btn-square" onClick={handleAppsClick}>
           <span className="hub-card-icon" style={{ color: '#a855f7' }}>🎛️</span>
           <span>Apps</span>
         </button>
 
-        <button className="hub-btn-card hub-btn-square">
+        <button className="hub-btn-card hub-btn-square" onClick={() => alert('Sekce Play se připravuje!')}>
           <span className="hub-card-icon" style={{ color: '#f43f5e' }}>🎮</span>
           <span>Play</span>
         </button>
 
-        <button className="hub-btn-card hub-btn-square">
+        <button className="hub-btn-card hub-btn-square" onClick={() => alert('Knihovna bude brzy k dispozici!')}>
           <span className="hub-card-icon" style={{ color: '#22c55e' }}>📚</span>
           <span>Library</span>
         </button>
@@ -91,11 +108,11 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
       {/* Bottom Bar */}
       <div className="hub-bottom-bar">
-        <button className="hub-action-btn-icon" aria-label="Zvuk">
+        <button className="hub-action-btn-icon" aria-label="Zvuk" onClick={() => alert('Zvuk zapnut/vypnut')}>
           🔊
         </button>
         
-        <button className="hub-talk-btn" onClick={onTalk}>
+        <button className="hub-talk-btn" onClick={onTalk || (() => alert('Buddy poslouchá...'))}>
           🎙️ PROMLUV SI SE MNOU
         </button>
 
@@ -108,3 +125,4 @@ export const HubModule: React.FC<HubModuleProps> = ({
 }
 
 export default HubModule
+        
