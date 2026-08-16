@@ -3,9 +3,21 @@ import { ProfilIcon } from './ProfilIcon'
 
 interface ProfilHeaderProps {
   onBack?: () => void
+  onToggleNotifications: () => void
+  onToggleSettings: () => void
+  notificationsOpen: boolean
+  settingsOpen: boolean
+  hasUnread: boolean
 }
 
-export const ProfilHeader: React.FC<ProfilHeaderProps> = ({ onBack }) => (
+export const ProfilHeader: React.FC<ProfilHeaderProps> = ({
+  onBack,
+  onToggleNotifications,
+  onToggleSettings,
+  notificationsOpen,
+  settingsOpen,
+  hasUnread
+}) => (
   <>
     <header className="profil-header">
       <button className="profil-back-btn" onClick={onBack}>
@@ -13,10 +25,19 @@ export const ProfilHeader: React.FC<ProfilHeaderProps> = ({ onBack }) => (
         <span>Zpět</span>
       </button>
       <div className="profil-header-actions">
-        <button className="profil-icon-btn" aria-label="Notifikace">
+        <button
+          className={`profil-icon-btn ${notificationsOpen ? 'active' : ''}`}
+          aria-label="Notifikace"
+          onClick={onToggleNotifications}
+        >
           <ProfilIcon name="bell" size={20} />
+          {hasUnread && <span className="profil-notif-badge" />}
         </button>
-        <button className="profil-icon-btn" aria-label="Nastavení">
+        <button
+          className={`profil-icon-btn ${settingsOpen ? 'active' : ''}`}
+          aria-label="Nastavení"
+          onClick={onToggleSettings}
+        >
           <ProfilIcon name="settings" size={20} />
         </button>
       </div>
