@@ -293,3 +293,497 @@
   background: linear-gradient(90deg, var(--c-cyan), var(--c-purple));
   box-shadow: 0 0 6px var(--c-cyan);
    }
+
+/* ==========================================
+   HLAVIČKA - tlačítka, aktivní stav, badge
+   ========================================== */
+.profil-back-btn,
+.profil-icon-btn {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--profil-card-border);
+  color: var(--profil-text-main);
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease, background 0.2s ease, border-color 0.2s ease;
+}
+
+.profil-icon-btn {
+  padding: 0.4rem;
+}
+
+.profil-back-btn:active,
+.profil-icon-btn:active {
+  transform: scale(0.92);
+}
+
+.profil-icon-btn.active {
+  background: rgba(6, 182, 212, 0.18);
+  border-color: rgba(6, 182, 212, 0.5);
+  color: var(--c-cyan);
+}
+
+.profil-icon-btn.small {
+  padding: 0.3rem;
+  border-radius: 8px;
+}
+
+.profil-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.profil-notif-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-fire);
+  box-shadow: 0 0 6px var(--c-fire);
+  animation: profilPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes profilPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.7; }
+}
+
+/* ==========================================
+   AVATAR - upload tlačítko
+   ========================================== */
+.profil-avatar-wrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.profil-avatar-edit {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--c-cyan);
+  border: 2px solid var(--profil-card-bg);
+  color: #041016;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.profil-avatar-edit:active {
+  transform: scale(0.85);
+}
+
+.profil-hidden-input {
+  display: none;
+}
+
+/* ==========================================
+   TOAST - krátká zpětná vazba
+   ========================================== */
+.profil-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  transform: translate(-50%, 16px);
+  background: rgba(19, 25, 39, 0.97);
+  border: 1px solid var(--profil-card-border);
+  color: var(--profil-text-main);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.5rem 0.9rem;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease;
+  z-index: 60;
+  max-width: 90%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profil-toast.open {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* ==========================================
+   NOTIFIKACE - dropdown panel
+   ========================================== */
+.profil-dropdown-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.profil-dropdown-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.profil-notif-dropdown {
+  position: absolute;
+  top: 3rem;
+  right: 0.75rem;
+  width: min(280px, 82vw);
+  background: var(--profil-card-bg);
+  border: 1px solid var(--profil-card-border);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  z-index: 46;
+  overflow: hidden;
+  transform-origin: top right;
+  transform: scale(0.9) translateY(-6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.2s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
+}
+
+.profil-notif-dropdown.open {
+  transform: scale(1) translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.profil-notif-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  border-bottom: 1px solid var(--profil-card-border);
+}
+
+.profil-notif-list {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.profil-notif-item {
+  width: 100%;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  background: none;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+}
+
+.profil-notif-item:last-child {
+  border-bottom: none;
+}
+
+.profil-notif-item.read {
+  opacity: 0.5;
+}
+
+.profil-notif-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-cyan);
+  margin-top: 0.3rem;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px var(--c-cyan);
+}
+
+.profil-notif-title {
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.profil-notif-time {
+  font-size: 0.55rem;
+  color: var(--profil-text-sub);
+  margin-top: 0.1rem;
+}
+
+/* ==========================================
+   SETTINGS SHEET - vyjíždí zespodu nahoru
+   ========================================== */
+.profil-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s ease;
+  z-index: 50;
+}
+
+.profil-sheet-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.profil-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--profil-card-bg);
+  border: 1px solid var(--profil-card-border);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.55);
+  transform: translateY(102%);
+  transition: transform 0.34s cubic-bezier(0.32, 0.72, 0, 1);
+  z-index: 51;
+  max-height: 82vh;
+  max-height: 82dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0.9rem calc(0.9rem + env(safe-area-inset-bottom));
+}
+
+.profil-sheet.open {
+  transform: translateY(0);
+}
+
+.profil-sheet-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  margin: 0.15rem auto 0.5rem;
+}
+
+.profil-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.profil-sheet-header-spacer {
+  width: 28px;
+  height: 28px;
+}
+
+.profil-sheet-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.profil-sheet-body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profil-sheet-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.profil-sheet-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--profil-card-border);
+  border-radius: 12px;
+  padding: 0.55rem 0.6rem;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.15s ease, background 0.2s ease;
+  animation: profilSheetItemIn 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.profil-sheet.open .profil-sheet-item:nth-child(1) { animation-delay: 0.04s; }
+.profil-sheet.open .profil-sheet-item:nth-child(2) { animation-delay: 0.1s; }
+
+.profil-sheet-item:active {
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+@keyframes profilSheetItemIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.profil-sheet-item-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.profil-sheet-item-icon.blue { color: var(--c-cyan); background: rgba(6, 182, 212, 0.12); }
+.profil-sheet-item-icon.purple { color: var(--c-purple); background: rgba(168, 85, 247, 0.12); }
+.profil-sheet-item-icon.cyan { color: var(--c-cyan); background: rgba(6, 182, 212, 0.12); }
+.profil-sheet-item-icon.amber { color: var(--c-amber); background: rgba(245, 158, 11, 0.12); }
+
+.profil-sheet-item-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.profil-sheet-item-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.profil-sheet-item-sub {
+  font-size: 0.6rem;
+  color: var(--profil-text-sub);
+}
+
+.profil-sheet-item-chevron {
+  color: var(--profil-text-sub);
+  flex-shrink: 0;
+}
+
+/* Formulář v sheetu (Osobní informace) */
+.profil-sheet-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  animation: profilSheetItemIn 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+.profil-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--profil-text-sub);
+}
+
+.profil-field input {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--profil-card-border);
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem;
+  color: var(--profil-text-main);
+  font-size: 0.72rem;
+  font-weight: 600;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profil-field input:focus {
+  border-color: var(--c-cyan);
+  box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
+}
+
+.profil-sheet-save-btn {
+  margin-top: 0.2rem;
+  background: linear-gradient(90deg, var(--c-cyan), var(--c-purple));
+  color: #041016;
+  font-weight: 800;
+  font-size: 0.75rem;
+  border: none;
+  border-radius: 12px;
+  padding: 0.6rem;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.profil-sheet-save-btn:active {
+  transform: scale(0.97);
+}
+
+/* Přepínače v Zabezpečení */
+.profil-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--profil-card-border);
+  border-radius: 12px;
+  padding: 0.5rem 0.6rem;
+}
+
+.profil-switch {
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: none;
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.25s ease;
+}
+
+.profil-switch.on {
+  background: var(--c-cyan);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+}
+
+.profil-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.profil-switch.on .profil-switch-knob {
+  transform: translateX(16px);
+}
+
+.profil-sheet-danger-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 0.7rem;
+  font-weight: 800;
+  border-radius: 12px;
+  padding: 0.55rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.profil-sheet-danger-btn:active {
+  transform: scale(0.97);
+  background: rgba(239, 68, 68, 0.2);
+}
