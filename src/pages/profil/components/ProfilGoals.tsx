@@ -7,11 +7,15 @@ const goals = [
   { icon: 'calendar', color: 'purple', fill: 'purple', title: 'Měsíční cíl', sub: 'Uč se 20 hodin', val: '13 / 20 hod', progress: '65%' },
 ]
 
-export const ProfilGoals: React.FC = () => (
+interface ProfilGoalsProps {
+  onShowAll: () => void
+}
+
+export const ProfilGoals: React.FC<ProfilGoalsProps> = ({ onShowAll }) => (
   <section className="profil-panel">
     <div className="profil-panel-header">
       <h3>Moje cíle</h3>
-      <button className="profil-link-btn">Zobrazit vše</button>
+      <button className="profil-link-btn" onClick={onShowAll}>Zobrazit vše</button>
     </div>
 
     <div className="profil-goals-list">
