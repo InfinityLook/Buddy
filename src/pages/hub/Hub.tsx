@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
 import './HubModule.css'
 
 interface HubModuleProps {
@@ -18,6 +19,14 @@ export const HubModule: React.FC<HubModuleProps> = ({
   onTalk,
 }) => {
   const navigate = useNavigate()
+  
+  // Načtení gamifikačních dat ze storu
+  const { level, xp, streakDays, recordActivity } = useGamificationStore()
+
+  // Zaznamenání aktivity při otevření Hubu pro započítání streaku
+  useEffect(() => {
+    recordActivity()
+  }, [recordActivity])
 
   const handleAppsClick = () => {
     if (onOpenApps) {
@@ -34,9 +43,12 @@ export const HubModule: React.FC<HubModuleProps> = ({
         <div className="hub-logo">
           ✦ SchoolBuddy
         </div>
+        
+        {/* Dynamický badge s úrovní, XP a streakem */}
         <div className="hub-level-badge">
-          ⭐ ÚROVEŇ 1
+          ⭐ ÚROVEŇ {level} ({xp} XP) {streakDays > 0 && `| 🔥 ${streakDays} d`}
         </div>
+
         <button 
           className="hub-logout-btn" 
           aria-label="Odhlásit se"
@@ -125,4 +137,4 @@ export const HubModule: React.FC<HubModuleProps> = ({
 }
 
 export default HubModule
-        
+          
