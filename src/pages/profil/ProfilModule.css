@@ -1,41 +1,43 @@
 /* ==========================================
-   PROFIL MODULE - HUB MOBILE DESIGN SYSTEM
+   PROFIL MODULE - NEON & GLASS STUDENT DESIGN
    ========================================== */
 
 :root {
-  --profil-bg: #0b0d19;
-  --profil-card-bg: rgba(22, 27, 46, 0.75);
-  --profil-card-border: rgba(255, 255, 255, 0.08);
-  --profil-card-glow: rgba(53, 196, 240, 0.05);
+  --profil-bg: #070913;
+  --profil-card-bg: rgba(20, 26, 48, 0.65);
+  --profil-card-border: rgba(255, 255, 255, 0.12);
   
-  --profil-primary-gradient: linear-gradient(135deg, #35c4f0 0%, #8a5cf6 100%);
-  --profil-gold-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-  --profil-fire-gradient: linear-gradient(135deg, #ff5e62 0%, #ff9966 100%);
-  
+  /* Zářivé neónové gradienty */
+  --profil-cyan-glow: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+  --profil-purple-glow: linear-gradient(135deg, #b820e6 0%, #8a5cf6 100%);
+  --profil-fire-glow: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
+  --profil-gold-glow: linear-gradient(135deg, #ffb347 0%, #ffcc33 100%);
+  --profil-green-glow: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+
   --profil-text-main: #ffffff;
   --profil-text-muted: #94a3b8;
-  --profil-radius-lg: 14px;
-  --profil-radius-md: 10px;
-  --profil-radius-sm: 6px;
+  --profil-radius-lg: 16px;
+  --profil-radius-md: 12px;
+  --profil-radius-sm: 8px;
 }
 
-/* Hlavní kontejner – pevná výška bez scrollu */
+/* Hlavní kontejner s okrajovým neónovým podsvícením */
 .profil-container {
   height: 100vh;
   height: 100dvh;
-  overflow: hidden; /* Zamezí scrollování */
+  overflow: hidden;
   background: var(--profil-bg);
   background-image: 
-    radial-gradient(circle at 10% 10%, rgba(53, 196, 240, 0.12) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(138, 92, 246, 0.12) 0%, transparent 40%);
+    radial-gradient(circle at 15% 15%, rgba(0, 242, 254, 0.18) 0%, transparent 45%),
+    radial-gradient(circle at 85% 85%, rgba(184, 32, 230, 0.18) 0%, transparent 45%);
   color: var(--profil-text-main);
-  padding: 0.4rem 0.75rem calc(0.4rem + env(safe-area-inset-bottom)) 0.75rem;
+  padding: 0.5rem 0.8rem calc(0.5rem + env(safe-area-inset-bottom)) 0.8rem;
   max-width: 600px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 0.35rem;
+  gap: 0.4rem;
   box-sizing: border-box;
 }
 
@@ -52,178 +54,116 @@
 .profil-back-btn {
   display: flex;
   align-items: center;
-  gap: 0.38rem;
-  background: rgba(255, 255, 255, 0.06);
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--profil-card-border);
   color: var(--profil-text-main);
-  padding: 0.35rem 0.75rem;
+  padding: 0.35rem 0.8rem;
   border-radius: 30px;
   font-size: 0.75rem;
   font-weight: 600;
-  cursor: pointer;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
 }
 
 .profil-header-actions {
   display: flex;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .profil-icon-btn {
-  width: 32px;
-  height: 32px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--profil-card-border);
   color: var(--profil-text-main);
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-}
-
-/* Nadpis stránek */
-.profil-title-section {
-  margin-top: 0;
 }
 
 .profil-title-section h1 {
-  font-size: 1.2rem;
+  font-size: 1.25rem;
   font-weight: 800;
   margin: 0;
-  letter-spacing: -0.5px;
+  background: linear-gradient(90deg, #fff 0%, #cbd5e1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .profil-title-section p {
   color: var(--profil-text-muted);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   margin: 0;
 }
 
 /* ------------------------------------------
-   KARTA UŽIVATELE (USER CARD)
+   KARTA UŽIVATELE S PODSVÍCENÍM
    ------------------------------------------ */
 .profil-user-card {
   background: var(--profil-card-bg);
   border: 1px solid var(--profil-card-border);
   border-radius: var(--profil-radius-lg);
-  padding: 0.6rem;
-  backdrop-filter: blur(12px);
+  padding: 0.65rem 0.75rem;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   display: flex;
   flex-direction: column;
-  gap: 0.45rem;
+  gap: 0.5rem;
 }
 
 .profil-user-main {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-}
-
-.profil-avatar-wrapper {
-  position: relative;
-  flex-shrink: 0;
+  gap: 0.7rem;
 }
 
 .profil-avatar-img {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid transparent;
-  background: var(--profil-primary-gradient) border-box;
-}
-
-.profil-avatar-edit {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #35c4f0;
-  border: 2px solid var(--profil-bg);
-  color: #000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.6rem;
-}
-
-.profil-user-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  overflow: hidden;
+  border: 2px solid #00f2fe;
+  box-shadow: 0 0 12px rgba(0, 242, 254, 0.4);
 }
 
 .profil-badge {
   align-self: flex-start;
   font-size: 0.55rem;
   font-weight: 800;
-  background: rgba(138, 92, 246, 0.2);
-  color: #b794f4;
-  border: 1px solid rgba(138, 92, 246, 0.4);
-  padding: 0.1rem 0.45rem;
+  background: rgba(184, 32, 230, 0.25);
+  color: #e879f9;
+  border: 1px solid rgba(184, 32, 230, 0.5);
+  padding: 0.1rem 0.5rem;
   border-radius: 20px;
-  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 0 8px rgba(184, 32, 230, 0.3);
 }
 
 .profil-user-info h2 {
-  font-size: 1.05rem;
-  font-weight: 700;
+  font-size: 1.1rem;
+  font-weight: 800;
   margin: 0;
-  line-height: 1.1;
 }
 
 .profil-motto {
   font-size: 0.65rem;
   color: var(--profil-text-muted);
-  margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.profil-email {
-  display: flex;
-  align-items: center;
-  gap: 0.2rem;
-  font-size: 0.65rem;
-  color: var(--profil-text-muted);
-}
-
-/* Level & Streak bloky v kartě */
-.profil-user-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
+/* Level & Streak */
 .profil-level-box {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(0, 0, 0, 0.25);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--profil-radius-md);
   padding: 0.4rem 0.6rem;
 }
 
-.profil-level-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.15rem;
-}
-
 .profil-level-text {
   font-size: 0.65rem;
   font-weight: 800;
-  color: #35c4f0;
-}
-
-.profil-xp-text {
-  font-size: 0.65rem;
-  color: var(--profil-text-muted);
-  font-weight: 600;
+  color: #00f2fe;
+  text-shadow: 0 0 8px rgba(0, 242, 254, 0.5);
 }
 
 .profil-progress-bg {
@@ -236,95 +176,86 @@
 
 .profil-progress-fill {
   height: 100%;
-  background: var(--profil-primary-gradient);
+  background: var(--profil-cyan-glow);
+  box-shadow: 0 0 10px #00f2fe;
   border-radius: 10px;
 }
 
 .profil-streak-box {
-  background: rgba(255, 94, 98, 0.08);
-  border: 1px solid rgba(255, 94, 98, 0.2);
+  background: rgba(255, 8, 68, 0.12);
+  border: 1px solid rgba(255, 8, 68, 0.3);
   border-radius: var(--profil-radius-md);
-  padding: 0.35rem 0.6rem;
+  padding: 0.35rem 0.65rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  box-shadow: inset 0 0 12px rgba(255, 8, 68, 0.15);
 }
 
 .profil-streak-num {
   font-size: 1rem;
-  font-weight: 800;
-  color: #fff;
-}
-
-.profil-streak-label {
-  font-size: 0.7rem;
-  color: #ff9966;
-  font-weight: 600;
+  font-weight: 900;
+  color: #ffb199;
+  text-shadow: 0 0 8px rgba(255, 8, 68, 0.6);
 }
 
 /* ------------------------------------------
-   RYCHLÉ STATISTIKY (4 V ŘADĚ VEDLE SEBE)
+   RYCHLÉ STATISTIKY (PODSVÍCENÉ IKONY)
    ------------------------------------------ */
 .profil-quick-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 0.3rem;
+  gap: 0.35rem;
 }
 
 .profil-stat-card {
   background: var(--profil-card-bg);
   border: 1px solid var(--profil-card-border);
   border-radius: var(--profil-radius-md);
-  padding: 0.35rem 0.2rem;
+  padding: 0.4rem 0.2rem;
+  backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 0.15rem;
+  gap: 0.2rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
 }
 
 .profil-stat-icon {
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
 }
 
-.profil-stat-icon.purple { background: rgba(138, 92, 246, 0.15); color: #a78bfa; }
-.profil-stat-icon.green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-.profil-stat-icon.yellow { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-.profil-stat-icon.blue { background: rgba(53, 196, 240, 0.15); color: #38bdf8; }
+.profil-stat-icon.purple { background: rgba(184, 32, 230, 0.2); color: #c084fc; box-shadow: 0 0 8px rgba(184, 32, 230, 0.3); }
+.profil-stat-icon.green  { background: rgba(16, 185, 129, 0.2); color: #34d399; box-shadow: 0 0 8px rgba(16, 185, 129, 0.3); }
+.profil-stat-icon.yellow { background: rgba(255, 179, 71, 0.2); color: #fbbf24; box-shadow: 0 0 8px rgba(255, 179, 71, 0.3); }
+.profil-stat-icon.blue   { background: rgba(0, 242, 254, 0.2);  color: #38bdf8; box-shadow: 0 0 8px rgba(0, 242, 254, 0.3); }
 
 .profil-stat-value {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   font-weight: 800;
-  line-height: 1;
 }
 
 .profil-stat-label {
   font-size: 0.55rem;
   color: var(--profil-text-muted);
-  margin-top: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
 }
 
 /* ------------------------------------------
-   MOJE ÚSPĚCHY (POUZE ODZNAKY V ŘADĚ)
+   MOJE ÚSPĚCHY (ZÁŘÍCÍ ODZNAKY)
    ------------------------------------------ */
 .profil-panel {
   background: var(--profil-card-bg);
   border: 1px solid var(--profil-card-border);
   border-radius: var(--profil-radius-lg);
-  padding: 0.5rem 0.65rem;
-  backdrop-filter: blur(12px);
+  padding: 0.55rem 0.75rem;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.3);
 }
 
 .profil-panel-header {
@@ -335,25 +266,22 @@
 }
 
 .profil-panel-header h3 {
-  font-size: 0.825rem;
-  font-weight: 700;
+  font-size: 0.85rem;
+  font-weight: 800;
   margin: 0;
 }
 
 .profil-link-btn {
   background: none;
   border: none;
-  color: #35c4f0;
+  color: #00f2fe;
   font-size: 0.7rem;
-  font-weight: 600;
-  cursor: pointer;
-  padding: 0;
+  font-weight: 700;
+  text-shadow: 0 0 6px rgba(0, 242, 254, 0.4);
 }
 
 .profil-list {
   display: flex;
-  flex-direction: row;
-  justify-content: space-between;
   gap: 0.35rem;
 }
 
@@ -362,12 +290,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  padding: 0.35rem 0.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0.4rem 0.15rem;
   border-radius: var(--profil-radius-md);
-  text-align: center;
 }
 
 .profil-item-icon {
@@ -377,86 +303,70 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-  font-size: 0.95rem;
-}
-
-.profil-item-content {
-  margin-top: 0.2rem;
-  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.05);
 }
 
 .profil-item-title {
-  font-size: 0.6rem;
-  font-weight: 600;
+  font-size: 0.58rem;
   color: var(--profil-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  text-align: center;
-}
-
-.profil-item-sub,
-.profil-item-date,
-.profil-check {
-  display: none !important;
+  margin-top: 0.2rem;
+  font-weight: 600;
 }
 
 /* ------------------------------------------
-   MOJE CÍLE (ULTRA KOMPAKTNÍ ŘÁDKY)
+   MOJE CÍLE (OPRAVA ROZLOŽENÍ + NEON EFFECT)
    ------------------------------------------ */
 .profil-goals-list {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.3rem;
 }
 
 .profil-goal-item {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--profil-radius-sm);
+  padding: 0.35rem 0.55rem;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  padding: 0.3rem 0.5rem;
-  border-radius: var(--profil-radius-sm);
 }
 
-.profil-goal-top {
+.profil-goal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
-.profil-goal-title-wrap {
+.profil-goal-title {
   display: flex;
   align-items: center;
   gap: 0.35rem;
   font-size: 0.68rem;
   font-weight: 600;
+  color: #e2e8f0;
 }
 
-.profil-goal-title-wrap svg,
-.profil-goal-title-wrap i {
-  width: 12px;
-  height: 12px;
+.profil-goal-title i, 
+.profil-goal-title svg {
+  color: #00f2fe;
   font-size: 0.75rem;
-  color: #35c4f0;
 }
 
 .profil-goal-value {
   font-size: 0.68rem;
-  font-weight: 700;
-  color: #35c4f0;
-  white-space: nowrap;
+  font-weight: 800;
+  color: #00f2fe;
+  text-shadow: 0 0 6px rgba(0, 242, 254, 0.5);
 }
 
 .profil-goal-item .profil-progress-bg {
   height: 4px;
 }
-/* Skrytí spodního menu nastavení pro zachování 100dvh layoutu */
-.profil-menu, 
-.profil-settings, 
-.profil-settings-section {
-  display: none !important;
-}
 
+.profil-goal-item .profil-progress-fill {
+  background: var(--profil-purple-glow);
+  box-shadow: 0 0 8px #b820e6;
+}
