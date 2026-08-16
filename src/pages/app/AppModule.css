@@ -20,7 +20,10 @@
 }
 
 .app-container {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--app-bg);
   background-image: 
     radial-gradient(circle at 50% 0%, rgba(138, 92, 246, 0.15) 0%, transparent 50%),
@@ -470,7 +473,7 @@
 }
 
 /* ------------------------------------------
-   RESPONSIVITA (MOBILNÍ OPTIMALIZACE)
+   RESPONSIVITA (MOBILNÍ OPTIMALIZACE & SCROLL)
    ------------------------------------------ */
 @media (max-width: 680px) {
   .app-container {
@@ -486,7 +489,6 @@
     display: none;
   }
 
-  /* Statistiky - mřížka 2x2 */
   .app-stats-bar {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.6rem;
@@ -513,14 +515,13 @@
     font-size: 0.65rem;
   }
 
-  /* Lišta vyhledávání a filtrů */
   .app-toolbar-top {
     flex-wrap: wrap;
     gap: 0.5rem;
   }
 
   .app-search-box {
-    flex: 1 1 100%; /* Vyhledávání zabere celý horní řádek */
+    flex: 1 1 100%;
   }
 
   .app-filter-btn {
@@ -528,7 +529,6 @@
     justify-content: center;
   }
 
-  /* Karty aplikací - kompaktnější */
   .app-grid-container {
     grid-template-columns: repeat(2, 1fr);
     gap: 0.6rem;
@@ -558,7 +558,6 @@
     padding-top: 0.4rem;
   }
 
-  /* Banner */
   .app-banner {
     flex-direction: column;
     text-align: center;
@@ -571,4 +570,3 @@
     justify-content: center;
   }
    }
-   
