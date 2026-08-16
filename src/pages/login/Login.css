@@ -1,6 +1,6 @@
 .login-screen {
   position: relative;
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
