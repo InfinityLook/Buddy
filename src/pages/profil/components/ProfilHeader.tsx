@@ -1,23 +1,23 @@
-import React from 'react';
-import { ArrowLeft, Bell, Settings } from 'lucide-react';
+import React from 'react'
+import { ProfilIcon } from './ProfilIcon'
 
 interface ProfilHeaderProps {
-  onBack?: () => void;
+  onBack?: () => void
 }
 
 export const ProfilHeader: React.FC<ProfilHeaderProps> = ({ onBack }) => (
   <>
     <header className="profil-header">
       <button className="profil-back-btn" onClick={onBack}>
-        <ArrowLeft size={18} />
+        <ProfilIcon name="arrow-left" size={18} />
         <span>Zpět</span>
       </button>
       <div className="profil-header-actions">
         <button className="profil-icon-btn" aria-label="Notifikace">
-          <Bell size={20} />
+          <ProfilIcon name="bell" size={20} />
         </button>
         <button className="profil-icon-btn" aria-label="Nastavení">
-          <Settings size={20} />
+          <ProfilIcon name="settings" size={20} />
         </button>
       </div>
     </header>
@@ -27,4 +27,4 @@ export const ProfilHeader: React.FC<ProfilHeaderProps> = ({ onBack }) => (
       <p>Spravuj svůj účet a sleduj svůj pokrok.</p>
     </div>
   </>
-);
+)
