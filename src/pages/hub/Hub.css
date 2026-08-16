@@ -1,10 +1,11 @@
 .hub-screen {
-  min-height: 100dvh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: radial-gradient(circle at 50% 15%, #131c34 0%, var(--bg-base) 55%);
   padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
-  gap: 16px;
+  gap: 12px;
+  overflow: hidden;
 }
 
 /* ---- Top bar ---- */
@@ -145,6 +146,7 @@
   grid-template-columns: 84px 1fr 84px;
   align-items: center;
   gap: 8px;
+  min-height: 0;
 }
 
 .hub-actions {
@@ -211,7 +213,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: flex-end;
-  min-height: 320px;
+  min-height: 0;
+  height: 100%;
 }
 
 .hub-speech-bubble {
