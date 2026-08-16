@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { exportDataToJson } from '@/core/utils/backup'
+import { validateAppsData } from '@/core/utils/validation'
 
 export interface AppItem {
   id: string
@@ -21,7 +22,7 @@ interface AppState {
   toggleFavorite: (id: string) => void
   addApp: (app: AppItem) => void
   exportState: () => void
-  importState: (newApps: AppItem[]) => void
+  importState: (incomingData: unknown) => boolean
 }
 
 const DEFAULT_APPS: AppItem[] = [
@@ -55,29 +56,42 @@ export const useAppStore = create<AppState>()(
           apps: [...state.apps, newApp],
         })),
 
-      // Vyexportuje aktuální stav aplikací
       exportState: () => {
         const state = get()
         exportDataToJson({ apps: state.apps }, `schoolbuddy-backup-${new Date().toISOString().slice(0, 10)}.json`)
       },
 
-      // Přepíše stav nově načtenými daty
-      importState: (newApps) => {
-        if (Array.isArray(newApps)) {
-          set({ apps: newApps })
+      // Bezpečný import s okamžitou validací
+      importState: (incomingData: unknown) => {
+        // Pokud přišel objekt obsahující 'apps', vytáhneme pole, jinak zkusíme přímo incomingData
+        const rawApps = (typeof incomingData === 'object' && incomingData !== null && 'apps' in incomingData)
+          ? (incomingData as { apps: unknown }).apps
+          : incomingData
+
+        const validation = validateAppsData(rawApps)
+        if (validation.success && validation.data) {
+          set({ apps: validation.data })
+          return true
+        } else {
+          alert('Chyba: Nahraný soubor obsahuje neplatná nebo poškozená data.')
+          return false
         }
       },
     }),
     {
       name: 'schoolbuddy-app-storage',
-      version: 1, // Číslo verze pro budoucí migrace
+      version: 1,
       storage: createJSONStorage(() => secureStorage),
       partialize: (state) => ({ apps: state.apps }),
       
-      // Funkce pro bezpečné automatické úpravy dat při změně verze
+      // Validace dat načítaných ze secureStorage
       migrate: (persistedState: any, version: number) => {
-        if (version === 0) {
-          // Případné úpravy ze starších verzí
+        if (persistedState && persistedState.apps) {
+          const validation = validateAppsData(persistedState.apps)
+          if (!validation.success) {
+            console.error('Data v LocalStorage byla poškozena. Obnovuji výchozí stav.')
+            return { apps: DEFAULT_APPS, activeAppId: null } as AppState
+          }
         }
         return persistedState as AppState
       },
