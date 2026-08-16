@@ -14,25 +14,28 @@
   
   --profil-text-main: #ffffff;
   --profil-text-muted: #94a3b8;
-  --profil-radius-lg: 20px;
-  --profil-radius-md: 14px;
-  --profil-radius-sm: 10px;
+  --profil-radius-lg: 16px;
+  --profil-radius-md: 12px;
+  --profil-radius-sm: 8px;
 }
 
-/* Hlavní kontejner s podporou mobilních safe-areas */
+/* Hlavní kontejner – pevná výška bez scrollu */
 .profil-container {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden; /* Zamezí scrollování */
   background: var(--profil-bg);
   background-image: 
     radial-gradient(circle at 10% 10%, rgba(53, 196, 240, 0.12) 0%, transparent 40%),
     radial-gradient(circle at 90% 80%, rgba(138, 92, 246, 0.12) 0%, transparent 40%);
   color: var(--profil-text-main);
-  padding: 1rem 1rem calc(3rem + env(safe-area-inset-bottom)) 1rem;
+  padding: 0.6rem 0.85rem calc(0.6rem + env(safe-area-inset-bottom)) 0.85rem;
   max-width: 600px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  justify-content: space-between;
+  gap: 0.5rem;
   box-sizing: border-box;
 }
 
@@ -49,32 +52,26 @@
 .profil-back-btn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.4rem;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--profil-card-border);
   color: var(--profil-text-main);
-  padding: 0.6rem 1rem;
+  padding: 0.45rem 0.85rem;
   border-radius: 30px;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
   backdrop-filter: blur(8px);
-  transition: all 0.2s ease;
-}
-
-.profil-back-btn:active {
-  transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.12);
 }
 
 .profil-header-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.4rem;
 }
 
 .profil-icon-btn {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--profil-card-border);
@@ -83,28 +80,23 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  backdrop-filter: blur(8px);
-}
-
-.profil-icon-btn:active {
-  transform: scale(0.95);
 }
 
 /* Nadpis stránek */
 .profil-title-section {
-  margin-top: 0.25rem;
+  margin-top: 0;
 }
 
 .profil-title-section h1 {
-  font-size: 1.75rem;
+  font-size: 1.35rem;
   font-weight: 800;
-  margin: 0 0 0.25rem 0;
+  margin: 0;
   letter-spacing: -0.5px;
 }
 
 .profil-title-section p {
   color: var(--profil-text-muted);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   margin: 0;
 }
 
@@ -115,18 +107,17 @@
   background: var(--profil-card-bg);
   border: 1px solid var(--profil-card-border);
   border-radius: var(--profil-radius-lg);
-  padding: 1.25rem;
+  padding: 0.85rem;
   backdrop-filter: blur(12px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.65rem;
 }
 
 .profil-user-main {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .profil-avatar-wrapper {
@@ -135,21 +126,20 @@
 }
 
 .profil-avatar-img {
-  width: 76px;
-  height: 76px;
+  width: 58px;
+  height: 58px;
   border-radius: 50%;
   object-fit: cover;
   border: 2px solid transparent;
   background: var(--profil-primary-gradient) border-box;
-  box-shadow: 0 0 15px rgba(53, 196, 240, 0.3);
 }
 
 .profil-avatar-edit {
   position: absolute;
   bottom: 0;
   right: 0;
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   background: #35c4f0;
   border: 2px solid var(--profil-bg);
@@ -157,38 +147,37 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  font-size: 0.65rem;
 }
 
 .profil-user-info {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.15rem;
   overflow: hidden;
 }
 
 .profil-badge {
   align-self: flex-start;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   font-weight: 800;
-  letter-spacing: 0.5px;
   background: rgba(138, 92, 246, 0.2);
   color: #b794f4;
   border: 1px solid rgba(138, 92, 246, 0.4);
-  padding: 0.2rem 0.6rem;
+  padding: 0.15rem 0.5rem;
   border-radius: 20px;
   text-transform: uppercase;
 }
 
 .profil-user-info h2 {
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: 700;
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.1;
 }
 
 .profil-motto {
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   color: var(--profil-text-muted);
   margin: 0;
   white-space: nowrap;
@@ -199,55 +188,47 @@
 .profil-email {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
+  gap: 0.25rem;
+  font-size: 0.7rem;
   color: var(--profil-text-muted);
-  margin-top: 0.1rem;
 }
 
 /* Level & Streak bloky v kartě */
 .profil-user-stats {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .profil-level-box {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--profil-radius-md);
-  padding: 0.85rem 1rem;
+  padding: 0.6rem 0.75rem;
 }
 
 .profil-level-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.2rem;
 }
 
 .profil-level-text {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 0.5px;
   color: #35c4f0;
 }
 
-.profil-crown-icon {
-  color: #f59e0b;
-}
-
 .profil-xp-text {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--profil-text-muted);
-  margin-bottom: 0.5rem;
-  text-align: right;
   font-weight: 600;
 }
 
 .profil-progress-bg {
   width: 100%;
-  height: 8px;
+  height: 6px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   overflow: hidden;
@@ -257,42 +238,26 @@
   height: 100%;
   background: var(--profil-primary-gradient);
   border-radius: 10px;
-  transition: width 0.4s ease;
 }
-
-.profil-progress-fill.cyan { background: linear-gradient(90deg, #35c4f0, #00d2ff); }
-.profil-progress-fill.green { background: linear-gradient(90deg, #10b981, #34d399); }
-.profil-progress-fill.purple { background: linear-gradient(90deg, #8a5cf6, #c084fc); }
 
 .profil-streak-box {
   background: rgba(255, 94, 98, 0.08);
   border: 1px solid rgba(255, 94, 98, 0.2);
   border-radius: var(--profil-radius-md);
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.75rem;
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-}
-
-.profil-streak-fire {
-  color: #ff5e62;
-  filter: drop-shadow(0 0 6px rgba(255, 94, 98, 0.5));
-}
-
-.profil-streak-info {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5rem;
+  gap: 0.6rem;
 }
 
 .profil-streak-num {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 800;
   color: #fff;
 }
 
 .profil-streak-label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #ff9966;
   font-weight: 600;
 }
@@ -303,24 +268,23 @@
 .profil-quick-stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .profil-stat-card {
   background: var(--profil-card-bg);
   border: 1px solid var(--profil-card-border);
   border-radius: var(--profil-radius-md);
-  padding: 0.85rem;
+  padding: 0.6rem 0.75rem;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  backdrop-filter: blur(10px);
+  gap: 0.6rem;
 }
 
 .profil-stat-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -333,31 +297,25 @@
 .profil-stat-icon.blue { background: rgba(53, 196, 240, 0.15); color: #38bdf8; }
 
 .profil-stat-value {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 800;
-  line-height: 1.1;
+  line-height: 1;
 }
 
 .profil-stat-label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--profil-text-muted);
-  margin-top: 0.15rem;
+  margin-top: 0.1rem;
 }
 
 /* ------------------------------------------
-   PANELY (SEKCE) A SEZNAMY
+   MOJE ÚSPĚCHY (POUZE ODZNAKY V RADE)
    ------------------------------------------ */
-.profil-grid-2 {
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
 .profil-panel {
   background: var(--profil-card-bg);
   border: 1px solid var(--profil-card-border);
   border-radius: var(--profil-radius-lg);
-  padding: 1.1rem;
+  padding: 0.75rem 0.85rem;
   backdrop-filter: blur(12px);
 }
 
@@ -365,11 +323,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .profil-panel-header h3 {
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 700;
   margin: 0;
 }
@@ -378,174 +336,62 @@
   background: none;
   border: none;
   color: #35c4f0;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   padding: 0;
 }
 
+/* Transformace seznamu na vodorovný grid/flex odznaků */
 .profil-list {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 0.4rem;
 }
 
 .profil-item {
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  padding: 0.65rem 0.75rem;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  padding: 0.5rem 0.2rem;
   border-radius: var(--profil-radius-md);
+  text-align: center;
 }
 
 .profil-item-icon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  font-size: 1.1rem;
 }
 
-.profil-item-icon.gold { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
-.profil-item-icon.purple { background: rgba(138, 92, 246, 0.15); color: #a78bfa; }
-.profil-item-icon.blue { background: rgba(53, 196, 240, 0.15); color: #38bdf8; }
-.profil-item-icon.yellow { background: rgba(250, 204, 21, 0.15); color: #facc15; }
-.profil-item-icon.green { background: rgba(16, 185, 129, 0.15); color: #34d399; }
-
 .profil-item-content {
-  flex: 1;
-  min-width: 0;
+  margin-top: 0.3rem;
+  width: 100%;
 }
 
 .profil-item-title {
-  font-size: 0.825rem;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.profil-item-sub {
-  font-size: 0.7rem;
-  color: var(--profil-text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.profil-item-date {
-  font-size: 0.68rem;
-  color: var(--profil-text-muted);
-  margin-right: 0.25rem;
-}
-
-.profil-check {
-  color: #10b981;
-  display: flex;
-  align-items: center;
-}
-
-/* Cíle (Goals) */
-.profil-goals-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
-}
-
-.profil-goal-item {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  padding: 0.75rem;
-  border-radius: var(--profil-radius-md);
-}
-
-.profil-goal-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.profil-goal-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  overflow: hidden;
-}
-
-.profil-goal-value {
-  font-size: 0.725rem;
-  font-weight: 700;
-  color: #35c4f0;
-  white-space: nowrap;
-}
-
-/* MENU / NASTAVENÍ POLOŽKY */
-.profil-menu-panel {
-  background: var(--profil-card-bg);
-  border: 1px solid var(--profil-card-border);
-  border-radius: var(--profil-radius-lg);
-  padding: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  backdrop-filter: blur(12px);
-}
-
-.profil-menu-item {
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 0.75rem;
-  border-radius: var(--profil-radius-md);
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.profil-menu-item:active {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.profil-menu-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.profil-menu-icon.blue { background: rgba(53, 196, 240, 0.12); color: #38bdf8; }
-.profil-menu-icon.green { background: rgba(16, 185, 129, 0.12); color: #34d399; }
-.profil-menu-icon.orange { background: rgba(249, 115, 22, 0.12); color: #fb923c; }
-.profil-menu-icon.purple { background: rgba(138, 92, 246, 0.12); color: #c084fc; }
-.profil-menu-icon.cyan { background: rgba(6, 182, 212, 0.12); color: #22d3ee; }
-
-.profil-menu-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.profil-menu-title {
-  font-size: 0.85rem;
+  font-size: 0.65rem;
   font-weight: 600;
-}
-
-.profil-menu-sub {
-  font-size: 0.7rem;
   color: var(--profil-text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-align: center;
 }
 
-.profil-chevron {
-  color: rgba(255, 255, 255, 0.3);
-  }
+/* Skrytí popisků, dat a fajfky pro maximální úsporu místa */
+.profil-item-sub,
+.profil-item-date,
+.profil-check {
+  display: none !important;
+                          }
