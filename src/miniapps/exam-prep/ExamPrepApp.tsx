@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { DashboardTab } from './components/DashboardTab'
+import { SubjectsTab } from './components/SubjectsTab'
 import './ExamPrepApp.css'
 
 type TabType = 'dashboard' | 'subjects' | 'flashcards' | 'simulator'
@@ -14,7 +15,6 @@ export const ExamPrepApp: React.FC<ExamPrepAppProps> = ({ onBack }) => {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
 
-  // Načtení gamifikačních dat
   const { level, streakDays } = useGamificationStore()
 
   const handleBack = () => {
@@ -51,13 +51,7 @@ export const ExamPrepApp: React.FC<ExamPrepAppProps> = ({ onBack }) => {
       {/* Main view */}
       <main className="examprep-main-content">
         {activeTab === 'dashboard' && <DashboardTab />}
-
-        {activeTab === 'subjects' && (
-          <div className="examprep-tab-view">
-            <h2>📚 Předměty & Okruhy</h2>
-            <p>Zde bude správa předmětů, maturitních otázek a výpisků.</p>
-          </div>
-        )}
+        {activeTab === 'subjects' && <SubjectsTab />}
 
         {activeTab === 'flashcards' && (
           <div className="examprep-tab-view">
