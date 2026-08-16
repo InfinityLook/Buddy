@@ -1,0 +1,157 @@
+.qn-app {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  background: rgba(18, 24, 40, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: #fff;
+  max-width: 400px;
+  margin: 0 auto;
+  backdrop-filter: blur(12px);
+}
+
+.qn-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.qn-header h2 { font-size: 1.1rem; margin: 0; }
+
+.qn-add-btn {
+  background: #ec4899;
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(236, 72, 153, 0.4);
+}
+
+.qn-filters {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.qn-filter-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.qn-filter-chip.active {
+  background: rgba(236, 72, 153, 0.2);
+  color: #f472b6;
+  border-color: rgba(236, 72, 153, 0.4);
+}
+
+.qn-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.6rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.qn-form input, .qn-form textarea, .qn-form select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.qn-form-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.qn-submit-btn {
+  background: #ec4899;
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.qn-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.qn-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.5rem;
+  position: relative;
+}
+
+.qn-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.qn-tag {
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.qn-tag.škola { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+.qn-tag.osobní { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+.qn-tag.nápady { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+.qn-del-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.qn-card h4 {
+  font-size: 0.8rem;
+  margin: 0.2rem 0;
+}
+
+.qn-card p {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.qn-date {
+  font-size: 0.55rem;
+  color: #475569;
+  display: block;
+  margin-top: 0.3rem;
+}
+
+.qn-empty {
+  font-size: 0.7rem;
+  color: #64748b;
+  text-align: center;
+}
