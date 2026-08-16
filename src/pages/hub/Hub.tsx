@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useState } from 'react'
 import './Hub.css'
 import mascot from '../../assets/mascot.png'
+import ProfilModule from '../profil/ProfilModule'
 
 type Side = 'left' | 'right'
 
@@ -31,6 +32,7 @@ interface HubProps {
 
 interface ActionButtonProps {
   action: ActionItem
+  onClick: () => void
 }
 
 interface IconProps {
@@ -41,7 +43,7 @@ const ACTIONS: ActionItem[] = [
   { key: 'profile', label: 'Profil', icon: 'user', side: 'left' },
   { key: 'community', label: 'Komunita', icon: 'users', side: 'right' },
   { key: 'app', label: 'App', icon: 'grid', side: 'left' },
-  { key: 'shop', label: 'Shop', icon: 'bag', side: 'right' },
+  { key: 'shop', label: 'Shop', icon: 'right' as Side, side: 'right' },
   { key: 'rewards', label: 'Rewards', icon: 'gift', side: 'left', badge: 'NEW' },
   { key: 'cloud', label: 'Cloud', icon: 'cloud', side: 'right' },
   { key: 'sound', label: 'Sound', icon: 'speaker', side: 'left' },
@@ -153,6 +155,18 @@ function Icon({ name }: IconProps) {
 }
 
 export default function Hub({ onLogout }: HubProps) {
+  const [currentScreen, setCurrentScreen] = useState<'hub' | 'profile'>('hub')
+
+  if (currentScreen === 'profile') {
+    return <ProfilModule onBack={() => setCurrentScreen('hub')} />
+  }
+
+  const handleActionClick = (key: string) => {
+    if (key === 'profile') {
+      setCurrentScreen('profile')
+    }
+  }
+
   return (
     <div className="hub-screen">
       <header className="hub-topbar">
@@ -194,7 +208,11 @@ export default function Hub({ onLogout }: HubProps) {
       <main className="hub-main">
         <div className="hub-actions hub-actions--left">
           {ACTIONS.filter((a) => a.side === 'left').map((a) => (
-            <ActionButton key={a.key} action={a} />
+            <ActionButton 
+              key={a.key} 
+              action={a} 
+              onClick={() => handleActionClick(a.key)} 
+            />
           ))}
         </div>
 
@@ -209,7 +227,11 @@ export default function Hub({ onLogout }: HubProps) {
 
         <div className="hub-actions hub-actions--right">
           {ACTIONS.filter((a) => a.side === 'right').map((a) => (
-            <ActionButton key={a.key} action={a} />
+            <ActionButton 
+              key={a.key} 
+              action={a} 
+              onClick={() => handleActionClick(a.key)} 
+            />
           ))}
         </div>
       </main>
@@ -238,9 +260,9 @@ export default function Hub({ onLogout }: HubProps) {
   )
 }
 
-function ActionButton({ action }: ActionButtonProps) {
+function ActionButton({ action, onClick }: ActionButtonProps) {
   return (
-    <button className="hub-action-btn">
+    <button className="hub-action-btn" onClick={onClick}>
       <span className="hub-action-btn__icon">
         <Icon name={action.icon} />
         {action.badge && <span className="hub-action-btn__badge">{action.badge}</span>}
@@ -248,4 +270,4 @@ function ActionButton({ action }: ActionButtonProps) {
       <span className="hub-action-btn__label">{action.label}</span>
     </button>
   )
-}
+      }
