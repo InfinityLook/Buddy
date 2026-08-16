@@ -1,0 +1,135 @@
+.fm-app {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  background: rgba(18, 24, 40, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: #fff;
+  max-width: 400px;
+  margin: 0 auto;
+  backdrop-filter: blur(12px);
+}
+
+.fm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fm-header h2 { font-size: 1.1rem; margin: 0; }
+
+.fm-add-btn {
+  background: #f59e0b;
+  border: none;
+  color: #000;
+  font-weight: 800;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.4);
+}
+
+.fm-search {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+}
+
+.fm-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.6rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fm-form input, .fm-form select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.fm-form-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.fm-form-row select { flex: 1; }
+
+.fm-submit-btn {
+  background: #f59e0b;
+  border: none;
+  color: #000;
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.fm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.fm-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+
+.fm-icon {
+  font-size: 1.1rem;
+}
+
+.fm-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.fm-name {
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fm-meta {
+  font-size: 0.6rem;
+  color: #64748b;
+}
+
+.fm-del-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.fm-empty {
+  font-size: 0.7rem;
+  color: #64748b;
+  text-align: center;
+}
