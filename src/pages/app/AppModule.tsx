@@ -37,7 +37,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   const [activeCategory, setActiveCategory] = useState('Všechny')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   
-  // Stav pro otevřenou miniaplikaci
+  // Stav pro aktivní otevřenou miniaplikaci
   const [activeApp, setActiveApp] = useState<AppItem | null>(null)
 
   const handleToggleFavorite = (id: string) => {
@@ -63,6 +63,27 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
       case '8': return <FileManager />
       default: return null
     }
+  }
+
+  // Zobrazení plné stránky pro vybranou aplikaci
+  if (activeApp) {
+    return (
+      <div className="app-fullscreen-view">
+        <header className="app-fullscreen-header">
+          <button 
+            className="app-back-btn" 
+            onClick={() => setActiveApp(null)}
+          >
+            ← Zpět do seznamu
+          </button>
+          <h2>{activeApp.title}</h2>
+        </header>
+
+        <main className="app-fullscreen-content">
+          {renderActiveMiniApp()}
+        </main>
+      </div>
+    )
   }
 
   const filteredApps = apps.filter((app) => {
@@ -97,61 +118,9 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
       </div>
 
       <AppBanner onCreateNew={handleCreateNew} />
-
-      {/* Modal pro otevřenou aplikaci */}
-      {activeApp && (
-        <div 
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000,
-            padding: '1rem',
-            backdropFilter: 'blur(8px)'
-          }}
-          onClick={() => setActiveApp(null)}
-        >
-          <div 
-            style={{
-              position: 'relative',
-              width: '100%',
-              maxWidth: '420px',
-              maxHeight: '90vh',
-              overflowY: 'auto'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setActiveApp(null)}
-              style={{
-                position: 'absolute',
-                top: '10px',
-                right: '10px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                border: 'none',
-                color: '#fff',
-                width: '30px',
-                height: '30px',
-                borderRadius: '50%',
-                cursor: 'pointer',
-                zIndex: 10,
-                fontSize: '1rem'
-              }}
-            >
-              ✕
-            </button>
-            {renderActiveMiniApp()}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
 
 export default AppModule
+    
