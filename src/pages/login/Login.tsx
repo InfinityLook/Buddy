@@ -1,14 +1,18 @@
-import { useState } from 'react'
+import { useState, FormEvent, MouseEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import './Login.css'
 
-export default function Login({ onLogin }) {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+interface LoginProps {
+  onLogin: () => void
+}
+
+export default function Login({ onLogin }: LoginProps) {
+  const [email, setEmail] = useState<string>('')
+  const [password, setPassword] = useState<string>('')
   const navigate = useNavigate()
 
   // Visual-only submit for now — wire this to the real auth endpoint later.
-  function handleSubmit(e) {
+  function handleSubmit(e: FormEvent | MouseEvent) {
     e.preventDefault()
     onLogin()
     navigate('/hub')
