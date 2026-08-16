@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
+import { exportDataToJson } from '@/core/utils/backup'
 
 export interface AppItem {
   id: string
@@ -19,6 +20,8 @@ interface AppState {
   setActiveAppId: (id: string | null) => void
   toggleFavorite: (id: string) => void
   addApp: (app: AppItem) => void
+  exportState: () => void
+  importState: (newApps: AppItem[]) => void
 }
 
 const DEFAULT_APPS: AppItem[] = [
@@ -34,7 +37,7 @@ const DEFAULT_APPS: AppItem[] = [
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       apps: DEFAULT_APPS,
       activeAppId: null,
 
@@ -51,12 +54,33 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           apps: [...state.apps, newApp],
         })),
+
+      // Vyexportuje aktuální stav aplikací
+      exportState: () => {
+        const state = get()
+        exportDataToJson({ apps: state.apps }, `schoolbuddy-backup-${new Date().toISOString().slice(0, 10)}.json`)
+      },
+
+      // Přepíše stav nově načtenými daty
+      importState: (newApps) => {
+        if (Array.isArray(newApps)) {
+          set({ apps: newApps })
+        }
+      },
     }),
     {
       name: 'schoolbuddy-app-storage',
-      // Zde předáváme náš bezpečný storage adaptér
+      version: 1, // Číslo verze pro budoucí migrace
       storage: createJSONStorage(() => secureStorage),
       partialize: (state) => ({ apps: state.apps }),
+      
+      // Funkce pro bezpečné automatické úpravy dat při změně verze
+      migrate: (persistedState: any, version: number) => {
+        if (version === 0) {
+          // Případné úpravy ze starších verzí
+        }
+        return persistedState as AppState
+      },
     }
   )
 )
