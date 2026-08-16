@@ -9,6 +9,7 @@ import { QuickNotes } from './quick-notes/QuickNotes'
 import { GoalTracker } from './goal-tracker/GoalTracker'
 import { MindMap } from './mind-map/MindMap'
 import { FileManager } from './file-manager/FileManager'
+import { ExamPrepApp } from './exam-prep/ExamPrepApp'
 
 export interface MiniAppConfig {
   id: string
@@ -26,4 +27,5 @@ export const MINI_APPS: Record<string, MiniAppConfig> = {
   'goal-tracker': { id: 'goal-tracker', name: 'Goal Tracker', category: 'Produktivita', component: GoalTracker },
   'mind-map': { id: 'mind-map', name: 'Mind Map', category: 'Vzdělávání', component: MindMap },
   'file-manager': { id: 'file-manager', name: 'File Manager', category: 'Nástroje', component: FileManager },
+  'exam-prep': { id: 'exam-prep', name: 'Maturitní Centrum', category: 'Vzdělávání', component: ExamPrepApp },
 }
