@@ -5,7 +5,7 @@
 
   async function checkVersion() {
     try {
-      // Přidaný časový razítko ?t= zabraňuje prohlížeči kešovat odpověď
+      // Razítko ?t= zabraňuje prohlížeči kešovat starou verzi souboru
       const response = await fetch(`/version.json?t=${Date.now()}`, {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' }
@@ -16,24 +16,28 @@
       const data = await response.json();
 
       if (!currentVersion) {
+        // Uložení výchozí verze při prvním spuštění
         currentVersion = data.version;
       } else if (currentVersion !== data.version) {
-        console.warn('Nalezena nová verze aplikace. Provádím automatický reload...');
-        
-        // Volitelně: Obnovit až ve chvíli, kdy uživatel s aplikací zrovna nepracuje
-        reloadApp();
+        console.warn('Nalezena nová verze. Obnovuji aplikaci...');
+        // Vynucené načtení nové verze
+        window.location.reload();
       }
     } catch (err) {
       console.error('Chyba při kontrole verze:', err);
     }
   }
 
-  function reloadApp() {
-    // Vynucené obnovení stránky bez keše
-    window.location.reload(true);
-  }
-
-  // Spustit ihned po načtení a následně v intervalu
+  // 1. Spustit kontrolu ihned po načtení
   checkVersion();
+
+  // 2. Spouštět pravidelně v intervalu
   setInterval(checkVersion, CHECK_INTERVAL);
+
+  // 3. Spustit kontrolu při návratu uživatele (rozsvícení displeje / přepnutí záložky)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      checkVersion();
+    }
+  });
 })();
