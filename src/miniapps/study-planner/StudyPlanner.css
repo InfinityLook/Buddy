@@ -1,0 +1,148 @@
+.sp-app {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  background: rgba(18, 24, 40, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: #fff;
+  max-width: 400px;
+  margin: 0 auto;
+  backdrop-filter: blur(12px);
+}
+
+.sp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sp-header h2 { font-size: 1.1rem; margin: 0; }
+
+.sp-add-btn {
+  background: #a855f7;
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+}
+
+.sp-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.6rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sp-form input, .sp-form select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+}
+
+.sp-form-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.sp-form-row input, .sp-form-row select { flex: 1; }
+
+.sp-submit-btn {
+  background: #a855f7;
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.sp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.sp-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.5rem;
+}
+
+.sp-card.completed {
+  opacity: 0.5;
+}
+
+.sp-card.completed .sp-topic {
+  text-decoration: line-through;
+}
+
+.sp-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: #a855f7;
+  cursor: pointer;
+}
+
+.sp-details { flex: 1; }
+
+.sp-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sp-subject {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #a855f7;
+  text-transform: uppercase;
+}
+
+.sp-priority {
+  font-size: 0.55rem;
+  font-weight: 700;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+
+.sp-priority.vysoká { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+.sp-priority.střední { background: rgba(245, 158, 11, 0.2); color: #fde68a; }
+.sp-priority.nízká { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+
+.sp-topic {
+  font-size: 0.75rem;
+  margin: 0.2rem 0 0.1rem 0;
+  font-weight: 600;
+}
+
+.sp-date {
+  font-size: 0.55rem;
+  color: #64748b;
+}
+
+.sp-del-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
