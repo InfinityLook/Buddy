@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useState } from 'react'
-import Login from './pages/login/Login.jsx'
-import Hub from './pages/hub/Hub.jsx'
+import Login from './pages/login/Login.tsx'
+import Hub from './pages/hub/Hub.tsx'
 
 // NOTE: this is a visual-only auth flow for now — no real backend call yet.
 // Swap `handleLogin` for a real request once the API is ready.
