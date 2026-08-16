@@ -2,44 +2,27 @@ import React, { useState, Suspense } from 'react'
 import { AppHeader } from './components/AppHeader'
 import { AppStats } from './components/AppStats'
 import { AppToolbar } from './components/AppToolbar'
-import { AppCard, AppItem } from './components/AppCard'
+import { AppCard } from './components/AppCard'
 import { AppBanner } from './components/AppBanner'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { MINI_APP_REGISTRY } from '@/features/miniapps/registry'
+import { useAppStore } from '@/core/store/useAppStore'
 import './AppModule.css'
 
 interface AppModuleProps {
   onBack?: () => void
 }
 
-const INITIAL_APPS: AppItem[] = [
-  { id: 'study-planner', title: 'Study Planner', category: 'Produktivita', icon: 'study-planner', color: 'purple', active: true, favorite: false },
-  { id: 'flashcards', title: 'Flashcards', category: 'Vzdělávání', icon: 'flashcards', color: 'cyan', active: true, favorite: true },
-  { id: 'pomodoro', title: 'Pomodoro', category: 'Produktivita', icon: 'pomodoro', color: 'orange', active: true, favorite: false },
-  { id: 'math-solver', title: 'Math Solver', category: 'Nástroje', icon: 'math-solver', color: 'green', active: true, favorite: false },
-  { id: 'quick-notes', title: 'Quick Notes', category: 'Produktivita', icon: 'quick-notes', color: 'pink', active: true, favorite: true },
-  { id: 'goal-tracker', title: 'Goal Tracker', category: 'Produktivita', icon: 'goal-tracker', color: 'purple', active: true, favorite: false },
-  { id: 'mind-map', title: 'Mind Map', category: 'Vzdělávání', icon: 'mind-map', color: 'cyan', active: true, favorite: false },
-  { id: 'file-manager', title: 'File Manager', category: 'Nástroje', icon: 'file-manager', color: 'orange', active: true, favorite: false },
-]
-
 export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
-  const [apps, setApps] = useState<AppItem[]>(INITIAL_APPS)
+  // Načtení globálního stavu ze Zustand storu
+  const { apps, activeAppId, setActiveAppId, toggleFavorite } = useAppStore()
+
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState('Všechny')
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  
-  // ID vybrané aplikace
-  const [activeAppId, setActiveAppId] = useState<string | null>(null)
 
   const activeApp = apps.find((app) => app.id === activeAppId)
   const ActiveComponent = activeAppId ? MINI_APP_REGISTRY[activeAppId] : null
-
-  const handleToggleFavorite = (id: string) => {
-    setApps((prev) =>
-      prev.map((app) => (app.id === id ? { ...app, favorite: !app.favorite } : app))
-    )
-  }
 
   const handleCreateNew = () => {
     alert('Otevírá se průvodce vytvořením nové aplikace!')
@@ -95,7 +78,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
             key={app.id}
             app={app}
             onClick={(selectedApp) => setActiveAppId(selectedApp.id)}
-            onToggleFavorite={handleToggleFavorite}
+            onToggleFavorite={(id) => toggleFavorite(id)}
           />
         ))}
         <AppCard isCreateCard onCreateNew={handleCreateNew} />
@@ -107,4 +90,3 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
 }
 
 export default AppModule
-  
