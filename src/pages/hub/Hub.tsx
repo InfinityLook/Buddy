@@ -1,7 +1,43 @@
+import React from 'react'
 import './Hub.css'
 import mascot from '../../assets/mascot.png'
 
-const ACTIONS = [
+type Side = 'left' | 'right'
+
+type IconName =
+  | 'user'
+  | 'users'
+  | 'grid'
+  | 'bag'
+  | 'gift'
+  | 'cloud'
+  | 'speaker'
+  | 'gear'
+  | 'mic'
+  | 'controller'
+  | 'logout'
+
+interface ActionItem {
+  key: string
+  label: string
+  icon: IconName
+  side: Side
+  badge?: string
+}
+
+interface HubProps {
+  onLogout: () => void
+}
+
+interface ActionButtonProps {
+  action: ActionItem
+}
+
+interface IconProps {
+  name: IconName
+}
+
+const ACTIONS: ActionItem[] = [
   { key: 'profile', label: 'Profil', icon: 'user', side: 'left' },
   { key: 'community', label: 'Komunita', icon: 'users', side: 'right' },
   { key: 'app', label: 'App', icon: 'grid', side: 'left' },
@@ -12,59 +48,111 @@ const ACTIONS = [
   { key: 'settings', label: 'Settings', icon: 'gear', side: 'right' }
 ]
 
-function Icon({ name }) {
-  const common = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.8, strokeLinecap: 'round', strokeLinejoin: 'round' }
+function Icon({ name }: IconProps) {
+  const common: React.SVGProps<SVGSVGElement> = {
+    width: 22,
+    height: 22,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round'
+  }
+
   switch (name) {
     case 'user':
       return (
-        <svg {...common}><circle cx="12" cy="8" r="3.4" /><path d="M5 20c1.2-3.6 4-5.4 7-5.4s5.8 1.8 7 5.4" /></svg>
+        <svg {...common}>
+          <circle cx="12" cy="8" r="3.4" />
+          <path d="M5 20c1.2-3.6 4-5.4 7-5.4s5.8 1.8 7 5.4" />
+        </svg>
       )
     case 'users':
       return (
-        <svg {...common}><circle cx="9" cy="8.5" r="3" /><path d="M2.5 20c1-3 3.3-4.7 6.5-4.7s5.5 1.7 6.5 4.7" /><circle cx="17" cy="9" r="2.4" /><path d="M15.5 14.4c2.5.3 4 1.8 4.8 4.1" /></svg>
+        <svg {...common}>
+          <circle cx="9" cy="8.5" r="3" />
+          <path d="M2.5 20c1-3 3.3-4.7 6.5-4.7s5.5 1.7 6.5 4.7" />
+          <circle cx="17" cy="9" r="2.4" />
+          <path d="M15.5 14.4c2.5.3 4 1.8 4.8 4.1" />
+        </svg>
       )
     case 'grid':
       return (
-        <svg {...common}><rect x="3.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="3.5" width="7" height="7" rx="1.5" /><rect x="3.5" y="13.5" width="7" height="7" rx="1.5" /><rect x="13.5" y="13.5" width="7" height="7" rx="1.5" /></svg>
+        <svg {...common}>
+          <rect x="3.5" y="3.5" width="7" height="7" rx="1.5" />
+          <rect x="13.5" y="3.5" width="7" height="7" rx="1.5" />
+          <rect x="3.5" y="13.5" width="7" height="7" rx="1.5" />
+          <rect x="13.5" y="13.5" width="7" height="7" rx="1.5" />
+        </svg>
       )
     case 'bag':
       return (
-        <svg {...common}><path d="M6 8h12l-1 12H7L6 8z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></svg>
+        <svg {...common}>
+          <path d="M6 8h12l-1 12H7L6 8z" />
+          <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+        </svg>
       )
     case 'gift':
       return (
-        <svg {...common}><rect x="3.5" y="9" width="17" height="11" rx="1.5" /><path d="M3.5 9h17M12 9v11" /><path d="M12 9C9 9 8 7 8 5.8A2.3 2.3 0 0 1 12 4.4 2.3 2.3 0 0 1 16 5.8C16 7 15 9 12 9z" /></svg>
+        <svg {...common}>
+          <rect x="3.5" y="9" width="17" height="11" rx="1.5" />
+          <path d="M3.5 9h17M12 9v11" />
+          <path d="M12 9C9 9 8 7 8 5.8A2.3 2.3 0 0 1 12 4.4 2.3 2.3 0 0 1 16 5.8C16 7 15 9 12 9z" />
+        </svg>
       )
     case 'cloud':
       return (
-        <svg {...common}><path d="M7 18a4.2 4.2 0 0 1-.6-8.35 5.2 5.2 0 0 1 10-1.7A4 4 0 0 1 17 18H7z" /></svg>
+        <svg {...common}>
+          <path d="M7 18a4.2 4.2 0 0 1-.6-8.35 5.2 5.2 0 0 1 10-1.7A4 4 0 0 1 17 18H7z" />
+        </svg>
       )
     case 'speaker':
       return (
-        <svg {...common}><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z" /><path d="M15.5 9a4 4 0 0 1 0 6" /><path d="M18 7a7 7 0 0 1 0 10" /></svg>
+        <svg {...common}>
+          <path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4z" />
+          <path d="M15.5 9a4 4 0 0 1 0 6" />
+          <path d="M18 7a7 7 0 0 1 0 10" />
+        </svg>
       )
     case 'gear':
       return (
-        <svg {...common}><circle cx="12" cy="12" r="3" /><path d="M19.4 12a7.4 7.4 0 0 0-.1-1l2-1.6-2-3.4-2.4.9a7.6 7.6 0 0 0-1.7-1l-.4-2.5h-4l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2.4-.9-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2l-2 1.6 2 3.4 2.4-.9a7.6 7.6 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 1.7-1l2.4.9 2-3.4-2-1.6c.07-.33.1-.66.1-1z" /></svg>
+        <svg {...common}>
+          <circle cx="12" cy="12" r="3" />
+          <path d="M19.4 12a7.4 7.4 0 0 0-.1-1l2-1.6-2-3.4-2.4.9a7.6 7.6 0 0 0-1.7-1l-.4-2.5h-4l-.4 2.5a7.6 7.6 0 0 0-1.7 1l-2.4-.9-2 3.4 2 1.6a7.4 7.4 0 0 0 0 2l-2 1.6 2 3.4 2.4-.9a7.6 7.6 0 0 0 1.7 1l.4 2.5h4l.4-2.5a7.6 7.6 0 0 0 1.7-1l2.4.9 2-3.4-2-1.6c.07-.33.1-.66.1-1z" />
+        </svg>
       )
     case 'mic':
       return (
-        <svg {...common}><rect x="9" y="3" width="6" height="11" rx="3" /><path d="M5 11a7 7 0 0 0 14 0" /><path d="M12 18v3" /></svg>
+        <svg {...common}>
+          <rect x="9" y="3" width="6" height="11" rx="3" />
+          <path d="M5 11a7 7 0 0 0 14 0" />
+          <path d="M12 18v3" />
+        </svg>
       )
     case 'controller':
       return (
-        <svg {...common}><rect x="2.5" y="8" width="19" height="9" rx="4" /><path d="M7 10.5v4M5 12.5h4" /><circle cx="16" cy="11" r="1" /><circle cx="18.3" cy="13.3" r="1" /></svg>
+        <svg {...common}>
+          <rect x="2.5" y="8" width="19" height="9" rx="4" />
+          <path d="M7 10.5v4M5 12.5h4" />
+          <circle cx="16" cy="11" r="1" />
+          <circle cx="18.3" cy="13.3" r="1" />
+        </svg>
       )
     case 'logout':
       return (
-        <svg {...common}><path d="M9 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3" /><path d="M14 8l4 4-4 4" /><path d="M18 12H9" /></svg>
+        <svg {...common}>
+          <path d="M9 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h3" />
+          <path d="M14 8l4 4-4 4" />
+          <path d="M18 12H9" />
+        </svg>
       )
     default:
       return null
   }
 }
 
-export default function Hub({ onLogout }) {
+export default function Hub({ onLogout }: HubProps) {
   return (
     <div className="hub-screen">
       <header className="hub-topbar">
@@ -150,7 +238,7 @@ export default function Hub({ onLogout }) {
   )
 }
 
-function ActionButton({ action }) {
+function ActionButton({ action }: ActionButtonProps) {
   return (
     <button className="hub-action-btn">
       <span className="hub-action-btn__icon">
