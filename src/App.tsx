@@ -1,12 +1,18 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useState } from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react_router-dom'
+import { useState, useEffect } from 'react'
 import Login from './pages/login/Login.tsx'
 import Hub from './pages/hub/Hub.tsx'
+import AppModule from '@/features/apps/AppModule.tsx'
+import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
+import { setupPWAUpdates } from '@/core/utils/registerSW'
 
-// NOTE: this is a visual-only auth flow for now — no real backend call yet.
-// Swap `handleLogin` for a real request once the API is ready.
 export default function App() {
   const [isAuthed, setIsAuthed] = useState(false)
+
+  // Registrace PWA aktualizací při načtení aplikace
+  useEffect(() => {
+    setupPWAUpdates()
+  }, [])
 
   return (
     <BrowserRouter>
@@ -21,6 +27,7 @@ export default function App() {
             )
           }
         />
+
         <Route
           path="/hub"
           element={
@@ -31,8 +38,24 @@ export default function App() {
             )
           }
         />
+
+        {/* Route pro rozcestník miniaplikací (AppModule) */}
+        <Route
+          path="/apps"
+          element={
+            isAuthed ? (
+              <AppModule />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Globální indikátor offline připojení */}
+      <NetworkStatusBanner />
     </BrowserRouter>
   )
 }
