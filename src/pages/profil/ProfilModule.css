@@ -263,32 +263,36 @@
 }
 
 /* ------------------------------------------
-   RYCHLÉ STATISTIKY (2x2 GRID MODUL)
+   RYCHLÉ STATISTIKY (4 V ŘADĚ VEDLE SEBE)
    ------------------------------------------ */
 .profil-quick-stats {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.5rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
 }
 
 .profil-stat-card {
   background: var(--profil-card-bg);
   border: 1px solid var(--profil-card-border);
   border-radius: var(--profil-radius-md);
-  padding: 0.6rem 0.75rem;
+  padding: 0.5rem 0.2rem;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: center;
+  text-align: center;
+  gap: 0.25rem;
 }
 
 .profil-stat-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  font-size: 0.9rem;
 }
 
 .profil-stat-icon.purple { background: rgba(138, 92, 246, 0.15); color: #a78bfa; }
@@ -297,19 +301,23 @@
 .profil-stat-icon.blue { background: rgba(53, 196, 240, 0.15); color: #38bdf8; }
 
 .profil-stat-value {
-  font-size: 1rem;
+  font-size: 0.85rem;
   font-weight: 800;
   line-height: 1;
 }
 
 .profil-stat-label {
-  font-size: 0.65rem;
+  font-size: 0.58rem;
   color: var(--profil-text-muted);
-  margin-top: 0.1rem;
+  margin-top: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* ------------------------------------------
-   MOJE ÚSPĚCHY (POUZE ODZNAKY V RADE)
+   MOJE ÚSPĚCHY (POUZE ODZNAKY V ŘADĚ)
    ------------------------------------------ */
 .profil-panel {
   background: var(--profil-card-bg);
@@ -394,4 +402,5 @@
 .profil-item-date,
 .profil-check {
   display: none !important;
-                          }
+   }
+   
