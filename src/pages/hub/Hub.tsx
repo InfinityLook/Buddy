@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import './Hub.css'
 import mascot from '../../assets/mascot.png'
 import ProfilModule from '../profil/ProfilModule'
+import AppModule from '../app/AppModule'
 
 type Side = 'left' | 'right'
 
@@ -43,7 +44,7 @@ const ACTIONS: ActionItem[] = [
   { key: 'profile', label: 'Profil', icon: 'user', side: 'left' },
   { key: 'community', label: 'Komunita', icon: 'users', side: 'right' },
   { key: 'app', label: 'App', icon: 'grid', side: 'left' },
-  { key: 'shop', label: 'Shop', icon: 'right' as Side, side: 'right' },
+  { key: 'shop', label: 'Shop', icon: 'bag', side: 'right' },
   { key: 'rewards', label: 'Rewards', icon: 'gift', side: 'left', badge: 'NEW' },
   { key: 'cloud', label: 'Cloud', icon: 'cloud', side: 'right' },
   { key: 'sound', label: 'Sound', icon: 'speaker', side: 'left' },
@@ -155,15 +156,21 @@ function Icon({ name }: IconProps) {
 }
 
 export default function Hub({ onLogout }: HubProps) {
-  const [currentScreen, setCurrentScreen] = useState<'hub' | 'profile'>('hub')
+  const [currentScreen, setCurrentScreen] = useState<'hub' | 'profile' | 'app'>('hub')
 
   if (currentScreen === 'profile') {
     return <ProfilModule onBack={() => setCurrentScreen('hub')} />
   }
 
+  if (currentScreen === 'app') {
+    return <AppModule onBack={() => setCurrentScreen('hub')} />
+  }
+
   const handleActionClick = (key: string) => {
     if (key === 'profile') {
       setCurrentScreen('profile')
+    } else if (key === 'app') {
+      setCurrentScreen('app')
     }
   }
 
@@ -199,10 +206,9 @@ export default function Hub({ onLogout }: HubProps) {
         </div>
       </header>
 
-      {/* Slot for a rotating banner / streak alert — swap for real content later */}
       <section className="hub-banner hub-banner--alert">
         <span className="hub-banner__eyebrow">Denní výzva</span>
-        <p className="hub-banner__title">Dnes tě čeká 3 úkoly z matematiky</p>
+        <p className="hub-banner__title">Dnes tě čekají 3 úkoly z matematiky</p>
       </section>
 
       <main className="hub-main">
@@ -236,7 +242,6 @@ export default function Hub({ onLogout }: HubProps) {
         </div>
       </main>
 
-      {/* Slot for a positive-reinforcement banner (streak saved, XP gained, etc.) */}
       <section className="hub-banner hub-banner--success">
         <span className="hub-banner__eyebrow">Tvůj postup</span>
         <p className="hub-banner__title">Zbývá 120 XP do další úrovně 🎉</p>
@@ -270,4 +275,5 @@ function ActionButton({ action, onClick }: ActionButtonProps) {
       <span className="hub-action-btn__label">{action.label}</span>
     </button>
   )
-      }
+            }
+      
