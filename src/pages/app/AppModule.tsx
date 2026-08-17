@@ -1,5 +1,5 @@
 import React, { useState, Suspense } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AppHeader } from './components/AppHeader'
 import { AppToolbar } from './components/AppToolbar'
 import { AppCard } from './components/AppCard'
@@ -19,8 +19,13 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   // Načtení globálního stavu ze Zustand storu
   const { apps, activeAppId, setActiveAppId, toggleFavorite } = useAppStore()
 
+  // Hub umí odkázat rovnou na konkrétní kategorii (např. Library → Vzdělávání)
+  const [searchParams] = useSearchParams()
+
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeCategory, setActiveCategory] = useState('Všechny')
+  const [activeCategory, setActiveCategory] = useState(
+    () => searchParams.get('kategorie') ?? 'Všechny'
+  )
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
   const activeApp = apps.find((app) => app.id === activeAppId)
