@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
+import mascot from '@/assets/mascot.png'
 import './HubModule.css'
 
 interface HubModuleProps {
@@ -101,9 +102,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
         <div className="hub-speech-bubble">
           Ahoj! 👋 Jsem Buddy, tvůj studijní parťák. Společně to zvládneme! 💙
         </div>
-        <img 
-          src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=250" 
-          alt="Buddy" 
+        <img
+          src={mascot}
+          alt="Buddy"
           className="hub-pet-img"
         />
       </div>
