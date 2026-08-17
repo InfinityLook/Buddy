@@ -1,12 +1,26 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
+import { useProfileData } from './hooks/useProfileData'
+import { ProfilSettingsSheet } from './components/ProfilSettingsSheet'
+import { ProfilNotifications } from './components/ProfilNotifications'
+import { ProfilToast } from './components/ProfilToast'
 import './ProfilModule.css'
 
 export const ProfilModule: React.FC = () => {
   const navigate = useNavigate()
   const { level, xp, streakDays, badges } = useGamificationStore()
+  const { profile, updateProfile, updateSecurity, markNotificationRead, resetProfile } = useProfileData()
+
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
+
+  const showToast = (message: string) => {
+    setToastMsg(message)
+    window.setTimeout(() => setToastMsg(null), 2500)
+  }
 
   const xpToNext = getXpForNextLevel(level)
   const progressPercent = getLevelProgress(xp)
@@ -35,8 +49,8 @@ export const ProfilModule: React.FC = () => {
           <p className="profil-subtitle">Spravuj svůj účet, sleduj svůj pokrok a nastav si aplikaci podle sebe.</p>
         </div>
         <div className="profil-top-actions">
-          <button className="profil-icon-btn" aria-label="Upozornění" onClick={() => alert('Notifikace budou brzy dostupné!')}>🔔</button>
-          <button className="profil-icon-btn" aria-label="Nastavení" onClick={() => alert('Nastavení budou brzy dostupná!')}>⚙️</button>
+          <button className="profil-icon-btn" aria-label="Upozornění" onClick={() => setNotifOpen(true)}>🔔</button>
+          <button className="profil-icon-btn" aria-label="Nastavení" onClick={() => setSettingsOpen(true)}>⚙️</button>
         </div>
       </div>
 
@@ -44,17 +58,19 @@ export const ProfilModule: React.FC = () => {
       <div className="profil-user-card">
         <div className="profil-user-main">
           <div className="profil-avatar-wrapper">
-            <img 
-              src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=300" 
-              alt="Uživatelský avatar" 
-              className="profil-avatar-img"
-            />
-            <button className="profil-avatar-edit" onClick={() => alert('Nahrávání avataru bude brzy dostupné!')}>✏️</button>
+            <img src={profile.avatar} alt={profile.name} className="profil-avatar-img" />
+            <button
+              className="profil-avatar-edit"
+              onClick={() => showToast('Nahrávání vlastního avataru bude brzy dostupné!')}
+            >
+              ✏️
+            </button>
           </div>
           <div className="profil-user-info">
             <span className="profil-badge">✦ AI Student</span>
-            <h2 className="profil-user-name">Studující</h2>
-            <p className="profil-user-bio">Každý den je nová šance stát se lepší verzí sebe.</p>
+            <h2 className="profil-user-name">{profile.name}</h2>
+            <p className="profil-user-bio">{profile.motto}</p>
+            <span className="profil-user-email">✉ {profile.email}</span>
           </div>
         </div>
 
@@ -80,7 +96,7 @@ export const ProfilModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Achievements — reálné odznaky ze storu */}
+      {/* Achievements & Goals */}
       <div className="profil-two-col">
         <div className="profil-col-card">
           <div className="profil-col-head">
@@ -115,9 +131,9 @@ export const ProfilModule: React.FC = () => {
         </div>
       </div>
 
-      {/* Settings Menu — zatím jen vizuální, funkčnost přidáme v kroku 5 */}
+      {/* Settings Menu */}
       <div className="profil-settings-list">
-        <div className="profil-menu-row">
+        <div className="profil-menu-row" onClick={() => setSettingsOpen(true)}>
           <div className="profil-menu-left">
             <div className="profil-menu-icon">👤</div>
             <div className="profil-menu-text">
@@ -128,7 +144,7 @@ export const ProfilModule: React.FC = () => {
           <span className="profil-arrow">❯</span>
         </div>
 
-        <div className="profil-menu-row">
+        <div className="profil-menu-row" onClick={() => setSettingsOpen(true)}>
           <div className="profil-menu-left">
             <div className="profil-menu-icon">🛡️</div>
             <div className="profil-menu-text">
@@ -139,7 +155,7 @@ export const ProfilModule: React.FC = () => {
           <span className="profil-arrow">❯</span>
         </div>
 
-        <div className="profil-menu-row">
+        <div className="profil-menu-row" onClick={() => showToast('Vzhled aplikace bude brzy dostupný!')}>
           <div className="profil-menu-left">
             <div className="profil-menu-icon">🎨</div>
             <div className="profil-menu-text">
@@ -149,7 +165,37 @@ export const ProfilModule: React.FC = () => {
           </div>
           <span className="profil-arrow">❯</span>
         </div>
+
+        <div className="profil-menu-row" onClick={() => showToast('Nápověda bude brzy dostupná!')}>
+          <div className="profil-menu-left">
+            <div className="profil-menu-icon">❓</div>
+            <div className="profil-menu-text">
+              <span className="profil-menu-title">Nápověda a podpora</span>
+              <span className="profil-menu-sub">Často kladené otázky a kontakt</span>
+            </div>
+          </div>
+          <span className="profil-arrow">❯</span>
+        </div>
       </div>
+
+      <ProfilSettingsSheet
+        open={settingsOpen}
+        profile={profile}
+        onClose={() => setSettingsOpen(false)}
+        onSaveProfile={updateProfile}
+        onUpdateSecurity={updateSecurity}
+        onResetData={resetProfile}
+        onToast={showToast}
+      />
+
+      <ProfilNotifications
+        open={notifOpen}
+        readIds={profile.readNotifications}
+        onMarkRead={markNotificationRead}
+        onClose={() => setNotifOpen(false)}
+      />
+
+      <ProfilToast message={toastMsg} />
     </div>
   )
 }
