@@ -10,4 +10,5 @@ export const MINI_APP_REGISTRY: Record<string, LazyExoticComponent<React.Compone
   'goal-tracker': lazy(() => import('../../miniapps/goal-tracker/GoalTracker')),
   'mind-map': lazy(() => import('../../miniapps/mind-map/MindMap')),
   'file-manager': lazy(() => import('../../miniapps/file-manager/FileManager')),
+  'exam-prep': lazy(() => import('../../miniapps/exam-prep/ExamPrepApp')),
 }
