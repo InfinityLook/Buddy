@@ -502,8 +502,7 @@
 }
 
 /* ==========================================
-   TOAST - krátká zpětná vazba, sklo jako
-   hub-speech-bubble
+   TOAST - krátká zpětná vazba, sklo jako hub-toast
    ========================================== */
 .profil-toast {
   position: fixed;
