@@ -1,13 +1,38 @@
 import { useState, useEffect, useRef } from 'react'
+import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { secureStorage } from '@/core/utils/secureStorage'
 import { TimerMode, MODE_CONFIG } from './types'
+
+// Perzistujeme jen počet dokončených session (statistika) —
+// samotný běžící časovač úmyslně NEukládáme, aby po znovunačtení
+// appky nezůstal "zaseknutý" odpočet z minulé návštěvy.
+interface PomodoroStatsState {
+  completedSessions: number
+  incrementCompletedSessions: () => void
+}
+
+const usePomodoroStatsStore = create<PomodoroStatsState>()(
+  persist(
+    (set) => ({
+      completedSessions: 0,
+      incrementCompletedSessions: () =>
+        set((state) => ({ completedSessions: state.completedSessions + 1 })),
+    }),
+    {
+      name: 'schoolbuddy-pomodoro-storage',
+      storage: createJSONStorage(() => secureStorage),
+    }
+  )
+)
 
 export const usePomodoro = () => {
   const [mode, setMode] = useState<TimerMode>('work')
   const [timeLeft, setTimeLeft] = useState(MODE_CONFIG.work.duration)
   const [isRunning, setIsRunning] = useState(false)
-  const [completedSessions, setCompletedSessions] = useState(0)
+  const { completedSessions, incrementCompletedSessions } = usePomodoroStatsStore()
 
-  const timerRef = useRef<NodeJS.Timeout | null>(null)
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
     if (isRunning) {
@@ -32,7 +57,7 @@ export const usePomodoro = () => {
   const handleTimerComplete = () => {
     setIsRunning(false)
     if (mode === 'work') {
-      setCompletedSessions((prev) => prev + 1)
+      incrementCompletedSessions()
       switchMode('shortBreak')
     } else {
       switchMode('work')
@@ -61,4 +86,4 @@ export const usePomodoro = () => {
     toggleTimer,
     resetTimer,
   }
-    }
+                                          }
