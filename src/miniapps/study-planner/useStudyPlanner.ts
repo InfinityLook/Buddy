@@ -1,31 +1,49 @@
-import { useState } from 'react'
+import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { secureStorage } from '@/core/utils/secureStorage'
 import { StudyTask, INITIAL_TASKS } from './types'
 
-export const useStudyPlanner = () => {
-  const [tasks, setTasks] = useState<StudyTask[]>(INITIAL_TASKS)
+interface StudyPlannerState {
+  tasks: StudyTask[]
+  toggleTask: (id: string) => void
+  addTask: (subject: string, topic: string, dueDate: string, priority: StudyTask['priority']) => void
+  deleteTask: (id: string) => void
+}
 
-  const toggleTask = (id: string) => {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    )
-  }
+const useStudyPlannerStore = create<StudyPlannerState>()(
+  persist(
+    (set) => ({
+      tasks: INITIAL_TASKS,
 
-  const addTask = (subject: string, topic: string, dueDate: string, priority: StudyTask['priority']) => {
-    if (!subject.trim() || !topic.trim()) return
-    const newTask: StudyTask = {
-      id: Date.now().toString(),
-      subject,
-      topic,
-      dueDate,
-      priority,
-      completed: false,
+      toggleTask: (id) =>
+        set((state) => ({
+          tasks: state.tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)),
+        })),
+
+      addTask: (subject, topic, dueDate, priority) => {
+        if (!subject.trim() || !topic.trim()) return
+        const newTask: StudyTask = {
+          id: Date.now().toString(),
+          subject,
+          topic,
+          dueDate,
+          priority,
+          completed: false,
+        }
+        set((state) => ({ tasks: [newTask, ...state.tasks] }))
+      },
+
+      deleteTask: (id) =>
+        set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) })),
+    }),
+    {
+      name: 'schoolbuddy-study-planner-storage',
+      storage: createJSONStorage(() => secureStorage),
     }
-    setTasks((prev) => [newTask, ...prev])
-  }
+  )
+)
 
-  const deleteTask = (id: string) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id))
-  }
-
+export const useStudyPlanner = () => {
+  const { tasks, toggleTask, addTask, deleteTask } = useStudyPlannerStore()
   return { tasks, toggleTask, addTask, deleteTask }
 }
