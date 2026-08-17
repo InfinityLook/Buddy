@@ -12,31 +12,16 @@ export interface AppItem {
 }
 
 interface AppCardProps {
-  app?: AppItem
-  isCreateCard?: boolean
+  app: AppItem
   onClick?: (app: AppItem) => void
   onToggleFavorite?: (id: string) => void
-  onCreateNew?: () => void
 }
 
 export const AppCard: React.FC<AppCardProps> = ({
   app,
-  isCreateCard,
   onClick,
   onToggleFavorite,
-  onCreateNew,
 }) => {
-  if (isCreateCard || !app) {
-    return (
-      <div className="app-card app-card--create" onClick={onCreateNew}>
-        <div className="app-create-plus-icon">
-          <AppIcon name="plus" size={24} />
-        </div>
-        <span className="app-create-text">Vytvořit novou aplikaci</span>
-      </div>
-    )
-  }
-
   return (
     <div className="app-card" onClick={() => onClick?.(app)} style={{ cursor: 'pointer' }}>
       <button 

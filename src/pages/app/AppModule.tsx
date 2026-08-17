@@ -1,6 +1,6 @@
 import React, { useState, Suspense } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { AppHeader } from './components/AppHeader'
-import { AppStats } from './components/AppStats'
 import { AppToolbar } from './components/AppToolbar'
 import { AppCard } from './components/AppCard'
 import { AppBanner } from './components/AppBanner'
@@ -14,19 +14,25 @@ interface AppModuleProps {
 }
 
 export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
+  const navigate = useNavigate()
+
   // Načtení globálního stavu ze Zustand storu
   const { apps, activeAppId, setActiveAppId, toggleFavorite } = useAppStore()
 
+  // Hub umí odkázat rovnou na konkrétní kategorii (např. Library → Vzdělávání)
+  const [searchParams] = useSearchParams()
+
   const [searchQuery, setSearchQuery] = useState('')
-  const [activeCategory, setActiveCategory] = useState('Všechny')
+  const [activeCategory, setActiveCategory] = useState(
+    () => searchParams.get('kategorie') ?? 'Všechny'
+  )
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
 
   const activeApp = apps.find((app) => app.id === activeAppId)
   const ActiveComponent = activeAppId ? MINI_APP_REGISTRY[activeAppId] : null
 
-  const handleCreateNew = () => {
-    alert('Otevírá se průvodce vytvořením nové aplikace!')
-  }
+  // Bez vlastního onBack (např. při vstupu přes routu /apps) se vracíme do Hubu
+  const handleBack = onBack ?? (() => navigate('/hub'))
 
   // Zobrazení plné stránky pro vybranou miniaplikaci
   if (activeApp && ActiveComponent) {
@@ -61,8 +67,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
 
   return (
     <div className="app-container">
-      <AppHeader onBack={onBack} />
-      <AppStats />
+      <AppHeader onBack={handleBack} />
       <AppToolbar
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -81,10 +86,9 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
             onToggleFavorite={(id) => toggleFavorite(id)}
           />
         ))}
-        <AppCard isCreateCard onCreateNew={handleCreateNew} />
       </div>
 
-      <AppBanner onCreateNew={handleCreateNew} />
+      <AppBanner />
     </div>
   )
 }

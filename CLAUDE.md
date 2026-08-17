@@ -43,6 +43,8 @@ Two places wire a miniapp into the app, and **both must be updated when adding o
 
 `src/pages/app/AppModule.tsx` renders the grid of `AppCard`s from `useAppStore`, and when an app is selected, looks it up in `MINI_APP_REGISTRY` and renders it inside `<ErrorBoundary><Suspense>...</Suspense></ErrorBoundary>` (fallback UI at `src/components/ErrorBoundary.tsx`).
 
+Other pages deep-link into a miniapp by setting `useAppStore().setActiveAppId(id)` before navigating to `/apps` (`AppModule` picks the id up from the store) — that's how the Hub's daily-challenge banner opens Study Planner. To land on the grid pre-filtered to a category instead, navigate to `/apps?kategorie=<Category>`; `AppModule` seeds its `activeCategory` state from that param on mount only, so it stays a starting point the user can then change.
+
 **Note:** `src/miniapps/index.ts` (`MINI_APPS`, eagerly imported) is a second, separate registry keyed the same way as `MINI_APP_REGISTRY` but not referenced by `AppModule` or anything else — it appears to be superseded/dead code. Don't add new miniapps there; use `features/miniapps/registry.ts` instead. If touching miniapp registration, it's worth flagging/removing this stale file rather than propagating it.
 
 ### Gamification
