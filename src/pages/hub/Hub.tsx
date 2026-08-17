@@ -36,6 +36,14 @@ export const HubModule: React.FC<HubModuleProps> = ({
     }
   }
 
+  const handleProfileClick = () => {
+    if (onOpenProfile) {
+      onOpenProfile()
+    } else {
+      navigate('/profil')
+    }
+  }
+
   return (
     <div className="hub-container">
       {/* Header */}
@@ -66,7 +74,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
       {/* Top Grid (Profil, Shop, Rewards, Cloud) */}
       <div className="hub-grid-top">
-        <button className="hub-btn-card" onClick={onOpenProfile}>
+        <button className="hub-btn-card" onClick={handleProfileClick}>
           <span className="hub-card-icon" style={{ color: '#38bdf8' }}>👤</span>
           <span>Profil</span>
         </button>
@@ -137,4 +145,3 @@ export const HubModule: React.FC<HubModuleProps> = ({
 }
 
 export default HubModule
-          
