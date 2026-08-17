@@ -1,18 +1,42 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
+import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
 import './ProfilModule.css'
 
 export const ProfilModule: React.FC = () => {
+  const navigate = useNavigate()
+  const { level, xp, streakDays, badges } = useGamificationStore()
+
+  const xpToNext = getXpForNextLevel(level)
+  const progressPercent = getLevelProgress(xp)
+  const unlockedBadges = badges.filter((b) => b.unlockedAt !== null)
+
   return (
     <div className="profil-page">
       {/* Top Bar */}
       <div className="profil-top-bar">
         <div>
+          <button
+            onClick={() => navigate('/hub')}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#94a3b8',
+              fontSize: '0.85rem',
+              cursor: 'pointer',
+              padding: 0,
+              marginBottom: '0.5rem',
+            }}
+          >
+            ← Zpět do Hubu
+          </button>
           <h1 className="profil-title">Profil</h1>
           <p className="profil-subtitle">Spravuj svůj účet, sleduj svůj pokrok a nastav si aplikaci podle sebe.</p>
         </div>
         <div className="profil-top-actions">
-          <button className="profil-icon-btn" aria-label="Upozornění">🔔</button>
-          <button className="profil-icon-btn" aria-label="Nastavení">⚙️</button>
+          <button className="profil-icon-btn" aria-label="Upozornění" onClick={() => alert('Notifikace budou brzy dostupné!')}>🔔</button>
+          <button className="profil-icon-btn" aria-label="Nastavení" onClick={() => alert('Nastavení budou brzy dostupná!')}>⚙️</button>
         </div>
       </div>
 
@@ -22,111 +46,76 @@ export const ProfilModule: React.FC = () => {
           <div className="profil-avatar-wrapper">
             <img 
               src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=300" 
-              alt="Kairo" 
+              alt="Uživatelský avatar" 
               className="profil-avatar-img"
             />
-            <button className="profil-avatar-edit">✏️</button>
+            <button className="profil-avatar-edit" onClick={() => alert('Nahrávání avataru bude brzy dostupné!')}>✏️</button>
           </div>
           <div className="profil-user-info">
             <span className="profil-badge">✦ AI Student</span>
-            <h2 className="profil-user-name">Kairo</h2>
+            <h2 className="profil-user-name">Studující</h2>
             <p className="profil-user-bio">Každý den je nová šance stát se lepší verzí sebe.</p>
-            <span className="profil-user-email">✉ kairo.student@email.com</span>
           </div>
         </div>
 
-        {/* Level & Streak */}
+        {/* Level & Streak — reálná data z gamifikačního storu */}
         <div className="profil-progress-grid">
           <div className="profil-level-box">
             <div className="profil-box-head">
-              <span>ÚROVEŇ 24 👑</span>
+              <span>ÚROVEŇ {level} 👑</span>
             </div>
             <div className="profil-xp-bar-bg">
-              <div className="profil-xp-bar-fill" style={{ width: '85%' }}></div>
+              <div className="profil-xp-bar-fill" style={{ width: `${progressPercent}%` }}></div>
             </div>
-            <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>4 250 / 5 000 XP</span>
+            <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{xp} / {xpToNext} XP</span>
           </div>
 
           <div className="profil-streak-box">
             <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700 }}>DENNÍ SÉRIE</span>
             <div className="profil-streak-val">
-              🔥 12
+              🔥 {streakDays}
             </div>
             <span style={{ fontSize: '0.6rem', color: '#64748b' }}>dní v řadě</span>
           </div>
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="profil-quick-stats">
-        <div className="profil-stat-card">
-          <span className="profil-stat-val" style={{ color: '#818cf8' }}>📖 128</span>
-          <span className="profil-stat-lbl">Dokončené lekce</span>
-        </div>
-        <div className="profil-stat-card">
-          <span className="profil-stat-val" style={{ color: '#34d399' }}>📋 32</span>
-          <span className="profil-stat-lbl">Úkoly hotovo</span>
-        </div>
-        <div className="profil-stat-card">
-          <span className="profil-stat-val" style={{ color: '#fbbf24' }}>⏰ 48h</span>
-          <span className="profil-stat-lbl">Čas studia</span>
-        </div>
-        <div className="profil-stat-card">
-          <span className="profil-stat-val" style={{ color: '#38bdf8' }}>⭐ 4.8</span>
-          <span className="profil-stat-lbl">Průměrné hodnocení</span>
-        </div>
-      </div>
-
-      {/* Two Column Section: Achievements & Goals */}
+      {/* Achievements — reálné odznaky ze storu */}
       <div className="profil-two-col">
-        {/* Achievements */}
         <div className="profil-col-card">
           <div className="profil-col-head">
             <span>Moje úspěchy</span>
-            <span className="profil-link">Zobrazit vše</span>
           </div>
-          <div className="profil-list-item">
-            <span className="profil-item-icon">🏆</span>
-            <div className="profil-item-details">
-              <span className="profil-item-title">První krok</span>
-              <span className="profil-item-sub">12. 5. 2024</span>
-            </div>
-            <span>✅</span>
-          </div>
-          <div className="profil-list-item">
-            <span className="profil-item-icon">🔥</span>
-            <div className="profil-item-details">
-              <span className="profil-item-title">Týdenní bojovník</span>
-              <span className="profil-item-sub">28. 5. 2024</span>
-            </div>
-            <span>✅</span>
-          </div>
+          {unlockedBadges.length === 0 ? (
+            <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Zatím žádné odemčené odznaky. Začni studovat! 💪</p>
+          ) : (
+            unlockedBadges.map((badge) => (
+              <div className="profil-list-item" key={badge.id}>
+                <span className="profil-item-icon">{badge.icon}</span>
+                <div className="profil-item-details">
+                  <span className="profil-item-title">{badge.title}</span>
+                  <span className="profil-item-sub">
+                    {badge.unlockedAt ? new Date(badge.unlockedAt).toLocaleDateString('cs-CZ') : ''}
+                  </span>
+                </div>
+                <span>✅</span>
+              </div>
+            ))
+          )}
         </div>
 
-        {/* Goals */}
         <div className="profil-col-card">
           <div className="profil-col-head">
             <span>Moje cíle</span>
             <span className="profil-link">Zobrazit vše</span>
           </div>
-          <div className="profil-list-item">
-            <span className="profil-item-icon">🎯</span>
-            <div className="profil-item-details">
-              <span className="profil-item-title">Denní cíl</span>
-              <span className="profil-item-sub">45 / 60 min</span>
-            </div>
-          </div>
-          <div className="profil-list-item">
-            <span className="profil-item-icon">📚</span>
-            <div className="profil-item-details">
-              <span className="profil-item-title">Týdenní cíl</span>
-              <span className="profil-item-sub">7 / 10 lekcí</span>
-            </div>
-          </div>
+          <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+            Sekce cílů se propojí s Goal Trackerem v jednom z dalších kroků.
+          </p>
         </div>
       </div>
 
-      {/* Settings Menu */}
+      {/* Settings Menu — zatím jen vizuální, funkčnost přidáme v kroku 5 */}
       <div className="profil-settings-list">
         <div className="profil-menu-row">
           <div className="profil-menu-left">
@@ -152,32 +141,10 @@ export const ProfilModule: React.FC = () => {
 
         <div className="profil-menu-row">
           <div className="profil-menu-left">
-            <div className="profil-menu-icon">🔔</div>
-            <div className="profil-menu-text">
-              <span className="profil-menu-title">Upozornění</span>
-              <span className="profil-menu-sub">Spravuj notifikace a připomínky</span>
-            </div>
-          </div>
-          <span className="profil-arrow">❯</span>
-        </div>
-
-        <div className="profil-menu-row">
-          <div className="profil-menu-left">
             <div className="profil-menu-icon">🎨</div>
             <div className="profil-menu-text">
               <span className="profil-menu-title">Vzhled aplikace</span>
               <span className="profil-menu-sub">Motiv, jazyk a další nastavení</span>
-            </div>
-          </div>
-          <span className="profil-arrow">❯</span>
-        </div>
-
-        <div className="profil-menu-row">
-          <div className="profil-menu-left">
-            <div className="profil-menu-icon">❓</div>
-            <div className="profil-menu-text">
-              <span className="profil-menu-title">Nápověda a podpora</span>
-              <span className="profil-menu-sub">Často kladené otázky a kontakt</span>
             </div>
           </div>
           <span className="profil-arrow">❯</span>
