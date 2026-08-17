@@ -240,11 +240,8 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </button>
         </div>
 
-        {/* Maskot s bublinou */}
+        {/* Maskot */}
         <section className="hub-pet-section">
-          <div className="hub-speech-bubble">
-            Ahoj! 👋 Jsem Buddy, tvůj studijní parťák. Společně to zvládneme! 💙
-          </div>
           <img src={mascot} alt="Buddy" className="hub-pet-img" />
         </section>
 
