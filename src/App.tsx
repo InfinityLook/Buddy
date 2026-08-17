@@ -1,14 +1,16 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import Login from './pages/login/Login.tsx'
 import Hub from './pages/hub/Hub.tsx'
 import AppModule from '@/pages/app/AppModule.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
+import { useAuthStore } from '@/core/store/useAuthStore'
 
 export default function App() {
-  const [isAuthed, setIsAuthed] = useState(false)
+  // Přihlášení je perzistentní, takže reload nechá uživatele tam, kde byl.
+  const { isAuthed, login, logout } = useAuthStore()
 
   // Registrace PWA aktualizací při načtení aplikace
   useEffect(() => {
@@ -24,7 +26,7 @@ export default function App() {
             isAuthed ? (
               <Navigate to="/hub" replace />
             ) : (
-              <Login onLogin={() => setIsAuthed(true)} />
+              <Login onLogin={login} />
             )
           }
         />
@@ -33,7 +35,7 @@ export default function App() {
           path="/hub"
           element={
             isAuthed ? (
-              <Hub onLogout={() => setIsAuthed(false)} />
+              <Hub onLogout={logout} />
             ) : (
               <Navigate to="/" replace />
             )
