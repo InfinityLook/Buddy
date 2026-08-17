@@ -1,0 +1,161 @@
+/* ==========================================
+   EXAM PREP APP - stejný design systém jako
+   Hub / AppModule / Profil (sklo, gradienty)
+   ========================================== */
+
+.examprep-container {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.2) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.16) 0%, transparent 35%),
+    radial-gradient(circle at 50% 95%, rgba(236, 72, 153, 0.12) 0%, transparent 45%),
+    #090b15;
+  color: #ffffff;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-sizing: border-box;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ------------------------------------------
+   HEADER
+   ------------------------------------------ */
+.examprep-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem;
+}
+
+.examprep-back-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.examprep-back-btn:active {
+  transform: scale(0.9);
+  filter: brightness(1.25);
+}
+
+.examprep-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.examprep-title {
+  font-size: 1.1rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.examprep-subtitle {
+  font-size: 0.68rem;
+  color: #9aa5c0;
+  margin: 0.1rem 0 0 0;
+}
+
+.examprep-stats-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.examprep-stat-item {
+  background: rgba(18, 20, 38, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------
+   MAIN CONTENT
+   ------------------------------------------ */
+.examprep-main-content {
+  flex: 1;
+  padding: 0 1rem calc(1.5rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* ------------------------------------------
+   BOTTOM TAB BAR - stejné sklo jako hub-bottombar
+   ------------------------------------------ */
+.examprep-tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 0.3rem;
+  background: rgba(18, 20, 38, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom));
+  position: sticky;
+  bottom: 0;
+}
+
+.examprep-tab-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  background: none;
+  border: none;
+  color: #8e9bb0;
+  padding: 0.4rem 0.2rem;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease, color 0.2s ease;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.examprep-tab-btn:active {
+  transform: scale(0.94);
+}
+
+.examprep-tab-btn.active {
+  color: #35c4f0;
+  background: rgba(53, 196, 240, 0.12);
+}
+
+.examprep-tab-btn .tab-icon {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.examprep-tab-btn .tab-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+}
