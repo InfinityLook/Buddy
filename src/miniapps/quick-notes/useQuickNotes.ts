@@ -1,25 +1,45 @@
 import { useState } from 'react'
+import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { secureStorage } from '@/core/utils/secureStorage'
 import { Note, INITIAL_NOTES } from './types'
 
-export const useQuickNotes = () => {
-  const [notes, setNotes] = useState<Note[]>(INITIAL_NOTES)
-  const [filter, setFilter] = useState<string>('Vše')
+interface QuickNotesState {
+  notes: Note[]
+  addNote: (title: string, content: string, category: Note['category']) => void
+  deleteNote: (id: string) => void
+}
 
-  const addNote = (title: string, content: string, category: Note['category']) => {
-    if (!title.trim()) return
-    const newNote: Note = {
-      id: Date.now().toString(),
-      title,
-      content,
-      category,
-      createdAt: new Date().toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' }),
+const useQuickNotesStore = create<QuickNotesState>()(
+  persist(
+    (set) => ({
+      notes: INITIAL_NOTES,
+
+      addNote: (title, content, category) => {
+        if (!title.trim()) return
+        const newNote: Note = {
+          id: Date.now().toString(),
+          title,
+          content,
+          category,
+          createdAt: new Date().toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' }),
+        }
+        set((state) => ({ notes: [newNote, ...state.notes] }))
+      },
+
+      deleteNote: (id) =>
+        set((state) => ({ notes: state.notes.filter((n) => n.id !== id) })),
+    }),
+    {
+      name: 'schoolbuddy-quick-notes-storage',
+      storage: createJSONStorage(() => secureStorage),
     }
-    setNotes((prev) => [newNote, ...prev])
-  }
+  )
+)
 
-  const deleteNote = (id: string) => {
-    setNotes((prev) => prev.filter((n) => n.id !== id))
-  }
+export const useQuickNotes = () => {
+  const { notes, addNote, deleteNote } = useQuickNotesStore()
+  const [filter, setFilter] = useState<string>('Vše')
 
   const filteredNotes = filter === 'Vše' ? notes : notes.filter((n) => n.category === filter)
 
@@ -30,4 +50,4 @@ export const useQuickNotes = () => {
     addNote,
     deleteNote,
   }
-}
+  }
