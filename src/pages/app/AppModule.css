@@ -112,58 +112,6 @@
 }
 
 /* ------------------------------------------
-   STATS BAR
-   ------------------------------------------ */
-.app-stats-bar {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  background: var(--app-card-bg);
-  border: 1px solid var(--app-card-border);
-  border-radius: var(--app-radius-lg);
-  padding: 1rem;
-  backdrop-filter: blur(12px);
-  gap: 0.5rem;
-}
-
-.app-stat-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0 0.5rem;
-  border-right: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.app-stat-item:last-child {
-  border-right: none;
-}
-
-.app-stat-icon-wrapper {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.app-stat-icon-wrapper.purple { background: rgba(138, 92, 246, 0.15); color: var(--app-purple); }
-.app-stat-icon-wrapper.green { background: rgba(16, 185, 129, 0.15); color: var(--app-green); }
-.app-stat-icon-wrapper.blue { background: rgba(53, 196, 240, 0.15); color: var(--app-cyan); }
-.app-stat-icon-wrapper.yellow { background: rgba(245, 158, 11, 0.15); color: var(--app-orange); }
-
-.app-stat-value {
-  font-size: 1.25rem;
-  font-weight: 800;
-  line-height: 1.1;
-}
-
-.app-stat-label {
-  font-size: 0.7rem;
-  color: var(--app-text-muted);
-}
-
-/* ------------------------------------------
    TOOLBAR & CATEGORIES
    ------------------------------------------ */
 .app-toolbar-section {
@@ -382,32 +330,6 @@
   color: #f59e0b;
 }
 
-/* Card - Create new */
-.app-card--create {
-  border: 1px dashed rgba(255, 255, 255, 0.2);
-  justify-content: center;
-  cursor: pointer;
-  min-height: 180px;
-}
-
-.app-create-plus-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: rgba(138, 92, 246, 0.15);
-  color: var(--app-purple);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.75rem;
-}
-
-.app-create-text {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #c084fc;
-}
-
 /* ------------------------------------------
    BANNER
    ------------------------------------------ */
@@ -456,23 +378,7 @@
 .app-banner-content p {
   font-size: 0.78rem;
   color: var(--app-text-muted);
-  margin: 0.3rem 0 0.85rem 0;
-}
-
-/* Stejné primární CTA jako login-submit / hub-talk-btn / profil-sheet-save-btn */
-.app-banner-cta-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: linear-gradient(135deg, var(--app-cyan), var(--app-purple));
-  border: none;
-  color: var(--text-on-accent);
-  padding: 0.6rem 1.2rem;
-  border-radius: var(--radius-pill);
-  font-size: 0.82rem;
-  font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 15px rgba(138, 92, 246, 0.3);
+  margin: 0.3rem 0 0;
 }
 
 /* ------------------------------------------
@@ -544,32 +450,6 @@
     display: none;
   }
 
-  .app-stats-bar {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.6rem;
-    padding: 0.75rem;
-  }
-
-  .app-stat-item {
-    border-right: none;
-    padding: 0.2rem;
-    gap: 0.5rem;
-  }
-
-  .app-stat-icon-wrapper {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-  }
-
-  .app-stat-value {
-    font-size: 1.05rem;
-  }
-
-  .app-stat-label {
-    font-size: 0.65rem;
-  }
-
   .app-toolbar-top {
     flex-wrap: wrap;
     gap: 0.5rem;
@@ -618,10 +498,5 @@
     text-align: center;
     padding: 1rem;
     gap: 0.75rem;
-  }
-
-  .app-banner-cta-btn {
-    width: 100%;
-    justify-content: center;
   }
    }
