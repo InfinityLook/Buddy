@@ -4,26 +4,25 @@
    ========================================== */
 
 :root {
-  /* Základní barvy přebírají globální proměnné z styles/global.css,
-     lokální fallbacky jsou pro jistotu duplikované se stejnými hodnotami
-     jako v Hub.css a AppModule.css. */
-  --profil-bg: #090b15;
-  --profil-card-bg: rgba(18, 20, 38, 0.68);
-  --profil-card-border: rgba(255, 255, 255, 0.1);
+  /* Hodnoty přebírají jednotný design systém ze styles/global.css,
+     lokální názvy zůstávají zachované kvůli zbytku souboru. */
+  --profil-bg: var(--bg-base);
+  --profil-card-bg: var(--bg-glass);
+  --profil-card-border: var(--border-subtle);
 
   /* Stejná paleta jako Hub / AppModule */
-  --c-cyan: #35c4f0;
-  --c-purple: #8a5cf6;
-  --c-green: #10b981;
-  --c-amber: #f59e0b;
-  --c-pink: #ec4899;
-  --c-fire: #ef4444;
+  --c-cyan: var(--accent-cyan);
+  --c-purple: var(--accent-violet);
+  --c-green: var(--accent-green);
+  --c-amber: var(--accent-orange);
+  --c-pink: var(--accent-magenta);
+  --c-fire: var(--accent-red);
 
-  --profil-text-main: #ffffff;
-  --profil-text-sub: #9aa5c0;
+  --profil-text-main: var(--text-primary);
+  --profil-text-sub: var(--text-secondary);
 
-  --profil-radius-lg: 20px;
-  --profil-radius-md: 14px;
+  --profil-radius-lg: var(--radius-lg);
+  --profil-radius-md: var(--radius-md);
 }
 
 /* Kontejner natvrdo na výšku displeje bez scrollu, se stejným
@@ -38,7 +37,6 @@
     radial-gradient(circle at 50% 95%, rgba(236, 72, 153, 0.13) 0%, transparent 45%),
     var(--profil-bg);
   color: var(--profil-text-main);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   padding: 0.4rem 0.75rem calc(0.4rem + env(safe-area-inset-bottom));
   max-width: 480px;
   margin: 0 auto;
@@ -830,11 +828,11 @@
   box-shadow: 0 0 0 3px rgba(53, 196, 240, 0.15);
 }
 
-/* Stejný "brand" gradient jako hub-talk-btn */
+/* Stejné primární CTA jako login-submit / hub-talk-btn / app-banner-cta-btn */
 .profil-sheet-save-btn {
   margin-top: 0.2rem;
-  background: linear-gradient(135deg, #35c4f0, #8a5cf6);
-  color: #fff;
+  background: linear-gradient(135deg, var(--c-cyan), var(--c-purple));
+  color: var(--text-on-accent);
   font-weight: 800;
   font-size: 0.75rem;
   border: none;
@@ -913,4 +911,245 @@
 .profil-sheet-danger-btn:active {
   transform: scale(0.97);
   background: rgba(239, 68, 68, 0.2);
+}
+
+/* ==========================================
+   PROFIL PAGE - kořen a horní lišta skutečně
+   používané v ProfilModule.tsx (doplněk k výše
+   uvedeným stylům, stejný design systém jako
+   Hub / AppModule)
+   ========================================== */
+.profil-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.22) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.18) 0%, transparent 35%),
+    radial-gradient(circle at 50% 95%, rgba(236, 72, 153, 0.13) 0%, transparent 45%),
+    var(--profil-bg);
+  color: var(--profil-text-main);
+  padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-sizing: border-box;
+}
+
+.profil-top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.profil-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.profil-subtitle {
+  color: var(--profil-text-sub);
+  font-size: 0.72rem;
+  margin: 0.15rem 0 0;
+  max-width: 260px;
+}
+
+.profil-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.profil-user-bio {
+  color: var(--profil-text-sub);
+  font-size: 0.7rem;
+  margin: 0.1rem 0;
+}
+
+.profil-user-email {
+  color: var(--profil-text-sub);
+  font-size: 0.65rem;
+}
+
+/* Level & streak grid uvnitř profil-user-card */
+.profil-progress-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.profil-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--c-cyan);
+  font-weight: 700;
+  font-size: 0.65rem;
+  margin-bottom: 0.25rem;
+}
+
+.profil-xp-bar-bg {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 0.15rem;
+}
+
+.profil-xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--c-cyan), var(--c-purple));
+  border-radius: 10px;
+}
+
+.profil-streak-box {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  gap: 0.1rem;
+}
+
+.profil-streak-val {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #fca5a5;
+}
+
+/* Sekce "Moje úspěchy" / "Moje cíle" */
+.profil-two-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profil-col-card {
+  background: var(--profil-card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--profil-card-border);
+  border-radius: var(--profil-radius-lg);
+  padding: 0.6rem 0.7rem;
+  box-shadow: var(--shadow-card);
+}
+
+.profil-col-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.profil-link {
+  color: var(--c-cyan);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profil-list-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.profil-list-item:last-child {
+  border-bottom: none;
+}
+
+.profil-item-details {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.profil-item-sub {
+  font-size: 0.6rem;
+  color: var(--profil-text-sub);
+}
+
+/* Nabídka nastavení (Osobní informace / Zabezpečení / ...) */
+.profil-settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.profil-menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: var(--profil-card-bg);
+  border: 1px solid var(--profil-card-border);
+  border-radius: var(--profil-radius-md);
+  padding: 0.55rem 0.6rem;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.profil-menu-row:active {
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.profil-menu-left {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.profil-menu-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.profil-menu-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.profil-menu-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.profil-menu-sub {
+  font-size: 0.6rem;
+  color: var(--profil-text-sub);
+}
+
+.profil-arrow {
+  color: var(--profil-text-sub);
+  flex-shrink: 0;
+}
+
+.profil-notif-text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }

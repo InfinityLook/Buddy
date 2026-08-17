@@ -39,7 +39,7 @@
   max-width: 380px;
   background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: 32px 28px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
 }
@@ -145,8 +145,8 @@
   padding: 14px;
   font-size: 15px;
   font-weight: 700;
-  color: #06121f;
-  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-violet));
+  color: var(--text-on-accent);
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
   cursor: pointer;
   box-shadow: var(--shadow-glow-cyan);
   transition: transform 0.15s ease, box-shadow 0.15s ease;

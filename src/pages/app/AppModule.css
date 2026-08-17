@@ -3,20 +3,22 @@
    ========================================== */
 
 :root {
-  --app-bg: #090b15;
-  --app-card-bg: rgba(18, 22, 38, 0.7);
-  --app-card-border: rgba(255, 255, 255, 0.08);
-  --app-text-main: #ffffff;
-  --app-text-muted: #8e9bb0;
+  /* Hodnoty přebírají jednotný design systém ze styles/global.css,
+     lokální názvy zůstávají zachované kvůli zbytku souboru. */
+  --app-bg: var(--bg-base);
+  --app-card-bg: var(--bg-glass);
+  --app-card-border: var(--border-subtle);
+  --app-text-main: var(--text-primary);
+  --app-text-muted: var(--text-secondary);
 
-  --app-cyan: #35c4f0;
-  --app-purple: #8a5cf6;
-  --app-green: #10b981;
-  --app-orange: #f59e0b;
-  --app-pink: #ec4899;
+  --app-cyan: var(--accent-cyan);
+  --app-purple: var(--accent-violet);
+  --app-green: var(--accent-green);
+  --app-orange: var(--accent-orange);
+  --app-pink: var(--accent-magenta);
 
-  --app-radius-lg: 20px;
-  --app-radius-md: 14px;
+  --app-radius-lg: var(--radius-lg);
+  --app-radius-md: var(--radius-md);
 }
 
 .app-container {
@@ -457,19 +459,20 @@
   margin: 0.3rem 0 0.85rem 0;
 }
 
+/* Stejné primární CTA jako login-submit / hub-talk-btn / profil-sheet-save-btn */
 .app-banner-cta-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+  background: linear-gradient(135deg, var(--app-cyan), var(--app-purple));
   border: none;
-  color: #fff;
+  color: var(--text-on-accent);
   padding: 0.6rem 1.2rem;
-  border-radius: 30px;
+  border-radius: var(--radius-pill);
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(168, 85, 247, 0.3);
+  box-shadow: 0 4px 15px rgba(138, 92, 246, 0.3);
 }
 
 /* ------------------------------------------

@@ -1,26 +1,37 @@
 :root {
+  /* Jednotný design systém pro všechny stránky (Login, Hub, App, Profil) */
+
+  /* Pozadí a panely */
   --bg-base: #0a0e1a;
   --bg-panel: #10182b;
   --bg-panel-raised: #151f38;
+  --bg-glass: rgba(18, 20, 38, 0.7);
   --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
 
+  /* Akcentové barvy - stejná paleta napříč celou aplikací */
   --accent-cyan: #35c4f0;
   --accent-violet: #8a5cf6;
-  --accent-magenta: #ef4899;
-  --accent-green: #35d0a0;
-  --accent-red: #ef5a6f;
+  --accent-magenta: #ec4899;
+  --accent-green: #10b981;
+  --accent-orange: #f59e0b;
+  --accent-red: #ef4444;
 
   --text-primary: #f2f5fb;
   --text-secondary: #9aa5c0;
   --text-muted: #62698a;
+  --text-on-accent: #06121f;
 
-  --radius-lg: 24px;
-  --radius-md: 16px;
+  /* Zaoblení - jednotná škála pro karty, panely a tlačítka */
+  --radius-xl: 24px;
+  --radius-lg: 20px;
+  --radius-md: 14px;
   --radius-sm: 10px;
   --radius-pill: 999px;
 
   --shadow-glow-cyan: 0 0 40px rgba(53, 196, 240, 0.35);
   --shadow-glow-violet: 0 0 40px rgba(138, 92, 246, 0.35);
+  --shadow-card: 0 10px 30px rgba(0, 0, 0, 0.3);
 
   color-scheme: dark;
 }
