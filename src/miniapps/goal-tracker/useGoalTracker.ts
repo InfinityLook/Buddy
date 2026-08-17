@@ -1,37 +1,55 @@
-import { useState } from 'react'
+import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import { secureStorage } from '@/core/utils/secureStorage'
 import { Goal, INITIAL_GOALS } from './types'
 
-export const useGoalTracker = () => {
-  const [goals, setGoals] = useState<Goal[]>(INITIAL_GOALS)
-
-  const incrementProgress = (id: string, amount: number = 1) => {
-    setGoals((prev) =>
-      prev.map((g) => {
-        if (g.id === id) {
-          const nextVal = Math.min(g.target, g.current + amount)
-          return { ...g, current: nextVal }
-        }
-        return g
-      })
-    )
-  }
-
-  const addGoal = (title: string, target: number, unit: string, category: Goal['category']) => {
-    if (!title.trim() || target <= 0) return
-    const newGoal: Goal = {
-      id: Date.now().toString(),
-      title,
-      current: 0,
-      target,
-      unit,
-      category,
-    }
-    setGoals((prev) => [...prev, newGoal])
-  }
-
-  const deleteGoal = (id: string) => {
-    setGoals((prev) => prev.filter((g) => g.id !== id))
-  }
-
-  return { goals, incrementProgress, addGoal, deleteGoal }
+interface GoalTrackerState {
+  goals: Goal[]
+  incrementProgress: (id: string, amount?: number) => void
+  addGoal: (title: string, target: number, unit: string, category: Goal['category']) => void
+  deleteGoal: (id: string) => void
 }
+
+const useGoalTrackerStore = create<GoalTrackerState>()(
+  persist(
+    (set) => ({
+      goals: INITIAL_GOALS,
+
+      incrementProgress: (id, amount = 1) =>
+        set((state) => ({
+          goals: state.goals.map((g) => {
+            if (g.id === id) {
+              const nextVal = Math.min(g.target, g.current + amount)
+              return { ...g, current: nextVal }
+            }
+            return g
+          }),
+        })),
+
+      addGoal: (title, target, unit, category) => {
+        if (!title.trim() || target <= 0) return
+        const newGoal: Goal = {
+          id: Date.now().toString(),
+          title,
+          current: 0,
+          target,
+          unit,
+          category,
+        }
+        set((state) => ({ goals: [...state.goals, newGoal] }))
+      },
+
+      deleteGoal: (id) =>
+        set((state) => ({ goals: state.goals.filter((g) => g.id !== id) })),
+    }),
+    {
+      name: 'schoolbuddy-goal-tracker-storage',
+      storage: createJSONStorage(() => secureStorage),
+    }
+  )
+)
+
+export const useGoalTracker = () => {
+  const { goals, incrementProgress, addGoal, deleteGoal } = useGoalTrackerStore()
+  return { goals, incrementProgress, addGoal, deleteGoal }
+      }
