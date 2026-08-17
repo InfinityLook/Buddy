@@ -75,4 +75,4 @@ export const ProfilIcon: React.FC<ProfilIconProps> = ({ name, size = 20, classNa
     default:
       return null
   }
-  }
+}
