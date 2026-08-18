@@ -220,12 +220,15 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </button>
 
           <button
-            className="hub-btn-card"
+            className="hub-btn-card hub-btn-card--soon"
             onClick={() => showToast('Shop se připravuje — brzy tu budou vylepšení.')}
           >
             <span className="hub-card-icon">🛍️</span>
             <span className="hub-card-text">
-              <span className="hub-card-title">Shop</span>
+              <span className="hub-card-title">
+                Shop
+                <span className="hub-badge-soon">BRZY</span>
+              </span>
               <span className="hub-card-sub">Vylepšení a doplňky</span>
             </span>
           </button>
@@ -266,11 +269,14 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </button>
 
           <button
-            className="hub-btn-card hub-btn-square"
+            className="hub-btn-card hub-btn-square hub-btn-card--soon"
             onClick={() => showToast('Sekce Play se připravuje — hry teprve vznikají.')}
           >
             <span className="hub-card-icon">🎮</span>
-            <span className="hub-card-title">Play</span>
+            <span className="hub-card-title">
+              Play
+              <span className="hub-badge-soon">BRZY</span>
+            </span>
             <span className="hub-card-sub">Zábava a hry</span>
           </button>
 
@@ -284,15 +290,15 @@ export const HubModule: React.FC<HubModuleProps> = ({
         {/* Spodní lišta */}
         <div className="hub-bottom-bar">
           <button
-            className="hub-action-btn-icon"
-            aria-label="Zvuk"
+            className="hub-action-btn-icon hub-action-btn-icon--soon"
+            aria-label="Zvuk (připravuje se)"
             onClick={() => showToast('Zvuky Buddyho se připravují.')}
           >
             🔊
           </button>
 
           <button
-            className="hub-talk-btn"
+            className={`hub-talk-btn ${onTalk ? '' : 'hub-talk-btn--soon'}`}
             onClick={onTalk ?? (() => showToast('Hlasový režim se připravuje.'))}
           >
             🎙️ PROMLUV SI SE MNOU
