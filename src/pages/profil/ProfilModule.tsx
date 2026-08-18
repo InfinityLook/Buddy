@@ -5,6 +5,7 @@ import { useAppStore } from '@/core/store/useAppStore'
 import { useGoalTracker } from '@/miniapps/goal-tracker/useGoalTracker'
 import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
 import { fileToResizedDataUrl } from '@/utils/image'
+import { APP_VERSION, applyUpdateNow, checkForUpdates, hasNewerVersion } from '@/core/utils/registerSW'
 import { useProfileData } from './hooks/useProfileData'
 import { ProfilSettingsSheet } from './components/ProfilSettingsSheet'
 import { ProfilNotifications } from './components/ProfilNotifications'
@@ -22,11 +23,41 @@ export const ProfilModule: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [updateChecking, setUpdateChecking] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const showToast = (message: string) => {
     setToastMsg(message)
     window.setTimeout(() => setToastMsg(null), 2500)
+  }
+
+  // Ruční pojistka pro případ, že by si automatická aktualizace nevšimla
+  // nové verze — třeba když telefon dlouho visel offline.
+  const handleCheckUpdates = async () => {
+    if (updateChecking) return
+    if (!navigator.onLine) {
+      showToast('Jsi offline — aktualizace zkusím později')
+      return
+    }
+
+    setUpdateChecking(true)
+    showToast('Kontroluji aktualizace…')
+    try {
+      const newer = await hasNewerVersion()
+      if (newer) {
+        showToast('Nová verze nalezena, načítám ji…')
+        await applyUpdateNow()
+        return
+      }
+      // I bez nové verze stojí za to pobídnout service worker,
+      // kdyby náhodou uvízl na starém buildu.
+      await checkForUpdates()
+      showToast(`Máš nejnovější verzi (${APP_VERSION}) ✓`)
+    } catch {
+      showToast('Kontrolu se nepodařilo dokončit')
+    } finally {
+      setUpdateChecking(false)
+    }
   }
 
   const handleAvatarSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -198,6 +229,19 @@ export const ProfilModule: React.FC = () => {
             <div className="profil-menu-text">
               <span className="profil-menu-title">Nápověda a podpora</span>
               <span className="profil-menu-sub">Často kladené otázky a kontakt</span>
+            </div>
+          </div>
+          <span className="profil-arrow">❯</span>
+        </div>
+
+        <div className="profil-menu-row" onClick={() => { void handleCheckUpdates() }}>
+          <div className="profil-menu-left">
+            <div className="profil-menu-icon">🔄</div>
+            <div className="profil-menu-text">
+              <span className="profil-menu-title">Verze aplikace</span>
+              <span className="profil-menu-sub">
+                {updateChecking ? 'Kontroluji…' : `SchoolBuddy ${APP_VERSION} — klepni pro kontrolu aktualizací`}
+              </span>
             </div>
           </div>
           <span className="profil-arrow">❯</span>

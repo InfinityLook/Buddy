@@ -5,8 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" />
     <title>SchoolBuddy</title>
     <meta name="description" content="SchoolBuddy — tvůj studijní parťák, který ti pomůže zvládnout školu." />
+    <!-- Verze právě naservírovaného HTML. Tyto hodnoty doplňuje build
+         (viz injectVersionMeta ve vite.config.ts) a hlídač aktualizací je
+         porovnává s živým /version.json. Když se liší, běží stará verze. -->
+    <meta name="app-version" content="__APP_VERSION__" />
+    <meta name="app-build-id" content="__APP_BUILD_ID__" />
     <!-- Absolutní cesta: relativní "js/..." by se na routách typu /apps
-         přeložila na /apps/js/auto-update.js a skončila 404. -->
+         přeložila na /apps/js/auto-update.js a skončila 404.
+         `defer` je nutné: skript se záměrně neprecachuje, takže offline
+         se nenačte — blokující <script> by v takovém případě zdržel start. -->
     <script src="/js/auto-update.js" defer></script>
     <!-- PWA / theme -->
     <meta name="theme-color" content="#0a0e1a" />
