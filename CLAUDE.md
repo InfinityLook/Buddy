@@ -53,9 +53,26 @@ Other pages deep-link into a miniapp by setting `useAppStore().setActiveAppId(id
 
 ### PWA / offline
 
-`vite-plugin-pwa` is configured in `vite.config.ts` (manifest, Workbox precache globs, dev-mode SW enabled). `src/main.tsx` calls `registerSW({ immediate: true })` from `virtual:pwa-register` on boot; `core/utils/registerSW.ts` (`setupPWAUpdates`) additionally wires an `onNeedRefresh`/`onOfflineReady` flow (default behavior: `confirm()` + reload) invoked from `App.tsx`. `src/components/NetworkStatusBanner.tsx` + `core/hooks/useOnlineStatus.ts` show a fixed banner when `navigator.onLine` is false. There's a **second, independent update mechanism** alongside the service worker: `index.html` loads `public/js/auto-update.js` (a plain non-bundled IIFE, absolute `/js/...` path so it also resolves on deep routes like `/apps`). It polls `public/version.json` every 5 minutes and on `visibilitychange`, and hard-reloads the page when the served version differs from the one recorded when the tab loaded. Both files must live in `public/` — anything outside it isn't copied to `dist/`, which is what previously made the script and its fetch 404 in production.
+`vite-plugin-pwa` is configured in `vite.config.ts` (manifest, Workbox precache globs, dev-mode SW enabled), with `registerType: 'autoUpdate'` — so the generated `sw.js` calls `skipWaiting()`/`clientsClaim()` and `virtual:pwa-register` reloads the page once a new SW activates. `src/components/NetworkStatusBanner.tsx` + `core/hooks/useOnlineStatus.ts` show a fixed banner when `navigator.onLine` is false.
 
-Practical consequences: bump `public/version.json` (not `package.json`, whose version is unrelated) when you want already-open clients to pick up a deploy, and keep `json` out of the Workbox `globPatterns` so `version.json` is never precached — precaching it would freeze the version and silently disable the check.
+#### Versioning
+
+`public/version.json` holds the single hand-maintained version number (`package.json`'s version is unrelated). At build time `vite.config.ts` reads it and derives a **build ID** (`<version>-<base36 timestamp>`) that changes on *every* build, so a deploy propagates to clients even when nobody bumped the version. Both values are injected in three places that must stay in sync:
+
+- `__APP_VERSION__` / `__APP_BUILD_ID__` — `define`d into the bundle (typed in `src/vite-env.d.ts`, re-exported from `core/utils/registerSW.ts`).
+- `<meta name="app-version">` / `<meta name="app-build-id">` in `index.html` — substituted by the `schoolbuddy-version-meta` plugin, so the *served HTML* carries the version of the build it came from.
+- `dist/version.json` — rewritten by the `schoolbuddy-version-manifest` plugin in `closeBundle` (i.e. after Vite copies `public/`), gaining `buildId` and `buildTime`.
+
+In dev the build ID is deliberately set equal to the plain version, and `public/version.json` has no `buildId`, so the comparison always matches and nothing reload-loops while you work.
+
+#### Two update mechanisms
+
+1. **Service worker (the graceful path).** `core/utils/registerSW.ts` (`setupPWAUpdates`, called once from `App.tsx`) is the *only* place that registers the SW — `main.tsx` must not register it too, or two Workbox instances race each other's reload. Beyond registering, it calls `registration.update()` every 5 minutes **and on every resume signal** (`visibilitychange`, `focus`, `online`, `pageshow` with `persisted`). Those resume triggers are the important part: a PWA launched from a phone's home screen is usually just woken from the background and never reloads on its own, which is why update-on-boot alone left users on a stale build for days. Before each `update()` it re-fetches `swUrl` with `cache: 'no-store'` to defeat the browser's 24h HTTP cache on `sw.js`, and nudges any SW stuck in `waiting` with a `SKIP_WAITING` message.
+2. **`public/js/auto-update.js` (the watchdog).** A plain non-bundled IIFE loaded from `index.html` via an absolute `/js/...` path (a relative one would resolve to `/apps/js/...` and 404 on deep routes). It compares the `app-build-id` meta of the *currently served HTML* against a live no-store fetch of `/version.json` — comparing served-vs-server is what makes it able to detect "this client is stale", which the previous server-vs-server version could not do. On a mismatch it gives the SW `SW_GRACE_MS` to update gracefully, then falls back to unregistering the SW, deleting all Cache Storage, and `location.replace()`. A `sessionStorage` attempt counter caps this at `MAX_ATTEMPTS` reloads per version so a deploy race can't wedge the app in a reload loop, and it no-ops on localhost, offline, and while hidden. It is deliberately kept out of precache (`globIgnores`) so a stale copy can never be the thing that's broken.
+
+`core/utils/registerSW.ts` also exports `hasNewerVersion()` / `applyUpdateNow()` / `checkForUpdates()`, used by the "Verze aplikace" row in `pages/profil/ProfilModule.tsx` as a manual escape hatch.
+
+Practical consequences: keep `json` out of the Workbox `globPatterns` and keep the `NetworkOnly` runtime-caching route for `/version.json` — precaching it would freeze the version and silently disable both mechanisms. `vercel.json` sets `no-cache`/`no-store` headers on `sw.js`, `index.html`, `version.json`, `manifest.webmanifest` and `js/auto-update.js` while marking hashed `/assets/*` immutable; without those headers the CDN can serve a stale `sw.js` and no amount of client-side checking helps. Both `version.json` and `js/auto-update.js` must live in `public/` — anything outside it isn't copied to `dist/`.
 
 ### Path alias
 
@@ -69,3 +86,4 @@ Practical consequences: bump `public/version.json` (not `package.json`, whose ve
 - `src/features/miniapps/registry.ts` — the lazy-loading wiring between `pages/app` and `miniapps/`.
 - `src/components/` — small app-wide shared components (`ErrorBoundary`, `NetworkStatusBanner`).
 - `src/styles/global.css` — global styles, imported once from `main.tsx`.
+- `vercel.json` — cache headers for the update pipeline plus the SPA fallback rewrite (Vercel checks the filesystem before rewrites, so real files still win).
