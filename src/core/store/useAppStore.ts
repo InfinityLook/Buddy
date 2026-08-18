@@ -17,8 +17,12 @@ export interface AppItem {
 interface AppState {
   apps: AppItem[]
   activeAppId: string | null
-  
-  setActiveAppId: (id: string | null) => void
+  // Cesta, na kterou se má vrátit tlačítko "Zpět" v otevřené miniaplikaci —
+  // nastavuje se jen u deep-linků (Hub, Profil), aby uživatel skončil tam,
+  // odkud přišel, a ne vždy jen v seznamu aplikací.
+  returnPath: string | null
+
+  setActiveAppId: (id: string | null, returnPath?: string | null) => void
   toggleFavorite: (id: string) => void
   addApp: (app: AppItem) => void
   exportState: () => void
@@ -43,8 +47,12 @@ export const useAppStore = create<AppState>()(
     (set, get) => ({
       apps: DEFAULT_APPS,
       activeAppId: null,
+      returnPath: null,
 
-      setActiveAppId: (id) => set({ activeAppId: id }),
+      // Zavření miniaplikace (id === null) vždy vynuluje i returnPath,
+      // ať příští otevření z mřížky nezdědí cizí "zpět" cíl.
+      setActiveAppId: (id, returnPath = null) =>
+        set({ activeAppId: id, returnPath: id ? returnPath : null }),
 
       toggleFavorite: (id) =>
         set((state) => ({
