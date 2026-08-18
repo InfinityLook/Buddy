@@ -151,7 +151,7 @@ export const ProfilModule: React.FC = () => {
         <ProfilGoals
           goals={goals}
           onShowAll={() => {
-            setActiveAppId('goal-tracker')
+            setActiveAppId('goal-tracker', '/profil')
             navigate('/apps')
           }}
         />

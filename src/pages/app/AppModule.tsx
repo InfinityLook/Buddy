@@ -17,7 +17,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   const navigate = useNavigate()
 
   // Načtení globálního stavu ze Zustand storu
-  const { apps, activeAppId, setActiveAppId, toggleFavorite } = useAppStore()
+  const { apps, activeAppId, returnPath, setActiveAppId, toggleFavorite } = useAppStore()
 
   // Hub umí odkázat rovnou na konkrétní kategorii (např. Library → Vzdělávání)
   const [searchParams] = useSearchParams()
@@ -34,16 +34,23 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   // Bez vlastního onBack (např. při vstupu přes routu /apps) se vracíme do Hubu
   const handleBack = onBack ?? (() => navigate('/hub'))
 
+  // Zavření otevřené miniaplikace — pokud sem uživatel přišel deep-linkem
+  // (Hub, Profil), vrátí ho zpět tam; jinak zůstává v mřížce aplikací.
+  const handleCloseApp = () => {
+    setActiveAppId(null)
+    if (returnPath) navigate(returnPath)
+  }
+
   // Zobrazení plné stránky pro vybranou miniaplikaci
   if (activeApp && ActiveComponent) {
     return (
       <div className="app-fullscreen-view">
         <header className="app-fullscreen-header">
-          <button 
-            className="app-back-btn" 
-            onClick={() => setActiveAppId(null)}
+          <button
+            className="app-back-btn"
+            onClick={handleCloseApp}
           >
-            ← Zpět do seznamu
+            {returnPath ? '← Zpět' : '← Zpět do seznamu'}
           </button>
           <h2>{activeApp.title}</h2>
         </header>

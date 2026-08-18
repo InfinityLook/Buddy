@@ -112,9 +112,10 @@ export const HubModule: React.FC<HubModuleProps> = ({
     navigate('/profil')
   }
 
-  // Denní výzva otevře přímo Study Planner s úkoly
+  // Denní výzva otevře přímo Study Planner s úkoly; tlačítko Zpět v aplikaci
+  // pak vrátí uživatele zpátky do Hubu, ne jen do seznamu aplikací.
   const handleChallengeClick = () => {
-    setActiveAppId('study-planner')
+    setActiveAppId('study-planner', '/hub')
     navigate('/apps')
   }
 
