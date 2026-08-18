@@ -41,6 +41,7 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-document-editor-storage', storage: 'secure', label: 'Textový editor' },
   { key: 'schoolbuddy-examprep-storage', storage: 'secure', label: 'Maturitní centrum' },
   { key: 'schoolbuddy-pomodoro-storage', storage: 'secure', label: 'Pomodoro' },
+  { key: 'schoolbuddy-math-solver-storage', storage: 'secure', label: 'Math Solver' },
   // Profil sahá na localStorage přímo, mimo secureStorage i mimo Zustand.
   { key: 'buddy_profile_v1', storage: 'raw', label: 'Profil' },
 ]

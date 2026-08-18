@@ -77,14 +77,11 @@
   border-color: rgba(16, 185, 129, 0.3);
 }
 
-.ms-btn.equals {
-  background: #10b981;
-  color: #000;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
-}
-
-.ms-btn.zero {
-  grid-column: span 2;
+/* Symboly pro rovnice (x a =) */
+.ms-btn.sym {
+  background: rgba(138, 92, 246, 0.15);
+  color: #a78bfa;
+  border-color: rgba(138, 92, 246, 0.35);
 }
 
 .ms-history {
@@ -109,4 +106,124 @@
 
 .ms-history-item strong {
   color: #10b981;
+}
+
+.ms-hint {
+  font-size: 0.65rem;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.ms-hint code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.05rem 0.25rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.ms-input {
+  width: 100%;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  color: #fff;
+  padding: 0.55rem 0.6rem;
+  font-size: 1rem;
+  font-weight: 700;
+  text-align: right;
+  outline: none;
+}
+
+.ms-input:focus {
+  border-color: rgba(16, 185, 129, 0.5);
+}
+
+.ms-error {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #f87171;
+}
+
+.ms-steps {
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem;
+}
+
+.ms-steps-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #64748b;
+  letter-spacing: 0.04em;
+}
+
+.ms-steps-list {
+  margin: 0.3rem 0 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.ms-steps-list li {
+  font-size: 0.7rem;
+  color: #cbd5e1;
+  line-height: 1.4;
+}
+
+.ms-solve-btn {
+  width: 100%;
+  background: #10b981;
+  color: #04231a;
+  border: none;
+  border-radius: 10px;
+  padding: 0.65rem 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+}
+
+.ms-solve-btn:active {
+  transform: scale(0.985);
+}
+
+.ms-history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+.ms-clear-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.ms-history-item {
+  width: 100%;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.65rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+  cursor: pointer;
+  text-align: left;
+}
+
+.ms-history-expr {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
