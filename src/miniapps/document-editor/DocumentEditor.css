@@ -27,7 +27,8 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
+  /* Odsazení od notche/dynamic islandu na iPhonu (viewport-fit=cover v index.html) */
+  padding: calc(0.5rem + env(safe-area-inset-top)) 0.75rem 0.5rem;
 }
 
 .doc-back-btn {
@@ -36,7 +37,13 @@
   color: #f8fafc;
   font-size: 1.4rem;
   cursor: pointer;
-  padding: 0.2rem 0.4rem;
+  padding: 0.3rem 0.5rem;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .doc-title-wrapper {
@@ -52,9 +59,11 @@
   border: none;
   color: #fff;
   font-weight: 700;
-  font-size: 0.95rem;
+  /* 16px = práh, pod kterým Safari na iOS při fokusu inputu automaticky přiblíží stránku */
+  font-size: 1rem;
   outline: none;
   width: 100%;
+  min-width: 0; /* umožní inputu se zmenšit v flex řádku místo přetečení */
 }
 
 .save-status-dot {
@@ -140,10 +149,12 @@
   cursor: pointer;
 }
 
+/* Pozice (position/top/left) se nastavuje inline v MenuNav.tsx — menu se
+   renderuje portálem do <body>, protože .doc-menu-nav má kvůli vodorovnému
+   scrollování (overflow-x: auto) vynucené i overflow-y: auto, které by
+   klasicky pozicované (position: absolute) dropdown menu prakticky celé
+   oříznulo mimo viditelnou oblast. */
 .dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
   background-color: #1e293b;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
@@ -152,6 +163,7 @@
   display: flex;
   flex-direction: column;
   min-width: 170px;
+  max-width: calc(100vw - 1.5rem);
   z-index: 100;
 }
 
@@ -164,6 +176,7 @@
   font-size: 0.85rem;
   border-radius: 4px;
   cursor: pointer;
+  min-height: 40px;
 }
 
 .dropdown-menu button:active {
@@ -194,8 +207,8 @@
 }
 
 .touch-btn {
-  min-width: 38px;
-  height: 38px;
+  min-width: 40px;
+  height: 40px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #f8fafc;
@@ -242,19 +255,21 @@
 
 .toolbar-select {
   flex: 1;
-  height: 38px;
+  min-width: 0;
+  height: 40px;
   background-color: #0f172a;
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   padding: 0 0.5rem;
-  font-size: 0.85rem;
+  /* 16px, ať fokus selectu na iOS Safari nevyvolá automatické přiblížení stránky */
+  font-size: 1rem;
   outline: none;
 }
 
 .color-picker-touch {
-  min-width: 38px;
-  height: 38px;
+  min-width: 40px;
+  height: 40px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
@@ -306,11 +321,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.35rem 0.75rem;
+  /* Poslední prvek na obrazovce v editační záložce — odsazení proti
+     home-indicator liště na iPhonu bez tlačítek. */
+  padding: 0.35rem 0.75rem calc(0.35rem + env(safe-area-inset-bottom));
   background-color: #1e293b;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 0.7rem;
   color: #94a3b8;
+  flex-shrink: 0;
 }
 
 /* ==========================================
@@ -319,7 +337,8 @@
 .file-manager-container {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem;
+  -webkit-overflow-scrolling: touch;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
   background-color: #0b0f19;
   display: flex;
   flex-direction: column;
@@ -421,8 +440,14 @@
   border: none;
   font-size: 1.1rem;
   padding: 0.4rem;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
   border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .icon-btn.delete:active {

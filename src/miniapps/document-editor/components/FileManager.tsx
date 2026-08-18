@@ -13,9 +13,24 @@ export const FileManager: React.FC<FileManagerProps> = ({ onOpenDoc }) => {
     const file = e.target.files?.[0]
     if (!file) return
 
+    const isHtml = /\.html?$/i.test(file.name)
+
     const reader = new FileReader()
     reader.onload = (event) => {
-      const content = event.target?.result as string
+      const rawContent = event.target?.result as string
+      // Obsah dokumentu se v editoru vkládá jako innerHTML. Skutečný .html
+      // soubor tak necháme projít beze změny, ale prostý .txt/.md text
+      // musíme escapovat — jinak by se "<" a "&" ztratily nebo, hůř, vzniklé
+      // značky (třeba <img onerror=...>) se v editoru rovnou vykonaly.
+      const content = isHtml
+        ? rawContent
+        : rawContent
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            // Editor obsah vykresluje jako běžné HTML (white-space: normal),
+            // takže bez převodu by se řádky prostého textu slily do jednoho.
+            .replace(/\r\n|\r|\n/g, '<br>')
       const title = file.name.replace(/\.[^/.]+$/, '')
       importDocument(title, content)
       onOpenDoc()
