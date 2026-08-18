@@ -5,6 +5,7 @@ import Hub from './pages/hub/Hub.tsx'
 import AppModule from '@/pages/app/AppModule.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
+import SettingsModule from '@/pages/setting/SettingsModule.tsx'
 import { BootGate } from '@/components/BootGate'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
@@ -78,6 +79,18 @@ export default function App() {
             element={
               isAuthed ? (
                 <RewardModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* Route pro nastavení aplikace */}
+          <Route
+            path="/nastaveni"
+            element={
+              isAuthed ? (
+                <SettingsModule />
               ) : (
                 <Navigate to="/" replace />
               )

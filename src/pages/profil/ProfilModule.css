@@ -919,9 +919,15 @@
    Hub / AppModule)
    ========================================== */
 .profil-page {
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* Pevná výška, ne min-height — jinak se prvek roztáhne podle obsahu,
+     overflow-y se nikdy neuplatní a #root s overflow: hidden zbytek ořízne.
+     Profil je jediná obrazovka, kde se smí posouvat nahoru a dolů. */
+  height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  /* Přetažení na konci seznamu nemá hýbat stránkou pod ním */
+  overscroll-behavior: contain;
   background:
     radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.22) 0%, transparent 40%),
     radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.18) 0%, transparent 35%),
@@ -945,8 +951,10 @@
 }
 
 .profil-title {
-  font-size: 1.2rem;
+  font-size: 1.65rem;
   font-weight: 800;
+  color: var(--c-cyan);
+  text-shadow: 0 0 18px rgba(53, 196, 240, 0.45);
   margin: 0;
   letter-spacing: -0.3px;
 }
