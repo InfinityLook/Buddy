@@ -1,0 +1,292 @@
+/* ==========================================
+   REWARD MODULE — stejný design systém jako Hub / App / Profil
+   (glass karty, neonové akcenty, mobil na první místě)
+   ========================================== */
+
+/* Stránka si scrolluje sama — global.css drží html/body/#root
+   na overflow: hidden, takže bez tohohle by se obsah ořízl. */
+.reward-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: auto;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.22) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.18) 0%, transparent 35%),
+    radial-gradient(circle at 50% 95%, rgba(236, 72, 153, 0.13) 0%, transparent 45%),
+    var(--bg-base);
+  color: var(--text-primary);
+  padding: 0.75rem 0.75rem calc(1.25rem + env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Hlavička */
+.reward-top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.reward-back-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+
+.reward-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.reward-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  margin: 0.15rem 0 0;
+  line-height: 1.35;
+}
+
+.reward-hero-icon {
+  font-size: 1.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 12px rgba(236, 72, 153, 0.55));
+}
+
+/* Souhrnná karta s úrovní a statistikami */
+.reward-summary-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 0.7rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.reward-level-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.reward-level-name {
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.reward-level-xp {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.reward-xp-bar-bg {
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.reward-xp-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
+  box-shadow: 0 0 12px rgba(53, 196, 240, 0.5);
+  transition: width 0.35s ease;
+}
+
+.reward-level-hint {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.reward-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.15rem;
+}
+
+.reward-stat-box {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.55rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.reward-stat-label {
+  font-size: 0.55rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  letter-spacing: 0.4px;
+}
+
+.reward-stat-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.reward-stat-sub {
+  font-size: 0.58rem;
+  color: var(--text-secondary);
+}
+
+/* Sekce (Odznaky, Jak získat XP) */
+.reward-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.reward-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 800;
+  padding: 0 0.15rem;
+}
+
+.reward-section-count {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+/* Karty odznaků */
+.reward-badge-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.reward-badge-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.65rem;
+  box-shadow: var(--shadow-card);
+}
+
+.reward-badge-card.is-unlocked {
+  border-color: rgba(16, 185, 129, 0.35);
+  background:
+    linear-gradient(135deg, rgba(16, 185, 129, 0.1), transparent 60%),
+    var(--bg-glass);
+}
+
+/* Zamčené odznaky zůstávají čitelné, jen ustoupí do pozadí */
+.reward-badge-card.is-locked {
+  opacity: 0.72;
+}
+
+.reward-badge-icon {
+  font-size: 1.4rem;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.reward-badge-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.reward-badge-title {
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.reward-badge-desc {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.reward-badge-state {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.reward-badge-state.is-unlocked {
+  color: var(--accent-green);
+}
+
+/* Seznam zdrojů XP — každý řádek je zkratka do miniaplikace */
+.reward-source-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.reward-source-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  text-align: left;
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.65rem;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.reward-source-row:active {
+  transform: scale(0.985);
+  border-color: var(--border-strong);
+}
+
+.reward-source-icon {
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.reward-source-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.reward-source-reward {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: var(--accent-orange);
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.32);
+  border-radius: var(--radius-pill);
+  padding: 0.12rem 0.45rem;
+}

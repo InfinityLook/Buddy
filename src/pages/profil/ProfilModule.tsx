@@ -160,6 +160,9 @@ export const ProfilModule: React.FC = () => {
         <div className="profil-col-card">
           <div className="profil-col-head">
             <span>Moje úspěchy</span>
+            {/* Profil ukazuje jen odemčené odznaky, celý přehled včetně
+                zamčených a podmínek žije v modulu Odměny. */}
+            <button className="profil-link-btn" onClick={() => navigate('/odmeny')}>Zobrazit vše</button>
           </div>
           {unlockedBadges.length === 0 ? (
             <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Zatím žádné odemčené odznaky. Začni studovat! 💪</p>
