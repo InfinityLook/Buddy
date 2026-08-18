@@ -42,8 +42,11 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-examprep-storage', storage: 'secure', label: 'Maturitní centrum' },
   { key: 'schoolbuddy-pomodoro-storage', storage: 'secure', label: 'Pomodoro' },
   { key: 'schoolbuddy-math-solver-storage', storage: 'secure', label: 'Math Solver' },
-  // Profil sahá na localStorage přímo, mimo secureStorage i mimo Zustand.
-  { key: 'buddy_profile_v1', storage: 'raw', label: 'Profil' },
+  { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
+  // Klíč, pod kterým profil ležel dřív. V katalogu zůstává kvůli zálohám
+  // vytvořeným před převodem profilu na Zustand — po obnově se aplikace
+  // načte znovu a useProfileData si data ze starého klíče přenese samo.
+  { key: 'buddy_profile_v1', storage: 'raw', label: 'Profil (starší záloha)' },
 ]
 
 // Pozor: u File Manageru se zálohují jen metadata souborů. Samotný obsah
