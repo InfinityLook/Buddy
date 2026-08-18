@@ -119,12 +119,6 @@ export const HubModule: React.FC<HubModuleProps> = ({
     navigate('/apps')
   }
 
-  // Library vede na přehled aplikací předfiltrovaný na vzdělávací nástroje
-  const handleLibraryClick = () => {
-    setActiveAppId(null)
-    navigate('/apps?kategorie=Vzd%C4%9Bl%C3%A1v%C3%A1n%C3%AD')
-  }
-
   // Rewards otevře samostatný modul s odměnami (úroveň, série, odznaky)
   const handleRewardsClick = () => {
     navigate('/odmeny')
@@ -280,9 +274,15 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <span className="hub-card-sub">Zábava a hry</span>
           </button>
 
-          <button className="hub-btn-card hub-btn-square" onClick={handleLibraryClick}>
+          <button
+            className="hub-btn-card hub-btn-square hub-btn-card--soon"
+            onClick={() => showToast('Library se připravuje — materiály na ni teprve čekají.')}
+          >
             <span className="hub-card-icon">📚</span>
-            <span className="hub-card-title">Library</span>
+            <span className="hub-card-title">
+              Library
+              <span className="hub-badge-soon">BRZY</span>
+            </span>
             <span className="hub-card-sub">Učení a materiály</span>
           </button>
         </div>
