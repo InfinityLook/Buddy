@@ -5,10 +5,25 @@ import { UserStats, Badge } from '../types/gamification.types'
 import { getLevelFromXp, checkStreak } from '../utils/gamificationUtils'
 import { validateGamificationData } from '../utils/gamificationValidation'
 
+// Druhy činností, za které se počítají odznaky vázané na počet.
+// Miniaplikace hlásí činnost přes recordAction, ne přes holé addXp,
+// aby se počítadlo a XP nikdy nerozešly.
+export type ActivityKind =
+  | 'flashcard'
+  | 'note'
+  | 'mindNode'
+  | 'document'
+  | 'file'
+  | 'calculation'
+
 interface GamificationState extends UserStats {
+  // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
+  counters: Record<string, number>
+
   addXp: (amount: number) => void
   recordActivity: () => void
   unlockBadge: (badgeId: string) => void
+  recordAction: (kind: ActivityKind, xpAmount: number) => void
 }
 
 const DEFAULT_BADGES: Badge[] = [
@@ -16,7 +31,38 @@ const DEFAULT_BADGES: Badge[] = [
   { id: 'streak_3', title: 'Vybroušená rutina', description: 'Udržuj studijní streak 3 dny v řadě.', icon: '🔥', unlockedAt: null },
   { id: 'exam_master', title: 'Maturitní Mašina', description: 'Projdi a ohodnoť 20 maturitních otázek.', icon: '🎓', unlockedAt: null },
   { id: 'night_owl', title: 'Noční sova', description: 'Uč se po 22:00 hodině.', icon: '🦉', unlockedAt: null },
+  { id: 'card_creator', title: 'Tvůrce kartiček', description: 'Vytvoř 10 vlastních kartiček ve Flashcards.', icon: '🃏', unlockedAt: null },
+  { id: 'note_taker', title: 'Zapisovatel', description: 'Ulož 10 poznámek v Quick Notes.', icon: '📝', unlockedAt: null },
+  { id: 'mind_mapper', title: 'Kartograf myšlenek', description: 'Přidej 10 uzlů do myšlenkové mapy.', icon: '🗺️', unlockedAt: null },
+  { id: 'writer', title: 'Spisovatel', description: 'Ulož 5 dokumentů v textovém editoru.', icon: '✍️', unlockedAt: null },
+  { id: 'streak_7', title: 'Týden v kuse', description: 'Udržuj studijní streak 7 dní v řadě.', icon: '📅', unlockedAt: null },
+  { id: 'level_5', title: 'Zkušený', description: 'Dostaň se na úroveň 5.', icon: '⭐', unlockedAt: null },
+  { id: 'xp_1000', title: 'Tisícovka', description: 'Nasbírej celkem 1000 XP.', icon: '💎', unlockedAt: null },
 ]
+
+// Odznaky, které se odemykají počtem opakování dané činnosti
+const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: number }>> = {
+  flashcard: { badgeId: 'card_creator', needed: 10 },
+  note: { badgeId: 'note_taker', needed: 10 },
+  mindNode: { badgeId: 'mind_mapper', needed: 10 },
+  document: { badgeId: 'writer', needed: 5 },
+}
+
+// Označí odznak za odemčený, pokud ještě odemčený není
+const unlock = (badges: Badge[], badgeId: string): Badge[] =>
+  badges.map((b) => (b.id === badgeId && !b.unlockedAt ? { ...b, unlockedAt: new Date().toISOString() } : b))
+
+// Doplní odznaky, které v uloženém stavu ještě nebyly (po přidání nových
+// do DEFAULT_BADGES), a zachová u těch stávajících datum odemčení.
+const mergeBadges = (saved: Badge[] | undefined): Badge[] => {
+  if (!saved || saved.length === 0) return DEFAULT_BADGES
+  return DEFAULT_BADGES.map((def) => {
+    const existing = saved.find((b) => b.id === def.id)
+    // Text a ikona se berou z definice, ať se opravy popisků propíšou;
+    // z uloženého stavu si necháme jen to, co patří uživateli.
+    return existing ? { ...def, unlockedAt: existing.unlockedAt ?? null } : def
+  })
+}
 
 export const useGamificationStore = create<GamificationState>()(
   persist(
@@ -26,24 +72,20 @@ export const useGamificationStore = create<GamificationState>()(
       streakDays: 0,
       lastActiveDate: null,
       badges: DEFAULT_BADGES,
+      counters: {},
 
       // Přidá XP a automaticky přepočítá Level
       addXp: (amount: number) => {
         get().recordActivity() // Automaticky aktualizuje streak při získání XP
-        
+
         set((state) => {
           const newXp = state.xp + amount
           const newLevel = getLevelFromXp(newXp)
-          
-          // Kontrola odznaku "První krok"
+
           let updatedBadges = state.badges
-          if (newXp > 0) {
-            updatedBadges = updatedBadges.map((b) =>
-              b.id === 'first_step' && !b.unlockedAt
-                ? { ...b, unlockedAt: new Date().toISOString() }
-                : b
-            )
-          }
+          if (newXp > 0) updatedBadges = unlock(updatedBadges, 'first_step')
+          if (newLevel >= 5) updatedBadges = unlock(updatedBadges, 'level_5')
+          if (newXp >= 1000) updatedBadges = unlock(updatedBadges, 'xp_1000')
 
           return {
             xp: newXp,
@@ -59,22 +101,11 @@ export const useGamificationStore = create<GamificationState>()(
         const { newStreak, todayFormatted } = checkStreak(lastActiveDate, streakDays)
 
         let updatedBadges = badges
-        if (newStreak >= 3) {
-          updatedBadges = updatedBadges.map((b) =>
-            b.id === 'streak_3' && !b.unlockedAt
-              ? { ...b, unlockedAt: new Date().toISOString() }
-              : b
-          )
-        }
+        if (newStreak >= 3) updatedBadges = unlock(updatedBadges, 'streak_3')
+        if (newStreak >= 7) updatedBadges = unlock(updatedBadges, 'streak_7')
 
         // Odznak "Noční sova" — jakákoli studijní aktivita zaznamenaná po 22:00
-        if (new Date().getHours() >= 22) {
-          updatedBadges = updatedBadges.map((b) =>
-            b.id === 'night_owl' && !b.unlockedAt
-              ? { ...b, unlockedAt: new Date().toISOString() }
-              : b
-          )
-        }
+        if (new Date().getHours() >= 22) updatedBadges = unlock(updatedBadges, 'night_owl')
 
         set({
           streakDays: newStreak,
@@ -85,22 +116,43 @@ export const useGamificationStore = create<GamificationState>()(
 
       // Odemkne konkrétní odznak
       unlockBadge: (badgeId: string) => {
+        set((state) => ({ badges: unlock(state.badges, badgeId) }))
+      },
+
+      // Zaznamená jednu činnost v miniaplikaci: připočte XP, zvýší počítadlo
+      // a zkontroluje odznak navázaný na počet opakování.
+      recordAction: (kind, xpAmount) => {
         set((state) => ({
-          badges: state.badges.map((b) =>
-            b.id === badgeId && !b.unlockedAt
-              ? { ...b, unlockedAt: new Date().toISOString() }
-              : b
-          ),
+          counters: { ...state.counters, [kind]: (state.counters[kind] ?? 0) + 1 },
         }))
+
+        get().addXp(xpAmount)
+
+        const rule = COUNT_BADGES[kind]
+        if (rule && (get().counters[kind] ?? 0) >= rule.needed) {
+          get().unlockBadge(rule.badgeId)
+        }
       },
     }),
     {
       name: 'schoolbuddy-gamification-storage',
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => secureStorage),
 
+      // Běží při každém načtení — doplní nově přidané odznaky i chybějící
+      // počítadla, aby stávající uživatelé o novinky nepřišli.
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<GamificationState> | undefined
+        return {
+          ...current,
+          ...saved,
+          badges: mergeBadges(saved?.badges),
+          counters: saved?.counters ?? {},
+        }
+      },
+
       // Validace dat načítaných ze secureStorage — stejný vzorec jako u useAppStore
-      migrate: (persistedState: any, version: number) => {
+      migrate: (persistedState: any, _version: number) => {
         const validation = validateGamificationData(persistedState)
         if (!validation.success) {
           console.error('Gamifikační data v LocalStorage byla poškozena. Obnovuji výchozí stav.')
@@ -110,6 +162,7 @@ export const useGamificationStore = create<GamificationState>()(
             streakDays: 0,
             lastActiveDate: null,
             badges: DEFAULT_BADGES,
+            counters: {},
           } as GamificationState
         }
         return persistedState as GamificationState
@@ -117,4 +170,3 @@ export const useGamificationStore = create<GamificationState>()(
     }
   )
 )
-                                   

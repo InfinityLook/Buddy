@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { Note, INITIAL_NOTES } from './types'
+
+const XP_PER_NOTE = 5
 
 interface QuickNotesState {
   notes: Note[]
@@ -25,6 +28,7 @@ const useQuickNotesStore = create<QuickNotesState>()(
           createdAt: new Date().toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' }),
         }
         set((state) => ({ notes: [newNote, ...state.notes] }))
+        useGamificationStore.getState().recordAction('note', XP_PER_NOTE)
       },
 
       deleteNote: (id) =>

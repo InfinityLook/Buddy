@@ -1,5 +1,9 @@
 import { useState } from 'react'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { HistoryItem } from './types'
+
+// Drobná odměna — výpočet je jeden úkon, ne studijní blok
+const XP_PER_CALCULATION = 2
 
 export const useMathSolver = () => {
   const [expression, setExpression] = useState('')
@@ -36,6 +40,7 @@ export const useMathSolver = () => {
         timestamp: new Date().toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' }),
       }
       setHistory((prev) => [newItem, ...prev.slice(0, 4)])
+      useGamificationStore.getState().recordAction('calculation', XP_PER_CALCULATION)
     } catch {
       setResult('Chyba')
     }

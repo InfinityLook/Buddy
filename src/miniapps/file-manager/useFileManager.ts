@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { FileItem, INITIAL_FILES } from './types'
+
+const XP_PER_FILE = 5
 
 interface FileManagerState {
   files: FileItem[]
@@ -25,6 +28,7 @@ const useFileManagerStore = create<FileManagerState>()(
           date: new Date().toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' }),
         }
         set((state) => ({ files: [newFile, ...state.files] }))
+        useGamificationStore.getState().recordAction('file', XP_PER_FILE)
       },
 
       deleteFile: (id) =>

@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { MindNode } from './types'
+
+const XP_PER_NODE = 5
 
 const INITIAL_NODES: Record<string, MindNode> = {
   root: { id: 'root', text: 'Hlavní téma', parentId: null, childrenIds: ['1', '2'] },
@@ -67,6 +70,7 @@ const useMindMapStore = create<MindMapState>()(
 
       addChild: (parentId, text) => {
         if (!text.trim()) return
+        let added = false
 
         set((state) => {
           const parent = state.nodes[parentId]
@@ -75,6 +79,7 @@ const useMindMapStore = create<MindMapState>()(
           const newId = Date.now().toString()
           const newNode: MindNode = { id: newId, text, parentId, childrenIds: [] }
 
+          added = true
           return {
             nodes: {
               ...state.nodes,
@@ -86,6 +91,9 @@ const useMindMapStore = create<MindMapState>()(
             },
           }
         })
+
+        // XP až po zápisu — když rodič neexistoval, uzel nevznikl
+        if (added) useGamificationStore.getState().recordAction('mindNode', XP_PER_NODE)
       },
 
       // Maže celý podstrom — uzel i všechny jeho potomky do hloubky.
