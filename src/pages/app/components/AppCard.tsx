@@ -1,15 +1,10 @@
 import React from 'react'
 import { AppIcon } from './AppIcon'
+// Tvar dlaždice má jediné místo — store. Vlastní kopie tohohle rozhraní
+// se s ním rozešla v typu 'color' a rozdíl odhalil až typecheck.
+import type { AppItem } from '@/core/store/useAppStore'
 
-export interface AppItem {
-  id: string
-  title: string
-  category: string
-  icon: string
-  color: 'purple' | 'cyan' | 'orange' | 'green' | 'pink'
-  active: boolean
-  favorite: boolean
-}
+export type { AppItem }
 
 interface AppCardProps {
   app: AppItem

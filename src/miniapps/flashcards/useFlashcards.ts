@@ -2,7 +2,10 @@ import { useState } from 'react'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { Flashcard, INITIAL_CARDS } from './types'
+
+const XP_PER_NEW_CARD = 5
 
 interface FlashcardsState {
   cards: Flashcard[]
@@ -18,6 +21,7 @@ const useFlashcardsStore = create<FlashcardsState>()(
         if (!question.trim() || !answer.trim()) return
         const newCard: Flashcard = { id: Date.now().toString(), question, answer }
         set((state) => ({ cards: [...state.cards, newCard] }))
+        useGamificationStore.getState().recordAction('flashcard', XP_PER_NEW_CARD)
       },
     }),
     {

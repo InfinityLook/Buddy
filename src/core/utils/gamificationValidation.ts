@@ -14,6 +14,9 @@ export const GamificationSchema = v.object({
   streakDays: v.number(),
   lastActiveDate: v.nullable(v.string()),
   badges: v.array(BadgeSchema),
+  // Počítadla činností přibyla až později — u starších uložených stavů
+  // chybí, a jejich absence nesmí shodit validaci a smazat uživateli postup.
+  counters: v.optional(v.record(v.number())),
 })
 
 // Pomocná funkce pro bezpečné ověření gamifikačních dat načtených ze storage

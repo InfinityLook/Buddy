@@ -2,6 +2,11 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { DocumentState } from './types'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
+
+// XP jen za první uložení dokumentu — přepsat už uložený text
+// není nová práce a nemá se odměňovat pokaždé znovu
+const XP_PER_NEW_DOCUMENT = 15
 
 interface DocumentStore {
   documents: DocumentState[]
@@ -56,6 +61,7 @@ export const useDocumentStore = create<DocumentStore>()(
             ],
             isSaved: true,
           })
+          useGamificationStore.getState().recordAction('document', XP_PER_NEW_DOCUMENT)
         }
       },
 

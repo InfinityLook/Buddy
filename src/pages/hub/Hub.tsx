@@ -4,7 +4,7 @@ import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { getLevelProgress } from '@/core/utils/gamificationUtils'
-import { importDataFromJson } from '@/core/utils/backup'
+import { exportFullBackup, importDataFromJson, restoreFullBackup } from '@/core/utils/backup'
 import mascot from '@/assets/mascot.png'
 import './HubModule.css'
 
@@ -45,8 +45,8 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // Načtení gamifikačních dat ze storu
   const { level, xp, streakDays, badges, recordActivity } = useGamificationStore()
 
-  // Store aplikací — používáme pro deep-link do konkrétní miniaplikace a zálohování
-  const { setActiveAppId, exportState, importState } = useAppStore()
+  // Store aplikací — používáme pro deep-link do konkrétní miniaplikace
+  const { setActiveAppId } = useAppStore()
 
   // Reálné úkoly ze Study Planneru pro denní výzvu
   const { tasks } = useStudyPlanner()
@@ -131,9 +131,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
   }
 
   const handleExportBackup = () => {
-    exportState()
+    const ok = exportFullBackup()
     setCloudOpen(false)
-    showToast('Záloha dat byla stažena.')
+    showToast(ok ? 'Záloha všech dat byla stažena.' : 'Zálohu se nepodařilo vytvořit.')
   }
 
   const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,10 +142,21 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
     try {
       const data = await importDataFromJson<unknown>(file)
-      // importState si data sám zvaliduje a při chybě uživatele upozorní
-      if (importState(data)) {
-        showToast('Data byla obnovena ze zálohy.')
+      const result = restoreFullBackup(data)
+
+      if (!result.success) {
+        showToast(result.error ?? 'Soubor není platná záloha.')
+        return
       }
+
+      // Story jsou v paměti už zrehydratované, nových hodnot v úložišti by
+      // si samy nevšimly — proto aplikaci načteme znovu.
+      showToast(
+        result.legacy
+          ? 'Obnoveno ze starší zálohy (jen seznam aplikací). Načítám znovu…'
+          : `Obnoveno (${result.restored.length} částí). Načítám znovu…`
+      )
+      window.setTimeout(() => window.location.reload(), 1200)
     } catch {
       showToast('Soubor není platná záloha.')
     } finally {
@@ -209,12 +220,15 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </button>
 
           <button
-            className="hub-btn-card"
+            className="hub-btn-card hub-btn-card--soon"
             onClick={() => showToast('Shop se připravuje — brzy tu budou vylepšení.')}
           >
             <span className="hub-card-icon">🛍️</span>
             <span className="hub-card-text">
-              <span className="hub-card-title">Shop</span>
+              <span className="hub-card-title">
+                Shop
+                <span className="hub-badge-soon">BRZY</span>
+              </span>
               <span className="hub-card-sub">Vylepšení a doplňky</span>
             </span>
           </button>
@@ -255,11 +269,14 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </button>
 
           <button
-            className="hub-btn-card hub-btn-square"
+            className="hub-btn-card hub-btn-square hub-btn-card--soon"
             onClick={() => showToast('Sekce Play se připravuje — hry teprve vznikají.')}
           >
             <span className="hub-card-icon">🎮</span>
-            <span className="hub-card-title">Play</span>
+            <span className="hub-card-title">
+              Play
+              <span className="hub-badge-soon">BRZY</span>
+            </span>
             <span className="hub-card-sub">Zábava a hry</span>
           </button>
 
@@ -273,15 +290,15 @@ export const HubModule: React.FC<HubModuleProps> = ({
         {/* Spodní lišta */}
         <div className="hub-bottom-bar">
           <button
-            className="hub-action-btn-icon"
-            aria-label="Zvuk"
+            className="hub-action-btn-icon hub-action-btn-icon--soon"
+            aria-label="Zvuk (připravuje se)"
             onClick={() => showToast('Zvuky Buddyho se připravují.')}
           >
             🔊
           </button>
 
           <button
-            className="hub-talk-btn"
+            className={`hub-talk-btn ${onTalk ? '' : 'hub-talk-btn--soon'}`}
             onClick={onTalk ?? (() => showToast('Hlasový režim se připravuje.'))}
           >
             🎙️ PROMLUV SI SE MNOU

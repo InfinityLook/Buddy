@@ -129,7 +129,7 @@ export const ProfilModule: React.FC = () => {
             <span className="profil-badge">✦ AI Student</span>
             <h2 className="profil-user-name">{profile.name}</h2>
             <p className="profil-user-bio">{profile.motto}</p>
-            <span className="profil-user-email">✉ {profile.email}</span>
+            <span className="profil-user-email">✉ {profile.email || 'E-mail nevyplněn'}</span>
           </div>
         </div>
 
@@ -215,22 +215,22 @@ export const ProfilModule: React.FC = () => {
           <span className="profil-arrow">❯</span>
         </div>
 
-        <div className="profil-menu-row" onClick={() => showToast('Vzhled aplikace bude brzy dostupný!')}>
+        <div className="profil-menu-row profil-menu-row--soon" onClick={() => showToast('Vzhled aplikace bude brzy dostupný!')}>
           <div className="profil-menu-left">
             <div className="profil-menu-icon">🎨</div>
             <div className="profil-menu-text">
-              <span className="profil-menu-title">Vzhled aplikace</span>
+              <span className="profil-menu-title">Vzhled aplikace<span className="profil-badge-soon">BRZY</span></span>
               <span className="profil-menu-sub">Motiv, jazyk a další nastavení</span>
             </div>
           </div>
           <span className="profil-arrow">❯</span>
         </div>
 
-        <div className="profil-menu-row" onClick={() => showToast('Nápověda bude brzy dostupná!')}>
+        <div className="profil-menu-row profil-menu-row--soon" onClick={() => showToast('Nápověda bude brzy dostupná!')}>
           <div className="profil-menu-left">
             <div className="profil-menu-icon">❓</div>
             <div className="profil-menu-text">
-              <span className="profil-menu-title">Nápověda a podpora</span>
+              <span className="profil-menu-title">Nápověda a podpora<span className="profil-badge-soon">BRZY</span></span>
               <span className="profil-menu-sub">Často kladené otázky a kontakt</span>
             </div>
           </div>

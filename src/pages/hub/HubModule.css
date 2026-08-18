@@ -495,3 +495,25 @@
     font-size: 1.7rem;
   }
 }
+
+/* ==========================================
+   Připravované funkce (Shop, Play, zvuky, hlasový režim)
+   Zůstávají v rozhraní, ale na první pohled je vidět,
+   že ještě nefungují — jinak na ně uživatel kliká dokola.
+   ========================================== */
+.hub-btn-card--soon,
+.hub-action-btn-icon--soon,
+.hub-talk-btn--soon {
+  opacity: 0.55;
+}
+
+.hub-badge-soon {
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text-secondary);
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0.12rem 0.35rem;
+  border-radius: var(--radius-pill);
+  margin-left: 0.3rem;
+}

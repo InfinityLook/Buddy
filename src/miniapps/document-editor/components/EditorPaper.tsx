@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from 'react'
 import { useDocumentStore } from '../useDocumentStore'
 
 interface EditorPaperProps {
-  editorRef: React.RefObject<HTMLDivElement | null>
+  editorRef: React.RefObject<HTMLDivElement>
 }
 
 export const EditorPaper: React.FC<EditorPaperProps> = ({ editorRef }) => {

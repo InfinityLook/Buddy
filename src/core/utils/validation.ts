@@ -6,7 +6,9 @@ export const AppItemSchema = v.object({
   title: v.string(),
   category: v.string(),
   icon: v.string(),
-  color: v.string(),
+  // Výčet musí odpovídat AppColor v useAppStore — jinak by import zálohy
+  // propustil barvu, pro kterou neexistuje styl.
+  color: v.picklist(['purple', 'cyan', 'orange', 'green', 'pink']),
   active: v.boolean(),
   favorite: v.boolean(),
 })
