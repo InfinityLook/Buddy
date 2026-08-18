@@ -1,0 +1,160 @@
+import React, { useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
+import { useAppStore } from '@/core/store/useAppStore'
+import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
+import './RewardModule.css'
+
+// Zdroje XP odpovídají hodnotám natvrdo v jednotlivých miniaplikacích
+// (XP_PER_COMPLETED_TASK apod.). Když se některá z nich změní, je potřeba
+// srovnat i tenhle seznam — jinak bude stránka slibovat něco jiného,
+// než uživatel doopravdy dostane.
+interface XpSource {
+  appId: string
+  icon: string
+  title: string
+  reward: string
+}
+
+const XP_SOURCES: XpSource[] = [
+  { appId: 'study-planner', icon: '📚', title: 'Splň úkol ve Study Planneru', reward: '+10 XP' },
+  { appId: 'pomodoro', icon: '🍅', title: 'Dokonči pracovní blok v Pomodoru', reward: '+15 XP' },
+  { appId: 'goal-tracker', icon: '🎯', title: 'Dotáhni cíl v Goal Trackeru', reward: '+25 XP' },
+  { appId: 'exam-prep', icon: '🎓', title: 'Ohodnoť maturitní kartičku', reward: '+10 až 50 XP' },
+  { appId: 'exam-prep', icon: '⏱️', title: 'Zvládni maturitní simulaci', reward: '+100 XP' },
+]
+
+export const RewardModule: React.FC = () => {
+  const navigate = useNavigate()
+  const { level, xp, streakDays, badges } = useGamificationStore()
+  const { setActiveAppId } = useAppStore()
+
+  const xpToNext = getXpForNextLevel(level)
+  const progressPercent = getLevelProgress(xp)
+  const xpRemaining = Math.max(0, xpToNext - xp)
+
+  // Odemčené odznaky nahoru, zamčené pod ně — ať je hned vidět, co už je hotové
+  const sortedBadges = useMemo(
+    () =>
+      [...badges].sort((a, b) => {
+        if (!!a.unlockedAt === !!b.unlockedAt) return 0
+        return a.unlockedAt ? -1 : 1
+      }),
+    [badges]
+  )
+
+  const unlockedCount = badges.filter((badge) => badge.unlockedAt !== null).length
+
+  // Deep-link do miniaplikace se zpáteční cestou sem, ať tlačítko Zpět
+  // v otevřené aplikaci vrátí uživatele na Odměny, ne jen do seznamu aplikací.
+  const openApp = (appId: string) => {
+    setActiveAppId(appId, '/odmeny')
+    navigate('/apps')
+  }
+
+  return (
+    <div className="reward-page">
+      <div className="reward-top-bar">
+        <div>
+          <button className="reward-back-btn" onClick={() => navigate('/hub')}>
+            ← Zpět do Hubu
+          </button>
+          <h1 className="reward-title">Odměny</h1>
+          <p className="reward-subtitle">
+            Tvoje úroveň, série a všechny odznaky — odemčené i ty, co tě teprve čekají.
+          </p>
+        </div>
+        <span className="reward-hero-icon" aria-hidden="true">🎁</span>
+      </div>
+
+      {/* Souhrn pokroku — level, XP do dalšího levelu, série a počet odznaků */}
+      <section className="reward-summary-card">
+        <div className="reward-level-head">
+          <span className="reward-level-name">ÚROVEŇ {level} 👑</span>
+          <span className="reward-level-xp">{xp} / {xpToNext} XP</span>
+        </div>
+
+        <div className="reward-xp-bar-bg">
+          <div className="reward-xp-bar-fill" style={{ width: `${progressPercent}%` }} />
+        </div>
+
+        <span className="reward-level-hint">
+          {xpRemaining > 0
+            ? `Ještě ${xpRemaining} XP a jsi na úrovni ${level + 1}.`
+            : `Máš nasbíráno na další úroveň — pokračuj a posuň se dál!`}
+        </span>
+
+        <div className="reward-stats-grid">
+          <div className="reward-stat-box">
+            <span className="reward-stat-label">DENNÍ SÉRIE</span>
+            <span className="reward-stat-value">🔥 {streakDays}</span>
+            <span className="reward-stat-sub">dní v řadě</span>
+          </div>
+
+          <div className="reward-stat-box">
+            <span className="reward-stat-label">ODZNAKY</span>
+            <span className="reward-stat-value">🏅 {unlockedCount}/{badges.length}</span>
+            <span className="reward-stat-sub">odemčeno</span>
+          </div>
+        </div>
+      </section>
+
+      {/* Odznaky — na rozdíl od profilu ukazujeme i ty zamčené i s podmínkou */}
+      <section className="reward-section">
+        <div className="reward-section-head">
+          <span>Odznaky</span>
+          <span className="reward-section-count">{unlockedCount} z {badges.length}</span>
+        </div>
+
+        <div className="reward-badge-grid">
+          {sortedBadges.map((badge) => {
+            const unlocked = badge.unlockedAt !== null
+
+            return (
+              <article
+                key={badge.id}
+                className={`reward-badge-card ${unlocked ? 'is-unlocked' : 'is-locked'}`}
+              >
+                <span className="reward-badge-icon" aria-hidden="true">
+                  {unlocked ? badge.icon : '🔒'}
+                </span>
+                <div className="reward-badge-text">
+                  <span className="reward-badge-title">{badge.title}</span>
+                  <span className="reward-badge-desc">{badge.description}</span>
+                  <span className={`reward-badge-state ${unlocked ? 'is-unlocked' : ''}`}>
+                    {unlocked && badge.unlockedAt
+                      ? `✅ Odemčeno ${new Date(badge.unlockedAt).toLocaleDateString('cs-CZ')}`
+                      : 'Zatím zamčeno'}
+                  </span>
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* Odkud se XP bere — každý řádek rovnou otevře příslušnou miniaplikaci */}
+      <section className="reward-section">
+        <div className="reward-section-head">
+          <span>Jak získat XP</span>
+        </div>
+
+        <div className="reward-source-list">
+          {XP_SOURCES.map((source) => (
+            <button
+              key={`${source.appId}-${source.title}`}
+              className="reward-source-row"
+              onClick={() => openApp(source.appId)}
+            >
+              <span className="reward-source-icon" aria-hidden="true">{source.icon}</span>
+              <span className="reward-source-title">{source.title}</span>
+              <span className="reward-source-reward">{source.reward}</span>
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+export default RewardModule
