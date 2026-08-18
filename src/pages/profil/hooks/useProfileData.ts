@@ -36,8 +36,28 @@ export interface ProfileData {
   readNotifications: string[]
 }
 
-export const DEFAULT_AVATAR =
-  'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&q=80&w=300'
+// Výchozí avatar je vložené SVG, ne odkaz na CDN — SchoolBuddy má fungovat
+// offline a tohle byl jediný externí požadavek v celé aplikaci.
+// Data URI (a ne import z assets/) proto, že se hodnota ukládá do profilu
+// v localStorage: cesta do /assets/ nese hash buildu, takže po každém
+// nasazení by starým uživatelům obrázek zmizel.
+const DEFAULT_AVATAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
+  <defs>
+    <linearGradient id="a" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#35c4f0"/>
+      <stop offset="1" stop-color="#8a5cf6"/>
+    </linearGradient>
+  </defs>
+  <rect width="96" height="96" fill="url(#a)"/>
+  <circle cx="48" cy="38" r="15" fill="#f2f5fb"/>
+  <path d="M48 57c-14 0-25 8-25 18v21h50V75c0-10-11-18-25-18z" fill="#f2f5fb"/>
+</svg>`
+
+export const DEFAULT_AVATAR = `data:image/svg+xml,${encodeURIComponent(DEFAULT_AVATAR_SVG)}`
+
+// Avatar, který v profilech leží z dřívějška. Při načtení ho vyměníme
+// za lokální, ať uživatelé nezůstanou viset na nefunkčním odkazu.
+const LEGACY_REMOTE_AVATAR = 'https://images.unsplash.com/'
 
 export const DEFAULT_PROFILE: ProfileData = {
   name: 'Kairo',
@@ -59,9 +79,15 @@ function loadProfile(): ProfileData {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return DEFAULT_PROFILE
     const parsed = JSON.parse(raw)
+    const avatar =
+      typeof parsed.avatar === 'string' && parsed.avatar.startsWith(LEGACY_REMOTE_AVATAR)
+        ? DEFAULT_AVATAR
+        : parsed.avatar
+
     return {
       ...DEFAULT_PROFILE,
       ...parsed,
+      avatar: avatar ?? DEFAULT_AVATAR,
       stats: { ...DEFAULT_PROFILE.stats, ...(parsed.stats ?? {}) },
       security: { ...DEFAULT_PROFILE.security, ...(parsed.security ?? {}) },
       readNotifications: Array.isArray(parsed.readNotifications) ? parsed.readNotifications : []
