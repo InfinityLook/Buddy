@@ -385,7 +385,8 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <h3 className="hub-sheet-title">☁️ Uložená data</h3>
             <p className="hub-sheet-desc">
               Data máš uložená přímo v zařízení. Můžeš si je zazálohovat do souboru
-              nebo obnovit z dřívější zálohy.
+              nebo obnovit z dřívější zálohy. XP, úroveň a odznaky obnova nemění —
+              ty ti zůstanou tak, jak sis je vysloužil.
             </p>
 
             <button className="hub-sheet-btn" onClick={() => { void handleExportBackup() }}>
@@ -414,7 +415,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
                       >
                         <span className="hub-snapshot-date">{formatSnapshotDate(snapshot.createdAt)}</span>
                         <span className="hub-snapshot-meta">
-                          {SNAPSHOT_SOURCE_LABEL[snapshot.source]} · {formatSnapshotSize(snapshot.sizeBytes)} · v{snapshot.appVersion}
+                          {SNAPSHOT_SOURCE_LABEL[snapshot.source]} · {formatSnapshotSize(snapshot.sizeBytes)}
                         </span>
                       </button>
                       <button
