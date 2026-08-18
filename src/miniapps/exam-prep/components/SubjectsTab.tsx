@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useExamPrepStore, ExamTopic } from '../useExamPrepStore'
 
 export const SubjectsTab: React.FC = () => {
-  const { subjects, topics, addSubject, addTopic, updateNotes, removeSubject } = useExamPrepStore()
+  const { subjects, topics, addSubject, addTopic, updateNotes } = useExamPrepStore()
 
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>(subjects[0]?.id || '')
   const [editingTopicId, setEditingTopicId] = useState<string | null>(null)

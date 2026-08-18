@@ -3,12 +3,14 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { validateAppsData } from '@/core/utils/validation'
 
+export type AppColor = 'purple' | 'cyan' | 'orange' | 'green' | 'pink'
+
 export interface AppItem {
   id: string
   title: string
   category: string
   icon: string
-  color: string
+  color: AppColor
   active: boolean
   favorite: boolean
 }
@@ -70,7 +72,7 @@ export const useAppStore = create<AppState>()(
       partialize: (state) => ({ apps: state.apps }),
       
       // Validace dat načítaných ze secureStorage
-      migrate: (persistedState: any, version: number) => {
+      migrate: (persistedState: any) => {
         if (persistedState && persistedState.apps) {
           const validation = validateAppsData(persistedState.apps)
           if (!validation.success) {

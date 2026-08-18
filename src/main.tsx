@@ -7,7 +7,10 @@ import './styles/global.css'
 // Dvojí registrace by vytvořila dvě instance Workboxu, které si po aktivaci
 // nové verze navzájem přebíjely reload — a aktualizace tím občas zamrzla.
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+const rootElement = document.getElementById('root')
+if (!rootElement) throw new Error('V index.html chybí element #root.')
+
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>

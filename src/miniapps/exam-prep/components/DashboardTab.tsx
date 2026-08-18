@@ -1,10 +1,8 @@
 import React from 'react'
 import { useExamPrepStore } from '../useExamPrepStore'
-import { useGamificationStore } from '@/core/store/useGamificationStore'
 
 export const DashboardTab: React.FC = () => {
   const { subjects, topics, getOverallReadiness, getSubjectReadiness } = useExamPrepStore()
-  const { xp } = useGamificationStore()
 
   const overallReadiness = getOverallReadiness()
 
@@ -70,7 +68,7 @@ export const DashboardTab: React.FC = () => {
             padding: '1rem 1.25rem',
             display: 'flex',
             alignItems: 'center',
-            justify: 'space-between',
+            justifyContent: 'space-between',
           }}
         >
           <div>
@@ -125,7 +123,7 @@ export const DashboardTab: React.FC = () => {
                   borderRadius: '10px',
                   fontSize: '0.85rem',
                   display: 'flex',
-                  justify: 'space-between',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
                 }}
               >
@@ -155,7 +153,7 @@ export const DashboardTab: React.FC = () => {
                   padding: '0.8rem 1rem',
                   display: 'flex',
                   alignItems: 'center',
-                  justify: 'space-between',
+                  justifyContent: 'space-between',
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
