@@ -1,16 +1,21 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
+import { useAppStore } from '@/core/store/useAppStore'
+import { useGoalTracker } from '@/miniapps/goal-tracker/useGoalTracker'
 import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
 import { useProfileData } from './hooks/useProfileData'
 import { ProfilSettingsSheet } from './components/ProfilSettingsSheet'
 import { ProfilNotifications } from './components/ProfilNotifications'
+import { ProfilGoals } from './components/ProfilGoals'
 import { ProfilToast } from './components/ProfilToast'
 import './ProfilModule.css'
 
 export const ProfilModule: React.FC = () => {
   const navigate = useNavigate()
   const { level, xp, streakDays, badges } = useGamificationStore()
+  const { setActiveAppId } = useAppStore()
+  const { goals } = useGoalTracker()
   const { profile, updateProfile, updateSecurity, markNotificationRead, resetProfile } = useProfileData()
 
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -120,15 +125,13 @@ export const ProfilModule: React.FC = () => {
           )}
         </div>
 
-        <div className="profil-col-card">
-          <div className="profil-col-head">
-            <span>Moje cíle</span>
-            <span className="profil-link">Zobrazit vše</span>
-          </div>
-          <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
-            Sekce cílů se propojí s Goal Trackerem v jednom z dalších kroků.
-          </p>
-        </div>
+        <ProfilGoals
+          goals={goals}
+          onShowAll={() => {
+            setActiveAppId('goal-tracker')
+            navigate('/apps')
+          }}
+        />
       </div>
 
       {/* Settings Menu */}

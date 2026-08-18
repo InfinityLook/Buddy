@@ -37,4 +37,7 @@ export const MINI_APP_REGISTRY: Record<string, LazyExoticComponent<React.Compone
   'exam-prep': lazy(() =>
     import('../../miniapps/exam-prep/ExamPrepApp').then((m) => ({ default: m.ExamPrepApp }))
   ),
+  'document-editor': lazy(() =>
+    import('../../miniapps/document-editor/DocumentEditor').then((m) => ({ default: m.DocumentEditor }))
+  ),
 }

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { secureStorage } from '@/core/utils/secureStorage'
 import { DocumentState } from './types'
 
 interface DocumentStore {
@@ -8,7 +9,10 @@ interface DocumentStore {
   currentTitle: string
   currentContent: string
   isSaved: boolean
-  
+  // Zvýší se při každém přepnutí/resetu dokumentu (nový/otevřený/importovaný),
+  // aby EditorPaper poznal, kdy má přepsat obsah contentEditable divu
+  revision: number
+
   setTitle: (title: string) => void
   setContent: (content: string) => void
   saveCurrentDocument: () => void
@@ -26,6 +30,7 @@ export const useDocumentStore = create<DocumentStore>()(
       currentTitle: 'Nový dokument',
       currentContent: '',
       isSaved: true,
+      revision: 0,
 
       setTitle: (title) => set({ currentTitle: title, isSaved: false }),
       setContent: (content) => set({ currentContent: content, isSaved: false }),
@@ -55,38 +60,41 @@ export const useDocumentStore = create<DocumentStore>()(
       },
 
       createNewDocument: () => {
-        set({
+        set((state) => ({
           activeDocId: null,
           currentTitle: 'Nový dokument',
           currentContent: '',
           isSaved: true,
-        })
+          revision: state.revision + 1,
+        }))
       },
 
       loadDocument: (id) => {
         const doc = get().documents.find((d) => d.id === id)
         if (doc) {
-          set({
+          set((state) => ({
             activeDocId: doc.id,
             currentTitle: doc.title,
             currentContent: doc.content,
             isSaved: true,
-          })
+            revision: state.revision + 1,
+          }))
         }
       },
 
       deleteDocument: (id) => {
         const { activeDocId, documents } = get()
         const updated = documents.filter((d) => d.id !== id)
-        
+
         if (activeDocId === id) {
-          set({
+          set((state) => ({
             documents: updated,
             activeDocId: null,
             currentTitle: 'Nový dokument',
             currentContent: '',
             isSaved: true,
-          })
+            revision: state.revision + 1,
+          }))
         } else {
           set({ documents: updated })
         }
@@ -103,13 +111,13 @@ export const useDocumentStore = create<DocumentStore>()(
           currentTitle: title,
           currentContent: content,
           isSaved: true,
+          revision: state.revision + 1,
         }))
       },
     }),
     {
-      name: 'word-pro-mobile-storage',
-      storage: createJSONStorage(() => localStorage),
+      name: 'schoolbuddy-document-editor-storage',
+      storage: createJSONStorage(() => secureStorage),
     }
   )
 )
-              
