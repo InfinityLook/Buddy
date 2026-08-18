@@ -517,3 +517,95 @@
   border-radius: var(--radius-pill);
   margin-left: 0.3rem;
 }
+
+/* ==========================================
+   Zálohy uložené v aplikaci (panel Cloud)
+   ========================================== */
+.hub-snapshot-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.hub-snapshot-head {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.hub-snapshot-empty {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.hub-snapshot-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  /* Pět položek se vejde, víc už se scrolluje uvnitř panelu */
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.hub-snapshot-item {
+  display: flex;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+.hub-snapshot-restore {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.6rem;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.hub-snapshot-restore:active {
+  transform: scale(0.985);
+  border-color: var(--border-strong);
+}
+
+.hub-snapshot-date {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.hub-snapshot-meta {
+  font-size: 0.58rem;
+  color: var(--text-secondary);
+}
+
+.hub-snapshot-delete {
+  flex-shrink: 0;
+  width: 34px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.hub-snapshot-delete:active {
+  color: var(--accent-red);
+  border-color: rgba(239, 68, 68, 0.45);
+}
