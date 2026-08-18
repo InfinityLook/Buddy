@@ -1,0 +1,327 @@
+/* ==========================================
+   REWARDS MODULE — STEJNÝ DESIGN SYSTÉM JAKO HUB / APP / PROFIL
+   (glass karty, neonové akcenty, gradientové ikony)
+   ========================================== */
+
+:root {
+  --rewards-bg: var(--bg-base);
+  --rewards-card-bg: var(--bg-glass);
+  --rewards-card-border: var(--border-subtle);
+
+  --rewards-cyan: var(--accent-cyan);
+  --rewards-purple: var(--accent-violet);
+  --rewards-fire: var(--accent-red);
+  --rewards-gold: var(--accent-orange);
+
+  --rewards-text-main: var(--text-primary);
+  --rewards-text-sub: var(--text-secondary);
+
+  --rewards-radius-lg: var(--radius-lg);
+  --rewards-radius-md: var(--radius-md);
+}
+
+.rewards-page {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-y: auto;
+  background: var(--rewards-bg);
+  color: var(--rewards-text-main);
+  padding: 0.75rem 0.75rem calc(0.75rem + env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-sizing: border-box;
+}
+
+/* Stejné síťované pozadí jako Hub/Profil/App */
+.rewards-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.22) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.18) 0%, transparent 35%),
+    radial-gradient(circle at 50% 95%, rgba(236, 72, 153, 0.13) 0%, transparent 45%),
+    var(--rewards-bg);
+}
+
+/* ------------------------------------------
+   HLAVIČKA
+   ------------------------------------------ */
+.rewards-top-bar {
+  display: flex;
+  flex-direction: column;
+}
+
+.rewards-back-link {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--rewards-text-sub);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.5rem;
+  transition: color 0.15s ease, transform 0.15s ease;
+}
+
+.rewards-back-link:active {
+  transform: translateX(-2px);
+  color: var(--rewards-cyan);
+}
+
+.rewards-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.rewards-subtitle {
+  color: var(--rewards-text-sub);
+  font-size: 0.72rem;
+  margin: 0.15rem 0 0;
+  max-width: 320px;
+}
+
+/* ------------------------------------------
+   SOUHRNNÁ KARTA — level, XP, streak
+   ------------------------------------------ */
+.rewards-summary-card {
+  background: var(--rewards-card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--rewards-card-border);
+  border-radius: var(--rewards-radius-lg);
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-shadow: var(--shadow-card);
+}
+
+.rewards-level-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.rewards-level-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.rewards-level-label {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--rewards-cyan);
+  letter-spacing: 0.2px;
+}
+
+.rewards-level-xp {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--rewards-text-sub);
+}
+
+.rewards-xp-bar-bg {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.rewards-xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #35c4f0, #8a5cf6, #ec4899);
+  box-shadow: 0 0 8px rgba(138, 92, 246, 0.5);
+  border-radius: 10px;
+  transition: width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.rewards-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.rewards-stat {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--rewards-card-border);
+  border-radius: var(--rewards-radius-md);
+  padding: 0.5rem 0.3rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  text-align: center;
+}
+
+.rewards-stat-icon {
+  font-size: 1rem;
+  filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.25));
+}
+
+.rewards-stat-value {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.rewards-stat-label {
+  font-size: 0.55rem;
+  color: var(--rewards-text-sub);
+}
+
+/* ------------------------------------------
+   FILTR ODZNAKŮ — stejný vzor jako app-category-pill
+   ------------------------------------------ */
+.rewards-filter-row {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rewards-filter-row::-webkit-scrollbar {
+  display: none;
+}
+
+.rewards-filter-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--rewards-card-border);
+  color: var(--rewards-text-sub);
+  padding: 0.45rem 1rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rewards-filter-btn.active {
+  background: rgba(53, 196, 240, 0.15);
+  border-color: var(--rewards-cyan);
+  color: var(--rewards-cyan);
+}
+
+.rewards-filter-btn:active {
+  transform: scale(0.96);
+}
+
+/* ------------------------------------------
+   MŘÍŽKA ODZNAKŮ
+   ------------------------------------------ */
+.rewards-badge-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+  padding-bottom: 0.5rem;
+}
+
+.rewards-badge-card {
+  position: relative;
+  background: var(--rewards-card-bg);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--rewards-card-border);
+  border-radius: var(--rewards-radius-lg);
+  padding: 0.9rem 0.7rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.25rem;
+  box-shadow: var(--shadow-card);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.rewards-badge-card.unlocked {
+  border-color: rgba(245, 158, 11, 0.35);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.12) 0%, transparent 70%),
+    var(--rewards-card-bg);
+}
+
+.rewards-badge-card.locked {
+  opacity: 0.65;
+}
+
+.rewards-badge-icon {
+  font-size: 1.9rem;
+  line-height: 1;
+  margin-bottom: 0.15rem;
+}
+
+.rewards-badge-card.unlocked .rewards-badge-icon {
+  filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.55));
+}
+
+.rewards-badge-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.rewards-badge-desc {
+  font-size: 0.62rem;
+  color: var(--rewards-text-sub);
+  line-height: 1.35;
+}
+
+.rewards-badge-date {
+  margin-top: 0.15rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--rewards-gold);
+}
+
+.rewards-badge-locked-label {
+  margin-top: 0.15rem;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--rewards-text-sub);
+}
+
+.rewards-badge-progress {
+  width: 100%;
+  margin-top: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.rewards-badge-progress-bg {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.rewards-badge-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--rewards-cyan), var(--rewards-purple));
+  border-radius: 10px;
+  transition: width 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.rewards-badge-progress-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  color: var(--rewards-text-sub);
+}
+
+.rewards-empty {
+  text-align: center;
+  color: var(--rewards-text-sub);
+  font-size: 0.8rem;
+  padding: 1.5rem 0;
+}

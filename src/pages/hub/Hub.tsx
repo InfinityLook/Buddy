@@ -125,9 +125,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
     navigate('/apps?kategorie=Vzd%C4%9Bl%C3%A1v%C3%A1n%C3%AD')
   }
 
-  // Rewards zobrazí odemčené odznaky v profilu
+  // Rewards otevře samostatný modul se systémem odměn (XP, level, odznaky)
   const handleRewardsClick = () => {
-    navigate('/profil')
+    navigate('/rewards')
   }
 
   const handleExportBackup = () => {

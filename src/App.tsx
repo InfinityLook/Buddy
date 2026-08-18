@@ -4,6 +4,7 @@ import Login from './pages/login/Login.tsx'
 import Hub from './pages/hub/Hub.tsx'
 import AppModule from '@/pages/app/AppModule.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
+import RewardsModule from '@/pages/rewards/RewardsModule.tsx'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
 import { useAuthStore } from '@/core/store/useAuthStore'
@@ -60,6 +61,18 @@ export default function App() {
           element={
             isAuthed ? (
               <ProfilModule />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+
+        {/* Route pro systém odměn (XP, level, odznaky) */}
+        <Route
+          path="/rewards"
+          element={
+            isAuthed ? (
+              <RewardsModule />
             ) : (
               <Navigate to="/" replace />
             )
