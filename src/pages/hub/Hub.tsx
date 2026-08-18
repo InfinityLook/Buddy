@@ -4,7 +4,7 @@ import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { getLevelProgress } from '@/core/utils/gamificationUtils'
-import { importDataFromJson } from '@/core/utils/backup'
+import { exportFullBackup, importDataFromJson, restoreFullBackup } from '@/core/utils/backup'
 import mascot from '@/assets/mascot.png'
 import './HubModule.css'
 
@@ -45,8 +45,8 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // Načtení gamifikačních dat ze storu
   const { level, xp, streakDays, badges, recordActivity } = useGamificationStore()
 
-  // Store aplikací — používáme pro deep-link do konkrétní miniaplikace a zálohování
-  const { setActiveAppId, exportState, importState } = useAppStore()
+  // Store aplikací — používáme pro deep-link do konkrétní miniaplikace
+  const { setActiveAppId } = useAppStore()
 
   // Reálné úkoly ze Study Planneru pro denní výzvu
   const { tasks } = useStudyPlanner()
@@ -131,9 +131,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
   }
 
   const handleExportBackup = () => {
-    exportState()
+    const ok = exportFullBackup()
     setCloudOpen(false)
-    showToast('Záloha dat byla stažena.')
+    showToast(ok ? 'Záloha všech dat byla stažena.' : 'Zálohu se nepodařilo vytvořit.')
   }
 
   const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -142,10 +142,21 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
     try {
       const data = await importDataFromJson<unknown>(file)
-      // importState si data sám zvaliduje a při chybě uživatele upozorní
-      if (importState(data)) {
-        showToast('Data byla obnovena ze zálohy.')
+      const result = restoreFullBackup(data)
+
+      if (!result.success) {
+        showToast(result.error ?? 'Soubor není platná záloha.')
+        return
       }
+
+      // Story jsou v paměti už zrehydratované, nových hodnot v úložišti by
+      // si samy nevšimly — proto aplikaci načteme znovu.
+      showToast(
+        result.legacy
+          ? 'Obnoveno ze starší zálohy (jen seznam aplikací). Načítám znovu…'
+          : `Obnoveno (${result.restored.length} částí). Načítám znovu…`
+      )
+      window.setTimeout(() => window.location.reload(), 1200)
     } catch {
       showToast('Soubor není platná záloha.')
     } finally {

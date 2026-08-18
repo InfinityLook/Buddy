@@ -1,7 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
-import { exportDataToJson } from '@/core/utils/backup'
 import { validateAppsData } from '@/core/utils/validation'
 
 export interface AppItem {
@@ -25,8 +24,6 @@ interface AppState {
   setActiveAppId: (id: string | null, returnPath?: string | null) => void
   toggleFavorite: (id: string) => void
   addApp: (app: AppItem) => void
-  exportState: () => void
-  importState: (incomingData: unknown) => boolean
 }
 
 const DEFAULT_APPS: AppItem[] = [
@@ -44,7 +41,7 @@ const DEFAULT_APPS: AppItem[] = [
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       apps: DEFAULT_APPS,
       activeAppId: null,
       returnPath: null,
@@ -65,28 +62,6 @@ export const useAppStore = create<AppState>()(
         set((state) => ({
           apps: [...state.apps, newApp],
         })),
-
-      exportState: () => {
-        const state = get()
-        exportDataToJson({ apps: state.apps }, `schoolbuddy-backup-${new Date().toISOString().slice(0, 10)}.json`)
-      },
-
-      // Bezpečný import s okamžitou validací
-      importState: (incomingData: unknown) => {
-        // Pokud přišel objekt obsahující 'apps', vytáhneme pole, jinak zkusíme přímo incomingData
-        const rawApps = (typeof incomingData === 'object' && incomingData !== null && 'apps' in incomingData)
-          ? (incomingData as { apps: unknown }).apps
-          : incomingData
-
-        const validation = validateAppsData(rawApps)
-        if (validation.success && validation.data) {
-          set({ apps: validation.data })
-          return true
-        } else {
-          alert('Chyba: Nahraný soubor obsahuje neplatná nebo poškozená data.')
-          return false
-        }
-      },
     }),
     {
       name: 'schoolbuddy-app-storage',
