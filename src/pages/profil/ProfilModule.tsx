@@ -129,7 +129,7 @@ export const ProfilModule: React.FC = () => {
             <span className="profil-badge">✦ AI Student</span>
             <h2 className="profil-user-name">{profile.name}</h2>
             <p className="profil-user-bio">{profile.motto}</p>
-            <span className="profil-user-email">✉ {profile.email}</span>
+            <span className="profil-user-email">✉ {profile.email || 'E-mail nevyplněn'}</span>
           </div>
         </div>
 

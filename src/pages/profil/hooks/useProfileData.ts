@@ -10,13 +10,6 @@ import { useEffect, useRef, useState } from 'react'
 
 const STORAGE_KEY = 'buddy_profile_v1'
 
-export interface ProfileStats {
-  lessons: number
-  tasks: number
-  hours: number
-  rating: number
-}
-
 export interface ProfileSecurity {
   biometrics: boolean
   loginAlerts: boolean
@@ -27,11 +20,6 @@ export interface ProfileData {
   email: string
   motto: string
   avatar: string
-  level: number
-  xp: number
-  xpToNext: number
-  streak: number
-  stats: ProfileStats
   security: ProfileSecurity
   readNotifications: string[]
 }
@@ -59,16 +47,15 @@ export const DEFAULT_AVATAR = `data:image/svg+xml,${encodeURIComponent(DEFAULT_A
 // za lokální, ať uživatelé nezůstanou viset na nefunkčním odkazu.
 const LEGACY_REMOTE_AVATAR = 'https://images.unsplash.com/'
 
+// Úroveň, XP ani série tu schválně nejsou — jediným zdrojem pravdy
+// pro gamifikaci je useGamificationStore. Dřív tu ležely demo hodnoty
+// (level 24, 4250 XP, 128 lekcí), které nikdo nečetl a jen čekaly,
+// až je někdo omylem zapojí vedle těch skutečných.
 export const DEFAULT_PROFILE: ProfileData = {
-  name: 'Kairo',
-  email: 'kairo.student@email.com',
+  name: 'Student',
+  email: '',
   motto: 'Každý den je nová šance stát se lepší verzí sebe.',
   avatar: DEFAULT_AVATAR,
-  level: 24,
-  xp: 4250,
-  xpToNext: 5000,
-  streak: 12,
-  stats: { lessons: 128, tasks: 32, hours: 48, rating: 4.8 },
   security: { biometrics: false, loginAlerts: true },
   readNotifications: []
 }
@@ -88,7 +75,6 @@ function loadProfile(): ProfileData {
       ...DEFAULT_PROFILE,
       ...parsed,
       avatar: avatar ?? DEFAULT_AVATAR,
-      stats: { ...DEFAULT_PROFILE.stats, ...(parsed.stats ?? {}) },
       security: { ...DEFAULT_PROFILE.security, ...(parsed.security ?? {}) },
       readNotifications: Array.isArray(parsed.readNotifications) ? parsed.readNotifications : []
     }
