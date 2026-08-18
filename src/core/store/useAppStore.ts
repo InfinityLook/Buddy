@@ -93,7 +93,7 @@ export const useAppStore = create<AppState>()(
       version: 1,
       storage: createJSONStorage(() => secureStorage),
       partialize: (state) => ({ apps: state.apps }),
-      
+
       // Validace dat načítaných ze secureStorage
       migrate: (persistedState: any, version: number) => {
         if (persistedState && persistedState.apps) {
@@ -104,6 +104,25 @@ export const useAppStore = create<AppState>()(
           }
         }
         return persistedState as AppState
+      },
+
+      // Uživatelé, kteří appku otevřeli dřív, než přibyla nová miniaplikace
+      // do DEFAULT_APPS (např. Textový editor), mají v localStorage uložený
+      // starší seznam bez ní. Prostý shallow merge by starý seznam beze změny
+      // ponechal, proto sem doplňujeme chybějící výchozí aplikace podle id —
+      // uživatelovy existující položky (oblíbené, pořadí) zůstávají netknuté.
+      merge: (persistedState, currentState) => {
+        const persisted = persistedState as Partial<AppState> | undefined
+        if (!persisted?.apps) return { ...currentState, ...persisted }
+
+        const existingIds = new Set(persisted.apps.map((app) => app.id))
+        const missingDefaults = DEFAULT_APPS.filter((app) => !existingIds.has(app.id))
+
+        return {
+          ...currentState,
+          ...persisted,
+          apps: missingDefaults.length > 0 ? [...persisted.apps, ...missingDefaults] : persisted.apps,
+        }
       },
     }
   )
