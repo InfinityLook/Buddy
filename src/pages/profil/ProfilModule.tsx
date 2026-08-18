@@ -1,9 +1,10 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useGoalTracker } from '@/miniapps/goal-tracker/useGoalTracker'
 import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
+import { fileToResizedDataUrl } from '@/utils/image'
 import { useProfileData } from './hooks/useProfileData'
 import { ProfilSettingsSheet } from './components/ProfilSettingsSheet'
 import { ProfilNotifications } from './components/ProfilNotifications'
@@ -21,10 +22,24 @@ export const ProfilModule: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
 
   const showToast = (message: string) => {
     setToastMsg(message)
     window.setTimeout(() => setToastMsg(null), 2500)
+  }
+
+  const handleAvatarSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    try {
+      const dataUrl = await fileToResizedDataUrl(file)
+      updateProfile({ avatar: dataUrl })
+      showToast('Fotka aktualizována ✓')
+    } catch {
+      showToast('Obrázek se nepodařilo načíst')
+    }
   }
 
   const xpToNext = getXpForNextLevel(level)
@@ -66,10 +81,18 @@ export const ProfilModule: React.FC = () => {
             <img src={profile.avatar} alt={profile.name} className="profil-avatar-img" />
             <button
               className="profil-avatar-edit"
-              onClick={() => showToast('Nahrávání vlastního avataru bude brzy dostupné!')}
+              aria-label="Upravit fotku profilu"
+              onClick={() => avatarInputRef.current?.click()}
             >
               ✏️
             </button>
+            <input
+              ref={avatarInputRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={handleAvatarSelected}
+            />
           </div>
           <div className="profil-user-info">
             <span className="profil-badge">✦ AI Student</span>

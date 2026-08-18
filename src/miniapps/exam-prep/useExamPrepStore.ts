@@ -1,6 +1,10 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
+
+// Kolik ohodnocených (aspoň jednou zrevidovaných) otázek stačí na odznak "Maturitní Mašina"
+const TOPICS_RATED_FOR_BADGE = 20
 
 export type ConfidenceLevel = 1 | 2 | 3 | 4 | 5
 
@@ -89,11 +93,11 @@ export const useExamPrepStore = create<ExamPrepStore>()(
           ],
         })),
 
-      rateTopic: (topicId, confidence) =>
+      rateTopic: (topicId, confidence) => {
         set((state) => ({
           topics: state.topics.map((t) => {
             if (t.id !== topicId) return t
-            
+
             // Jednoduchý interval posunu v dnech podle confidence (1-5)
             const daysToAdd = confidence === 1 ? 1 : confidence * 2
             const nextDate = new Date()
@@ -107,7 +111,14 @@ export const useExamPrepStore = create<ExamPrepStore>()(
               revisionCount: t.revisionCount + 1,
             }
           }),
-        })),
+        }))
+
+        // Odznak "Maturitní Mašina" — jakmile bylo zrevidováno dost otázek
+        const ratedTopicsCount = get().topics.filter((t) => t.revisionCount > 0).length
+        if (ratedTopicsCount >= TOPICS_RATED_FOR_BADGE) {
+          useGamificationStore.getState().unlockBadge('exam_master')
+        }
+      },
 
       updateNotes: (topicId, notes) =>
         set((state) => ({

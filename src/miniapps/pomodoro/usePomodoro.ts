@@ -2,7 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { TimerMode, MODE_CONFIG } from './types'
+
+// XP odměna za jedno dokončené soustředění (pracovní blok Pomodora)
+const XP_PER_WORK_SESSION = 15
 
 // Perzistujeme jen počet dokončených session (statistika) —
 // samotný běžící časovač úmyslně NEukládáme, aby po znovunačtení
@@ -58,6 +62,7 @@ export const usePomodoro = () => {
     setIsRunning(false)
     if (mode === 'work') {
       incrementCompletedSessions()
+      useGamificationStore.getState().addXp(XP_PER_WORK_SESSION)
       switchMode('shortBreak')
     } else {
       switchMode('work')

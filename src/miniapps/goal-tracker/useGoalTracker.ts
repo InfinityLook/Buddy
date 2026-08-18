@@ -1,7 +1,11 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { Goal, INITIAL_GOALS } from './types'
+
+// XP odměna za splnění celého cíle (dosažení target hodnoty)
+const XP_PER_COMPLETED_GOAL = 25
 
 interface GoalTrackerState {
   goals: Goal[]
@@ -20,6 +24,10 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
           goals: state.goals.map((g) => {
             if (g.id === id) {
               const nextVal = Math.min(g.target, g.current + amount)
+              // XP jen v okamžiku, kdy cíl poprvé dosáhne své cílové hodnoty
+              if (nextVal >= g.target && g.current < g.target) {
+                useGamificationStore.getState().addXp(XP_PER_COMPLETED_GOAL)
+              }
               return { ...g, current: nextVal }
             }
             return g

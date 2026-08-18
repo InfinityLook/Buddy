@@ -15,3 +15,14 @@ export const GamificationSchema = v.object({
   lastActiveDate: v.nullable(v.string()),
   badges: v.array(BadgeSchema),
 })
+
+// Pomocná funkce pro bezpečné ověření gamifikačních dat načtených ze storage
+export const validateGamificationData = (data: unknown) => {
+  const result = v.safeParse(GamificationSchema, data)
+  if (result.success) {
+    return { success: true, data: result.output }
+  } else {
+    console.warn('Gamifikační data neodpovídají schématu (byla poškozena nebo změněna):', result.issues)
+    return { success: false, issues: result.issues }
+  }
+}

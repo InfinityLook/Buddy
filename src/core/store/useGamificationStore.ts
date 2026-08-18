@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { UserStats, Badge } from '../types/gamification.types'
 import { getLevelFromXp, checkStreak } from '../utils/gamificationUtils'
+import { validateGamificationData } from '../utils/gamificationValidation'
 
 interface GamificationState extends UserStats {
   addXp: (amount: number) => void
@@ -66,6 +67,15 @@ export const useGamificationStore = create<GamificationState>()(
           )
         }
 
+        // Odznak "Noční sova" — jakákoli studijní aktivita zaznamenaná po 22:00
+        if (new Date().getHours() >= 22) {
+          updatedBadges = updatedBadges.map((b) =>
+            b.id === 'night_owl' && !b.unlockedAt
+              ? { ...b, unlockedAt: new Date().toISOString() }
+              : b
+          )
+        }
+
         set({
           streakDays: newStreak,
           lastActiveDate: todayFormatted,
@@ -86,7 +96,24 @@ export const useGamificationStore = create<GamificationState>()(
     }),
     {
       name: 'schoolbuddy-gamification-storage',
+      version: 1,
       storage: createJSONStorage(() => secureStorage),
+
+      // Validace dat načítaných ze secureStorage — stejný vzorec jako u useAppStore
+      migrate: (persistedState: any, version: number) => {
+        const validation = validateGamificationData(persistedState)
+        if (!validation.success) {
+          console.error('Gamifikační data v LocalStorage byla poškozena. Obnovuji výchozí stav.')
+          return {
+            xp: 0,
+            level: 1,
+            streakDays: 0,
+            lastActiveDate: null,
+            badges: DEFAULT_BADGES,
+          } as GamificationState
+        }
+        return persistedState as GamificationState
+      },
     }
   )
 )
