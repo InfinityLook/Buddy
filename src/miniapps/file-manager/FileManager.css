@@ -133,3 +133,30 @@
   color: #64748b;
   text-align: center;
 }
+
+/* Tlačítko stažení souboru zpátky do zařízení */
+.fm-dl-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+  opacity: 0.8;
+}
+
+.fm-dl-btn:active {
+  opacity: 1;
+  transform: scale(0.92);
+}
+
+/* Záznam bez obsahu — typicky po obnově zálohy z jiného zařízení */
+.fm-card--missing {
+  opacity: 0.55;
+}
+
+.fm-message {
+  margin: 0.35rem 0 0;
+  font-size: 0.7rem;
+  color: var(--accent-cyan, #35c4f0);
+}

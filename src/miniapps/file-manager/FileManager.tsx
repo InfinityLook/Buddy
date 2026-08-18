@@ -1,37 +1,59 @@
-import React, { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useFileManager } from './useFileManager'
-import { FileItem } from './types'
+import { FileItem, FileKind, formatSize } from './types'
 import './FileManager.css'
 
-export const FileManager: React.FC = () => {
-  const { files, search, setSearch, addFile, deleteFile } = useFileManager()
-  const [showAdd, setShowAdd] = useState(false)
-  const [name, setName] = useState('')
-  const [type, setType] = useState<FileItem['type']>('pdf')
+const TYPE_ICONS: Record<FileKind, string> = {
+  pdf: '📄',
+  doc: '📝',
+  img: '🖼️',
+  zip: '📦',
+  other: '📎',
+}
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    addFile(name, type)
-    setName('')
-    setShowAdd(false)
+export const FileManager: React.FC = () => {
+  const { files, totalCount, search, setSearch, uploadFile, downloadFile, deleteFile, isAvailable } =
+    useFileManager()
+
+  const inputRef = useRef<HTMLInputElement>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  const showMessage = (text: string) => {
+    setMessage(text)
+    window.setTimeout(() => setMessage(null), 2600)
   }
 
-  const getTypeIcon = (t: FileItem['type']) => {
-    switch (t) {
-      case 'pdf': return '📄'
-      case 'doc': return '📝'
-      case 'img': return '🖼️'
-      case 'zip': return '📦'
+  const handleFilesSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = Array.from(event.target.files ?? [])
+    event.target.value = ''
+    if (selected.length === 0) return
+
+    setBusy(true)
+    let added = 0
+    for (const file of selected) {
+      const result = await uploadFile(file)
+      if (result.ok) added += 1
+      else showMessage(result.error)
     }
+    setBusy(false)
+
+    if (added > 0) showMessage(added === 1 ? 'Soubor uložen ✓' : `Uloženo souborů: ${added} ✓`)
+  }
+
+  const handleDownload = async (item: FileItem) => {
+    const result = await downloadFile(item)
+    if (!result.ok) showMessage(result.error)
   }
 
   return (
     <div className="fm-app">
       <div className="fm-header">
         <h2>File Manager</h2>
-        <button className="fm-add-btn" onClick={() => setShowAdd(!showAdd)}>
-          {showAdd ? '✕' : '+ Nahrát'}
+        <button className="fm-add-btn" onClick={() => inputRef.current?.click()} disabled={busy}>
+          {busy ? 'Ukládám…' : '+ Nahrát'}
         </button>
+        <input ref={inputRef} type="file" multiple hidden onChange={handleFilesSelected} />
       </div>
 
       <input
@@ -42,43 +64,46 @@ export const FileManager: React.FC = () => {
         onChange={(e) => setSearch(e.target.value)}
       />
 
-      {showAdd && (
-        <form className="fm-form" onSubmit={handleSubmit}>
-          <input
-            type="text"
-            placeholder="Název souboru..."
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <div className="fm-form-row">
-            <select value={type} onChange={(e) => setType(e.target.value as FileItem['type'])}>
-              <option value="pdf">PDF dokument</option>
-              <option value="doc">Word / Text</option>
-              <option value="img">Obrázek</option>
-              <option value="zip">Archiv ZIP</option>
-            </select>
-            <button type="submit" className="fm-submit-btn">Uložit</button>
-          </div>
-        </form>
-      )}
+      {message && <p className="fm-message">{message}</p>}
 
       <div className="fm-list">
         {files.length === 0 ? (
-          <p className="fm-empty">Žádné soubory nenalezeny</p>
+          <p className="fm-empty">
+            {totalCount === 0 ? 'Zatím tu nemáš žádné soubory. Nahraj první 📎' : 'Žádné soubory nenalezeny'}
+          </p>
         ) : (
-          files.map((f) => (
-            <div key={f.id} className="fm-card">
-              <span className="fm-icon">{getTypeIcon(f.type)}</span>
-              <div className="fm-info">
-                <span className="fm-name">{f.name}</span>
-                <span className="fm-meta">{f.size} • {f.date}</span>
+          files.map((f) => {
+            const available = isAvailable(f.id)
+            return (
+              <div key={f.id} className={`fm-card ${available ? '' : 'fm-card--missing'}`}>
+                <span className="fm-icon">{TYPE_ICONS[f.type]}</span>
+                <div className="fm-info">
+                  <span className="fm-name">{f.name}</span>
+                  <span className="fm-meta">
+                    {available ? `${formatSize(f.size)} • ${f.date}` : 'Obsah v tomto zařízení chybí'}
+                  </span>
+                </div>
+                {available && (
+                  <button
+                    className="fm-dl-btn"
+                    onClick={() => handleDownload(f)}
+                    aria-label={`Stáhnout ${f.name}`}
+                  >
+                    ⬇️
+                  </button>
+                )}
+                <button
+                  className="fm-del-btn"
+                  onClick={() => deleteFile(f.id)}
+                  aria-label={`Smazat ${f.name}`}
+                >
+                  ✕
+                </button>
               </div>
-              <button className="fm-del-btn" onClick={() => deleteFile(f.id)}>✕</button>
-            </div>
-          ))
+            )
+          })
         )}
       </div>
     </div>
   )
-              }
+}

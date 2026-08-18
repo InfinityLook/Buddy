@@ -45,6 +45,12 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'buddy_profile_v1', storage: 'raw', label: 'Profil' },
 ]
 
+// Pozor: u File Manageru se zálohují jen metadata souborů. Samotný obsah
+// leží v IndexedDB (viz core/utils/fileStorage.ts) a do JSON zálohy se
+// nedává — pár fotek by v base64 udělalo ze zálohy soubor, se kterým se
+// nedá pracovat. Po obnově na jiném zařízení proto záznamy existují,
+// ale File Manager u nich poctivě hlásí, že obsah chybí.
+
 const readStore = (store: BackupStore): string | null =>
   store.storage === 'secure' ? secureStorage.getItem(store.key) as string | null : localStorage.getItem(store.key)
 
