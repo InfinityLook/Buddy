@@ -366,7 +366,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
           <button
             className="hub-action-btn-icon"
             aria-label="Nastavení"
-            onClick={onOpenSettings ?? (() => navigate('/profil'))}
+            onClick={onOpenSettings ?? (() => navigate('/nastaveni'))}
           >
             ⚙️
           </button>
