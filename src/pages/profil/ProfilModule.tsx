@@ -7,7 +7,6 @@ import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUt
 import { fileToResizedDataUrl } from '@/utils/image'
 import { APP_VERSION, applyUpdateNow, checkForUpdates, hasNewerVersion } from '@/core/utils/registerSW'
 import { useProfileData } from './hooks/useProfileData'
-import { ProfilSettingsSheet } from './components/ProfilSettingsSheet'
 import { ProfilNotifications } from './components/ProfilNotifications'
 import { ProfilGoals } from './components/ProfilGoals'
 import { ProfilToast } from './components/ProfilToast'
@@ -18,9 +17,8 @@ export const ProfilModule: React.FC = () => {
   const { level, xp, streakDays, badges } = useGamificationStore()
   const { setActiveAppId } = useAppStore()
   const { goals } = useGoalTracker()
-  const { profile, updateProfile, updateSecurity, markNotificationRead, resetProfile } = useProfileData()
+  const { profile, updateProfile, markNotificationRead } = useProfileData()
 
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [notifOpen, setNotifOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [updateChecking, setUpdateChecking] = useState(false)
@@ -97,11 +95,10 @@ export const ProfilModule: React.FC = () => {
             ← Zpět do Hubu
           </button>
           <h1 className="profil-title">Profil</h1>
-          <p className="profil-subtitle">Spravuj svůj účet, sleduj svůj pokrok a nastav si aplikaci podle sebe.</p>
         </div>
         <div className="profil-top-actions">
           <button className="profil-icon-btn" aria-label="Upozornění" onClick={() => setNotifOpen(true)}>🔔</button>
-          <button className="profil-icon-btn" aria-label="Nastavení" onClick={() => setSettingsOpen(true)}>⚙️</button>
+          <button className="profil-icon-btn" aria-label="Nastavení" onClick={() => navigate('/nastaveni')}>⚙️</button>
         </div>
       </div>
 
@@ -193,7 +190,7 @@ export const ProfilModule: React.FC = () => {
 
       {/* Settings Menu */}
       <div className="profil-settings-list">
-        <div className="profil-menu-row" onClick={() => setSettingsOpen(true)}>
+        <div className="profil-menu-row" onClick={() => navigate('/nastaveni')}>
           <div className="profil-menu-left">
             <div className="profil-menu-icon">👤</div>
             <div className="profil-menu-text">
@@ -204,7 +201,7 @@ export const ProfilModule: React.FC = () => {
           <span className="profil-arrow">❯</span>
         </div>
 
-        <div className="profil-menu-row" onClick={() => setSettingsOpen(true)}>
+        <div className="profil-menu-row" onClick={() => navigate('/nastaveni')}>
           <div className="profil-menu-left">
             <div className="profil-menu-icon">🛡️</div>
             <div className="profil-menu-text">
@@ -250,16 +247,6 @@ export const ProfilModule: React.FC = () => {
           <span className="profil-arrow">❯</span>
         </div>
       </div>
-
-      <ProfilSettingsSheet
-        open={settingsOpen}
-        profile={profile}
-        onClose={() => setSettingsOpen(false)}
-        onSaveProfile={updateProfile}
-        onUpdateSecurity={updateSecurity}
-        onResetData={resetProfile}
-        onToast={showToast}
-      />
 
       <ProfilNotifications
         open={notifOpen}

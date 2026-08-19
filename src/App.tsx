@@ -5,6 +5,8 @@ import Hub from './pages/hub/Hub.tsx'
 import AppModule from '@/pages/app/AppModule.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
+import SettingsModule from '@/pages/setting/SettingsModule.tsx'
+import { BootGate } from '@/components/BootGate'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
 import { useAuthStore } from '@/core/store/useAuthStore'
@@ -19,71 +21,88 @@ export default function App() {
   }, [])
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            isAuthed ? (
-              <Navigate to="/hub" replace />
-            ) : (
-              <Login onLogin={login} />
-            )
-          }
-        />
+    // Než se vykreslí aplikace, doběhne kontrola aktualizací —
+    // uživatel tak nezačíná na staré verzi, kterou by mu obnova
+    // za chvíli vytrhla pod rukama.
+    <BootGate>
+      <BrowserRouter>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              isAuthed ? (
+                <Navigate to="/hub" replace />
+              ) : (
+                <Login onLogin={login} />
+              )
+            }
+          />
 
-        <Route
-          path="/hub"
-          element={
-            isAuthed ? (
-              <Hub onLogout={logout} />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
+          <Route
+            path="/hub"
+            element={
+              isAuthed ? (
+                <Hub onLogout={logout} />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
 
-        {/* Route pro rozcestník miniaplikací (AppModule) */}
-        <Route
-          path="/apps"
-          element={
-            isAuthed ? (
-              <AppModule />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
+          {/* Route pro rozcestník miniaplikací (AppModule) */}
+          <Route
+            path="/apps"
+            element={
+              isAuthed ? (
+                <AppModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
 
-        {/* Route pro profil uživatele */}
-        <Route
-          path="/profil"
-          element={
-            isAuthed ? (
-              <ProfilModule />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
+          {/* Route pro profil uživatele */}
+          <Route
+            path="/profil"
+            element={
+              isAuthed ? (
+                <ProfilModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
 
-        {/* Route pro odměny (úroveň, série a odznaky) */}
-        <Route
-          path="/odmeny"
-          element={
-            isAuthed ? (
-              <RewardModule />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
+          {/* Route pro odměny (úroveň, série a odznaky) */}
+          <Route
+            path="/odmeny"
+            element={
+              isAuthed ? (
+                <RewardModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+          {/* Route pro nastavení aplikace */}
+          <Route
+            path="/nastaveni"
+            element={
+              isAuthed ? (
+                <SettingsModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
 
-      {/* Globální indikátor offline připojení */}
-      <NetworkStatusBanner />
-    </BrowserRouter>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+
+        {/* Globální indikátor offline připojení */}
+        <NetworkStatusBanner />
+      </BrowserRouter>
+    </BootGate>
   )
 }

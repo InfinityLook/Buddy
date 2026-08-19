@@ -1,0 +1,108 @@
+/* ==========================================
+   Úvodní obrazovka při startu — stejný design systém jako Hub a Profil
+   ========================================== */
+
+.boot-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1.5rem calc(1.5rem + env(safe-area-inset-right)) calc(1.5rem + env(safe-area-inset-bottom))
+    calc(1.5rem + env(safe-area-inset-left));
+  background:
+    radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.22) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.18) 0%, transparent 35%),
+    radial-gradient(circle at 50% 95%, rgba(236, 72, 153, 0.13) 0%, transparent 45%),
+    var(--bg-base);
+  color: var(--text-primary);
+}
+
+.boot-gate-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  width: 100%;
+  max-width: 300px;
+  text-align: center;
+}
+
+.boot-gate-mascot {
+  width: 128px;
+  height: 128px;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
+  animation: boot-gate-float 2.4s ease-in-out infinite;
+}
+
+@keyframes boot-gate-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.boot-gate-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.boot-gate-mark {
+  color: var(--accent-cyan);
+  text-shadow: 0 0 12px rgba(53, 196, 240, 0.6);
+}
+
+/* Neurčitý ukazatel — nevíme, jak dlouho stahování potrvá,
+   takže pruh jezdí, místo aby předstíral procenta. */
+.boot-gate-bar {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.09);
+  overflow: hidden;
+}
+
+.boot-gate-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 40%;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
+  box-shadow: 0 0 12px rgba(53, 196, 240, 0.5);
+  animation: boot-gate-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes boot-gate-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+.boot-gate-status {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.boot-gate-version {
+  position: absolute;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  font-size: 0.6rem;
+  color: var(--text-muted);
+}
+
+/* Bez animací nechceme statický pruh na 40 % — ať je vidět celý */
+@media (prefers-reduced-motion: reduce) {
+  .boot-gate-bar-fill {
+    width: 100%;
+    transform: none;
+  }
+}

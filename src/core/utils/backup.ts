@@ -21,6 +21,9 @@ interface BackupStore {
   key: string
   storage: StorageKind
   label: string
+  // false = do souboru se store zabalí, ale zpátky se nikdy nezapíše.
+  // Výchozí je true.
+  restorable?: boolean
 }
 
 // Katalog všeho, co se zálohuje. Když přibude miniaplikace s vlastním
@@ -31,7 +34,11 @@ interface BackupStore {
 // přihlašovat ani odhlašovat, to je stav zařízení, ne jeho data.
 export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-app-storage', storage: 'secure', label: 'Aplikace' },
-  { key: 'schoolbuddy-gamification-storage', storage: 'secure', label: 'XP a odznaky' },
+  // XP, úroveň, série a odznaky jsou vydřený postup, ne nastavení. Obnova
+  // ze starší zálohy by ho vrátila zpátky a uživatel by o rozdíl přišel,
+  // takže se sice zálohují (soubor má být věrný snímek), ale nikdy se
+  // nezapisují zpět.
+  { key: 'schoolbuddy-gamification-storage', storage: 'secure', label: 'XP a odznaky', restorable: false },
   { key: 'schoolbuddy-study-planner-storage', storage: 'secure', label: 'Study Planner' },
   { key: 'schoolbuddy-quick-notes-storage', storage: 'secure', label: 'Quick Notes' },
   { key: 'schoolbuddy-flashcards-storage', storage: 'secure', label: 'Flashcards' },
@@ -137,6 +144,11 @@ export const importDataFromJson = <T>(file: File): Promise<T> => {
   })
 }
 
+// Popisky částí, které se z principu neobnovují — pro hlášku uživateli
+export const NON_RESTORABLE_LABELS = BACKUP_STORES.filter((s) => s.restorable === false).map(
+  (s) => s.label
+)
+
 export interface RestoreResult {
   success: boolean
   // Starý formát zálohy obsahoval jen seznam dlaždic — načteme ho dál,
@@ -156,6 +168,8 @@ export const restoreFullBackup = (incoming: unknown): RestoreResult => {
     const restored: string[] = []
 
     for (const store of BACKUP_STORES) {
+      if (store.restorable === false) continue
+
       const value = envelope.data.data[store.key]
       if (value === undefined) continue
 

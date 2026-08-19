@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
-import { Goal, INITIAL_GOALS } from './types'
+import { DEMO_GOAL_IDS, DEMO_GOAL_TITLES, Goal } from './types'
 
 // XP odměna za splnění celého cíle (dosažení target hodnoty)
 const XP_PER_COMPLETED_GOAL = 25
@@ -17,7 +17,7 @@ interface GoalTrackerState {
 const useGoalTrackerStore = create<GoalTrackerState>()(
   persist(
     (set) => ({
-      goals: INITIAL_GOALS,
+      goals: [],
 
       incrementProgress: (id, amount = 1) =>
         set((state) => ({
@@ -52,6 +52,17 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
     }),
     {
       name: 'schoolbuddy-goal-tracker-storage',
+
+      // Ukázkové cíle leží v úložišti i uživatelům, kteří appku otevřeli dřív.
+      // Poznáme je podle původního id i názvu zároveň, ať omylem nesmažeme
+      // vlastní cíl, který se náhodou jmenuje stejně.
+      merge: (persisted, current) => {
+        const saved = persisted as Partial<GoalTrackerState> | undefined
+        const goals = (saved?.goals ?? []).filter(
+          (goal) => !(DEMO_GOAL_IDS.includes(goal.id) && DEMO_GOAL_TITLES.includes(goal.title))
+        )
+        return { ...current, ...saved, goals }
+      },
       storage: createJSONStorage(() => secureStorage),
     }
   )

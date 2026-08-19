@@ -1,5 +1,6 @@
 import React, { useRef } from 'react'
 import { useDocumentStore } from '../useDocumentStore'
+import { prepareImportedContent } from '../importContent'
 
 interface FileManagerProps {
   onOpenDoc: () => void
@@ -15,7 +16,9 @@ export const FileManager: React.FC<FileManagerProps> = ({ onOpenDoc }) => {
 
     const reader = new FileReader()
     reader.onload = (event) => {
-      const content = event.target?.result as string
+      const raw = event.target?.result as string
+      // Obsah jde do editoru přes innerHTML — nesmí se vložit bez úpravy
+      const content = prepareImportedContent(file.name, raw)
       const title = file.name.replace(/\.[^/.]+$/, '')
       importDocument(title, content)
       onOpenDoc()

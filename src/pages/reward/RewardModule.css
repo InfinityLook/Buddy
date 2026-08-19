@@ -6,9 +6,13 @@
 /* Stránka si scrolluje sama — global.css drží html/body/#root
    na overflow: hidden, takže bez tohohle by se obsah ořízl. */
 .reward-page {
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* Viz .profil-page — min-height by nechalo prvek narůst podle obsahu
+     a #root s overflow: hidden by zbytek odznaků oříznul. */
+  height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
   background:
     radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.22) 0%, transparent 40%),
     radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.18) 0%, transparent 35%),

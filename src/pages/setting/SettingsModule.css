@@ -1,0 +1,237 @@
+/* ==========================================
+   NASTAVENÍ — stejný design systém jako Hub / Profil / Odměny
+   ========================================== */
+
+.settings-page {
+  /* Pevná výška kvůli scrollování, viz .profil-page */
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.22) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.18) 0%, transparent 35%),
+    radial-gradient(circle at 50% 95%, rgba(236, 72, 153, 0.13) 0%, transparent 45%),
+    var(--bg-base);
+  color: var(--text-primary);
+  padding: 0.75rem 0.75rem calc(1.5rem + env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  box-sizing: border-box;
+}
+
+.settings-top-bar {
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-back-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+
+.settings-title {
+  font-size: 1.65rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.3px;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 18px rgba(53, 196, 240, 0.45);
+}
+
+/* Karta jedné sekce nastavení */
+.settings-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  padding: 0.75rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.settings-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.settings-card-icon {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.settings-card-icon.blue { background: linear-gradient(135deg, #0284c7, #38bdf8); }
+.settings-card-icon.purple { background: linear-gradient(135deg, #7c3aed, #a855f7); }
+
+.settings-card-title {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.settings-card-sub {
+  margin: 0.1rem 0 0;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+/* Formulář osobních údajů */
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.settings-field span {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.settings-field input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: 0.55rem 0.6rem;
+  /* 16px — pod tímhle prahem iOS Safari při fokusu přiblíží stránku */
+  font-size: 1rem;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.settings-field input:focus {
+  border-color: rgba(53, 196, 240, 0.5);
+}
+
+.settings-save-btn {
+  margin-top: 0.15rem;
+  background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
+  color: #06121f;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.settings-save-btn:active {
+  transform: scale(0.985);
+}
+
+/* Přepínače zabezpečení */
+.settings-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-toggle-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-toggle-title {
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.settings-toggle-sub {
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+}
+
+.settings-switch {
+  flex-shrink: 0;
+  width: 44px;
+  height: 26px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.08);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.settings-switch.on {
+  background: rgba(53, 196, 240, 0.35);
+  border-color: var(--accent-cyan);
+}
+
+.settings-switch-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f2f5fb;
+  transition: transform 0.2s ease;
+}
+
+.settings-switch.on .settings-switch-knob {
+  transform: translateX(18px);
+}
+
+.settings-danger-btn {
+  margin-top: 0.2rem;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.settings-danger-btn:active {
+  transform: scale(0.985);
+}
+
+.settings-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  background: rgba(18, 20, 38, 0.95);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  box-shadow: var(--shadow-card);
+  z-index: 50;
+}

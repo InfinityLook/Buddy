@@ -65,6 +65,12 @@ export const GoalTracker: React.FC = () => {
       )}
 
       <div className="gt-list">
+        {goals.length === 0 && (
+          <p className="gt-empty">
+            Zatím tu žádný cíl nemáš. Založ si první — třeba kolik stran chceš přečíst za týden. 🎯
+          </p>
+        )}
+
         {goals.map((g) => {
           const percent = Math.round((g.current / g.target) * 100)
           return (
