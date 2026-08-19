@@ -136,10 +136,11 @@ const runSync = async (): Promise<void> => {
 }
 
 // Probíhající průchod. Volá se ze čtyř míst (start, návrat k aplikaci,
-// obnovené připojení, tlačítko v profilu) a bez tohohle sdílení mohla dvě
-// překrývající se volání obě zjistit "relace není" a obě založit
-// anonymní účet — v databázi pak vznikly dvě identity pár vteřin po sobě
-// a ta první zůstala prázdná a nedosažitelná.
+// obnovené připojení, tlačítko v profilu) a bez tohohle sdílení by se
+// překrývající se volání zbytečně prala o stejné řádky.
+//
+// Zakládání identity tohle nehlídá — na to je zámek v ensureSession, který
+// platí i mezi panely a napříč načteními stránky.
 let syncPromise: Promise<void> | null = null
 
 /**
