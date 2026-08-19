@@ -120,7 +120,9 @@ interface ProfileState {
   resetProfile: () => void
 }
 
-const useProfileStore = create<ProfileState>()(
+// Store je exportovaný kvůli cloudové synchronizaci, která si na něj
+// potřebuje pověsit odběr změn mimo React (viz core/supabase/cloudSync).
+export const useProfileStore = create<ProfileState>()(
   persist(
     (set) => ({
       profile: DEFAULT_PROFILE,

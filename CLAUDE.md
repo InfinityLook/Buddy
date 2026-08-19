@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-SchoolBuddy ("Buddy") is a Czech-language, offline-first PWA study companion for students. It's a pure client-side app — **no backend, no API calls, no auth server**. "Login" is a local flag in `localStorage`, and all user data (apps, gamification, per-miniapp content) lives in the browser via Zustand-persisted state. All UI copy and code comments are written in Czech; keep new strings/comments in Czech to stay consistent with the rest of the codebase.
+SchoolBuddy ("Buddy") is a Czech-language, offline-first PWA study companion for students. It is client-side first: "login" is still a local flag in `localStorage`, and **all** user data lives in the browser via Zustand-persisted state, which stays the source of truth. Since v1.7 there is one optional exception — gamification and two profile fields are additionally mirrored to Supabase (see **Cloud sync** below). Everything else — apps, all miniapp content, file blobs — is browser-only, and the app runs completely without the cloud. All UI copy and code comments are written in Czech; keep new strings/comments in Czech to stay consistent with the rest of the codebase.
 
 ## Commands
 
@@ -76,6 +76,18 @@ In dev the build ID is deliberately set equal to the plain version, and `public/
 `core/utils/registerSW.ts` also exports `hasNewerVersion()` / `applyUpdateNow()` / `checkForUpdates()`, used by the "Verze aplikace" row in `pages/profil/ProfilModule.tsx` as a manual escape hatch.
 
 Practical consequences: keep `json` out of the Workbox `globPatterns` and keep the `NetworkOnly` runtime-caching route for `/version.json` — precaching it would freeze the version and silently disable both mechanisms. `vercel.json` sets `no-cache`/`no-store` headers on `sw.js`, `index.html`, `version.json`, `manifest.webmanifest` and `js/auto-update.js` while marking hashed `/assets/*` immutable; without those headers the CDN can serve a stale `sw.js` and no amount of client-side checking helps. Both `version.json` and `js/auto-update.js` must live in `public/` — anything outside it isn't copied to `dist/`.
+
+### Cloud sync (Supabase, optional)
+
+`src/core/supabase/` mirrors gamification (XP, level, streak, badges, activity counters) plus the profile's `name`/`motto` to a Supabase project. It is **strictly additive**: `client.ts` exports `isSupabaseConfigured`, and when `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` are missing the client is `null`, `startCloudSync()` returns immediately and the app behaves exactly as before. Never make a code path depend on the cloud being reachable — offline is the normal case, not the error case.
+
+Identity comes from **anonymous auth** (`supabase.auth.signInAnonymously()`), started invisibly from `startCloudSync()` — the login screen is untouched. Each device therefore gets its own `auth.uid()`, and every table is locked to its owner by RLS. When a real login is built later, anonymous users can be upgraded to permanent accounts without losing rows.
+
+The merge rule is **"higher wins"** (`merge.ts`, pure and unit-testable): max XP, max streak, max per-counter, union of badges keeping the earliest unlock date, level recomputed from the merged XP. This mirrors the decision already encoded in `BACKUP_STORES` — gamification is `restorable: false` because earned progress must never go backwards. Because of it, sync needs no clock comparison and is idempotent.
+
+`cloudSync.ts` owns the wiring: an initial `syncNow()` (sign in → fetch → merge → write back locally → push), then debounced pushes on any store change, plus a resync on `visibilitychange`/`online` and a flush on `pagehide`. Sync status is exposed through `useCloudStatus` and shown as a row in `pages/profil`.
+
+Schema lives in the `SChoolBuddy-System` Supabase project: `profiles` (one row per user, FK to `auth.users`), `user_badges`, `activity_counters`. Adding a synced field means touching the SQL, `CloudSnapshot` in `types.ts`, and `mergeSnapshots` together. Avatars are deliberately not synced — they are data URIs and belong in Storage, not a text column.
 
 ### Backup & restore
 

@@ -7,10 +7,21 @@ import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUt
 import { fileToResizedDataUrl } from '@/utils/image'
 import { APP_VERSION, applyUpdateNow, checkForUpdates, hasNewerVersion } from '@/core/utils/registerSW'
 import { useProfileData } from './hooks/useProfileData'
+import { useCloudStatus, syncNow } from '@/core/supabase/cloudSync'
 import { ProfilNotifications } from './components/ProfilNotifications'
 import { ProfilGoals } from './components/ProfilGoals'
 import { ProfilToast } from './components/ProfilToast'
 import './ProfilModule.css'
+
+// Popis stavu synchronizace pro řádek v menu. Musí být srozumitelný
+// i pro toho, kdo o Supabase nikdy neslyšel.
+const CLOUD_LABELS: Record<string, string> = {
+  off: 'Cloud není nastavený — data zůstávají jen v tomhle zařízení',
+  connecting: 'Připojuji…',
+  synced: 'XP a odznaky zálohované v cloudu',
+  offline: 'Offline — odešle se, až bude signál',
+  error: 'Synchronizace se nepovedla, klepni pro nový pokus',
+}
 
 export const ProfilModule: React.FC = () => {
   const navigate = useNavigate()
@@ -18,6 +29,7 @@ export const ProfilModule: React.FC = () => {
   const { setActiveAppId } = useAppStore()
   const { goals } = useGoalTracker()
   const { profile, updateProfile, markNotificationRead } = useProfileData()
+  const cloudStatus = useCloudStatus((state) => state.status)
 
   const [notifOpen, setNotifOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
@@ -229,6 +241,22 @@ export const ProfilModule: React.FC = () => {
             <div className="profil-menu-text">
               <span className="profil-menu-title">Nápověda a podpora<span className="profil-badge-soon">BRZY</span></span>
               <span className="profil-menu-sub">Často kladené otázky a kontakt</span>
+            </div>
+          </div>
+          <span className="profil-arrow">❯</span>
+        </div>
+
+        <div className="profil-menu-row" onClick={() => { void syncNow() }}>
+          <div className="profil-menu-left">
+            <div className="profil-menu-icon">☁️</div>
+            <div className="profil-menu-text">
+              <span className="profil-menu-title">
+                Synchronizace
+                <span className={`profil-cloud-dot is-${cloudStatus}`} aria-hidden="true" />
+              </span>
+              <span className="profil-menu-sub">
+                {CLOUD_LABELS[cloudStatus] ?? CLOUD_LABELS.off}
+              </span>
             </div>
           </div>
           <span className="profil-arrow">❯</span>
