@@ -1,34 +1,81 @@
 import React, { useState } from 'react'
 import { useQuickNotes } from './useQuickNotes'
-import { Note } from './types'
+import { ALL_NOTES, NOTE_CATEGORIES, Note, NoteCategory } from './types'
 import './QuickNotes.css'
 
 export const QuickNotes: React.FC = () => {
-  const { notes, filter, setFilter, addNote, deleteNote } = useQuickNotes()
+  const {
+    notes,
+    totalCount,
+    filter,
+    setFilter,
+    search,
+    setSearch,
+    addNote,
+    updateNote,
+    deleteNote,
+  } = useQuickNotes()
+
+  // null = formulář zavřený, '' = zakládá se nová, jinak id upravované
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [category, setCategory] = useState<Note['category']>('Škola')
-  const [isAdding, setIsAdding] = useState(false)
+  const [category, setCategory] = useState<NoteCategory>('Škola')
+
+  const isFormOpen = editingId !== null
+
+  const openAdd = () => {
+    setTitle('')
+    setContent('')
+    setCategory('Škola')
+    setEditingId('')
+  }
+
+  const openEdit = (note: Note) => {
+    setTitle(note.title)
+    setContent(note.content)
+    setCategory(note.category)
+    setEditingId(note.id)
+  }
+
+  const closeForm = () => setEditingId(null)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    addNote(title, content, category)
-    setTitle('')
-    setContent('')
-    setIsAdding(false)
+    if (editingId) updateNote(editingId, title, content, category)
+    else addNote(title, content, category)
+    closeForm()
+  }
+
+  const handleDelete = (note: Note) => {
+    if (window.confirm(`Smazat poznámku „${note.title}“?`)) {
+      deleteNote(note.id)
+      if (editingId === note.id) closeForm()
+    }
   }
 
   return (
     <div className="qn-app">
       <div className="qn-header">
         <h2>Quick Notes</h2>
-        <button className="qn-add-btn" onClick={() => setIsAdding(!isAdding)}>
-          {isAdding ? '✕' : '+ Nová'}
+        <button className="qn-add-btn" onClick={isFormOpen ? closeForm : openAdd}>
+          {isFormOpen ? '✕' : '+ Nová'}
         </button>
       </div>
 
+      {/* Hledání dává smysl, až když je v čem hledat */}
+      {totalCount > 3 && (
+        <input
+          type="search"
+          className="qn-search"
+          placeholder="Hledat v poznámkách..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      )}
+
       <div className="qn-filters">
-        {['Vše', 'Škola', 'Osobní', 'Nápady'].map((f) => (
+        {[ALL_NOTES, ...NOTE_CATEGORIES].map((f) => (
           <button
             key={f}
             className={`qn-filter-chip ${filter === f ? 'active' : ''}`}
@@ -39,45 +86,94 @@ export const QuickNotes: React.FC = () => {
         ))}
       </div>
 
-      {isAdding && (
+      {isFormOpen && (
         <form className="qn-form" onSubmit={handleSubmit}>
+          <span className="qn-form-title">
+            {editingId ? 'Upravit poznámku' : 'Nová poznámka'}
+          </span>
+
           <input
             type="text"
             placeholder="Název poznámky..."
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
+            autoFocus
           />
           <textarea
             placeholder="Obsah..."
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            rows={2}
+            rows={3}
           />
           <div className="qn-form-footer">
-            <select value={category} onChange={(e) => setCategory(e.target.value as Note['category'])}>
-              <option value="Škola">Škola</option>
-              <option value="Osobní">Osobní</option>
-              <option value="Nápady">Nápady</option>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as NoteCategory)}
+            >
+              {NOTE_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
             </select>
-            <button type="submit" className="qn-submit-btn">Uložit</button>
+            <div className="qn-form-buttons">
+              <button type="button" className="qn-cancel-btn" onClick={closeForm}>
+                Zrušit
+              </button>
+              <button type="submit" className="qn-submit-btn">
+                {editingId ? 'Uložit změny' : 'Uložit'}
+              </button>
+            </div>
           </div>
         </form>
       )}
 
       <div className="qn-list">
         {notes.length === 0 ? (
-          <p className="qn-empty">Žádné poznámky</p>
+          <div className="qn-empty">
+            {totalCount === 0 ? (
+              <>
+                <span className="qn-empty-icon">📝</span>
+                <p>
+                  Zatím tu nic není. Zapiš si první poznámku — třeba co máš do
+                  příště nastudovat.
+                </p>
+              </>
+            ) : (
+              <p>Téhle podmínce neodpovídá žádná poznámka.</p>
+            )}
+          </div>
         ) : (
           notes.map((n) => (
             <div key={n.id} className="qn-card">
               <div className="qn-card-top">
                 <span className={`qn-tag ${n.category.toLowerCase()}`}>{n.category}</span>
-                <button className="qn-del-btn" onClick={() => deleteNote(n.id)}>✕</button>
+                <div className="qn-card-actions">
+                  <button
+                    className="qn-icon-btn"
+                    onClick={() => openEdit(n)}
+                    aria-label={`Upravit ${n.title}`}
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    className="qn-icon-btn danger"
+                    onClick={() => handleDelete(n)}
+                    aria-label={`Smazat ${n.title}`}
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
+
               <h4>{n.title}</h4>
-              <p>{n.content}</p>
-              <span className="qn-date">{n.createdAt}</span>
+              {n.content && <p>{n.content}</p>}
+
+              <span className="qn-date">
+                {n.createdAt}
+                {n.updatedAt ? ` · upraveno ${n.updatedAt}` : ''}
+              </span>
             </div>
           ))
         )}

@@ -135,14 +135,90 @@
 }
 
 .sp-date {
-  font-size: 0.55rem;
+  font-size: 0.58rem;
   color: #64748b;
+  font-weight: 600;
 }
 
-.sp-del-btn {
+/* Naléhavost termínu barevně — po termínu se nesmí ztratit mezi ostatními */
+.sp-date.is-overdue { color: #f87171; }
+.sp-date.is-today { color: #fbbf24; }
+.sp-date.is-soon { color: #38bdf8; }
+
+.sp-card-actions {
+  display: flex;
+  gap: 0.15rem;
+  flex-shrink: 0;
+  align-self: flex-start;
+}
+
+.sp-icon-btn {
   background: none;
   border: none;
   color: #64748b;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   cursor: pointer;
+  padding: 0.15rem 0.25rem;
+  border-radius: 5px;
+  line-height: 1;
+}
+
+.sp-icon-btn:hover { background: rgba(255, 255, 255, 0.08); }
+.sp-icon-btn.danger { color: #f87171; }
+
+.sp-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
+.sp-summary-overdue {
+  color: #f87171;
+  background: rgba(239, 68, 68, 0.12);
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+}
+
+.sp-filters {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.sp-filter-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sp-filter-chip.active {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.sp-form-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #c084fc;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.sp-empty {
+  margin: 0;
+  padding: 1.2rem 0.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #94a3b8;
 }

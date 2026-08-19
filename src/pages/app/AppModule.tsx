@@ -8,6 +8,7 @@ import { AppIcon } from './components/AppIcon'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { MINI_APP_REGISTRY } from '@/features/miniapps/registry'
 import { useAppStore, AppItem } from '@/core/store/useAppStore'
+import { normalizeText } from '@/core/utils/text'
 import {
   ProfilNotifications,
   useNotificationItems,
@@ -22,16 +23,6 @@ import './AppModule.css'
 interface AppModuleProps {
   onBack?: () => void
 }
-
-// Hledání bez ohledu na diakritiku — student píše "matika" i "uceni"
-// a nemá důvod dostat prázdný výsledek jen kvůli chybějící čárce.
-const normalize = (value: string) =>
-  value
-    .toLowerCase()
-    .normalize('NFD')
-    // U+0300 až U+036F je blok spojovacích diakritických znamének,
-    // které z písmen oddelil rozklad NFD.
-    .replace(/[\u0300-\u036f]/g, '')
 
 export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   const navigate = useNavigate()
@@ -102,13 +93,13 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   )
 
   const filteredApps = useMemo(() => {
-    const query = normalize(searchQuery.trim())
+    const query = normalizeText(searchQuery.trim())
 
     const matching = visibleApps.filter((app) => {
       const matchesSearch =
         query === '' ||
-        normalize(app.title).includes(query) ||
-        normalize(app.category).includes(query)
+        normalizeText(app.title).includes(query) ||
+        normalizeText(app.category).includes(query)
 
       const matchesCategory =
         activeCategory === ALL_CATEGORIES
