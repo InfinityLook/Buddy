@@ -22,6 +22,10 @@ export const ExamPrepApp: React.FC<ExamPrepAppProps> = ({ onBack }) => {
   // Gamifikace
   const { level, streakDays } = useGamificationStore()
 
+  // Prázdné stavy v ostatních záložkách odkazují na Okruhy — bez toho
+  // by uživatel četl "přidej si okruhy" a musel hledat kde.
+  const goToSubjects = () => setActiveTab('subjects')
+
   const handleBack = () => {
     if (onBack) {
       onBack()
@@ -55,10 +59,10 @@ export const ExamPrepApp: React.FC<ExamPrepAppProps> = ({ onBack }) => {
 
       {/* Main view */}
       <main className="examprep-main-content">
-        {activeTab === 'dashboard' && <DashboardTab />}
+        {activeTab === 'dashboard' && <DashboardTab onGoToSubjects={goToSubjects} />}
         {activeTab === 'subjects' && <SubjectsTab />}
-        {activeTab === 'flashcards' && <FlashcardsTab />}
-        {activeTab === 'simulator' && <SimulatorTab />}
+        {activeTab === 'flashcards' && <FlashcardsTab onGoToSubjects={goToSubjects} />}
+        {activeTab === 'simulator' && <SimulatorTab onGoToSubjects={goToSubjects} />}
       </main>
 
       {/* Bottom Bar */}

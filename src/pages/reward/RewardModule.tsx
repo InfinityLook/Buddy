@@ -17,8 +17,8 @@ interface XpSource {
 }
 
 const XP_SOURCES: XpSource[] = [
-  { appId: 'exam-prep', icon: '⏱️', title: 'Zvládni maturitní simulaci', reward: '+100 XP' },
-  { appId: 'exam-prep', icon: '🎓', title: 'Ohodnoť maturitní kartičku', reward: '+10 až 50 XP' },
+  { appId: 'exam-prep', icon: '⏱️', title: 'Odsimuluj maturitní otázku (jednou za otázku)', reward: '+100 XP' },
+  { appId: 'exam-prep', icon: '🎓', title: 'Zopakuj otázku, která je na řadě', reward: '+10 až 50 XP' },
   { appId: 'goal-tracker', icon: '🎯', title: 'Dotáhni cíl v Goal Trackeru', reward: '+25 XP' },
   { appId: 'document-editor', icon: '📄', title: 'Ulož nový dokument', reward: '+15 XP' },
   { appId: 'pomodoro', icon: '🍅', title: 'Dokonči pracovní blok v Pomodoru', reward: '+15 XP' },
