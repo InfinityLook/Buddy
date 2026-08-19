@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import Login from './pages/login/Login.tsx'
 import Hub from './pages/hub/Hub.tsx'
 import AppModule from '@/pages/app/AppModule.tsx'
@@ -7,6 +7,9 @@ import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
 import SettingsModule from '@/pages/setting/SettingsModule.tsx'
 import ShopModule from '@/pages/shop/ShopModule.tsx'
+// Herní hub si s sebou nese Three.js, takže se načítá až při vstupu —
+// zbytek aplikace tím nezůstane těžší.
+const GameModule = lazy(() => import('@/game/GameModule'))
 import { BootGate } from '@/components/BootGate'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
@@ -88,6 +91,20 @@ export default function App() {
             element={
               isAuthed ? (
                 <RewardModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* Route pro herní hub (3D město) */}
+          <Route
+            path="/hra"
+            element={
+              isAuthed ? (
+                <Suspense fallback={<div className="app-suspense-fallback">Načítám město…</div>}>
+                  <GameModule />
+                </Suspense>
               ) : (
                 <Navigate to="/" replace />
               )

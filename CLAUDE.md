@@ -24,7 +24,7 @@ Run `npm run typecheck` before considering a change done — it is the only auto
 
 ### Routing & auth gate
 
-`src/App.tsx` is the single `BrowserRouter` with seven routes: `/` (Login), `/hub`, `/apps`, `/profil`, `/odmeny` (Rewards — level, streak and the full badge list; `src/pages/reward/`), `/nastaveni` (`src/pages/setting/`) and `/obchod` (Shop; `src/pages/shop/`). Every route except `/` redirects to `/` unless `useAuthStore().isAuthed` is true — there's no route-level guard component, the check is inlined per-`<Route>`. PWA update registration (`setupPWAUpdates`) is kicked off once from `App.tsx`'s `useEffect`.
+`src/App.tsx` is the single `BrowserRouter` with eight routes: `/` (Login), `/hub`, `/apps`, `/profil`, `/odmeny` (Rewards — level, streak and the full badge list; `src/pages/reward/`), `/nastaveni` (`src/pages/setting/`), `/obchod` (Shop; `src/pages/shop/`) and `/hra` (the 3D game hub; `src/game/`, the only `React.lazy` route — see **Game hub** below). Every route except `/` redirects to `/` unless `useAuthStore().isAuthed` is true — there's no route-level guard component, the check is inlined per-`<Route>`. PWA update registration (`setupPWAUpdates`) is kicked off once from `App.tsx`'s `useEffect`.
 
 ### State: Zustand + encrypted localStorage
 
@@ -101,6 +101,23 @@ Credits live in `useWalletStore` (`core/store/`, because they are spent outside 
 
 **No purchase completes today, on purpose.** There is no payment gateway, and money-backed state cannot be decided by the browser: `secureStorage` is XOR obfuscation, so a user can hand-edit their own VIP or balance. Every purchase therefore funnels through the single `purchase()` in `useShop.ts`, which returns `{ status: 'unavailable' }` for anything costing money — wiring a gateway means changing that one function, not the components. For the same reason both `schoolbuddy-role-storage` and `schoolbuddy-wallet-storage` are `restorable: false` in `BACKUP_STORES`: an edited backup must not be able to grant VIP. When a real backend arrives, these stores become a *cache* of what the server says, never the authority.
 
+### Game hub (`src/game/`)
+
+`/hra` renders a procedurally generated 3D medieval city (Three.js) that acts as a launcher: the arena, castle, market and gates are four clickable regions. Nothing behind them exists yet — every click opens a panel saying so. Wiring a region up means changing `otevriCast` in `GameModule.tsx`, nothing else.
+
+**It is the only lazily-loaded route.** Three.js is ~128 KB gzipped, more than the rest of the app put together, so `App.tsx` imports `GameModule` through `React.lazy`. Keep it that way — a static import would put Three.js in the main bundle and slow the first paint of every other screen.
+
+The scene lives entirely outside React. `useGameScene.ts` owns the renderer, camera, controls and render loop; React only receives projected label positions and the hovered region. Its cleanup disposes every geometry, material and the renderer — without that, each visit would leak a whole scene and the browser would start dropping WebGL contexts after a dozen or so.
+
+Scene builders live in `scene/`, one file per part, all pure functions of a seeded RNG (`scene/random.ts`) so the city looks identical on every load. Two rules matter for performance, both learned by measuring:
+
+- **Merge static geometry that shares a material** (`scene/merge.ts`). Crenellations, mountains and castle rocks as individual meshes cost 414 draw calls per frame; merged, the whole scene is 43 at the same triangle count. Draw calls, not triangles, are the mobile bottleneck.
+- **Instance anything repeated** — houses and the ~1400 forest trees are `InstancedMesh`. Always set `.count` to the number actually placed, or the unused instances render at the origin as a pile at world centre.
+
+Two non-obvious things about the look. The sky sphere renders with `depthTest: false` and `renderOrder = -1` so it behaves as a true backdrop; as ordinary geometry it gets overdrawn by the ground plane as soon as the camera backs out past its radius. And `PALETTE.mlha` is deliberately identical to the horizon sky colour — any difference shows up as a hard step along the horizon. Custom `ShaderMaterial` also needs `#include <colorspace_fragment>`; three.js adds it to its own materials but not to yours, and without it the sunset renders as muddy purple.
+
+Camera distance is computed from the aspect ratio (`fitDistance`), never hard-coded: a portrait phone's horizontal field of view is far narrower than a desktop's, and a fixed distance that framed the city on a monitor put the camera inside the ring of mountains on a phone. The pitch matters too — too steep and the horizon leaves the frame entirely, so what looks like sky is actually fogged ground.
+
 ### Backup & restore
 
 `core/utils/backup.ts` is the only way a user can get their data off a device — there is no backend. `BACKUP_STORES` is a hand-maintained catalogue of every persisted key; `collectFullBackup()` reads them into one versioned envelope (`format`/`version`/`createdAt`/`appVersion`/`data`) and `restoreFullBackup()` writes them back, recognising the pre-catalogue `{ apps: [...] }` format so older backups keep working. `backupValidation.ts` validates only the envelope — each store re-validates its own contents on rehydrate.
@@ -119,6 +136,7 @@ File Manager keeps file *contents* in IndexedDB via `core/utils/fileStorage.ts` 
 
 - `src/core/` — cross-app state (`store/`), roles (`role/`), hooks, utils, types. Shared infrastructure only.
 - `src/pages/` — route-level screens (`login/`, `hub/`, `app/`, `profil/`, `reward/`, `setting/`, `shop/`), each with its own `components/` subfolder and a single hand-written `.css` file (no CSS modules/CSS-in-JS).
+- `src/game/` — the 3D game hub behind `/hra`; `scene/` holds one builder per part of the city.
 - `src/miniapps/` — the individual study tools (see above).
 - `src/features/miniapps/registry.ts` — the lazy-loading wiring between `pages/app` and `miniapps/`.
 - `src/components/` — small app-wide shared components (`ErrorBoundary`, `NetworkStatusBanner`).

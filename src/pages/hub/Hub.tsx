@@ -312,16 +312,10 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <span className="hub-card-sub">Tvé aplikace</span>
           </button>
 
-          <button
-            className="hub-btn-card hub-btn-square hub-btn-card--soon"
-            onClick={() => showToast('Sekce Play se připravuje — hry teprve vznikají.')}
-          >
+          <button className="hub-btn-card hub-btn-square" onClick={() => navigate('/hra')}>
             <span className="hub-card-icon">🎮</span>
-            <span className="hub-card-title">
-              Play
-              <span className="hub-badge-soon">BRZY</span>
-            </span>
-            <span className="hub-card-sub">Zábava a hry</span>
+            <span className="hub-card-title">Play</span>
+            <span className="hub-card-sub">Buddyheim</span>
           </button>
 
           <button
