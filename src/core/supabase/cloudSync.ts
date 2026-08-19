@@ -109,14 +109,7 @@ const schedulePush = () => {
   pushTimer = window.setTimeout(() => void push(), PUSH_DELAY)
 }
 
-/**
- * První průchod: přihlásit, stáhnout, sloučit a poslat zpátky.
- * Slučuje se pravidlem "vyšší vyhrává", takže tenhle krok nemůže
- * uživateli sebrat postup ani v jednom směru.
- */
-export const syncNow = async (): Promise<void> => {
-  if (!isSupabaseConfigured) return
-
+const runSync = async (): Promise<void> => {
   setStatus({ status: 'connecting', error: null })
 
   try {
@@ -140,6 +133,31 @@ export const syncNow = async (): Promise<void> => {
   } catch (err) {
     failed(err)
   }
+}
+
+// Probíhající průchod. Volá se ze čtyř míst (start, návrat k aplikaci,
+// obnovené připojení, tlačítko v profilu) a bez tohohle sdílení mohla dvě
+// překrývající se volání obě zjistit "relace není" a obě založit
+// anonymní účet — v databázi pak vznikly dvě identity pár vteřin po sobě
+// a ta první zůstala prázdná a nedosažitelná.
+let syncPromise: Promise<void> | null = null
+
+/**
+ * První průchod: přihlásit, stáhnout, sloučit a poslat zpátky.
+ * Slučuje se pravidlem "vyšší vyhrává", takže tenhle krok nemůže
+ * uživateli sebrat postup ani v jednom směru.
+ *
+ * Souběžná volání se přidají k už běžícímu průchodu místo spuštění dalšího.
+ */
+export const syncNow = (): Promise<void> => {
+  if (!isSupabaseConfigured) return Promise.resolve()
+  if (syncPromise) return syncPromise
+
+  syncPromise = runSync().finally(() => {
+    syncPromise = null
+  })
+
+  return syncPromise
 }
 
 let started = false
