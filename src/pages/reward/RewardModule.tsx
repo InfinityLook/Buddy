@@ -21,7 +21,7 @@ const XP_SOURCES: XpSource[] = [
   { appId: 'exam-prep', icon: '🎓', title: 'Zopakuj otázku, která je na řadě', reward: '+10 až 50 XP' },
   { appId: 'goal-tracker', icon: '🎯', title: 'Dotáhni cíl v Goal Trackeru', reward: '+25 XP' },
   { appId: 'document-editor', icon: '📄', title: 'Ulož nový dokument', reward: '+15 XP' },
-  { appId: 'pomodoro', icon: '🍅', title: 'Dokonči pracovní blok v Pomodoru', reward: '+15 XP' },
+  { appId: 'pomodoro', icon: '🍅', title: 'Dokonči soustředění v Pomodoru (podle délky)', reward: '+15 XP / 25 min' },
   { appId: 'study-planner', icon: '📚', title: 'Splň úkol ve Study Planneru', reward: '+10 XP' },
   { appId: 'flashcards', icon: '🃏', title: 'Vytvoř vlastní kartičku', reward: '+5 XP' },
   { appId: 'quick-notes', icon: '📝', title: 'Ulož poznámku', reward: '+5 XP' },
