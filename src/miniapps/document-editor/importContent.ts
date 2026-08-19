@@ -68,3 +68,31 @@ export const sanitizeHtml = (html: string): string => {
 // Rozhodne podle přípony, jestli se má obsah escapovat, nebo sanitizovat
 export const prepareImportedContent = (fileName: string, raw: string): string =>
   /\.html?$/i.test(fileName) ? sanitizeHtml(raw) : escapeTextToHtml(raw)
+
+// Vloží-li uživatel odkaz přes panel nástrojů, projde execCommand('createLink')
+// úplně mimo sanitizaci nahoře — ta hlídá jen obsah načtený ze souboru.
+// Adresa "javascript:..." tak vytvořila klikací odkaz, který se uložil do
+// dokumentu a při dalším otevření (EditorPaper vkládá obsah přes innerHTML)
+// se dal spustit. Proto stejná kontrola i tady.
+//
+// Vrací upravenou adresu, nebo null, když je nebezpečná.
+export const sanitizeLinkUrl = (input: string): string | null => {
+  const url = input.trim()
+  if (!url) return null
+  if (DANGEROUS_SCHEME.test(url)) return null
+
+  // Kotva v dokumentu a relativní cesta jsou v pořádku
+  if (url.startsWith('#') || url.startsWith('/')) return url
+
+  // Bez schématu předpokládáme https — uživatel běžně napíše "seznam.cz"
+  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(url) ? url : `https://${url}`
+
+  try {
+    const parsed = new URL(withScheme)
+    // Povolujeme jen to, co dává v dokumentu smysl
+    if (!['http:', 'https:', 'mailto:'].includes(parsed.protocol)) return null
+    return parsed.href
+  } catch {
+    return null
+  }
+}

@@ -8,6 +8,39 @@ import { useGamificationStore } from '@/core/store/useGamificationStore'
 // není nová práce a nemá se odměňovat pokaždé znovu
 const XP_PER_NEW_DOCUMENT = 15
 
+// Kolik čistého textu musí dokument mít, aby se sám uložil. Bez téhle
+// hranice by automatické ukládání zakládalo prázdné dokumenty pokaždé,
+// co uživatel editor jen otevře — a připisovalo za ně XP.
+const MIN_AUTOSAVE_CHARS = 15
+
+const DEFAULT_TITLE = 'Nový dokument'
+
+const toPlainText = (html: string): string =>
+  html
+    .replace(/<(br|\/p|\/div|\/h[1-6]|\/li)\s*\/?>/gi, '\n')
+    .replace(/<[^>]*>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+
+const plainTextLength = (html: string): number => toPlainText(html).trim().length
+
+// Dokud si uživatel název nezměnil, odvodíme ho z prvního řádku textu.
+// Bez toho se seznam plnil dokumenty pojmenovanými shodně "Nový dokument"
+// a nedaly se od sebe rozeznat.
+const deriveTitle = (title: string, content: string): string => {
+  if (title.trim() !== DEFAULT_TITLE) return title
+
+  const firstLine = toPlainText(content)
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line.length > 0)
+
+  if (!firstLine) return title
+  return firstLine.length > 60 ? `${firstLine.slice(0, 60).trimEnd()}…` : firstLine
+}
+
 interface DocumentStore {
   documents: DocumentState[]
   activeDocId: string | null
@@ -21,6 +54,8 @@ interface DocumentStore {
   setTitle: (title: string) => void
   setContent: (content: string) => void
   saveCurrentDocument: () => void
+  // Uloží rozdělanou práci, ale jen když stojí za uložení
+  autosaveCurrent: () => void
   createNewDocument: () => void
   loadDocument: (id: string) => void
   deleteDocument: (id: string) => void
@@ -32,7 +67,7 @@ export const useDocumentStore = create<DocumentStore>()(
     (set, get) => ({
       documents: [],
       activeDocId: null,
-      currentTitle: 'Nový dokument',
+      currentTitle: DEFAULT_TITLE,
       currentContent: '',
       isSaved: true,
       revision: 0,
@@ -41,14 +76,16 @@ export const useDocumentStore = create<DocumentStore>()(
       setContent: (content) => set({ currentContent: content, isSaved: false }),
 
       saveCurrentDocument: () => {
-        const { activeDocId, currentTitle, currentContent, documents } = get()
+        const { activeDocId, currentContent, documents } = get()
         const now = new Date().toISOString()
+        const currentTitle = deriveTitle(get().currentTitle, currentContent)
 
         if (activeDocId) {
           set({
             documents: documents.map((doc) =>
               doc.id === activeDocId ? { ...doc, title: currentTitle, content: currentContent, lastModified: now } : doc
             ),
+            currentTitle,
             isSaved: true,
           })
         } else {
@@ -59,16 +96,30 @@ export const useDocumentStore = create<DocumentStore>()(
               { id: newId, title: currentTitle, content: currentContent, lastModified: now },
               ...documents,
             ],
+            currentTitle,
             isSaved: true,
           })
           useGamificationStore.getState().recordAction('document', XP_PER_NEW_DOCUMENT)
         }
       },
 
+      autosaveCurrent: () => {
+        const { isSaved, activeDocId, currentContent } = get()
+        if (isSaved) return
+        // Nový dokument zakládáme, až když v něm něco je; u už uloženého
+        // dokumentu ukládáme každou změnu.
+        if (!activeDocId && plainTextLength(currentContent) < MIN_AUTOSAVE_CHARS) return
+        get().saveCurrentDocument()
+      },
+
       createNewDocument: () => {
+        // Rozdělaná práce se dřív při založení nového dokumentu ztratila
+        // bez jediného upozornění.
+        get().autosaveCurrent()
+
         set((state) => ({
           activeDocId: null,
-          currentTitle: 'Nový dokument',
+          currentTitle: DEFAULT_TITLE,
           currentContent: '',
           isSaved: true,
           revision: state.revision + 1,
@@ -76,6 +127,8 @@ export const useDocumentStore = create<DocumentStore>()(
       },
 
       loadDocument: (id) => {
+        get().autosaveCurrent()
+
         const doc = get().documents.find((d) => d.id === id)
         if (doc) {
           set((state) => ({
@@ -96,7 +149,7 @@ export const useDocumentStore = create<DocumentStore>()(
           set((state) => ({
             documents: updated,
             activeDocId: null,
-            currentTitle: 'Nový dokument',
+            currentTitle: DEFAULT_TITLE,
             currentContent: '',
             isSaved: true,
             revision: state.revision + 1,
