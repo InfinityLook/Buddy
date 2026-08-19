@@ -20,3 +20,12 @@ export const sklonujUkoly = (pocet: number): string => {
 // Sloveso ke stejnému počtu: "zbývá 1 úkol", ale "zbývají 2 úkoly".
 export const zbyvaSloveso = (pocet: number): string =>
   pocet >= 2 && pocet <= 4 ? 'Zbývají' : 'Zbývá'
+
+// Skloňování počtu dní v 1. pádě: 1 den / 2–4 dny / 5+ dní.
+// Pozor, tohle není totéž co sklonujDny v ProfilNotifications — ten je
+// v 6. pádě ("na 3 dnech"), tenhle se používá po číslovce ("zbývají 3 dny").
+export const sklonujDen = (pocet: number): string => {
+  if (pocet === 1) return 'den'
+  if (pocet >= 2 && pocet <= 4) return 'dny'
+  return 'dní'
+}

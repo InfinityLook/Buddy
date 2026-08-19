@@ -50,6 +50,12 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-pomodoro-storage', storage: 'secure', label: 'Pomodoro' },
   { key: 'schoolbuddy-math-solver-storage', storage: 'secure', label: 'Math Solver' },
   { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
+  // Role a kredity stojí (nebo budou stát) peníze. Do zálohy patří, aby
+  // byla věrným snímkem, ale zpátky se nikdy nezapisují — jinak by stačilo
+  // upravit si vyexportovaný JSON a naimportovat si VIP zadarmo. Rozhodovat
+  // o nich stejně musí server, tohle je jen kopie pro vykreslení.
+  { key: 'schoolbuddy-role-storage', storage: 'secure', label: 'Role účtu', restorable: false },
+  { key: 'schoolbuddy-wallet-storage', storage: 'secure', label: 'Kredity', restorable: false },
   // Klíč, pod kterým profil ležel dřív. V katalogu zůstává kvůli zálohám
   // vytvořeným před převodem profilu na Zustand — po obnově se aplikace
   // načte znovu a useProfileData si data ze starého klíče přenese samo.

@@ -24,7 +24,7 @@ Run `npm run typecheck` before considering a change done — it is the only auto
 
 ### Routing & auth gate
 
-`src/App.tsx` is the single `BrowserRouter` with five routes: `/` (Login), `/hub`, `/apps`, `/profil`, `/odmeny` (Rewards — level, streak and the full badge list; `src/pages/reward/`). Every route except `/` redirects to `/` unless `useAuthStore().isAuthed` is true — there's no route-level guard component, the check is inlined per-`<Route>`. PWA update registration (`setupPWAUpdates`) is kicked off once from `App.tsx`'s `useEffect`.
+`src/App.tsx` is the single `BrowserRouter` with seven routes: `/` (Login), `/hub`, `/apps`, `/profil`, `/odmeny` (Rewards — level, streak and the full badge list; `src/pages/reward/`), `/nastaveni` (`src/pages/setting/`) and `/obchod` (Shop; `src/pages/shop/`). Every route except `/` redirects to `/` unless `useAuthStore().isAuthed` is true — there's no route-level guard component, the check is inlined per-`<Route>`. PWA update registration (`setupPWAUpdates`) is kicked off once from `App.tsx`'s `useEffect`.
 
 ### State: Zustand + encrypted localStorage
 
@@ -89,6 +89,18 @@ The merge rule is **"higher wins"** (`merge.ts`, pure and unit-testable): max XP
 
 Schema lives in the `SChoolBuddy-System` Supabase project: `profiles` (one row per user, FK to `auth.users`), `user_badges`, `activity_counters`. Adding a synced field means touching the SQL, `CloudSnapshot` in `types.ts`, and `mergeSnapshots` together. Avatars are deliberately not synced — they are data URIs and belong in Storage, not a text column.
 
+### Roles & shop
+
+`src/core/role/` holds the role system. Each role is its own folder exporting a single `RoleDefinition` (`user/`, `vip/`, `moderator/`, `admin/`), and `registry.ts` is the only place they are enumerated — adding a role means a new folder plus one line there. **Nothing branches on a role's name**: every check goes through a `Permission` (`useHasPermission('cosmetics.premium')`), so a new role never means hunting for `roleId === 'vip'` comparisons. Import from the `@/core/role` barrel, not from the individual files.
+
+VIP is a subscription, so a `RoleAssignment` carries `validUntil` (`null` = no expiry). **Expiry is evaluated on read, never stored** — `useActiveRole()` runs `resolveActiveRoleId` and silently returns `user` once the date has passed. A stored "still valid" flag would go stale while the app isn't running and nobody would correct it. `roleUtils.ts` holds that math as pure functions; `extendValidity` counts from the end of the running period, so renewing early never shortens what the user paid for. Corrupt or unreadable state always falls back to `user` — the safe direction is to grant nothing.
+
+`FEATURE_GATING_ENABLED` in `registry.ts` is deliberately `false`: the `features.premium` permission exists but nothing hides behind it, because content users have today must not disappear behind a paywall. Only newly added features should ever be gated.
+
+Credits live in `useWalletStore` (`core/store/`, because they are spent outside the shop too). The shop itself is `src/pages/shop/` — `catalog.ts` is the hand-maintained offer (prices in **haléře**, integers only), `useShop.ts` the logic, and `ShopModule.tsx` renders it.
+
+**No purchase completes today, on purpose.** There is no payment gateway, and money-backed state cannot be decided by the browser: `secureStorage` is XOR obfuscation, so a user can hand-edit their own VIP or balance. Every purchase therefore funnels through the single `purchase()` in `useShop.ts`, which returns `{ status: 'unavailable' }` for anything costing money — wiring a gateway means changing that one function, not the components. For the same reason both `schoolbuddy-role-storage` and `schoolbuddy-wallet-storage` are `restorable: false` in `BACKUP_STORES`: an edited backup must not be able to grant VIP. When a real backend arrives, these stores become a *cache* of what the server says, never the authority.
+
 ### Backup & restore
 
 `core/utils/backup.ts` is the only way a user can get their data off a device — there is no backend. `BACKUP_STORES` is a hand-maintained catalogue of every persisted key; `collectFullBackup()` reads them into one versioned envelope (`format`/`version`/`createdAt`/`appVersion`/`data`) and `restoreFullBackup()` writes them back, recognising the pre-catalogue `{ apps: [...] }` format so older backups keep working. `backupValidation.ts` validates only the envelope — each store re-validates its own contents on rehydrate.
@@ -105,8 +117,8 @@ File Manager keeps file *contents* in IndexedDB via `core/utils/fileStorage.ts` 
 
 ### Directory map
 
-- `src/core/` — cross-app state (`store/`), hooks, utils, types. Shared infrastructure only.
-- `src/pages/` — route-level screens (`login/`, `hub/`, `app/`, `profil/`, `reward/`), each with its own `components/` subfolder and a single hand-written `.css` file (no CSS modules/CSS-in-JS).
+- `src/core/` — cross-app state (`store/`), roles (`role/`), hooks, utils, types. Shared infrastructure only.
+- `src/pages/` — route-level screens (`login/`, `hub/`, `app/`, `profil/`, `reward/`, `setting/`, `shop/`), each with its own `components/` subfolder and a single hand-written `.css` file (no CSS modules/CSS-in-JS).
 - `src/miniapps/` — the individual study tools (see above).
 - `src/features/miniapps/registry.ts` — the lazy-loading wiring between `pages/app` and `miniapps/`.
 - `src/components/` — small app-wide shared components (`ErrorBoundary`, `NetworkStatusBanner`).

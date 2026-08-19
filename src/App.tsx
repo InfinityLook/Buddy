@@ -6,6 +6,7 @@ import AppModule from '@/pages/app/AppModule.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
 import SettingsModule from '@/pages/setting/SettingsModule.tsx'
+import ShopModule from '@/pages/shop/ShopModule.tsx'
 import { BootGate } from '@/components/BootGate'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
@@ -83,6 +84,18 @@ export default function App() {
             element={
               isAuthed ? (
                 <RewardModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* Route pro obchod (kredity, VIP a doplňky) */}
+          <Route
+            path="/obchod"
+            element={
+              isAuthed ? (
+                <ShopModule />
               ) : (
                 <Navigate to="/" replace />
               )

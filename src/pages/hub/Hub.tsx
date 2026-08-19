@@ -266,17 +266,14 @@ export const HubModule: React.FC<HubModuleProps> = ({
             </span>
           </button>
 
-          <button
-            className="hub-btn-card hub-btn-card--soon"
-            onClick={() => showToast('Shop se připravuje — brzy tu budou vylepšení.')}
-          >
+          <button className="hub-btn-card" onClick={() => navigate('/obchod')}>
             <span className="hub-card-icon">🛍️</span>
             <span className="hub-card-text">
-              <span className="hub-card-title">
-                Shop
-                <span className="hub-badge-soon">BRZY</span>
+              <span className="hub-card-title">Shop</span>
+              <span className="hub-card-sub">
+                {/* Dokud nejsou platby, ať dlaždice neslibuje nákup */}
+                Kredity, VIP a doplňky
               </span>
-              <span className="hub-card-sub">Vylepšení a doplňky</span>
             </span>
           </button>
 

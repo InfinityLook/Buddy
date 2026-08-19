@@ -1,0 +1,605 @@
+/* ==========================================
+   SHOP MODULE — stejný design systém jako Hub / App / Odměny
+   (glass karty, neonové akcenty, mobil na první místě)
+   ========================================== */
+
+/* Stránka si scrolluje sama — global.css drží html/body/#root
+   na overflow: hidden, takže bez tohohle by se obsah ořízl. */
+.shop-page {
+  /* Pevná výška, ne min-height: jinak prvek naroste podle obsahu
+     a #root s overflow: hidden zbytek katalogu ořízne. */
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background:
+    radial-gradient(circle at 12% 8%, rgba(245, 158, 11, 0.18) 0%, transparent 38%),
+    radial-gradient(circle at 88% 18%, rgba(138, 92, 246, 0.2) 0%, transparent 36%),
+    radial-gradient(circle at 50% 95%, rgba(53, 196, 240, 0.12) 0%, transparent 45%),
+    var(--bg-base);
+  color: var(--text-primary);
+  padding: 0.75rem 0.75rem calc(1.25rem + env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- Hlavička ---------- */
+
+.shop-top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.shop-back-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+
+.shop-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.shop-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  margin: 0.15rem 0 0;
+  line-height: 1.4;
+}
+
+.shop-hero-icon {
+  font-size: 2rem;
+  filter: drop-shadow(0 0 14px rgba(245, 158, 11, 0.5));
+}
+
+/* ---------- Upozornění, že platby nejedou ---------- */
+
+.shop-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  color: #fcd77f;
+  font-size: 0.7rem;
+  line-height: 1.45;
+}
+
+.shop-notice svg {
+  flex-shrink: 0;
+  margin-top: 0.1rem;
+}
+
+/* ---------- Zůstatek a role ---------- */
+
+.shop-balance-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 0.85rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+}
+
+.shop-balance-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.shop-balance-label {
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.shop-balance-value {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--accent-orange);
+  line-height: 1.1;
+}
+
+.shop-balance-unit {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  align-self: flex-end;
+  padding-bottom: 0.25rem;
+}
+
+.shop-balance-hint {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.shop-role-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Barva podle role — tone z definice role (core/role/<role>/index.ts) */
+.shop-role-chip.is-user { border-color: rgba(53, 196, 240, 0.3); }
+.shop-role-chip.is-vip {
+  border-color: rgba(245, 158, 11, 0.45);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(236, 72, 153, 0.1));
+}
+.shop-role-chip.is-moderator { border-color: rgba(16, 185, 129, 0.35); }
+.shop-role-chip.is-admin { border-color: rgba(138, 92, 246, 0.4); }
+
+.shop-role-icon { font-size: 1.3rem; }
+
+.shop-role-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.shop-role-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.shop-role-sub {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+/* ---------- Sekce ---------- */
+
+.shop-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.shop-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0 0.15rem;
+}
+
+.shop-section-head > span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.shop-section-count {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--accent-orange);
+  background: rgba(245, 158, 11, 0.14);
+  border-radius: var(--radius-pill);
+  padding: 0.15rem 0.5rem;
+}
+
+/* ---------- VIP ---------- */
+
+.shop-vip-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(138, 92, 246, 0.1)),
+    var(--bg-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  box-shadow: var(--shadow-card);
+}
+
+.shop-vip-benefits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.shop-vip-benefits li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--text-primary);
+}
+
+.shop-vip-plans {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.shop-vip-plan {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.85rem 0.3rem 0.5rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.shop-vip-plan:active { transform: scale(0.97); }
+
+.shop-vip-plan.is-highlight {
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.22);
+}
+
+/* Štítek sedí na horní hraně karty, proto posun o půl výšky nahoru */
+.shop-vip-plan-tag,
+.shop-pack-tag {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+  font-size: 0.53rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  padding: 0.12rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-orange);
+  color: var(--text-on-accent);
+}
+
+.shop-vip-plan-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+}
+
+.shop-vip-plan-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.shop-vip-plan-days {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+}
+
+.shop-vip-plan-price {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--accent-orange);
+  margin-top: 0.15rem;
+}
+
+.shop-vip-plan-monthly {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.55rem;
+  color: var(--text-muted);
+}
+
+.shop-vip-plan-saving {
+  color: var(--accent-green);
+  font-weight: 700;
+}
+
+.shop-vip-plan-cta {
+  margin-top: 0.35rem;
+  width: 100%;
+  padding: 0.3rem 0;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.shop-vip-plan.is-highlight .shop-vip-plan-cta {
+  background: var(--accent-orange);
+  color: var(--text-on-accent);
+}
+
+.shop-vip-note {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.shop-vip-note svg { flex-shrink: 0; }
+
+/* ---------- Balíčky kreditů ---------- */
+
+.shop-pack-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.shop-pack-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.95rem 0.5rem 0.7rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.shop-pack-card:active { transform: scale(0.97); }
+
+.shop-pack-card.is-highlight {
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+}
+
+.shop-pack-icon { font-size: 1.6rem; }
+
+.shop-pack-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.shop-pack-credits {
+  display: flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--accent-orange);
+}
+
+.shop-pack-credits-unit {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.shop-pack-bonus {
+  font-size: 0.58rem;
+  color: var(--accent-green);
+  font-weight: 700;
+}
+
+.shop-pack-price {
+  margin-top: 0.4rem;
+  width: 100%;
+  padding: 0.35rem 0;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.shop-pack-card.is-highlight .shop-pack-price {
+  background: var(--accent-orange);
+  color: var(--text-on-accent);
+}
+
+/* ---------- Kategorie zboží ---------- */
+
+/* Vodorovný posuv, ať se vejdou i další kategorie bez zalomení */
+.shop-cat-tabs {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 0.15rem;
+}
+
+.shop-cat-tabs::-webkit-scrollbar { display: none; }
+
+.shop-cat-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  flex-shrink: 0;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-pill);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.66rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.shop-cat-tab.is-active {
+  background: var(--accent-violet);
+  border-color: var(--accent-violet);
+  color: #fff;
+}
+
+.shop-cat-desc {
+  margin: 0 0 0.1rem;
+  padding: 0 0.15rem;
+  font-size: 0.63rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Zboží ---------- */
+
+.shop-item-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.shop-item-card {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.65rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+}
+
+.shop-item-card.is-owned { border-color: rgba(16, 185, 129, 0.35); }
+
+.shop-item-card.is-locked { opacity: 0.72; }
+
+.shop-item-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.shop-item-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.shop-item-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.shop-item-vip-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  padding: 0.1rem 0.3rem;
+  border-radius: var(--radius-pill);
+  background: rgba(245, 158, 11, 0.18);
+  color: var(--accent-orange);
+}
+
+.shop-item-desc {
+  font-size: 0.63rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.shop-item-note {
+  font-size: 0.57rem;
+  color: var(--text-muted);
+}
+
+.shop-item-buy { flex-shrink: 0; }
+
+.shop-item-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-orange);
+  border: none;
+  color: var(--text-on-accent);
+  font-size: 0.7rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+/* Nedosažitelná cena se ztlumí, ale tlačítko zůstává funkční —
+   po klepnutí uživatel uvidí, kolik kreditů mu chybí. */
+.shop-item-btn.is-dim {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+}
+
+.shop-item-owned {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--accent-green);
+}
+
+.shop-item-soon {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* ---------- Hláška ---------- */
+
+.shop-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: min(420px, calc(100vw - 2rem));
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-pill);
+  background: rgba(18, 20, 38, 0.95);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-card);
+  color: var(--text-primary);
+  font-size: 0.7rem;
+  text-align: center;
+  line-height: 1.4;
+}
+
+/* Užší telefony — tři varianty VIP vedle sebe už se nevejdou */
+@media (max-width: 340px) {
+  .shop-vip-plans { grid-template-columns: 1fr; }
+}
