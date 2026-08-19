@@ -24,6 +24,16 @@ interface GamificationState extends UserStats {
   recordActivity: () => void
   unlockBadge: (badgeId: string) => void
   recordAction: (kind: ActivityKind, xpAmount: number) => void
+  // Převezme stav sloučený s cloudem. Volá se jen z cloudové
+  // synchronizace, která už rozhodla, co je novější — viz core/supabase.
+  applyCloudSnapshot: (snapshot: {
+    xp: number
+    level: number
+    streakDays: number
+    lastActiveDate: string | null
+    badges: Record<string, string>
+    counters: Record<string, number>
+  }) => void
 }
 
 const DEFAULT_BADGES: Badge[] = [
@@ -133,6 +143,22 @@ export const useGamificationStore = create<GamificationState>()(
           get().unlockBadge(rule.badgeId)
         }
       },
+
+      applyCloudSnapshot: (snapshot) =>
+        set((state) => ({
+          xp: snapshot.xp,
+          level: snapshot.level,
+          streakDays: snapshot.streakDays,
+          lastActiveDate: snapshot.lastActiveDate,
+          counters: snapshot.counters,
+          // Popisky a ikony zůstávají z definic v kódu, z cloudu se bere
+          // jen datum odemčení — stejný princip jako v mergeBadges.
+          badges: state.badges.map((badge) =>
+            snapshot.badges[badge.id]
+              ? { ...badge, unlockedAt: snapshot.badges[badge.id] }
+              : badge
+          ),
+        })),
     }),
     {
       name: 'schoolbuddy-gamification-storage',

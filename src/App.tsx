@@ -9,6 +9,7 @@ import SettingsModule from '@/pages/setting/SettingsModule.tsx'
 import { BootGate } from '@/components/BootGate'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
+import { startCloudSync } from '@/core/supabase/cloudSync'
 import { useAuthStore } from '@/core/store/useAuthStore'
 
 export default function App() {
@@ -18,6 +19,9 @@ export default function App() {
   // Registrace PWA aktualizací při načtení aplikace
   useEffect(() => {
     setupPWAUpdates()
+    // Cloud je doplněk: bez nastavených proměnných se tiše přeskočí
+    // a aplikace jede dál jen nad localStorage.
+    startCloudSync()
   }, [])
 
   return (

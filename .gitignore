@@ -5,3 +5,9 @@ dev-dist
 .vercel
 *.local
 .DS_Store
+
+# Klice k Supabase se nastavuji per prostredi (lokalne .env, na Vercelu
+# promenne projektu). Sablona je v .env.example.
+.env
+.env.*
+!.env.example
