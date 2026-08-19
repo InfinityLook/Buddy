@@ -428,3 +428,72 @@
 .icon-btn.delete:active {
   background-color: rgba(239, 68, 68, 0.2);
   }
+
+/* Krátká hláška editoru (vložený obrázek, odmítnutá adresa…) */
+.doc-message {
+  margin: 0 0.75rem;
+  padding: 0.45rem 0.7rem;
+  background: rgba(56, 189, 248, 0.12);
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  border-radius: 8px;
+  color: #7dd3fc;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+/* ==========================================
+   TISK / ULOŽENÍ DO PDF
+   Vytiskne se jen samotný papír, bez lišt a menu. Schováváme přes
+   visibility, ne display:none — tím zůstane zachované rozvržení textu
+   uvnitř papíru. Globální styly drží <body> jako position:fixed
+   s overflow:hidden, což by tisk oříznulo na jednu stránku, proto se
+   tady obojí ruší.
+   ========================================== */
+@media print {
+  html,
+  body,
+  #root {
+    position: static !important;
+    overflow: visible !important;
+    height: auto !important;
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .doc-page-paper,
+  .doc-page-paper * {
+    visibility: visible;
+  }
+
+  .doc-page-paper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    box-shadow: none;
+    background: #fff !important;
+    color: #000 !important;
+    overflow: visible !important;
+  }
+
+  .doc-page-paper a {
+    color: #000 !important;
+    text-decoration: underline;
+  }
+
+  .doc-page-paper img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  @page {
+    margin: 15mm;
+  }
+}

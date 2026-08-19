@@ -1,4 +1,9 @@
 import React from 'react'
+import { sanitizeLinkUrl } from '../importContent'
+
+interface BottomSheetToolbarProps {
+  onNotify: (message: string) => void
+}
 
 const exec = (cmd: string, val?: string) => {
   document.execCommand(cmd, false, val)
@@ -6,7 +11,7 @@ const exec = (cmd: string, val?: string) => {
 
 const preventBlur = (e: React.MouseEvent) => e.preventDefault()
 
-export const BottomSheetToolbar: React.FC = () => {
+export const BottomSheetToolbar: React.FC<BottomSheetToolbarProps> = ({ onNotify }) => {
   return (
     <div className="doc-toolbar-expanded">
       <div className="toolbar-row">
@@ -60,8 +65,26 @@ export const BottomSheetToolbar: React.FC = () => {
           className="touch-btn"
           onMouseDown={preventBlur}
           onClick={() => {
-            const url = prompt('URL odkazu:')
-            if (url) exec('createLink', url)
+            // Výběr si musíme podržet — prompt ho v některých prohlížečích shodí
+            const selection = window.getSelection()
+            const range = selection && selection.rangeCount ? selection.getRangeAt(0).cloneRange() : null
+
+            const input = window.prompt('Adresa odkazu:')
+            if (!input) return
+
+            // Bez téhle kontroly šlo vložit "javascript:..." a vyrobit
+            // v dokumentu klikací odkaz, který spustí kód.
+            const url = sanitizeLinkUrl(input)
+            if (!url) {
+              onNotify('Tuhle adresu vložit nejde.')
+              return
+            }
+
+            if (range) {
+              selection?.removeAllRanges()
+              selection?.addRange(range)
+            }
+            exec('createLink', url)
           }}
           aria-label="Vložit odkaz"
         >

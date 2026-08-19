@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Header } from './components/Header'
 import { MenuNav } from './components/MenuNav'
@@ -15,14 +15,59 @@ interface DocumentEditorProps {
   onBack?: () => void
 }
 
+// Jak dlouho po posledním úderu do klávesnice se dokument uloží sám
+const AUTOSAVE_DELAY = 1200
+
 export const DocumentEditor: React.FC<DocumentEditorProps> = ({ onBack }) => {
   const navigate = useNavigate()
   const editorRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<ActiveTab>('editor')
   const [showMore, setShowMore] = useState(false)
-  const { currentContent } = useDocumentStore()
+  const [message, setMessage] = useState<string | null>(null)
+
+  const { currentContent, currentTitle, isSaved, autosaveCurrent } = useDocumentStore()
+
+  const messageTimer = useRef<number | null>(null)
+  const autosaveTimer = useRef<number | null>(null)
+
+  const notify = (text: string) => {
+    setMessage(text)
+    if (messageTimer.current) window.clearTimeout(messageTimer.current)
+    messageTimer.current = window.setTimeout(() => setMessage(null), 2400)
+  }
+
+  // Automatické ukládání. Dokument se dřív ukládal jen ručně přes menu,
+  // takže odchod z miniaplikace nebo založení nového dokumentu poslal
+  // rozepsanou práci pryč. Ukládá se se zpožděním, ať se nezapisuje
+  // do úložiště při každém stisku klávesy.
+  useEffect(() => {
+    if (isSaved) return
+
+    if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current)
+    autosaveTimer.current = window.setTimeout(() => autosaveCurrent(), AUTOSAVE_DELAY)
+
+    return () => {
+      if (autosaveTimer.current) window.clearTimeout(autosaveTimer.current)
+    }
+  }, [currentContent, currentTitle, isSaved, autosaveCurrent])
+
+  // Odchod z editoru (zpět, zavření záložky, přepnutí aplikace) nesmí
+  // spolknout posledních pár vteřin psaní.
+  useEffect(() => {
+    const flush = () => autosaveCurrent()
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', flush)
+
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', flush)
+      if (messageTimer.current) window.clearTimeout(messageTimer.current)
+      flush()
+    }
+  }, [autosaveCurrent])
 
   const handleBack = () => {
+    autosaveCurrent()
     if (onBack) onBack()
     else navigate('/apps')
   }
@@ -47,15 +92,21 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({ onBack }) => {
         </div>
 
         {activeTab === 'editor' && (
-          <MenuNav editorRef={editorRef} onOpenManager={() => setActiveTab('files')} />
+          <MenuNav
+            editorRef={editorRef}
+            onOpenManager={() => setActiveTab('files')}
+            onNotify={notify}
+          />
         )}
       </header>
+
+      {message && <p className="doc-message">{message}</p>}
 
       {activeTab === 'editor' ? (
         <>
           <div className="doc-toolbar-wrapper">
             <MainToolbar showMore={showMore} setShowMore={setShowMore} />
-            {showMore && <BottomSheetToolbar />}
+            {showMore && <BottomSheetToolbar onNotify={notify} />}
           </div>
           <EditorPaper editorRef={editorRef} />
           <StatusBar content={currentContent} />
