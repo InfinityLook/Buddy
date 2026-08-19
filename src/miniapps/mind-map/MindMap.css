@@ -29,27 +29,190 @@
   border-radius: 10px;
 }
 
-.mm-viewport {
+/* ------------------------------------------
+   LIŠTA NAD MAPOU
+   ------------------------------------------ */
+.mm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.mm-tool-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.3rem 0.55rem;
+  border-radius: 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mm-tool-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.mm-zoom {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.mm-zoom-btn {
+  width: 26px;
+  padding: 0.25rem 0;
+  text-align: center;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.mm-zoom-value {
+  font-size: 0.62rem;
+  color: #64748b;
+  font-weight: 700;
+  min-width: 34px;
+  text-align: center;
+}
+
+/* ------------------------------------------
+   PLÁTNO MAPY
+   ------------------------------------------ */
+.mm-canvas {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  /* Mapa bývá širší i vyšší než displej, proto se roluje v obou směrech */
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: 320px;
+}
+
+.mm-canvas-inner {
+  position: relative;
+}
+
+/* Zoom je transform, takže vnější .mm-canvas-inner musí nést už
+   přepočítanou velikost — jinak by se posuvníky řídily nezmenšenou
+   mapou a zůstávalo by za ní prázdné místo. */
+.mm-canvas-scale {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: top left;
+}
+
+.mm-edges {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.mm-edge {
+  fill: none;
+  stroke: rgba(6, 182, 212, 0.45);
+  stroke-width: 2;
+}
+
+.mm-node-wrap {
+  position: absolute;
+}
+
+.mm-node {
+  width: 100%;
+  height: 100%;
+  background: rgba(6, 182, 212, 0.1);
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  color: #e2e8f0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-family: inherit;
+  padding: 0.3rem 0.5rem;
+  border-radius: 9px;
+  cursor: pointer;
+  text-align: left;
+  /* Dlouhý text uzel nesmí roztáhnout — rozvržení počítá s pevnou šířkou */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  line-height: 1.25;
+}
+
+.mm-node.is-root {
+  background: rgba(6, 182, 212, 0.2);
+  border-color: rgba(6, 182, 212, 0.6);
+  color: #06b6d4;
+}
+
+.mm-node.is-selected {
+  border-color: #06b6d4;
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.35), 0 0 12px rgba(6, 182, 212, 0.35);
+  color: #fff;
+}
+
+.mm-toggle {
+  position: absolute;
+  right: -9px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #0b1220;
+  border: 1px solid rgba(6, 182, 212, 0.6);
+  color: #06b6d4;
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.mm-toggle.is-collapsed {
+  background: #06b6d4;
+  color: #04222b;
+}
+
+/* ------------------------------------------
+   PANEL VYBRANÉHO UZLU
+   ------------------------------------------ */
+.mm-panel {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
+  gap: 0.45rem;
   background: rgba(0, 0, 0, 0.3);
   padding: 0.6rem;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.mm-back-btn {
-  align-self: flex-start;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #06b6d4;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 0.2rem 0.5rem;
-  border-radius: 6px;
-  cursor: pointer;
+.mm-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
+
+.mm-panel-actions { display: flex; gap: 0.15rem; }
+
+.mm-icon-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  border-radius: 5px;
+  line-height: 1;
+}
+
+.mm-icon-btn:hover { background: rgba(255, 255, 255, 0.08); }
+.mm-icon-btn.danger { color: #f87171; }
 
 .mm-label {
   font-size: 0.6rem;
@@ -57,42 +220,12 @@
   display: block;
 }
 
-.mm-current-node h3 {
-  font-size: 1rem;
-  margin: 0.2rem 0;
+.mm-selected-title {
+  font-size: 0.95rem;
+  margin: 0;
   color: #06b6d4;
   text-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
-}
-
-.mm-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-top: 0.3rem;
-  max-height: 140px;
-  overflow-y: auto;
-}
-
-.mm-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.4rem;
-  background: rgba(6, 182, 212, 0.1);
-  border: 1px solid rgba(6, 182, 212, 0.3);
-  padding: 0.35rem 0.6rem;
-  border-radius: 8px;
-  font-size: 0.7rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.mm-del-btn {
-  background: none;
-  border: none;
-  color: #64748b;
-  font-size: 0.6rem;
-  cursor: pointer;
+  overflow-wrap: anywhere;
 }
 
 .mm-add-form {
@@ -102,12 +235,19 @@
 
 .mm-add-form input {
   flex: 1;
+  min-width: 0;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
   padding: 0.4rem 0.6rem;
   border-radius: 8px;
   font-size: 0.75rem;
+  font-family: inherit;
+}
+
+.mm-add-form input:focus {
+  outline: none;
+  border-color: rgba(6, 182, 212, 0.6);
 }
 
 .mm-add-btn {
@@ -120,4 +260,11 @@
   font-size: 0.75rem;
   cursor: pointer;
   box-shadow: 0 0 8px rgba(6, 182, 212, 0.4);
+  white-space: nowrap;
+}
+
+.mm-hint {
+  font-size: 0.6rem;
+  color: #64748b;
+  line-height: 1.45;
 }
