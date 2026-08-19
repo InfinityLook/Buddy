@@ -227,3 +227,76 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ------------------------------------------
+   FUNKCE A REŽIM ÚHLU
+   ------------------------------------------ */
+.ms-extras {
+  display: flex;
+  gap: 0.3rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+  scrollbar-width: none;
+}
+
+.ms-extras::-webkit-scrollbar { display: none; }
+
+.ms-extra-btn {
+  flex-shrink: 0;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #34d399;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  min-width: 34px;
+}
+
+.ms-extra-btn:active { background: rgba(16, 185, 129, 0.25); }
+
+.ms-actions {
+  display: flex;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+.ms-actions .ms-solve-btn { flex: 1; }
+
+.ms-angle {
+  display: flex;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 8px;
+  padding: 2px;
+  flex-shrink: 0;
+}
+
+.ms-angle-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ms-angle-btn.active {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.ms-history-mode {
+  margin-left: 0.35rem;
+  font-size: 0.55rem;
+  font-weight: 800;
+  color: #64748b;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  padding: 0 0.25rem;
+  vertical-align: middle;
+}
