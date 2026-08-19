@@ -4,6 +4,7 @@ import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { getLevelProgress } from '@/core/utils/gamificationUtils'
+import { sklonujUkoly } from '@/core/utils/text'
 import { exportFullBackup, importDataFromJson, restoreFullBackup } from '@/core/utils/backup'
 import {
   SNAPSHOT_SOURCE_LABEL,
@@ -25,13 +26,6 @@ interface HubModuleProps {
   onOpenProfile?: () => void
   onOpenSettings?: () => void
   onTalk?: () => void
-}
-
-// Skloňování počtu úkolů podle českých pravidel (1 úkol / 2–4 úkoly / 5+ úkolů)
-const sklonujUkoly = (pocet: number) => {
-  if (pocet === 1) return 'úkol'
-  if (pocet >= 2 && pocet <= 4) return 'úkoly'
-  return 'úkolů'
 }
 
 // Druhý pád názvu předmětu ("Matematika" → "matematiky"), ať věta zní přirozeně.

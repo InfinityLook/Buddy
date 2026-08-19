@@ -19,7 +19,131 @@
 }
 
 .fc-header h2 { font-size: 1.1rem; margin: 0; }
+
+.fc-add-btn {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.5);
+  color: #38bdf8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+/* ------------------------------------------
+   BALÍČKY
+   ------------------------------------------ */
+.fc-decks {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 0.15rem;
+}
+
+.fc-decks::-webkit-scrollbar { display: none; }
+
+.fc-deck-pill {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fc-deck-pill.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+/* ------------------------------------------
+   POKROK
+   ------------------------------------------ */
+.fc-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fc-progress-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.fc-progress-percent { color: #22c55e; font-weight: 800; }
+
+.fc-progress-bg {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.fc-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #22c55e);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* ------------------------------------------
+   NÁSTROJE STUDIA
+   ------------------------------------------ */
+.fc-tools {
+  display: flex;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+}
+
+.fc-tool-btn {
+  flex: 1;
+  min-width: fit-content;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.fc-tool-btn.active {
+  background: rgba(56, 189, 248, 0.15);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
+
+/* ------------------------------------------
+   KARTIČKA
+   ------------------------------------------ */
+.fc-counter-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .fc-counter { font-size: 0.8rem; color: #38bdf8; font-weight: 700; }
+
+.fc-known-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+}
 
 .fc-card {
   height: 180px;
@@ -55,6 +179,16 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Dlouhá otázka nebo odpověď se nesmí vylít z kartičky ven */
+.fc-card-front p, .fc-card-back p {
+  margin: 0;
+  overflow-y: auto;
+  max-height: 110px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .fc-card-front {
   background: rgba(0, 0, 0, 0.3);
   box-shadow: inset 0 0 12px rgba(56, 189, 248, 0.15);
@@ -74,6 +208,7 @@
   color: #38bdf8;
   padding: 0.15rem 0.5rem;
   border-radius: 10px;
+  flex-shrink: 0;
 }
 
 .fc-badge.answer {
@@ -84,8 +219,42 @@
 .fc-hint {
   font-size: 0.65rem;
   color: #64748b;
+  flex-shrink: 0;
 }
 
+/* ------------------------------------------
+   HODNOCENÍ
+   ------------------------------------------ */
+.fc-rate-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.fc-rate-btn {
+  flex: 1;
+  border-radius: 10px;
+  padding: 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.fc-rate-btn.again {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.5);
+  color: #f87171;
+}
+
+.fc-rate-btn.known {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: rgba(34, 197, 94, 0.6);
+  color: #4ade80;
+}
+
+/* ------------------------------------------
+   OVLÁDÁNÍ
+   ------------------------------------------ */
 .fc-controls {
   display: flex;
   gap: 0.4rem;
@@ -103,32 +272,109 @@
   cursor: pointer;
 }
 
+.fc-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .fc-btn.main {
   background: #38bdf8;
   color: #000;
   box-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
 }
 
+.fc-card-actions {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+}
+
+.fc-link-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+
+.fc-link-btn.danger { color: #f87171; }
+
+/* ------------------------------------------
+   PRÁZDNÉ STAVY
+   ------------------------------------------ */
+.fc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.5rem;
+  padding: 1.75rem 0.75rem;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+}
+
+.fc-empty-icon { font-size: 2rem; }
+
+.fc-empty h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.fc-empty p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+.fc-empty .fc-btn {
+  flex: 0 0 auto;
+  margin-top: 0.4rem;
+  padding: 0.5rem 1.1rem;
+}
+
+/* ------------------------------------------
+   FORMULÁŘ
+   ------------------------------------------ */
 .fc-add-form {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   background: rgba(0, 0, 0, 0.4);
-  padding: 0.6rem;
+  padding: 0.7rem;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fc-form-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #38bdf8;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
 }
 
 .fc-add-form input {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
-  padding: 0.4rem 0.6rem;
+  padding: 0.45rem 0.6rem;
   border-radius: 6px;
-  font-size: 0.75rem;
+  font-size: 0.78rem;
+  font-family: inherit;
+}
+
+.fc-add-form input:focus {
+  outline: none;
+  border-color: rgba(56, 189, 248, 0.6);
 }
 
 .fc-form-actions {
   display: flex;
   gap: 0.4rem;
+  margin-top: 0.2rem;
 }

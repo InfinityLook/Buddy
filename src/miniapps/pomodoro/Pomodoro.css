@@ -23,13 +23,16 @@
   margin: 0;
 }
 
-.pomo-sessions {
-  font-size: 0.75rem;
-  color: #94a3b8;
-}
-
-.pomo-sessions strong {
-  color: #f59e0b;
+.pomo-settings-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1;
 }
 
 .pomo-modes {
@@ -62,18 +65,64 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 2rem 1rem;
+  padding: 1.25rem 1rem;
   background: rgba(0, 0, 0, 0.2);
   border: 2px solid var(--active-color);
   border-radius: 14px;
   box-shadow: 0 0 15px var(--active-color);
 }
 
+/* Kruh s pokrokem */
+.pomo-ring-wrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+}
+
+.pomo-ring {
+  width: 100%;
+  height: 100%;
+  /* Start nahoře místo vpravo */
+  transform: rotate(-90deg);
+}
+
+.pomo-ring-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 10;
+}
+
+.pomo-ring-fill {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s linear, stroke 0.3s ease;
+}
+
+.pomo-ring-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+}
+
 .pomo-time-display {
-  font-size: 3rem;
+  font-size: 2.4rem;
   font-weight: 900;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
   text-shadow: 0 0 10px var(--active-color);
+  font-variant-numeric: tabular-nums;
+}
+
+.pomo-mode-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .pomo-status {
@@ -109,4 +158,108 @@
   background: rgba(255, 255, 255, 0.05);
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ------------------------------------------
+   CYKLUS, STATISTIKA A NASTAVENÍ
+   ------------------------------------------ */
+.pomo-cycle {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pomo-cycle-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.pomo-cycle-dot.is-done {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+
+.pomo-cycle-text {
+  margin-left: auto;
+  font-size: 0.65rem;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.pomo-stats {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.pomo-stats strong { color: #f59e0b; }
+
+.pomo-link-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.pomo-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 0.7rem;
+}
+
+.pomo-settings-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #f59e0b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.pomo-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.75rem;
+  color: #cbd5e1;
+}
+
+.pomo-field input[type='number'] {
+  width: 64px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  padding: 0.3rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  text-align: center;
+}
+
+.pomo-field input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: #f59e0b;
+  cursor: pointer;
+}
+
+.pomo-settings-hint {
+  font-size: 0.65rem;
+  color: #64748b;
+  line-height: 1.45;
+  margin-top: 0.15rem;
 }

@@ -22,19 +22,17 @@ interface ProfilNotificationsProps {
   onClose: () => void
 }
 
-export const ProfilNotifications: React.FC<ProfilNotificationsProps> = ({
-  open,
-  readIds,
-  onMarkRead,
-  onClose
-}) => {
+// Odvození upozornění je vytažené z komponenty ven, protože stejný seznam
+// potřebuje i rozcestník aplikací — ten z něj počítá číslo u zvonku.
+// Dvě nezávislé kopie téhle logiky by se dřív nebo později rozešly.
+export const useNotificationItems = (): NotificationItem[] => {
   const { level, xp, streakDays, badges } = useGamificationStore()
   const { tasks } = useStudyPlanner()
 
   // Upozornění se skládají ze skutečného stavu aplikace. Id nese i hodnotu,
   // které se hláška týká (streak-9, level-4...), takže přečtená hláška
   // zůstane přečtená, ale při změně stavu se objeví jako nová.
-  const notifications = useMemo<NotificationItem[]>(() => {
+  return useMemo<NotificationItem[]>(() => {
     const items: NotificationItem[] = []
 
     const lastBadge = badges
@@ -77,6 +75,15 @@ export const ProfilNotifications: React.FC<ProfilNotificationsProps> = ({
 
     return items
   }, [badges, streakDays, tasks, level, xp])
+}
+
+export const ProfilNotifications: React.FC<ProfilNotificationsProps> = ({
+  open,
+  readIds,
+  onMarkRead,
+  onClose
+}) => {
+  const notifications = useNotificationItems()
 
   return (
     <>

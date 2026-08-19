@@ -1,33 +1,44 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useExamPrepStore, ExamTopic } from '../useExamPrepStore'
-import { useGamificationStore } from '@/core/store/useGamificationStore'
 
-export const SimulatorTab: React.FC = () => {
-  const { subjects, topics } = useExamPrepStore()
-  const { addXp } = useGamificationStore()
+// Standardní čas na potítku u maturity je 15 minut
+const PREP_SECONDS = 900
+
+interface SimulatorTabProps {
+  onGoToSubjects: () => void
+}
+
+export const SimulatorTab: React.FC<SimulatorTabProps> = ({ onGoToSubjects }) => {
+  const { subjects, topics, completeSimulation } = useExamPrepStore()
 
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>('all')
   const [drawnTopic, setDrawnTopic] = useState<ExamTopic | null>(null)
-  
-  // Časovač potítka (standardně 15 minut = 900 sekund)
-  const [prepTimeLeft, setPrepTimeLeft] = useState<number>(900)
+  const [prepTimeLeft, setPrepTimeLeft] = useState<number>(PREP_SECONDS)
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false)
   const [examFinished, setExamFinished] = useState<boolean>(false)
+  // Byla tahle otázka odměněná už dřív? Rozhoduje o textu po dokončení.
+  const [alreadyRewarded, setAlreadyRewarded] = useState(false)
 
-  // Odpočet časovače
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Odpočet časovače. Zastaví se sám na nule, ať neběží do záporných čísel.
   useEffect(() => {
-    let interval: NodeJS.Timeout | null = null
-    if (isTimerRunning && prepTimeLeft > 0) {
-      interval = setInterval(() => {
-        setPrepTimeLeft((prev) => prev - 1)
-      }, 1000)
-    } else if (prepTimeLeft === 0 && isTimerRunning) {
-      setIsTimerRunning(false)
-    }
+    if (!isTimerRunning) return
+
+    intervalRef.current = setInterval(() => {
+      setPrepTimeLeft((prev) => {
+        if (prev <= 1) {
+          setIsTimerRunning(false)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+
     return () => {
-      if (interval) clearInterval(interval)
+      if (intervalRef.current) clearInterval(intervalRef.current)
     }
-  }, [isTimerRunning, prepTimeLeft])
+  }, [isTimerRunning])
 
   const availableTopics = topics.filter((t) =>
     selectedSubjectId === 'all' ? true : t.subjectId === selectedSubjectId
@@ -37,15 +48,21 @@ export const SimulatorTab: React.FC = () => {
     if (availableTopics.length === 0) return
     const randomIndex = Math.floor(Math.random() * availableTopics.length)
     setDrawnTopic(availableTopics[randomIndex])
-    setPrepTimeLeft(900) // Reset na 15 minut
+    setPrepTimeLeft(PREP_SECONDS)
     setIsTimerRunning(false)
     setExamFinished(false)
+    setAlreadyRewarded(false)
   }
 
   const handleFinishExam = () => {
+    if (!drawnTopic) return
     setIsTimerRunning(false)
+    // XP dá store, a to jen za otázku, kterou uživatel ještě neodsimuloval.
+    // Dřív se +100 XP připisovalo při každém klepnutí, takže stačilo
+    // střídat "Dokončit" a "Jiná otázka" a XP rostlo bez omezení.
+    setAlreadyRewarded(Boolean(drawnTopic.simulatedAt))
+    completeSimulation(drawnTopic.id)
     setExamFinished(true)
-    addXp(100) // Odměna 100 XP za absolvování simulace
   }
 
   const formatTime = (seconds: number) => {
@@ -56,23 +73,31 @@ export const SimulatorTab: React.FC = () => {
 
   const drawnSubject = subjects.find((s) => s.id === drawnTopic?.subjectId)
 
+  if (topics.length === 0) {
+    return (
+      <div className="ep-empty">
+        <span className="ep-empty-icon">🎓</span>
+        <h3>Není z čeho losovat</h3>
+        <p>
+          Simulátor tahá otázky z tvých okruhů. Nejdřív si nějaké přidej v záložce
+          Okruhy.
+        </p>
+        <button className="ep-btn ep-btn-primary" onClick={onGoToSubjects}>
+          Přejít na Okruhy
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', alignItems: 'center' }}>
-      {/* Výběr Předmětu */}
-      <div style={{ width: '100%', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-        <label style={{ fontSize: '0.85rem', color: '#94a3b8', whiteSpace: 'nowrap' }}>Zkouška z:</label>
+    <div className="ep-sim">
+      <div className="ep-sim-picker">
+        <label htmlFor="ep-sim-subject">Zkouška z:</label>
         <select
+          id="ep-sim-subject"
+          className="ep-input"
           value={selectedSubjectId}
           onChange={(e) => setSelectedSubjectId(e.target.value)}
-          style={{
-            flex: 1,
-            padding: '0.5rem',
-            borderRadius: '8px',
-            border: '1px solid #334155',
-            backgroundColor: '#0f172a',
-            color: '#fff',
-            fontSize: '0.85rem',
-          }}
         >
           <option value="all">Všechny předměty</option>
           {subjects.map((s) => (
@@ -83,143 +108,77 @@ export const SimulatorTab: React.FC = () => {
         </select>
       </div>
 
-      {/* Tlačítko Tahu Otázky */}
       {!drawnTopic && (
-        <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🎓</div>
+        <div className="ep-sim-draw">
+          <div className="ep-sim-draw-icon">🎓</div>
           <button
+            className="ep-btn-draw"
             onClick={handleDrawTopic}
             disabled={availableTopics.length === 0}
-            style={{
-              padding: '0.8rem 1.8rem',
-              borderRadius: '12px',
-              border: 'none',
-              backgroundColor: availableTopics.length > 0 ? '#38bdf8' : '#334155',
-              color: availableTopics.length > 0 ? '#000' : '#94a3b8',
-              fontWeight: 800,
-              fontSize: '1rem',
-              cursor: availableTopics.length > 0 ? 'pointer' : 'not-allowed',
-              boxShadow: availableTopics.length > 0 ? '0 0 15px rgba(56, 189, 248, 0.4)' : 'none',
-            }}
           >
-            {availableTopics.length > 0 ? '🎲 Táhnout náhodnou otázku' : 'Žádné otázky k dispozici'}
+            {availableTopics.length > 0
+              ? '🎲 Táhnout náhodnou otázku'
+              : 'Žádné otázky k dispozici'}
           </button>
         </div>
       )}
 
-      {/* Vytažená otázka & Potítko */}
       {drawnTopic && (
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div className="ep-sim-body">
           <div
-            style={{
-              backgroundColor: 'rgba(30, 41, 59, 0.6)',
-              border: `1px solid ${drawnSubject?.color || '#38bdf8'}`,
-              borderRadius: '16px',
-              padding: '1.25rem',
-              textAlign: 'center',
-            }}
+            className="ep-sim-question"
+            style={{ border: `1px solid ${drawnSubject?.color || '#38bdf8'}` }}
           >
             <span
-              style={{
-                fontSize: '0.75rem',
-                color: '#fff',
-                backgroundColor: drawnSubject?.color || '#38bdf8',
-                padding: '0.2rem 0.6rem',
-                borderRadius: '10px',
-                fontWeight: 700,
-              }}
+              className="ep-chip"
+              style={{ backgroundColor: drawnSubject?.color || '#38bdf8' }}
             >
               {drawnSubject?.name}
             </span>
-            <h3 style={{ margin: '0.75rem 0 0.25rem 0', fontSize: '1.2rem', color: '#f8fafc' }}>
-              Otázka č. {drawnTopic.topicNumber}
-            </h3>
-            <p style={{ margin: 0, fontSize: '1rem', color: '#38bdf8', fontWeight: 600 }}>{drawnTopic.title}</p>
+            <h3>Otázka č. {drawnTopic.topicNumber}</h3>
+            <p className="ep-sim-question-title">{drawnTopic.title}</p>
           </div>
 
-          {/* Časovač Potítka */}
-          <div
-            style={{
-              backgroundColor: 'rgba(15, 23, 42, 0.8)',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '16px',
-              padding: '1rem',
-              textAlign: 'center',
-            }}
-          >
-            <span style={{ fontSize: '0.8rem', color: '#94a3b8', display: 'block' }}>ČAS NA POTÍTKU</span>
-            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#f59e0b', margin: '0.2rem 0' }}>
+          <div className="ep-timer">
+            <span className="ep-timer-label">ČAS NA POTÍTKU</span>
+            <div className={`ep-timer-value ${prepTimeLeft === 0 ? 'is-up' : ''}`}>
               {formatTime(prepTimeLeft)}
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center', marginTop: '0.5rem' }}>
+            <div className="ep-timer-actions">
               <button
-                onClick={() => setIsTimerRunning(!isTimerRunning)}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: isTimerRunning ? '#ef4444' : '#22c55e',
-                  color: '#fff',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                }}
+                className={`ep-btn-timer ${isTimerRunning ? 'is-running' : 'is-paused'}`}
+                onClick={() => setIsTimerRunning((running) => !running)}
+                disabled={prepTimeLeft === 0}
               >
                 {isTimerRunning ? '⏸ Pozastavit' : '▶ Spustit čas'}
               </button>
-              <button
-                onClick={handleDrawTopic}
-                style={{
-                  padding: '0.5rem 1rem',
-                  borderRadius: '8px',
-                  border: '1px solid #334155',
-                  backgroundColor: 'transparent',
-                  color: '#94a3b8',
-                  fontSize: '0.85rem',
-                  cursor: 'pointer',
-                }}
-              >
+              <button className="ep-btn-outline" onClick={handleDrawTopic}>
                 🔄 Jiná otázka
               </button>
             </div>
           </div>
 
-          {/* Dokončení zkoušky */}
           {!examFinished ? (
-            <button
-              onClick={handleFinishExam}
-              style={{
-                width: '100%',
-                padding: '0.8rem',
-                borderRadius: '12px',
-                border: 'none',
-                backgroundColor: '#a855f7',
-                color: '#fff',
-                fontWeight: 800,
-                fontSize: '0.95rem',
-                cursor: 'pointer',
-              }}
-            >
-              🎓 Dokončit odpověď & Odzkoušet se
+            <button className="ep-btn ep-btn-violet" onClick={handleFinishExam}>
+              🎓 Dokončit odpověď &amp; Odzkoušet se
             </button>
           ) : (
-            <div
-              style={{
-                backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                border: '1px solid #22c55e',
-                borderRadius: '12px',
-                padding: '1rem',
-                textAlign: 'center',
-                color: '#4ade80',
-              }}
-            >
-              🎉 Skvělá práce! Simulace dokončena. <strong>+100 XP</strong> připsáno.
+            <div className="ep-sim-done">
+              {alreadyRewarded ? (
+                <>
+                  🎉 Hotovo! Tuhle otázku už jsi jednou odsimuloval, takže XP se
+                  nepřipisuje znovu — procvičit si ji ale můžeš, kolikrát chceš.
+                </>
+              ) : (
+                <>
+                  🎉 Skvělá práce! Simulace dokončena. <strong>+100 XP</strong> připsáno.
+                </>
+              )}
             </div>
           )}
         </div>
       )}
     </div>
   )
-              }
-            
+}

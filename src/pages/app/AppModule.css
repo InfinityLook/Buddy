@@ -99,6 +99,7 @@
 }
 
 .app-icon-btn {
+  position: relative;
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -109,6 +110,31 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.app-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--border-strong);
+}
+
+/* Počet nepřečtených upozornění u zvonku */
+.app-icon-badge {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--accent-red);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  line-height: 18px;
+  text-align: center;
+  border: 2px solid var(--app-bg);
+  box-sizing: content-box;
 }
 
 /* ------------------------------------------
@@ -141,6 +167,10 @@
   color: var(--app-text-muted);
 }
 
+.app-search-box:focus-within {
+  border-color: rgba(53, 196, 240, 0.5);
+}
+
 .app-search-box input {
   background: transparent;
   border: none;
@@ -148,6 +178,33 @@
   color: #fff;
   font-size: 0.85rem;
   width: 100%;
+  min-width: 0;
+}
+
+.app-search-clear {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: var(--app-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.app-search-clear:hover {
+  color: var(--app-text-main);
+}
+
+/* ------------------------------------------
+   ŘAZENÍ ("Třídit")
+   ------------------------------------------ */
+.app-sort-wrap {
+  position: relative;
+  flex-shrink: 0;
 }
 
 .app-filter-btn {
@@ -162,6 +219,64 @@
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.app-filter-btn.is-open {
+  border-color: var(--app-cyan);
+  color: var(--app-cyan);
+}
+
+.app-sort-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  z-index: 30;
+  min-width: 210px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--app-radius-md);
+  padding: 0.4rem;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.app-sort-menu-head {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--app-text-muted);
+  padding: 0.4rem 0.6rem 0.25rem;
+}
+
+.app-sort-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--app-text-main);
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.app-sort-option:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.app-sort-option.is-active {
+  background: rgba(53, 196, 240, 0.14);
+  color: var(--app-cyan);
+  font-weight: 700;
 }
 
 .app-view-toggle {
@@ -221,6 +336,56 @@
   color: var(--app-cyan);
 }
 
+.app-category-pill.is-favorite {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.app-category-pill.is-favorite.active {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: var(--app-orange);
+  color: var(--app-orange);
+}
+
+/* ------------------------------------------
+   ŘÁDEK S POČTEM VÝSLEDKŮ A SKRYTÝMI
+   ------------------------------------------ */
+.app-toolbar-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: -0.15rem;
+}
+
+.app-result-count {
+  font-size: 0.75rem;
+  color: var(--app-text-muted);
+  font-weight: 600;
+}
+
+.app-hidden-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--app-card-border);
+  color: var(--app-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.app-hidden-chip.is-on {
+  border-color: var(--app-cyan);
+  color: var(--app-cyan);
+  background: rgba(53, 196, 240, 0.12);
+}
+
 /* ------------------------------------------
    GRID / CARDS
    ------------------------------------------ */
@@ -253,14 +418,93 @@
   border-color: rgba(255, 255, 255, 0.18);
 }
 
-.app-card-options {
+/* Dlaždice s rozbalenou nabídkou musí přebít sousedy. `backdrop-filter`
+   výš zakládá vlastní vrstvu, takže se nabídka z karty nedostane ven
+   a bez tohohle se přes ni kreslily karty ležící v DOM za ní. */
+.app-card.has-menu-open {
+  z-index: 50;
+}
+
+/* Skrytá dlaždice — vidí ji jen ten, kdo si zapnul "Zobrazit skryté" */
+.app-card.is-hidden {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
+.app-card.is-hidden:hover {
+  opacity: 0.7;
+}
+
+/* ------------------------------------------
+   NABÍDKA U DLAŽDICE ("...")
+   ------------------------------------------ */
+.app-card-menu-wrap {
   position: absolute;
-  top: 0.6rem;
-  right: 0.6rem;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 5;
+}
+
+.app-card-options {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
   background: transparent;
   border: none;
   color: var(--app-text-muted);
   cursor: pointer;
+}
+
+.app-card-options:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--app-text-main);
+}
+
+.app-card-menu {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  z-index: 40;
+  min-width: 195px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--app-radius-md);
+  padding: 0.35rem;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  cursor: default;
+}
+
+.app-card-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--app-text-main);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: left;
+  padding: 0.55rem 0.6rem;
+  border-radius: 9px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.app-card-menu-item:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.app-card-menu-divider {
+  height: 1px;
+  background: var(--app-card-border);
+  margin: 0.25rem 0.3rem;
 }
 
 .app-card-icon-wrap {
@@ -279,6 +523,12 @@
 .app-card-icon-wrap.orange { background: linear-gradient(135deg, #d97706, #fbbf24); color: #fff; }
 .app-card-icon-wrap.green { background: linear-gradient(135deg, #059669, #34d399); color: #fff; }
 .app-card-icon-wrap.pink { background: linear-gradient(135deg, #db2777, #f472b6); color: #fff; }
+
+.app-card-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 
 .app-card-title {
   font-size: 0.95rem;
@@ -318,6 +568,11 @@
   box-shadow: 0 0 6px var(--app-green);
 }
 
+.app-status-dot.is-off {
+  background: var(--app-text-muted);
+  box-shadow: none;
+}
+
 .app-favorite-btn {
   background: transparent;
   border: none;
@@ -328,6 +583,104 @@
 
 .app-favorite-btn.is-favorite {
   color: #f59e0b;
+}
+
+/* ------------------------------------------
+   SEZNAMOVÝ REŽIM
+   Dřív se měnil jen počet sloupců na jeden, takže "seznam" vypadal
+   jako řada obřích vycentrovaných karet. Tady se dlaždice skutečně
+   překlopí do řádku: ikona | název | stav | nabídka.
+   ------------------------------------------ */
+.app-grid-container.list .app-card {
+  flex-direction: row;
+  align-items: center;
+  text-align: left;
+  gap: 0.85rem;
+  padding: 0.7rem 0.7rem;
+}
+
+.app-grid-container.list .app-card-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 13px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+  order: 1;
+}
+
+.app-grid-container.list .app-card-text {
+  order: 2;
+  flex: 1;
+  text-align: left;
+}
+
+.app-grid-container.list .app-card-footer {
+  order: 3;
+  width: auto;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* V řádku nemá smysl držet nabídku absolutně v rohu — zařadí se
+   normálně na konec vedle hvězdičky. */
+.app-grid-container.list .app-card-menu-wrap {
+  position: relative;
+  top: auto;
+  right: auto;
+  order: 4;
+  flex-shrink: 0;
+}
+
+/* ------------------------------------------
+   PRÁZDNÝ STAV
+   ------------------------------------------ */
+.app-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.4rem;
+  padding: 2.5rem 1.25rem;
+  background: var(--app-card-bg);
+  border: 1px dashed var(--app-card-border);
+  border-radius: var(--app-radius-lg);
+  color: var(--app-text-muted);
+}
+
+.app-empty-state h3 {
+  margin: 0.4rem 0 0;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--app-text-main);
+}
+
+.app-empty-state p {
+  margin: 0;
+  font-size: 0.83rem;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.app-empty-btn {
+  margin-top: 0.6rem;
+  background: rgba(53, 196, 240, 0.15);
+  border: 1px solid var(--app-cyan);
+  color: var(--app-cyan);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+/* Načítání otevřené miniaplikace (dřív inline styl v AppModule.tsx) */
+.app-suspense-fallback {
+  text-align: center;
+  padding: 2rem;
+  color: var(--app-text-main);
 }
 
 /* ------------------------------------------
@@ -369,6 +722,19 @@
   z-index: 1;
 }
 
+.app-banner-content {
+  min-width: 0;
+}
+
+.app-banner-tag {
+  display: inline-block;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  color: var(--app-cyan);
+  margin-bottom: 0.3rem;
+}
+
 .app-banner-content h2 {
   font-size: 1.1rem;
   font-weight: 800;
@@ -379,6 +745,27 @@
   font-size: 0.78rem;
   color: var(--app-text-muted);
   margin: 0.3rem 0 0;
+  line-height: 1.5;
+}
+
+.app-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+  background: linear-gradient(135deg, var(--app-cyan), var(--app-purple));
+  border: none;
+  color: #fff;
+  font-size: 0.83rem;
+  font-weight: 700;
+  padding: 0.55rem 1.15rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(53, 196, 240, 0.25);
+}
+
+.app-banner-btn:active {
+  transform: translateY(1px);
 }
 
 /* ------------------------------------------
@@ -459,9 +846,29 @@
     flex: 1 1 100%;
   }
 
-  .app-filter-btn {
+  /* Na úzkém displeji si "Třídit" a přepínač zobrazení rozdělí řádek
+     napůl, ať tlačítka nejsou zbytečně natěsnaná. */
+  .app-sort-wrap {
     flex: 1;
+  }
+
+  .app-filter-btn {
+    width: 100%;
     justify-content: center;
+  }
+
+  .app-sort-menu {
+    left: 0;
+    right: auto;
+    min-width: 0;
+    width: 100%;
+  }
+
+  /* Nabídka u dlaždice je ukotvená k pravému okraji karty a rozbaluje se
+     doleva. V obou sloupcích se tak vejde na displej; překlápění podle
+     sloupce by ji u pravého sloupce naopak vystrčilo mimo obrazovku. */
+  .app-card-menu {
+    min-width: 178px;
   }
 
   .app-grid-container {
