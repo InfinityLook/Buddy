@@ -11,6 +11,9 @@ export const AppItemSchema = v.object({
   color: v.picklist(['purple', 'cyan', 'orange', 'green', 'pink']),
   active: v.boolean(),
   favorite: v.boolean(),
+  // Nepovinné: zálohy a uložené stavy vzniklé před zavedením řazení
+  // "naposledy použité" tenhle údaj nemají a musí projít validací dál.
+  lastOpenedAt: v.optional(v.nullable(v.number())),
 })
 
 // Schéma pro pole aplikací
