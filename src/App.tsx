@@ -12,6 +12,7 @@ import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
 import { startCloudSync } from '@/core/supabase/cloudSync'
 import { useAuthStore } from '@/core/store/useAuthStore'
+import { setupRoleDevTools } from '@/core/role'
 
 export default function App() {
   // Přihlášení je perzistentní, takže reload nechá uživatele tam, kde byl.
@@ -23,6 +24,9 @@ export default function App() {
     // Cloud je doplněk: bez nastavených proměnných se tiše přeskočí
     // a aplikace jede dál jen nad localStorage.
     startCloudSync()
+    // Přidělení role z konzole. Jen ve vývoji — v produkčním buildu se
+    // celý blok vyhodí, viz core/role/devTools.ts.
+    setupRoleDevTools()
   }, [])
 
   return (
