@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-SchoolBuddy ("Buddy") is a Czech-language, offline-first PWA study companion for students. It is client-side first: "login" is still a local flag in `localStorage`, and **all** user data lives in the browser via Zustand-persisted state, which stays the source of truth. Since v1.7 there is one optional exception — gamification and two profile fields are additionally mirrored to Supabase (see **Cloud sync** below). Everything else — apps, all miniapp content, file blobs — is browser-only, and the app runs completely without the cloud. All UI copy and code comments are written in Czech; keep new strings/comments in Czech to stay consistent with the rest of the codebase.
+SchoolBuddy ("Buddy") is a Czech-language, offline-first PWA study companion for students. It is client-side first: "login" is still a local flag in `localStorage`, and **all** user data lives in the browser via Zustand-persisted state, which stays the source of truth. Since v1.7 there is one optional exception — gamification and two profile fields are additionally mirrored to Supabase (see **Cloud sync** below). Everything else — apps, all miniapp content, file blobs — is browser-only, and the app runs completely without the cloud. The one piece that structurally cannot work that way is the voice assistant (see **Buddy voice assistant**): talking to a real AI needs a real backend holding a secret API key, so `api/buddy-chat.ts` is the app's first and only server-side code, deliberately as small and narrowly-scoped as that requirement demands. All UI copy and code comments are written in Czech; keep new strings/comments in Czech to stay consistent with the rest of the codebase.
 
 ## Commands
 
@@ -155,6 +155,22 @@ Three tabs: **Přehled** (status numbers from `admin_prehled()`, plus a live gra
 
 **The "live parameters" graph only has real data for one of its three sources.** Supabase and Vercel both expose load/usage metrics only through their own management APIs, which require a secret access token — and a secret token embedded in this client-only PWA's JS bundle is readable by anyone who opens the network tab, admin-role gate or not (same class of problem as the money-backed stores above, one step worse: this isn't the user's own state, it's a credential to a shared account). Wiring those up for real means a small server component holding the token server-side (a Vercel/Supabase function the panel calls, authenticated), which is a deliberately unbuilt, separate decision from the panel itself. The "Aplikace" source is real and live today — `metrics.ts` samples only what the browser can safely expose about itself (JS heap, Storage API quota, Cache Storage count, online status, build version) on a 3-second timer, capped to the last 20 samples so the sparkline in `PrehledPanel.tsx` shows a trend without the array growing forever.
 
+### Buddy voice assistant (`src/buddy/`, `api/buddy-chat.ts`)
+
+Tap the mic in the Hub's bottom bar, or the glowing orb itself, and Buddy becomes a real conversational AI (Google Gemini, chosen because it has an actual free tier that needs no card) that you can talk to and that talks back.
+
+**`api/buddy-chat.ts` is the only server-side code in the entire app**, and it exists for exactly one reason: an LLM API key is a real credential, and this is a client-only PWA whose whole JS bundle is public — anyone could pull a key straight out of it and spend against the account it belongs to. There is no way to make that safe by hiding harder; it has to never reach the browser. The Vercel serverless function holds `GEMINI_API_KEY` (no `VITE_` prefix — that prefix is precisely what makes Vite inline a variable into the shipped bundle, so this one deliberately doesn't get it) and is the only thing that ever calls Gemini. `vercel.json`'s SPA catch-all rewrite had to be narrowed to exclude `/api/` first, or the rewrite would swallow every request to the function before it ever ran.
+
+The function still isn't open to the internet: it requires a valid Supabase session token (verified against `/auth/v1/user`) before it will spend a single token of the free quota. That's access control, not the per-user daily cap that was explicitly declined for v1 — an unauthenticated proxy risked the shared free-tier quota getting exhausted or the key throttled by randos finding the endpoint, hurting every real user, not just the requester.
+
+**The conversation is turn-based ("walkie-talkie"), not continuously listening, on purpose.** `useBuddyVoice.ts` never has the microphone and speech synthesis active at the same time — recognition only starts on an explicit tap and stops itself when the sentence ends; Buddy's own spoken reply cannot therefore be picked back up by the mic and answered to, which is exactly the feedback-loop failure mode a hands-free design would risk. Tapping the mic again while Buddy is still talking interrupts the speech and starts listening immediately, so a "kolo" (turn) always ends in one of these ways, never both open at once.
+
+**Speech synthesis is known to be flaky across browsers** — an utterance can occasionally fire neither `onend` nor `onerror` (observed for real: this sandbox's headless Chromium has zero installed TTS voices at all, so the "mluví" state couldn't even be watched directly here). Without a fallback, that would leave the state stuck on `mluvi` with the mic looking locked. `promluv()` in the hook sets a backup timer (scaled to the reply's length, 4–20 s) that forces the state back regardless, cleared immediately by a real `onend`/`onerror` when one does arrive.
+
+Speech recognition (`SpeechRecognition`/`webkitSpeechRecognition`) has no TypeScript types in the DOM lib because it's still non-standard — `src/buddy/speechTypes.d.ts` declares only the surface the hook actually uses. It also has **no support at all on iOS Safari**, so `BuddyOverlay.tsx` always renders a typed-message fallback alongside the mic button, not only when recognition is unavailable — the same input path serves "can't talk right now" (a quiet classroom) as much as "can't talk at all" (an iPhone).
+
+Conversation history lives only in the `useBuddyVoice` hook's React state, not in a persisted store — it resets on close by design (an explicit choice: Buddy remembers the running conversation, not a diary), and the hook is owned by `Hub.tsx` itself rather than by `BuddyOverlay`, because the orb needs to react to Buddy's state (`hub-orb--posloucha`/`--premysli`/`--mluvi`, reusing the orb's existing breathing/rotation animations at different speeds rather than inventing new ones) even before the overlay has been opened for the first time.
+
 ### Game hub (`src/game/`)
 
 `/hra` renders a procedurally generated 3D medieval city (Three.js) that acts as a launcher: the arena, castle, market and gates are four clickable regions. Nothing behind them exists yet — every click opens a panel saying so. Wiring a region up means changing `otevriCast` in `GameModule.tsx`, nothing else.
@@ -219,9 +235,11 @@ Every full-height page pairs `height: 100vh` with `height: 100dvh` — keep both
 - `src/pages/` — route-level screens (`login/`, `hub/`, `app/`, `profil/`, `reward/`, `setting/`, `shop/`, `admin/`), each with its own `components/` subfolder and a single hand-written `.css` file (no CSS modules/CSS-in-JS).
 - `src/game/` — the 3D game hub behind `/hra`; `scene/` holds one builder per part of the city.
 - `src/social/` — friends, chats and blocking behind `/social`; `api.ts` is the only Supabase caller.
+- `src/buddy/` — the voice assistant launched from the Hub orb/mic; `api.ts` is the only caller of `api/buddy-chat.ts`.
 - `src/miniapps/` — the individual study tools (see above).
 - `src/features/miniapps/registry.ts` — the lazy-loading wiring between `pages/app` and `miniapps/`.
 - `src/components/` — small app-wide shared components (`ErrorBoundary`, `NetworkStatusBanner`).
 - `src/styles/global.css` — global styles, imported once from `main.tsx`.
+- `api/` — server-side only, deployed by Vercel as serverless functions, never bundled by Vite. Currently just `buddy-chat.ts` (see **Buddy voice assistant**); typechecked by `npm run typecheck` via `tsconfig.json`'s `include`, same as `src/`.
 - `tsconfig.json` — typecheck-only config for `npm run typecheck`; Vite never reads it for the build.
-- `vercel.json` — cache headers for the update pipeline plus the SPA fallback rewrite (Vercel checks the filesystem before rewrites, so real files still win).
+- `vercel.json` — cache headers for the update pipeline plus the SPA fallback rewrite (Vercel checks the filesystem before rewrites, so real files still win; `/api/` is explicitly excluded from that rewrite, or it would swallow every call to `buddy-chat.ts` before the function ever ran).
