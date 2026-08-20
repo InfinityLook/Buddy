@@ -24,7 +24,7 @@ Run `npm run typecheck` before considering a change done — it is the only auto
 
 ### Routing & auth gate
 
-`src/App.tsx` is the single `BrowserRouter` with eight routes: `/` (Login), `/hub`, `/apps`, `/profil`, `/odmeny` (Rewards — level, streak and the full badge list; `src/pages/reward/`), `/nastaveni` (`src/pages/setting/`), `/obchod` (Shop; `src/pages/shop/`) and `/hra` (the 3D game hub; `src/game/`, the only `React.lazy` route — see **Game hub** below). Every route except `/` redirects to `/` unless `useAuthStore().isAuthed` is true — there's no route-level guard component, the check is inlined per-`<Route>`. PWA update registration (`setupPWAUpdates`) is kicked off once from `App.tsx`'s `useEffect`.
+`src/App.tsx` is the single `BrowserRouter` with nine routes: `/` (Login), `/hub`, `/apps`, `/profil`, `/odmeny` (Rewards — level, streak and the full badge list; `src/pages/reward/`), `/nastaveni` (`src/pages/setting/`), `/obchod` (Shop; `src/pages/shop/`), `/social` (`src/social/`) and `/hra` (the 3D game hub; `src/game/`, the only `React.lazy` route — see **Game hub** below). Every route except `/` redirects to `/` unless `useAuthStore().isAuthed` is true — there's no route-level guard component, the check is inlined per-`<Route>`. PWA update registration (`setupPWAUpdates`) is kicked off once from `App.tsx`'s `useEffect`.
 
 ### State: Zustand + encrypted localStorage
 
@@ -89,6 +89,22 @@ The merge rule is **"higher wins"** (`merge.ts`, pure and unit-testable): max XP
 
 Schema lives in the `SChoolBuddy-System` Supabase project: `profiles` (one row per user, FK to `auth.users`), `user_badges`, `activity_counters`. Adding a synced field means touching the SQL, `CloudSnapshot` in `types.ts`, and `mergeSnapshots` together. Avatars are deliberately not synced — they are data URIs and belong in Storage, not a text column.
 
+### Accounts & Social (`src/social/`)
+
+Everything except Social works without an account — that is the rule the rest of the app is built on and it has not changed. `useAuthStore.isAuthed` still just means "got past the login screen", and "Pokračovat bez účtu" keeps that path open. What is new is `useAccount` in `core/supabase/auth.ts`, which mirrors the **real** Supabase session: `off` / `loading` / `anonymous` / `signed-in`. Social requires `signed-in`; everything else ignores it.
+
+**Registering upgrades the anonymous identity** (`supabase.auth.updateUser`) instead of creating a second account. Signing up fresh would silently drop the XP, streak and badges earned before registration. Anonymous sessions still get created invisibly for cloud sync, so this path is the normal one, not the edge case.
+
+**The account gate is enforced in the database, not the UI.** `public.je_skutecny_ucet()` reads `is_anonymous` from the JWT, and the INSERT policies on `messages`, `chats` and `friendships` require it. An anonymous identity is created on every device with no verification whatsoever, so allowing it to message students would leave no trace of who wrote what.
+
+**Discovery is by friend code only** — there is deliberately no search by name. `profiles.friend_code` is 8 characters from an alphabet with no `I`, `O`, `0` or `1` so it survives being dictated over the phone. Lookup goes through `najdi_podle_kodu()`, a `SECURITY DEFINER` function returning one row and only name plus avatar; a normal RLS policy would have to permit reading every profile, which is the same as publishing a directory of children.
+
+RLS helper functions take **one** argument and fill in `auth.uid()` themselves (`je_muj_pritel`, `je_blokovan_se_mnou`, `jsem_clenem`). The two-argument versions were callable over `/rest/v1/rpc` and let any signed-in user probe arbitrary pairs — enough to map the friendship graph. `jsem_clenem` must also stay `SECURITY DEFINER`: a policy on `chat_members` that queries `chat_members` recurses.
+
+Blocking is symmetric and hides messages on read, so it covers group chats too. Deleting a message is soft (`deleted_at`), because a hard delete would remove the context an answer replies to.
+
+`src/social/api.ts` is the only place that talks to Supabase; components receive finished shapes. Realtime subscriptions return an unsubscribe function — `ChatView` must call it, or every visit leaves another open channel.
+
 ### Roles & shop
 
 `src/core/role/` holds the role system. Each role is its own folder exporting a single `RoleDefinition` (`user/`, `vip/`, `moderator/`, `admin/`), and `registry.ts` is the only place they are enumerated — adding a role means a new folder plus one line there. **Nothing branches on a role's name**: every check goes through a `Permission` (`useHasPermission('cosmetics.premium')`), so a new role never means hunting for `roleId === 'vip'` comparisons. Import from the `@/core/role` barrel, not from the individual files.
@@ -152,6 +168,7 @@ Every full-height page pairs `height: 100vh` with `height: 100dvh` — keep both
 - `src/core/` — cross-app state (`store/`), roles (`role/`), hooks, utils, types. Shared infrastructure only.
 - `src/pages/` — route-level screens (`login/`, `hub/`, `app/`, `profil/`, `reward/`, `setting/`, `shop/`), each with its own `components/` subfolder and a single hand-written `.css` file (no CSS modules/CSS-in-JS).
 - `src/game/` — the 3D game hub behind `/hra`; `scene/` holds one builder per part of the city.
+- `src/social/` — friends, chats and blocking behind `/social`; `api.ts` is the only Supabase caller.
 - `src/miniapps/` — the individual study tools (see above).
 - `src/features/miniapps/registry.ts` — the lazy-loading wiring between `pages/app` and `miniapps/`.
 - `src/components/` — small app-wide shared components (`ErrorBoundary`, `NetworkStatusBanner`).

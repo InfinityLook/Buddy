@@ -3,6 +3,7 @@ import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useProfileStore } from '@/pages/profil/hooks/useProfileData'
 import { isSupabaseConfigured } from './client'
 import { mergeSnapshots, snapshotsEqual } from './merge'
+import { useAccount } from './auth'
 import { ensureSession, fetchSnapshot, pushSnapshot } from './sync'
 import { CloudSnapshot, SyncStatus } from './types'
 
@@ -176,6 +177,19 @@ export const startCloudSync = (): void => {
   // Změna v gamifikaci nebo profilu se odešle se zpožděním
   useGamificationStore.subscribe(schedulePush)
   useProfileStore.subscribe(schedulePush)
+
+  // Přihlášení nebo odhlášení mění identitu. Bez tohohle by aplikace
+  // dál psala do účtu, ze kterého se uživatel právě odhlásil.
+  let posledniUcet = useAccount.getState().userId
+  useAccount.subscribe((stav) => {
+    if (stav.userId === posledniUcet) return
+    posledniUcet = stav.userId
+
+    // Odeslaný stav patřil předchozímu účtu; kdyby se nezahodil,
+    // porovnání by u nového účtu vyšlo jako "není co posílat".
+    lastPushed = null
+    void syncNow()
+  })
 
   // Návrat k aplikaci a obnovené připojení jsou nejlepší chvíle to dohnat
   const resync = () => {

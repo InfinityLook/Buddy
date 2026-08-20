@@ -10,10 +10,12 @@ import ShopModule from '@/pages/shop/ShopModule.tsx'
 // Herní hub si s sebou nese Three.js, takže se načítá až při vstupu —
 // zbytek aplikace tím nezůstane těžší.
 const GameModule = lazy(() => import('@/game/GameModule'))
+import SocialModule from '@/social/SocialModule'
 import { BootGate } from '@/components/BootGate'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
 import { startCloudSync } from '@/core/supabase/cloudSync'
+import { startAuthWatch } from '@/core/supabase/auth'
 import { useAuthStore } from '@/core/store/useAuthStore'
 import { setupRoleDevTools } from '@/core/role'
 
@@ -24,6 +26,9 @@ export default function App() {
   // Registrace PWA aktualizací při načtení aplikace
   useEffect(() => {
     setupPWAUpdates()
+    // Sledování přihlášení musí běžet dřív než synchronizace: ta se
+    // podle přihlášeného účtu rozhoduje, čí data stáhnout.
+    startAuthWatch()
     // Cloud je doplněk: bez nastavených proměnných se tiše přeskočí
     // a aplikace jede dál jen nad localStorage.
     startCloudSync()
@@ -91,6 +96,18 @@ export default function App() {
             element={
               isAuthed ? (
                 <RewardModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* Route pro Social (přátelé, chaty, blokování) */}
+          <Route
+            path="/social"
+            element={
+              isAuthed ? (
+                <SocialModule />
               ) : (
                 <Navigate to="/" replace />
               )

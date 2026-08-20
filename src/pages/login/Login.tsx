@@ -1,21 +1,78 @@
-import { useState, FormEvent, MouseEvent } from 'react'
+import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { isSupabaseConfigured } from '@/core/supabase/client'
+import { registerAccount, resetPassword, signIn } from '@/core/supabase/auth'
 import './Login.css'
 
 interface LoginProps {
   onLogin: () => void
 }
 
+type Rezim = 'prihlaseni' | 'registrace'
+
 export default function Login({ onLogin }: LoginProps) {
-  const [email, setEmail] = useState<string>('')
-  const [password, setPassword] = useState<string>('')
+  const [rezim, setRezim] = useState<Rezim>('prihlaseni')
+  const [email, setEmail] = useState('')
+  const [heslo, setHeslo] = useState('')
+  const [chyba, setChyba] = useState<string | null>(null)
+  const [hlaska, setHlaska] = useState<string | null>(null)
+  const [probiha, setProbiha] = useState(false)
   const navigate = useNavigate()
 
-  // Visual-only submit for now — wire this to the real auth endpoint later.
-  function handleSubmit(e: FormEvent | MouseEvent) {
-    e.preventDefault()
+  const registruje = rezim === 'registrace'
+
+  const dovnitr = () => {
     onLogin()
     navigate('/hub')
+  }
+
+  const odeslat = async (e: FormEvent) => {
+    e.preventDefault()
+    if (probiha) return
+
+    setChyba(null)
+    setHlaska(null)
+
+    if (!email.trim() || !heslo) {
+      setChyba('Vyplň e-mail i heslo.')
+      return
+    }
+
+    setProbiha(true)
+    const vysledek = registruje
+      ? await registerAccount(email.trim(), heslo)
+      : await signIn(email.trim(), heslo)
+    setProbiha(false)
+
+    if (!vysledek.ok) {
+      setChyba(vysledek.chyba ?? 'Nepovedlo se to.')
+      return
+    }
+
+    // Potvrzování e-mailem je nastavení projektu, ne vlastnost aplikace.
+    // Když je zapnuté, účet ještě neplatí a je poctivější to říct než
+    // pustit uživatele dál a nechat ho narazit až v Socialu.
+    if (vysledek.cekaNaPotvrzeni) {
+      setHlaska('Účet je založený. Potvrď ho odkazem, který ti přišel na e-mail, a pak se přihlas.')
+      setRezim('prihlaseni')
+      return
+    }
+
+    dovnitr()
+  }
+
+  const zapomenuteHeslo = async () => {
+    setChyba(null)
+    setHlaska(null)
+
+    if (!email.trim()) {
+      setChyba('Napiš nejdřív e-mail, pošlu na něj odkaz.')
+      return
+    }
+
+    const vysledek = await resetPassword(email.trim())
+    if (vysledek.ok) setHlaska('Odkaz na změnu hesla je na cestě.')
+    else setChyba(vysledek.chyba ?? 'Nepovedlo se to.')
   }
 
   return (
@@ -42,10 +99,14 @@ export default function Login({ onLogin }: LoginProps) {
           <span className="login-brand__name">SchoolBuddy</span>
         </div>
 
-        <h1 className="login-title">Vítej zpátky</h1>
-        <p className="login-subtitle">Přihlas se a pokračuj tam, kde jsi skončil/a.</p>
+        <h1 className="login-title">{registruje ? 'Založ si účet' : 'Vítej zpátky'}</h1>
+        <p className="login-subtitle">
+          {registruje
+            ? 'S účtem si přeneseš postup mezi zařízeními a odemkneš Social.'
+            : 'Přihlas se a pokračuj tam, kde jsi skončil/a.'}
+        </p>
 
-        <form className="login-form" onSubmit={handleSubmit}>
+        <form className="login-form" onSubmit={odeslat}>
           <label className="login-field">
             <span>E-mail</span>
             <input
@@ -54,6 +115,7 @@ export default function Login({ onLogin }: LoginProps) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
+              disabled={probiha}
             />
           </label>
 
@@ -62,18 +124,24 @@ export default function Login({ onLogin }: LoginProps) {
             <input
               type="password"
               placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
+              value={heslo}
+              onChange={(e) => setHeslo(e.target.value)}
+              autoComplete={registruje ? 'new-password' : 'current-password'}
+              disabled={probiha}
             />
           </label>
 
-          <button type="button" className="login-forgot">
-            Zapomenuté heslo?
-          </button>
+          {!registruje && (
+            <button type="button" className="login-forgot" onClick={zapomenuteHeslo}>
+              Zapomenuté heslo?
+            </button>
+          )}
 
-          <button type="submit" className="login-submit">
-            Přihlásit se
+          {chyba && <p className="login-error">{chyba}</p>}
+          {hlaska && <p className="login-note">{hlaska}</p>}
+
+          <button type="submit" className="login-submit" disabled={probiha}>
+            {probiha ? 'Moment…' : registruje ? 'Založit účet' : 'Přihlásit se'}
           </button>
         </form>
 
@@ -81,30 +149,34 @@ export default function Login({ onLogin }: LoginProps) {
           <span>nebo</span>
         </div>
 
-        <button type="button" className="login-google" onClick={handleSubmit}>
-          <svg width="18" height="18" viewBox="0 0 18 18">
-            <path
-              fill="#4285F4"
-              d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62z"
-            />
-            <path
-              fill="#34A853"
-              d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.05-3.72H.95v2.33A9 9 0 0 0 9 18z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M3.95 10.7A5.4 5.4 0 0 1 3.67 9c0-.59.1-1.17.28-1.7V4.97H.95A9 9 0 0 0 0 9c0 1.45.35 2.83.95 4.03l3-2.33z"
-            />
-            <path
-              fill="#EA4335"
-              d="M9 3.58c1.32 0 2.51.46 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0A9 9 0 0 0 .95 4.97l3 2.33C4.66 5.17 6.65 3.58 9 3.58z"
-            />
-          </svg>
-          Pokračovat s Google
+        {/* Bez účtu funguje všechno kromě Socialu. Aplikace je postavená
+            tak, aby data žila v zařízení — účet je nadstavba, ne podmínka. */}
+        <button type="button" className="login-guest" onClick={dovnitr}>
+          Pokračovat bez účtu
         </button>
+        <p className="login-guest-note">
+          Data zůstanou jen v tomhle zařízení a Social nebude dostupný.
+        </p>
+
+        {!isSupabaseConfigured && (
+          <p className="login-note">
+            Účty nejsou v téhle verzi nastavené — pokračuj bez účtu.
+          </p>
+        )}
 
         <p className="login-signup">
-          Nemáš účet? <button type="button" className="login-link">Zaregistruj se</button>
+          {registruje ? 'Účet už máš?' : 'Nemáš účet?'}{' '}
+          <button
+            type="button"
+            className="login-link"
+            onClick={() => {
+              setRezim(registruje ? 'prihlaseni' : 'registrace')
+              setChyba(null)
+              setHlaska(null)
+            }}
+          >
+            {registruje ? 'Přihlas se' : 'Zaregistruj se'}
+          </button>
         </p>
       </div>
 

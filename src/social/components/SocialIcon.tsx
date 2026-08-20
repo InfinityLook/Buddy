@@ -1,0 +1,50 @@
+import React from 'react'
+
+interface SocialIconProps {
+  name: string
+  size?: number
+  className?: string
+}
+
+export const SocialIcon: React.FC<SocialIconProps> = ({ name, size = 20, className }) => {
+  const common: React.SVGProps<SVGSVGElement> = {
+    width: size,
+    height: size,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 2,
+    strokeLinecap: 'round',
+    strokeLinejoin: 'round',
+    className,
+  }
+
+  switch (name) {
+    case 'arrow-left':
+      return <svg {...common}><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+    case 'send':
+      return <svg {...common}><path d="M22 2 11 13"/><path d="M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+    case 'plus':
+      return <svg {...common}><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+    case 'check':
+      return <svg {...common}><path d="M20 6 9 17l-5-5"/></svg>
+    case 'x':
+      return <svg {...common}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+    case 'copy':
+      return <svg {...common}><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>
+    case 'block':
+      return <svg {...common}><circle cx="12" cy="12" r="9"/><path d="m5.6 5.6 12.8 12.8"/></svg>
+    case 'flag':
+      return <svg {...common}><path d="M4 21V4"/><path d="M4 4h13l-2 4 2 4H4"/></svg>
+    case 'trash':
+      return <svg {...common}><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 13h10l1-13"/><path d="M9 7V4h6v3"/></svg>
+    case 'users':
+      return <svg {...common}><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5.3a3.2 3.2 0 0 1 0 5.4"/><path d="M17.5 14.2A6.5 6.5 0 0 1 21.5 20"/></svg>
+    case 'chat':
+      return <svg {...common}><path d="M21 12a8 8 0 0 1-8 8H7l-4 3V12a8 8 0 0 1 8-8h2a8 8 0 0 1 8 8z"/></svg>
+    case 'leave':
+      return <svg {...common}><path d="M14 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8"/><path d="m17 15 3-3-3-3"/><path d="M20 12H10"/></svg>
+    default:
+      return null
+  }
+}

@@ -344,10 +344,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
             🎙️
           </button>
 
-          <button
-            className="hub-talk-btn hub-talk-btn--soon"
-            onClick={() => showToast('Social se připravuje — brzy tu potkáš ostatní.')}
-          >
+          <button className="hub-talk-btn" onClick={() => navigate('/social')}>
             👥 SOCIAL
           </button>
 

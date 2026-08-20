@@ -1,0 +1,621 @@
+/* ==========================================
+   SOCIAL — stejný design systém jako zbytek aplikace
+   ========================================== */
+
+.social-page {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background:
+    radial-gradient(circle at 15% 8%, rgba(53, 196, 240, 0.18) 0%, transparent 38%),
+    radial-gradient(circle at 85% 20%, rgba(138, 92, 246, 0.18) 0%, transparent 36%),
+    var(--bg-base);
+  color: var(--text-primary);
+  padding: 0.75rem 0.75rem calc(1.25rem + env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ---------- hlavička ---------- */
+
+.social-top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.social-back-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.5rem;
+}
+
+.social-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.social-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  margin: 0.15rem 0 0;
+  line-height: 1.4;
+}
+
+.social-hero-icon {
+  font-size: 2rem;
+  filter: drop-shadow(0 0 14px rgba(53, 196, 240, 0.45));
+}
+
+/* ---------- brána pro nepřihlášené ---------- */
+
+.social-brana {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 1.6rem 1.1rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.social-brana-icon { font-size: 2.4rem; }
+
+.social-brana-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.social-brana-text {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  max-width: 320px;
+}
+
+.social-brana-text--tlumene { color: var(--text-muted); font-size: 0.7rem; }
+
+/* ---------- záložky ---------- */
+
+.social-zalozky {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.social-zalozka {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.5rem 0.3rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.social-zalozka.is-aktivni {
+  background: var(--accent-cyan);
+  border-color: var(--accent-cyan);
+  color: var(--text-on-accent);
+}
+
+/* ---------- karty ---------- */
+
+.social-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.social-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-glass);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+}
+
+.social-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.social-card-label {
+  font-size: 0.6rem;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.social-hint {
+  margin: 0;
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.social-empty-note {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.social-empty-note--stred { text-align: center; padding: 1.5rem 0; }
+
+/* ---------- můj kód ---------- */
+
+.social-code-card {
+  background: linear-gradient(135deg, rgba(53, 196, 240, 0.14), rgba(138, 92, 246, 0.12)),
+    var(--bg-glass);
+  border-color: rgba(53, 196, 240, 0.3);
+}
+
+.social-code-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.social-code {
+  flex: 1;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--accent-cyan);
+  /* Kód se opisuje z obrazovky, tak ať jde vybrat */
+  user-select: all;
+}
+
+/* ---------- řádky ---------- */
+
+.social-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0;
+  border-top: 1px solid var(--border-subtle);
+  width: 100%;
+  background: none;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+}
+
+.social-card > .social-row:first-of-type { border-top: none; }
+
+.social-row--volba,
+.social-row--chat {
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.5rem;
+  cursor: pointer;
+}
+
+.social-row--volba.is-vybrany {
+  background: rgba(53, 196, 240, 0.12);
+  border-color: rgba(53, 196, 240, 0.4);
+}
+
+.social-avatar {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.social-avatar.is-skupina {
+  background: linear-gradient(135deg, var(--accent-orange), var(--accent-magenta));
+}
+
+.social-row-name {
+  flex: 1;
+  font-size: 0.8rem;
+  font-weight: 600;
+  /* Dlouhé jméno nesmí vytlačit tlačítka za okraj */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------- tlačítka ---------- */
+
+.social-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--accent-cyan);
+  border: none;
+  color: var(--text-on-accent);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 800;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.social-btn:disabled { opacity: 0.45; cursor: default; }
+.social-btn--small { padding: 0.32rem 0.6rem; font-size: 0.68rem; }
+.social-btn--full { width: 100%; margin-top: 0.3rem; }
+
+.social-btn--tlumene {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text-primary);
+  border: 1px solid var(--border-subtle);
+}
+
+.social-icon-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.social-icon-btn--ano { color: var(--accent-green); border-color: rgba(16, 185, 129, 0.35); }
+.social-icon-btn--ne { color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3); }
+
+.social-mini-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.1rem 0.3rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.55rem;
+  cursor: pointer;
+}
+
+/* ---------- vstupy ---------- */
+
+.social-add-row { display: flex; gap: 0.4rem; }
+
+.social-input {
+  flex: 1;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  /* Kód se píše velkými písmeny, ať se shoduje s tím, co je na obrazovce */
+  letter-spacing: 1px;
+}
+
+.social-input:focus { outline: none; border-color: var(--accent-cyan); }
+.social-input--full { width: 100%; letter-spacing: normal; }
+.social-input--zprava { letter-spacing: normal; }
+
+.social-textarea {
+  width: 100%;
+  min-height: 70px;
+  resize: vertical;
+  padding: 0.5rem 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.78rem;
+}
+
+.social-textarea:focus { outline: none; border-color: var(--accent-cyan); }
+
+/* ---------- seznam chatů ---------- */
+
+.social-chat-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.social-chat-nazev {
+  font-size: 0.8rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.social-chat-nahled {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.social-chat-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+  flex-shrink: 0;
+}
+
+.social-chat-cas { font-size: 0.58rem; color: var(--text-muted); }
+
+.social-odznak {
+  min-width: 17px;
+  padding: 0.05rem 0.28rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-magenta);
+  color: #fff;
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-align: center;
+}
+
+/* ---------- rozhovor ---------- */
+
+.social-chat-view {
+  display: flex;
+  flex-direction: column;
+  /* Vlastní výška, ne min-height: rozhovor si roluje sám a vstupní
+     pole musí zůstat dole i s otevřenou klávesnicí. */
+  height: 100vh;
+  height: 100dvh;
+  margin: -0.75rem -0.75rem calc(-1.25rem - env(safe-area-inset-bottom));
+}
+
+.social-chat-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: calc(0.6rem + env(safe-area-inset-top)) 0.75rem 0.6rem;
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.social-chat-title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  font-size: 0.9rem;
+  font-weight: 800;
+  min-width: 0;
+}
+
+.social-chat-pocet {
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.social-zpravy {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.social-bublina-obal {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  max-width: 82%;
+}
+
+.social-bublina-obal.je-moje { align-self: flex-end; align-items: flex-end; }
+
+.social-bublina-jmeno {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  padding-left: 0.4rem;
+}
+
+.social-bublina {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-subtle);
+}
+
+.social-bublina.je-moje {
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  border-color: transparent;
+  color: #fff;
+}
+
+.social-bublina.je-smazana {
+  background: rgba(255, 255, 255, 0.05);
+  border-style: dashed;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.social-bublina-text {
+  font-size: 0.78rem;
+  line-height: 1.4;
+  /* Dlouhé slovo nebo odkaz nesmí bublinu roztáhnout přes obrazovku */
+  overflow-wrap: anywhere;
+}
+
+.social-bublina-cas {
+  flex-shrink: 0;
+  font-size: 0.52rem;
+  opacity: 0.7;
+}
+
+.social-bublina-akce { padding: 0 0.3rem; }
+
+.social-psani {
+  display: flex;
+  gap: 0.45rem;
+  padding: 0.6rem 0.75rem calc(0.6rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.social-send-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-cyan);
+  border: none;
+  color: var(--text-on-accent);
+  cursor: pointer;
+}
+
+.social-send-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ---------- nahlášení ---------- */
+
+.social-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(6, 5, 12, 0.65);
+  backdrop-filter: blur(3px);
+}
+
+.social-dialog {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 41;
+  width: min(420px, calc(100vw - 1.6rem));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-radius: var(--radius-xl);
+  background: rgba(14, 11, 26, 0.97);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-card);
+}
+
+.social-dialog-title { margin: 0; font-size: 1rem; font-weight: 800; }
+
+.social-dialog-sub {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.social-duvody { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.social-duvod {
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.73rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.social-duvod.is-vybrany {
+  background: rgba(53, 196, 240, 0.14);
+  border-color: var(--accent-cyan);
+  color: var(--text-primary);
+}
+
+.social-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.73rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.social-dialog-akce { display: flex; gap: 0.45rem; }
+.social-dialog-akce .social-btn { flex: 1; }
+
+.social-info-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* ---------- hláška ---------- */
+
+.social-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 60;
+  max-width: min(420px, calc(100vw - 2rem));
+  padding: 0.6rem 0.9rem;
+  border-radius: var(--radius-pill);
+  background: rgba(18, 20, 38, 0.96);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-card);
+  font-size: 0.7rem;
+  text-align: center;
+  line-height: 1.4;
+}
