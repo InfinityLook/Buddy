@@ -1193,3 +1193,15 @@
 .profil-cloud-dot.is-connecting { background: #38bdf8; }
 .profil-cloud-dot.is-offline { background: #f59e0b; }
 .profil-cloud-dot.is-error { background: #ef4444; }
+
+/* Technický důvod selhání synchronizace. Ukáže se jen při chybě —
+   uživateli sice nic neřekne, ale je to jediné, podle čeho jde na
+   telefonu poznat, co se pokazilo. */
+.profil-menu-detail {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: #ff9d9d;
+  word-break: break-word;
+}

@@ -105,6 +105,8 @@ Signing out must call both `signOut()` and the local `logout()`. Clearing only t
 
 **Discovery is by friend code only** — there is deliberately no search by name. `profiles.friend_code` is 8 characters from an alphabet with no `I`, `O`, `0` or `1` so it survives being dictated over the phone. Lookup goes through `najdi_podle_kodu()`, a `SECURITY DEFINER` function returning one row and only name plus avatar; a normal RLS policy would have to permit reading every profile, which is the same as publishing a directory of children.
 
+**Trigger functions must be `SECURITY DEFINER` if anything they call is revoked from `authenticated`.** The `profiles` insert trigger calls `vygeneruj_pratelsky_kod()`, which is deliberately not callable over `/rest/v1/rpc`. As `SECURITY INVOKER` the trigger ran with the caller's rights, hit that same revoke, and every profile upsert died with `permission denied for function vygeneruj_pratelsky_kod` — which killed cloud sync for XP and badges, far from anything that looked social. The app surfaced only "Synchronizace se nepovedla"; the reason is now shown under that row, because on a phone there is no console to check.
+
 RLS helper functions take **one** argument and fill in `auth.uid()` themselves (`je_muj_pritel`, `je_blokovan_se_mnou`, `jsem_clenem`). The two-argument versions were callable over `/rest/v1/rpc` and let any signed-in user probe arbitrary pairs — enough to map the friendship graph. `jsem_clenem` must also stay `SECURITY DEFINER`: a policy on `chat_members` that queries `chat_members` recurses.
 
 Blocking is symmetric and hides messages on read, so it covers group chats too. Deleting a message is soft (`deleted_at`), because a hard delete would remove the context an answer replies to.

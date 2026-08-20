@@ -30,6 +30,10 @@ export const ProfilModule: React.FC = () => {
   const { goals } = useGoalTracker()
   const { profile, updateProfile, markNotificationRead } = useProfileData()
   const cloudStatus = useCloudStatus((state) => state.status)
+  // Důvod selhání. Bez něj řádek jen oznámil, že se to nepovedlo, a
+  // dohledat proč šlo pouze přes konzoli prohlížeče — na telefonu tedy
+  // prakticky vůbec.
+  const cloudError = useCloudStatus((state) => state.error)
 
   const [notifOpen, setNotifOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
@@ -257,6 +261,9 @@ export const ProfilModule: React.FC = () => {
               <span className="profil-menu-sub">
                 {CLOUD_LABELS[cloudStatus] ?? CLOUD_LABELS.off}
               </span>
+              {cloudStatus === 'error' && cloudError && (
+                <span className="profil-menu-detail">{cloudError}</span>
+              )}
             </div>
           </div>
           <span className="profil-arrow">❯</span>
