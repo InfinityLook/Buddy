@@ -119,6 +119,14 @@ Blocking is symmetric and hides messages on read, so it covers group chats too. 
 
 **Every realtime channel needs a unique name.** `supabase.channel(name)` returns the *existing* channel for a name already in use, and calling `.on()` on an already-subscribed channel throws — which blanked the entire app once the inbox and the Social screen both asked for `moje-zpravy`. `api.ts` appends a counter to every channel name.
 
+**`INSERT ... RETURNING` also has to pass the SELECT policy.** `chats` is readable by `jsem_clenem(id)`, so `insert(...).select('id')` on a brand-new chat was rejected with `42501` — the creator only becomes a member on the *next* statement. Creating a chat therefore never worked at all. It now goes through `zaloz_chat(ucastnici, je_skupina, nazev)`, one `SECURITY DEFINER` call that creates the chat and every member together. That also removes an orphan-row hazard the three-statement version had: a failure after the first insert left a chat nobody was a member of, which no policy could then read or delete. Because it runs as the owner it re-checks the rules itself — real account, participants must be friends, nobody blocked — and returns the existing chat for a pair, so it is idempotent.
+
+**Supabase errors are plain objects, not `Error`s.** A helper testing `err instanceof Error` therefore never matched, and every database failure reached the user as "Nepovedlo se to." — including the ones whose `message` said exactly what was wrong. On a phone there is no console, so that hid a 403 for hours. `chyba()` in `api.ts` reads `message`/`hint`/`code` off the object.
+
+**Anything the UI must notice on its own needs to be in the `supabase_realtime` publication.** Only `messages` was, so a friend request sat invisible on the other device until Social was reopened, and it looked like sending had failed. `friendships` is in it too now. Realtime applies the same RLS as a normal read, so an unfiltered subscription still only delivers the user's own rows.
+
+**Report the real reason, not the most likely one.** `najdiPodleKodu` used to return `null` for "nobody has that code", "that's your own code" and "the request failed" alike, and the UI always said the first. Entering your own code — the obvious thing to try with two devices — produced a flat lie. It returns a `NalezVysledek` discriminated union instead, and the panel checks the own-code case against `stav.profil.friendCode` before asking the server, because `najdi_podle_kodu` deliberately skips `auth.uid()` and cannot report it.
+
 `src/social/api.ts` is the only place that talks to Supabase; components receive finished shapes. Realtime subscriptions return an unsubscribe function — `ChatView` must call it, or every visit leaves another open channel.
 
 ### Roles & shop

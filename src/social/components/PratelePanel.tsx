@@ -13,21 +13,31 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
   const [kod, setKod] = useState('')
   const [nalezeny, setNalezeny] = useState<SocialProfil | null>(null)
   const [hleda, setHleda] = useState(false)
-  const [nenalezeno, setNenalezeno] = useState(false)
+  const [potiz, setPotiz] = useState<string | null>(null)
 
   const prichozi = stav.zadosti.filter((z) => z.smer === 'prichozi')
   const odchozi = stav.zadosti.filter((z) => z.smer === 'odchozi')
 
   const hledat = async () => {
     setHleda(true)
-    setNenalezeno(false)
+    setPotiz(null)
     setNalezeny(null)
 
-    const profil = await api.najdiPodleKodu(kod)
+    // Vlastní kód se pozná tady, ne v databázi: funkce hledání sama sebe
+    // schválně přeskakuje, takže by vrátila prázdno a uživatel by dostal
+    // "takový kód nikomu nepatří" u kódu, který má před očima na displeji.
+    if (stav.profil && api.ocistiKod(kod) === stav.profil.friendCode) {
+      setHleda(false)
+      setPotiz('Tohle je tvůj vlastní kód. Potřebuješ kód toho druhého.')
+      return
+    }
+
+    const vysledek = await api.najdiPodleKodu(kod)
     setHleda(false)
 
-    if (profil) setNalezeny(profil)
-    else setNenalezeno(true)
+    if (vysledek.stav === 'nalezen') setNalezeny(vysledek.profil)
+    else if (vysledek.stav === 'chyba') setPotiz(vysledek.chyba)
+    else setPotiz('Takový kód nikomu nepatří. Zkontroluj, jestli sedí každý znak.')
   }
 
   const kopirovatKod = async () => {
@@ -71,7 +81,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
             maxLength={9}
             onChange={(e) => {
               setKod(e.target.value.toUpperCase())
-              setNenalezeno(false)
+              setPotiz(null)
               setNalezeny(null)
             }}
           />
@@ -80,7 +90,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
           </button>
         </div>
 
-        {nenalezeno && <p className="social-empty-note">Takový kód nikomu nepatří.</p>}
+        {potiz && <p className="social-empty-note">{potiz}</p>}
 
         {nalezeny && (
           <div className="social-row">

@@ -74,6 +74,17 @@ export const useSocial = () => {
     return zrusit
   }, [maUcet])
 
+  // Totéž pro žádosti o přátelství: přijatá i nová žádost se musí objevit
+  // sama, jinak druhé zařízení ukazuje starý stav a uživatel neví, že se
+  // něco stalo.
+  useEffect(() => {
+    if (!maUcet) return
+
+    return api.sledovatVazby(() => {
+      void obnovit()
+    })
+  }, [maUcet, obnovit])
+
   // Každá akce se chová stejně: provede se, ohlásí výsledek a načte
   // stav znovu. Díky tomu nemůže UI ukazovat něco jiného než databáze.
   const provest = useCallback(

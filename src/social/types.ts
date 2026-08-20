@@ -67,6 +67,21 @@ export interface Vysledek {
   chyba?: string
 }
 
+/**
+ * Výsledek hledání podle kódu.
+ *
+ * Dřív se vracelo jen `SocialProfil | null` a všechny tři různé konce —
+ * nikdo takový není, jsi to ty sám, spojení selhalo — vypadaly stejně.
+ * Uživatel pak dostal „takový kód nikomu nepatří“ i ve chvíli, kdy zadal
+ * vlastní kód nebo mu vypadla síť, a neměl podle čeho poznat, co dělá
+ * špatně. Proto se rozlišují.
+ */
+export type NalezVysledek =
+  | { stav: 'nalezen'; profil: SocialProfil }
+  | { stav: 'nenalezen' }
+  | { stav: 'vlastni' }
+  | { stav: 'chyba'; chyba: string }
+
 // ==========================================
 // Moderace
 // ==========================================

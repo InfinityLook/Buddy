@@ -1,6 +1,7 @@
 import { supabase } from '@/core/supabase/client'
 import type {
   Chat,
+  NalezVysledek,
   DuvodNahlaseni,
   Hlaseni,
   StavHlaseni,
@@ -25,10 +26,30 @@ import type {
 
 const NENI_CLOUD: Vysledek = { ok: false, chyba: 'Social potřebuje připojení k účtu.' }
 
-const chyba = (err: unknown): Vysledek => ({
-  ok: false,
-  chyba: err instanceof Error ? err.message : 'Nepovedlo se to.',
-})
+/**
+ * Vytáhne z chyby něco, co má uživateli co říct.
+ *
+ * Supabase nevrací `Error`, ale obyčejný objekt `{ message, code, hint }`.
+ * Test na `instanceof Error` proto neplatil nikdy a každá chyba z databáze
+ * skončila jako "Nepovedlo se to." — včetně těch, které přesně říkaly, co
+ * je špatně. Na telefonu není konzole, takže tahle hláška byla jediné, co
+ * se dalo zjistit, a nedalo se podle ní poznat vůbec nic.
+ */
+const chyba = (err: unknown): Vysledek => {
+  if (err instanceof Error) return { ok: false, chyba: err.message }
+
+  if (err && typeof err === 'object') {
+    const o = err as { message?: unknown; hint?: unknown; code?: unknown }
+    const text = typeof o.message === 'string' ? o.message.trim() : ''
+    const rada = typeof o.hint === 'string' ? o.hint.trim() : ''
+    if (text) return { ok: false, chyba: rada ? `${text} (${rada})` : text }
+    if (typeof o.code === 'string' && o.code) {
+      return { ok: false, chyba: `Nepovedlo se to (${o.code}).` }
+    }
+  }
+
+  return { ok: false, chyba: 'Nepovedlo se to.' }
+}
 
 const profilZRadku = (r: {
   id: string
@@ -66,19 +87,27 @@ export const formatujKod = (kod: string): string =>
 
 // ---------- hledání a žádosti ----------
 
-export const najdiPodleKodu = async (kod: string): Promise<SocialProfil | null> => {
-  if (!supabase) return null
+/** Kód zbavený pomlček a mezer, velkými písmeny. */
+export const ocistiKod = (kod: string): string =>
+  kod.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
 
-  const ocisteny = kod.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
-  if (ocisteny.length !== 8) return null
+export const najdiPodleKodu = async (kod: string): Promise<NalezVysledek> => {
+  if (!supabase) return { stav: 'chyba', chyba: 'Social potřebuje připojení k účtu.' }
+
+  const ocisteny = ocistiKod(kod)
+  if (ocisteny.length !== 8) return { stav: 'nenalezen' }
 
   // Hledání jde přes funkci v databázi, ne přes tabulku: běžné pravidlo
   // by muselo pustit čtení všech profilů a kdokoliv by si mohl stáhnout
   // seznam uživatelů.
   const { data, error } = await supabase.rpc('najdi_podle_kodu', { kod: ocisteny })
-  if (error || !data || data.length === 0) return null
 
-  return profilZRadku(data[0])
+  // Nefunkční síť a neexistující kód se dřív hlásily stejně — uživatel pak
+  // dokola přepisoval správný kód a nevěděl, že problém je jinde.
+  if (error) return { stav: 'chyba', chyba: chyba(error).chyba ?? 'Nepovedlo se to.' }
+  if (!data || data.length === 0) return { stav: 'nenalezen' }
+
+  return { stav: 'nalezen', profil: profilZRadku(data[0]) }
 }
 
 export const poslatZadost = async (komuId: string): Promise<Vysledek> => {
@@ -318,42 +347,22 @@ export const nactiChaty = async (): Promise<Chat[]> => {
 /**
  * Chat s jedním člověkem. Když už spolu chat mají, vrátí ten stávající —
  * jinak by po každém otevření vznikl další a rozhovor by se roztříštil.
+ * O to i o všechno ostatní se stará `zaloz_chat` v databázi.
  */
 export const otevritChatSPritelem = async (
   pritelId: string
-): Promise<{ chatId: string | null } & Vysledek> => {
-  if (!supabase) return { ...NENI_CLOUD, chatId: null }
+): Promise<{ chatId: string | null } & Vysledek> => zalozitChat([pritelId], false)
 
-  const { data: relace } = await supabase.auth.getSession()
-  const ja = relace.session?.user?.id
-  if (!ja) return { ...NENI_CLOUD, chatId: null }
-
-  const { data: moje } = await supabase.from('chat_members').select('chat_id').eq('user_id', ja)
-  const mojeIds = (moje ?? []).map((c) => c.chat_id)
-
-  if (mojeIds.length > 0) {
-    const { data: spolecne } = await supabase
-      .from('chat_members')
-      .select('chat_id')
-      .eq('user_id', pritelId)
-      .in('chat_id', mojeIds)
-
-    const kandidati = (spolecne ?? []).map((c) => c.chat_id)
-    if (kandidati.length > 0) {
-      const { data: dvojice } = await supabase
-        .from('chats')
-        .select('id')
-        .in('id', kandidati)
-        .eq('is_group', false)
-        .limit(1)
-
-      if (dvojice && dvojice.length > 0) return { ok: true, chatId: dvojice[0].id }
-    }
-  }
-
-  return zalozitChat([pritelId], false)
-}
-
+/**
+ * Zakládání běží celé v databázi, jedním voláním.
+ *
+ * Dřív to klient skládal ze tří dotazů. První z nich vkládal chat a rovnou
+ * si nechal vrátit jeho id, jenže pravidlo pro čtení chatů zní „jsem jeho
+ * členem“ a zakladatel se členem stával až tím druhým dotazem — Postgres
+ * proto celý příkaz odmítl a chat nešlo založit vůbec. Navíc kdyby některý
+ * z dalších dvou dotazů selhal, zbyl by po něm chat bez členů, který už
+ * nikdo neuvidí ani nesmaže. Takhle vznikne buď chat i s členy, nebo nic.
+ */
 export const zalozitChat = async (
   ucastniciIds: string[],
   jeSkupina: boolean,
@@ -361,33 +370,18 @@ export const zalozitChat = async (
 ): Promise<{ chatId: string | null } & Vysledek> => {
   if (!supabase) return { ...NENI_CLOUD, chatId: null }
 
-  const { data: relace } = await supabase.auth.getSession()
-  const ja = relace.session?.user?.id
-  if (!ja) return { ...NENI_CLOUD, chatId: null }
+  const { data, error } = await supabase.rpc('zaloz_chat', {
+    ucastnici: ucastniciIds,
+    je_skupina: jeSkupina,
+    nazev: nazev ?? null,
+  })
 
-  const { data: chat, error } = await supabase
-    .from('chats')
-    .insert({ is_group: jeSkupina, name: jeSkupina ? nazev ?? null : null, created_by: ja })
-    .select('id')
-    .single()
+  if (error) return { ...chyba(error), chatId: null }
+  if (typeof data !== 'string') {
+    return { ok: false, chyba: 'Chat se založil, ale nevrátilo se jeho id.', chatId: null }
+  }
 
-  if (error || !chat) return { ...chyba(error), chatId: null }
-
-  // Zakladatel musí být členem dřív než ostatní: pravidlo pro přidání
-  // dalších se ptá, jestli je přidávající členem.
-  const { error: chybaClena } = await supabase
-    .from('chat_members')
-    .insert({ chat_id: chat.id, user_id: ja })
-
-  if (chybaClena) return { ...chyba(chybaClena), chatId: null }
-
-  const { error: chybaOstatnich } = await supabase
-    .from('chat_members')
-    .insert(ucastniciIds.map((id) => ({ chat_id: chat.id, user_id: id })))
-
-  if (chybaOstatnich) return { ...chyba(chybaOstatnich), chatId: null }
-
-  return { ok: true, chatId: chat.id }
+  return { ok: true, chatId: data }
 }
 
 export const opustitChat = async (chatId: string): Promise<Vysledek> => {
@@ -648,6 +642,28 @@ export const vyriditHlaseni = async (
 // dostanou jen zprávy z chatů, kterých je členem — a jen ty, které smí
 // vidět (blokovaní se nepočítají).
 // ==========================================
+
+/**
+ * Živé žádosti o přátelství.
+ *
+ * Bez tohohle se příchozí žádost objevila až po ručním znovuotevření
+ * Socialu — druhé zařízení do té doby ukazovalo prázdný seznam a vypadalo
+ * to, že se žádost neodeslala. Odběr nic nefiltruje: Realtime pouští jen
+ * řádky, které dotyčný smí přečíst i normálně, a to jsou právě jeho dvojice.
+ */
+export const sledovatVazby = (zmena: () => void): (() => void) => {
+  const klient = supabase
+  if (!klient) return () => {}
+
+  const kanal = klient
+    .channel(`moje-vazby:${++poradiKanalu}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => zmena())
+    .subscribe()
+
+  return () => {
+    void klient.removeChannel(kanal)
+  }
+}
 
 export const sledovatVsechnyZpravy = (prisla: (z: Zprava) => void): (() => void) => {
   const klient = supabase
