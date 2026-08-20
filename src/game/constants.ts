@@ -68,9 +68,10 @@ export const PALETTE = {
   domZedSvetla: '#c8b394',
   strechaMed: '#a35b3c',
   strechaModra: '#3f6b70',
-  strechaSeda: '#5a5754',
+  strechaSeda: '#6f6a62',
   okno: '#ffc978',
 
+  dlazba: '#8a7f6c',
   arena: '#cbbd9e',
   arenaZar: '#5fd8f0',
 

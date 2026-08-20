@@ -15,7 +15,9 @@ import {
   createRiver,
   createSky,
 } from './environment'
+import { createClouds } from './clouds'
 import { createForest } from './forest'
+import { createStreets } from './streets'
 import { createWalls } from './walls'
 import { createBuildings } from './buildings'
 import { createArena } from './arena'
@@ -72,11 +74,15 @@ export const createCityScene = (): CityScene => {
   for (const svetlo of createLighting()) root.add(svetlo)
   root.add(createGround())
   root.add(createRiver())
-  root.add(createPlateau())
+  root.add(createPlateau(random))
   root.add(createMountains(random))
   root.add(createForest(random))
+  root.add(createClouds(random))
 
   // --- město ---
+  const ulice = createStreets()
+  if (ulice) root.add(ulice)
+
   const arena = createArena()
   const budovy = createBuildings(random)
   const hradby = createWalls()

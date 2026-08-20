@@ -86,6 +86,38 @@ export const createCastle = (
     matrix: matrixFor({ x: stred.x, y: vyskaSkaly - 2, z: stred.z }),
   })
 
+  // Hradba kolem nádvoří i s cimbuřím. Bez ní byl hrad jen shluk válců
+  // na kopci — obvodová zeď mu dá obrys, podle kterého se pozná z dálky.
+  const hradbaPolomer = 12.5
+  const hradbaVyska = 5
+  const dilu = 12
+  const zub = new THREE.BoxGeometry(1.1, 1.1, 1.4)
+
+  for (let i = 0; i < dilu; i++) {
+    const uhel = (i / dilu) * Math.PI * 2
+    const x = stred.x + Math.cos(uhel) * hradbaPolomer
+    const z = stred.z + Math.sin(uhel) * hradbaPolomer
+    // Tětiva mezi sousedními body, ne délka oblouku — jinak by se díly
+    // v rozích překrývaly
+    const delka = 2 * hradbaPolomer * Math.sin(Math.PI / dilu) + 0.6
+
+    zdi.push({
+      geometry: new THREE.BoxGeometry(delka, hradbaVyska, 1.6),
+      matrix: matrixFor({ x, y: vyskaSkaly + hradbaVyska / 2, z }, -uhel + Math.PI / 2),
+    })
+
+    for (const posun of [-delka / 4, delka / 4]) {
+      const zaklad = matrixFor(
+        { x, y: vyskaSkaly + hradbaVyska + 0.55, z },
+        -uhel + Math.PI / 2
+      )
+      zdi.push({
+        geometry: zub,
+        matrix: zaklad.multiply(new THREE.Matrix4().makeTranslation(posun, 0, 0)),
+      })
+    }
+  }
+
   // Hlavní budova
   zdi.push({
     geometry: new THREE.BoxGeometry(16, 13, 11),
@@ -98,7 +130,7 @@ export const createCastle = (
   })
 
   // Věže: nejvyšší uprostřed vzadu, nižší po rozích
-  vez(zdi, strechy, stred.x, vyskaSkaly, stred.z - 6, 30, 3.6)
+  vez(zdi, strechy, stred.x, vyskaSkaly, stred.z - 6, 34, 3.8)
   vez(zdi, strechy, stred.x - 9, vyskaSkaly, stred.z + 3, 20, 2.8)
   vez(zdi, strechy, stred.x + 9, vyskaSkaly, stred.z + 3, 22, 2.8)
   vez(zdi, strechy, stred.x - 5, vyskaSkaly, stred.z - 9, 17, 2.4)
@@ -114,7 +146,7 @@ export const createCastle = (
   }
 
   // Bod pro popisek: nad špičkou nejvyšší věže
-  const vrchol = new THREE.Vector3(stred.x, vyskaSkaly + 30 + 9, stred.z - 6)
+  const vrchol = new THREE.Vector3(stred.x, vyskaSkaly + 34 + 10, stred.z - 6)
 
   return { group: skupina, targets: [skupina], vrchol }
 }

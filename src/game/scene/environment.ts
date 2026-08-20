@@ -18,6 +18,14 @@ import type { Random } from './random'
 // není jen pro náladu — schová okraj terénu, takže nemusí být nekonečný.
 // ==========================================
 
+/**
+ * Kam na obloze stojí slunce.
+ *
+ * Sdílí ho světlo i shader oblohy. Kdyby měl každý svůj, svítilo by
+ * slunce odjinud, než odkud padají stíny — a to je vidět na první pohled.
+ */
+export const SMER_SLUNCE = new THREE.Vector3(-135, 85, -70).normalize()
+
 /** Obloha jako velká koule s přechodem. Kreslí se zevnitř (BackSide). */
 export const createSky = (): THREE.Mesh => {
   const material = new THREE.ShaderMaterial({
@@ -27,6 +35,8 @@ export const createSky = (): THREE.Mesh => {
       barvaHore: { value: new THREE.Color(PALETTE.oblohaHore) },
       barvaStred: { value: new THREE.Color(PALETTE.oblohaStred) },
       barvaDole: { value: new THREE.Color(PALETTE.oblohaDole) },
+      barvaSlunce: { value: new THREE.Color(PALETTE.slunce) },
+      smerSlunce: { value: SMER_SLUNCE },
     },
     vertexShader: `
       varying vec3 vSvet;
@@ -41,13 +51,24 @@ export const createSky = (): THREE.Mesh => {
       uniform vec3 barvaHore;
       uniform vec3 barvaStred;
       uniform vec3 barvaDole;
+      uniform vec3 barvaSlunce;
+      uniform vec3 smerSlunce;
       varying vec3 vSvet;
       void main() {
+        vec3 smer = normalize(vSvet);
+
         // Obzor je na h = 0.5. Oranžová sahá kus nad něj, jinak by ji
         // schovaly hory a z celé oblohy zůstala jen fialová.
-        float h = clamp(normalize(vSvet).y * 0.5 + 0.5, 0.0, 1.0);
+        float h = clamp(smer.y * 0.5 + 0.5, 0.0, 1.0);
         vec3 barva = mix(barvaDole, barvaStred, smoothstep(0.50, 0.60, h));
         barva = mix(barva, barvaHore, smoothstep(0.60, 0.88, h));
+
+        // Slunce: široká záře kolem a ostrý kotouč uvnitř. Bez ní je
+        // obloha jen plochý přechod a nikde není poznat, odkud svítí.
+        float kSlunci = max(dot(smer, smerSlunce), 0.0);
+        barva = mix(barva, barvaSlunce, pow(kSlunci, 4.0) * 0.55);
+        barva = mix(barva, barvaSlunce, smoothstep(0.9975, 0.9992, kSlunci));
+
         gl_FragColor = vec4(barva, 1.0);
 
         // Převod do výstupního barevného prostoru. Three.js ho svým
@@ -78,7 +99,7 @@ export const createLighting = (): THREE.Object3D[] => {
   // Je posunuté i do strany: kdyby svítilo přesně zezadu, díval by se
   // hráč z výchozího pohledu jen na odvrácené, tedy černé stěny.
   const slunce = new THREE.DirectionalLight(PALETTE.slunce, 3.1)
-  slunce.position.set(-135, 85, -70)
+  slunce.position.copy(SMER_SLUNCE).multiplyScalar(180)
   slunce.castShadow = true
 
   // Stínová kamera musí obepnout jen město. Kdyby pokrývala celou scénu
@@ -124,18 +145,61 @@ export const createGround = (): THREE.Mesh => {
   return ground
 }
 
-/** Zvednutá plošina, na které město sedí — okraj hradby tak nevisí ve vzduchu. */
-export const createPlateau = (): THREE.Mesh => {
-  const geometry = new THREE.CylinderGeometry(WALL_RADIUS + 12, WALL_RADIUS + 20, 6, 48)
+/**
+ * Zvednutá plošina, na které město sedí — okraj hradby tak nevisí ve vzduchu.
+ *
+ * Kolem její hrany jsou rozeseté balvany. Hladký kužel vypadal jako
+ * dort na podnose; kámen z něj udělá skalní ostroh.
+ */
+export const createPlateau = (random: Random): THREE.Group => {
+  const skupina = new THREE.Group()
+  skupina.name = 'plosina'
 
   const plateau = new THREE.Mesh(
-    geometry,
+    new THREE.CylinderGeometry(WALL_RADIUS + 12, WALL_RADIUS + 20, 6, 48),
     new THREE.MeshStandardMaterial({ color: PALETTE.zemeSvetla, roughness: 1 })
   )
   plateau.position.y = -3
   plateau.receiveShadow = true
-  plateau.name = 'plosina'
-  return plateau
+  skupina.add(plateau)
+
+  const balvany: DilGeometrie[] = []
+  const pocet = 54
+
+  for (let i = 0; i < pocet; i++) {
+    const uhel = (i / pocet) * Math.PI * 2 + random.rozsah(-0.05, 0.05)
+    // Blízko k patě hradeb, ať čtou jako suť pod městem, a ne jako
+    // kameny náhodně rozházené po louce.
+    const vzdalenost = WALL_RADIUS + random.rozsah(7, 14)
+    const velikost = random.rozsah(2.4, 5.8)
+
+    balvany.push({
+      geometry: new THREE.DodecahedronGeometry(velikost, 0),
+      matrix: matrixFor(
+        {
+          x: Math.cos(uhel) * vzdalenost,
+          // Zapuštěné do země: nad povrch vykoukne jen vršek, takže
+          // balvan neleží na trávě jako odložený kámen.
+          y: -velikost * random.rozsah(0.45, 0.75),
+          z: Math.sin(uhel) * vzdalenost,
+        },
+        random.rozsah(0, Math.PI * 2),
+        { x: 1, y: random.rozsah(0.5, 0.9), z: 1 }
+      ),
+    })
+  }
+
+  const skala = mergeToMesh(
+    balvany,
+    new THREE.MeshStandardMaterial({
+      color: PALETTE.skala,
+      roughness: 1,
+      flatShading: true,
+    })
+  )
+  if (skala) skupina.add(skala)
+
+  return skupina
 }
 
 /**
@@ -183,18 +247,37 @@ export const createMountains = (random: Random): THREE.Group => {
       : 1
 
     const vzdalenost = random.rozsah(MOUNTAIN_INNER, MOUNTAIN_OUTER)
-    const vyska =
-      random.rozsah(34, 95) * (vzdalenost / MOUNTAIN_INNER) * 0.8 * (0.35 + tlumeni * 0.65)
-    const sirka = random.rozsah(22, 48)
+    // Vzdálenější hory jsou vyšší, ale mírně — dřív se poměr počítal
+    // k vnitřnímu okraji a ty nejzazší z toho vycházely dvaapůlkrát
+    // vyšší než ty blízké, což z nich dělalo jehly.
+    const dalka = (vzdalenost - MOUNTAIN_INNER) / (MOUNTAIN_OUTER - MOUNTAIN_INNER)
+    const vyska = random.rozsah(38, 96) * (0.78 + dalka * 0.55) * (0.35 + tlumeni * 0.65)
+    const sirka = random.rozsah(28, 58)
 
     const geometry = new THREE.ConeGeometry(sirka, vyska, random.cele(5, 7), 1)
 
-    // Rozhození vrcholů dá každé hoře vlastní tvar. Body na spodním
-    // okraji se nechávají být, ať hora nevisí nad zemí.
+    // Rozhození vrcholů dá každé hoře vlastní tvar. Nechávají se být
+    // dvě místa: spodní okraj, ať hora nevisí nad zemí, a špička.
+    //
+    // Špičku tvoří v kuželu několik vrcholů ve stejném bodě, jeden na
+    // každý díl pláště. Rozhodit je zvlášť znamená roztrhnout je od sebe
+    // a z hory pak trčí svazek tenkých jehel. Posouvají se proto všechny
+    // o totéž.
     const pozice = geometry.attributes.position as THREE.BufferAttribute
+    const spicka = vyska / 2
+    const posunSpickyX = random.rozsah(-4, 4)
+    const posunSpickyZ = random.rozsah(-4, 4)
+
     for (let v = 0; v < pozice.count; v++) {
       const y = pozice.getY(v)
-      if (y <= -vyska / 2 + 0.01) continue
+      if (y <= -spicka + 0.01) continue
+
+      if (y >= spicka - 0.01) {
+        pozice.setX(v, pozice.getX(v) + posunSpickyX)
+        pozice.setZ(v, pozice.getZ(v) + posunSpickyZ)
+        continue
+      }
+
       pozice.setX(v, pozice.getX(v) + random.rozsah(-3, 3))
       pozice.setZ(v, pozice.getZ(v) + random.rozsah(-3, 3))
       pozice.setY(v, y + random.rozsah(-2.5, 2.5))
@@ -210,9 +293,13 @@ export const createMountains = (random: Random): THREE.Group => {
 
     // Sníh dostanou jen ty vysoké — na nižších by vypadal nepatřičně
     if (vyska > 78) {
+      // Čepice jde za posunutou špičkou; jinak by zůstala vedle hory
       snih.push({
         geometry: new THREE.ConeGeometry(sirka * 0.34, vyska * 0.24, 6, 1),
-        matrix: matrixFor({ x, y: y + vyska * 0.38, z }, natoceni),
+        matrix: matrixFor(
+          { x: x + posunSpickyX, y: y + vyska * 0.38, z: z + posunSpickyZ },
+          natoceni
+        ),
       })
     }
   }
