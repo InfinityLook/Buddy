@@ -306,12 +306,20 @@ export const HubModule: React.FC<HubModuleProps> = ({
             prostředí a je vidět celý, kdežto tady se na malém displeji
             mačkal a bral místo dlaždicím. */}
         <section className="hub-orb-section" aria-hidden="true">
+          {/* Pořadí v kódu určuje, co je nad čím: zadní dráha stojí před
+              jádrem, a je tedy pod ním, přední až za ním. Z toho vzniká
+              dojem, že tečky obíhají kolem, ne po něm. */}
           <div className="hub-orb">
+            <span className="hub-orb-zare" />
             <span className="hub-orb-vlna" />
             <span className="hub-orb-vlna hub-orb-vlna--druha" />
+            <span className="hub-orb-obezna hub-orb-obezna--zad" />
             <span className="hub-orb-prstenec" />
-            <span className="hub-orb-jadro" />
-            <span className="hub-orb-lesk" />
+            <span className="hub-orb-jadro">
+              <span className="hub-orb-plazma" />
+              <span className="hub-orb-lesk" />
+            </span>
+            <span className="hub-orb-obezna hub-orb-obezna--pred" />
           </div>
         </section>
 

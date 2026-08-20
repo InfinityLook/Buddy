@@ -342,6 +342,14 @@
    Strop je taky na výšce, ne na šířce: max-width by šířku uřízl nezávisle
    na výšce a z kruhu by byla elipsa (198x210 na běžném telefonu).
    Omezení podle šířky obrazovky je proto schované v max-height jako vw. */
+/* Velikost řídí VÝŠKA, šířku dopočítá poměr stran.
+   Strop je taky na výšce, ne na šířce: max-width by šířku uřízl nezávisle
+   na výšce a z kruhu by byla elipsa (198x210 na běžném telefonu).
+   Omezení podle šířky obrazovky je proto schované v max-height jako vw.
+
+   `perspective` dělá z nakloněných prstenců níž skutečné elipsy se
+   sbíhajícími se okraji. Bez ní by to byly jen zploštělé kruhy a dojem
+   hloubky by zmizel. */
 .hub-orb {
   position: relative;
   height: 100%;
@@ -354,104 +362,216 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  perspective: 620px;
+}
+
+/* Záře kolem všeho. Dýchání je tady, ne na jádře: animovat `box-shadow`
+   znamená překreslovat stín v každém snímku, kdežto `transform` a
+   `opacity` zvládne skládací vrstva grafiky sama. Na telefonu je to
+   rozdíl mezi plynulým a trhaným během. */
+.hub-orb-zare {
+  position: absolute;
+  inset: -16%;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(53, 196, 240, 0.3) 0%,
+    rgba(138, 92, 246, 0.16) 42%,
+    transparent 70%
+  );
+  filter: blur(6px);
+  animation: hub-orb-dech 4s ease-in-out infinite;
+}
+
+@keyframes hub-orb-dech {
+  0%, 100% { transform: scale(0.93); opacity: 0.7; }
+  50% { transform: scale(1.07); opacity: 1; }
 }
 
 /* Vlny, které se rozbíhají ven. Dvě se stejnou animací posunutou
    o polovinu — vypadá to jako souvislý puls, ne jako opakovaný záblesk. */
 .hub-orb-vlna {
   position: absolute;
-  inset: 12%;
+  inset: 14%;
   border-radius: 50%;
-  border: 1px solid rgba(53, 196, 240, 0.55);
-  animation: hub-orb-vlna 3.2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+  border: 1px solid rgba(53, 196, 240, 0.5);
+  animation: hub-orb-vlna 3.6s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
 }
 
-.hub-orb-vlna--druha { animation-delay: 1.6s; }
+.hub-orb-vlna--druha { animation-delay: 1.8s; }
 
 @keyframes hub-orb-vlna {
-  0% { transform: scale(0.72); opacity: 0.75; }
-  70% { opacity: 0.12; }
-  100% { transform: scale(1.55); opacity: 0; }
+  0% { transform: scale(0.7); opacity: 0.7; }
+  70% { opacity: 0.1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* Oběžné prstence. Naklonění kolem osy X z kruhu udělá elipsu a otáčení
+   kolem osy Z po ní rozjede tečku — dohromady to čte jako dráha kolem
+   koule, ne jako kroužek na plocho.
+
+   Jeden je před jádrem, druhý za ním. Tohle je celý trik s hloubkou:
+   kdyby byly oba na jedné straně, zůstalo by to ploché i s nakloněním. */
+.hub-orb-obezna {
+  position: absolute;
+  inset: 1%;
+  border-radius: 50%;
+  border: 1px solid rgba(138, 92, 246, 0.4);
+  transform-style: preserve-3d;
+}
+
+.hub-orb-obezna--zad {
+  animation: hub-orb-obeh-zad 11s linear infinite;
+}
+
+.hub-orb-obezna--pred {
+  border-color: rgba(53, 196, 240, 0.3);
+  animation: hub-orb-obeh-pred 8s linear infinite;
+}
+
+@keyframes hub-orb-obeh-zad {
+  from { transform: rotateX(74deg) rotateZ(0deg); }
+  to { transform: rotateX(74deg) rotateZ(360deg); }
+}
+
+/* Druhý běží opačně a je jinak nakloněný — dvě stejné dráhy by splynuly
+   v jednu blikající čáru. */
+@keyframes hub-orb-obeh-pred {
+  from { transform: rotateX(68deg) rotateY(34deg) rotateZ(360deg); }
+  to { transform: rotateX(68deg) rotateY(34deg) rotateZ(0deg); }
+}
+
+/* Světélko na dráze. Naklonění prstence by z něj udělalo čárku, proto se
+   otáčí zpátky: skládání otočení se ruší v obráceném pořadí, takže
+   nejdřív zpět kolem Z a pak kolem X. Doba běhu musí sedět s prstencem,
+   jinak se rozejdou. */
+.hub-orb-obezna::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  background: #d9f6ff;
+  box-shadow: 0 0 10px 2px rgba(53, 196, 240, 0.9);
+}
+
+.hub-orb-obezna--zad::after {
+  animation: hub-orb-tecka-zad 11s linear infinite;
+}
+
+.hub-orb-obezna--pred::after {
+  background: #e6dcff;
+  box-shadow: 0 0 10px 2px rgba(138, 92, 246, 0.9);
+  animation: hub-orb-tecka-pred 8s linear infinite;
+}
+
+@keyframes hub-orb-tecka-zad {
+  from { transform: rotateZ(0deg) rotateX(-74deg); }
+  to { transform: rotateZ(-360deg) rotateX(-74deg); }
+}
+
+@keyframes hub-orb-tecka-pred {
+  from { transform: rotateZ(-360deg) rotateY(-34deg) rotateX(-68deg); }
+  to { transform: rotateZ(0deg) rotateY(-34deg) rotateX(-68deg); }
 }
 
 /* Tenký prstenec kolem jádra, otáčí se pomalu dokola */
 .hub-orb-prstenec {
   position: absolute;
-  inset: 4%;
+  inset: 7%;
   border-radius: 50%;
-  border: 1.5px solid transparent;
-  /* Přechod jen na okraji: dvě vrstvy pozadí, vnitřní srovnaná s podkladem
-     a vnější barevná, oříznuté podle box-u. */
-  background:
-    linear-gradient(var(--bg-base), var(--bg-base)) padding-box,
-    conic-gradient(
-      from 0deg,
-      rgba(53, 196, 240, 0) 0deg,
-      rgba(53, 196, 240, 0.85) 90deg,
-      rgba(138, 92, 246, 0.7) 200deg,
-      rgba(53, 196, 240, 0) 360deg
-    ) border-box;
-  animation: hub-orb-otoc 8s linear infinite;
+  /* Přechod jen na okraji. Dřív to dělaly dvě vrstvy pozadí, vnitřní
+     srovnaná s barvou podkladu — jenže ta je NEPRŮHLEDNÁ a jakmile jádro
+     přestalo být plná koule, prosvítala přes něj jako černé mezikruží.
+     Maska místo toho vnitřek doopravdy vyřízne. */
+  background: conic-gradient(
+    from 0deg,
+    rgba(53, 196, 240, 0) 0deg,
+    rgba(53, 196, 240, 0.95) 80deg,
+    rgba(138, 92, 246, 0.8) 210deg,
+    rgba(53, 196, 240, 0) 360deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2px), #000 calc(100% - 2px));
+  animation: hub-orb-otoc 9s linear infinite;
 }
 
 @keyframes hub-orb-otoc {
   to { transform: rotate(360deg); }
 }
 
-/* Jádro — svítící koule, která nadechuje */
+/* Jádro. Dřív to byla plná lesklá koule — vypadala jako kulička odjinud,
+   protože zbytek aplikace je tmavé sklo se svítícím okrajem. Tohle je
+   tmavý střed prosvícený zevnitř, tedy stejná řeč jako karty kolem. */
 .hub-orb-jadro {
   position: absolute;
-  inset: 20%;
+  inset: 22%;
   border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(53, 196, 240, 0.45);
   background:
-    radial-gradient(circle at 34% 30%, #a8e9ff 0%, #35c4f0 38%, #1d7fd4 72%, #144e9c 100%);
+    radial-gradient(circle at 34% 28%, rgba(190, 240, 255, 0.6) 0%, rgba(66, 190, 240, 0.34) 30%, transparent 62%),
+    radial-gradient(circle at 74% 74%, rgba(138, 92, 246, 0.45) 0%, transparent 58%),
+    /* Střed je tmavý, okraj prosvícený — díky tomu to čte jako sklo
+       s náplní, ne jako díra v pozadí. */
+    radial-gradient(circle at 50% 50%, rgba(11, 22, 50, 0.9) 0%, rgba(16, 42, 88, 0.9) 68%, rgba(46, 150, 210, 0.55) 100%);
   box-shadow:
-    0 0 22px rgba(53, 196, 240, 0.55),
-    0 0 60px rgba(53, 196, 240, 0.35),
-    inset 0 -8px 20px rgba(4, 26, 62, 0.55);
-  animation: hub-orb-dech 3.2s ease-in-out infinite;
+    inset 0 0 20px rgba(120, 220, 255, 0.35),
+    inset 0 -8px 26px rgba(6, 14, 38, 0.6),
+    0 0 34px rgba(53, 196, 240, 0.4);
 }
 
-@keyframes hub-orb-dech {
-  0%, 100% {
-    transform: scale(1);
-    box-shadow:
-      0 0 22px rgba(53, 196, 240, 0.55),
-      0 0 60px rgba(53, 196, 240, 0.35),
-      inset 0 -8px 20px rgba(4, 26, 62, 0.55);
-  }
-  50% {
-    transform: scale(1.06);
-    box-shadow:
-      0 0 34px rgba(53, 196, 240, 0.8),
-      0 0 96px rgba(53, 196, 240, 0.5),
-      inset 0 -8px 20px rgba(4, 26, 62, 0.55);
-  }
+/* Pomalu se převalující světlo uvnitř — dává jádru život i ve chvíli,
+   kdy se nic jiného nehýbe. Rozmazané, ať z toho není vrtule. */
+.hub-orb-plazma {
+  position: absolute;
+  inset: -25%;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    rgba(53, 196, 240, 0.5) 60deg,
+    transparent 150deg,
+    rgba(138, 92, 246, 0.45) 250deg,
+    transparent 330deg
+  );
+  filter: blur(10px);
+  opacity: 0.75;
+  animation: hub-orb-otoc 14s linear infinite;
 }
 
-/* Odlesk nahoře. Dělá z ploché koule kouli — bez něj vypadá jako kruh. */
+/* Odlesk nahoře. Drží dojem, že je střed vypouklý, ne plochý. */
 .hub-orb-lesk {
   position: absolute;
-  top: 25%;
-  left: 31%;
-  width: 20%;
-  height: 14%;
+  top: 16%;
+  left: 24%;
+  width: 26%;
+  height: 18%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.78) 0%, transparent 70%);
-  filter: blur(1px);
-  animation: hub-orb-dech 3.2s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.6) 0%, transparent 70%);
+  filter: blur(2px);
 }
 
 /* Kdo má vypnuté animace, uvidí kruh v klidu. Pulzování přes celou
-   obrazovku je pro část lidí nepříjemné až nesnesitelné. */
+   obrazovku je pro část lidí nepříjemné až nesnesitelné. Prstence
+   zůstanou nakloněné, aby o hloubku nepřišel ani takový pohled. */
 @media (prefers-reduced-motion: reduce) {
+  .hub-orb-zare,
   .hub-orb-vlna,
   .hub-orb-prstenec,
-  .hub-orb-jadro,
-  .hub-orb-lesk {
+  .hub-orb-plazma,
+  .hub-orb-obezna,
+  .hub-orb-obezna::after {
     animation: none;
   }
-  .hub-orb-vlna { opacity: 0.25; }
+  .hub-orb-vlna { opacity: 0.2; }
+  .hub-orb-obezna--zad { transform: rotateX(74deg); }
+  .hub-orb-obezna--pred { transform: rotateX(68deg) rotateY(34deg); }
+  .hub-orb-obezna::after { transform: rotateX(-74deg); }
+  .hub-orb-obezna--pred::after { transform: rotateY(-34deg) rotateX(-68deg); }
 }
 
 /* ------------------------------------------
