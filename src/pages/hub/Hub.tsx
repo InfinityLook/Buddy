@@ -331,21 +331,24 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </button>
         </div>
 
-        {/* Spodní lišta */}
+        {/* Spodní lišta.
+            Hlasový režim se přesunul z prostředního tlačítka sem k ikoně —
+            prostřední místo zabral Social. Zvuky Buddyho se přestěhovaly
+            mezi ostatní přepínače do Nastavení. */}
         <div className="hub-bottom-bar">
           <button
-            className="hub-action-btn-icon hub-action-btn-icon--soon"
-            aria-label="Zvuk (připravuje se)"
-            onClick={() => showToast('Zvuky Buddyho se připravují.')}
+            className={`hub-action-btn-icon ${onTalk ? '' : 'hub-action-btn-icon--soon'}`}
+            aria-label={onTalk ? 'Hlasový režim' : 'Hlasový režim (připravuje se)'}
+            onClick={onTalk ?? (() => showToast('Hlasový režim se připravuje.'))}
           >
-            🔊
+            🎙️
           </button>
 
           <button
-            className={`hub-talk-btn ${onTalk ? '' : 'hub-talk-btn--soon'}`}
-            onClick={onTalk ?? (() => showToast('Hlasový režim se připravuje.'))}
+            className="hub-talk-btn hub-talk-btn--soon"
+            onClick={() => showToast('Social se připravuje — brzy tu potkáš ostatní.')}
           >
-            🎙️ PROMLUV SI SE MNOU
+            👥 SOCIAL
           </button>
 
           <button

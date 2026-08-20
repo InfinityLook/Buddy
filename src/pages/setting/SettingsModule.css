@@ -235,3 +235,21 @@
   box-shadow: var(--shadow-card);
   z-index: 50;
 }
+
+/* Řádek nastavení, které se teprve chystá. Nemá přepínač, takže je
+   ztlumený — ať je na první pohled jasné, že s ním zatím nic neuděláš. */
+.settings-toggle-row--soon {
+  opacity: 0.62;
+}
+
+.settings-badge-soon {
+  margin-left: 0.4rem;
+  padding: 0.08rem 0.35rem;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  font-size: 0.5rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  vertical-align: middle;
+}

@@ -96,6 +96,32 @@ export const SettingsModule: React.FC = () => {
         </form>
       </section>
 
+      {/* Zvuk.
+          Přepínač zvuků Buddyho stával v Hubu ve spodní liště. Patří ale
+          mezi ostatní nastavení, ne mezi tlačítka, kterými se aplikace
+          ovládá — v liště jen zabíral místo. */}
+      <section className="settings-card">
+        <div className="settings-card-head">
+          <span className="settings-card-icon blue" aria-hidden="true">🔊</span>
+          <div>
+            <h2 className="settings-card-title">Zvuk</h2>
+            <p className="settings-card-sub">Jak se Buddy ozývá</p>
+          </div>
+        </div>
+
+        {/* Zatím jen řádek s poznámkou, ne přepínač: přepínat by nebylo co
+            a vypínač, který nic nedělá, je horší než žádný. */}
+        <div className="settings-toggle-row settings-toggle-row--soon">
+          <div className="settings-toggle-text">
+            <span className="settings-toggle-title">
+              Zvuky Buddyho
+              <span className="settings-badge-soon">BRZY</span>
+            </span>
+            <span className="settings-toggle-sub">Ozvučení reakcí a odměn</span>
+          </div>
+        </div>
+      </section>
+
       {/* Zabezpečení */}
       <section className="settings-card">
         <div className="settings-card-head">
