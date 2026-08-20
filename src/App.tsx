@@ -18,7 +18,8 @@ import { startCloudSync } from '@/core/supabase/cloudSync'
 import { signOut, startAuthWatch, useAccount } from '@/core/supabase/auth'
 import { isSupabaseConfigured } from '@/core/supabase/client'
 import { useAuthStore } from '@/core/store/useAuthStore'
-import { setupRoleDevTools } from '@/core/role'
+import { setupRoleDevTools, startRoleSync } from '@/core/role'
+import { startInbox } from '@/social/inbox'
 
 export default function App() {
   const { isAuthed, login, logout } = useAuthStore()
@@ -53,6 +54,11 @@ export default function App() {
     // Cloud je doplněk: bez nastavených proměnných se tiše přeskočí
     // a aplikace jede dál jen nad localStorage.
     startCloudSync()
+    // Role se řídí serverem, ne prohlížečem — od chvíle, kdy se podle ní
+    // pouští moderátor k cizím hlášením, si ji nesmí nikdo přepsat sám.
+    startRoleSync()
+    // Nepřečtené zprávy se hlídají po celou dobu běhu, ne jen v Socialu
+    startInbox()
     // Přidělení role z konzole. Jen ve vývoji — v produkčním buildu se
     // celý blok vyhodí, viz core/role/devTools.ts.
     setupRoleDevTools()

@@ -66,3 +66,23 @@ export interface Vysledek {
   ok: boolean
   chyba?: string
 }
+
+// ==========================================
+// Moderace
+// ==========================================
+
+export type StavHlaseni = 'nevyrizeno' | 'vyreseno' | 'zamitnuto'
+
+export interface Hlaseni {
+  id: string
+  duvod: DuvodNahlaseni
+  poznamka: string | null
+  createdAt: string
+  /** Kdo hlásil a koho — u vlastních hlášení stačí jméno nahlášeného */
+  hlasil: SocialProfil | null
+  nahlaseny: SocialProfil | null
+  /** Text nahlášené zprávy, pokud se hlášení týkalo zprávy */
+  zprava: string | null
+  stav: StavHlaseni
+  vyrizenoAt: string | null
+}

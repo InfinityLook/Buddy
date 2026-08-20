@@ -674,3 +674,23 @@
     margin: 0;
   }
 }
+
+/* Počet čekajících zpráv na tlačítku Social. Sedí na jeho pravém okraji,
+   proto absolutní umístění a záporný posun o půl své šířky. */
+.hub-talk-btn { position: relative; }
+
+.hub-talk-badge {
+  position: absolute;
+  top: -6px;
+  right: 10px;
+  min-width: 20px;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-magenta);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}

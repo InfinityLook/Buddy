@@ -111,6 +111,14 @@ RLS helper functions take **one** argument and fill in `auth.uid()` themselves (
 
 Blocking is symmetric and hides messages on read, so it covers group chats too. Deleting a message is soft (`deleted_at`), because a hard delete would remove the context an answer replies to.
 
+**Reports reach a moderator.** `user_roles` is a separate table with a SELECT policy and *no write policy at all*, so a role can only be granted from the project dashboard — putting `role` on `profiles` would have let anyone set their own, because users may update their own profile row. `jsem_moderator()` gates report reading and resolving, and widens the `messages` and `profiles` SELECT policies just far enough to show the reported message and the two names involved. A moderator still cannot read ordinary private chats; that is asserted in the RLS tests.
+
+`core/role/serverRole.ts` makes the server the authority for roles — the local store became the cache CLAUDE.md always said it would become. A network error deliberately leaves the stored role alone; dropping someone to `user` while offline would take away VIP they paid for.
+
+**Unread messages are tracked app-wide** by `social/inbox.ts`, not only inside an open chat, so the Hub badge is right even when the user is elsewhere. It subscribes with no filter: Realtime applies the same RLS as a normal read, so only messages from the user's own chats arrive.
+
+**Every realtime channel needs a unique name.** `supabase.channel(name)` returns the *existing* channel for a name already in use, and calling `.on()` on an already-subscribed channel throws — which blanked the entire app once the inbox and the Social screen both asked for `moje-zpravy`. `api.ts` appends a counter to every channel name.
+
 `src/social/api.ts` is the only place that talks to Supabase; components receive finished shapes. Realtime subscriptions return an unsubscribe function — `ChatView` must call it, or every visit leaves another open channel.
 
 ### Roles & shop

@@ -21,6 +21,7 @@ export {
 } from './roleUtils'
 export { useRoleStore, useActiveRole, useHasPermission, hasPermissionNow } from './useRoleStore'
 export { setupRoleDevTools } from './devTools'
+export { startRoleSync, nactiRoliZeServeru } from './serverRole'
 export { USER_ROLE } from './user'
 export { VIP_ROLE, VIP_DURATIONS } from './vip'
 export type { VipDuration } from './vip'

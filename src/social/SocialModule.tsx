@@ -1,11 +1,13 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { SocialIcon } from './components/SocialIcon'
 import { PratelePanel } from './components/PratelePanel'
 import { ChatyPanel } from './components/ChatyPanel'
 import { ChatView } from './components/ChatView'
 import { BlokovaniPanel } from './components/BlokovaniPanel'
+import { ModeracePanel } from './components/ModeracePanel'
 import { useSocial } from './useSocial'
+import { nastavOtevrenyChat } from './inbox'
 import './SocialModule.css'
 
 // ==========================================
@@ -20,12 +22,13 @@ import './SocialModule.css'
 // chaty i posílat žádosti komukoli bez skutečného účtu.
 // ==========================================
 
-type Zalozka = 'pratele' | 'chaty' | 'blokovani'
+type Zalozka = 'pratele' | 'chaty' | 'blokovani' | 'hlaseni'
 
 const ZALOZKY: { id: Zalozka; popis: string; ikona: string }[] = [
   { id: 'pratele', popis: 'Přátelé', ikona: 'users' },
   { id: 'chaty', popis: 'Chaty', ikona: 'chat' },
   { id: 'blokovani', popis: 'Blokovaní', ikona: 'block' },
+  { id: 'hlaseni', popis: 'Hlášení', ikona: 'flag' },
 ]
 
 export const SocialModule: React.FC = () => {
@@ -39,6 +42,13 @@ export const SocialModule: React.FC = () => {
     () => stav.chaty.find((ch) => ch.id === otevrenyChat) ?? null,
     [stav.chaty, otevrenyChat]
   )
+
+  // Schránka musí vědět, do kterého chatu se uživatel dívá — zprávy
+  // z otevřeného rozhovoru se do počtu nepřečtených počítat nemají.
+  useEffect(() => {
+    nastavOtevrenyChat(otevrenyChat)
+    return () => nastavOtevrenyChat(null)
+  }, [otevrenyChat])
 
   const cekaZadosti = stav.zadosti.filter((z) => z.smer === 'prichozi').length
   const neprectene = stav.chaty.reduce((soucet, ch) => soucet + ch.neprectene, 0)
@@ -94,6 +104,7 @@ export const SocialModule: React.FC = () => {
           {zalozka === 'pratele' && <PratelePanel stav={stav} onOtevritChat={setOtevrenyChat} />}
           {zalozka === 'chaty' && <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />}
           {zalozka === 'blokovani' && <BlokovaniPanel stav={stav} />}
+          {zalozka === 'hlaseni' && <ModeracePanel stav={stav} />}
         </>
       )}
 

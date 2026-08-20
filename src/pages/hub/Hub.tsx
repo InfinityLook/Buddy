@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useInbox } from '@/social/inbox'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
@@ -46,6 +47,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
   onTalk,
 }) => {
   const navigate = useNavigate()
+  const neprectene = useInbox((stav) => stav.neprectene)
 
   // Načtení gamifikačních dat ze storu
   const { level, xp, streakDays, badges, recordActivity } = useGamificationStore()
@@ -346,6 +348,11 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
           <button className="hub-talk-btn" onClick={() => navigate('/social')}>
             👥 SOCIAL
+            {/* Číslo čekajících zpráv. Bez něj se o nové zprávě uživatel
+                nedozvěděl, dokud Social sám neotevřel. */}
+            {neprectene > 0 && (
+              <span className="hub-talk-badge">{neprectene > 99 ? '99+' : neprectene}</span>
+            )}
           </button>
 
           <button

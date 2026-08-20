@@ -586,3 +586,73 @@
   text-align: center;
   line-height: 1.4;
 }
+
+/* ---------- hlášení ---------- */
+
+.social-hlaseni {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Nevyřízené drží pozornost, vyřízená ustoupí do pozadí */
+.social-hlaseni.is-nevyrizeno { border-color: rgba(245, 158, 11, 0.4); }
+.social-hlaseni.is-vyreseno,
+.social-hlaseni.is-zamitnuto { opacity: 0.62; }
+
+.social-hlaseni-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.social-hlaseni-duvod {
+  font-size: 0.73rem;
+  font-weight: 800;
+  color: var(--accent-orange);
+}
+
+.social-hlaseni-cas {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.social-hlaseni-kdo {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.social-hlaseni-zprava {
+  margin: 0.15rem 0;
+  padding: 0.4rem 0.55rem;
+  border-left: 2px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  /* Nahlášená zpráva může být jedno dlouhé slovo */
+  overflow-wrap: anywhere;
+}
+
+.social-hlaseni-poznamka {
+  margin: 0;
+  font-size: 0.68rem;
+  font-style: italic;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.social-hlaseni-akce { display: flex; gap: 0.4rem; margin-top: 0.2rem; }
+
+.social-hlaseni-stav {
+  font-size: 0.63rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}

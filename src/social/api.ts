@@ -2,6 +2,8 @@ import { supabase } from '@/core/supabase/client'
 import type {
   Chat,
   DuvodNahlaseni,
+  Hlaseni,
+  StavHlaseni,
   MujProfil,
   Pritel,
   SocialProfil,
@@ -488,6 +490,15 @@ export const oznacitPrecteno = async (chatId: string): Promise<void> => {
  * Živé doručování. Vrací funkci, kterou se odběr zruší — bez jejího
  * zavolání by po odchodu z chatu zůstal viset otevřený kanál.
  */
+// Pořadové číslo kanálu.
+//
+// Supabase vrací pro stejné jméno tentýž kanál. Když si o odběr řeknou
+// dvě části aplikace naráz (schránka na pozadí a otevřený Social), druhá
+// dostane kanál, který už běží, a pokus přidat k němu posluchač skončí
+// výjimkou — ta shodí celé vykreslení a zůstane prázdná obrazovka.
+// Každý odběr proto dostane vlastní jméno.
+let poradiKanalu = 0
+
 export const sledovatChat = (chatId: string, prisla: (z: Zprava) => void): (() => void) => {
   // Do místní proměnné, aby si TypeScript udržel jistotu i uvnitř
   // funkce, která se zavolá až později
@@ -495,7 +506,7 @@ export const sledovatChat = (chatId: string, prisla: (z: Zprava) => void): (() =
   if (!klient) return () => {}
 
   const kanal = klient
-    .channel(`chat:${chatId}`)
+    .channel(`chat:${chatId}:${++poradiKanalu}`)
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'messages', filter: `chat_id=eq.${chatId}` },
@@ -534,4 +545,127 @@ export const nahlasit = async (
   })
 
   return error ? chyba(error) : { ok: true }
+}
+
+// ==========================================
+// Moderace
+//
+// Kdo je moderátor, rozhoduje databáze (tabulka user_roles, do které
+// zvenčí nikdo nezapíše). Aplikace se jen ptá — kdyby si někdo přepsal
+// stav v prohlížeči, pravidla ho stejně k cizím hlášením nepustí.
+// ==========================================
+
+export const jsemModerator = async (): Promise<boolean> => {
+  if (!supabase) return false
+
+  const { data, error } = await supabase.rpc('jsem_moderator')
+  return !error && data === true
+}
+
+const DUVOD_POPIS: Record<string, string> = {
+  spam: 'Spam nebo reklama',
+  obtezovani: 'Obtěžování',
+  nevhodny_obsah: 'Nevhodný obsah',
+  jine: 'Jiné',
+}
+
+export const popisDuvodu = (duvod: string): string => DUVOD_POPIS[duvod] ?? duvod
+
+/**
+ * Načte hlášení. Moderátor dostane všechna, běžný uživatel jen svoje —
+ * rozhoduje o tom pravidlo v databázi, ne tenhle dotaz.
+ */
+export const nactiHlaseni = async (): Promise<Hlaseni[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('reports')
+    .select('id, reporter_id, target_user_id, message_id, reason, note, created_at, resolved_at, resolution')
+    .order('created_at', { ascending: false })
+    .limit(100)
+
+  if (error || !data) return []
+
+  const profily = await nactiProfily(
+    data.flatMap((r) => [r.reporter_id, r.target_user_id])
+  )
+
+  // Texty nahlášených zpráv jedním dotazem, ne jedním na hlášení
+  const zpravyIds = data.map((r) => r.message_id).filter((id): id is string => id !== null)
+  const texty = new Map<string, string>()
+
+  if (zpravyIds.length > 0) {
+    const { data: zpravy } = await supabase
+      .from('messages')
+      .select('id, body, deleted_at')
+      .in('id', zpravyIds)
+
+    for (const z of zpravy ?? []) {
+      texty.set(z.id, z.deleted_at ? '(zpráva byla smazána)' : z.body)
+    }
+  }
+
+  return data.map((r) => ({
+    id: r.id,
+    duvod: r.reason as DuvodNahlaseni,
+    poznamka: r.note,
+    createdAt: r.created_at,
+    hlasil: profily.get(r.reporter_id) ?? null,
+    nahlaseny: profily.get(r.target_user_id) ?? null,
+    zprava: r.message_id ? texty.get(r.message_id) ?? '(zpráva už neexistuje)' : null,
+    stav: r.resolved_at === null ? 'nevyrizeno' : (r.resolution as StavHlaseni) ?? 'vyreseno',
+    vyrizenoAt: r.resolved_at,
+  }))
+}
+
+export const vyriditHlaseni = async (
+  id: string,
+  vysledek: 'vyreseno' | 'zamitnuto'
+): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase
+    .from('reports')
+    .update({ resolved_at: new Date().toISOString(), resolved_by: ja, resolution: vysledek })
+    .eq('id', id)
+
+  return error ? chyba(error) : { ok: true }
+}
+
+// ==========================================
+// Živé doručování napříč všemi chaty
+//
+// Odběr uvnitř otevřeného rozhovoru nestačí: kdo je jinde v aplikaci,
+// se o nové zprávě nedozví. Tenhle odběr běží po celou dobu, co je
+// uživatel přihlášený.
+//
+// Filtr na konkrétní chat se schválně nenastavuje. Realtime v Supabase
+// uplatňuje stejná pravidla jako běžné čtení, takže se ke klientovi
+// dostanou jen zprávy z chatů, kterých je členem — a jen ty, které smí
+// vidět (blokovaní se nepočítají).
+// ==========================================
+
+export const sledovatVsechnyZpravy = (prisla: (z: Zprava) => void): (() => void) => {
+  const klient = supabase
+  if (!klient) return () => {}
+
+  const kanal = klient
+    .channel(`moje-zpravy:${++poradiKanalu}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'messages' },
+      (payload) => {
+        const radek = payload.new as Parameters<typeof zpravaZRadku>[0] | null
+        if (radek?.id) prisla(zpravaZRadku(radek))
+      }
+    )
+    .subscribe()
+
+  return () => {
+    void klient.removeChannel(kanal)
+  }
 }

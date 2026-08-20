@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAccount } from '@/core/supabase/auth'
 import * as api from './api'
+import { prepocitat } from './inbox'
 import type { Chat, MujProfil, Pritel, SocialProfil, Zadost } from './types'
 
 // ==========================================
@@ -22,6 +23,7 @@ export const useSocial = () => {
   const [chaty, setChaty] = useState<Chat[]>([])
   const [nacita, setNacita] = useState(true)
   const [hlaska, setHlaska] = useState<string | null>(null)
+  const [moderator, setModerator] = useState(false)
 
   const maUcet = status === 'signed-in'
 
@@ -36,12 +38,13 @@ export const useSocial = () => {
       return
     }
 
-    const [p, pr, z, b, ch] = await Promise.all([
+    const [p, pr, z, b, ch, mod] = await Promise.all([
       api.nactiMujProfil(),
       api.nactiPratele(),
       api.nactiZadosti(),
       api.nactiBloky(),
       api.nactiChaty(),
+      api.jsemModerator(),
     ])
 
     setProfil(p)
@@ -49,12 +52,27 @@ export const useSocial = () => {
     setZadosti(z)
     setBloky(b)
     setChaty(ch)
+    setModerator(mod)
     setNacita(false)
   }, [maUcet])
 
   useEffect(() => {
     void obnovit()
   }, [obnovit])
+
+  // Živý seznam chatů. Bez tohohle se nová zpráva objevila v seznamu až
+  // po jeho ručním znovuotevření — uživatel viděl starý stav a nevěděl
+  // o tom.
+  useEffect(() => {
+    if (!maUcet) return
+
+    const zrusit = api.sledovatVsechnyZpravy(() => {
+      void api.nactiChaty().then(setChaty)
+      void prepocitat()
+    })
+
+    return zrusit
+  }, [maUcet])
 
   // Každá akce se chová stejně: provede se, ohlásí výsledek a načte
   // stav znovu. Díky tomu nemůže UI ukazovat něco jiného než databáze.
@@ -70,6 +88,7 @@ export const useSocial = () => {
 
   return {
     maUcet,
+    moderator,
     status,
     mujId,
     profil,
