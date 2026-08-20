@@ -46,6 +46,7 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-mind-map-storage', storage: 'secure', label: 'Mind Map' },
   { key: 'schoolbuddy-file-manager-storage', storage: 'secure', label: 'File Manager' },
   { key: 'schoolbuddy-document-editor-storage', storage: 'secure', label: 'Textový editor' },
+  { key: 'schoolbuddy-finance-storage', storage: 'secure', label: 'Finance' },
   { key: 'schoolbuddy-examprep-storage', storage: 'secure', label: 'Maturitní centrum' },
   { key: 'schoolbuddy-pomodoro-storage', storage: 'secure', label: 'Pomodoro' },
   { key: 'schoolbuddy-math-solver-storage', storage: 'secure', label: 'Math Solver' },

@@ -40,4 +40,7 @@ export const MINI_APP_REGISTRY: Record<string, LazyExoticComponent<React.Compone
   'document-editor': lazy(() =>
     import('../../miniapps/document-editor/DocumentEditor').then((m) => ({ default: m.DocumentEditor }))
   ),
+  'finance': lazy(() =>
+    import('../../miniapps/finance/Finance').then((m) => ({ default: m.Finance }))
+  ),
 }

@@ -83,6 +83,8 @@ export const AppIcon: React.FC<AppIconProps> = ({ name, size = 20, className }) 
     // kreslil prázdný barevný čtverec — `default` níže vrací null.
     case 'exam-prep':
       return <svg {...common}><path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5v-5.5"/><path d="M22 8v6"/></svg>
+    case 'finance':
+      return <svg {...common}><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="17" cy="15" r="1.5"/></svg>
     default:
       return null
   }
