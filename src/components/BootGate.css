@@ -13,11 +13,26 @@
   gap: 1rem;
   padding: 1.5rem calc(1.5rem + env(safe-area-inset-right)) calc(1.5rem + env(safe-area-inset-bottom))
     calc(1.5rem + env(safe-area-inset-left));
-  background:
+  /* Fotka s lampami se sem přestěhovala z Hubu. Tady dává smysl:
+     obrazovka je na pár vteřin, nic se přes ni nečte a maskot na ní
+     stojí v prostředí, ne na prázdném pozadí.
+     Když soubor chybí, zůstanou vidět přechody pod ním. */
+  background-color: var(--bg-base);
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(5, 8, 18, 0.88) 0%,
+      rgba(5, 8, 18, 0.45) 35%,
+      rgba(5, 8, 18, 0.55) 70%,
+      rgba(5, 8, 18, 0.92) 100%
+    ),
+    url('/backgrounds/hub-bg.png'),
     radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.22) 0%, transparent 40%),
     radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.18) 0%, transparent 35%),
-    radial-gradient(circle at 50% 95%, rgba(236, 72, 153, 0.13) 0%, transparent 45%),
-    var(--bg-base);
+    linear-gradient(180deg, #060a16 0%, #0b1430 48%, #101c3d 100%);
+  background-size: cover;
+  background-position: center bottom;
+  background-repeat: no-repeat;
   color: var(--text-primary);
 }
 
@@ -32,8 +47,8 @@
 }
 
 .boot-gate-mascot {
-  width: 128px;
-  height: 128px;
+  width: 168px;
+  height: 168px;
   object-fit: contain;
   filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
   animation: boot-gate-float 2.4s ease-in-out infinite;

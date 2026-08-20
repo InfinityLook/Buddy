@@ -18,7 +18,6 @@ import {
   listSnapshots,
   saveSnapshot,
 } from '@/core/utils/backupHistory'
-import mascot from '@/assets/mascot.png'
 import './HubModule.css'
 
 interface HubModuleProps {
@@ -302,8 +301,18 @@ export const HubModule: React.FC<HubModuleProps> = ({
         </div>
 
         {/* Maskot */}
-        <section className="hub-pet-section">
-          <img src={mascot} alt="Buddy" className="hub-pet-img" />
+        {/* Pulzující kruh na místě, kde dřív seděl maskot.
+            Maskot zůstal na úvodní obrazovce — tam má kolem sebe
+            prostředí a je vidět celý, kdežto tady se na malém displeji
+            mačkal a bral místo dlaždicím. */}
+        <section className="hub-orb-section" aria-hidden="true">
+          <div className="hub-orb">
+            <span className="hub-orb-vlna" />
+            <span className="hub-orb-vlna hub-orb-vlna--druha" />
+            <span className="hub-orb-prstenec" />
+            <span className="hub-orb-jadro" />
+            <span className="hub-orb-lesk" />
+          </div>
         </section>
 
         {/* Spodní mřížka (Apps, Play, Library) */}

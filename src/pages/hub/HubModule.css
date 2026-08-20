@@ -12,32 +12,31 @@
   overflow: hidden;
 }
 
-/* Fotka pozadí. Pokud soubor chybí, zůstane vidět gradient pod ní. */
+/* Pozadí Hubu.
+   Fotka s lampami se přestěhovala na úvodní obrazovku — v Hubu soupeřila
+   o pozornost s dlaždicemi a pod ně stejně skoro nebylo vidět. Zůstal
+   klidný přechod, na kterém karty a modrý kruh vyniknou. */
 .hub-bg {
   position: absolute;
   inset: 0;
   background-color: var(--bg-base);
   background-image:
-    url('/backgrounds/hub-bg.png'),
-    radial-gradient(circle at 50% 82%, rgba(245, 158, 11, 0.18) 0%, transparent 42%),
-    radial-gradient(circle at 50% 18%, rgba(53, 196, 240, 0.12) 0%, transparent 55%),
-    linear-gradient(180deg, #060a16 0%, #0b1430 48%, #101c3d 100%);
-  background-size: cover;
-  background-position: center bottom;
-  background-repeat: no-repeat;
+    radial-gradient(circle at 50% 62%, rgba(53, 196, 240, 0.16) 0%, transparent 48%),
+    radial-gradient(circle at 50% 14%, rgba(138, 92, 246, 0.14) 0%, transparent 52%),
+    linear-gradient(180deg, #060a16 0%, #0a1128 46%, #0d1633 100%);
 }
 
-/* Ztmavení nahoře a dole, aby karty a text zůstaly čitelné */
+/* Jemné ztmavení okrajů. Bez fotky stačí mnohem míň než dřív — silný
+   překryv by teď jen ubral kontrast čistému přechodu pod ním. */
 .hub-bg-overlay {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(5, 8, 18, 0.92) 0%,
-    rgba(5, 8, 18, 0.7) 22%,
-    rgba(5, 8, 18, 0.28) 45%,
-    rgba(5, 8, 18, 0.35) 68%,
-    rgba(5, 8, 18, 0.85) 100%
+    rgba(5, 8, 18, 0.55) 0%,
+    rgba(5, 8, 18, 0.12) 26%,
+    rgba(5, 8, 18, 0.12) 70%,
+    rgba(5, 8, 18, 0.6) 100%
   );
 }
 
@@ -319,35 +318,140 @@
 /* ------------------------------------------
    MASKOT
    ------------------------------------------ */
-.hub-pet-section {
+/* ------------------------------------------
+   PULZUJÍCÍ KRUH
+
+   Nahradil maskota, který se na malém displeji mačkal a bral místo
+   dlaždicím. Kruh se přizpůsobí čemukoli: velikost se odvozuje od výšky,
+   kterou mu flexbox nechá, ne od pevného čísla.
+   ------------------------------------------ */
+
+.hub-orb-section {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex: 1 1 auto;
+  /* Sekce se smí zmenšit pod velikost obsahu — bez toho by vytlačila
+     spodní lištu z obrazovky, stejná past jako u maskota. Kruh si sám
+     hlídá, aby úplně nezmizel (min-height níž). */
   min-height: 0;
   margin: 0.15rem 0;
-  /* Pojistka: maskot nesmí přesahovat přes sousední dlaždice, ani kdyby
-     se do sekce nevešel. */
-  overflow: hidden;
 }
 
-/* Maskot se musí vejít do místa, které mu flexbox nechá.
-   Dřív měl výšku odvozenou ze šířky (width: min(260px, 66%); height: auto)
-   a svou sekci přerůstal — na širším telefonu vyšel 260x390 px do sekce
-   vysoké 217 px a přetékal přes spodní lištu. Řídící rozměr je proto
-   výška sekce; šířka se dopočítá z poměru stran a max-width ji zastropuje,
-   aby maskot na vysokém displeji nebyl přes celou obrazovku. */
-.hub-pet-img {
+/* Velikost řídí VÝŠKA, šířku dopočítá poměr stran.
+   Strop je taky na výšce, ne na šířce: max-width by šířku uřízl nezávisle
+   na výšce a z kruhu by byla elipsa (198x210 na běžném telefonu).
+   Omezení podle šířky obrazovky je proto schované v max-height jako vw. */
+.hub-orb {
+  position: relative;
   height: 100%;
-  width: auto;
-  max-width: min(260px, 66%);
-  max-height: 42vh;
-  /* Bez tohohle by obrázek jako flexový prvek odmítl klesnout pod svou
-     vlastní velikost a celé zmenšování by nefungovalo. */
-  min-height: 0;
-  object-fit: contain;
-  filter: drop-shadow(0 18px 26px rgba(0, 0, 0, 0.55));
+  aspect-ratio: 1;
+  max-height: min(210px, 52vw);
+  /* Na krátké obrazovce by sekce spadla na nulu a kruh by zmizel úplně.
+     Tohle je nejmenší velikost, u které ještě něco znamená; stránka se
+     případně doroluje a přilepená lišta zůstane na svém místě. */
+  min-height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Vlny, které se rozbíhají ven. Dvě se stejnou animací posunutou
+   o polovinu — vypadá to jako souvislý puls, ne jako opakovaný záblesk. */
+.hub-orb-vlna {
+  position: absolute;
+  inset: 12%;
+  border-radius: 50%;
+  border: 1px solid rgba(53, 196, 240, 0.55);
+  animation: hub-orb-vlna 3.2s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+}
+
+.hub-orb-vlna--druha { animation-delay: 1.6s; }
+
+@keyframes hub-orb-vlna {
+  0% { transform: scale(0.72); opacity: 0.75; }
+  70% { opacity: 0.12; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+
+/* Tenký prstenec kolem jádra, otáčí se pomalu dokola */
+.hub-orb-prstenec {
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  /* Přechod jen na okraji: dvě vrstvy pozadí, vnitřní srovnaná s podkladem
+     a vnější barevná, oříznuté podle box-u. */
+  background:
+    linear-gradient(var(--bg-base), var(--bg-base)) padding-box,
+    conic-gradient(
+      from 0deg,
+      rgba(53, 196, 240, 0) 0deg,
+      rgba(53, 196, 240, 0.85) 90deg,
+      rgba(138, 92, 246, 0.7) 200deg,
+      rgba(53, 196, 240, 0) 360deg
+    ) border-box;
+  animation: hub-orb-otoc 8s linear infinite;
+}
+
+@keyframes hub-orb-otoc {
+  to { transform: rotate(360deg); }
+}
+
+/* Jádro — svítící koule, která nadechuje */
+.hub-orb-jadro {
+  position: absolute;
+  inset: 20%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, #a8e9ff 0%, #35c4f0 38%, #1d7fd4 72%, #144e9c 100%);
+  box-shadow:
+    0 0 22px rgba(53, 196, 240, 0.55),
+    0 0 60px rgba(53, 196, 240, 0.35),
+    inset 0 -8px 20px rgba(4, 26, 62, 0.55);
+  animation: hub-orb-dech 3.2s ease-in-out infinite;
+}
+
+@keyframes hub-orb-dech {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 22px rgba(53, 196, 240, 0.55),
+      0 0 60px rgba(53, 196, 240, 0.35),
+      inset 0 -8px 20px rgba(4, 26, 62, 0.55);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow:
+      0 0 34px rgba(53, 196, 240, 0.8),
+      0 0 96px rgba(53, 196, 240, 0.5),
+      inset 0 -8px 20px rgba(4, 26, 62, 0.55);
+  }
+}
+
+/* Odlesk nahoře. Dělá z ploché koule kouli — bez něj vypadá jako kruh. */
+.hub-orb-lesk {
+  position: absolute;
+  top: 25%;
+  left: 31%;
+  width: 20%;
+  height: 14%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.78) 0%, transparent 70%);
+  filter: blur(1px);
+  animation: hub-orb-dech 3.2s ease-in-out infinite;
+}
+
+/* Kdo má vypnuté animace, uvidí kruh v klidu. Pulzování přes celou
+   obrazovku je pro část lidí nepříjemné až nesnesitelné. */
+@media (prefers-reduced-motion: reduce) {
+  .hub-orb-vlna,
+  .hub-orb-prstenec,
+  .hub-orb-jadro,
+  .hub-orb-lesk {
+    animation: none;
+  }
+  .hub-orb-vlna { opacity: 0.25; }
 }
 
 /* ------------------------------------------
@@ -526,8 +630,8 @@
     gap: 0.65rem;
   }
 
-  .hub-pet-img {
-    width: min(200px, 52%);
+  .hub-orb {
+    max-height: min(165px, 46vw);
   }
 
   .hub-btn-square {
@@ -659,18 +763,18 @@
 /* ------------------------------------------
    NÍZKÉ DISPLEJE
    Na krátké obrazovce se musí ustoupit, jinak spodní lišta skončí
-   pod ohybem. Ubírá se tam, kde to nejmíň bolí: mezery a maskot.
+   pod ohybem. Ubírá se tam, kde to nejmíň bolí: mezery a kruh.
    ------------------------------------------ */
 @media (max-height: 780px) {
   .hub-container {
     gap: 0.6rem;
   }
 
-  .hub-pet-img {
-    max-height: 30vh;
+  .hub-orb {
+    max-height: min(30vh, 46vw);
   }
 
-  .hub-pet-section {
+  .hub-orb-section {
     margin: 0;
   }
 }
