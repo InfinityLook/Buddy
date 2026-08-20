@@ -24,7 +24,7 @@ Run `npm run typecheck` before considering a change done — it is the only auto
 
 ### Routing & auth gate
 
-`src/App.tsx` is the single `BrowserRouter` with nine routes: `/` (Login), `/hub`, `/apps`, `/profil`, `/odmeny` (Rewards — level, streak and the full badge list; `src/pages/reward/`), `/nastaveni` (`src/pages/setting/`), `/obchod` (Shop; `src/pages/shop/`), `/social` (`src/social/`) and `/hra` (the 3D game hub; `src/game/`, the only `React.lazy` route — see **Game hub** below). Every route except `/` redirects to `/` unless `useAuthStore().isAuthed` is true — there's no route-level guard component, the check is inlined per-`<Route>`. PWA update registration (`setupPWAUpdates`) is kicked off once from `App.tsx`'s `useEffect`.
+`src/App.tsx` is the single `BrowserRouter` with ten routes: `/` (Login), `/hub`, `/apps`, `/profil`, `/odmeny` (Rewards — level, streak and the full badge list; `src/pages/reward/`), `/nastaveni` (`src/pages/setting/`), `/obchod` (Shop; `src/pages/shop/`), `/social` (`src/social/`), `/hra` (the 3D game hub; `src/game/`, the only `React.lazy` route — see **Game hub** below) and `/admin` (Admin panel; `src/pages/admin/`, gated on more than sign-in — see **Admin panel** below). Every route except `/` redirects to `/` unless `useAuthStore().isAuthed` is true — there's no route-level guard component, the check is inlined per-`<Route>`. PWA update registration (`setupPWAUpdates`) is kicked off once from `App.tsx`'s `useEffect`.
 
 ### State: Zustand + encrypted localStorage
 
@@ -141,6 +141,16 @@ Credits live in `useWalletStore` (`core/store/`, because they are spent outside 
 
 **No purchase completes today, on purpose.** There is no payment gateway, and money-backed state cannot be decided by the browser: `secureStorage` is XOR obfuscation, so a user can hand-edit their own VIP or balance. Every purchase therefore funnels through the single `purchase()` in `useShop.ts`, which returns `{ status: 'unavailable' }` for anything costing money — wiring a gateway means changing that one function, not the components. For the same reason both `schoolbuddy-role-storage` and `schoolbuddy-wallet-storage` are `restorable: false` in `BACKUP_STORES`: an edited backup must not be able to grant VIP. When a real backend arrives, these stores become a *cache* of what the server says, never the authority.
 
+### Admin panel (`src/pages/admin/`)
+
+`/nastaveni` shows an "Administrace" section, visible only with the `admin.panel` permission (so only `ADMIN_ROLE`), linking to `/admin`. It's the app's **first route-level permission gate** — every other route only checks `dovnitr` (signed in), this one also checks `useHasPermission('admin.panel')` in `App.tsx` and redirects a non-admin to `/nastaveni`. That gate protects the UI only, same warning as everywhere else in `core/role/`: a user can edit their own client-side role. What actually protects the data is that every call the panel makes re-checks on the server — `jsem_admin()` (SQL, `SECURITY DEFINER`) backs both `admin_prehled()` and the reports RLS it shares with moderators, so a spoofed local role sees an empty panel, not real data.
+
+**`jsem_admin()` is deliberately its own function, not a reuse of `jsem_moderator()`.** The latter passes both `'moderator'` and `'admin'` — right for reading reports, wrong for `admin_prehled()`'s database-wide aggregates (total accounts, messages sent), which a moderator must not get just because they can also see reports.
+
+Three tabs: **Přehled** (status numbers from `admin_prehled()`, plus a live graph — see below), **SocialReport** (reuses `social/api.ts`'s `nactiHlaseni`/`vyriditHlaseni`/`popisDuvodu` directly rather than duplicating them, keeping "api.ts is the only place Social talks to Supabase" true; each report shows the reported person's raw Supabase id, not just their display name, since a future ban will need the id and a display name can be changed by its owner at any time), and **Konzole** (a command registry in `commands.ts` — one command today, `appinfo`; adding another is one entry there, not a change to `KonzolePanel.tsx`, which only renders whatever a command returns).
+
+**The "live parameters" graph only has real data for one of its three sources.** Supabase and Vercel both expose load/usage metrics only through their own management APIs, which require a secret access token — and a secret token embedded in this client-only PWA's JS bundle is readable by anyone who opens the network tab, admin-role gate or not (same class of problem as the money-backed stores above, one step worse: this isn't the user's own state, it's a credential to a shared account). Wiring those up for real means a small server component holding the token server-side (a Vercel/Supabase function the panel calls, authenticated), which is a deliberately unbuilt, separate decision from the panel itself. The "Aplikace" source is real and live today — `metrics.ts` samples only what the browser can safely expose about itself (JS heap, Storage API quota, Cache Storage count, online status, build version) on a 3-second timer, capped to the last 20 samples so the sparkline in `PrehledPanel.tsx` shows a trend without the array growing forever.
+
 ### Game hub (`src/game/`)
 
 `/hra` renders a procedurally generated 3D medieval city (Three.js) that acts as a launcher: the arena, castle, market and gates are four clickable regions. Nothing behind them exists yet — every click opens a panel saying so. Wiring a region up means changing `otevriCast` in `GameModule.tsx`, nothing else.
@@ -202,7 +212,7 @@ Every full-height page pairs `height: 100vh` with `height: 100dvh` — keep both
 ### Directory map
 
 - `src/core/` — cross-app state (`store/`), roles (`role/`), hooks, utils, types. Shared infrastructure only.
-- `src/pages/` — route-level screens (`login/`, `hub/`, `app/`, `profil/`, `reward/`, `setting/`, `shop/`), each with its own `components/` subfolder and a single hand-written `.css` file (no CSS modules/CSS-in-JS).
+- `src/pages/` — route-level screens (`login/`, `hub/`, `app/`, `profil/`, `reward/`, `setting/`, `shop/`, `admin/`), each with its own `components/` subfolder and a single hand-written `.css` file (no CSS modules/CSS-in-JS).
 - `src/game/` — the 3D game hub behind `/hra`; `scene/` holds one builder per part of the city.
 - `src/social/` — friends, chats and blocking behind `/social`; `api.ts` is the only Supabase caller.
 - `src/miniapps/` — the individual study tools (see above).
