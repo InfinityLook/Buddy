@@ -28,6 +28,7 @@ const XP_SOURCES: XpSource[] = [
   { appId: 'mind-map', icon: '🗺️', title: 'Přidej uzel do myšlenkové mapy', reward: '+5 XP' },
   { appId: 'file-manager', icon: '📁', title: 'Přidej soubor', reward: '+5 XP' },
   { appId: 'finance', icon: '💸', title: 'Zapiš příjem nebo výdaj ve Financích', reward: '+3 XP' },
+  { appId: 'form-check', icon: '🏋️', title: 'Dokonči trénink ve Form Checku', reward: '+1 XP / opakování (max 30)' },
   { appId: 'flashcards', icon: '🧠', title: 'Označ kartičku jako naučenou', reward: '+3 XP' },
   { appId: 'math-solver', icon: '🧮', title: 'Spočítej výraz v Math Solveru', reward: '+2 XP' },
 ]

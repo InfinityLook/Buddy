@@ -16,6 +16,7 @@ export type ActivityKind =
   | 'file'
   | 'calculation'
   | 'transaction'
+  | 'workout'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -48,6 +49,7 @@ const DEFAULT_BADGES: Badge[] = [
   { id: 'writer', title: 'Spisovatel', description: 'Ulož 5 dokumentů v textovém editoru.', icon: '✍️', unlockedAt: null },
   { id: 'streak_7', title: 'Týden v kuse', description: 'Udržuj studijní streak 7 dní v řadě.', icon: '📅', unlockedAt: null },
   { id: 'budget_master', title: 'Rozpočtář', description: 'Zaznamenej 15 příjmů nebo výdajů ve Financích.', icon: '💰', unlockedAt: null },
+  { id: 'fitness_starter', title: 'Rozcvička', description: 'Dokonči 5 tréninkových sezení ve Form Checku.', icon: '🏋️', unlockedAt: null },
   { id: 'level_5', title: 'Zkušený', description: 'Dostaň se na úroveň 5.', icon: '⭐', unlockedAt: null },
   { id: 'xp_1000', title: 'Tisícovka', description: 'Nasbírej celkem 1000 XP.', icon: '💎', unlockedAt: null },
 ]
@@ -59,6 +61,7 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   mindNode: { badgeId: 'mind_mapper', needed: 10 },
   document: { badgeId: 'writer', needed: 5 },
   transaction: { badgeId: 'budget_master', needed: 15 },
+  workout: { badgeId: 'fitness_starter', needed: 5 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není

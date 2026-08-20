@@ -43,4 +43,7 @@ export const MINI_APP_REGISTRY: Record<string, LazyExoticComponent<React.Compone
   'finance': lazy(() =>
     import('../../miniapps/finance/Finance').then((m) => ({ default: m.Finance }))
   ),
+  'form-check': lazy(() =>
+    import('../../miniapps/form-check/FormCheck').then((m) => ({ default: m.FormCheck }))
+  ),
 }
