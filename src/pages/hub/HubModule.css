@@ -318,15 +318,28 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
   margin: 0.15rem 0;
+  /* Pojistka: maskot nesmí přesahovat přes sousední dlaždice, ani kdyby
+     se do sekce nevešel. */
+  overflow: hidden;
 }
 
+/* Maskot se musí vejít do místa, které mu flexbox nechá.
+   Dřív měl výšku odvozenou ze šířky (width: min(260px, 66%); height: auto)
+   a svou sekci přerůstal — na širším telefonu vyšel 260x390 px do sekce
+   vysoké 217 px a přetékal přes spodní lištu. Řídící rozměr je proto
+   výška sekce; šířka se dopočítá z poměru stran a max-width ji zastropuje,
+   aby maskot na vysokém displeji nebyl přes celou obrazovku. */
 .hub-pet-img {
-  width: min(260px, 66%);
-  height: auto;
+  height: 100%;
+  width: auto;
+  max-width: min(260px, 66%);
   max-height: 42vh;
+  /* Bez tohohle by obrázek jako flexový prvek odmítl klesnout pod svou
+     vlastní velikost a celé zmenšování by nefungovalo. */
+  min-height: 0;
   object-fit: contain;
   filter: drop-shadow(0 18px 26px rgba(0, 0, 0, 0.55));
 }
@@ -334,12 +347,21 @@
 /* ------------------------------------------
    SPODNÍ LIŠTA
    ------------------------------------------ */
+/* Lišta se přilepí ke spodnímu okraji viditelné části.
+   Na telefonu se systémovými gesty ubere pruh dole kus výšky, kterou
+   env(safe-area-inset-bottom) na Androidu často hlásí jako nulovou —
+   obsah se pak vykreslí pod něj a lišta zmizí za okrajem. Takhle
+   zůstane na dosah, ať se stane cokoli. */
 .hub-bottom-bar {
   display: flex;
   align-items: center;
   gap: 0.7rem;
   margin-top: auto;
-  padding-top: 0.3rem;
+  padding-top: 0.35rem;
+  padding-bottom: 0.15rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 .hub-action-btn-icon {
@@ -608,4 +630,24 @@
 .hub-snapshot-delete:active {
   color: var(--accent-red);
   border-color: rgba(239, 68, 68, 0.45);
+}
+
+
+/* ------------------------------------------
+   NÍZKÉ DISPLEJE
+   Na krátké obrazovce se musí ustoupit, jinak spodní lišta skončí
+   pod ohybem. Ubírá se tam, kde to nejmíň bolí: mezery a maskot.
+   ------------------------------------------ */
+@media (max-height: 780px) {
+  .hub-container {
+    gap: 0.6rem;
+  }
+
+  .hub-pet-img {
+    max-height: 30vh;
+  }
+
+  .hub-pet-section {
+    margin: 0;
+  }
 }
