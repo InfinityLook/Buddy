@@ -158,6 +158,18 @@ Two non-obvious things about the look. The sky sphere renders with `depthTest: f
 
 Camera distance is computed from the aspect ratio (`fitDistance`), never hard-coded: a portrait phone's horizontal field of view is far narrower than a desktop's, and a fixed distance that framed the city on a monitor put the camera inside the ring of mountains on a phone. The pitch matters too — too steep and the horizon leaves the frame entirely, so what looks like sky is actually fogged ground.
 
+### Form Check (`src/miniapps/form-check/`)
+
+A rep counter that watches the camera and counts squats via on-device pose detection — `@mediapipe/tasks-vision` (PoseLandmarker, WASM), no server ever sees the video. It's the template for "heavy on-device ML asset" if another miniapp needs one:
+
+**The model and WASM runtime are self-hosted under `public/mediapipe/`, not fetched from Google's CDN**, so the app never depends on an external host staying up — same reasoning as "runs completely without the cloud" elsewhere in this file. That's ~28 MB (a 5.5 MB model, plus a SIMD WASM build and a no-SIMD fallback for older browsers) and it must **never** reach the install precache — nobody who skips this miniapp should download it. `vite.config.ts`'s `globIgnores` excludes `mediapipe/**`, and a `CacheFirst` `runtimeCaching` route fetches it lazily the first time Form Check actually opens, then serves it from the browser's cache offline after. Before assuming a library needs every file it ships, check what it actually requests over the network — the package here ships a third WASM variant (`vision_wasm_module_internal.*`) that `FilesetResolver` never asks for, confirmed by watching requests; it never went into the repo, saving another ~12 MB for nothing.
+
+The camera + ML pipeline lives entirely outside React, same shape as the Game hub's `useGameScene.ts`: `usePoseEngine.ts` owns the `<video>`, the MediaStream, the `PoseLandmarker` instance and a `requestAnimationFrame` loop, and only pushes rep count / status / feedback into React state. Cleanup on unmount stops every media track and calls `.close()` on the landmarker — skip that and the camera keeps recording in the background after the user navigates away.
+
+Rep-counting and posture math (`poseMath.ts`) are pure functions of landmark coordinates, deliberately kept free of the camera and of React, so they can be checked against made-up coordinates without a browser. The squat state machine needs a **gap between its two angle thresholds** (110°/160°, not one shared threshold) — without it, angle noise right at a single boundary counts a dozen reps a second instead of one. A rep counts on the way back *up*, not going down, so an unfinished squat never scores. Posture feedback ("narovnej záda") only fires during the down phase; everyone leans forward naturally at the top of a squat, and flagging that as wrong would just be noise.
+
+Detection picks whichever side of the body (left/right) has higher landmark visibility each frame — a phone propped up for a side-on view of a squat always has one side partly self-occluded, and the model's guess for the hidden side is worse than for the visible one.
+
 ### Backup & restore
 
 `core/utils/backup.ts` is the only way a user can get their data off a device — there is no backend. `BACKUP_STORES` is a hand-maintained catalogue of every persisted key; `collectFullBackup()` reads them into one versioned envelope (`format`/`version`/`createdAt`/`appVersion`/`data`) and `restoreFullBackup()` writes them back, recognising the pre-catalogue `{ apps: [...] }` format so older backups keep working. `backupValidation.ts` validates only the envelope — each store re-validates its own contents on rehydrate.
