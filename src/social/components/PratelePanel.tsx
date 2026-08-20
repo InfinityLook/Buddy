@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { SocialIcon } from './SocialIcon'
+import { SocialAvatar } from './SocialAvatar'
 import * as api from '../api'
 import type { SocialStav } from '../useSocial'
 import type { SocialProfil } from '../types'
@@ -14,6 +15,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
   const [nalezeny, setNalezeny] = useState<SocialProfil | null>(null)
   const [hleda, setHleda] = useState(false)
   const [potiz, setPotiz] = useState<string | null>(null)
+  const [zkopirovano, setZkopirovano] = useState(false)
 
   const prichozi = stav.zadosti.filter((z) => z.smer === 'prichozi')
   const odchozi = stav.zadosti.filter((z) => z.smer === 'odchozi')
@@ -45,6 +47,10 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
     try {
       await navigator.clipboard.writeText(api.formatujKod(stav.profil.friendCode))
       stav.rekni('Kód zkopírován.')
+      // Ikona se na chvíli překlopí na fajfku — vizuální potvrzení hned
+      // u tlačítka, ne jen v hlášce dole, na kterou člověk nemusí koukat.
+      setZkopirovano(true)
+      window.setTimeout(() => setZkopirovano(false), 1400)
     } catch {
       // Schránka bez povolení nebo v nezabezpečeném kontextu — kód je
       // stejně vidět na obrazovce, takže to není konec světa.
@@ -61,8 +67,12 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
           <span className="social-code">
             {stav.profil ? api.formatujKod(stav.profil.friendCode) : '········'}
           </span>
-          <button className="social-icon-btn" onClick={kopirovatKod} aria-label="Zkopírovat kód">
-            <SocialIcon name="copy" size={16} />
+          <button
+            className={`social-icon-btn ${zkopirovano ? 'social-icon-btn--ano' : ''}`}
+            onClick={kopirovatKod}
+            aria-label="Zkopírovat kód"
+          >
+            <SocialIcon name={zkopirovano ? 'check' : 'copy'} size={16} />
           </button>
         </div>
         <p className="social-hint">
@@ -94,9 +104,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
 
         {nalezeny && (
           <div className="social-row">
-            <span className="social-avatar" aria-hidden="true">
-              {nalezeny.displayName.charAt(0).toUpperCase()}
-            </span>
+            <SocialAvatar id={nalezeny.id} jmeno={nalezeny.displayName} />
             <span className="social-row-name">{nalezeny.displayName}</span>
             <button
               className="social-btn social-btn--small"
@@ -124,9 +132,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
           <span className="social-card-label">ŽÁDOSTI ({prichozi.length})</span>
           {prichozi.map((z) => (
             <div key={z.id} className="social-row">
-              <span className="social-avatar" aria-hidden="true">
-                {z.profil.displayName.charAt(0).toUpperCase()}
-              </span>
+              <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} pulzuje />
               <span className="social-row-name">{z.profil.displayName}</span>
               <button
                 className="social-icon-btn social-icon-btn--ano"
@@ -152,9 +158,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
           <span className="social-card-label">ČEKÁ NA ODPOVĚĎ ({odchozi.length})</span>
           {odchozi.map((z) => (
             <div key={z.id} className="social-row">
-              <span className="social-avatar" aria-hidden="true">
-                {z.profil.displayName.charAt(0).toUpperCase()}
-              </span>
+              <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} />
               <span className="social-row-name">{z.profil.displayName}</span>
               <button
                 className="social-icon-btn social-icon-btn--ne"
@@ -179,9 +183,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
         ) : (
           stav.pratele.map((p) => (
             <div key={p.vazbaId} className="social-row">
-              <span className="social-avatar" aria-hidden="true">
-                {p.profil.displayName.charAt(0).toUpperCase()}
-              </span>
+              <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} />
               <span className="social-row-name">{p.profil.displayName}</span>
 
               <button

@@ -18,6 +18,9 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
   const [zpravy, setZpravy] = useState<Zprava[]>([])
   const [text, setText] = useState('')
   const [posila, setPosila] = useState(false)
+  // Ikona odeslání se na chvíli překlopí na fajfku — drobné potvrzení
+  // přímo u tlačítka, než zpráva stihne dorazit přes realtime.
+  const [odeslano, setOdeslano] = useState(false)
   const [nahlasit, setNahlasit] = useState<{ userId: string; zpravaId?: string } | null>(null)
   const konecRef = useRef<HTMLDivElement>(null)
 
@@ -66,6 +69,8 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
 
     if (vysledek.ok) {
       setText('')
+      setOdeslano(true)
+      window.setTimeout(() => setOdeslano(false), 900)
       // Vlastní zprávu doplní realtime; kdyby se odběr nestihl navázat,
       // načtení ji dorovná.
       setZpravy(await api.nactiZpravy(chat.id))
@@ -167,8 +172,12 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
           onChange={(e) => setText(e.target.value)}
           disabled={posila}
         />
-        <button className="social-send-btn" type="submit" disabled={posila || !text.trim()}>
-          <SocialIcon name="send" size={18} />
+        <button
+          className={`social-send-btn ${odeslano ? 'je-odeslano' : ''}`}
+          type="submit"
+          disabled={posila || !text.trim()}
+        >
+          <SocialIcon name={odeslano ? 'check' : 'send'} size={18} />
         </button>
       </form>
 

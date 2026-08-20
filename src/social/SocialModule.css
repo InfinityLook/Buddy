@@ -23,6 +23,33 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ---------- ambientní 3D pozadí ---------- */
+
+/* Plátno z useAmbientScene.ts. Fixed a mimo tok, ať nezabírá místo
+   a nescrolluje s obsahem — má to být atmosféra za stránkou, ne její
+   součást. pointer-events: none, ať nepřekáží dotykům pod sebou.
+   Ve chatu se schová přes opacity (viz komentář v SocialModule.tsx),
+   ne přes odstranění z DOMu — scéna běží dál, jen není vidět. */
+.social-ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+.social-ambient.je-skryty { opacity: 0; }
+
+/* Obsah musí ležet nad ambientní vrstvou explicitně — fixed prvek se
+   umí propsat nad obyčejný tok i bez z-indexu, tohle je pojistka. */
+.social-top-bar,
+.social-zalozky,
+.social-panel,
+.social-chat-view {
+  position: relative;
+  z-index: 1;
+}
+
 /* ---------- hlavička ---------- */
 
 .social-top-bar {
@@ -58,7 +85,12 @@
 
 .social-hero-icon {
   font-size: 2rem;
-  filter: drop-shadow(0 0 14px rgba(53, 196, 240, 0.45));
+  animation: social-hero-dech 3.6s ease-in-out infinite;
+}
+
+@keyframes social-hero-dech {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 14px rgba(53, 196, 240, 0.45)); }
+  50% { transform: scale(1.07); filter: drop-shadow(0 0 20px rgba(53, 196, 240, 0.65)); }
 }
 
 /* ---------- záložky ---------- */
@@ -85,10 +117,17 @@
   cursor: pointer;
 }
 
+.social-zalozka {
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
 .social-zalozka.is-aktivni {
   background: var(--accent-cyan);
   border-color: var(--accent-cyan);
   color: var(--text-on-accent);
+  box-shadow: var(--shadow-glow-cyan);
+  transform: translateY(-1px);
 }
 
 /* ---------- karty ---------- */
@@ -143,9 +182,30 @@
 /* ---------- můj kód ---------- */
 
 .social-code-card {
+  position: relative;
+  overflow: hidden;
   background: linear-gradient(135deg, rgba(53, 196, 240, 0.14), rgba(138, 92, 246, 0.12)),
     var(--bg-glass);
   border-color: rgba(53, 196, 240, 0.3);
+}
+
+/* Přelesk přejíždějící přes kartu — dělá z ní "digitální průkazku",
+   ne jen další kartu se stejným pozadím jako všechny ostatní. */
+.social-code-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -60%;
+  width: 45%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.14), transparent);
+  animation: social-shimmer 5.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes social-shimmer {
+  0%, 25% { left: -60%; }
+  75%, 100% { left: 130%; }
 }
 
 .social-code-row {
@@ -187,6 +247,8 @@
   border-radius: var(--radius-md);
   padding: 0.45rem 0.5rem;
   cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .social-row--volba.is-vybrany {
@@ -194,22 +256,110 @@
   border-color: rgba(53, 196, 240, 0.4);
 }
 
-.social-avatar {
+.social-row--chat:active,
+.social-row--volba:active {
+  transform: scale(0.985);
+}
+
+@media (hover: hover) {
+  .social-row--chat:hover,
+  .social-row--volba:hover {
+    border-color: var(--border-strong);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  }
+}
+
+/* Nepřečtený chat dostane svítící okraj — má vyskočit z výčtu dřív, než
+   si člověk začne číst náhledy zpráv jeden po druhém. */
+.social-row--chat.ma-neprectene {
+  border-color: rgba(53, 196, 240, 0.35);
+  box-shadow: 0 0 0 1px rgba(53, 196, 240, 0.15) inset;
+}
+
+.social-row--chat.ma-neprectene .social-chat-nazev { color: var(--accent-cyan); }
+
+.social-row--chat.ma-neprectene .social-odznak {
+  animation: social-odznak-tep 1.8s ease-in-out infinite;
+}
+
+@keyframes social-odznak-tep {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* ---------- avatar: prstenec podle id + jádro s iniciálou ----------
+   Barva prstence a jádra přichází přes --sa-a/--sa-b (viz avatarColor.ts
+   a SocialAvatar.tsx) — každé id má svou vlastní dvojici, aby šlo
+   v seznamu poznat, kdo je kdo, i bez čtení jména. Skupina barvu podle
+   id nedostává (žádné konkrétní id neznačí), proto tu je pevná výchozí
+   dvojice, kterou osobní barva přebije přes inline styl. */
+.social-avatar-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
+  --sa-a: var(--accent-orange);
+  --sa-b: var(--accent-magenta);
+}
+
+/* Prstenec je kónický přechod s vyříznutou dírou přes masku — stejná
+   technika jako svítící prstenec kolem koule v Hubu. Barva vrstvy pod
+   ním (padding-box trik) by tu neseděla, protože avatar uvnitř je
+   neprůhledný kruh, ne díra — maska je přesto správná volba, ať se
+   tenhle vzorec nerozjede na dvě různá řešení stejného problému
+   v jedné appce. */
+.social-avatar-prstenec {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, var(--sa-a), var(--sa-b), var(--sa-a));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2.5px));
+  animation: social-avatar-otoc 14s linear infinite;
+}
+
+@keyframes social-avatar-otoc {
+  to { transform: rotate(360deg); }
+}
+
+.social-avatar {
+  position: absolute;
+  inset: 3px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  background: linear-gradient(135deg, var(--sa-a), var(--sa-b));
   color: #fff;
   font-size: 0.85rem;
   font-weight: 800;
 }
 
-.social-avatar.is-skupina {
-  background: linear-gradient(135deg, var(--accent-orange), var(--accent-magenta));
+/* Příchozí žádost — rozpínající se prstenec navíc, ať se pozornost
+   nejdřív zastaví na avataru a teprve pak na textu vedle něj. */
+.social-avatar-pulz {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 1.5px solid var(--sa-a);
+  animation: social-avatar-pulz 2.4s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+  pointer-events: none;
+}
+
+@keyframes social-avatar-pulz {
+  0% { transform: scale(0.85); opacity: 0.8; }
+  70% { opacity: 0.15; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* Zablokovaný účet je schválně bez barvy — kontrast vůči barevnému
+   zbytku appky sám o sobě řekne "tohle je odstavené", beze slov. */
+.social-avatar-wrap.je-tlumeny .social-avatar-prstenec { display: none; }
+
+.social-avatar-wrap.je-tlumeny .social-avatar {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
 }
 
 .social-row-name {
@@ -263,10 +413,21 @@
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .social-icon-btn--ano { color: var(--accent-green); border-color: rgba(16, 185, 129, 0.35); }
 .social-icon-btn--ne { color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3); }
+
+/* Krátké odskočení, když se tlačítko právě přepnulo (kopírování kódu do
+   fajfky) — bez toho by změna ikony byla nenápadná do ztracena. */
+.social-icon-btn--ano { animation: social-pop 0.3s ease; }
+
+@keyframes social-pop {
+  0% { transform: scale(0.7); }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
 
 .social-mini-btn {
   display: inline-flex;
@@ -416,6 +577,15 @@
   align-items: flex-start;
   gap: 0.1rem;
   max-width: 82%;
+  /* Hraje jen při vzniku DOM uzlu, ne při každém překreslení — React
+     drží existující bubliny přes stejný key (z.id), takže nová zpráva
+     animuje jen ona sama, ne celá historie nad ní. */
+  animation: social-bublina-vstup 0.28s ease;
+}
+
+@keyframes social-bublina-vstup {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 .social-bublina-obal.je-moje { align-self: flex-end; align-items: flex-end; }
@@ -484,9 +654,17 @@
   border: none;
   color: var(--text-on-accent);
   cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
 }
 
 .social-send-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* Krátké potvrzení odeslání — fajfka místo šipky, než zprávu doplní
+   realtime a bublina se doopravdy objeví v seznamu. */
+.social-send-btn.je-odeslano {
+  background: var(--accent-green);
+  transform: scale(1.08);
+}
 
 /* ---------- nahlášení ---------- */
 
@@ -496,6 +674,12 @@
   z-index: 40;
   background: rgba(6, 5, 12, 0.65);
   backdrop-filter: blur(3px);
+  animation: social-overlay-vstup 0.2s ease;
+}
+
+@keyframes social-overlay-vstup {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .social-dialog {
@@ -514,6 +698,12 @@
   background: rgba(14, 11, 26, 0.97);
   border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-card);
+  animation: social-dialog-vstup 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes social-dialog-vstup {
+  from { opacity: 0; transform: translateX(-50%) translateY(14px) scale(0.96); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 }
 
 .social-dialog-title { margin: 0; font-size: 1rem; font-weight: 800; }
@@ -537,7 +727,10 @@
   font-size: 0.73rem;
   text-align: left;
   cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
 }
+
+.social-duvod:active { transform: scale(0.97); }
 
 .social-duvod.is-vybrany {
   background: rgba(53, 196, 240, 0.14);
@@ -597,6 +790,7 @@
   border-radius: var(--radius-md);
   background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
+  animation: social-bublina-vstup 0.25s ease;
 }
 
 /* Nevyřízené drží pozornost, vyřízená ustoupí do pozadí */
@@ -655,4 +849,31 @@
   font-size: 0.63rem;
   color: var(--text-muted);
   margin-top: 0.15rem;
+}
+
+/* ---------- pohyb, klidně a jemně ----------
+   Kdo má v systému vypnuté animace, nesmí dostat ani jednu z nich —
+   od kruhu v Hubu po tenhle modul appka bere prefers-reduced-motion
+   vážně napříč celou aplikací, ne jen tam, kde si na to někdo vzpomněl. */
+@media (prefers-reduced-motion: reduce) {
+  .social-hero-icon,
+  .social-code-card::after,
+  .social-zalozka,
+  .social-avatar-prstenec,
+  .social-avatar-pulz,
+  .social-row--chat.ma-neprectene .social-odznak,
+  .social-icon-btn--ano,
+  .social-send-btn,
+  .social-bublina-obal,
+  .social-overlay,
+  .social-dialog,
+  .social-duvod,
+  .social-row--chat,
+  .social-row--volba,
+  .social-hlaseni {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .social-avatar-pulz { opacity: 0; }
 }

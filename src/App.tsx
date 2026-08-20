@@ -11,7 +11,10 @@ import AdminModule from '@/pages/admin/AdminModule.tsx'
 // Herní hub si s sebou nese Three.js, takže se načítá až při vstupu —
 // zbytek aplikace tím nezůstane těžší.
 const GameModule = lazy(() => import('@/game/GameModule'))
-import SocialModule from '@/social/SocialModule'
+// Social má od verze s ambientní 3D scénou v pozadí stejnou závislost
+// na Three.js jako Game hub, a otevírá se mnohem častěji než /hra —
+// proto musí jet líně stejně tak, jinak by ho zatížila každá návštěva.
+const SocialModule = lazy(() => import('@/social/SocialModule'))
 import { BootGate } from '@/components/BootGate'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
@@ -144,7 +147,9 @@ export default function App() {
             path="/social"
             element={
               dovnitr ? (
-                <SocialModule />
+                <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
+                  <SocialModule />
+                </Suspense>
               ) : (
                 <Navigate to="/" replace />
               )
