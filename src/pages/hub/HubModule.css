@@ -268,6 +268,9 @@
   font-size: 0.98rem;
   font-weight: 800;
   letter-spacing: -0.01em;
+  /* Na úzkém telefonu se název i s odznakem na jeden řádek nevejde
+     a odznak mizel za okrajem dlaždice. Takhle se zalomí pod název. */
+  flex-wrap: wrap;
 }
 
 .hub-card-sub {
@@ -283,6 +286,9 @@
   letter-spacing: 0.04em;
   padding: 0.12rem 0.35rem;
   border-radius: var(--radius-pill);
+  /* Odznak se nesmí zmáčknout ani zlomit — radši se zalomí celý pod název */
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* Čtvercové karty (Apps, Play, Library) */
@@ -362,6 +368,21 @@
   position: sticky;
   bottom: 0;
   z-index: 2;
+}
+
+/* Podklad pod přilepenou lištou.
+   Na krátkém displeji se obsah pod lištu podsune a bez podkladu by jím
+   prosvítal — vypadalo by to jako chyba vykreslení. Přechod do barvy
+   pozadí z toho udělá čitelný spodní pruh a zároveň naznačí, že nad ním
+   obsah pokračuje. Sahá až k okrajům kontejneru, proto záporné odsazení
+   o jeho vnitřní okraj. */
+.hub-bottom-bar::before {
+  content: '';
+  position: absolute;
+  inset: -0.7rem -1rem calc(-1.25rem - env(safe-area-inset-bottom)) -1rem;
+  background: linear-gradient(180deg, rgba(6, 10, 22, 0) 0%, rgba(6, 10, 22, 0.88) 42%);
+  pointer-events: none;
+  z-index: -1;
 }
 
 .hub-action-btn-icon {
@@ -538,6 +559,8 @@
   padding: 0.12rem 0.35rem;
   border-radius: var(--radius-pill);
   margin-left: 0.3rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* ==========================================

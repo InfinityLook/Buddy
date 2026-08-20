@@ -128,6 +128,21 @@ Camera distance is computed from the aspect ratio (`fitDistance`), never hard-co
 
 File Manager keeps file *contents* in IndexedDB via `core/utils/fileStorage.ts` (`putFileBlob`/`getFileBlob`/`deleteFileBlob`/`listStoredFileIds`), not in `localStorage` — the 5 MB text-only limit there can't hold real files. Only the metadata (name, byte size, type, date) lives in the Zustand store. Consequently blobs are **not** in the JSON backup: after restoring on another device the entries exist but the content doesn't, and the UI says so instead of offering a broken download.
 
+### Responsive layout
+
+The app is phone-first and must adapt to whatever screen it lands on — verified from 320x568 up to a 1024px tablet, portrait and landscape. Two global rules in `styles/global.css` do most of the work and should not be removed:
+
+- `img, svg, video, canvas { max-width: 100% }` — media never outgrows its parent.
+- `* { min-width: 0 }` — flex and grid items default to `min-width/min-height: auto`, which makes them refuse to shrink below their content. That default is what pushed the Hub's bottom bar off-screen: the mascot rendered 325px tall inside a 217px section and overflowed it.
+
+Because `html, body, #root` are `overflow: hidden` and each page scrolls itself, **overflow is clipped rather than shown** — a broken layout silently loses content instead of producing a scrollbar. Never rely on the page scrollbar to reveal a sizing bug; check element rectangles against the viewport.
+
+When a page has a fixed-height element sized from the viewport, drive it from the space the layout leaves (`height: 100%` on a `flex: 1` parent), not from its own intrinsic size. The Hub's `.hub-pet-img` is the reference: height comes from the section, width follows the aspect ratio, and `max-width` caps it on tall screens.
+
+The Hub's bottom bar is `position: sticky; bottom: 0` with a gradient backdrop. Android often reports `env(safe-area-inset-bottom)` as 0 while the gesture bar still covers the bottom of the screen, so a bar that merely sits at the end of the content can end up underneath it.
+
+Every full-height page pairs `height: 100vh` with `height: 100dvh` — keep both. `100vh` alone includes the area behind mobile browser UI and clips the bottom of the page.
+
 ### Path alias
 
 `@/*` resolves to `src/*`, configured in **two places that must stay in sync**: `resolve.alias` in `vite.config.ts` (used at build time) and `paths` in `tsconfig.json` (used by `npm run typecheck`). Use `@/...` imports for anything outside a feature's own folder; use relative imports within a miniapp/page's own directory.

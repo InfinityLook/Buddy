@@ -59,6 +59,35 @@ body {
   inset: 0;
 }
 
+/* ------------------------------------------
+   PŘIZPŮSOBENÍ ROZMĚRŮM ZAŘÍZENÍ
+
+   Aplikace běží na displejích od 320 px do tabletu a rozvržení se jim
+   musí přizpůsobit samo. Tyhle dvě pravidla řeší dvě nejčastější
+   příčiny, proč se to nestane.
+   ------------------------------------------ */
+
+/* Médium nikdy nesmí být širší než jeho rodič. Bez tohohle stačí
+   obrázek s pevnou šířkou a na úzkém telefonu vytlačí obsah ven —
+   a protože #root má overflow: hidden, uživatel ho už neuvidí ani
+   posunutím, prostě zmizí za okrajem. */
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+
+/* Položky ve flexboxu a mřížce se ve výchozím nastavení odmítají
+   zmenšit pod velikost svého obsahu (min-width/min-height: auto).
+   Přesně tohle vytlačilo spodní lištu Hubu mimo obrazovku: obrázek
+   maskota se vykreslil 325 px vysoký do sekce, která měla 217 px.
+   Tenhle řádek říká, že zmenšit se smí — o tom, jak velké co bude,
+   pak rozhoduje rozvržení, ne vnitřní velikost obsahu. */
+* {
+  min-width: 0;
+}
+
 button {
   font-family: inherit;
   outline: none;
