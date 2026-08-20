@@ -4,8 +4,8 @@ import { CloudSnapshot } from './types'
 // ==========================================
 // Síťová část synchronizace.
 //
-// Každá funkce počítá s tím, že se nemusí povést — offline, uspaný projekt,
-// vypnuté anonymní přihlášení. Nic z toho nesmí shodit aplikaci, proto se
+// Každá funkce počítá s tím, že se nemusí povést — offline, uspaný
+// projekt, chybějící relace. Nic z toho nesmí shodit aplikaci, proto se
 // chyby vracejí jako hodnota, ne jako výjimka letící ven.
 // ==========================================
 
@@ -13,73 +13,23 @@ export interface SyncError {
   message: string
 }
 
-// Název zámku, pod kterým se zakládá anonymní relace. Smí se lišit od
-// zámků, které si drží samo supabase-js pro obnovu tokenů — shodný název
-// by dvě části kódu poslal do vzájemného čekání.
-const SESSION_LOCK = 'schoolbuddy-anon-session'
-
-// Kdyby zámek z jakéhokoli důvodu nikdo neuvolnil, nesmí to zablokovat
-// synchronizaci nadobro — po téhle době se čekání vzdá a zkusí se to bez něj.
-const LOCK_TIMEOUT = 10_000
-
-/** Vlastní založení relace. Počítá s tím, že už žádná neexistuje. */
-const claimSession = async (): Promise<string | null> => {
-  if (!supabase) return null
-
-  // Znovu se ptej až tady. Když se čekalo na zámek, mezitím ji mohl založit
-  // jiný panel a Supabase ji uložil do localStorage — tenhle dotaz ji najde
-  // a účet se nezaloží podruhé.
-  const { data } = await supabase.auth.getSession()
-  if (data.session?.user?.id) return data.session.user.id
-
-  const { data: signedIn, error } = await supabase.auth.signInAnonymously()
-  if (error) {
-    // Nejčastější příčina: anonymní přihlášení není v projektu povolené
-    console.warn('[cloud] Anonymní přihlášení selhalo:', error.message)
-    return null
-  }
-
-  return signedIn.user?.id ?? null
-}
-
 /**
- * Zajistí anonymní relaci. Uživatel o ní neví — přihlašovací obrazovka
- * zůstává, jak je. Supabase si relaci uloží a příště ji obnoví sám.
+ * Vrátí id přihlášeného uživatele, nebo null.
  *
- * Zakládání je pod zámkem přes celý původ (Web Locks), protože samotné
- * "není relace → založ" není atomické: dva panely nebo dvě rychle po sobě
- * jdoucí načtení stránky (třeba reload po nasazení nové verze) starají obojí
- * "relace není" dřív, než první z nich stačí relaci uložit — a v databázi
- * pak vzniknou dvě identity, z nichž jedna zůstane prázdná a nedosažitelná.
- * Pojistka uvnitř jednoho běhu na tohle nestačí, každý běh má vlastní paměť.
+ * Dřív si tady aplikace zakládala anonymní identitu, aby měla kam
+ * zálohovat XP i bez účtu. Od chvíle, kdy je účet podmínkou vstupu,
+ * to nedává smysl: anonymní účet by vznikl při každém startu, hned
+ * by ho nahradil ten skutečný a v databázi by po něm zůstal prázdný
+ * řádek, ke kterému se už nikdo nedostane.
+ *
+ * Relace, které vznikly dřív, se ale používají dál — registrace je
+ * povýší na skutečný účet a uživatel díky tomu nepřijde o postup.
  */
 export const ensureSession = async (): Promise<string | null> => {
   if (!supabase) return null
 
-  // Rychlá cesta: relace už je, na zámek není důvod sahat
   const { data } = await supabase.auth.getSession()
-  if (data.session?.user?.id) return data.session.user.id
-
-  // Starší Safari Web Locks nemá. Tam zůstává chování jako dřív — horší
-  // než se zámkem, ale pořád funkční.
-  if (typeof navigator === 'undefined' || !navigator.locks) return claimSession()
-
-  const abort = new AbortController()
-  const timer = setTimeout(() => abort.abort(), LOCK_TIMEOUT)
-
-  try {
-    return await navigator.locks.request(
-      SESSION_LOCK,
-      { signal: abort.signal },
-      () => claimSession()
-    )
-  } catch {
-    // Vypršelé čekání na zámek. Raději relaci založit bez něj než nechat
-    // uživatele bez synchronizace.
-    return claimSession()
-  } finally {
-    clearTimeout(timer)
-  }
+  return data.session?.user?.id ?? null
 }
 
 export const fetchSnapshot = async (userId: string): Promise<CloudSnapshot | null> => {

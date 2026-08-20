@@ -145,23 +145,21 @@ export default function Login({ onLogin }: LoginProps) {
           </button>
         </form>
 
-        <div className="login-divider">
-          <span>nebo</span>
-        </div>
-
-        {/* Bez účtu funguje všechno kromě Socialu. Aplikace je postavená
-            tak, aby data žila v zařízení — účet je nadstavba, ne podmínka. */}
-        <button type="button" className="login-guest" onClick={dovnitr}>
-          Pokračovat bez účtu
-        </button>
-        <p className="login-guest-note">
-          Data zůstanou jen v tomhle zařízení a Social nebude dostupný.
-        </p>
-
+        {/* Bez nastaveného cloudu nemá jak účet vzniknout. Blokovat vstup
+            by v takovém případě neposloužilo nikomu — uživatel by se do
+            aplikace nedostal a neměl by jak to spravit. */}
         {!isSupabaseConfigured && (
-          <p className="login-note">
-            Účty nejsou v téhle verzi nastavené — pokračuj bez účtu.
-          </p>
+          <>
+            <div className="login-divider">
+              <span>nebo</span>
+            </div>
+            <p className="login-note">
+              Účty nejsou v téhle verzi nastavené, takže se přihlásit nedá.
+            </p>
+            <button type="button" className="login-guest" onClick={dovnitr}>
+              Pokračovat bez účtu
+            </button>
+          </>
         )}
 
         <p className="login-signup">

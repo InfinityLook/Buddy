@@ -91,11 +91,17 @@ Schema lives in the `SChoolBuddy-System` Supabase project: `profiles` (one row p
 
 ### Accounts & Social (`src/social/`)
 
-Everything except Social works without an account — that is the rule the rest of the app is built on and it has not changed. `useAuthStore.isAuthed` still just means "got past the login screen", and "Pokračovat bez účtu" keeps that path open. What is new is `useAccount` in `core/supabase/auth.ts`, which mirrors the **real** Supabase session: `off` / `loading` / `anonymous` / `signed-in`. Social requires `signed-in`; everything else ignores it.
+**An account is required for the whole app**, not just Social. `App.tsx` gates every route on `useAccount().status === 'signed-in'` (`core/supabase/auth.ts` mirrors the real Supabase session: `off` / `loading` / `anonymous` / `signed-in`). Social therefore has **no gate of its own** — a second check would state the same rule twice and drift from the first one. This was a deliberate trade: the app is no longer usable without an account, so a new user with no signal cannot get in at all.
 
-**Registering upgrades the anonymous identity** (`supabase.auth.updateUser`) instead of creating a second account. Signing up fresh would silently drop the XP, streak and badges earned before registration. Anonymous sessions still get created invisibly for cloud sync, so this path is the normal one, not the edge case.
+While `status === 'loading'` the app renders a placeholder rather than the login screen. Redirecting on `loading` flashes the login at users who do have a valid session and reads as an unexpected logout.
 
-**The account gate is enforced in the database, not the UI.** `public.je_skutecny_ucet()` reads `is_anonymous` from the JWT, and the INSERT policies on `messages`, `chats` and `friendships` require it. An anonymous identity is created on every device with no verification whatsoever, so allowing it to message students would leave no trace of who wrote what.
+The one exception is `isSupabaseConfigured === false`. There accounts cannot exist at all, so the gate falls back to the local `isAuthed` flag — locking everyone out of a misconfigured build helps nobody and gives the user no way to fix it.
+
+**Nothing creates anonymous sessions any more.** `ensureSession` returns the existing session or `null`; it never calls `signInAnonymously`. With login required, an anonymous account would be created on every start, immediately replaced by the real one, and leave an unreachable empty row behind. Sessions created by older versions are still honoured — `registerAccount` upgrades them via `supabase.auth.updateUser`, so those users keep the XP, streak and badges they earned before registering.
+
+**The account rule is also enforced in the database.** `public.je_skutecny_ucet()` reads `is_anonymous` from the JWT and the INSERT policies on `messages`, `chats` and `friendships` require it. It still matters even though the client no longer creates anonymous sessions: RLS is what holds if someone talks to the API directly.
+
+Signing out must call both `signOut()` and the local `logout()`. Clearing only the local flag leaves the Supabase session in the browser and the user is signed in again after a reload.
 
 **Discovery is by friend code only** — there is deliberately no search by name. `profiles.friend_code` is 8 characters from an alphabet with no `I`, `O`, `0` or `1` so it survives being dictated over the phone. Lookup goes through `najdi_podle_kodu()`, a `SECURITY DEFINER` function returning one row and only name plus avatar; a normal RLS policy would have to permit reading every profile, which is the same as publishing a directory of children.
 

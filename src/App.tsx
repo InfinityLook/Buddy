@@ -15,13 +15,34 @@ import { BootGate } from '@/components/BootGate'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
 import { startCloudSync } from '@/core/supabase/cloudSync'
-import { startAuthWatch } from '@/core/supabase/auth'
+import { signOut, startAuthWatch, useAccount } from '@/core/supabase/auth'
+import { isSupabaseConfigured } from '@/core/supabase/client'
 import { useAuthStore } from '@/core/store/useAuthStore'
 import { setupRoleDevTools } from '@/core/role'
 
 export default function App() {
-  // Přihlášení je perzistentní, takže reload nechá uživatele tam, kde byl.
   const { isAuthed, login, logout } = useAuthStore()
+  const stavUctu = useAccount((s) => s.status)
+
+  // Do aplikace se vejde jen se skutečným účtem. Jedinou výjimkou je
+  // build bez nastaveného cloudu: tam nemá jak účet vzniknout a zamčené
+  // dveře by neposloužily nikomu — uživatel by se dovnitř nedostal
+  // a neměl by jak to spravit. V takovém případě rozhoduje místní
+  // příznak jako dřív.
+  const dovnitr = isSupabaseConfigured ? stavUctu === 'signed-in' : isAuthed
+
+  // Než Supabase odpoví, jestli relace existuje, nesmí se ukázat login —
+  // uživateli s platným účtem by na okamžik probliknul a vypadalo by to
+  // jako odhlášení.
+  const cekaSeNaOdpoved = isSupabaseConfigured && stavUctu === 'loading'
+
+  // Odhlášení musí ukončit i relaci v Supabase. Kdyby se smazal jen
+  // místní příznak, relace by v prohlížeči zůstala a uživatel by se
+  // po obnovení stránky ocitl zase přihlášený.
+  const odhlasit = () => {
+    void signOut()
+    logout()
+  }
 
   // Registrace PWA aktualizací při načtení aplikace
   useEffect(() => {
@@ -42,12 +63,15 @@ export default function App() {
     // uživatel tak nezačíná na staré verzi, kterou by mu obnova
     // za chvíli vytrhla pod rukama.
     <BootGate>
+      {cekaSeNaOdpoved ? (
+        <div className="app-suspense-fallback">Přihlašuji…</div>
+      ) : (
       <BrowserRouter>
         <Routes>
           <Route
             path="/"
             element={
-              isAuthed ? (
+              dovnitr ? (
                 <Navigate to="/hub" replace />
               ) : (
                 <Login onLogin={login} />
@@ -58,8 +82,8 @@ export default function App() {
           <Route
             path="/hub"
             element={
-              isAuthed ? (
-                <Hub onLogout={logout} />
+              dovnitr ? (
+                <Hub onLogout={odhlasit} />
               ) : (
                 <Navigate to="/" replace />
               )
@@ -70,7 +94,7 @@ export default function App() {
           <Route
             path="/apps"
             element={
-              isAuthed ? (
+              dovnitr ? (
                 <AppModule />
               ) : (
                 <Navigate to="/" replace />
@@ -82,7 +106,7 @@ export default function App() {
           <Route
             path="/profil"
             element={
-              isAuthed ? (
+              dovnitr ? (
                 <ProfilModule />
               ) : (
                 <Navigate to="/" replace />
@@ -94,7 +118,7 @@ export default function App() {
           <Route
             path="/odmeny"
             element={
-              isAuthed ? (
+              dovnitr ? (
                 <RewardModule />
               ) : (
                 <Navigate to="/" replace />
@@ -106,7 +130,7 @@ export default function App() {
           <Route
             path="/social"
             element={
-              isAuthed ? (
+              dovnitr ? (
                 <SocialModule />
               ) : (
                 <Navigate to="/" replace />
@@ -118,7 +142,7 @@ export default function App() {
           <Route
             path="/hra"
             element={
-              isAuthed ? (
+              dovnitr ? (
                 <Suspense fallback={<div className="app-suspense-fallback">Načítám město…</div>}>
                   <GameModule />
                 </Suspense>
@@ -132,7 +156,7 @@ export default function App() {
           <Route
             path="/obchod"
             element={
-              isAuthed ? (
+              dovnitr ? (
                 <ShopModule />
               ) : (
                 <Navigate to="/" replace />
@@ -144,7 +168,7 @@ export default function App() {
           <Route
             path="/nastaveni"
             element={
-              isAuthed ? (
+              dovnitr ? (
                 <SettingsModule />
               ) : (
                 <Navigate to="/" replace />
@@ -158,6 +182,7 @@ export default function App() {
         {/* Globální indikátor offline připojení */}
         <NetworkStatusBanner />
       </BrowserRouter>
+      )}
     </BootGate>
   )
 }

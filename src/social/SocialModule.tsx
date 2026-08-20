@@ -6,18 +6,18 @@ import { ChatyPanel } from './components/ChatyPanel'
 import { ChatView } from './components/ChatView'
 import { BlokovaniPanel } from './components/BlokovaniPanel'
 import { useSocial } from './useSocial'
-import { isSupabaseConfigured } from '@/core/supabase/client'
 import './SocialModule.css'
 
 // ==========================================
 // Social — přátelé, chaty a blokování.
 //
-// Na rozdíl od zbytku aplikace tohle bez účtu nejde. Není to omezení
-// vymyšlené v UI: databáze pravidlem odmítne psát, zakládat chaty
-// i posílat žádosti komukoli, kdo nemá skutečný účet. Anonymní identita,
-// kterou si aplikace zakládá sama kvůli zálohování XP, vzniká na každém
-// zařízení bez jakéhokoli ověření — psát z ní ostatním by neneslo
-// žádnou stopu.
+// Vlastní bránu pro nepřihlášené tenhle modul nemá a mít nemá: do celé
+// aplikace se bez účtu nedostane nikdo, hlídá to App.tsx u všech rout.
+// Druhá kontrola tady by jen říkala totéž na dvou místech a při změně
+// pravidel by se s tou první rozešla.
+//
+// Poslední slovo má stejně databáze — pravidly odmítne psát, zakládat
+// chaty i posílat žádosti komukoli bez skutečného účtu.
 // ==========================================
 
 type Zalozka = 'pratele' | 'chaty' | 'blokovani'
@@ -69,63 +69,31 @@ export const SocialModule: React.FC = () => {
         <span className="social-hero-icon" aria-hidden="true">👥</span>
       </div>
 
-      {!stav.maUcet ? (
-        <section className="social-brana">
-          <span className="social-brana-icon" aria-hidden="true">🔐</span>
-          <h2 className="social-brana-title">Social potřebuje účet</h2>
+      <div className="social-zalozky">
+        {ZALOZKY.map((z) => {
+          const odznak = z.id === 'pratele' ? cekaZadosti : z.id === 'chaty' ? neprectene : 0
 
-          <p className="social-brana-text">
-            {isSupabaseConfigured
-              ? 'Zbytek aplikace funguje i bez něj — účet je potřeba jen tady, aby bylo jasné, kdo komu píše.'
-              : 'V téhle verzi nejsou účty nastavené, takže Social zatím nefunguje.'}
-          </p>
+          return (
+            <button
+              key={z.id}
+              className={`social-zalozka ${zalozka === z.id ? 'is-aktivni' : ''}`}
+              onClick={() => setZalozka(z.id)}
+            >
+              <SocialIcon name={z.ikona} size={15} />
+              {z.popis}
+              {odznak > 0 && <span className="social-odznak">{odznak}</span>}
+            </button>
+          )
+        })}
+      </div>
 
-          {isSupabaseConfigured && (
-            <>
-              <p className="social-brana-text social-brana-text--tlumene">
-                Když si účet založíš, XP ani odznaky neztratíš — přenesou se
-                do něj.
-              </p>
-              <button className="social-btn social-btn--full" onClick={() => navigate('/')}>
-                Přihlásit se nebo se zaregistrovat
-              </button>
-            </>
-          )}
-        </section>
+      {stav.nacita ? (
+        <p className="social-empty-note social-empty-note--stred">Načítám…</p>
       ) : (
         <>
-          <div className="social-zalozky">
-            {ZALOZKY.map((z) => {
-              const odznak =
-                z.id === 'pratele' ? cekaZadosti : z.id === 'chaty' ? neprectene : 0
-
-              return (
-                <button
-                  key={z.id}
-                  className={`social-zalozka ${zalozka === z.id ? 'is-aktivni' : ''}`}
-                  onClick={() => setZalozka(z.id)}
-                >
-                  <SocialIcon name={z.ikona} size={15} />
-                  {z.popis}
-                  {odznak > 0 && <span className="social-odznak">{odznak}</span>}
-                </button>
-              )
-            })}
-          </div>
-
-          {stav.nacita ? (
-            <p className="social-empty-note social-empty-note--stred">Načítám…</p>
-          ) : (
-            <>
-              {zalozka === 'pratele' && (
-                <PratelePanel stav={stav} onOtevritChat={setOtevrenyChat} />
-              )}
-              {zalozka === 'chaty' && (
-                <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />
-              )}
-              {zalozka === 'blokovani' && <BlokovaniPanel stav={stav} />}
-            </>
-          )}
+          {zalozka === 'pratele' && <PratelePanel stav={stav} onOtevritChat={setOtevrenyChat} />}
+          {zalozka === 'chaty' && <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />}
+          {zalozka === 'blokovani' && <BlokovaniPanel stav={stav} />}
         </>
       )}
 

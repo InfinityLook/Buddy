@@ -136,12 +136,10 @@ const runSync = async (): Promise<void> => {
   }
 }
 
-// Probíhající průchod. Volá se ze čtyř míst (start, návrat k aplikaci,
-// obnovené připojení, tlačítko v profilu) a bez tohohle sdílení by se
-// překrývající se volání zbytečně prala o stejné řádky.
-//
-// Zakládání identity tohle nehlídá — na to je zámek v ensureSession, který
-// platí i mezi panely a napříč načteními stránky.
+// Probíhající průchod. Volá se z pěti míst (start, změna přihlášení,
+// návrat k aplikaci, obnovené připojení, tlačítko v profilu) a bez
+// tohohle sdílení by se překrývající se volání zbytečně prala o stejné
+// řádky a přepisovala si výsledky.
 let syncPromise: Promise<void> | null = null
 
 /**
