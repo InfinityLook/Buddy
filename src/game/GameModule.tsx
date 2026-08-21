@@ -4,6 +4,7 @@ import { TvorbaPostavy } from './components/TvorbaPostavy'
 import { VyberPostavy } from './components/VyberPostavy'
 import { MapaSveta } from './components/MapaSveta'
 import { Souboj } from './components/Souboj'
+import { Obchod } from './components/Obchod'
 import { useGameCharacter } from './useGameCharacter'
 import { POSTAVY } from './postavy'
 import { Postava, PostavaId } from './types'
@@ -24,7 +25,8 @@ import './GameModule.css'
 //  2) party, nic zvoleno, rezim 'pridat' -> TvorbaPostavy (další postava)
 //  3) party, nic zvoleno, rezim 'vyber'  -> VyberPostavy (za koho hrát)
 //  4) zvoleno + souboj    -> Souboj
-//  5) zvoleno              -> MapaSveta
+//  5) zvoleno + obchod    -> Obchod
+//  6) zvoleno              -> MapaSveta
 // ==========================================
 
 type Rezim = 'vyber' | 'pridat'
@@ -38,6 +40,7 @@ export const GameModule: React.FC = () => {
   const [rezim, setRezim] = useState<Rezim>('vyber')
   const [hrajeJako, setHrajeJako] = useState<PostavaId | null>(null)
   const [soubojLokaceId, setSoubojLokaceId] = useState<string | null>(null)
+  const [obchodOtevren, setObchodOtevren] = useState(false)
 
   const party = postavyId
     .map((id) => POSTAVY.find((p) => p.id === id))
@@ -77,9 +80,20 @@ export const GameModule: React.FC = () => {
     )
   }
 
-  // 5) Zvoleno, za koho se hraje — mapa
+  // 5) Obchod má přednost, dokud je otevřený
+  if (aktivniPostava && obchodOtevren) {
+    return <Obchod postava={aktivniPostava} onOdejit={() => setObchodOtevren(false)} />
+  }
+
+  // 6) Zvoleno, za koho se hraje — mapa
   if (aktivniPostava) {
-    return <MapaSveta postava={aktivniPostava} onVstoupitDoBoje={setSoubojLokaceId} />
+    return (
+      <MapaSveta
+        postava={aktivniPostava}
+        onVstoupitDoBoje={setSoubojLokaceId}
+        onVstoupitDoObchodu={() => setObchodOtevren(true)}
+      />
+    )
   }
 
   // 2) Přidávání další postavy do party

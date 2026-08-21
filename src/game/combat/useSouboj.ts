@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react'
 import { KARTY } from './karty'
 import { Karta, Nepritel } from './types'
 import { Postava } from '../types'
+import { useWalletStore } from '@/core/store/useWalletStore'
 
 export type SoubojFaze = 'probiha' | 'vyhra' | 'prohra'
 
@@ -28,10 +29,10 @@ const nahodnaRuka = (): Karta[] => {
 
 const vRozsahu = (od: number, doC: number) => Math.floor(od + Math.random() * (doC - od + 1))
 
-const pocatecniStav = (postava: Postava, nepratele: Nepritel[]): SoubojStav => ({
+const pocatecniStav = (maxVydrz: number, nepratele: Nepritel[]): SoubojStav => ({
   faze: 'probiha',
   indexNepritele: 0,
-  hracZivoty: postava.bojVydrz,
+  hracZivoty: maxVydrz,
   nepritelZivoty: nepratele[0].zivoty,
   ruka: nahodnaRuka(),
   log:
@@ -52,10 +53,20 @@ const pocatecniStav = (postava: Postava, nepratele: Nepritel[]): SoubojStav => (
 // Nepřátel může být víc za sebou (dungeon) — hráčova výdrž se mezi nimi
 // NEOBNOVUJE, jen se plynule pokračuje na dalšího, a odměna se sčítá.
 // Aréna s jedním nepřítelem funguje úplně stejně, jen bez přechodu.
+//
+// Koupené předměty z obchodu (useWalletStore.ownedItems) přidávají
+// trvalé bonusy nad rámec postaviných vlastních čísel — platí pro
+// kohokoli z party, protože jde o účet, ne o jednu postavu.
 // ==========================================
 
 export const useSouboj = (postava: Postava, nepratele: Nepritel[]) => {
-  const [stav, setStav] = useState<SoubojStav>(() => pocatecniStav(postava, nepratele))
+  const ownedItems = useWalletStore((s) => s.ownedItems)
+  const vydrzBonus = ownedItems.includes('elixir-vytrvalosti') ? 15 : 0
+  const poskozeniBonus = ownedItems.includes('nabrousena-cepel') ? 0.1 : 0
+  const kritickaBonus = ownedItems.includes('stastna-mince') ? 0.05 : 0
+  const maxVydrz = postava.bojVydrz + vydrzBonus
+
+  const [stav, setStav] = useState<SoubojStav>(() => pocatecniStav(maxVydrz, nepratele))
 
   const zahratKartu = useCallback(
     (karta: Karta) => {
@@ -64,10 +75,12 @@ export const useSouboj = (postava: Postava, nepratele: Nepritel[]) => {
         const aktualni = nepratele[s.indexNepritele]
 
         let poskozeni = vRozsahu(karta.poskozeniOd, karta.poskozeniDo)
+        if (poskozeniBonus > 0) poskozeni = Math.round(poskozeni * (1 + poskozeniBonus))
+
         const bonus = karta.zivel === postava.bojZivel
         if (bonus) poskozeni = Math.round(poskozeni * postava.bojNasobicPoskozeni)
 
-        const kriticky = Math.random() < postava.bojKriticka
+        const kriticky = Math.random() < postava.bojKriticka + kritickaBonus
         if (kriticky) poskozeni = Math.round(poskozeni * postava.bojKritickyNasobic)
 
         const nepritelZivotyNove = Math.max(0, s.nepritelZivoty - poskozeni)
@@ -127,19 +140,19 @@ export const useSouboj = (postava: Postava, nepratele: Nepritel[]) => {
         }
       })
     },
-    [postava, nepratele]
+    [postava, nepratele, poskozeniBonus, kritickaBonus]
   )
 
   const zkusitZnovu = useCallback(() => {
-    setStav(pocatecniStav(postava, nepratele))
-  }, [postava, nepratele])
+    setStav(pocatecniStav(maxVydrz, nepratele))
+  }, [maxVydrz, nepratele])
 
   const aktualniNepritel = nepratele[stav.indexNepritele]
 
   return {
     faze: stav.faze,
     hracZivoty: stav.hracZivoty,
-    hracMaxZivoty: postava.bojVydrz,
+    hracMaxZivoty: maxVydrz,
     nepritel: aktualniNepritel,
     nepritelZivoty: stav.nepritelZivoty,
     nepritelMaxZivoty: aktualniNepritel.zivoty,

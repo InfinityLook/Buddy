@@ -1,0 +1,148 @@
+/* ==========================================
+   OBCHOD — Tržiště Brodů. Reuses .game-back-btn ze sdíleného
+   GameModule.css. Amber akcent, ať se odlišuje od fialovo-modré
+   postavy/mapy a červené arény — tržiště má vlastní barvu i na mapě.
+   ========================================== */
+
+.obchod {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 15%, rgba(245, 158, 11, 0.14) 0%, transparent 60%),
+    linear-gradient(180deg, #171233 0%, #171938 30%, #121531 55%, #16112a 78%, #0c0a16 100%);
+  color: var(--text-primary);
+  padding: calc(3.6rem + env(safe-area-inset-top)) 0.9rem calc(2rem + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.ob-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.1rem;
+}
+
+.ob-top-bar .game-back-btn {
+  position: static;
+}
+
+.ob-zustatek {
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid #f59e0b;
+  color: #f59e0b;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.ob-hlavicka {
+  margin-bottom: 1.1rem;
+}
+
+.ob-title {
+  margin: 0 0 0.25rem;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.ob-hint {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
+.ob-drazsi {
+  margin: 0.4rem 0 0;
+  font-size: 0.7rem;
+  color: var(--accent-orange);
+  font-weight: 700;
+}
+
+.ob-mrizka {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.ob-karta {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), var(--bg-glass) 55%);
+  backdrop-filter: blur(14px);
+  border: 1.5px solid var(--border-subtle);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+}
+
+.ob-karta-ikona {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.28), transparent 60%),
+    linear-gradient(145deg, #f59e0b, rgba(0, 0, 0, 0.4));
+  box-shadow: 0 0 16px #f59e0b;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
+}
+
+.ob-karta-obsah {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.ob-karta-jmeno {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #f59e0b;
+}
+
+.ob-karta-popis {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.ob-karta-efekt {
+  font-size: 0.68rem;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.ob-koupit {
+  flex-shrink: 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: #f59e0b;
+  border: none;
+  color: #1c1305;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ob-koupit:active:not(:disabled) { transform: scale(0.96); }
+
+.ob-koupit:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.ob-koupit--vlastni {
+  background: rgba(34, 197, 94, 0.18);
+  color: var(--accent-green);
+}

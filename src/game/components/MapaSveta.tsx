@@ -12,8 +12,10 @@ const SVET_SIRKA_PX = 900
 
 interface Props {
   postava: Postava
-  /** Volá se po potvrzení vstupu do boje na místě, které ho nabízí (zatím jen aréna). */
+  /** Volá se po potvrzení vstupu do boje na místě, které ho nabízí (aréna, dungeon). */
   onVstoupitDoBoje: (lokaceId: string) => void
+  /** Volá se po potvrzení vstupu na tržiště. */
+  onVstoupitDoObchodu: (lokaceId: string) => void
 }
 
 /** Cesta spojující místa na mapě — hladká křivka procházející blízko
@@ -73,13 +75,14 @@ const OBLASTI: { cx: number; cy: number; rx: number; ry: number; barva: string }
 // stínem na zemi, a dekorativní kompas jako HUD prvek.
 // ==========================================
 
-export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje }) => {
+export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoupitDoObchodu }) => {
   const navigate = useNavigate()
   const [otevrena, setOtevrena] = useState<string | null>(null)
   const platnoRef = useRef<HTMLDivElement>(null)
 
   const detail = LOKACE.find((l) => l.id === otevrena) ?? null
   const nepratele = detail ? NEPRATELE_PODLE_LOKACE[detail.id] : undefined
+  const jeTrziste = detail?.typ === 'trziste'
 
   // Hlavní cesta a řeka vedou jen přes místa bez `vedlejsi` — odbočky
   // dostávají vlastní krátké spojnice (viz vetevCesty níže).
@@ -269,13 +272,15 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje }) => {
             </span>
             <h2 className="mapa-sheet-nazev">{detail.nazev}</h2>
             <p className="mapa-sheet-text">
-              {nepratele
-                ? nepratele.length > 1
-                  ? `${nepratele.length} nepřátel na tebe čeká za sebou — výdrž se mezi nimi neobnoví. Troufneš si?`
-                  : `${nepratele[0].jmeno} tě čeká — troufneš si na souboj?`
-                : detail.typ === 'hlavni-mesto'
-                  ? 'Hlavní město je vyhrazené pro dějovou linku hry — ta zatím nevznikla, přijde v některém z dalších kroků.'
-                  : 'Tohle místo zatím nikam nevede — je připravené a obsah do něj teprve přibude.'}
+              {jeTrziste
+                ? 'Trvalá vylepšení za kredity z boje — elixíry, čepele a další věci, co platí pro celou tvou partu.'
+                : nepratele
+                  ? nepratele.length > 1
+                    ? `${nepratele.length} nepřátel na tebe čeká za sebou — výdrž se mezi nimi neobnoví. Troufneš si?`
+                    : `${nepratele[0].jmeno} tě čeká — troufneš si na souboj?`
+                  : detail.typ === 'hlavni-mesto'
+                    ? 'Hlavní město je vyhrazené pro dějovou linku hry — ta zatím nevznikla, přijde v některém z dalších kroků.'
+                    : 'Tohle místo zatím nikam nevede — je připravené a obsah do něj teprve přibude.'}
             </p>
             {nepratele && (
               <button
@@ -286,6 +291,17 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje }) => {
                 }}
               >
                 ⚔️ Vstoupit do boje
+              </button>
+            )}
+            {jeTrziste && (
+              <button
+                className="mapa-sheet-boj"
+                onClick={() => {
+                  onVstoupitDoObchodu(detail.id)
+                  setOtevrena(null)
+                }}
+              >
+                🏪 Vstoupit na tržiště
               </button>
             )}
             <button className="mapa-sheet-close" onClick={() => setOtevrena(null)}>
