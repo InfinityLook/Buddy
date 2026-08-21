@@ -158,6 +158,15 @@
   color: #f87171;
 }
 
+/* Zakázat celou appku je závažnější akce než zakázat jen Social —
+   plná, syté červená ať se vizuálně nesplete s běžným --ne tlačítkem. */
+.admin-btn--zavazne {
+  background: #dc2626;
+  border-color: #dc2626;
+  color: #fff;
+  font-weight: 800;
+}
+
 .admin-mono {
   font-family: ui-monospace, 'SF Mono', Menlo, monospace;
   font-size: 0.7rem;

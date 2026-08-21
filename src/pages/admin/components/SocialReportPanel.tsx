@@ -19,6 +19,7 @@ const cas = (iso: string) =>
 export const SocialReportPanel: React.FC = () => {
   const [hlaseni, setHlaseni] = useState<Hlaseni[]>([])
   const [banovani, setBanovani] = useState<Set<string>>(new Set())
+  const [appBanovani, setAppBanovani] = useState<Record<string, boolean>>({})
   const [nacita, setNacita] = useState(true)
   const [jenNevyrizena, setJenNevyrizena] = useState(true)
   const [hlaska, setHlaska] = useState<string | null>(null)
@@ -28,6 +29,11 @@ export const SocialReportPanel: React.FC = () => {
     setHlaseni(h)
     setBanovani(b)
     setNacita(false)
+
+    // Stav banu z celé appky se dotahuje zvlášť, jen pro id, která se
+    // v hlášeních doopravdy objevila — ne pro každého uživatele appky.
+    const idsNahlasenych = [...new Set(h.map((z) => z.nahlaseny?.id).filter((id): id is string => !!id))]
+    setAppBanovani(await adminApi.nactiAppBanStavy(idsNahlasenych))
   }
 
   useEffect(() => {
@@ -55,6 +61,24 @@ export const SocialReportPanel: React.FC = () => {
         : v.chyba ?? 'Nepovedlo se to.'
     )
     if (v.ok) await nacti()
+  }
+
+  const prepnoutAppBan = async (uzivatelId: string, jmeno: string, zabanovat: boolean) => {
+    // Tohle je nevratné v tom smyslu, že dotčený se hned neodhlásí sám
+    // — zamyká celý účet na všech zařízeních, ne jen jednu funkci.
+    if (zabanovat && !window.confirm(`Opravdu zabanovat ${jmeno} z celé aplikace? Nepůjde se přihlásit na žádném zařízení.`)) {
+      return
+    }
+
+    const v = await adminApi.zabanujCelouAppku(uzivatelId, zabanovat)
+    oznam(
+      v.ok
+        ? zabanovat
+          ? `${jmeno} je zabanovaný z celé appky.`
+          : `${jmeno} se zase může přihlásit.`
+        : v.chyba ?? 'Nepovedlo se to.'
+    )
+    if (v.ok) setAppBanovani((s) => ({ ...s, [uzivatelId]: zabanovat }))
   }
 
   const zobrazena = jenNevyrizena ? hlaseni.filter((h) => h.stav === 'nevyrizeno') : hlaseni
@@ -108,6 +132,22 @@ export const SocialReportPanel: React.FC = () => {
                       onClick={() => prepnoutBan(h.nahlaseny!.id, h.nahlaseny!.displayName, true)}
                     >
                       ⛔ Zakázat Social
+                    </button>
+                  )}
+
+                  {appBanovani[h.nahlaseny.id] ? (
+                    <button
+                      className="admin-btn admin-btn--ano"
+                      onClick={() => prepnoutAppBan(h.nahlaseny!.id, h.nahlaseny!.displayName, false)}
+                    >
+                      ✓ Zase povolit appku
+                    </button>
+                  ) : (
+                    <button
+                      className="admin-btn admin-btn--zavazne"
+                      onClick={() => prepnoutAppBan(h.nahlaseny!.id, h.nahlaseny!.displayName, true)}
+                    >
+                      🚫 Zakázat celou appku
                     </button>
                   )}
                 </div>

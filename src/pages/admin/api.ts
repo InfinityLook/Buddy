@@ -78,3 +78,50 @@ export const zabanujZeSocial = async (uzivatelId: string, zabanovat: boolean): P
 
   return error ? chyba(error) : { ok: true }
 }
+
+// ---------- ban z celé aplikace ----------
+//
+// Jde přes api/admin-ban.ts, ne přímo do Supabase — přihlašování nejde
+// zablokovat pravidlem RLS (to chrání řádky, ne samotné auth), potřebuje
+// to Supabase service role klíč, a ten nesmí ležet v prohlížeči. Server
+// si roli volajícího ověřuje sám, spoofnutá role v localStorage by tu
+// neprošla o nic dál než u ostatních admin volání.
+
+const hlavickaAutorizace = async (): Promise<HeadersInit | null> => {
+  if (!supabase) return null
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  return token ? { Authorization: `Bearer ${token}` } : null
+}
+
+export const nactiAppBanStavy = async (ids: string[]): Promise<Record<string, boolean>> => {
+  const hlavicka = await hlavickaAutorizace()
+  if (!hlavicka || ids.length === 0) return {}
+
+  try {
+    const odpoved = await fetch(`/api/admin-ban?ids=${encodeURIComponent(ids.join(','))}`, {
+      headers: hlavicka,
+    })
+    const telo = await odpoved.json().catch(() => null)
+    return odpoved.ok ? telo?.zabanovani ?? {} : {}
+  } catch {
+    return {}
+  }
+}
+
+export const zabanujCelouAppku = async (uzivatelId: string, zabanovat: boolean): Promise<Vysledek> => {
+  const hlavicka = await hlavickaAutorizace()
+  if (!hlavicka) return { ok: false, chyba: 'Admin panel potřebuje přihlášený účet.' }
+
+  try {
+    const odpoved = await fetch('/api/admin-ban', {
+      method: 'POST',
+      headers: { ...hlavicka, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cilId: uzivatelId, zabanovat }),
+    })
+    const telo = await odpoved.json().catch(() => null)
+    return odpoved.ok ? { ok: true } : { ok: false, chyba: telo?.chyba ?? 'Nepovedlo se to.' }
+  } catch {
+    return { ok: false, chyba: 'Nejde se připojit. Zkontroluj internet.' }
+  }
+}
