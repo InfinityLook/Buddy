@@ -1,44 +1,44 @@
-import { Lokace, Vetev } from './types'
+import { Lokace } from './types'
 
 // ==========================================
-// Místa na mapě světa. Souřadnice jsou v procentech výškového/šířkového
-// pásu mapy (viz MapaSveta.css) — hlavní cesta stoupá od vesnice dole
-// až po hlavní město nahoře (pořadí míst bez `vedlejsi`), vedlejší
-// místa (`vedlejsi: true`) visí na krátkých odbočkách definovaných
-// níže ve VETVE a leží dál do stran — proto se mapa dá posouvat i
-// vodorovně, ne jen nahoru/dolů.
+// Místa na mapě světa. Souřadnice jsou v procentech šířky/výšky obrázku
+// mapy (public/backgrounds/mapa-sveta.jpg, 1536×1024 px) — odpovídají
+// přímo pixelové pozici pojmenovaného města/místa na téhle konkrétní
+// ilustraci, takže při výměně obrázku za jiný je potřeba je přepočítat
+// znovu (žádný vzorec, jen odečtené souřadnice).
+//
+// Dřív měla mapa vlastní kreslenou cestu + řeku + odbočky (viz historie
+// MapaSveta.tsx) — tahle ilustrace už silnice i krajinu má namalované
+// v sobě, takže žádná overlay grafika navíc není potřeba. Piny leží
+// přímo na obrázku, nic se nedokresluje.
 //
 // Nic z tohohle zatím nikam nevede — každé místo otevře jen list
-// "brzy" (kromě arény, viz combat/nepratele.ts). Až vznikne obsah
-// (dungeon k probojování, tržiště k nákupu…), mění se otevriLokaci
-// v MapaSveta.tsx, ne tenhle seznam.
+// "brzy" (kromě arény a jednoho dungeonu, viz combat/nepratele.ts).
+// Až vznikne obsah, mění se otevriLokaci v MapaSveta.tsx, ne tenhle
+// seznam.
 // ==========================================
 
 export const LOKACE: Lokace[] = [
-  { id: 'vesnice-travov', typ: 'vesnice', nazev: 'Vesnice Trávov', ikona: '🏘️', barva: '#22c55e', x: 30, y: 92 },
-  { id: 'trziste-brodu', typ: 'trziste', nazev: 'Tržiště Brodů', ikona: '🏪', barva: '#f59e0b', x: 68, y: 80 },
-  { id: 'dungeon-stinne-jeskyne', typ: 'dungeon', nazev: 'Stínné jeskyně', ikona: '🕳️', barva: '#7c3aed', x: 25, y: 68 },
-  { id: 'mesto-kamenny-pristav', typ: 'mesto', nazev: 'Kamenný Přístav', ikona: '🏛️', barva: '#35c4f0', x: 70, y: 56 },
-  { id: 'arena-krvavy-kruh', typ: 'arena', nazev: 'Krvavý kruh', ikona: '⚔️', barva: '#ef4444', x: 30, y: 44 },
-  { id: 'vesnice-lesni-mytina', typ: 'vesnice', nazev: 'Lesní Mýtina', ikona: '🏘️', barva: '#22c55e', x: 68, y: 32 },
-  { id: 'dungeon-zapomenuta-hrobka', typ: 'dungeon', nazev: 'Zapomenutá hrobka', ikona: '🕳️', barva: '#7c3aed', x: 28, y: 20 },
-  { id: 'mesto-stribrne-udoli', typ: 'mesto', nazev: 'Stříbrné Údolí', ikona: '🏛️', barva: '#35c4f0', x: 62, y: 10 },
-  { id: 'buddyheim', typ: 'hlavni-mesto', nazev: 'Buddyheim', ikona: '🏰', barva: '#fbbf24', x: 45, y: 4 },
+  { id: 'solace', typ: 'hlavni-mesto', nazev: 'Solace', ikona: '🏰', barva: '#fbbf24', x: 47.7, y: 41.8 },
 
-  // Vedlejší místa na odbočkách — dál do stran, objeví se až vodorovným
-  // posouváním mapy.
-  { id: 'mesto-zlaty-breh', typ: 'mesto', nazev: 'Zlatý Břeh', ikona: '🏛️', barva: '#35c4f0', x: 92, y: 77, vedlejsi: true },
-  { id: 'dungeon-krvava-sluj', typ: 'dungeon', nazev: 'Krvavá sluj', ikona: '🕳️', barva: '#7c3aed', x: 6, y: 62, vedlejsi: true },
-  { id: 'dungeon-ztracena-kobka', typ: 'dungeon', nazev: 'Ztracená kobka', ikona: '🕳️', barva: '#7c3aed', x: 6, y: 40, vedlejsi: true },
-  { id: 'mesto-mlzny-vrch', typ: 'mesto', nazev: 'Mlžný Vrch', ikona: '🏛️', barva: '#35c4f0', x: 92, y: 28, vedlejsi: true },
-]
+  { id: 'frostheim', typ: 'mesto', nazev: 'Frostheim', ikona: '🏛️', barva: '#7dd3fc', x: 38.3, y: 24.0 },
+  { id: 'voidspire', typ: 'mesto', nazev: 'Voidspire', ikona: '🏛️', barva: '#a78bfa', x: 63.0, y: 27.1 },
+  { id: 'greenhaven', typ: 'mesto', nazev: 'Greenhaven', ikona: '🏛️', barva: '#22c55e', x: 31.1, y: 43.7 },
+  { id: 'stonehaven', typ: 'mesto', nazev: 'Stonehaven', ikona: '🏛️', barva: '#94a3b8', x: 73.6, y: 57.1 },
+  { id: 'sunfall', typ: 'mesto', nazev: 'Sunfall', ikona: '🏛️', barva: '#f59e0b', x: 51.8, y: 77.4 },
 
-/** Odbočky z hlavní cesty k vedlejším místům výše. */
-export const VETVE: Vetev[] = [
-  { z: 'trziste-brodu', do: 'mesto-zlaty-breh' },
-  { z: 'dungeon-stinne-jeskyne', do: 'dungeon-krvava-sluj' },
-  { z: 'arena-krvavy-kruh', do: 'dungeon-ztracena-kobka' },
-  { z: 'vesnice-lesni-mytina', do: 'mesto-mlzny-vrch' },
+  { id: 'mysteria', typ: 'vesnice', nazev: 'Mysteria', ikona: '🏘️', barva: '#2dd4bf', x: 86.6, y: 74.2 },
+  { id: 'skyreach-isles', typ: 'vesnice', nazev: 'Skyreach Isles', ikona: '🏘️', barva: '#38bdf8', x: 16.6, y: 82.5 },
+
+  { id: 'windport', typ: 'trziste', nazev: 'Windport', ikona: '🏪', barva: '#f59e0b', x: 32.9, y: 71.6 },
+
+  // Id zůstávají beze změny oproti starým místům se stejnou rolí —
+  // NEPRATELE_PODLE_LOKACE (combat/nepratele.ts) na ně klíčuje, a
+  // přejmenování id by tichem přerušilo jediný obsah, co v aréně/
+  // dungeonu doopravdy je.
+  { id: 'arena-krvavy-kruh', typ: 'arena', nazev: 'Aréna Solace', ikona: '⚔️', barva: '#ef4444', x: 62.7, y: 41.8 },
+  { id: 'dungeon-stinne-jeskyne', typ: 'dungeon', nazev: 'Molten Core', ikona: '🕳️', barva: '#ef4444', x: 13.9, y: 65.0 },
+  { id: 'draconis-peak', typ: 'dungeon', nazev: 'Draconis Peak', ikona: '🕳️', barva: '#f97316', x: 88.4, y: 34.3 },
 ]
 
 export const POPIS_TYPU: Record<Lokace['typ'], string> = {

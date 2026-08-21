@@ -1,9 +1,10 @@
 /* ==========================================
-   MAPA SVĚTA — cesta od vesnice k hlavnímu městu, scrolluje se svisle.
-   Vzhled cílí na "profesionální herní mapu" (gacha-RPG styl, ne dětská
-   ilustrace): tmavá soumraková paleta, konturové prstence jako na
-   topografické mapě, jemná mřížka, tekoucí stezka a piny ve tvaru
-   klasické kapky s leskem a stínem na zemi.
+   MAPA SVĚTA — ilustrovaná bitmapa (Buddy Realm, public/backgrounds/
+   mapa-sveta.jpg) s piny na pojmenovaných místech. Dřívější verze
+   kreslila krajinu, cesty i řeku procedurálně v SVG (gradienty, filtry,
+   animovaná dashed čára) — vypadalo to dobře, ale na slabším telefonu
+   to znatelně sekalo. Statický obrázek stojí prohlížeč zlomek toho
+   (žádné přemalovávání za běhu), a piny nad ním fungují beze změny.
    ========================================== */
 
 .mapa-sveta {
@@ -89,42 +90,29 @@
 
 .mapa-svet {
   position: relative;
-  /* Skutečná "velikost světa" — pevná šířka i výška, appka se v ní
-     scrolluje nahoru/dolů i do stran, nezávisle na tom, jak velký je
-     displej. Šířka musí sedět s SVET_SIRKA_PX v MapaSveta.tsx (stejná
-     dvoumístní vazba jako @/* alias). */
-  width: 900px;
-  height: 2200px;
-  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
-  box-sizing: border-box;
+  /* Skutečná "velikost světa" — přesně rozměry mapa-sveta.jpg, appka
+     se v ní scrolluje na obě strany podle toho, kam hráč chce. Musí
+     sedět s SVET_SIRKA_PX/SVET_VYSKA_PX v MapaSveta.tsx (stejná
+     dvoumístní vazba jako @/* alias) a se skutečnými rozměry obrázku —
+     při výměně ilustrace za jinou se mění na třech místech najednou.
+     Žádný padding dole navíc: obrázek už má vlastní okraj pobřeží. */
+  width: 1536px;
+  height: 1024px;
+  background: #0c0a16;
 }
 
-.mapa-terren {
+.mapa-obrazek {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   z-index: 0;
-  /* Soumrakové fantasy pozadí místo ploché zeleně — indigo/fialová
-     s teplejším pruhem uprostřed, ať plátno nepůsobí jako jedna barva. */
-  background:
-    radial-gradient(ellipse 70% 40% at 50% 45%, rgba(124, 58, 237, 0.14) 0%, transparent 65%),
-    linear-gradient(180deg, #171233 0%, #171938 30%, #121531 55%, #16112a 78%, #0c0a16 100%);
-}
-
-.mapa-cesta {
-  animation: mapa-cesta-tok 5s linear infinite;
-}
-
-/* Odbočky jsou tlumenější (viz strokeOpacity v TSX) a záměrně statické —
-   hlavní cesta má jediná plynoucí animaci pro celou mapu; víc animovaných
-   čar navíc by jen stálo snímkovou frekvenci bez viditelného přínosu,
-   protože odbočky jsou vizuálně druhořadé vůči hlavní trase. */
-
-@keyframes mapa-cesta-tok {
-  to {
-    stroke-dashoffset: -12;
-  }
+  /* Přesně rozměry .mapa-svet, žádné neúmyslné roztažení/oříznutí. */
+  object-fit: fill;
+  /* Piny leží nad obrázkem na přesných souřadnicích — posouvat ho
+     tažením prstu (místo scrollování plátna) by je rozjelo mimo místa. */
+  pointer-events: none;
+  user-select: none;
 }
 
 .mapa-vinetace {
@@ -361,5 +349,4 @@
 
 @media (prefers-reduced-motion: reduce) {
   .mapa-pin--hlavni-mesto .mapa-pin-znacka::before { animation: none; opacity: 0.5; }
-  .mapa-cesta { animation: none; }
 }

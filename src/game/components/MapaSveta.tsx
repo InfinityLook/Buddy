@@ -1,16 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LOKACE, POPIS_TYPU, VETVE } from '../lokace'
+import { LOKACE, POPIS_TYPU } from '../lokace'
 import { NEPRATELE_PODLE_LOKACE } from '../combat/nepratele'
 import { Postava } from '../types'
 import { useGameCharacter } from '../useGameCharacter'
 import { vychoziProgres } from '../leveling'
 import './MapaSveta.css'
 
-/** Šířka "světa" v px — musí sedět s .mapa-svet v MapaSveta.css (stejný
- *  vzor jako @/* alias, co musí sedět na dvou místech zároveň). Pevná
- *  šířka větší než displej je to, co dělá mapu vodorovně posouvatelnou. */
-const SVET_SIRKA_PX = 900
+/** Přesné rozměry public/backgrounds/mapa-sveta.jpg v px — musí sedět
+ *  s .mapa-svet v MapaSveta.css (stejný vzor jako @/* alias, co musí
+ *  sedět na dvou místech zároveň). Souřadnice pinů v lokace.ts jsou
+ *  procenta téhle konkrétní bitmapy, ne libovolného poměru stran. */
+const SVET_SIRKA_PX = 1536
+const SVET_VYSKA_PX = 1024
 
 interface Props {
   postava: Postava
@@ -22,61 +24,18 @@ interface Props {
   onOtevritDovednosti: () => void
 }
 
-/** Cesta spojující místa na mapě — hladká křivka procházející blízko
- *  každého bodu, ne rovné úsečky. Souřadnice jsou stejný 0–100 prostor
- *  jako pozice míst, takže cesta drží u nich i po přeuspořádání na
- *  jiné šířce displeje. */
-const cestaZBodu = (body: { x: number; y: number }[]): string => {
-  if (body.length < 2) return ''
-  let d = `M ${body[0].x} ${body[0].y}`
-  for (let i = 0; i < body.length - 1; i++) {
-    const p0 = body[i]
-    const p1 = body[i + 1]
-    const midX = (p0.x + p1.x) / 2
-    const midY = (p0.y + p1.y) / 2
-    d += ` Q ${p0.x} ${p0.y}, ${midX} ${midY}`
-  }
-  const posledni = body[body.length - 1]
-  d += ` T ${posledni.x} ${posledni.y}`
-  return d
-}
-
-/** Krátká odbočka mezi dvěma body — kvadratická křivka vychýlená kolmo
- *  od přímé spojnice, ať vedlejší stezka nevypadá jako pravítkem
- *  tažená čára. Znaménko vychýlení střídá volající podle indexu. */
-const vetevCesta = (a: { x: number; y: number }, b: { x: number; y: number }, vychyleni: number): string => {
-  const midX = (a.x + b.x) / 2
-  const midY = (a.y + b.y) / 2
-  const dx = b.x - a.x
-  const dy = b.y - a.y
-  const delka = Math.hypot(dx, dy) || 1
-  const cx = midX + (-dy / delka) * vychyleni
-  const cy = midY + (dx / delka) * vychyleni
-  return `M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`
-}
-
-/** Barevné mlhoviny v pozadí — vzaté z barvy nejbližší lokace, takže
- *  krajina opticky ladí s tím, co v ní stojí, místo náhodné zeleně. */
-const OBLASTI: { cx: number; cy: number; rx: number; ry: number; barva: string }[] = [
-  { cx: 12, cy: 85, rx: 18, ry: 10, barva: '#f59e0b' },
-  { cx: 88, cy: 72, rx: 15, ry: 9, barva: '#7c3aed' },
-  { cx: 10, cy: 55, rx: 16, ry: 9, barva: '#35c4f0' },
-  { cx: 85, cy: 40, rx: 17, ry: 10, barva: '#ef4444' },
-  { cx: 15, cy: 26, rx: 15, ry: 9, barva: '#22c55e' },
-  { cx: 80, cy: 12, rx: 19, ry: 11, barva: '#35c4f0' },
-]
-
 // ==========================================
-// Mapa světa. Cesta od vesnice dole až po hlavní město nahoře — appka
-// se scrolluje, ne přibližuje/otáčí jako bývalé 3D město. Míst je pár
-// od každého druhu (viz lokace.ts), každé zatím otevře jen list
-// "brzy". Hlavní město má text navíc — je vyhrazené pro dějovou linku,
-// až vznikne.
+// Mapa světa — jedna ilustrovaná bitmapa (Buddy Realm) s piny na
+// pojmenovaných místech, ne procedurálně kreslená SVG krajina jako
+// dřív. Cesty, řeky i terén už jsou namalované přímo v obrázku, takže
+// odpadá celá dřívější vrstva gradientů/filtrů/animovaných cest, která
+// na slabších telefonech znatelně sekala (viz FPS poznámka v
+// CLAUDE.md u předchozí verze mapy) — jeden statický <img> stojí
+// prohlížeč zlomek toho, co dřív stálo přemalovávat rozostřenou,
+// animovanou SVG vrstvu 60× za sekundu.
 //
-// Vzhled cílí na "profesionální herní mapu": mlhoviny + konturové
-// prstence (topografická mapa), jemná mřížka, zlato-fialovo-modrá
-// stezka s tekoucím leskem, piny ve tvaru klasické kapky s leskem a
-// stínem na zemi, a dekorativní kompas jako HUD prvek.
+// Piny, list po klepnutí a boj/tržiště fungují beze změny — mění se
+// jen to, na čem piny leží.
 // ==========================================
 
 export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoupitDoObchodu, onOtevritDovednosti }) => {
@@ -89,27 +48,15 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoup
   const nepratele = detail ? NEPRATELE_PODLE_LOKACE[detail.id] : undefined
   const jeTrziste = detail?.typ === 'trziste'
 
-  // Hlavní cesta a řeka vedou jen přes místa bez `vedlejsi` — odbočky
-  // dostávají vlastní krátké spojnice (viz vetevCesty níže).
-  const hlavniLokace = LOKACE.filter((l) => !l.vedlejsi)
-  const cesta = cestaZBodu(hlavniLokace.map((l) => ({ x: l.x, y: l.y })))
-  const reka = cestaZBodu(hlavniLokace.map((l) => ({ x: l.x + 10, y: l.y - 3 })))
-
-  const vetevCesty = VETVE.map((v, i) => {
-    const z = LOKACE.find((l) => l.id === v.z)
-    const doL = LOKACE.find((l) => l.id === v.do)
-    if (!z || !doL) return null
-    return { id: `${v.z}->${v.do}`, d: vetevCesta(z, doL, i % 2 === 0 ? 5 : -5) }
-  }).filter((v): v is { id: string; d: string } => v !== null)
-
-  // Mapa je širší než displej (viz SVET_SIRKA_PX) — při vstupu ji
-  // vodorovně vycentruje na hlavní cestu, odbočky do stran zůstanou
-  // objevit posunutím, ne rovnou v záběru.
+  // Mapa je větší než displej na obě strany — při vstupu ji vycentruje
+  // na hlavní město (Solace), střed světa i příběhu, místo levého
+  // horního rohu obrázku.
   useEffect(() => {
     const el = platnoRef.current
-    if (!el) return
-    const stredHlavniCesty = 0.475 * SVET_SIRKA_PX
-    el.scrollLeft = Math.max(0, stredHlavniCesty - el.clientWidth / 2)
+    const hlavniMesto = LOKACE.find((l) => l.typ === 'hlavni-mesto')
+    if (!el || !hlavniMesto) return
+    el.scrollLeft = Math.max(0, (hlavniMesto.x / 100) * SVET_SIRKA_PX - el.clientWidth / 2)
+    el.scrollTop = Math.max(0, (hlavniMesto.y / 100) * SVET_VYSKA_PX - el.clientHeight / 2)
   }, [])
 
   return (
@@ -140,113 +87,10 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoup
 
       <div className="mapa-platno" ref={platnoRef}>
         <div className="mapa-svet">
-          <svg className="mapa-terren" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <defs>
-              {OBLASTI.map((o, i) => (
-                <radialGradient key={i} id={`mapa-oblast-${i}`} cx="50%" cy="50%" r="50%">
-                  <stop offset="0%" stopColor={o.barva} stopOpacity="0.3" />
-                  <stop offset="100%" stopColor={o.barva} stopOpacity="0" />
-                </radialGradient>
-              ))}
-              <linearGradient id="mapa-cesta-barva" x1="0" y1="100%" x2="0" y2="0%">
-                <stop offset="0%" stopColor="#fbbf24" />
-                <stop offset="50%" stopColor="#a78bfa" />
-                <stop offset="100%" stopColor="#35c4f0" />
-              </linearGradient>
-              <pattern id="mapa-mrizka" width="6" height="6" patternUnits="userSpaceOnUse">
-                <path d="M 6 0 L 0 0 0 6" fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="0.25" />
-              </pattern>
-              <filter id="mapa-zar" x="-60%" y="-60%" width="220%" height="220%">
-                <feGaussianBlur stdDeviation="0.5" result="blur" />
-                <feMerge>
-                  <feMergeNode in="blur" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            </defs>
+          <img className="mapa-obrazek" src="/backgrounds/mapa-sveta.jpg" alt="" aria-hidden="true" draggable={false} />
 
-            {/* Jemná mřížka přes celou plochu — kartografický, ne herní pocit */}
-            <rect x="0" y="0" width="100" height="100" fill="url(#mapa-mrizka)" />
-
-            {/* Barevné mlhoviny + konturové prstence okolo nich (topografická mapa) */}
-            {OBLASTI.map((o, i) => (
-              <ellipse key={`glow-${i}`} cx={o.cx} cy={o.cy} rx={o.rx} ry={o.ry} fill={`url(#mapa-oblast-${i})`} />
-            ))}
-            {OBLASTI.map((o, i) => (
-              <ellipse
-                key={`k1-${i}`}
-                cx={o.cx}
-                cy={o.cy}
-                rx={o.rx * 1.35}
-                ry={o.ry * 1.35}
-                fill="none"
-                stroke={o.barva}
-                strokeOpacity="0.14"
-                strokeWidth="0.22"
-              />
-            ))}
-            {OBLASTI.map((o, i) => (
-              <ellipse
-                key={`k2-${i}`}
-                cx={o.cx}
-                cy={o.cy}
-                rx={o.rx * 1.7}
-                ry={o.ry * 1.7}
-                fill="none"
-                stroke={o.barva}
-                strokeOpacity="0.07"
-                strokeWidth="0.18"
-              />
-            ))}
-
-            {/* Řeka podél cesty — vodní stopa vedle míst, ne skrz ně */}
-            <path d={reka} fill="none" stroke="#35c4f0" strokeOpacity="0.4" strokeWidth="1" strokeLinecap="round" />
-
-            {/* Odbočky k vedlejším místům — tenčí a tlumenější než hlavní cesta,
-                ať je na první pohled jasné, co je trasa a co jen výlet stranou.
-                Statické, bez animace toku — hlavní cesta ji má jednu, další
-                animovaný prvek navíc už jen zatěžuje snímkovou frekvenci. */}
-            {vetevCesty.map((v) => (
-              <path
-                key={v.id}
-                className="mapa-cesta-vedlejsi"
-                d={v.d}
-                fill="none"
-                stroke="url(#mapa-cesta-barva)"
-                strokeOpacity="0.45"
-                strokeWidth="0.4"
-                strokeDasharray="1.2 1.6"
-                strokeLinecap="round"
-              />
-            ))}
-
-            {/* Cesta spojující jednotlivá místa — tekoucí zlato-fialovo-modrý lesk.
-                Rozdělená na dvě vrstvy schválně: žár (filtr) se kreslí jednou a
-                nehýbe se, animovaná je jen ostrá vrstva nahoře bez filtru — jinak
-                by prohlížeč musel rozostření přepočítávat 60× za sekundu a mapa
-                by sekala (viz FPS poznámka v CLAUDE.md). */}
-            <path
-              d={cesta}
-              fill="none"
-              stroke="url(#mapa-cesta-barva)"
-              strokeOpacity="0.55"
-              strokeWidth="1.1"
-              strokeLinecap="round"
-              filter="url(#mapa-zar)"
-            />
-            <path
-              className="mapa-cesta"
-              d={cesta}
-              fill="none"
-              stroke="url(#mapa-cesta-barva)"
-              strokeOpacity="0.9"
-              strokeWidth="0.55"
-              strokeDasharray="1.6 1.4"
-              strokeLinecap="round"
-            />
-          </svg>
-
-          {/* Vinětace — okraje mapy jemně ztmavené, ať plátno nepůsobí jako plochý výřez */}
+          {/* Vinětace — okraje mapy jemně ztmavené, ať piny a jejich
+              popisky vyniknou i na světlejších částech ilustrace. */}
           <div className="mapa-vinetace" aria-hidden="true" />
 
           {LOKACE.map((l) => (

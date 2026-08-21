@@ -149,6 +149,18 @@ export default defineConfig(({ command }) => {
                 cacheName: 'mediapipe-runtime',
                 expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 365 }
               }
+            },
+            // Mapa světa (~400 kB) stejným důvodem jako mediapipe výš:
+            // stáhne se jen tomu, kdo doopravdy otevře /hra, ne každému
+            // při instalaci PWA. .jpg navíc není v globPatterns vůbec,
+            // takže by se do precache nedostala ani omylem.
+            {
+              urlPattern: ({ url }) => url.pathname === '/backgrounds/mapa-sveta.jpg',
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'mapa-sveta-runtime',
+                expiration: { maxEntries: 1, maxAgeSeconds: 60 * 60 * 24 * 365 }
+              }
             }
           ],
           // Fotka pozadí Hubu má přes 2 MB a výchozí limit Workboxu (2 MiB)
