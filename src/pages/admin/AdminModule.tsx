@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PrehledPanel } from './components/PrehledPanel'
 import { SocialReportPanel } from './components/SocialReportPanel'
+import { NotifikacePanel } from './components/NotifikacePanel'
 import { KonzolePanel } from './components/KonzolePanel'
 import { ADMIN_TABS, AdminTab } from './types'
 import './AdminModule.css'
@@ -47,6 +48,7 @@ export const AdminModule: React.FC = () => {
       <div className="admin-content">
         {tab === 'prehled' && <PrehledPanel />}
         {tab === 'social-report' && <SocialReportPanel />}
+        {tab === 'notifikace' && <NotifikacePanel />}
         {tab === 'konzole' && <KonzolePanel />}
       </div>
     </div>

@@ -439,3 +439,63 @@
   font-weight: 700;
   cursor: pointer;
 }
+
+/* ------------------------------------------
+   NOTIFIKACE
+   ------------------------------------------ */
+
+.admin-notif-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.admin-notif-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 70px;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  box-sizing: border-box;
+}
+
+.admin-notif-textarea:focus { outline: none; border-color: #fbbf24; }
+
+.admin-notif-form-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.admin-notif-pocitadlo {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.admin-notif-text-preview {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.admin-icon-btn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+  color: #f87171;
+  font-size: 0.75rem;
+  cursor: pointer;
+}

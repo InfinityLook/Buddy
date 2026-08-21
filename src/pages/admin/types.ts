@@ -2,11 +2,12 @@
 // Tvary dat Admin panelu.
 // ==========================================
 
-export type AdminTab = 'prehled' | 'social-report' | 'konzole'
+export type AdminTab = 'prehled' | 'social-report' | 'notifikace' | 'konzole'
 
 export const ADMIN_TABS: { id: AdminTab; label: string; icon: string }[] = [
   { id: 'prehled', label: 'Přehled', icon: '📊' },
   { id: 'social-report', label: 'SocialReport', icon: '🚩' },
+  { id: 'notifikace', label: 'Notifikace', icon: '📣' },
   { id: 'konzole', label: 'Konzole', icon: '⌨️' },
 ]
 
