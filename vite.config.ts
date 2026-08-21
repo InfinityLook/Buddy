@@ -161,6 +161,17 @@ export default defineConfig(({ command }) => {
                 cacheName: 'mapa-sveta-runtime',
                 expiration: { maxEntries: 1, maxAgeSeconds: 60 * 60 * 24 * 365 }
               }
+            },
+            // Portréty hrdinů (public/postavy/*.jpg, ~310 kB za všech
+            // pět) stejným důvodem jako mapa výš — /hra otevře jen část
+            // uživatelů, takže portréty nepatří do instalační precache.
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/postavy/'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'postavy-runtime',
+                expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 * 365 }
+              }
             }
           ],
           // Fotka pozadí Hubu má přes 2 MB a výchozí limit Workboxu (2 MiB)

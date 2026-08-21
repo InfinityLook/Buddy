@@ -4,7 +4,13 @@
 // viz komentář tam.
 // ==========================================
 
-export type Zivel = 'svetlo' | 'ohen' | 'vzduch' | 'zeme' | 'voda'
+// arkana/tma přibyly s výměnou hrdinů (postavy.ts) za Lyru a Drakona —
+// jejich živly (Arcane/Dark) nešly poctivě namapovat na žádný z
+// původních pěti, byla by to jen lež v UI. svetlo a vzduch teď nemá
+// žádná postava jako svůj bonusový živel (obě dřívější postavy s nimi
+// zmizely), ale karty samotné zůstávají — kdokoli je pořád může hrát,
+// jen bez násobiče poškození.
+export type Zivel = 'svetlo' | 'ohen' | 'vzduch' | 'zeme' | 'voda' | 'arkana' | 'tma'
 
 export interface Karta {
   id: string

@@ -15,7 +15,7 @@ import * as v from 'valibot'
 const MAX_UROVEN = 10
 const MAX_DOVEDNOST_RANK = 3
 
-export const POSTAVA_IDS = ['andel', 'aryn', 'gron', 'mya', 'loxen'] as const
+export const POSTAVA_IDS = ['kael', 'lyra', 'rayen', 'elara', 'drakon'] as const
 export type PostavaIdValidni = (typeof POSTAVA_IDS)[number]
 
 interface PostavaProgres {

@@ -44,10 +44,22 @@
   color: var(--text-secondary);
 }
 
+/* Vodorovný karusel — místo dřívější svislé mřížky. Karty samotné
+   (šířka, scroll-snap-align) si řídí .postava-karta-wrap v
+   PostavaKarta.css; tenhle kontejner jen řadí do řádku a scrolluje
+   ho stranou, se zaskočením na každou kartu zvlášť. */
 .tp-mrizka {
   display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
+  flex-direction: row;
+  gap: 0.9rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0.9rem;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  padding: 0.2rem 0.9rem 0.6rem;
+  margin: 0 -0.9rem;
 }
 
 .tp-mrizka .postava-karta-wrap:nth-child(1) { animation-delay: 0.03s; }

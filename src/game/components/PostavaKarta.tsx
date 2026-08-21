@@ -8,14 +8,24 @@ interface Props {
   onClick: () => void
   /** Když je zadané, karta dostane tlačítko smazání navíc. */
   onSmazat?: () => void
-  /** Úroveň postavy — zobrazí se jako odznak vedle jména (viz leveling.ts).
-   *  Nezadané na obrazovce tvorby, kde postava ještě neexistuje. */
+  /** Úroveň postavy — zobrazí se jako odznak přes roh portrétu (viz
+   *  leveling.ts). Nezadané na obrazovce tvorby, kde postava ještě
+   *  neexistuje. */
   uroven?: number
 }
 
 // ==========================================
 // Sdílená karta postavy — používá ji jak tvorba nové postavy
 // (TvorbaPostavy), tak výběr, za koho tuhle hru hrát (VyberPostavy).
+// Obě obrazovky ji řadí do vodorovného karuselu (viz jejich vlastní
+// CSS), tahle karta jen definuje, jak vypadá JEDNA položka v něm.
+//
+// Portrét (postava.portret) je oříznutá karta přímo z referenčního
+// obrázku hrdinů — jméno, titul, živel i role jsou v ní zapečené
+// jako ilustrace, takže se tu nezdvojují jako text. Co v obrázku
+// není — herní bonusy, případná nevýhoda, odznak úrovně — jde přes
+// něj nebo pod něj jako skutečný UI text.
+//
 // Tlačítko smazání je schválně SOUROZENEC vybíratelného tlačítka, ne
 // vnořené uvnitř něj — vnořené tlačítko v tlačítku je neplatné HTML
 // a láme se s ním čtečky obrazovky i klávesnicová navigace.
@@ -29,17 +39,22 @@ export const PostavaKarta: React.FC<Props> = ({ postava, vybrana, onClick, onSma
         style={{ '--tp-barva': postava.barva } as React.CSSProperties}
         onClick={onClick}
       >
-        <span className="postava-karta-hlavicka">
-          <span className="postava-karta-ikona" aria-hidden="true">
+        <span className="postava-karta-portret-wrap">
+          <img
+            className="postava-karta-portret"
+            src={postava.portret}
+            alt={`${postava.jmeno} — ${postava.popis}`}
+            draggable={false}
+          />
+          <span className="postava-karta-odznak" aria-hidden="true">
             {postava.ikona}
           </span>
-          <span className="postava-karta-jmenovka">
-            <span className="postava-karta-jmeno">
-              {postava.jmeno}
-              {uroven !== undefined && <span className="postava-karta-uroven">Lv {uroven}</span>}
+          {uroven !== undefined && <span className="postava-karta-uroven">Lv {uroven}</span>}
+          {vybrana && (
+            <span className="postava-znacka" aria-hidden="true">
+              ✓
             </span>
-            <span className="postava-karta-popis">{postava.popis}</span>
-          </span>
+          )}
         </span>
 
         <span className="postava-bonusy">
@@ -56,12 +71,6 @@ export const PostavaKarta: React.FC<Props> = ({ postava, vybrana, onClick, onSma
             </span>
           )}
         </span>
-
-        {vybrana && (
-          <span className="postava-znacka" aria-hidden="true">
-            ✓
-          </span>
-        )}
       </button>
 
       {onSmazat && (

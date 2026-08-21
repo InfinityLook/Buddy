@@ -39,10 +39,21 @@
   color: var(--text-secondary);
 }
 
+/* Vodorovný karusel — místo dřívější svislé mřížky, stejný vzor jako
+   TvorbaPostavy.css (viz komentář tam). "Přidat další postavu" je
+   v řadě jako poslední položka, ne pod mřížkou. */
 .vp-mrizka {
   display: flex;
-  flex-direction: column;
-  gap: 0.8rem;
+  flex-direction: row;
+  gap: 0.9rem;
+  overflow-x: auto;
+  overflow-y: visible;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 0.9rem;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  padding: 0.2rem 0.9rem 0.6rem;
+  margin: 0 -0.9rem;
 }
 
 .vp-mrizka .postava-karta-wrap:nth-child(1) { animation-delay: 0.03s; }
@@ -53,12 +64,19 @@
 
 /* Karta pro přidání další postavy — vizuálně odlišná od skutečných
    karet (přerušovaný okraj, žádná barva postavy), ať je jasné, že
-   nejde o šestou postavu, ale o akci. */
+   nejde o šestou postavu, ale o akci. Stejné rozměry a zaskočení
+   jako .postava-karta-wrap (PostavaKarta.css), ať v řadě karuselu
+   nevybočuje výškou ani šířkou. */
 .vp-pridat {
   display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
+  width: min(78vw, 260px);
+  aspect-ratio: 280 / 764;
+  scroll-snap-align: center;
   padding: 1rem;
   border-radius: var(--radius-lg);
   background: transparent;
@@ -68,6 +86,7 @@
   font-size: 0.82rem;
   font-weight: 700;
   cursor: pointer;
+  box-sizing: border-box;
 }
 
 .vp-pridat:active { transform: scale(0.98); }

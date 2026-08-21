@@ -2,13 +2,16 @@
    POSTAVA KARTA — sdílená karta postavy, používaná tvorbou nové
    postavy i výběrem, za koho hrát tuhle hru (viz PostavaKarta.tsx).
    Vstupní animace (najetí + zpoždění podle pořadí) žije na .postava-
-   -karta-wrap, protože ten je přímým potomkem mřížky v obou
+   -karta-wrap, protože ten je přímým potomkem karuselu v obou
    obrazovkách — tlačítko smazání uvnitř wrapu tak najíždí spolu
    s kartou, ne odděleně.
    ========================================== */
 
 .postava-karta-wrap {
   position: relative;
+  flex: 0 0 auto;
+  width: min(78vw, 260px);
+  scroll-snap-align: center;
   opacity: 0;
   animation: postava-karta-vstup 0.45s ease forwards;
 }
@@ -29,11 +32,13 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.35rem;
-  padding: 1rem 1.1rem;
+  align-items: stretch;
   border-radius: var(--radius-lg);
-  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), var(--bg-glass) 55%);
+  /* Portrét vyplňuje kartu až do rohů, proto padding drží jen
+     .postava-bonusy níž, ne celé tlačítko. */
+  padding: 0;
+  overflow: hidden;
+  background: var(--bg-glass);
   backdrop-filter: blur(14px);
   border: 1.5px solid var(--border-subtle);
   color: inherit;
@@ -55,75 +60,96 @@
     0 10px 26px rgba(0, 0, 0, 0.4);
 }
 
-.postava-karta-hlavicka {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  /* Nechává místo tlačítku smazání, které leží nad pravým horním
-     rohem karty (viz .postava-karta-smazat), ať se s ním jméno
-     nepřekrývá u delších jmen. */
-  padding-right: 1.6rem;
+/* ---------- portrét (celá ilustrovaná karta z reference, viz postavy.ts) ---------- */
+
+.postava-karta-portret-wrap {
+  position: relative;
+  width: 100%;
+  /* Přesně poměr stran oříznutých portrétů (280×764 px) — žádné
+     ořezávání ani deformace, jen škálování na šířku karty. */
+  aspect-ratio: 280 / 764;
+  overflow: hidden;
 }
 
-/* Skleněný odznak s leskem a žárem — stejný jazyk jako piny na mapě
-   a bojovníci v souboji, ať výběr postavy nepůsobí jako jiná appka. */
-.postava-karta-ikona {
-  position: relative;
-  flex-shrink: 0;
-  width: 52px;
-  height: 52px;
+.postava-karta-portret {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Malý emoji odznak přes levý horní roh portrétu — stejná značka,
+   jakou postava nese i mimo tuhle kartu (top bar mapy, souboj, …). */
+.postava-karta-odznak {
+  position: absolute;
+  top: 0.6rem;
+  left: 0.6rem;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.6rem;
-  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.28), transparent 60%),
-    linear-gradient(145deg, var(--tp-barva), rgba(0, 0, 0, 0.4));
-  box-shadow: 0 0 16px var(--tp-barva);
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.5));
-  transition: box-shadow 0.15s ease;
-}
-
-.postava-karta.is-vybrana .postava-karta-ikona {
-  box-shadow: 0 0 26px var(--tp-barva);
-}
-
-.postava-karta-jmenovka {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-  min-width: 0;
-}
-
-.postava-karta-jmeno {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-size: 1.08rem;
-  font-weight: 800;
-  color: var(--tp-barva);
+  font-size: 1rem;
+  background: rgba(8, 6, 16, 0.7);
+  backdrop-filter: blur(3px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 10px var(--tp-barva);
 }
 
 .postava-karta-uroven {
-  padding: 0.08rem 0.4rem;
+  position: absolute;
+  bottom: 0.6rem;
+  right: 0.6rem;
+  padding: 0.12rem 0.5rem;
   border-radius: var(--radius-pill);
   background: var(--tp-barva);
   color: #06121f;
-  font-size: 0.6rem;
+  font-size: 0.68rem;
   font-weight: 800;
+  box-shadow: 0 0 10px var(--tp-barva);
 }
 
-.postava-karta-popis {
-  font-size: 0.74rem;
-  color: var(--text-secondary);
+.postava-znacka {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--tp-barva);
+  color: #06121f;
+  font-size: 0.78rem;
+  font-weight: 800;
+  box-shadow: 0 0 10px var(--tp-barva);
+  animation: postava-znacka-pop 0.25s ease;
 }
+
+@keyframes postava-znacka-pop {
+  from {
+    transform: scale(0.4);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ---------- bonusy/nevýhoda pod portrétem ---------- */
 
 .postava-bonusy {
   display: flex;
   flex-direction: column;
-  gap: 0.28rem;
-  margin-top: 0.15rem;
+  gap: 0.32rem;
   width: 100%;
+  padding: 0.75rem 0.9rem 0.9rem;
+  box-sizing: border-box;
 }
 
 .postava-bonus {
@@ -156,40 +182,11 @@
   color: var(--accent-orange);
 }
 
-.postava-znacka {
-  position: absolute;
-  top: 0.7rem;
-  right: 0.8rem;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--tp-barva);
-  color: #06121f;
-  font-size: 0.75rem;
-  font-weight: 800;
-  box-shadow: 0 0 10px var(--tp-barva);
-  animation: postava-znacka-pop 0.25s ease;
-}
-
-@keyframes postava-znacka-pop {
-  from {
-    transform: scale(0.4);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
 /* Tlačítko smazání — schválně sourozenec karty (viz komentář v .tsx),
-   vizuálně posazené nad její pravý horní roh, kde karta samotná dělá
-   místo přes postava-karta-hlavicka. Když karta vybraná (.postava-
-   -znacka) leží na stejném místě, značka výběru ho jen na chvíli
-   překryje — nejde současně vybírat a mazat tou samou kartou. */
+   vizuálně posazené nad její pravý horní roh, kde teď leží portrét.
+   Když karta vybraná (.postava-znacka) leží na stejném místě, značka
+   výběru ho jen na chvíli překryje — nejde současně vybírat a mazat
+   tou samou kartou. */
 .postava-karta-smazat {
   position: absolute;
   top: 0.6rem;

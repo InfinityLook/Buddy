@@ -45,7 +45,7 @@ export const VyberPostavy: React.FC<Props> = ({ postavy, mozneVytvoritDalsi, onZ
           ← Zpět do Hubu
         </button>
         <h1 className="vp-title">Za koho hraješ?</h1>
-        <p className="vp-hint">Vyber si postavu z party — příště můžeš klidně vzít jinou.</p>
+        <p className="vp-hint">Posuň karty stranou a vyber si postavu z party — příště můžeš klidně vzít jinou.</p>
       </div>
 
       <div className="vp-mrizka">

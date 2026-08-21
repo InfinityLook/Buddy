@@ -55,7 +55,7 @@ export const GameModule: React.FC = () => {
       <TvorbaPostavy
         dostupnePostavy={POSTAVY}
         nadpis="Vyber si postavu"
-        podnadpis="Tohle je tvoje první postava — později můžeš vytvořit další a přepínat mezi nimi."
+        podnadpis="Posuň karty stranou a vyber si první postavu — později můžeš vytvořit další a přepínat mezi nimi."
         zpetText="Zpět do Hubu"
         onZpet={() => navigate('/hub')}
         onVytvoreno={(id) => {
@@ -112,7 +112,7 @@ export const GameModule: React.FC = () => {
       <TvorbaPostavy
         dostupnePostavy={zbyvajici}
         nadpis="Přidat postavu"
-        podnadpis="Vyber další postavu, kterou chceš mít po ruce."
+        podnadpis="Posuň karty stranou a vyber další postavu, kterou chceš mít po ruce."
         zpetText="Zpět na výběr"
         onZpet={() => setRezim('vyber')}
         onVytvoreno={(id) => {
