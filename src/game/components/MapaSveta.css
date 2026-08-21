@@ -44,12 +44,25 @@
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
   border: 1px solid var(--mp-barva);
   color: var(--mp-barva);
+  font-family: inherit;
   font-size: 0.7rem;
   font-weight: 800;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   box-shadow: 0 0 12px var(--mp-barva);
+  cursor: pointer;
+}
+
+.mapa-postava-znacka:active { transform: scale(0.96); }
+
+/* Klepnutelná — otevírá strom dovedností té postavy (viz Dovednosti.tsx) */
+.mapa-postava-uroven {
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--mp-barva);
+  color: #06121f;
+  font-size: 0.62rem;
 }
 
 /* ---------- dekorativní kompas (HUD prvek, fixní vůči obrazovce) ---------- */

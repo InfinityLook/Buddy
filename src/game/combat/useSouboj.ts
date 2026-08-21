@@ -3,6 +3,8 @@ import { KARTY } from './karty'
 import { Karta, Nepritel } from './types'
 import { Postava } from '../types'
 import { useWalletStore } from '@/core/store/useWalletStore'
+import { useGameCharacter } from '../useGameCharacter'
+import { bojoveBonusyZProgresu, vychoziProgres } from '../leveling'
 
 export type SoubojFaze = 'probiha' | 'vyhra' | 'prohra'
 
@@ -54,17 +56,24 @@ const pocatecniStav = (maxVydrz: number, nepratele: Nepritel[]): SoubojStav => (
 // NEOBNOVUJE, jen se plynule pokračuje na dalšího, a odměna se sčítá.
 // Aréna s jedním nepřítelem funguje úplně stejně, jen bez přechodu.
 //
-// Koupené předměty z obchodu (useWalletStore.ownedItems) přidávají
-// trvalé bonusy nad rámec postaviných vlastních čísel — platí pro
-// kohokoli z party, protože jde o účet, ne o jednu postavu.
+// Bonusy se sčítají ze dvou nezávislých zdrojů: koupené předměty
+// z obchodu (useWalletStore.ownedItems, platí pro kohokoli z party) a
+// úroveň/dovednosti té KONKRÉTNÍ postavy (useGameCharacter.progres,
+// viz leveling.ts) — obojí se přičítá k postaviným vlastním číslům.
 // ==========================================
 
 export const useSouboj = (postava: Postava, nepratele: Nepritel[]) => {
   const ownedItems = useWalletStore((s) => s.ownedItems)
-  const vydrzBonus = ownedItems.includes('elixir-vytrvalosti') ? 15 : 0
-  const poskozeniBonus = ownedItems.includes('nabrousena-cepel') ? 0.1 : 0
-  const kritickaBonus = ownedItems.includes('stastna-mince') ? 0.05 : 0
-  const maxVydrz = postava.bojVydrz + vydrzBonus
+  const obchodVydrz = ownedItems.includes('elixir-vytrvalosti') ? 15 : 0
+  const obchodPoskozeni = ownedItems.includes('nabrousena-cepel') ? 0.1 : 0
+  const obchodKriticka = ownedItems.includes('stastna-mince') ? 0.05 : 0
+
+  const progres = useGameCharacter((s) => s.progres[postava.id]) ?? vychoziProgres()
+  const bonusyProgresu = bojoveBonusyZProgresu(progres)
+
+  const poskozeniBonus = obchodPoskozeni + bonusyProgresu.poskozeni
+  const kritickaBonus = obchodKriticka + bonusyProgresu.kriticka
+  const maxVydrz = postava.bojVydrz + obchodVydrz + bonusyProgresu.vydrz
 
   const [stav, setStav] = useState<SoubojStav>(() => pocatecniStav(maxVydrz, nepratele))
 

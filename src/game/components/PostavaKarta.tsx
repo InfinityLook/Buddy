@@ -8,6 +8,9 @@ interface Props {
   onClick: () => void
   /** Když je zadané, karta dostane tlačítko smazání navíc. */
   onSmazat?: () => void
+  /** Úroveň postavy — zobrazí se jako odznak vedle jména (viz leveling.ts).
+   *  Nezadané na obrazovce tvorby, kde postava ještě neexistuje. */
+  uroven?: number
 }
 
 // ==========================================
@@ -18,7 +21,7 @@ interface Props {
 // a láme se s ním čtečky obrazovky i klávesnicová navigace.
 // ==========================================
 
-export const PostavaKarta: React.FC<Props> = ({ postava, vybrana, onClick, onSmazat }) => {
+export const PostavaKarta: React.FC<Props> = ({ postava, vybrana, onClick, onSmazat, uroven }) => {
   return (
     <div className="postava-karta-wrap">
       <button
@@ -31,7 +34,10 @@ export const PostavaKarta: React.FC<Props> = ({ postava, vybrana, onClick, onSma
             {postava.ikona}
           </span>
           <span className="postava-karta-jmenovka">
-            <span className="postava-karta-jmeno">{postava.jmeno}</span>
+            <span className="postava-karta-jmeno">
+              {postava.jmeno}
+              {uroven !== undefined && <span className="postava-karta-uroven">Lv {uroven}</span>}
+            </span>
             <span className="postava-karta-popis">{postava.popis}</span>
           </span>
         </span>

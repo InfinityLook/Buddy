@@ -5,6 +5,7 @@ import { Nepritel } from '../combat/types'
 import { Postava } from '../types'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useWalletStore } from '@/core/store/useWalletStore'
+import { useGameCharacter } from '../useGameCharacter'
 import './Souboj.css'
 
 interface Props {
@@ -45,6 +46,7 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
   } = useSouboj(postava, nepratele)
   const recordAction = useGamificationStore((s) => s.recordAction)
   const credit = useWalletStore((s) => s.credit)
+  const pridatXpPostave = useGameCharacter((s) => s.pridatXpPostave)
   // Hlídá, aby se odměna připsala jen jednou za výhru — "Zkusit znovu"
   // vrátí fázi zpátky na 'probiha', což odemkne odměnu pro příští výhru.
   const odmenaPripsana = useRef(false)
@@ -58,6 +60,7 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
     odmenaPripsana.current = true
     recordAction('battle', odmenaXp)
     credit(odmenaKredity)
+    pridatXpPostave(postava.id, odmenaXp)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faze])
 

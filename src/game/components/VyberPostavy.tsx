@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Postava, PostavaId } from '../types'
 import { PostavaKarta } from './PostavaKarta'
+import { useGameCharacter } from '../useGameCharacter'
 import './VyberPostavy.css'
 
 interface Props {
@@ -24,6 +25,7 @@ interface Props {
 
 export const VyberPostavy: React.FC<Props> = ({ postavy, mozneVytvoritDalsi, onZvolit, onSmazat, onPridatDalsi }) => {
   const navigate = useNavigate()
+  const progres = useGameCharacter((s) => s.progres)
   const [vybrana, setVybrana] = useState<PostavaId | null>(null)
 
   const detail = postavy.find((p) => p.id === vybrana) ?? null
@@ -54,6 +56,7 @@ export const VyberPostavy: React.FC<Props> = ({ postavy, mozneVytvoritDalsi, onZ
             vybrana={vybrana === p.id}
             onClick={() => setVybrana(p.id)}
             onSmazat={() => smazat(p)}
+            uroven={progres[p.id]?.uroven ?? 1}
           />
         ))}
 

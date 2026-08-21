@@ -96,9 +96,21 @@
 }
 
 .postava-karta-jmeno {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   font-size: 1.08rem;
   font-weight: 800;
   color: var(--tp-barva);
+}
+
+.postava-karta-uroven {
+  padding: 0.08rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--tp-barva);
+  color: #06121f;
+  font-size: 0.6rem;
+  font-weight: 800;
 }
 
 .postava-karta-popis {

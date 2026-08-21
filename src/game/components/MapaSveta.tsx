@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { LOKACE, POPIS_TYPU, VETVE } from '../lokace'
 import { NEPRATELE_PODLE_LOKACE } from '../combat/nepratele'
 import { Postava } from '../types'
+import { useGameCharacter } from '../useGameCharacter'
+import { vychoziProgres } from '../leveling'
 import './MapaSveta.css'
 
 /** Šířka "světa" v px — musí sedět s .mapa-svet v MapaSveta.css (stejný
@@ -16,6 +18,8 @@ interface Props {
   onVstoupitDoBoje: (lokaceId: string) => void
   /** Volá se po potvrzení vstupu na tržiště. */
   onVstoupitDoObchodu: (lokaceId: string) => void
+  /** Volá se klepnutím na značku postavy — otevírá její strom dovedností. */
+  onOtevritDovednosti: () => void
 }
 
 /** Cesta spojující místa na mapě — hladká křivka procházející blízko
@@ -75,8 +79,9 @@ const OBLASTI: { cx: number; cy: number; rx: number; ry: number; barva: string }
 // stínem na zemi, a dekorativní kompas jako HUD prvek.
 // ==========================================
 
-export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoupitDoObchodu }) => {
+export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoupitDoObchodu, onOtevritDovednosti }) => {
   const navigate = useNavigate()
+  const progres = useGameCharacter((s) => s.progres[postava.id]) ?? vychoziProgres()
   const [otevrena, setOtevrena] = useState<string | null>(null)
   const platnoRef = useRef<HTMLDivElement>(null)
 
@@ -113,9 +118,14 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoup
         <button className="game-back-btn" onClick={() => navigate('/hub')}>
           ← Zpět do Hubu
         </button>
-        <span className="mapa-postava-znacka" style={{ '--mp-barva': postava.barva } as React.CSSProperties}>
+        <button
+          className="mapa-postava-znacka"
+          style={{ '--mp-barva': postava.barva } as React.CSSProperties}
+          onClick={onOtevritDovednosti}
+        >
           <span aria-hidden="true">{postava.ikona}</span> {postava.jmeno}
-        </span>
+          <span className="mapa-postava-uroven">Lv {progres.uroven}</span>
+        </button>
       </div>
 
       {/* Dekorativní kompas — čistě orientační HUD prvek, nic neovládá. */}
