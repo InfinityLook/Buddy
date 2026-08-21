@@ -83,16 +83,18 @@ const useFinanceStore = create<FinanceState>()(
   )
 )
 
-const dnesniMesic = () => new Date().toISOString().slice(0, 7) // YYYY-MM
+// Exportováno i mimo tenhle hook — tests/unit/finance.test.ts je testuje
+// jako čisté funkce, bez nutnosti vykreslovat useFinance() celý.
+export const dnesniMesic = () => new Date().toISOString().slice(0, 7) // YYYY-MM
 
-const minulyMesic = () => {
+export const minulyMesic = () => {
   const d = new Date()
   d.setDate(1) // jinak by ubrání měsíce u 31. mohlo přeskočit rovnou o dva
   d.setMonth(d.getMonth() - 1)
   return d.toISOString().slice(0, 7)
 }
 
-const patriDoObdobi = (transaction: Transaction, obdobi: ObdobiFiltr): boolean => {
+export const patriDoObdobi = (transaction: Transaction, obdobi: ObdobiFiltr): boolean => {
   if (obdobi === 'vse') return true
   const mesic = transaction.date.slice(0, 7)
   return obdobi === 'tento-mesic' ? mesic === dnesniMesic() : mesic === minulyMesic()
@@ -101,7 +103,7 @@ const patriDoObdobi = (transaction: Transaction, obdobi: ObdobiFiltr): boolean =
 const MESICE_ZKRATKY = ['led', 'úno', 'bře', 'dub', 'kvě', 'čvn', 'čvc', 'srp', 'zář', 'říj', 'lis', 'pro']
 
 /** Rozdělí transakce daného typu podle kategorie, seřazené od největší. */
-const rozdelPodleKategorie = (transactions: Transaction[]): KategorieVysek[] => {
+export const rozdelPodleKategorie = (transactions: Transaction[]): KategorieVysek[] => {
   const soucty = new Map<FinanceCategory, number>()
   for (const t of transactions) soucty.set(t.category, (soucty.get(t.category) ?? 0) + t.amount)
 
