@@ -1,0 +1,55 @@
+name: CI
+
+# ==========================================
+# Dva samostatné joby, ne jeden — typecheck+unit trvá pár vteřin a
+# nepotřebuje nic navíc, e2e potřebuje postavit appku a stáhnout
+# prohlížeč, takže je citelně pomalejší. Rozdělení znamená, že rychlá
+# zpětná vazba (typecheck/unit) nečeká na pomalou (e2e).
+#
+# VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY jsou tady natvrdo,
+# ne jako Secrets — jsou to "publishable" klíče, které stejně končí
+# viditelné v každém staženém JS bundlu (viz .env.example), takže
+# schovávat je v CI by nic nechránilo. GEMINI_API_KEY a
+# SUPABASE_SERVICE_ROLE_KEY se sem naopak nikdy nedávají — ty
+# testy (buddy-chat, admin-ban) v e2e/security vrstvě zatím nejsou.
+# ==========================================
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+env:
+  VITE_SUPABASE_URL: https://fsrjlxxaehijbflueuin.supabase.co
+  VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_KYb1qylf0Uqz1-ZdyDgnXA_bH4QWTUh
+
+jobs:
+  typecheck-and-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
