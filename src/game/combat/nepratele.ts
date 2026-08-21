@@ -2,19 +2,61 @@ import { Nepritel } from './types'
 
 // ==========================================
 // Nepřátelé klíčovaní podle id místa na mapě (lokace.ts), které boj
-// spouští. Zatím jen aréna má obsah — dungeony čekají na svůj krok,
-// stejným vzorem: přidat sem záznam, ne měnit MapaSveta.tsx.
+// spouští. Každé místo dostává pole nepřátel, ne jednoho — u arény jde
+// o jediného soupeře jako dřív, u dungeonu o víc soupeřů za sebou
+// (viz useSouboj.ts): hráčova výdrž se mezi nimi neobnovuje, takže
+// dungeon je skutečně náročnější zkouška, ne aréna s jiným jménem.
+// Odměna se sčítá za každého poraženého — dokončit celý dungeon proto
+// vyplatí o dost víc než jeden soubojek v aréně.
+//
+// Další bojová lokace je stejným vzorem jeden záznam navíc tady, žádná
+// změna v MapaSveta.tsx/Souboj.tsx.
 // ==========================================
 
-export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel> = {
-  'arena-krvavy-kruh': {
-    id: 'arena-mistr',
-    jmeno: 'Aréna mistr',
-    ikona: '🗡️',
-    zivoty: 80,
-    poskozeniOd: 6,
-    poskozeniDo: 12,
-    odmenaXp: 40,
-    odmenaKredity: 25,
-  },
+export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
+  'arena-krvavy-kruh': [
+    {
+      id: 'arena-mistr',
+      jmeno: 'Aréna mistr',
+      ikona: '🗡️',
+      zivoty: 80,
+      poskozeniOd: 6,
+      poskozeniDo: 12,
+      odmenaXp: 40,
+      odmenaKredity: 25,
+    },
+  ],
+
+  'dungeon-stinne-jeskyne': [
+    {
+      id: 'jeskynni-krysak',
+      jmeno: 'Jeskynní krysák',
+      ikona: '🐀',
+      zivoty: 50,
+      poskozeniOd: 4,
+      poskozeniDo: 8,
+      odmenaXp: 15,
+      odmenaKredity: 10,
+    },
+    {
+      id: 'stinovy-plazivec',
+      jmeno: 'Stínový plazivec',
+      ikona: '🕷️',
+      zivoty: 70,
+      poskozeniOd: 6,
+      poskozeniDo: 11,
+      odmenaXp: 25,
+      odmenaKredity: 15,
+    },
+    {
+      id: 'strazce-jeskyne',
+      jmeno: 'Strážce jeskyně',
+      ikona: '👹',
+      zivoty: 100,
+      poskozeniOd: 8,
+      poskozeniDo: 14,
+      odmenaXp: 50,
+      odmenaKredity: 35,
+    },
+  ],
 }

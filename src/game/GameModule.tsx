@@ -8,6 +8,7 @@ import { useGameCharacter } from './useGameCharacter'
 import { POSTAVY } from './postavy'
 import { Postava, PostavaId } from './types'
 import { NEPRATELE_PODLE_LOKACE } from './combat/nepratele'
+import { LOKACE } from './lokace'
 import './GameModule.css'
 
 // ==========================================
@@ -60,11 +61,20 @@ export const GameModule: React.FC = () => {
   }
 
   const aktivniPostava = hrajeJako ? POSTAVY.find((p) => p.id === hrajeJako) : undefined
-  const nepritel = soubojLokaceId ? NEPRATELE_PODLE_LOKACE[soubojLokaceId] : undefined
+  const nepratele = soubojLokaceId ? NEPRATELE_PODLE_LOKACE[soubojLokaceId] : undefined
+  const lokaceSouboje = soubojLokaceId ? LOKACE.find((l) => l.id === soubojLokaceId) : undefined
 
   // 4) Souboj má přednost, dokud probíhá
-  if (aktivniPostava && nepritel) {
-    return <Souboj postava={aktivniPostava} nepritel={nepritel} onOdejit={() => setSoubojLokaceId(null)} />
+  if (aktivniPostava && nepratele) {
+    return (
+      <Souboj
+        postava={aktivniPostava}
+        nepratele={nepratele}
+        nazevMista={lokaceSouboje?.nazev ?? ''}
+        ikonaMista={lokaceSouboje?.ikona ?? '🗡️'}
+        onOdejit={() => setSoubojLokaceId(null)}
+      />
+    )
   }
 
   // 5) Zvoleno, za koho se hraje — mapa

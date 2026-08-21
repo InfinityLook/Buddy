@@ -9,21 +9,40 @@ import './Souboj.css'
 
 interface Props {
   postava: Postava
-  nepritel: Nepritel
+  nepratele: Nepritel[]
+  nazevMista: string
+  ikonaMista: string
   onOdejit: () => void
 }
 
 // ==========================================
-// Tahový souboj v aréně. Hráč zahraje jednu ze tří karet v ruce,
-// useSouboj spočítá poškození (bonus živlu, kritický zásah) a hned
-// i protiúder nepřítele — dokud jedna strana nedojde na nulu.
-// Odměna (XP + kredity) se připíše jen jednou na výhru, ne na každé
-// zobrazení výherní obrazovky.
+// Tahový souboj — v aréně proti jednomu soupeři, v dungeonu proti víc
+// soupeřům za sebou (viz useSouboj.ts, hráčova výdrž se mezi nimi
+// neobnovuje). Hráč zahraje jednu ze tří karet v ruce, useSouboj
+// spočítá poškození (bonus živlu, kritický zásah) a hned i protiúder
+// nepřítele — dokud jedna strana nedojde na nulu, nebo dokud
+// nepřátelé nedojdou.
+// Odměna (součet XP + kreditů za všechny poražené) se připíše jen
+// jednou na výhru, ne na každé zobrazení výherní obrazovky.
 // ==========================================
 
-export const Souboj: React.FC<Props> = ({ postava, nepritel, onOdejit }) => {
-  const { faze, hracZivoty, hracMaxZivoty, nepritelZivoty, nepritelMaxZivoty, ruka, log, zahratKartu, zkusitZnovu } =
-    useSouboj(postava, nepritel)
+export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaMista, onOdejit }) => {
+  const {
+    faze,
+    hracZivoty,
+    hracMaxZivoty,
+    nepritel,
+    nepritelZivoty,
+    nepritelMaxZivoty,
+    poradiSoupere,
+    celkemSouperu,
+    ruka,
+    log,
+    odmenaXp,
+    odmenaKredity,
+    zahratKartu,
+    zkusitZnovu,
+  } = useSouboj(postava, nepratele)
   const recordAction = useGamificationStore((s) => s.recordAction)
   const credit = useWalletStore((s) => s.credit)
   // Hlídá, aby se odměna připsala jen jednou za výhru — "Zkusit znovu"
@@ -37,8 +56,8 @@ export const Souboj: React.FC<Props> = ({ postava, nepritel, onOdejit }) => {
     }
     if (faze !== 'vyhra' || odmenaPripsana.current) return
     odmenaPripsana.current = true
-    recordAction('battle', nepritel.odmenaXp)
-    credit(nepritel.odmenaKredity)
+    recordAction('battle', odmenaXp)
+    credit(odmenaKredity)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faze])
 
@@ -48,10 +67,18 @@ export const Souboj: React.FC<Props> = ({ postava, nepritel, onOdejit }) => {
         <button className="game-back-btn" onClick={onOdejit}>
           ← Zpět na mapu
         </button>
-        <span className="souboj-nadpis">🗡️ Aréna</span>
+        <span className="souboj-nadpis">
+          {ikonaMista} {nazevMista}
+        </span>
       </div>
 
       <div className="souboj-obsah">
+        {celkemSouperu > 1 && faze === 'probiha' && (
+          <span className="souboj-postup">
+            Soupeř {poradiSoupere} / {celkemSouperu}
+          </span>
+        )}
+
         <div className="souboj-bojovnici">
           <div className="souboj-bojovnik" style={{ '--sb-barva': postava.barva } as React.CSSProperties}>
             <span className="souboj-ikona" aria-hidden="true">
@@ -127,9 +154,9 @@ export const Souboj: React.FC<Props> = ({ postava, nepritel, onOdejit }) => {
                 <span className="souboj-konec-ikona" aria-hidden="true">
                   🏆
                 </span>
-                <h2>Výhra!</h2>
+                <h2>{celkemSouperu > 1 ? 'Dungeon dokončen!' : 'Výhra!'}</h2>
                 <p>
-                  Získáváš {nepritel.odmenaXp} XP a {nepritel.odmenaKredity} kreditů.
+                  Získáváš {odmenaXp} XP a {odmenaKredity} kreditů.
                 </p>
               </>
             ) : (

@@ -79,7 +79,7 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje }) => {
   const platnoRef = useRef<HTMLDivElement>(null)
 
   const detail = LOKACE.find((l) => l.id === otevrena) ?? null
-  const nepritel = detail ? NEPRATELE_PODLE_LOKACE[detail.id] : undefined
+  const nepratele = detail ? NEPRATELE_PODLE_LOKACE[detail.id] : undefined
 
   // Hlavní cesta a řeka vedou jen přes místa bez `vedlejsi` — odbočky
   // dostávají vlastní krátké spojnice (viz vetevCesty níže).
@@ -269,13 +269,15 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje }) => {
             </span>
             <h2 className="mapa-sheet-nazev">{detail.nazev}</h2>
             <p className="mapa-sheet-text">
-              {nepritel
-                ? `${nepritel.jmeno} tě čeká v kruhu — troufneš si na souboj?`
+              {nepratele
+                ? nepratele.length > 1
+                  ? `${nepratele.length} nepřátel na tebe čeká za sebou — výdrž se mezi nimi neobnoví. Troufneš si?`
+                  : `${nepratele[0].jmeno} tě čeká — troufneš si na souboj?`
                 : detail.typ === 'hlavni-mesto'
                   ? 'Hlavní město je vyhrazené pro dějovou linku hry — ta zatím nevznikla, přijde v některém z dalších kroků.'
                   : 'Tohle místo zatím nikam nevede — je připravené a obsah do něj teprve přibude.'}
             </p>
-            {nepritel && (
+            {nepratele && (
               <button
                 className="mapa-sheet-boj"
                 onClick={() => {

@@ -7,10 +7,13 @@ export type SoubojFaze = 'probiha' | 'vyhra' | 'prohra'
 
 interface SoubojStav {
   faze: SoubojFaze
+  indexNepritele: number
   hracZivoty: number
   nepritelZivoty: number
   ruka: Karta[]
   log: string[]
+  odmenaXp: number
+  odmenaKredity: number
 }
 
 const nahodnaRuka = (): Karta[] => {
@@ -25,29 +28,40 @@ const nahodnaRuka = (): Karta[] => {
 
 const vRozsahu = (od: number, doC: number) => Math.floor(od + Math.random() * (doC - od + 1))
 
-const pocatecniStav = (postava: Postava, nepritel: Nepritel): SoubojStav => ({
+const pocatecniStav = (postava: Postava, nepratele: Nepritel[]): SoubojStav => ({
   faze: 'probiha',
+  indexNepritele: 0,
   hracZivoty: postava.bojVydrz,
-  nepritelZivoty: nepritel.zivoty,
+  nepritelZivoty: nepratele[0].zivoty,
   ruka: nahodnaRuka(),
-  log: [`Souboj s ${nepritel.jmeno} začíná!`],
+  log:
+    nepratele.length > 1
+      ? [`Souboj se ${nepratele[0].jmeno} začíná! (1. ze ${nepratele.length})`]
+      : [`Souboj s ${nepratele[0].jmeno} začíná!`],
+  odmenaXp: 0,
+  odmenaKredity: 0,
 })
 
 // ==========================================
-// Tahový soubojový stav jednoho utkání — žije jen jako React state uvnitř
-// Souboj.tsx, nic se nepersistuje (souboj se dá kdykoli přerušit návratem
-// na mapu beze ztráty postavy). Karta se hraje, hráč dá poškození
-// (s bonusem za postavin živel a šancí na kritický zásah), pak automaticky
-// odpoví nepřítel — dokud jedna ze stran nedojde na nulu.
+// Tahový soubojový stav — žije jen jako React state uvnitř Souboj.tsx,
+// nic se nepersistuje (souboj se dá kdykoli přerušit návratem na mapu
+// beze ztráty postavy). Karta se hraje, hráč dá poškození (s bonusem za
+// postavin živel a šancí na kritický zásah), pak automaticky odpoví
+// nepřítel — dokud jedna ze stran nedojde na nulu.
+//
+// Nepřátel může být víc za sebou (dungeon) — hráčova výdrž se mezi nimi
+// NEOBNOVUJE, jen se plynule pokračuje na dalšího, a odměna se sčítá.
+// Aréna s jedním nepřítelem funguje úplně stejně, jen bez přechodu.
 // ==========================================
 
-export const useSouboj = (postava: Postava, nepritel: Nepritel) => {
-  const [stav, setStav] = useState<SoubojStav>(() => pocatecniStav(postava, nepritel))
+export const useSouboj = (postava: Postava, nepratele: Nepritel[]) => {
+  const [stav, setStav] = useState<SoubojStav>(() => pocatecniStav(postava, nepratele))
 
   const zahratKartu = useCallback(
     (karta: Karta) => {
       setStav((s) => {
         if (s.faze !== 'probiha') return s
+        const aktualni = nepratele[s.indexNepritele]
 
         let poskozeni = vRozsahu(karta.poskozeniOd, karta.poskozeniDo)
         const bonus = karta.zivel === postava.bojZivel
@@ -62,17 +76,37 @@ export const useSouboj = (postava: Postava, nepritel: Nepritel) => {
         } → ${poskozeni} poškození.`
 
         if (nepritelZivotyNove <= 0) {
+          const odmenaXp = s.odmenaXp + aktualni.odmenaXp
+          const odmenaKredity = s.odmenaKredity + aktualni.odmenaKredity
+          const dalsiIndex = s.indexNepritele + 1
+
+          if (dalsiIndex >= nepratele.length) {
+            return {
+              ...s,
+              nepritelZivoty: 0,
+              faze: 'vyhra',
+              odmenaXp,
+              odmenaKredity,
+              log: [...s.log, zprava, nepratele.length > 1 ? `${aktualni.jmeno} poražen! Dungeon dokončen.` : `${aktualni.jmeno} poražen! Výhra.`],
+            }
+          }
+
+          // Další soupeř v řadě — výdrž se neobnovuje, jen se jde dál.
+          const dalsi = nepratele[dalsiIndex]
           return {
             ...s,
-            nepritelZivoty: 0,
-            faze: 'vyhra',
-            log: [...s.log, zprava, `${nepritel.jmeno} poražen! Výhra.`],
+            indexNepritele: dalsiIndex,
+            nepritelZivoty: dalsi.zivoty,
+            ruka: nahodnaRuka(),
+            odmenaXp,
+            odmenaKredity,
+            log: [...s.log, zprava, `${aktualni.jmeno} poražen! Před tebou další soupeř: ${dalsi.jmeno}.`],
           }
         }
 
-        const protiutok = vRozsahu(nepritel.poskozeniOd, nepritel.poskozeniDo)
+        const protiutok = vRozsahu(aktualni.poskozeniOd, aktualni.poskozeniDo)
         const hracZivotyNove = Math.max(0, s.hracZivoty - protiutok)
-        const zpravaProtiutoku = `${nepritel.jmeno} útočí za ${protiutok} poškození.`
+        const zpravaProtiutoku = `${aktualni.jmeno} útočí za ${protiutok} poškození.`
 
         if (hracZivotyNove <= 0) {
           return {
@@ -93,21 +127,28 @@ export const useSouboj = (postava: Postava, nepritel: Nepritel) => {
         }
       })
     },
-    [postava, nepritel]
+    [postava, nepratele]
   )
 
   const zkusitZnovu = useCallback(() => {
-    setStav(pocatecniStav(postava, nepritel))
-  }, [postava, nepritel])
+    setStav(pocatecniStav(postava, nepratele))
+  }, [postava, nepratele])
+
+  const aktualniNepritel = nepratele[stav.indexNepritele]
 
   return {
     faze: stav.faze,
     hracZivoty: stav.hracZivoty,
     hracMaxZivoty: postava.bojVydrz,
+    nepritel: aktualniNepritel,
     nepritelZivoty: stav.nepritelZivoty,
-    nepritelMaxZivoty: nepritel.zivoty,
+    nepritelMaxZivoty: aktualniNepritel.zivoty,
+    poradiSoupere: stav.indexNepritele + 1,
+    celkemSouperu: nepratele.length,
     ruka: stav.ruka,
     log: stav.log,
+    odmenaXp: stav.odmenaXp,
+    odmenaKredity: stav.odmenaKredity,
     zahratKartu,
     zkusitZnovu,
   }
