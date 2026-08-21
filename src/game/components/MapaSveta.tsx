@@ -1,11 +1,14 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LOKACE, POPIS_TYPU } from '../lokace'
+import { NEPRATELE_PODLE_LOKACE } from '../combat/nepratele'
 import { Postava } from '../types'
 import './MapaSveta.css'
 
 interface Props {
   postava: Postava
+  /** Volá se po potvrzení vstupu do boje na místě, které ho nabízí (zatím jen aréna). */
+  onVstoupitDoBoje: (lokaceId: string) => void
 }
 
 /** Cesta spojující místa na mapě — hladká křivka procházející blízko
@@ -35,11 +38,12 @@ const cestaZBodu = (body: { x: number; y: number }[]): string => {
 // až vznikne.
 // ==========================================
 
-export const MapaSveta: React.FC<Props> = ({ postava }) => {
+export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje }) => {
   const navigate = useNavigate()
   const [otevrena, setOtevrena] = useState<string | null>(null)
 
   const detail = LOKACE.find((l) => l.id === otevrena) ?? null
+  const nepritel = detail ? NEPRATELE_PODLE_LOKACE[detail.id] : undefined
   const cesta = cestaZBodu(LOKACE.map((l) => ({ x: l.x, y: l.y })))
   const reka = cestaZBodu(LOKACE.map((l) => ({ x: l.x + 10, y: l.y - 3 })))
 
@@ -114,10 +118,23 @@ export const MapaSveta: React.FC<Props> = ({ postava }) => {
             </span>
             <h2 className="mapa-sheet-nazev">{detail.nazev}</h2>
             <p className="mapa-sheet-text">
-              {detail.typ === 'hlavni-mesto'
-                ? 'Hlavní město je vyhrazené pro dějovou linku hry — ta zatím nevznikla, přijde v některém z dalších kroků.'
-                : 'Tohle místo zatím nikam nevede — je připravené a obsah do něj teprve přibude.'}
+              {nepritel
+                ? `${nepritel.jmeno} tě čeká v kruhu — troufneš si na souboj?`
+                : detail.typ === 'hlavni-mesto'
+                  ? 'Hlavní město je vyhrazené pro dějovou linku hry — ta zatím nevznikla, přijde v některém z dalších kroků.'
+                  : 'Tohle místo zatím nikam nevede — je připravené a obsah do něj teprve přibude.'}
             </p>
+            {nepritel && (
+              <button
+                className="mapa-sheet-boj"
+                onClick={() => {
+                  onVstoupitDoBoje(detail.id)
+                  setOtevrena(null)
+                }}
+              >
+                ⚔️ Vstoupit do boje
+              </button>
+            )}
             <button className="mapa-sheet-close" onClick={() => setOtevrena(null)}>
               Zavřít
             </button>
