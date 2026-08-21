@@ -1,9 +1,14 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LOKACE, POPIS_TYPU } from '../lokace'
+import { LOKACE, POPIS_TYPU, VETVE } from '../lokace'
 import { NEPRATELE_PODLE_LOKACE } from '../combat/nepratele'
 import { Postava } from '../types'
 import './MapaSveta.css'
+
+/** Šířka "světa" v px — musí sedět s .mapa-svet v MapaSveta.css (stejný
+ *  vzor jako @/* alias, co musí sedět na dvou místech zároveň). Pevná
+ *  šířka větší než displej je to, co dělá mapu vodorovně posouvatelnou. */
+const SVET_SIRKA_PX = 900
 
 interface Props {
   postava: Postava
@@ -28,6 +33,20 @@ const cestaZBodu = (body: { x: number; y: number }[]): string => {
   const posledni = body[body.length - 1]
   d += ` T ${posledni.x} ${posledni.y}`
   return d
+}
+
+/** Krátká odbočka mezi dvěma body — kvadratická křivka vychýlená kolmo
+ *  od přímé spojnice, ať vedlejší stezka nevypadá jako pravítkem
+ *  tažená čára. Znaménko vychýlení střídá volající podle indexu. */
+const vetevCesta = (a: { x: number; y: number }, b: { x: number; y: number }, vychyleni: number): string => {
+  const midX = (a.x + b.x) / 2
+  const midY = (a.y + b.y) / 2
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const delka = Math.hypot(dx, dy) || 1
+  const cx = midX + (-dy / delka) * vychyleni
+  const cy = midY + (dx / delka) * vychyleni
+  return `M ${a.x} ${a.y} Q ${cx} ${cy} ${b.x} ${b.y}`
 }
 
 /** Barevné mlhoviny v pozadí — vzaté z barvy nejbližší lokace, takže
@@ -57,11 +76,33 @@ const OBLASTI: { cx: number; cy: number; rx: number; ry: number; barva: string }
 export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje }) => {
   const navigate = useNavigate()
   const [otevrena, setOtevrena] = useState<string | null>(null)
+  const platnoRef = useRef<HTMLDivElement>(null)
 
   const detail = LOKACE.find((l) => l.id === otevrena) ?? null
   const nepritel = detail ? NEPRATELE_PODLE_LOKACE[detail.id] : undefined
-  const cesta = cestaZBodu(LOKACE.map((l) => ({ x: l.x, y: l.y })))
-  const reka = cestaZBodu(LOKACE.map((l) => ({ x: l.x + 10, y: l.y - 3 })))
+
+  // Hlavní cesta a řeka vedou jen přes místa bez `vedlejsi` — odbočky
+  // dostávají vlastní krátké spojnice (viz vetevCesty níže).
+  const hlavniLokace = LOKACE.filter((l) => !l.vedlejsi)
+  const cesta = cestaZBodu(hlavniLokace.map((l) => ({ x: l.x, y: l.y })))
+  const reka = cestaZBodu(hlavniLokace.map((l) => ({ x: l.x + 10, y: l.y - 3 })))
+
+  const vetevCesty = VETVE.map((v, i) => {
+    const z = LOKACE.find((l) => l.id === v.z)
+    const doL = LOKACE.find((l) => l.id === v.do)
+    if (!z || !doL) return null
+    return { id: `${v.z}->${v.do}`, d: vetevCesta(z, doL, i % 2 === 0 ? 5 : -5) }
+  }).filter((v): v is { id: string; d: string } => v !== null)
+
+  // Mapa je širší než displej (viz SVET_SIRKA_PX) — při vstupu ji
+  // vodorovně vycentruje na hlavní cestu, odbočky do stran zůstanou
+  // objevit posunutím, ne rovnou v záběru.
+  useEffect(() => {
+    const el = platnoRef.current
+    if (!el) return
+    const stredHlavniCesty = 0.475 * SVET_SIRKA_PX
+    el.scrollLeft = Math.max(0, stredHlavniCesty - el.clientWidth / 2)
+  }, [])
 
   return (
     <div className="mapa-sveta">
@@ -84,7 +125,7 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje }) => {
         </text>
       </svg>
 
-      <div className="mapa-platno">
+      <div className="mapa-platno" ref={platnoRef}>
         <div className="mapa-svet">
           <svg className="mapa-terren" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
             <defs>
@@ -147,6 +188,22 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje }) => {
 
             {/* Řeka podél cesty — vodní stopa vedle míst, ne skrz ně */}
             <path d={reka} fill="none" stroke="#35c4f0" strokeOpacity="0.4" strokeWidth="1" strokeLinecap="round" />
+
+            {/* Odbočky k vedlejším místům — tenčí a tlumenější než hlavní cesta,
+                ať je na první pohled jasné, co je trasa a co jen výlet stranou */}
+            {vetevCesty.map((v) => (
+              <path
+                key={v.id}
+                className="mapa-cesta-vedlejsi"
+                d={v.d}
+                fill="none"
+                stroke="url(#mapa-cesta-barva)"
+                strokeOpacity="0.45"
+                strokeWidth="0.4"
+                strokeDasharray="1.2 1.6"
+                strokeLinecap="round"
+              />
+            ))}
 
             {/* Cesta spojující jednotlivá místa — tekoucí zlato-fialovo-modrý lesk */}
             <path

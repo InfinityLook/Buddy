@@ -68,6 +68,7 @@
 
 .mapa-platno {
   flex: 1;
+  overflow-x: auto;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
@@ -75,9 +76,11 @@
 
 .mapa-svet {
   position: relative;
-  width: 100%;
-  /* Skutečná "velikost světa" — appka se v ní scrolluje odshora dolů,
-     nezávisle na tom, jak vysoký je displej. */
+  /* Skutečná "velikost světa" — pevná šířka i výška, appka se v ní
+     scrolluje nahoru/dolů i do stran, nezávisle na tom, jak velký je
+     displej. Šířka musí sedět s SVET_SIRKA_PX v MapaSveta.tsx (stejná
+     dvoumístní vazba jako @/* alias). */
+  width: 900px;
   height: 2200px;
   padding-bottom: calc(2rem + env(safe-area-inset-bottom));
   box-sizing: border-box;
@@ -98,6 +101,12 @@
 
 .mapa-cesta {
   animation: mapa-cesta-tok 5s linear infinite;
+}
+
+/* Odbočky plynou pomaleji a jsou tlumenější (viz strokeOpacity v TSX) —
+   vizuálně druhořadé vůči hlavní cestě, ne stejně důležité. */
+.mapa-cesta-vedlejsi {
+  animation: mapa-cesta-tok 8s linear infinite;
 }
 
 @keyframes mapa-cesta-tok {
@@ -326,4 +335,5 @@
 @media (prefers-reduced-motion: reduce) {
   .mapa-pin--hlavni-mesto .mapa-pin-znacka { animation: none; }
   .mapa-cesta { animation: none; }
+  .mapa-cesta-vedlejsi { animation: none; }
 }

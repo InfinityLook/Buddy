@@ -36,9 +36,20 @@ export interface Lokace {
   nazev: string
   ikona: string
   barva: string
-  /** Pozice na mapě v procentech (0–100) šířky/výšky viewboxu — proto se
-   *  mapa přeuspořádá stejně na jakkoli širokém displeji, ne podle
-   *  pevných pixelů. */
+  /** Pozice na mapě v procentech (0–100) šířky/výšky "světa" (viz
+   *  MapaSveta.css) — proto se piny přeuspořádají stejně na jakkoli
+   *  širokém plátně, ne podle pevných pixelů. */
   x: number
   y: number
+  /** Odbočka mimo hlavní cestu (viz VETVE v lokace.ts) — hlavní cesta a
+   *  řeka ji přeskočí, spojí se s ní jen krátká vedlejší stezka. */
+  vedlejsi?: boolean
+}
+
+/** Krátká odbočka z hlavní cesty k vedlejšímu místu — `z` a `do` jsou id
+ *  z LOKACE. Hlavní cesta zůstává tvořená pořadím v LOKACE (jen míst bez
+ *  `vedlejsi`); tohle jsou samostatné spojnice navíc. */
+export interface Vetev {
+  z: string
+  do: string
 }
