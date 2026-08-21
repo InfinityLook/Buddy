@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PrehledPanel } from './components/PrehledPanel'
 import { SocialReportPanel } from './components/SocialReportPanel'
@@ -7,13 +7,19 @@ import { AuditLogPanel } from './components/AuditLogPanel'
 import { UzivatelePanel } from './components/UzivatelePanel'
 import { KonzolePanel } from './components/KonzolePanel'
 import { ADMIN_TABS, AdminTab } from './types'
+import { useHasPermission } from '@/core/role'
 import './AdminModule.css'
 
 // ==========================================
-// Admin panel. Vstup do něj hlídá /admin v App.tsx (oprávnění
-// 'admin.panel', ke kterému má definici jen ADMIN_ROLE) — tahle
-// komponenta se proto nemusí ptát znovu, stejný princip jako Social
-// nemá vlastní bránu a spoléhá na bránu v App.tsx.
+// Admin panel. Vstup do něj hlídá /admin v App.tsx — buď oprávněním
+// 'admin.panel' (ADMIN_ROLE), nebo 'moderation.content' (MODERATOR_
+// ROLE). Dřív měl moderátor oprávnění v databázi (jsem_moderator()
+// pouštěl čtení a vyřizování hlášení), ale nikde v appce žádnou
+// obrazovku, která by ho tam pustila — App.tsx kontroloval jen
+// admin.panel. Tahle komponenta teď podle stejné dvojice oprávnění
+// sama omezí, které záložky se vůbec zobrazí: moderátor bez
+// admin.panel vidí jen SocialReport, ne agregáty z Přehledu, Uživatele
+// ani Audit log, které jsou admin-only i v databázi (jsem_admin()).
 //
 // To ale chrání jen vzhled, ne data: každé volání odsud dolů (přehled,
 // hlášení) si přístup ověřuje samo v databázi (jsem_admin(),
@@ -23,7 +29,15 @@ import './AdminModule.css'
 
 export const AdminModule: React.FC = () => {
   const navigate = useNavigate()
-  const [tab, setTab] = useState<AdminTab>('prehled')
+  const smiAdmin = useHasPermission('admin.panel')
+  const smiModerovat = useHasPermission('moderation.content')
+
+  const viditelneTaby = useMemo(
+    () => (smiAdmin ? ADMIN_TABS : ADMIN_TABS.filter((t) => t.id === 'social-report')),
+    [smiAdmin]
+  )
+
+  const [tab, setTab] = useState<AdminTab>(smiAdmin ? 'prehled' : 'social-report')
 
   return (
     <div className="admin-page">
@@ -31,11 +45,11 @@ export const AdminModule: React.FC = () => {
         <button className="admin-back-btn" onClick={() => navigate('/nastaveni')}>
           ← Zpět do nastavení
         </button>
-        <h1 className="admin-title">Admin panel</h1>
+        <h1 className="admin-title">{smiAdmin ? 'Admin panel' : 'Moderace'}</h1>
       </div>
 
       <nav className="admin-nav">
-        {ADMIN_TABS.map((t) => (
+        {viditelneTaby.map((t) => (
           <button
             key={t.id}
             className={`admin-nav-btn ${tab === t.id ? 'active' : ''}`}
@@ -48,12 +62,12 @@ export const AdminModule: React.FC = () => {
       </nav>
 
       <div className="admin-content">
-        {tab === 'prehled' && <PrehledPanel />}
-        {tab === 'social-report' && <SocialReportPanel />}
-        {tab === 'notifikace' && <NotifikacePanel />}
-        {tab === 'audit-log' && <AuditLogPanel />}
-        {tab === 'uzivatele' && <UzivatelePanel />}
-        {tab === 'konzole' && <KonzolePanel />}
+        {tab === 'prehled' && smiAdmin && <PrehledPanel />}
+        {tab === 'social-report' && (smiAdmin || smiModerovat) && <SocialReportPanel />}
+        {tab === 'notifikace' && smiAdmin && <NotifikacePanel />}
+        {tab === 'audit-log' && smiAdmin && <AuditLogPanel />}
+        {tab === 'uzivatele' && smiAdmin && <UzivatelePanel />}
+        {tab === 'konzole' && smiAdmin && <KonzolePanel />}
       </div>
     </div>
   )

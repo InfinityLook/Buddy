@@ -445,6 +445,25 @@
   font-style: italic;
 }
 
+.admin-report-zprava-radek {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+.admin-report-zprava-radek .admin-report-zprava {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Odznak opakovaného nahlášení — stejná barva jako "Zakázat celou
+   appku", ať upoutá stejně jako jiná závažná věc v panelu. */
+.admin-report-opakovane {
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #f87171;
+}
+
 .admin-report-akce {
   display: flex;
   gap: 0.4rem;

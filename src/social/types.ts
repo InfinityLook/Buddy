@@ -98,6 +98,10 @@ export interface Hlaseni {
   nahlaseny: SocialProfil | null
   /** Text nahlášené zprávy, pokud se hlášení týkalo zprávy */
   zprava: string | null
+  /** Id nahlášené zprávy — odděleně od textu, ať jde zprávu smazat
+   *  přímo z hlášení (viz smazatNahlasenouZpravu v SocialReportPanelu),
+   *  ne jen si přečíst, o co šlo. */
+  zpravaId: string | null
   stav: StavHlaseni
   vyrizenoAt: string | null
 }

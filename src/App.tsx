@@ -42,6 +42,14 @@ export default function App() {
   // v databázi přes jsem_admin().
   const smiAdmin = useHasPermission('admin.panel')
 
+  // Moderátor měl dřív oprávnění moderation.content, ale žádnou cestu
+  // dovnitř — /admin pouštěl jen admin.panel, takže reálný moderátor
+  // se přes databázi (jsem_moderator()) dostal k hlášením, ale UI mu
+  // je nemělo kde ukázat. AdminModule.tsx podle stejného oprávnění
+  // sám omezí, co uvidí (jen SocialReport), takže widen tady neznamená
+  // widen dat, jen vstupu do panelu, který si data stejně ověří sám.
+  const smiModerovat = useHasPermission('moderation.content')
+
   // Než Supabase odpoví, jestli relace existuje, nesmí se ukázat login —
   // uživateli s platným účtem by na okamžik probliknul a vypadalo by to
   // jako odhlášení.
@@ -194,11 +202,14 @@ export default function App() {
             }
           />
 
-          {/* Route pro admin panel — vidí ho jen role s oprávněním admin.panel */}
+          {/* Route pro admin panel — admin.panel vidí celý panel,
+              moderation.content jen omezenou verzi (AdminModule.tsx
+              si podle stejného oprávnění samo rozhodne, které záložky
+              ukázat). */}
           <Route
             path="/admin"
             element={
-              dovnitr && smiAdmin ? (
+              dovnitr && (smiAdmin || smiModerovat) ? (
                 <AdminModule />
               ) : (
                 <Navigate to={dovnitr ? '/nastaveni' : '/'} replace />

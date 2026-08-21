@@ -607,6 +607,7 @@ export const nactiHlaseni = async (): Promise<Hlaseni[]> => {
     hlasil: profily.get(r.reporter_id) ?? null,
     nahlaseny: profily.get(r.target_user_id) ?? null,
     zprava: r.message_id ? texty.get(r.message_id) ?? '(zpráva už neexistuje)' : null,
+    zpravaId: r.message_id,
     stav: r.resolved_at === null ? 'nevyrizeno' : (r.resolution as StavHlaseni) ?? 'vyreseno',
     vyrizenoAt: r.resolved_at,
   }))

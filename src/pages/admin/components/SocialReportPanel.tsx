@@ -51,6 +51,18 @@ export const SocialReportPanel: React.FC = () => {
     if (v.ok) await nacti()
   }
 
+  // Smaže přímo nahlášenou zprávu (měkce, viz smazatZpravu v api.ts) —
+  // moderátor tak nemusí čekat na admina s přístupem k banu, aby zmizel
+  // konkrétní urážlivý obsah. Hlášení samo tím nezmizí, jen se dá i tak
+  // vyřídit stejně jako dřív.
+  const smazatNahlasenouZpravu = async (zpravaId: string) => {
+    if (!window.confirm('Smazat nahlášenou zprávu? Uvidí, že tam zpráva byla, ne co v ní bylo.')) return
+
+    const v = await socialApi.smazatZpravu(zpravaId)
+    oznam(v.ok ? 'Zpráva smazána.' : v.chyba ?? 'Nepovedlo se to.')
+    if (v.ok) await nacti()
+  }
+
   const prepnoutBan = async (uzivatelId: string, jmeno: string, zabanovat: boolean) => {
     const v = await adminApi.zabanujZeSocial(uzivatelId, zabanovat)
     oznam(
@@ -84,6 +96,15 @@ export const SocialReportPanel: React.FC = () => {
   const zobrazena = jenNevyrizena ? hlaseni.filter((h) => h.stav === 'nevyrizeno') : hlaseni
   const cekajicich = hlaseni.filter((h) => h.stav === 'nevyrizeno').length
 
+  // Kolikrát byl kdo celkem nahlášen — počítá se z už načtených hlaseni,
+  // žádný nový dotaz navíc. Ukazuje se jen u opakovaných nahlášení, ať
+  // moderátor pozná někoho, koho hlásí víc lidí, ne jednorázový spor.
+  const pocetNahlaseni = new Map<string, number>()
+  for (const h of hlaseni) {
+    if (!h.nahlaseny) continue
+    pocetNahlaseni.set(h.nahlaseny.id, (pocetNahlaseni.get(h.nahlaseny.id) ?? 0) + 1)
+  }
+
   return (
     <section className="admin-card">
       <div className="admin-card-head">
@@ -112,10 +133,28 @@ export const SocialReportPanel: React.FC = () => {
                 nahlásil
                 <strong>{h.nahlaseny?.displayName ?? 'neznámého'}</strong>
                 <span className="admin-report-id">{h.nahlaseny?.id ?? '—'}</span>
+                {h.nahlaseny && (pocetNahlaseni.get(h.nahlaseny.id) ?? 0) > 1 && (
+                  <span className="admin-report-opakovane">
+                    ⚠️ nahlášen {pocetNahlaseni.get(h.nahlaseny.id)}×
+                  </span>
+                )}
               </p>
 
               {h.poznamka && <p className="admin-report-poznamka">„{h.poznamka}“</p>}
-              {h.zprava && <p className="admin-report-zprava">Nahlášená zpráva: „{h.zprava}“</p>}
+              {h.zprava && (
+                <div className="admin-report-zprava-radek">
+                  <p className="admin-report-zprava">Nahlášená zpráva: „{h.zprava}“</p>
+                  {h.zpravaId && h.zprava !== '(zpráva byla smazána)' && h.zprava !== '(zpráva už neexistuje)' && (
+                    <button
+                      className="admin-icon-btn"
+                      aria-label="Smazat nahlášenou zprávu"
+                      onClick={() => smazatNahlasenouZpravu(h.zpravaId!)}
+                    >
+                      🗑
+                    </button>
+                  )}
+                </div>
+              )}
 
               {h.nahlaseny && (
                 <div className="admin-report-akce">

@@ -14,6 +14,7 @@ export const SettingsModule: React.FC = () => {
   const navigate = useNavigate()
   const { profile, updateProfile, updateSecurity, resetProfile } = useProfileData()
   const smiAdmin = useHasPermission('admin.panel')
+  const smiModerovat = useHasPermission('moderation.content')
 
   const [form, setForm] = useState({ name: profile.name, email: profile.email, motto: profile.motto })
   const [toast, setToast] = useState<string | null>(null)
@@ -179,22 +180,25 @@ export const SettingsModule: React.FC = () => {
         </button>
       </section>
 
-      {/* Administrace — vidí jen účet s rolí admin. Tlačítko samo nikoho
-          nechrání (role v prohlížeči si jde přepsat), skutečná data za
-          ním si přístup ověřují sama v databázi — viz komentář
-          v pages/admin/AdminModule.tsx. */}
-      {smiAdmin && (
+      {/* Administrace — vidí ji admin i moderátor, každý přes jiné
+          oprávnění. Tlačítko samo nikoho nechrání (role v prohlížeči
+          si jde přepsat), skutečná data za ním si přístup ověřují sama
+          v databázi — viz komentář v pages/admin/AdminModule.tsx.
+          AdminModule.tsx sám omezí, co moderátor uvnitř uvidí. */}
+      {(smiAdmin || smiModerovat) && (
         <section className="settings-card">
           <div className="settings-card-head">
             <span className="settings-card-icon amber" aria-hidden="true">🛠️</span>
             <div>
-              <h2 className="settings-card-title">Administrace</h2>
-              <p className="settings-card-sub">Přehled, hlášení a konzole aplikace</p>
+              <h2 className="settings-card-title">{smiAdmin ? 'Administrace' : 'Moderace'}</h2>
+              <p className="settings-card-sub">
+                {smiAdmin ? 'Přehled, hlášení a konzole aplikace' : 'Hlášení od uživatelů'}
+              </p>
             </div>
           </div>
 
           <button className="settings-save-btn" onClick={() => navigate('/admin')}>
-            Otevřít Admin panel
+            {smiAdmin ? 'Otevřít Admin panel' : 'Otevřít moderaci'}
           </button>
         </section>
       )}
