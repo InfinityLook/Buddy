@@ -46,9 +46,12 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-mind-map-storage', storage: 'secure', label: 'Mind Map' },
   { key: 'schoolbuddy-file-manager-storage', storage: 'secure', label: 'File Manager' },
   { key: 'schoolbuddy-document-editor-storage', storage: 'secure', label: 'Textový editor' },
+  { key: 'schoolbuddy-finance-storage', storage: 'secure', label: 'Finance' },
+  { key: 'schoolbuddy-form-check-storage', storage: 'secure', label: 'Form Check' },
   { key: 'schoolbuddy-examprep-storage', storage: 'secure', label: 'Maturitní centrum' },
   { key: 'schoolbuddy-pomodoro-storage', storage: 'secure', label: 'Pomodoro' },
   { key: 'schoolbuddy-math-solver-storage', storage: 'secure', label: 'Math Solver' },
+  { key: 'schoolbuddy-game-character-storage', storage: 'secure', label: 'Herní postava' },
   { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
   // Role a kredity stojí (nebo budou stát) peníze. Do zálohy patří, aby
   // byla věrným snímkem, ale zpátky se nikdy nezapisují — jinak by stačilo

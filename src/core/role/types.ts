@@ -30,6 +30,10 @@ export type Permission =
   | 'moderation.content'
   | 'admin.users'
   | 'admin.catalog'
+  // Vstup do administrátorského panelu (/admin) — čistě admin, žádná
+  // jiná role, ani moderátor. Samo o sobě nic nechrání (viz varování
+  // výš), server má vlastní jsem_admin() a admin_prehled() ho vyžaduje.
+  | 'admin.panel'
 
 export type RoleId = 'user' | 'vip' | 'moderator' | 'admin'
 

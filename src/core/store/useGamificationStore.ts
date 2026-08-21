@@ -15,6 +15,9 @@ export type ActivityKind =
   | 'document'
   | 'file'
   | 'calculation'
+  | 'transaction'
+  | 'workout'
+  | 'battle'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -46,8 +49,11 @@ const DEFAULT_BADGES: Badge[] = [
   { id: 'mind_mapper', title: 'Kartograf myšlenek', description: 'Přidej 10 uzlů do myšlenkové mapy.', icon: '🗺️', unlockedAt: null },
   { id: 'writer', title: 'Spisovatel', description: 'Ulož 5 dokumentů v textovém editoru.', icon: '✍️', unlockedAt: null },
   { id: 'streak_7', title: 'Týden v kuse', description: 'Udržuj studijní streak 7 dní v řadě.', icon: '📅', unlockedAt: null },
+  { id: 'budget_master', title: 'Rozpočtář', description: 'Zaznamenej 15 příjmů nebo výdajů ve Financích.', icon: '💰', unlockedAt: null },
+  { id: 'fitness_starter', title: 'Rozcvička', description: 'Dokonči 5 tréninkových sezení ve Form Checku.', icon: '🏋️', unlockedAt: null },
   { id: 'level_5', title: 'Zkušený', description: 'Dostaň se na úroveň 5.', icon: '⭐', unlockedAt: null },
   { id: 'xp_1000', title: 'Tisícovka', description: 'Nasbírej celkem 1000 XP.', icon: '💎', unlockedAt: null },
+  { id: 'arena_champion', title: 'Šampion arény', description: 'Vyhraj 5 soubojů v Aréně.', icon: '⚔️', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti
@@ -56,6 +62,9 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   note: { badgeId: 'note_taker', needed: 10 },
   mindNode: { badgeId: 'mind_mapper', needed: 10 },
   document: { badgeId: 'writer', needed: 5 },
+  transaction: { badgeId: 'budget_master', needed: 15 },
+  workout: { badgeId: 'fitness_starter', needed: 5 },
+  battle: { badgeId: 'arena_champion', needed: 5 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není

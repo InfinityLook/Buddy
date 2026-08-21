@@ -1,8 +1,9 @@
-import React, { useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { ProfilIcon } from './ProfilIcon'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { getXpForNextLevel } from '@/core/utils/gamificationUtils'
+import { nactiOznameni, sledovatOznameni } from '@/core/notifications/api'
 
 export interface NotificationItem {
   id: string
@@ -29,11 +30,44 @@ export const useNotificationItems = (): NotificationItem[] => {
   const { level, xp, streakDays, badges } = useGamificationStore()
   const { tasks } = useStudyPlanner()
 
+  // Oznámení od správy (Admin panel → Notifikace) — na rozdíl od
+  // zbytku seznamu se nedají odvodit z místního stavu, musí se
+  // stáhnout. Živý odběr, ať se zvonek rozsvítí i bez obnovení
+  // stránky, když admin zrovna něco pošle.
+  const [oznameniItems, setOznameniItems] = useState<NotificationItem[]>([])
+
+  useEffect(() => {
+    let zive = true
+
+    const obnov = () => {
+      void nactiOznameni().then((seznam) => {
+        if (!zive) return
+        setOznameniItems(
+          seznam.map((o) => ({
+            id: `oznameni-${o.id}`,
+            title: o.text,
+            time: new Date(o.createdAt).toLocaleDateString('cs-CZ'),
+          }))
+        )
+      })
+    }
+
+    obnov()
+    const zrusit = sledovatOznameni(obnov)
+
+    return () => {
+      zive = false
+      zrusit()
+    }
+  }, [])
+
   // Upozornění se skládají ze skutečného stavu aplikace. Id nese i hodnotu,
   // které se hláška týká (streak-9, level-4...), takže přečtená hláška
   // zůstane přečtená, ale při změně stavu se objeví jako nová.
   return useMemo<NotificationItem[]>(() => {
-    const items: NotificationItem[] = []
+    // Oznámení od správy jdou první — jsou to věci, o kterých má vědět
+    // hned, ne až po vlastním pokroku v appce.
+    const items: NotificationItem[] = [...oznameniItems]
 
     const lastBadge = badges
       .filter((b) => b.unlockedAt !== null)
@@ -74,7 +108,7 @@ export const useNotificationItems = (): NotificationItem[] => {
     }
 
     return items
-  }, [badges, streakDays, tasks, level, xp])
+  }, [oznameniItems, badges, streakDays, tasks, level, xp])
 }
 
 export const ProfilNotifications: React.FC<ProfilNotificationsProps> = ({

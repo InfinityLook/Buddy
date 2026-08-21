@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { SocialIcon } from './SocialIcon'
+import { SocialAvatar } from './SocialAvatar'
 import * as api from '../api'
 import type { SocialStav } from '../useSocial'
 
@@ -13,10 +14,16 @@ const casKratce = (iso: string | null): string => {
 
   const kdy = new Date(iso)
   const dnes = new Date()
+  const rozdilMinut = Math.round((dnes.getTime() - kdy.getTime()) / 60000)
   const stejnyDen = kdy.toDateString() === dnes.toDateString()
 
-  // Dnešní zprávy mají čas, starší datum — u hodiny z minulého týdne
-  // by nikdo nepoznal, o který den šlo.
+  // Čerstvá zpráva dostane relativní čas — "před 5 min" se přečte
+  // rychleji než hodiny, a přesně u toho, co se dá stihnout přečíst
+  // ještě za tepla, na tom nejvíc záleží. Starší zprávy dostanou přesný
+  // čas nebo datum, kde by "před 6 h" už bylo míň užitečné než "14:20".
+  if (rozdilMinut < 1) return 'teď'
+  if (rozdilMinut < 60) return `před ${rozdilMinut} min`
+
   return stejnyDen
     ? kdy.toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
     : kdy.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })
@@ -84,9 +91,7 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
                     }`}
                     onClick={() => prepnout(p.profil.id)}
                   >
-                    <span className="social-avatar" aria-hidden="true">
-                      {p.profil.displayName.charAt(0).toUpperCase()}
-                    </span>
+                    <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} />
                     <span className="social-row-name">{p.profil.displayName}</span>
                     {vybrani.includes(p.profil.id) && <SocialIcon name="check" size={16} />}
                   </button>
@@ -114,10 +119,12 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
           </p>
         ) : (
           stav.chaty.map((ch) => (
-            <button key={ch.id} className="social-row social-row--chat" onClick={() => onOtevritChat(ch.id)}>
-              <span className={`social-avatar ${ch.jeSkupina ? 'is-skupina' : ''}`} aria-hidden="true">
-                {ch.jeSkupina ? '#' : ch.nazev.charAt(0).toUpperCase()}
-              </span>
+            <button
+              key={ch.id}
+              className={`social-row social-row--chat ${ch.neprectene > 0 ? 'ma-neprectene' : ''}`}
+              onClick={() => onOtevritChat(ch.id)}
+            >
+              <SocialAvatar id={ch.id} jmeno={ch.nazev} jeSkupina={ch.jeSkupina} />
 
               <span className="social-chat-text">
                 <span className="social-chat-nazev">{ch.nazev}</span>

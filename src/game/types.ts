@@ -1,47 +1,55 @@
-import type * as THREE from 'three'
+import { Zivel } from './combat/types'
 
-// ==========================================
-// Tvary herní scény.
-//
-// Město je zatím jen rozcestník: každá jeho část je tlačítko, které
-// teprve dostane obsah. Proto je hotspot samostatný typ — až se na něj
-// bude napojovat hra, přibude mu cíl, ne nová struktura.
-// ==========================================
+export type PostavaId = 'andel' | 'aryn' | 'gron' | 'mya' | 'loxen'
 
-export type HotspotId = 'arena' | 'hrad' | 'mesto' | 'brany'
+export interface Postava {
+  id: PostavaId
+  jmeno: string
+  /** Krátký podtitul pod jménem na kartě. */
+  popis: string
+  ikona: string
+  barva: string
+  /** Kladné vlastnosti — vypisují se jako seznam na kartě i v detailu. */
+  bonusy: string[]
+  /** Nevýhoda, pokud nějakou postava má. Zatím jen Angel. */
+  nevyhoda: string | null
 
-export interface HotspotMeta {
-  id: HotspotId
-  title: string
-  /** Krátký popisek pod názvem */
-  subtitle: string
-  icon: string
-  /** Barva popisku a záře pod danou částí města */
-  color: string
+  /** Živel, jehož karty postava hraje s bonusem (bojNasobicPoskozeni). */
+  bojZivel: Zivel
+  /** Násobič poškození karet vlastního živlu, např. 1.3 = +30 %. */
+  bojNasobicPoskozeni: number
+  /** Šance na kritický zásah (0–1), zahrnuje i postavin bonus. */
+  bojKriticka: number
+  /** Násobič poškození při kritickém zásahu. */
+  bojKritickyNasobic: number
+  /** Výdrž — životy v souboji. */
+  bojVydrz: number
+  /** Násobič cen v budoucím herním obchodě — 1 = beze změny, 1.2 = Angel. */
+  obchodNasobicCeny: number
 }
 
-/**
- * Část města, na kterou se dá klepnout.
- *
- * `objects` jsou tělesa, přes která se trefa počítá; `anchor` je bod
- * v prostoru, nad kterým se vznáší popisek. Popisek se každý snímek
- * promítá do 2D, takže drží nad svým místem i při otáčení kamery.
- */
-export interface Hotspot {
-  meta: HotspotMeta
-  objects: THREE.Object3D[]
-  anchor: THREE.Vector3
-  /** Kroužek na zemi, který se rozsvítí při najetí */
-  glow: THREE.Mesh
-}
+export type LokaceTyp = 'mesto' | 'dungeon' | 'arena' | 'vesnice' | 'trziste' | 'hlavni-mesto'
 
-/** Poloha popisku na obrazovce, spočítaná z 3D bodu. */
-export interface HotspotScreenPosition {
-  id: HotspotId
+export interface Lokace {
+  id: string
+  typ: LokaceTyp
+  nazev: string
+  ikona: string
+  barva: string
+  /** Pozice na mapě v procentech (0–100) šířky/výšky "světa" (viz
+   *  MapaSveta.css) — proto se piny přeuspořádají stejně na jakkoli
+   *  širokém plátně, ne podle pevných pixelů. */
   x: number
   y: number
-  /** Za kamerou nebo moc daleko — popisek se schová */
-  visible: boolean
-  /** Vzdálenost od kamery; podle ní se řadí, aby bližší byl navrchu */
-  depth: number
+  /** Odbočka mimo hlavní cestu (viz VETVE v lokace.ts) — hlavní cesta a
+   *  řeka ji přeskočí, spojí se s ní jen krátká vedlejší stezka. */
+  vedlejsi?: boolean
+}
+
+/** Krátká odbočka z hlavní cesty k vedlejšímu místu — `z` a `do` jsou id
+ *  z LOKACE. Hlavní cesta zůstává tvořená pořadím v LOKACE (jen míst bez
+ *  `vedlejsi`); tohle jsou samostatné spojnice navíc. */
+export interface Vetev {
+  z: string
+  do: string
 }

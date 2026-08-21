@@ -1,0 +1,226 @@
+/* ==========================================
+   SOUBOJ — tahová aréna. Reuses .game-back-btn ze sdíleného GameModule.css.
+   ========================================== */
+
+.souboj {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: radial-gradient(circle at 50% 0%, #2a1218 0%, #14101f 55%, #0c0a16 100%);
+  color: var(--text-primary);
+}
+
+.souboj-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: calc(0.7rem + env(safe-area-inset-top)) 0.9rem 0.7rem;
+  background: rgba(10, 8, 18, 0.88);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-subtle);
+  flex-shrink: 0;
+}
+
+.souboj-top-bar .game-back-btn {
+  position: static;
+  flex-shrink: 0;
+}
+
+.souboj-nadpis {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #f87171;
+}
+
+.souboj-obsah {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem 0.9rem calc(1.5rem + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+/* ---------- hráč vs. nepřítel ---------- */
+
+.souboj-bojovnici {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.souboj-bojovnik {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.9rem 0.6rem;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--sb-barva);
+  box-shadow: 0 0 14px var(--sb-barva);
+}
+
+.souboj-versus {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.souboj-ikona { font-size: 1.8rem; }
+
+.souboj-jmeno {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--sb-barva);
+  text-align: center;
+}
+
+.souboj-zivoty-track {
+  width: 100%;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.souboj-zivoty-vypln {
+  height: 100%;
+  background: var(--sb-barva);
+  transition: width 0.25s ease;
+}
+
+.souboj-zivoty-cislo {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+/* ---------- boj log ---------- */
+
+.souboj-log {
+  min-height: 5.2rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.souboj-log p { margin: 0; line-height: 1.4; }
+.souboj-log p:last-child { color: var(--text-primary); font-weight: 600; }
+
+/* ---------- ruka karet ---------- */
+
+.souboj-ruka {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.souboj-karta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.8rem 0.4rem;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid var(--sk-barva);
+  color: var(--text-primary);
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 0 10px var(--sk-barva);
+  transition: transform 0.12s ease;
+}
+
+.souboj-karta:active { transform: scale(0.95); }
+
+.souboj-karta--bonus {
+  box-shadow: 0 0 20px var(--sk-barva);
+}
+
+.souboj-karta-ikona { font-size: 1.5rem; }
+
+.souboj-karta-nazev {
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-align: center;
+  line-height: 1.15;
+}
+
+.souboj-karta-zivel {
+  font-size: 0.58rem;
+  color: var(--sk-barva);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.souboj-karta-poskozeni {
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+/* ---------- konec souboje ---------- */
+
+.souboj-konec {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 1.4rem 1rem;
+  border-radius: var(--radius-xl);
+  background: rgba(14, 11, 26, 0.9);
+  border: 1px solid var(--border-subtle);
+  text-align: center;
+}
+
+.souboj-konec--vyhra { border-color: #fbbf24; }
+.souboj-konec--prohra { border-color: #f87171; }
+
+.souboj-konec-ikona { font-size: 2.4rem; }
+
+.souboj-konec h2 { margin: 0.2rem 0; font-size: 1.2rem; font-weight: 800; }
+.souboj-konec p { margin: 0; font-size: 0.78rem; color: var(--text-secondary); }
+
+.souboj-konec-tlacitka {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+  width: 100%;
+}
+
+.souboj-btn {
+  flex: 1;
+  padding: 0.6rem;
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid var(--border-subtle);
+}
+
+.souboj-btn--znovu {
+  background: linear-gradient(135deg, #fbbf24, #ef4444);
+  color: #14101f;
+  border: none;
+}
+
+.souboj-btn--mapa {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}

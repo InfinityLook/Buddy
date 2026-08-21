@@ -8,6 +8,7 @@ import { BlokovaniPanel } from './components/BlokovaniPanel'
 import { ModeracePanel } from './components/ModeracePanel'
 import { useSocial } from './useSocial'
 import { nastavOtevrenyChat } from './inbox'
+import { useAmbientScene } from './scene/useAmbientScene'
 import './SocialModule.css'
 
 // ==========================================
@@ -53,62 +54,73 @@ export const SocialModule: React.FC = () => {
   const cekaZadosti = stav.zadosti.filter((z) => z.smer === 'prichozi').length
   const neprectene = stav.chaty.reduce((soucet, ch) => soucet + ch.neprectene, 0)
 
-  // Otevřený chat zabírá celou obrazovku — na telefonu není kam dát
-  // seznam i rozhovor vedle sebe.
-  if (chat) {
-    return (
-      <div className="social-page">
-        <ChatView chat={chat} stav={stav} onZpet={() => setOtevrenyChat(null)} />
-        {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
-      </div>
-    )
-  }
+  // Ambientní pozadí žije mimo React a musí se postavit přesně jednou —
+  // proto containerRef nesmí zmizet z DOMu, ať uživatel otevře chat,
+  // nebo ne. Řešit to podmíněným vykreslením celého <div ref> by ho při
+  // zavření chatu osiřelo (canvas zůstane přilepený ke starému uzlu,
+  // nový prázdný div by scénu nikdy nedostal). Container je proto
+  // pořád v DOMu; jen ve chatu se schová přes CSS, ať nesoutěží
+  // s čtením zpráv, ale běžet klidně může dál.
+  const { containerRef: ambientRef } = useAmbientScene()
 
   return (
     <div className="social-page">
-      <div className="social-top-bar">
-        <div>
-          <button className="social-back-btn" onClick={() => navigate('/hub')}>
-            ← Zpět do Hubu
-          </button>
-          <h1 className="social-title">Social</h1>
-          <p className="social-subtitle">
-            Přátelé, chaty a klid od těch, se kterými si psát nechceš.
-          </p>
-        </div>
-        <span className="social-hero-icon" aria-hidden="true">👥</span>
-      </div>
+      <div ref={ambientRef} className={`social-ambient ${chat ? 'je-skryty' : ''}`} aria-hidden="true" />
 
-      <div className="social-zalozky">
-        {ZALOZKY.map((z) => {
-          const odznak = z.id === 'pratele' ? cekaZadosti : z.id === 'chaty' ? neprectene : 0
-
-          return (
-            <button
-              key={z.id}
-              className={`social-zalozka ${zalozka === z.id ? 'is-aktivni' : ''}`}
-              onClick={() => setZalozka(z.id)}
-            >
-              <SocialIcon name={z.ikona} size={15} />
-              {z.popis}
-              {odznak > 0 && <span className="social-odznak">{odznak}</span>}
-            </button>
-          )
-        })}
-      </div>
-
-      {stav.nacita ? (
-        <p className="social-empty-note social-empty-note--stred">Načítám…</p>
+      {chat ? (
+        // Otevřený chat zabírá celou obrazovku — na telefonu není kam
+        // dát seznam i rozhovor vedle sebe.
+        <>
+          <ChatView chat={chat} stav={stav} onZpet={() => setOtevrenyChat(null)} />
+          {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
+        </>
       ) : (
         <>
-          {zalozka === 'pratele' && <PratelePanel stav={stav} onOtevritChat={setOtevrenyChat} />}
-          {zalozka === 'chaty' && <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />}
-          {zalozka === 'blokovani' && <BlokovaniPanel stav={stav} />}
-          {zalozka === 'hlaseni' && <ModeracePanel stav={stav} />}
+          <div className="social-top-bar">
+            <div>
+              <button className="social-back-btn" onClick={() => navigate('/hub')}>
+                ← Zpět do Hubu
+              </button>
+              <h1 className="social-title">Social</h1>
+              <p className="social-subtitle">
+                Přátelé, chaty a klid od těch, se kterými si psát nechceš.
+              </p>
+            </div>
+            <span className="social-hero-icon" aria-hidden="true">👥</span>
+          </div>
+
+          <div className="social-zalozky">
+            {ZALOZKY.map((z) => {
+              const odznak = z.id === 'pratele' ? cekaZadosti : z.id === 'chaty' ? neprectene : 0
+
+              return (
+                <button
+                  key={z.id}
+                  className={`social-zalozka ${zalozka === z.id ? 'is-aktivni' : ''}`}
+                  onClick={() => setZalozka(z.id)}
+                >
+                  <SocialIcon name={z.ikona} size={15} />
+                  {z.popis}
+                  {odznak > 0 && <span className="social-odznak">{odznak}</span>}
+                </button>
+              )
+            })}
+          </div>
+
+          {stav.nacita ? (
+            <p className="social-empty-note social-empty-note--stred">Načítám…</p>
+          ) : (
+            <>
+              {zalozka === 'pratele' && <PratelePanel stav={stav} onOtevritChat={setOtevrenyChat} />}
+              {zalozka === 'chaty' && <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />}
+              {zalozka === 'blokovani' && <BlokovaniPanel stav={stav} />}
+              {zalozka === 'hlaseni' && <ModeracePanel stav={stav} />}
+            </>
+          )}
+
+          {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
         </>
       )}
-
-      {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
     </div>
   )
 }

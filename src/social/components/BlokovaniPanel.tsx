@@ -1,5 +1,6 @@
 import React from 'react'
 import { SocialIcon } from './SocialIcon'
+import { SocialAvatar } from './SocialAvatar'
 import * as api from '../api'
 import type { SocialStav } from '../useSocial'
 
@@ -22,9 +23,7 @@ export const BlokovaniPanel: React.FC<Props> = ({ stav }) => (
       ) : (
         stav.bloky.map((p) => (
           <div key={p.id} className="social-row">
-            <span className="social-avatar" aria-hidden="true">
-              {p.displayName.charAt(0).toUpperCase()}
-            </span>
+            <SocialAvatar id={p.id} jmeno={p.displayName} tlumeny />
             <span className="social-row-name">{p.displayName}</span>
             <button
               className="social-btn social-btn--small social-btn--tlumene"

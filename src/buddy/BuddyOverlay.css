@@ -1,0 +1,250 @@
+/* ==========================================
+   BUDDY — hlasový rozhovor, stejný design systém jako zbytek appky
+   ========================================== */
+
+.buddy-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.buddy-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(5, 8, 18, 0.72);
+  backdrop-filter: blur(4px);
+  animation: buddy-scrim-vstup 0.2s ease;
+}
+
+@keyframes buddy-scrim-vstup {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.buddy-panel {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  height: min(78vh, 640px);
+  display: flex;
+  flex-direction: column;
+  background: rgba(14, 11, 26, 0.97);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-shadow: var(--shadow-card);
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: buddy-panel-vstup 0.24s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+@keyframes buddy-panel-vstup {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.buddy-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem 0.7rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.buddy-header-title {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 12px rgba(53, 196, 240, 0.5);
+}
+
+.buddy-close-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.buddy-prepis {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+}
+
+.buddy-uvod {
+  margin: 1.5rem 0.5rem;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.buddy-bublina-obal {
+  display: flex;
+  max-width: 84%;
+}
+
+.buddy-bublina-obal.je-moje {
+  align-self: flex-end;
+  justify-content: flex-end;
+}
+
+.buddy-bublina {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  animation: buddy-bublina-vstup 0.25s ease;
+}
+
+.buddy-bublina.je-moje {
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  border-color: transparent;
+  color: #fff;
+}
+
+@keyframes buddy-bublina-vstup {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.buddy-ovladani {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1rem 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.buddy-stav-text {
+  margin: 0;
+  min-height: 1.1em;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.buddy-stav-text.je-chyba { color: var(--accent-red); }
+
+/* ---------- mikrofonní tlačítko — vzhled podle stavu rozhovoru ---------- */
+
+.buddy-mic-btn {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: var(--shadow-glow-cyan);
+  transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.buddy-mic-btn:active { transform: scale(0.94); }
+.buddy-mic-btn:disabled { cursor: default; }
+
+/* Poslouchá — sytější a s pulzujícím prstencem okolo, ať je na první
+   pohled jasné, že appka teď snímá hlas. */
+.buddy-mic-btn--posloucha {
+  background: linear-gradient(135deg, #f87171, #ec4899);
+  box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.5);
+  animation: buddy-mic-posloucha 1.4s ease-in-out infinite;
+}
+
+@keyframes buddy-mic-posloucha {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.45); }
+  50% { box-shadow: 0 0 0 14px rgba(248, 113, 113, 0); }
+}
+
+.buddy-mic-btn--premysli {
+  opacity: 0.6;
+  animation: buddy-mic-premysli 1.1s linear infinite;
+}
+
+@keyframes buddy-mic-premysli {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(0.92); }
+}
+
+.buddy-mic-btn--mluvi {
+  animation: buddy-mic-mluvi 0.9s ease-in-out infinite;
+}
+
+@keyframes buddy-mic-mluvi {
+  0%, 100% { box-shadow: var(--shadow-glow-cyan); }
+  50% { box-shadow: 0 0 52px rgba(138, 92, 246, 0.55); }
+}
+
+.buddy-mic-btn--chyba {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: none;
+}
+
+/* ---------- psaní místo mluvení ---------- */
+
+.buddy-psani {
+  display: flex;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.buddy-psani-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.78rem;
+}
+
+.buddy-psani-input:focus { outline: none; border-color: var(--accent-cyan); }
+.buddy-psani-input:disabled { opacity: 0.5; }
+
+.buddy-psani-btn {
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent-cyan);
+  border: none;
+  color: var(--text-on-accent);
+  cursor: pointer;
+}
+
+.buddy-psani-btn:disabled { opacity: 0.4; cursor: default; }
+
+@media (prefers-reduced-motion: reduce) {
+  .buddy-scrim,
+  .buddy-panel,
+  .buddy-bublina,
+  .buddy-mic-btn--posloucha,
+  .buddy-mic-btn--premysli,
+  .buddy-mic-btn--mluvi {
+    animation: none !important;
+  }
+}

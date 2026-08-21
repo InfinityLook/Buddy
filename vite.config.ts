@@ -118,19 +118,37 @@ export default defineConfig(({ command }) => {
           // Záchranný skript musí být vždy čerstvý ze sítě — kdyby se
           // zaprecachoval, zůstal by na telefonu navěky ve staré podobě
           // a nemohl by rozseknout zaseknutý service worker.
-          globIgnores: ['**/js/auto-update.js'],
+          //
+          // mediapipe/** (WASM běhové prostředí a model pro Form Check,
+          // ~40 MB) je z precache vyloučené schválně — nikdo, kdo tuhle
+          // miniaplikaci nikdy neotevře, ho nesmí stáhnout při instalaci
+          // PWA. Runtime caching pravidlo níž ho místo toho uloží při
+          // prvním otevření Form Checku a od té chvíle jede z cache.
+          globIgnores: ['**/js/auto-update.js', '**/mediapipe/**'],
           navigateFallbackDenylist: [/^\/api\//, /^\/version\.json$/, /^\/js\//],
           // Precache staré verze se po aktivaci nového SW smaže,
           // takže se v prohlížeči nehromadí zastaralé soubory.
           cleanupOutdatedCaches: true,
           skipWaiting: true,
           clientsClaim: true,
-          // version.json se nesmí nikdy dostat do cache, jinak by
-          // kontrola verzí navždy hlásila tu starou.
           runtimeCaching: [
+            // version.json se nesmí nikdy dostat do cache, jinak by
+            // kontrola verzí navždy hlásila tu starou.
             {
               urlPattern: ({ url }) => url.pathname === '/version.json',
               handler: 'NetworkOnly'
+            },
+            // WASM a model Form Checku: stáhne se jen tomu, kdo miniaplikaci
+            // doopravdy otevře, a pak zůstává v cache napořád — soubory
+            // nemají v názvu hash, takže při jejich změně je potřeba
+            // přejmenovat (stejně jako u ostatních necachovaných assetů).
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/mediapipe/'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'mediapipe-runtime',
+                expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 365 }
+              }
             }
           ],
           // Fotka pozadí Hubu má přes 2 MB a výchozí limit Workboxu (2 MiB)

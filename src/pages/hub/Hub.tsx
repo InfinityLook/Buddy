@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useInbox } from '@/social/inbox'
+import { useBuddyVoice } from '@/buddy/useBuddyVoice'
+import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
@@ -62,6 +64,22 @@ export const HubModule: React.FC<HubModuleProps> = ({
   const [snapshots, setSnapshots] = useState<SnapshotInfo[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const toastTimer = useRef<number | null>(null)
+
+  // Hlasový Buddy. Hook žije tady, ne v BuddyOverlay — koule uprostřed
+  // Hubu potřebuje jeho stav i ve chvíli, kdy je overlay zavřený (a proto
+  // nevykreslený), aby na klepnutí mikrofonu zareagovala vizuálně sama.
+  const buddyVoice = useBuddyVoice()
+  const [buddyOtevreny, setBuddyOtevreny] = useState(false)
+
+  const otevritBuddyho = () => {
+    buddyVoice.vycistit()
+    setBuddyOtevreny(true)
+  }
+
+  const zavritBuddyho = () => {
+    buddyVoice.zastavit()
+    setBuddyOtevreny(false)
+  }
 
   // Zaznamenání aktivity při otevření Hubu pro započítání streaku
   useEffect(() => {
@@ -304,12 +322,26 @@ export const HubModule: React.FC<HubModuleProps> = ({
         {/* Pulzující kruh na místě, kde dřív seděl maskot.
             Maskot zůstal na úvodní obrazovce — tam má kolem sebe
             prostředí a je vidět celý, kdežto tady se na malém displeji
-            mačkal a bral místo dlaždicím. */}
-        <section className="hub-orb-section" aria-hidden="true">
+            mačkal a bral místo dlaždicím.
+
+            Od hlasového Buddyho je to i tlačítko: klepnutím na kolečko
+            (stejně jako na mikrofon dole) se otevře rozhovor a koule
+            dostane třídu podle stavu (poslouchá/přemýšlí/mluví), aby
+            reagovala vizuálně na to, co se právě děje. */}
+        <section className="hub-orb-section">
           {/* Pořadí v kódu určuje, co je nad čím: zadní dráha stojí před
               jádrem, a je tedy pod ním, přední až za ním. Z toho vzniká
               dojem, že tečky obíhají kolem, ne po něm. */}
-          <div className="hub-orb">
+          <div
+            className={`hub-orb ${buddyOtevreny ? `hub-orb--buddy hub-orb--${buddyVoice.stav}` : ''}`}
+            role="button"
+            tabIndex={0}
+            aria-label="Promluvit s Buddym"
+            onClick={otevritBuddyho}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') otevritBuddyho()
+            }}
+          >
             <span className="hub-orb-zare" />
             <span className="hub-orb-vlna" />
             <span className="hub-orb-vlna hub-orb-vlna--druha" />
@@ -322,6 +354,8 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <span className="hub-orb-obezna hub-orb-obezna--pred" />
           </div>
         </section>
+
+        {buddyOtevreny && <BuddyOverlay voice={buddyVoice} onZavrit={zavritBuddyho} />}
 
         {/* Spodní mřížka (Apps, Play, Library) */}
         <div className="hub-grid-squares">
@@ -356,9 +390,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
             mezi ostatní přepínače do Nastavení. */}
         <div className="hub-bottom-bar">
           <button
-            className={`hub-action-btn-icon ${onTalk ? '' : 'hub-action-btn-icon--soon'}`}
-            aria-label={onTalk ? 'Hlasový režim' : 'Hlasový režim (připravuje se)'}
-            onClick={onTalk ?? (() => showToast('Hlasový režim se připravuje.'))}
+            className="hub-action-btn-icon"
+            aria-label="Hlasový režim"
+            onClick={onTalk ?? otevritBuddyho}
           >
             🎙️
           </button>

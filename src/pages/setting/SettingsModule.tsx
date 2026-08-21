@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
+import { useHasPermission } from '@/core/role'
 import './SettingsModule.css'
 
 // ==========================================
@@ -12,6 +13,7 @@ import './SettingsModule.css'
 export const SettingsModule: React.FC = () => {
   const navigate = useNavigate()
   const { profile, updateProfile, updateSecurity, resetProfile } = useProfileData()
+  const smiAdmin = useHasPermission('admin.panel')
 
   const [form, setForm] = useState({ name: profile.name, email: profile.email, motto: profile.motto })
   const [toast, setToast] = useState<string | null>(null)
@@ -176,6 +178,26 @@ export const SettingsModule: React.FC = () => {
           🗑️ Vrátit profil do výchozího stavu
         </button>
       </section>
+
+      {/* Administrace — vidí jen účet s rolí admin. Tlačítko samo nikoho
+          nechrání (role v prohlížeči si jde přepsat), skutečná data za
+          ním si přístup ověřují sama v databázi — viz komentář
+          v pages/admin/AdminModule.tsx. */}
+      {smiAdmin && (
+        <section className="settings-card">
+          <div className="settings-card-head">
+            <span className="settings-card-icon amber" aria-hidden="true">🛠️</span>
+            <div>
+              <h2 className="settings-card-title">Administrace</h2>
+              <p className="settings-card-sub">Přehled, hlášení a konzole aplikace</p>
+            </div>
+          </div>
+
+          <button className="settings-save-btn" onClick={() => navigate('/admin')}>
+            Otevřít Admin panel
+          </button>
+        </section>
+      )}
 
       {toast && <div className="settings-toast">{toast}</div>}
     </div>

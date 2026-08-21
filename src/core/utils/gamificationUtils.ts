@@ -1,3 +1,5 @@
+import { mistniDatum } from './date'
+
 // Každý level vyžaduje o něco více XP (progresivní křivka)
 export const getLevelFromXp = (xp: number): number => {
   return Math.floor(Math.sqrt(xp / 50)) + 1
@@ -22,8 +24,11 @@ export const getLevelProgress = (xp: number): number => {
 
 // Zkontroluje a aktualizuje denní streak
 export const checkStreak = (lastActiveDate: string | null, currentStreak: number): { newStreak: number; todayFormatted: string } => {
-  const today = new Date().toISOString().slice(0, 10)
-  
+  // Místní datum, ne UTC (viz komentář u mistniDatum) — jinak appka
+  // umí připsat "nový den" o hodinu až dvě dřív, nebo ho naopak
+  // nepoznat hned po půlnoci.
+  const today = mistniDatum()
+
   if (!lastActiveDate) {
     return { newStreak: 1, todayFormatted: today }
   }
@@ -34,7 +39,7 @@ export const checkStreak = (lastActiveDate: string | null, currentStreak: number
 
   const yesterday = new Date()
   yesterday.setDate(yesterday.getDate() - 1)
-  const yesterdayFormatted = yesterday.toISOString().slice(0, 10)
+  const yesterdayFormatted = mistniDatum(yesterday)
 
   if (lastActiveDate === yesterdayFormatted) {
     return { newStreak: currentStreak + 1, todayFormatted: today }

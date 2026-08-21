@@ -8,6 +8,7 @@ import { fileToResizedDataUrl } from '@/utils/image'
 import { APP_VERSION, applyUpdateNow, checkForUpdates, hasNewerVersion } from '@/core/utils/registerSW'
 import { useProfileData } from './hooks/useProfileData'
 import { useCloudStatus, syncNow } from '@/core/supabase/cloudSync'
+import { useActiveRole } from '@/core/role'
 import { ProfilNotifications } from './components/ProfilNotifications'
 import { ProfilGoals } from './components/ProfilGoals'
 import { ProfilToast } from './components/ProfilToast'
@@ -30,6 +31,10 @@ export const ProfilModule: React.FC = () => {
   const { goals } = useGoalTracker()
   const { profile, updateProfile, markNotificationRead } = useProfileData()
   const cloudStatus = useCloudStatus((state) => state.status)
+  // Vyprší-li VIP, resolveActiveRoleId za tímhle hookem tiše spadne
+  // zpátky na 'user' — tag proto vždycky odpovídá skutečně platné roli,
+  // ne tomu, co je poslední uložené.
+  const aktivniRole = useActiveRole()
   // Důvod selhání. Bez něj řádek jen oznámil, že se to nepovedlo, a
   // dohledat proč šlo pouze přes konzoli prohlížeče — na telefonu tedy
   // prakticky vůbec.
@@ -140,6 +145,13 @@ export const ProfilModule: React.FC = () => {
           </div>
           <div className="profil-user-info">
             <span className="profil-badge">✦ AI Student</span>
+            {/* Obyčejný uživatel žádný další tag nedostává — je to
+                výchozí stav, ne úspěch, který by stálo za to vyzdvihovat. */}
+            {aktivniRole.id !== 'user' && (
+              <span className={`profil-role-tag profil-role-tag--${aktivniRole.tone}`}>
+                {aktivniRole.icon} {aktivniRole.title}
+              </span>
+            )}
             <h2 className="profil-user-name">{profile.name}</h2>
             <p className="profil-user-bio">{profile.motto}</p>
             <span className="profil-user-email">✉ {profile.email || 'E-mail nevyplněn'}</span>

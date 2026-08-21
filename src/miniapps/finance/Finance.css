@@ -1,0 +1,513 @@
+.fin-app {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem;
+  background: rgba(18, 24, 40, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  color: #fff;
+  max-width: 420px;
+  margin: 0 auto;
+  backdrop-filter: blur(12px);
+}
+
+.fin-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fin-header h2 { font-size: 1.1rem; margin: 0; }
+
+.fin-add-btn {
+  background: #38bdf8;
+  border: none;
+  color: #04222f;
+  font-weight: 800;
+  padding: 0.3rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.45);
+}
+
+/* ------------------------------------------
+   ZŮSTATEK
+   ------------------------------------------ */
+
+.fin-zustatek-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.7rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+}
+
+.fin-zustatek-label {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #94a3b8;
+}
+
+.fin-zustatek-castka {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #34d399;
+}
+
+.fin-zustatek-castka.je-zaporny { color: #f87171; }
+
+/* ------------------------------------------
+   FILTRY (období i typ — stejný vzhled, jiný obsah)
+   ------------------------------------------ */
+
+.fin-filters {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.fin-filter-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.fin-filter-chip.active {
+  background: rgba(56, 189, 248, 0.18);
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+/* ------------------------------------------
+   SOUHRN OBDOBÍ
+   ------------------------------------------ */
+
+.fin-summary-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.fin-summary-card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+}
+
+.fin-summary-label {
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #94a3b8;
+}
+
+.fin-summary-castka {
+  font-size: 0.8rem;
+  font-weight: 800;
+  /* Šířka procenta/textu kolísá u tří sloupců vedle sebe — bez tohohle
+     by delší částka roztáhla kartu a rozjela celý řádek. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fin-summary-card--prijem .fin-summary-castka { color: #34d399; }
+.fin-summary-card--vydaj .fin-summary-castka { color: #f87171; }
+.fin-summary-castka.je-kladny { color: #34d399; }
+.fin-summary-castka.je-zaporny { color: #f87171; }
+
+/* ------------------------------------------
+   GRAFY
+   ------------------------------------------ */
+
+.fin-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.6rem;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+}
+
+.fin-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fin-section-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #cbd5e1;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.fin-mini-toggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.fin-mini-toggle button {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.2rem 0.45rem;
+  cursor: pointer;
+}
+
+.fin-mini-toggle button.active {
+  background: rgba(56, 189, 248, 0.2);
+  color: #7dd3fc;
+}
+
+.fin-donut-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+/* Koláčový graf jako otočný přechod s vyříznutou dírou. Díra jde přes
+   masku (viz komentář u Donut v Finance.tsx), ne přes barevnou vrstvu
+   nad přechodem — ta by se musela trefit do podkladu, který je tady
+   průhledný/rozmazaný, a nikdy by přesně neseděla.
+
+   Prstenec (.fin-donut) a popisek (.fin-donut-stred) jsou sourozenci
+   v tomhle obalu, ne rodič a dítě: maska na prstenci by smazala i text
+   uvnitř, přesně v místě, kde má být vidět. */
+.fin-donut-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 108px;
+  height: 108px;
+}
+
+.fin-donut {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  -webkit-mask: radial-gradient(farthest-side, transparent 59%, #000 60%);
+  mask: radial-gradient(farthest-side, transparent 59%, #000 60%);
+}
+
+.fin-donut--prazdny {
+  background: rgba(255, 255, 255, 0.06);
+  -webkit-mask: none;
+  mask: none;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+.fin-donut-stred {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 22px;
+  text-align: center;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #e2e8f0;
+}
+
+.fin-legenda {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.28rem;
+}
+
+.fin-legenda-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.65rem;
+}
+
+.fin-legenda-tecka {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.fin-legenda-nazev {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #cbd5e1;
+}
+
+.fin-legenda-procent {
+  flex-shrink: 0;
+  font-weight: 800;
+  color: #94a3b8;
+}
+
+/* Trend za posledních 6 měsíců — dva sloupce vedle sebe na měsíc, výška
+   podle procenta z nejvyšší hodnoty v okně. */
+.fin-trend {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 0.25rem;
+  height: 80px;
+}
+
+.fin-trend-sloupec {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  height: 100%;
+}
+
+.fin-trend-tyc-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+}
+
+.fin-trend-tyc {
+  width: 6px;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+}
+
+.fin-trend-tyc--prijem { background: #34d399; }
+.fin-trend-tyc--vydaj { background: #f87171; }
+
+.fin-trend-label {
+  font-size: 0.55rem;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.fin-trend-legenda {
+  display: flex;
+  gap: 0.8rem;
+  justify-content: center;
+  font-size: 0.6rem;
+  color: #94a3b8;
+}
+
+.fin-trend-legenda span { display: inline-flex; align-items: center; gap: 0.25rem; }
+
+.fin-tecka {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.fin-tecka--prijem { background: #34d399; }
+.fin-tecka--vydaj { background: #f87171; }
+
+/* ------------------------------------------
+   FORMULÁŘ
+   ------------------------------------------ */
+
+.fin-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.6rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.fin-form-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #7dd3fc;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.fin-type-toggle {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.fin-type-toggle button {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 0.35rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.fin-type-toggle button.active {
+  background: rgba(52, 211, 153, 0.18);
+  color: #34d399;
+  border-color: rgba(52, 211, 153, 0.4);
+}
+
+/* Druhé tlačítko (Výdaj) svítí červeně, ne zeleně jako první — jinak by
+   aktivní stav vypadal stejně bez ohledu na to, co je zapnuté. */
+.fin-type-toggle button:last-child.active {
+  background: rgba(248, 113, 113, 0.18);
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+.fin-form input,
+.fin-form select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  min-width: 0;
+}
+
+.fin-form-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.fin-form-row input,
+.fin-form-row select { flex: 1; }
+
+.fin-submit-btn {
+  background: #38bdf8;
+  border: none;
+  color: #04222f;
+  font-weight: 800;
+  padding: 0.4rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+/* ------------------------------------------
+   SEZNAM ZÁZNAMŮ
+   ------------------------------------------ */
+
+.fin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.fin-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 0.5rem 0.6rem;
+}
+
+.fin-row-icon {
+  flex-shrink: 0;
+  font-size: 1.05rem;
+}
+
+.fin-row-mid {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fin-row-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fin-row-sub {
+  font-size: 0.6rem;
+  color: #94a3b8;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fin-row-castka {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.fin-row-castka.je-prijem { color: #34d399; }
+.fin-row-castka.je-vydaj { color: #f87171; }
+
+.fin-row-actions {
+  display: flex;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+
+.fin-icon-btn {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.68rem;
+  cursor: pointer;
+  padding: 0.15rem 0.25rem;
+  border-radius: 5px;
+  line-height: 1;
+}
+
+.fin-icon-btn:hover { background: rgba(255, 255, 255, 0.08); }
+.fin-icon-btn.danger { color: #f87171; }
+
+.fin-empty {
+  margin: 0;
+  padding: 1.2rem 0.5rem;
+  text-align: center;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #94a3b8;
+}
+
+.fin-empty--mala {
+  padding: 0.4rem 0;
+  font-size: 0.68rem;
+  text-align: left;
+}

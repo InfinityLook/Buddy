@@ -22,7 +22,16 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="SchoolBuddy" />
-    <link rel="manifest" href="/manifest.webmanifest" />
+    <!-- mobile-web-app-capable: standardní protějšek apple-mobile-web-app-capable
+         výš, pro Android/Chrome. Bez něj Lighthouse hlásí chybějící meta tag,
+         i když PWA jinak instalaci nabídne (chová se jako doporučení, ne
+         tvrdá podmínka) — ale patří sem správně, ne jen "funguje to i bez". -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <!-- <link rel="manifest"> sem záměrně NEpatří ručně — vite-plugin-pwa ho
+         vkládá sám za buildu podle "manifest" v vite.config.ts (VitePWA()),
+         a dřív se tu potkávaly dva identické tagy vedle sebe. Ten
+         generovaný je i ten správný zdroj pravdy, protože jde ruku v ruce
+         s obsahem manifestu, ne jen s jeho cestou. -->
   </head>
   <body>
     <div id="root"></div>

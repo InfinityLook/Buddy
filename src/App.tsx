@@ -7,10 +7,14 @@ import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
 import SettingsModule from '@/pages/setting/SettingsModule.tsx'
 import ShopModule from '@/pages/shop/ShopModule.tsx'
+import AdminModule from '@/pages/admin/AdminModule.tsx'
 // Herní hub si s sebou nese Three.js, takže se načítá až při vstupu —
 // zbytek aplikace tím nezůstane těžší.
 const GameModule = lazy(() => import('@/game/GameModule'))
-import SocialModule from '@/social/SocialModule'
+// Social má od verze s ambientní 3D scénou v pozadí stejnou závislost
+// na Three.js jako Game hub, a otevírá se mnohem častěji než /hra —
+// proto musí jet líně stejně tak, jinak by ho zatížila každá návštěva.
+const SocialModule = lazy(() => import('@/social/SocialModule'))
 import { BootGate } from '@/components/BootGate'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
@@ -18,7 +22,7 @@ import { startCloudSync } from '@/core/supabase/cloudSync'
 import { signOut, startAuthWatch, useAccount } from '@/core/supabase/auth'
 import { isSupabaseConfigured } from '@/core/supabase/client'
 import { useAuthStore } from '@/core/store/useAuthStore'
-import { setupRoleDevTools, startRoleSync } from '@/core/role'
+import { setupRoleDevTools, startRoleSync, useHasPermission } from '@/core/role'
 import { startInbox } from '@/social/inbox'
 
 export default function App() {
@@ -31,6 +35,12 @@ export default function App() {
   // a neměl by jak to spravit. V takovém případě rozhoduje místní
   // příznak jako dřív.
   const dovnitr = isSupabaseConfigured ? stavUctu === 'signed-in' : isAuthed
+
+  // Admin panel je první místo v appce, kde na vstup nestačí jen účet —
+  // musí sedět i oprávnění. Chrání to jen vzhled (viz varování
+  // v core/role/types.ts), skutečná data si přístup ověřují sama
+  // v databázi přes jsem_admin().
+  const smiAdmin = useHasPermission('admin.panel')
 
   // Než Supabase odpoví, jestli relace existuje, nesmí se ukázat login —
   // uživateli s platným účtem by na okamžik probliknul a vypadalo by to
@@ -137,7 +147,9 @@ export default function App() {
             path="/social"
             element={
               dovnitr ? (
-                <SocialModule />
+                <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
+                  <SocialModule />
+                </Suspense>
               ) : (
                 <Navigate to="/" replace />
               )
@@ -178,6 +190,18 @@ export default function App() {
                 <SettingsModule />
               ) : (
                 <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* Route pro admin panel — vidí ho jen role s oprávněním admin.panel */}
+          <Route
+            path="/admin"
+            element={
+              dovnitr && smiAdmin ? (
+                <AdminModule />
+              ) : (
+                <Navigate to={dovnitr ? '/nastaveni' : '/'} replace />
               )
             }
           />

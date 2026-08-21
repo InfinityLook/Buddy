@@ -23,6 +23,7 @@ export const ADMIN_ROLE: RoleDefinition = {
     'moderation.content',
     'admin.users',
     'admin.catalog',
+    'admin.panel',
   ],
   purchasable: false,
   rank: 100,

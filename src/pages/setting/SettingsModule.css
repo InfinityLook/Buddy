@@ -82,6 +82,7 @@
 
 .settings-card-icon.blue { background: linear-gradient(135deg, #0284c7, #38bdf8); }
 .settings-card-icon.purple { background: linear-gradient(135deg, #7c3aed, #a855f7); }
+.settings-card-icon.amber { background: linear-gradient(135deg, #b45309, #fbbf24); }
 
 .settings-card-title {
   margin: 0;
