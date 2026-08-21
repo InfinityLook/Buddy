@@ -19,9 +19,10 @@ import { StavKamery, StavOpakovani, Zpetnavazba } from './types'
 // ==========================================
 // Životní cyklus kamery a rozpoznávání pozice.
 //
-// Stejný princip jako u 3D scény v Game hubu (viz useGameScene.ts):
-// kamera, video element a MediaPipe žijí mimo React a kreslí se ve
-// vlastní smyčce přes requestAnimationFrame. React dostává jen to, co se
+// Stejný princip jako u 3D scény v pozadí Socialu (social/scene/
+// useAmbientScene.ts): kamera, video element a MediaPipe žijí mimo
+// React a kreslí se ve vlastní smyčce přes requestAnimationFrame.
+// React dostává jen to, co se
 // má vykreslit jako UI (počet opakování, stav, zpětná vazba) — kdyby
 // každý snímek pozice vyvolával re-render celé komponenty, běželo by to
 // na telefonu trhaně.

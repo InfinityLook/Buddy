@@ -51,6 +51,7 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-examprep-storage', storage: 'secure', label: 'Maturitní centrum' },
   { key: 'schoolbuddy-pomodoro-storage', storage: 'secure', label: 'Pomodoro' },
   { key: 'schoolbuddy-math-solver-storage', storage: 'secure', label: 'Math Solver' },
+  { key: 'schoolbuddy-game-character-storage', storage: 'secure', label: 'Herní postava' },
   { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
   // Role a kredity stojí (nebo budou stát) peníze. Do zálohy patří, aby
   // byla věrným snímkem, ale zpátky se nikdy nezapisují — jinak by stačilo

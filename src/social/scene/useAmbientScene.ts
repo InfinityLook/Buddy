@@ -5,11 +5,12 @@ import { KOULE } from './constants'
 // ==========================================
 // Tiché 3D pozadí Socialu — pár svítících koulí, které se pomalu
 // nadechují a scéna se jako celek nekonečně pomalu otáčí. Žádná
-// interakce, žádný raycasting, žádné OrbitControls: na rozdíl od
-// Game hubu tohle není obsah, jen atmosféra za obsahem.
+// interakce, žádný raycasting, žádné OrbitControls: tohle není obsah,
+// jen atmosféra za obsahem.
 //
-// Životní cyklus kopíruje useGameScene.ts (viz komentáře tam) — scéna
-// mimo React, úklid při odchodu, canvas jen jako referenční prvek.
+// Životní cyklus je stejný princip jako u kamery ve Form Checku
+// (usePoseEngine.ts) — scéna mimo React, úklid při odchodu, canvas jen
+// jako referenční prvek.
 // ==========================================
 
 interface UseAmbientSceneResult {
