@@ -347,6 +347,112 @@
   cursor: pointer;
 }
 
+/* ---------- plovoucí menu (zatím jedna dlaždice: Hrdina) ---------- */
+
+.mapa-menu-fab {
+  position: fixed;
+  right: 0.9rem;
+  bottom: calc(1.1rem + env(safe-area-inset-bottom));
+  z-index: 15;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.14), rgba(12, 10, 22, 0.85));
+  backdrop-filter: blur(10px);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 1.3rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.mapa-menu-fab:active { transform: scale(0.94); }
+
+/* Sdílí .mapa-sheet-overlay se listem místa (stejný dim + blur pozadí),
+   panel samotný je ale širší mřížka dlaždic, ne detail jednoho místa. */
+.mapa-menu {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.2rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 31;
+  width: min(400px, calc(100vw - 1.8rem));
+  box-sizing: border-box;
+  padding: 1rem 1.1rem calc(1.1rem + env(safe-area-inset-bottom));
+  border-radius: var(--radius-xl);
+  background: rgba(14, 11, 26, 0.97);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-card);
+}
+
+.mapa-menu-hlavicka {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+}
+
+.mapa-menu-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.mapa-menu-zavrit {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+/* Mřížka dlaždic — dnes jedna (Hrdina), do budoucna se prostě přidají
+   další .mapa-menu-dlazdice položky, žádná změna rozvržení navíc. */
+.mapa-menu-mrizka {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+.mapa-menu-dlazdice {
+  width: 84px;
+  height: 84px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.08), var(--bg-glass) 60%);
+  border: 1.5px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.mapa-menu-dlazdice:active { transform: scale(0.95); }
+
+.mapa-menu-dlazdice-ikona {
+  font-size: 1.6rem;
+}
+
+.mapa-menu-dlazdice-nazev {
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mapa-pin--hlavni-mesto .mapa-pin-znacka::before { animation: none; opacity: 0.5; }
 }

@@ -4,7 +4,40 @@ import { Karta, Nepritel } from './types'
 import { Postava } from '../types'
 import { useWalletStore } from '@/core/store/useWalletStore'
 import { useGameCharacter } from '../useGameCharacter'
-import { bojoveBonusyZProgresu, vychoziProgres } from '../leveling'
+import { bojoveBonusyZProgresu, PostavaProgres, vychoziProgres } from '../leveling'
+
+export interface BojoveStatistiky {
+  maxVydrz: number
+  /** Násobitel poškození (0.1 = +10 %) platný pro KAŽDOU zahranou kartu,
+   *  bez ohledu na živel — na rozdíl od postava.bojNasobicPoskozeni, který
+   *  platí jen bonusovému živlu té postavy (viz zahratKartu níž). */
+  poskozeniBonus: number
+  /** Přičítá se k postava.bojKriticka, ať vznikne celková šance. */
+  kritickaBonus: number
+}
+
+/** Efektivní bojové bonusy postavy — sečtené z obchodu (useWalletStore.
+ *  ownedItems) a z úrovně/dovedností té konkrétní postavy (leveling.ts).
+ *  Používá jak samotný souboj (zahratKartu níž), tak Hrdina.tsx pro
+ *  zobrazení statistik mimo boj — jeden zdroj pravdy, ať čísla v souboji
+ *  a na kartě postavy nikdy nerozjedou. */
+export const vypocitejBojoveStatistiky = (
+  postava: Postava,
+  progres: PostavaProgres,
+  ownedItems: string[]
+): BojoveStatistiky => {
+  const obchodVydrz = ownedItems.includes('elixir-vytrvalosti') ? 15 : 0
+  const obchodPoskozeni = ownedItems.includes('nabrousena-cepel') ? 0.1 : 0
+  const obchodKriticka = ownedItems.includes('stastna-mince') ? 0.05 : 0
+
+  const bonusyProgresu = bojoveBonusyZProgresu(progres)
+
+  return {
+    maxVydrz: postava.bojVydrz + obchodVydrz + bonusyProgresu.vydrz,
+    poskozeniBonus: obchodPoskozeni + bonusyProgresu.poskozeni,
+    kritickaBonus: obchodKriticka + bonusyProgresu.kriticka,
+  }
+}
 
 export type SoubojFaze = 'probiha' | 'vyhra' | 'prohra'
 
@@ -64,16 +97,8 @@ const pocatecniStav = (maxVydrz: number, nepratele: Nepritel[]): SoubojStav => (
 
 export const useSouboj = (postava: Postava, nepratele: Nepritel[]) => {
   const ownedItems = useWalletStore((s) => s.ownedItems)
-  const obchodVydrz = ownedItems.includes('elixir-vytrvalosti') ? 15 : 0
-  const obchodPoskozeni = ownedItems.includes('nabrousena-cepel') ? 0.1 : 0
-  const obchodKriticka = ownedItems.includes('stastna-mince') ? 0.05 : 0
-
   const progres = useGameCharacter((s) => s.progres[postava.id]) ?? vychoziProgres()
-  const bonusyProgresu = bojoveBonusyZProgresu(progres)
-
-  const poskozeniBonus = obchodPoskozeni + bonusyProgresu.poskozeni
-  const kritickaBonus = obchodKriticka + bonusyProgresu.kriticka
-  const maxVydrz = postava.bojVydrz + obchodVydrz + bonusyProgresu.vydrz
+  const { maxVydrz, poskozeniBonus, kritickaBonus } = vypocitejBojoveStatistiky(postava, progres, ownedItems)
 
   const [stav, setStav] = useState<SoubojStav>(() => pocatecniStav(maxVydrz, nepratele))
 

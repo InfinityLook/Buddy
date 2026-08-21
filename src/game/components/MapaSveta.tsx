@@ -20,8 +20,9 @@ interface Props {
   onVstoupitDoBoje: (lokaceId: string) => void
   /** Volá se po potvrzení vstupu na tržiště. */
   onVstoupitDoObchodu: (lokaceId: string) => void
-  /** Volá se klepnutím na značku postavy — otevírá její strom dovedností. */
-  onOtevritDovednosti: () => void
+  /** Volá se klepnutím na značku postavy v horní liště nebo na dlaždici
+   *  Hrdina v menu mapy — obojí vede na stejnou obrazovku (viz Hrdina.tsx). */
+  onOtevritHrdinu: () => void
 }
 
 // ==========================================
@@ -38,10 +39,11 @@ interface Props {
 // jen to, na čem piny leží.
 // ==========================================
 
-export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoupitDoObchodu, onOtevritDovednosti }) => {
+export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoupitDoObchodu, onOtevritHrdinu }) => {
   const navigate = useNavigate()
   const progres = useGameCharacter((s) => s.progres[postava.id]) ?? vychoziProgres()
   const [otevrena, setOtevrena] = useState<string | null>(null)
+  const [menuOtevrene, setMenuOtevrene] = useState(false)
   const platnoRef = useRef<HTMLDivElement>(null)
 
   const detail = LOKACE.find((l) => l.id === otevrena) ?? null
@@ -68,12 +70,26 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoup
         <button
           className="mapa-postava-znacka"
           style={{ '--mp-barva': postava.barva } as React.CSSProperties}
-          onClick={onOtevritDovednosti}
+          onClick={onOtevritHrdinu}
         >
           <span aria-hidden="true">{postava.ikona}</span> {postava.jmeno}
           <span className="mapa-postava-uroven">Lv {progres.uroven}</span>
         </button>
       </div>
+
+      {/* Plovoucí menu — zatím jediná dlaždice (Hrdina), viz komentář
+          v .css. Zavře i případně otevřený list místa, ať nejsou na
+          obrazovce dva overlaye najednou. */}
+      <button
+        className="mapa-menu-fab"
+        aria-label="Menu"
+        onClick={() => {
+          setOtevrena(null)
+          setMenuOtevrene(true)
+        }}
+      >
+        ☰
+      </button>
 
       {/* Dekorativní kompas — čistě orientační HUD prvek, nic neovládá. */}
       <svg className="mapa-kompas" viewBox="0 0 40 40" aria-hidden="true">
@@ -161,6 +177,34 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoup
             <button className="mapa-sheet-close" onClick={() => setOtevrena(null)}>
               Zavřít
             </button>
+          </div>
+        </>
+      )}
+
+      {menuOtevrene && (
+        <>
+          <div className="mapa-sheet-overlay" onClick={() => setMenuOtevrene(false)} />
+          <div className="mapa-menu">
+            <div className="mapa-menu-hlavicka">
+              <h2 className="mapa-menu-title">Menu</h2>
+              <button className="mapa-menu-zavrit" aria-label="Zavřít menu" onClick={() => setMenuOtevrene(false)}>
+                ✕
+              </button>
+            </div>
+            <div className="mapa-menu-mrizka">
+              <button
+                className="mapa-menu-dlazdice"
+                onClick={() => {
+                  setMenuOtevrene(false)
+                  onOtevritHrdinu()
+                }}
+              >
+                <span className="mapa-menu-dlazdice-ikona" aria-hidden="true">
+                  🧙
+                </span>
+                <span className="mapa-menu-dlazdice-nazev">Hrdina</span>
+              </button>
+            </div>
           </div>
         </>
       )}

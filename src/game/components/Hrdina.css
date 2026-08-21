@@ -1,0 +1,290 @@
+/* ==========================================
+   HRDINA — postava, statistiky, vylepšení a strom dovedností na jedné
+   obrazovce (viz komentář v .tsx). Reuses .game-back-btn ze sdíleného
+   GameModule.css. Barva postavy (--tp-barva) se nastavuje na
+   kořenovém prvku, ať ji nemusí opakovat každý podprvek.
+   ========================================== */
+
+.hrdina {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 15%, rgba(124, 58, 237, 0.16) 0%, transparent 60%),
+    linear-gradient(180deg, #171233 0%, #171938 30%, #121531 55%, #16112a 78%, #0c0a16 100%);
+  color: var(--text-primary);
+  padding: calc(3.6rem + env(safe-area-inset-top)) 0.9rem calc(2rem + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.hr-top-bar {
+  margin-bottom: 1.1rem;
+}
+
+.hr-top-bar .game-back-btn {
+  position: static;
+}
+
+/* ---------- hlavička: portrét + jméno/úroveň/postup ---------- */
+
+.hr-hlavicka {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.4rem;
+}
+
+.hr-portret {
+  flex-shrink: 0;
+  width: 84px;
+  /* Přesně poměr stran oříznutých portrétů (280×764 px), viz postavy.ts */
+  aspect-ratio: 280 / 764;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 0 18px var(--tp-barva), 0 8px 18px rgba(0, 0, 0, 0.4);
+  border: 1.5px solid var(--tp-barva);
+}
+
+.hr-hlavicka-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.hr-jmeno {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--tp-barva);
+}
+
+.hr-uroven {
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+.hr-postup {
+  margin-top: 0.5rem;
+}
+
+.hr-postup-track {
+  width: 100%;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.hr-postup-vypln {
+  height: 100%;
+  background: var(--tp-barva);
+  transition: width 0.3s ease;
+}
+
+.hr-postup-cislo {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.66rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+/* ---------- sekce (nadpis + obsah), sdílené třemi bloky níž ---------- */
+
+.hr-sekce {
+  margin-bottom: 1.5rem;
+}
+
+.hr-sekce-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.hr-sekce-hint {
+  margin: 0 0 0.7rem;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+/* ---------- statistiky ---------- */
+
+.hr-staty {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.7rem;
+}
+
+.hr-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.8rem 0.5rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), var(--bg-glass) 55%);
+  backdrop-filter: blur(14px);
+  border: 1.5px solid var(--border-subtle);
+  text-align: center;
+}
+
+.hr-stat-ikona {
+  font-size: 1.2rem;
+}
+
+.hr-stat-hodnota {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--tp-barva);
+}
+
+.hr-stat-nazev {
+  font-size: 0.66rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+/* ---------- vylepšení (zkratka do tržiště) ---------- */
+
+.hr-obchod-karta {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), var(--bg-glass) 55%);
+  backdrop-filter: blur(14px);
+  border: 1.5px solid var(--border-subtle);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+}
+
+.hr-obchod-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.hr-obchod-tlacitko {
+  flex-shrink: 0;
+  padding: 0.55rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: var(--tp-barva);
+  border: none;
+  color: #06121f;
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hr-obchod-tlacitko:active { transform: scale(0.96); }
+
+/* ---------- strom dovedností ---------- */
+
+.hr-body {
+  margin-bottom: 0.8rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.74rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.hr-strom {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+.hr-uzel {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), var(--bg-glass) 55%);
+  backdrop-filter: blur(14px);
+  border: 1.5px solid var(--border-subtle);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+}
+
+.hr-uzel-ikona {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+}
+
+.hr-uzel-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.hr-uzel-jmeno {
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.hr-uzel-efekt {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.hr-uzel-tecky {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.1rem;
+}
+
+.hr-tecka {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid var(--border-subtle);
+}
+
+.hr-tecka--aktivni {
+  background: var(--tp-barva);
+  border-color: var(--tp-barva);
+  box-shadow: 0 0 6px var(--tp-barva);
+}
+
+.hr-vylepsit {
+  flex-shrink: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: var(--tp-barva);
+  border: none;
+  color: #06121f;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hr-vylepsit:active:not(:disabled) { transform: scale(0.95); }
+
+.hr-vylepsit:disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-muted);
+  cursor: default;
+}

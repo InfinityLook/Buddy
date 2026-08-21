@@ -5,7 +5,7 @@ import { VyberPostavy } from './components/VyberPostavy'
 import { MapaSveta } from './components/MapaSveta'
 import { Souboj } from './components/Souboj'
 import { Obchod } from './components/Obchod'
-import { Dovednosti } from './components/Dovednosti'
+import { Hrdina } from './components/Hrdina'
 import { useGameCharacter } from './useGameCharacter'
 import { POSTAVY } from './postavy'
 import { Postava, PostavaId } from './types'
@@ -27,7 +27,7 @@ import './GameModule.css'
 //  3) party, nic zvoleno, rezim 'vyber'  -> VyberPostavy (za koho hrát)
 //  4) zvoleno + souboj    -> Souboj
 //  5) zvoleno + obchod    -> Obchod
-//  6) zvoleno + dovednosti -> Dovednosti
+//  6) zvoleno + hrdina    -> Hrdina (postava, statistiky, vylepšení, dovednosti)
 //  7) zvoleno              -> MapaSveta
 // ==========================================
 
@@ -43,7 +43,7 @@ export const GameModule: React.FC = () => {
   const [hrajeJako, setHrajeJako] = useState<PostavaId | null>(null)
   const [soubojLokaceId, setSoubojLokaceId] = useState<string | null>(null)
   const [obchodOtevren, setObchodOtevren] = useState(false)
-  const [dovednostiOtevreny, setDovednostiOtevreny] = useState(false)
+  const [hrdinaOtevren, setHrdinaOtevren] = useState(false)
 
   const party = postavyId
     .map((id) => POSTAVY.find((p) => p.id === id))
@@ -88,9 +88,18 @@ export const GameModule: React.FC = () => {
     return <Obchod postava={aktivniPostava} onOdejit={() => setObchodOtevren(false)} />
   }
 
-  // 6) Dovednosti mají přednost, dokud jsou otevřené
-  if (aktivniPostava && dovednostiOtevreny) {
-    return <Dovednosti postava={aktivniPostava} onOdejit={() => setDovednostiOtevreny(false)} />
+  // 6) Hrdina má přednost, dokud je otevřený (obchod nad ním má
+  // přednost — viz krok 5 výš — takže "Otevřít tržiště" v sekci
+  // Vylepšení nechá hrdinaOtevren beze změny a po zavření obchodu se
+  // uživatel vrátí zpátky sem, ne rovnou na mapu).
+  if (aktivniPostava && hrdinaOtevren) {
+    return (
+      <Hrdina
+        postava={aktivniPostava}
+        onOdejit={() => setHrdinaOtevren(false)}
+        onOtevritObchod={() => setObchodOtevren(true)}
+      />
+    )
   }
 
   // 7) Zvoleno, za koho se hraje — mapa
@@ -100,7 +109,7 @@ export const GameModule: React.FC = () => {
         postava={aktivniPostava}
         onVstoupitDoBoje={setSoubojLokaceId}
         onVstoupitDoObchodu={() => setObchodOtevren(true)}
-        onOtevritDovednosti={() => setDovednostiOtevreny(true)}
+        onOtevritHrdinu={() => setHrdinaOtevren(true)}
       />
     )
   }
