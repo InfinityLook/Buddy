@@ -1,5 +1,5 @@
 import { supabase } from '@/core/supabase/client'
-import { AdminPrehled, AuditLogRadek } from './types'
+import { AdminPrehled, AktivitaPodleDruhu, AuditLogRadek, RustovyDen, TopOdznak } from './types'
 
 interface Vysledek {
   ok: boolean
@@ -163,4 +163,42 @@ export const nactiAuditLog = async (pocet = 50, posun = 0): Promise<AuditLogRade
       vytvorenoV: r.vytvoreno_v,
     })
   )
+}
+
+// ---------- detailní analytika (rozšíření Přehledu) ----------
+//
+// Tři samostatné admin-gated RPC místo jednoho, protože každá vrací
+// jiný tvar tabulky — SQL "returns table" nejde míchat řádky s různým
+// počtem sloupců do jedné odpovědi. Všechny tři čtou jen agregáty
+// (součty/počty), nikdy syrové řádky jednotlivých uživatelů.
+
+export const nactiRustovyGraf = async (dny = 14): Promise<RustovyDen[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase.rpc('admin_rustovy_graf', { dny })
+  if (error || !data) return []
+
+  return data.map((r: { den: string; novych_uctu: number; novych_zprav: number }) => ({
+    den: r.den,
+    novychUctu: r.novych_uctu,
+    novychZprav: r.novych_zprav,
+  }))
+}
+
+export const nactiAktivituPodleDruhu = async (): Promise<AktivitaPodleDruhu[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase.rpc('admin_aktivita_podle_druhu')
+  if (error || !data) return []
+
+  return data.map((r: { kind: string; celkem: number }) => ({ kind: r.kind, celkem: r.celkem }))
+}
+
+export const nactiTopOdznaky = async (pocet = 5): Promise<TopOdznak[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase.rpc('admin_top_odznaky', { pocet })
+  if (error || !data) return []
+
+  return data.map((r: { badge_id: string; celkem: number }) => ({ badgeId: r.badge_id, celkem: r.celkem }))
 }

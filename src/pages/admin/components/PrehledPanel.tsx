@@ -1,7 +1,43 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as adminApi from '../api'
 import { nactiAplikaceMetriky, AplikaceMetriky } from '../metrics'
-import { AdminPrehled, ZdrojMetrik } from '../types'
+import { AdminPrehled, AktivitaPodleDruhu, RustovyDen, TopOdznak, ZdrojMetrik } from '../types'
+import { DEFAULT_BADGES } from '@/core/store/useGamificationStore'
+
+// Kolik dní zpátky ukazuje růstový graf — dost na trend, málo na to,
+// aby se sloupce na mobilu nezmáčkly k nerozeznání (viz POCET_VZORKU výš).
+const DNI_RUSTU = 14
+
+// Čitelné názvy ActivityKind (core/store/useGamificationStore.ts) pro
+// rozpad aktivity podle druhu — appka sama tenhle popisek nikde
+// nedrží, protože ActivityKind je interní klíč, ne UI text.
+const NAZEV_AKTIVITY: Record<string, string> = {
+  flashcard: 'Flashcards',
+  note: 'Quick Notes',
+  mindNode: 'Mind Map',
+  document: 'Dokumenty',
+  file: 'File Manager',
+  calculation: 'Math Solver',
+  transaction: 'Finance',
+  workout: 'Form Check',
+  battle: 'Aréna (hra)',
+}
+
+const NAZEV_ODZNAKU: Record<string, { title: string; icon: string }> = Object.fromEntries(
+  DEFAULT_BADGES.map((b) => [b.id, { title: b.title, icon: b.icon }])
+)
+
+/** Vodorovný pruhový graf — sdílený tvar pro aktivitu i odznaky, ať
+ *  se nekopíruje stejné markup dvakrát pro dva podobné seznamy. */
+const PruhovyRadek: React.FC<{ label: string; hodnota: number; max: number }> = ({ label, hodnota, max }) => (
+  <div className="admin-bar-radek">
+    <span className="admin-bar-label">{label}</span>
+    <div className="admin-bar-track">
+      <div className="admin-bar-fill" style={{ width: `${max > 0 ? Math.max(4, (hodnota / max) * 100) : 0}%` }} />
+    </div>
+    <span className="admin-bar-cislo">{hodnota}</span>
+  </div>
+)
 
 const ZDROJE: { id: ZdrojMetrik; label: string }[] = [
   { id: 'aplikace', label: 'Aplikace' },
@@ -37,8 +73,15 @@ export const PrehledPanel: React.FC = () => {
   const [vzorky, setVzorky] = useState<number[]>([])
   const timerRef = useRef<number | null>(null)
 
+  const [rust, setRust] = useState<RustovyDen[] | null>(null)
+  const [aktivita, setAktivita] = useState<AktivitaPodleDruhu[] | null>(null)
+  const [topOdznaky, setTopOdznaky] = useState<TopOdznak[] | null>(null)
+
   useEffect(() => {
     void adminApi.nactiPrehled().then(setPrehled)
+    void adminApi.nactiRustovyGraf(DNI_RUSTU).then(setRust)
+    void adminApi.nactiAktivituPodleDruhu().then(setAktivita)
+    void adminApi.nactiTopOdznaky(5).then(setTopOdznaky)
   }, [])
 
   // Živý graf jede jen pro zdroj "Aplikace" — jediný, u kterého se dá
@@ -79,6 +122,90 @@ export const PrehledPanel: React.FC = () => {
           </div>
         ) : (
           <p className="admin-empty">Načítám, nebo cloud není dostupný.</p>
+        )}
+      </section>
+
+      {/* Růstový graf — nové účty a zprávy po dnech */}
+      <section className="admin-card">
+        <span className="admin-card-title">Růst za posledních {DNI_RUSTU} dní</span>
+        {rust === null ? (
+          <p className="admin-empty">Načítám…</p>
+        ) : rust.length === 0 ? (
+          <p className="admin-empty">Žádná data, nebo cloud není dostupný.</p>
+        ) : (
+          <>
+            <span className="admin-bar-caption">
+              Nové účty (celkem {rust.reduce((s, d) => s + d.novychUctu, 0)})
+            </span>
+            <div className="admin-graf">
+              {rust.map((d) => (
+                <div
+                  key={d.den}
+                  className="admin-graf-sloupec"
+                  title={`${d.den}: ${d.novychUctu} nových účtů`}
+                  style={{ height: `${Math.max(2, (d.novychUctu / Math.max(1, ...rust.map((r) => r.novychUctu))) * 100)}%` }}
+                />
+              ))}
+            </div>
+            <span className="admin-bar-caption">
+              Nové zprávy (celkem {rust.reduce((s, d) => s + d.novychZprav, 0)})
+            </span>
+            <div className="admin-graf">
+              {rust.map((d) => (
+                <div
+                  key={d.den}
+                  className="admin-graf-sloupec admin-graf-sloupec--modra"
+                  title={`${d.den}: ${d.novychZprav} nových zpráv`}
+                  style={{ height: `${Math.max(2, (d.novychZprav / Math.max(1, ...rust.map((r) => r.novychZprav))) * 100)}%` }}
+                />
+              ))}
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* Aktivita podle druhu — které miniapp se opravdu používají */}
+      <section className="admin-card">
+        <span className="admin-card-title">Aktivita podle druhu</span>
+        {aktivita === null ? (
+          <p className="admin-empty">Načítám…</p>
+        ) : aktivita.length === 0 ? (
+          <p className="admin-empty">Zatím žádná zaznamenaná aktivita.</p>
+        ) : (
+          <div className="admin-bar-list">
+            {aktivita.map((a) => (
+              <PruhovyRadek
+                key={a.kind}
+                label={NAZEV_AKTIVITY[a.kind] ?? a.kind}
+                hodnota={a.celkem}
+                max={aktivita[0].celkem}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Nejčastěji odemčené odznaky */}
+      <section className="admin-card">
+        <span className="admin-card-title">Nejčastější odznaky</span>
+        {topOdznaky === null ? (
+          <p className="admin-empty">Načítám…</p>
+        ) : topOdznaky.length === 0 ? (
+          <p className="admin-empty">Zatím nikdo neodemkl žádný odznak.</p>
+        ) : (
+          <div className="admin-bar-list">
+            {topOdznaky.map((o) => {
+              const info = NAZEV_ODZNAKU[o.badgeId]
+              return (
+                <PruhovyRadek
+                  key={o.badgeId}
+                  label={info ? `${info.icon} ${info.title}` : o.badgeId}
+                  hodnota={o.celkem}
+                  max={topOdznaky[0].celkem}
+                />
+              )
+            })}
+          </div>
         )}
       </section>
 

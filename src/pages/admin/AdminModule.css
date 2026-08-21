@@ -270,6 +270,63 @@
   overflow-wrap: anywhere;
 }
 
+/* Druhá barva sloupců v růstovém grafu — odlišuje "nové zprávy" od
+   "nové účty" beze změny .admin-graf/.admin-graf-sloupec, které
+   zůstávají sdílené i se živými parametry výš. */
+.admin-graf-sloupec--modra {
+  background: linear-gradient(180deg, #60a5fa, rgba(96, 165, 250, 0.35));
+}
+
+.admin-bar-caption {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+/* Vodorovný pruhový graf — sdílený mezi rozpadem aktivity a top
+   odznaky (viz PruhovyRadek v PrehledPanel.tsx). */
+.admin-bar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin-bar-radek {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-bar-label {
+  font-size: 0.68rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-bar-track {
+  height: 8px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.admin-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(251, 191, 36, 0.5), #fbbf24);
+  border-radius: var(--radius-pill);
+  transition: width 0.3s ease;
+}
+
+.admin-bar-cislo {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #fbbf24;
+  min-width: 1.6em;
+  text-align: right;
+}
+
 /* ------------------------------------------
    SOCIALREPORT
    ------------------------------------------ */

@@ -39,7 +39,9 @@ interface GamificationState extends UserStats {
   }) => void
 }
 
-const DEFAULT_BADGES: Badge[] = [
+// Exportováno i pro čtení mimo tenhle store — Admin panel jím v analytice
+// (AnalytikaPanel.tsx) mapuje badge_id z databáze na čitelný název a ikonu.
+export const DEFAULT_BADGES: Badge[] = [
   { id: 'first_step', title: 'První krok', description: 'Splň svůj první studijní úkol nebo otázku.', icon: '🌱', unlockedAt: null },
   { id: 'streak_3', title: 'Vybroušená rutina', description: 'Udržuj studijní streak 3 dny v řadě.', icon: '🔥', unlockedAt: null },
   { id: 'exam_master', title: 'Maturitní Mašina', description: 'Projdi a ohodnoť 20 maturitních otázek.', icon: '🎓', unlockedAt: null },

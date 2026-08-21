@@ -36,3 +36,22 @@ export interface AuditLogRadek {
   detail: Record<string, unknown> | null
   vytvorenoV: string
 }
+
+/** Jeden den vrácený `admin_rustovy_graf()` — viz migrace admin_detailni_analytika. */
+export interface RustovyDen {
+  den: string
+  novychUctu: number
+  novychZprav: number
+}
+
+/** Jeden řádek vrácený `admin_aktivita_podle_druhu()`. */
+export interface AktivitaPodleDruhu {
+  kind: string
+  celkem: number
+}
+
+/** Jeden řádek vrácený `admin_top_odznaky()`. */
+export interface TopOdznak {
+  badgeId: string
+  celkem: number
+}
