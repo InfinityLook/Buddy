@@ -6,6 +6,12 @@ dev-dist
 *.local
 .DS_Store
 
+# Výstupy testů — reprodukovatelné z tests/, nepatří do repa.
+coverage
+test-results
+playwright-report
+blob-report
+
 # Klice k Supabase se nastavuji per prostredi (lokalne .env, na Vercelu
 # promenne projektu). Sablona je v .env.example.
 .env

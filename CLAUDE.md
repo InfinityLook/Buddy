@@ -8,17 +8,28 @@ SchoolBuddy ("Buddy") is a Czech-language, offline-first PWA study companion for
 
 ## Commands
 
-There is no lint or test setup in this repo (no ESLint/Prettier config, no test framework). There *is* a standalone typecheck: `tsconfig.json` exists purely for `tsc --noEmit` (`noEmit`, strict, `noUnusedLocals`/`noUnusedParameters`); the actual transpile is still done by Vite/esbuild. Its `paths` mirror `resolve.alias` in `vite.config.ts` and must stay in sync.
+There is no lint setup (no ESLint/Prettier config). There is a standalone typecheck: `tsconfig.json` exists purely for `tsc --noEmit` (`noEmit`, strict, `noUnusedLocals`/`noUnusedParameters`); the actual transpile is still done by Vite/esbuild. Its `paths` mirror `resolve.alias` in `vite.config.ts` and `vitest.config.ts`'s own `resolve.alias` — all three must stay in sync (see **Path alias** below). Since this session, there's also a real unit test suite under `tests/unit/` (Vitest) — see **Tests** below; `tests/e2e/` and `tests/security/` (Playwright) are still being built out.
 
 ```bash
-npm install       # install dependencies
-npm run dev        # start Vite dev server on port 5173
-npm run build       # production build (outputs to dist/)
-npm run preview     # preview the production build locally
-npm run typecheck   # tsc --noEmit — the only automated check in the repo
+npm install         # install dependencies
+npm run dev          # start Vite dev server on port 5173
+npm run build         # production build (outputs to dist/)
+npm run preview       # preview the production build locally
+npm run typecheck     # tsc --noEmit
+npm run test:unit     # vitest run — pure-logic unit tests, no browser needed
+npm run test:unit:watch # vitest in watch mode, for local iteration
+npm run test           # typecheck + test:unit — the fast gate to run before considering a change done
 ```
 
-Run `npm run typecheck` before considering a change done — it is the only automated gate here. Since there's no test runner, also verify behaviour by running `npm run dev` and exercising the affected route/miniapp manually (or use the `run` skill to launch and screenshot the app).
+Run `npm test` before considering a change done. `npm run test:e2e`/`test:security` (Playwright, against a running preview server) aren't wired up yet — until they are, keep verifying UI behaviour by running `npm run dev` and exercising the affected route/miniapp manually (or use the `run` skill to launch and screenshot the app).
+
+### Tests (`tests/`)
+
+Vitest for unit and (later) component tests, `@playwright/test` for E2E and security/RLS — chosen because Vitest shares Vite's own transform pipeline and `@/*` alias with zero extra config, and Playwright is already the tool this codebase's own manual verification has relied on all along (see the ad-hoc scripts referenced throughout this file's feature write-ups), just promoted to a committed, CI-runnable suite instead of one-off scratch scripts.
+
+`tests/unit/` covers pure functions only — `core/utils/*` math and state-transition logic (XP curves, streaks, combat rolls, leveling) that takes plain values in and returns plain values out, no Supabase, no DOM, no React. `vitest.config.ts` points `test.setupFiles` at `tests/setup.ts`, which exists only for the **later** `tests/components/` tier (a `matchMedia` shim jsdom doesn't provide) — the unit tests don't need it, but Vitest applies one config to the whole run.
+
+**`tests/security/` cannot be meaningfully written against a mocked Supabase client, unlike the `ctx.route()` mocking pattern used throughout this file's own manual Playwright verification.** A mock only proves the client *sent* the expected query — it can't prove a policy in Postgres actually *rejects* an unauthorized one, which is the entire point of an RLS test. These need to run against a real (isolated, non-production) Supabase branch with seeded accounts of each role, asserting actual `42501`/empty-result behavior from the live database — deliberately slower and more setup-heavy than the mocked E2E tier, and worth the difference.
 
 ## Architecture
 
@@ -272,7 +283,7 @@ Every full-height page pairs `height: 100vh` with `height: 100dvh` — keep both
 
 ### Path alias
 
-`@/*` resolves to `src/*`, configured in **two places that must stay in sync**: `resolve.alias` in `vite.config.ts` (used at build time) and `paths` in `tsconfig.json` (used by `npm run typecheck`). Use `@/...` imports for anything outside a feature's own folder; use relative imports within a miniapp/page's own directory.
+`@/*` resolves to `src/*`, configured in **three places that must stay in sync**: `resolve.alias` in `vite.config.ts` (used at build time), `paths` in `tsconfig.json` (used by `npm run typecheck`), and `resolve.alias` in `vitest.config.ts` (used by `npm run test:unit`). Use `@/...` imports for anything outside a feature's own folder; use relative imports within a miniapp/page's own directory.
 
 ### Directory map
 
@@ -288,4 +299,6 @@ Every full-height page pairs `height: 100vh` with `height: 100dvh` — keep both
 - `src/styles/global.css` — global styles, imported once from `main.tsx`.
 - `api/` — server-side only, deployed by Vercel as serverless functions, never bundled by Vite. `buddy-chat.ts` (see **Buddy voice assistant**) and `admin-ban.ts` (see **Admin panel**); typechecked by `npm run typecheck` via `tsconfig.json`'s `include`, same as `src/`.
 - `tsconfig.json` — typecheck-only config for `npm run typecheck`; Vite never reads it for the build.
+- `tests/` — see **Tests** above. `unit/` (Vitest, done), `components/`, `e2e/` and `security/` (Playwright) are the planned remaining tiers.
+- `vitest.config.ts` — Vitest's own config, separate from `vite.config.ts` (that one also carries the production build/PWA/version-manifest plugins, which the test run doesn't need).
 - `vercel.json` — cache headers for the update pipeline plus the SPA fallback rewrite (Vercel checks the filesystem before rewrites, so real files still win; `/api/` is explicitly excluded from that rewrite, or it would swallow every call to `buddy-chat.ts` before the function ever ran).
