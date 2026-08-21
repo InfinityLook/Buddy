@@ -190,7 +190,9 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje }) => {
             <path d={reka} fill="none" stroke="#35c4f0" strokeOpacity="0.4" strokeWidth="1" strokeLinecap="round" />
 
             {/* Odbočky k vedlejším místům — tenčí a tlumenější než hlavní cesta,
-                ať je na první pohled jasné, co je trasa a co jen výlet stranou */}
+                ať je na první pohled jasné, co je trasa a co jen výlet stranou.
+                Statické, bez animace toku — hlavní cesta ji má jednu, další
+                animovaný prvek navíc už jen zatěžuje snímkovou frekvenci. */}
             {vetevCesty.map((v) => (
               <path
                 key={v.id}
@@ -205,17 +207,29 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje }) => {
               />
             ))}
 
-            {/* Cesta spojující jednotlivá místa — tekoucí zlato-fialovo-modrý lesk */}
+            {/* Cesta spojující jednotlivá místa — tekoucí zlato-fialovo-modrý lesk.
+                Rozdělená na dvě vrstvy schválně: žár (filtr) se kreslí jednou a
+                nehýbe se, animovaná je jen ostrá vrstva nahoře bez filtru — jinak
+                by prohlížeč musel rozostření přepočítávat 60× za sekundu a mapa
+                by sekala (viz FPS poznámka v CLAUDE.md). */}
+            <path
+              d={cesta}
+              fill="none"
+              stroke="url(#mapa-cesta-barva)"
+              strokeOpacity="0.55"
+              strokeWidth="1.1"
+              strokeLinecap="round"
+              filter="url(#mapa-zar)"
+            />
             <path
               className="mapa-cesta"
               d={cesta}
               fill="none"
               stroke="url(#mapa-cesta-barva)"
-              strokeOpacity="0.8"
+              strokeOpacity="0.9"
               strokeWidth="0.55"
               strokeDasharray="1.6 1.4"
               strokeLinecap="round"
-              filter="url(#mapa-zar)"
             />
           </svg>
 

@@ -103,11 +103,10 @@
   animation: mapa-cesta-tok 5s linear infinite;
 }
 
-/* Odbočky plynou pomaleji a jsou tlumenější (viz strokeOpacity v TSX) —
-   vizuálně druhořadé vůči hlavní cestě, ne stejně důležité. */
-.mapa-cesta-vedlejsi {
-  animation: mapa-cesta-tok 8s linear infinite;
-}
+/* Odbočky jsou tlumenější (viz strokeOpacity v TSX) a záměrně statické —
+   hlavní cesta má jediná plynoucí animaci pro celou mapu; víc animovaných
+   čar navíc by jen stálo snímkovou frekvenci bez viditelného přínosu,
+   protože odbočky jsou vizuálně druhořadé vůči hlavní trase. */
 
 @keyframes mapa-cesta-tok {
   to {
@@ -209,6 +208,25 @@
 .mapa-pin--hlavni-mesto .mapa-pin-znacka {
   width: 56px;
   height: 56px;
+  /* Pevný žár místo animovaného — dýchání teď dělá ::before halo níž,
+     přes opacity/transform, ne přes box-shadow (viz FPS poznámka). */
+  box-shadow:
+    0 6px 14px rgba(0, 0, 0, 0.5),
+    0 0 0 3px rgba(12, 10, 22, 0.9),
+    0 0 16px var(--mp-barva);
+}
+
+/* Dýchající halo za pinem hlavního města — animuje se jen opacity a
+   transform (compositor, ne CPU malování), na rozdíl od dřívějšího
+   animovaného box-shadow, který nutil prohlížeč přemalovávat pin
+   60× za sekundu po celou dobu, co je mapa otevřená. */
+.mapa-pin--hlavni-mesto .mapa-pin-znacka::before {
+  content: '';
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--mp-barva), transparent 70%);
+  z-index: -1;
   animation: mapa-hlavni-mesto-dech 3s ease-in-out infinite;
 }
 
@@ -226,16 +244,12 @@
 @keyframes mapa-hlavni-mesto-dech {
   0%,
   100% {
-    box-shadow:
-      0 6px 14px rgba(0, 0, 0, 0.5),
-      0 0 0 3px rgba(12, 10, 22, 0.9),
-      0 0 16px var(--mp-barva);
+    opacity: 0.35;
+    transform: scale(0.9);
   }
   50% {
-    box-shadow:
-      0 6px 18px rgba(0, 0, 0, 0.5),
-      0 0 0 3px rgba(12, 10, 22, 0.9),
-      0 0 30px var(--mp-barva);
+    opacity: 0.75;
+    transform: scale(1.15);
   }
 }
 
@@ -333,7 +347,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mapa-pin--hlavni-mesto .mapa-pin-znacka { animation: none; }
+  .mapa-pin--hlavni-mesto .mapa-pin-znacka::before { animation: none; opacity: 0.5; }
   .mapa-cesta { animation: none; }
-  .mapa-cesta-vedlejsi { animation: none; }
 }
