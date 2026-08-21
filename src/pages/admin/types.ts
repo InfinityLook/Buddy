@@ -2,15 +2,23 @@
 // Tvary dat Admin panelu.
 // ==========================================
 
-export type AdminTab = 'prehled' | 'social-report' | 'notifikace' | 'audit-log' | 'konzole'
+export type AdminTab = 'prehled' | 'social-report' | 'notifikace' | 'audit-log' | 'uzivatele' | 'konzole'
 
 export const ADMIN_TABS: { id: AdminTab; label: string; icon: string }[] = [
   { id: 'prehled', label: 'Přehled', icon: '📊' },
   { id: 'social-report', label: 'SocialReport', icon: '🚩' },
   { id: 'notifikace', label: 'Notifikace', icon: '📣' },
   { id: 'audit-log', label: 'Audit log', icon: '📜' },
+  { id: 'uzivatele', label: 'Uživatelé', icon: '👥' },
   { id: 'konzole', label: 'Konzole', icon: '⌨️' },
 ]
+
+/** Role, které jde nastavit z Uživatelů — stejná čtveřice jako
+ *  core/role/registry.ts, duplikovaná jako string literal ne import,
+ *  protože admin panel řeší jen text pro user_roles.role, ne
+ *  RoleDefinition objekty samotné. */
+export const NASTAVITELNE_ROLE = ['user', 'vip', 'moderator', 'admin'] as const
+export type NastavitelnaRole = (typeof NASTAVITELNE_ROLE)[number]
 
 /** Jeden řádek vrácený `admin_prehled()` — viz migrace admin_panel_prehled. */
 export interface AdminPrehled {
@@ -54,4 +62,16 @@ export interface AktivitaPodleDruhu {
 export interface TopOdznak {
   badgeId: string
   celkem: number
+}
+
+/** Jeden řádek vrácený `admin_seznam_uctu()` — viz migrace admin_sprava_uzivatelu. */
+export interface UcetRadek {
+  id: string
+  displayName: string
+  friendCode: string
+  xp: number
+  level: number
+  streakDays: number
+  role: NastavitelnaRole
+  validUntil: string | null
 }

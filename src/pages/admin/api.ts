@@ -1,5 +1,5 @@
 import { supabase } from '@/core/supabase/client'
-import { AdminPrehled, AktivitaPodleDruhu, AuditLogRadek, RustovyDen, TopOdznak } from './types'
+import { AdminPrehled, AktivitaPodleDruhu, AuditLogRadek, NastavitelnaRole, RustovyDen, TopOdznak, UcetRadek } from './types'
 
 interface Vysledek {
   ok: boolean
@@ -201,4 +201,62 @@ export const nactiTopOdznaky = async (pocet = 5): Promise<TopOdznak[]> => {
   if (error || !data) return []
 
   return data.map((r: { badge_id: string; celkem: number }) => ({ badgeId: r.badge_id, celkem: r.celkem }))
+}
+
+// ---------- Uživatelé (procházení účtů, změna role) ----------
+//
+// admin_seznam_uctu() je admin-gated stejně jako zbytek panelu; hledání
+// je jen ILIKE na display_name nebo přesná shoda friend_code/id, žádný
+// fulltextový index navíc — tabulka profiles má řádově stovky řádků,
+// ne miliony. Změna role jde přes admin_nastav_roli(), která si sama
+// zakazuje cíl == volající (viz komentář v migraci) a zapisuje do
+// audit_log stejně jako každá jiná privilegovaná akce v tomhle souboru.
+
+export const nactiUcty = async (hledat = '', pocet = 30, posun = 0): Promise<UcetRadek[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase.rpc('admin_seznam_uctu', {
+    hledat: hledat.trim() || null,
+    pocet,
+    posun,
+  })
+  if (error || !data) return []
+
+  return data.map(
+    (r: {
+      id: string
+      display_name: string
+      friend_code: string
+      xp: number
+      level: number
+      streak_days: number
+      role: NastavitelnaRole
+      valid_until: string | null
+    }) => ({
+      id: r.id,
+      displayName: r.display_name,
+      friendCode: r.friend_code,
+      xp: r.xp,
+      level: r.level,
+      streakDays: r.streak_days,
+      role: r.role,
+      validUntil: r.valid_until,
+    })
+  )
+}
+
+export const nastavRoli = async (
+  uzivatelId: string,
+  novaRole: NastavitelnaRole,
+  platiDo: string | null = null
+): Promise<Vysledek> => {
+  if (!supabase) return { ok: false, chyba: 'Admin panel potřebuje přihlášený účet.' }
+
+  const { error } = await supabase.rpc('admin_nastav_roli', {
+    cil: uzivatelId,
+    nova_role: novaRole,
+    plati_do: platiDo,
+  })
+
+  return error ? chyba(error) : { ok: true }
 }
