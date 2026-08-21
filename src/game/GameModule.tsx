@@ -1,36 +1,105 @@
 import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TvorbaPostavy } from './components/TvorbaPostavy'
+import { VyberPostavy } from './components/VyberPostavy'
 import { MapaSveta } from './components/MapaSveta'
 import { Souboj } from './components/Souboj'
 import { useGameCharacter } from './useGameCharacter'
 import { POSTAVY } from './postavy'
+import { Postava, PostavaId } from './types'
 import { NEPRATELE_PODLE_LOKACE } from './combat/nepratele'
 import './GameModule.css'
 
 // ==========================================
 // Herní hub — vstupní bod za tlačítkem Play v Hubu.
 //
-// Bez zvolené postavy vede rovnou na její výběr; jakmile je vybraná,
-// appka se na to už neptá znovu a jde rovnou na mapu světa. Souboj
-// (zatím jen v aréně) je jen dočasný React state tady nahoře — nic se
-// nepersistuje, návrat na mapu souboj bez následků zahodí.
+// Party (vytvořené postavy) se pamatuje trvale přes useGameCharacter;
+// KDO se hraje tuhle návštěvu je čistě lokální React state tady dole —
+// nepersistuje se, takže appka se ptá znovu při každém vstupu do /hra,
+// přesně jak to má být ("vyzkoušej si víc postav").
+//
+// Stavy:
+//  1) prázdná party      -> TvorbaPostavy (první postava)
+//  2) party, nic zvoleno, rezim 'pridat' -> TvorbaPostavy (další postava)
+//  3) party, nic zvoleno, rezim 'vyber'  -> VyberPostavy (za koho hrát)
+//  4) zvoleno + souboj    -> Souboj
+//  5) zvoleno              -> MapaSveta
 // ==========================================
 
+type Rezim = 'vyber' | 'pridat'
+
 export const GameModule: React.FC = () => {
-  const postavaId = useGameCharacter((s) => s.postavaId)
-  const postava = POSTAVY.find((p) => p.id === postavaId) ?? null
+  const navigate = useNavigate()
+  const postavyId = useGameCharacter((s) => s.postavy)
+  const vytvoritPostavu = useGameCharacter((s) => s.vytvoritPostavu)
+  const smazatPostavu = useGameCharacter((s) => s.smazatPostavu)
+
+  const [rezim, setRezim] = useState<Rezim>('vyber')
+  const [hrajeJako, setHrajeJako] = useState<PostavaId | null>(null)
   const [soubojLokaceId, setSoubojLokaceId] = useState<string | null>(null)
 
-  if (!postava) {
-    return <TvorbaPostavy />
+  const party = postavyId
+    .map((id) => POSTAVY.find((p) => p.id === id))
+    .filter((p): p is Postava => !!p)
+
+  // 1) Prázdná party — tvorba první postavy
+  if (party.length === 0) {
+    return (
+      <TvorbaPostavy
+        dostupnePostavy={POSTAVY}
+        nadpis="Vyber si postavu"
+        podnadpis="Tohle je tvoje první postava — později můžeš vytvořit další a přepínat mezi nimi."
+        zpetText="Zpět do Hubu"
+        onZpet={() => navigate('/hub')}
+        onVytvoreno={(id) => {
+          vytvoritPostavu(id)
+          setHrajeJako(id)
+        }}
+      />
+    )
   }
 
+  const aktivniPostava = hrajeJako ? POSTAVY.find((p) => p.id === hrajeJako) : undefined
   const nepritel = soubojLokaceId ? NEPRATELE_PODLE_LOKACE[soubojLokaceId] : undefined
-  if (nepritel) {
-    return <Souboj postava={postava} nepritel={nepritel} onOdejit={() => setSoubojLokaceId(null)} />
+
+  // 4) Souboj má přednost, dokud probíhá
+  if (aktivniPostava && nepritel) {
+    return <Souboj postava={aktivniPostava} nepritel={nepritel} onOdejit={() => setSoubojLokaceId(null)} />
   }
 
-  return <MapaSveta postava={postava} onVstoupitDoBoje={setSoubojLokaceId} />
+  // 5) Zvoleno, za koho se hraje — mapa
+  if (aktivniPostava) {
+    return <MapaSveta postava={aktivniPostava} onVstoupitDoBoje={setSoubojLokaceId} />
+  }
+
+  // 2) Přidávání další postavy do party
+  if (rezim === 'pridat') {
+    const zbyvajici = POSTAVY.filter((p) => !postavyId.includes(p.id))
+    return (
+      <TvorbaPostavy
+        dostupnePostavy={zbyvajici}
+        nadpis="Přidat postavu"
+        podnadpis="Vyber další postavu, kterou chceš mít po ruce."
+        zpetText="Zpět na výběr"
+        onZpet={() => setRezim('vyber')}
+        onVytvoreno={(id) => {
+          vytvoritPostavu(id)
+          setRezim('vyber')
+        }}
+      />
+    )
+  }
+
+  // 3) Výběr, za koho se hraje tahle návštěva
+  return (
+    <VyberPostavy
+      postavy={party}
+      mozneVytvoritDalsi={postavyId.length < POSTAVY.length}
+      onZvolit={setHrajeJako}
+      onSmazat={smazatPostavu}
+      onPridatDalsi={() => setRezim('pridat')}
+    />
+  )
 }
 
 export default GameModule
