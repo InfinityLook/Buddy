@@ -1,7 +1,8 @@
 /* ==========================================
    GAME MODULE — sdílené kousky pro celý herní hub (výběr postavy,
-   mapa světa). Zbytek stylů žije u konkrétní obrazovky:
-   TvorbaPostavy.tsx / MapaSveta.css.
+   mapa světa, souboj). Zbytek stylů žije u konkrétní obrazovky:
+   TvorbaPostavy.css / MapaSveta.css / Souboj.css — každá obrazovka si
+   svůj CSS soubor importuje sama, nespoléhá na tenhle.
    ========================================== */
 
 .game-back-btn {
