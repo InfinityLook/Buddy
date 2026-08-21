@@ -12,3 +12,18 @@ export interface Postava {
   /** Nevýhoda, pokud nějakou postava má. Zatím jen Angel. */
   nevyhoda: string | null
 }
+
+export type LokaceTyp = 'mesto' | 'dungeon' | 'arena' | 'vesnice' | 'trziste' | 'hlavni-mesto'
+
+export interface Lokace {
+  id: string
+  typ: LokaceTyp
+  nazev: string
+  ikona: string
+  barva: string
+  /** Pozice na mapě v procentech (0–100) šířky/výšky viewboxu — proto se
+   *  mapa přeuspořádá stejně na jakkoli širokém displeji, ne podle
+   *  pevných pixelů. */
+  x: number
+  y: number
+}

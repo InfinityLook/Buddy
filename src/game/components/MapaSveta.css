@@ -1,0 +1,204 @@
+/* ==========================================
+   MAPA SVĚTA — cesta od vesnice k hlavnímu městu, scrolluje se svisle.
+   ========================================== */
+
+.mapa-sveta {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: #14101f;
+  color: var(--text-primary);
+}
+
+.mapa-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: calc(0.7rem + env(safe-area-inset-top)) 0.9rem 0.7rem;
+  background: rgba(10, 8, 18, 0.88);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-subtle);
+  z-index: 6;
+  flex-shrink: 0;
+}
+
+/* .game-back-btn počítá se svým vlastním position: absolute — tady je
+   ale běžná položka ve flex řádku vedle značky postavy. */
+.mapa-top-bar .game-back-btn {
+  position: static;
+  flex-shrink: 0;
+}
+
+.mapa-postava-znacka {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--mp-barva);
+  color: var(--mp-barva);
+  font-size: 0.7rem;
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mapa-platno {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.mapa-svet {
+  position: relative;
+  width: 100%;
+  /* Skutečná "velikost světa" — appka se v ní scrolluje odshora dolů,
+     nezávisle na tom, jak vysoký je displej. */
+  height: 2200px;
+  padding-bottom: calc(2rem + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.mapa-terren {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(180deg, #16321f 0%, #1c3d26 35%, #234a2d 65%, #16321f 100%);
+}
+
+/* ---------- místa na mapě ---------- */
+
+.mapa-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  width: 84px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.mapa-pin:active .mapa-pin-ikona { transform: scale(0.92); }
+
+.mapa-pin-ikona {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  background: rgba(12, 10, 22, 0.88);
+  border: 2px solid var(--mp-barva);
+  box-shadow: 0 0 14px var(--mp-barva);
+  transition: transform 0.12s ease;
+}
+
+.mapa-pin-nazev {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-align: center;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
+  line-height: 1.2;
+}
+
+/* Hlavní město je cíl cesty — vizuálně větší a nápadnější než ostatní. */
+.mapa-pin--hlavni-mesto .mapa-pin-ikona {
+  width: 62px;
+  height: 62px;
+  font-size: 1.9rem;
+  animation: mapa-hlavni-mesto-dech 3s ease-in-out infinite;
+}
+
+.mapa-pin--hlavni-mesto .mapa-pin-nazev {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--mp-barva);
+}
+
+@keyframes mapa-hlavni-mesto-dech {
+  0%, 100% { box-shadow: 0 0 14px var(--mp-barva); }
+  50% { box-shadow: 0 0 26px var(--mp-barva); }
+}
+
+/* ---------- list po klepnutí ---------- */
+
+.mapa-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: rgba(6, 5, 12, 0.6);
+  backdrop-filter: blur(3px);
+}
+
+.mapa-sheet {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.2rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 31;
+  width: min(400px, calc(100vw - 1.8rem));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 1.1rem 1rem;
+  border-radius: var(--radius-xl);
+  background: rgba(14, 11, 26, 0.97);
+  backdrop-filter: blur(14px);
+  border: 1px solid;
+  box-shadow: var(--shadow-card);
+  text-align: center;
+}
+
+.mapa-sheet-ikona { font-size: 2rem; }
+
+.mapa-sheet-typ {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mapa-sheet-nazev {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.mapa-sheet-text {
+  margin: 0.3rem 0 0;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.mapa-sheet-close {
+  margin-top: 0.7rem;
+  width: 100%;
+  padding: 0.55rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mapa-pin--hlavni-mesto .mapa-pin-ikona { animation: none; }
+}
