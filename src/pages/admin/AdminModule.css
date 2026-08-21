@@ -375,6 +375,24 @@
 }
 
 /* ------------------------------------------
+   SYSTÉM — chyby aplikace
+   ------------------------------------------ */
+
+.admin-chyba-stack {
+  margin: 0;
+  padding: 0.4rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: var(--radius-sm);
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+/* ------------------------------------------
    SOCIALREPORT
    ------------------------------------------ */
 

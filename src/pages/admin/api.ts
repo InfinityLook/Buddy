@@ -1,5 +1,5 @@
 import { supabase } from '@/core/supabase/client'
-import { AdminPrehled, AktivitaPodleDruhu, AuditLogRadek, NastavitelnaRole, RustovyDen, TopOdznak, UcetRadek } from './types'
+import { AdminPrehled, AktivitaPodleDruhu, AuditLogRadek, ChybaAplikace, NastavitelnaRole, RustovyDen, TopOdznak, UcetRadek } from './types'
 
 interface Vysledek {
   ok: boolean
@@ -241,6 +241,42 @@ export const nactiUcty = async (hledat = '', pocet = 30, posun = 0): Promise<Uce
       streakDays: r.streak_days,
       role: r.role,
       validUntil: r.valid_until,
+    })
+  )
+}
+
+// ---------- Systém (chyby zachycené v prohlížeči) ----------
+//
+// client_errors nemá SELECT politiku pro nikoho než jsem_admin() —
+// stejný "server rozhoduje, klient jen čte" tvar jako audit_log.
+// Zápisy sem nejdou přes tenhle soubor vůbec, jen přes
+// core/utils/errorReporting.ts, které je jediné volá při běhu appky.
+
+export const nactiChybyAplikace = async (pocet = 50, posun = 0): Promise<ChybaAplikace[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase.rpc('nacti_client_errors', { pocet, posun })
+  if (error || !data) return []
+
+  return data.map(
+    (r: {
+      id: string
+      user_id: string | null
+      uzivatel_jmeno: string | null
+      message: string
+      stack: string | null
+      url: string | null
+      build_id: string | null
+      created_at: string
+    }) => ({
+      id: r.id,
+      userId: r.user_id,
+      uzivatelJmeno: r.uzivatel_jmeno,
+      message: r.message,
+      stack: r.stack,
+      url: r.url,
+      buildId: r.build_id,
+      createdAt: r.created_at,
     })
   )
 }

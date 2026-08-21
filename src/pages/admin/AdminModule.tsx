@@ -5,6 +5,7 @@ import { SocialReportPanel } from './components/SocialReportPanel'
 import { NotifikacePanel } from './components/NotifikacePanel'
 import { AuditLogPanel } from './components/AuditLogPanel'
 import { UzivatelePanel } from './components/UzivatelePanel'
+import { SystemPanel } from './components/SystemPanel'
 import { KonzolePanel } from './components/KonzolePanel'
 import { ADMIN_TABS, AdminTab } from './types'
 import { useHasPermission } from '@/core/role'
@@ -67,6 +68,7 @@ export const AdminModule: React.FC = () => {
         {tab === 'notifikace' && smiAdmin && <NotifikacePanel />}
         {tab === 'audit-log' && smiAdmin && <AuditLogPanel />}
         {tab === 'uzivatele' && smiAdmin && <UzivatelePanel />}
+        {tab === 'system' && smiAdmin && <SystemPanel />}
         {tab === 'konzole' && smiAdmin && <KonzolePanel />}
       </div>
     </div>

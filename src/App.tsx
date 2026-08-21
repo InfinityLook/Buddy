@@ -18,6 +18,7 @@ const SocialModule = lazy(() => import('@/social/SocialModule'))
 import { BootGate } from '@/components/BootGate'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
+import { setupErrorReporting } from '@/core/utils/errorReporting'
 import { startCloudSync } from '@/core/supabase/cloudSync'
 import { signOut, startAuthWatch, useAccount } from '@/core/supabase/auth'
 import { isSupabaseConfigured } from '@/core/supabase/client'
@@ -66,6 +67,10 @@ export default function App() {
   // Registrace PWA aktualizací při načtení aplikace
   useEffect(() => {
     setupPWAUpdates()
+    // System monitoring — neošetřené chyby z tohohle běhu appky se
+    // pošlou do client_errors, odkud je čte Admin panel (záložka
+    // Systém). Nic tajného nepotřebuje, jen přihlášenou relaci.
+    setupErrorReporting()
     // Sledování přihlášení musí běžet dřív než synchronizace: ta se
     // podle přihlášeného účtu rozhoduje, čí data stáhnout.
     startAuthWatch()

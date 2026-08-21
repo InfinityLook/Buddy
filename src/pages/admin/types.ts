@@ -2,7 +2,7 @@
 // Tvary dat Admin panelu.
 // ==========================================
 
-export type AdminTab = 'prehled' | 'social-report' | 'notifikace' | 'audit-log' | 'uzivatele' | 'konzole'
+export type AdminTab = 'prehled' | 'social-report' | 'notifikace' | 'audit-log' | 'uzivatele' | 'system' | 'konzole'
 
 export const ADMIN_TABS: { id: AdminTab; label: string; icon: string }[] = [
   { id: 'prehled', label: 'Přehled', icon: '📊' },
@@ -10,6 +10,7 @@ export const ADMIN_TABS: { id: AdminTab; label: string; icon: string }[] = [
   { id: 'notifikace', label: 'Notifikace', icon: '📣' },
   { id: 'audit-log', label: 'Audit log', icon: '📜' },
   { id: 'uzivatele', label: 'Uživatelé', icon: '👥' },
+  { id: 'system', label: 'Systém', icon: '🩺' },
   { id: 'konzole', label: 'Konzole', icon: '⌨️' },
 ]
 
@@ -62,6 +63,18 @@ export interface AktivitaPodleDruhu {
 export interface TopOdznak {
   badgeId: string
   celkem: number
+}
+
+/** Jeden řádek vrácený `nacti_client_errors()` — viz migrace client_errors_monitoring. */
+export interface ChybaAplikace {
+  id: string
+  userId: string | null
+  uzivatelJmeno: string | null
+  message: string
+  stack: string | null
+  url: string | null
+  buildId: string | null
+  createdAt: string
 }
 
 /** Jeden řádek vrácený `admin_seznam_uctu()` — viz migrace admin_sprava_uzivatelu. */
