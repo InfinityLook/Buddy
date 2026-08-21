@@ -1,6 +1,30 @@
 import { supabase } from '@/core/supabase/client'
 import { AdminPrehled } from './types'
 
+interface Vysledek {
+  ok: boolean
+  chyba?: string
+}
+
+// Supabase vrací chybu jako obyčejný objekt, ne Error — viz komentář
+// u stejnojmenné funkce v social/api.ts. `instanceof Error` by tu
+// selhalo úplně stejně, kdyby to sem zkopírovalo jen tvar bez obsahu.
+const chyba = (err: unknown): Vysledek => {
+  if (err instanceof Error) return { ok: false, chyba: err.message }
+
+  if (err && typeof err === 'object') {
+    const o = err as { message?: unknown; hint?: unknown; code?: unknown }
+    const text = typeof o.message === 'string' ? o.message.trim() : ''
+    const rada = typeof o.hint === 'string' ? o.hint.trim() : ''
+    if (text) return { ok: false, chyba: rada ? `${text} (${rada})` : text }
+    if (typeof o.code === 'string' && o.code) {
+      return { ok: false, chyba: `Nepovedlo se to (${o.code}).` }
+    }
+  }
+
+  return { ok: false, chyba: 'Nepovedlo se to.' }
+}
+
 // ==========================================
 // Jediné místo, kde Admin panel mluví se Supabase — stejný princip jako
 // social/api.ts. Přístup hlídá databáze (jsem_admin()), tenhle soubor
@@ -25,4 +49,32 @@ export const nactiPrehled = async (): Promise<AdminPrehled | null> => {
     pocetChatu: radek.pocet_chatu,
     pocetPratelstvi: radek.pocet_pratelstvi,
   }
+}
+
+// ---------- ban ze Socialu ----------
+//
+// social_bans nemá žádnou SELECT politiku (viz migrace) — čte se přes
+// nacti_social_bany(), admin-gated stejně jako admin_prehled(). Zápis
+// jde přes zabanuj_ze_social(), která si roli ověřuje sama v databázi,
+// takže spoofnutá role v prohlížeči by tu neprošla o nic dál, než
+// prošla u kteréhokoli jiného admin volání.
+
+export const nactiSocialBany = async (): Promise<Set<string>> => {
+  if (!supabase) return new Set()
+
+  const { data, error } = await supabase.rpc('nacti_social_bany')
+  if (error || !data) return new Set()
+
+  return new Set(data.map((r: { user_id: string }) => r.user_id))
+}
+
+export const zabanujZeSocial = async (uzivatelId: string, zabanovat: boolean): Promise<Vysledek> => {
+  if (!supabase) return { ok: false, chyba: 'Admin panel potřebuje přihlášený účet.' }
+
+  const { error } = await supabase.rpc('zabanuj_ze_social', {
+    cil: uzivatelId,
+    zabanovat,
+  })
+
+  return error ? chyba(error) : { ok: true }
 }

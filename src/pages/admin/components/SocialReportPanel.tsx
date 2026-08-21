@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import * as socialApi from '@/social/api'
+import * as adminApi from '../api'
 import type { Hlaseni } from '@/social/types'
 
 // ==========================================
@@ -8,9 +9,8 @@ import type { Hlaseni } from '@/social/types'
 // Data i logika vyřízení jsou beze změny z social/api.ts — je to jediné
 // místo, které smí mluvit se Supabase (viz komentář tam), takže se
 // odsud jen volá, nekopíruje. Tenhle panel navíc u každého hlášení
-// ukazuje syrové id nahlášeného, ne jen jméno — to jméno slouží
-// budoucímu banu, který se dodělá později (viz zadání), a to potřebuje
-// id, ne zobrazované jméno, které si každý smí kdykoliv změnit.
+// ukazuje syrové id nahlášeného, ne jen jméno — jméno si každý smí
+// kdykoliv změnit, ban i tlačítko pod ním se proto váže na id.
 // ==========================================
 
 const cas = (iso: string) =>
@@ -18,12 +18,15 @@ const cas = (iso: string) =>
 
 export const SocialReportPanel: React.FC = () => {
   const [hlaseni, setHlaseni] = useState<Hlaseni[]>([])
+  const [banovani, setBanovani] = useState<Set<string>>(new Set())
   const [nacita, setNacita] = useState(true)
   const [jenNevyrizena, setJenNevyrizena] = useState(true)
   const [hlaska, setHlaska] = useState<string | null>(null)
 
   const nacti = async () => {
-    setHlaseni(await socialApi.nactiHlaseni())
+    const [h, b] = await Promise.all([socialApi.nactiHlaseni(), adminApi.nactiSocialBany()])
+    setHlaseni(h)
+    setBanovani(b)
     setNacita(false)
   }
 
@@ -39,6 +42,18 @@ export const SocialReportPanel: React.FC = () => {
   const vyridit = async (id: string, vysledek: 'vyreseno' | 'zamitnuto') => {
     const v = await socialApi.vyriditHlaseni(id, vysledek)
     oznam(v.ok ? 'Hlášení vyřízeno.' : v.chyba ?? 'Nepovedlo se to.')
+    if (v.ok) await nacti()
+  }
+
+  const prepnoutBan = async (uzivatelId: string, jmeno: string, zabanovat: boolean) => {
+    const v = await adminApi.zabanujZeSocial(uzivatelId, zabanovat)
+    oznam(
+      v.ok
+        ? zabanovat
+          ? `${jmeno} má teď zakázaný Social.`
+          : `${jmeno} má Social zase povolený.`
+        : v.chyba ?? 'Nepovedlo se to.'
+    )
     if (v.ok) await nacti()
   }
 
@@ -77,6 +92,26 @@ export const SocialReportPanel: React.FC = () => {
 
               {h.poznamka && <p className="admin-report-poznamka">„{h.poznamka}“</p>}
               {h.zprava && <p className="admin-report-zprava">Nahlášená zpráva: „{h.zprava}“</p>}
+
+              {h.nahlaseny && (
+                <div className="admin-report-akce">
+                  {banovani.has(h.nahlaseny.id) ? (
+                    <button
+                      className="admin-btn admin-btn--ano"
+                      onClick={() => prepnoutBan(h.nahlaseny!.id, h.nahlaseny!.displayName, false)}
+                    >
+                      ✓ Zase povolit Social
+                    </button>
+                  ) : (
+                    <button
+                      className="admin-btn admin-btn--ne"
+                      onClick={() => prepnoutBan(h.nahlaseny!.id, h.nahlaseny!.displayName, true)}
+                    >
+                      ⛔ Zakázat Social
+                    </button>
+                  )}
+                </div>
+              )}
 
               {h.stav === 'nevyrizeno' ? (
                 <div className="admin-report-akce">

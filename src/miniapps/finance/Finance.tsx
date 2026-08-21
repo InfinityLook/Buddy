@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useFinance } from './useFinance'
+import { mistniDatum } from '@/core/utils/date'
 import {
   FinanceCategory,
   KategorieVysek,
@@ -44,7 +45,7 @@ const formatDatum = (iso: string): string => {
   return `${den}.${mesic}.${rok.slice(2)}`
 }
 
-const dnesniDatum = () => new Date().toISOString().slice(0, 10)
+const dnesniDatum = () => mistniDatum()
 
 interface DonutProps {
   vysece: KategorieVysek[]
