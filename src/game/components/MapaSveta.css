@@ -1,5 +1,9 @@
 /* ==========================================
    MAPA SVĚTA — cesta od vesnice k hlavnímu městu, scrolluje se svisle.
+   Vzhled cílí na "profesionální herní mapu" (gacha-RPG styl, ne dětská
+   ilustrace): tmavá soumraková paleta, konturové prstence jako na
+   topografické mapě, jemná mřížka, tekoucí stezka a piny ve tvaru
+   klasické kapky s leskem a stínem na zemi.
    ========================================== */
 
 .mapa-sveta {
@@ -7,7 +11,7 @@
   inset: 0;
   display: flex;
   flex-direction: column;
-  background: #14101f;
+  background: #0c0a16;
   color: var(--text-primary);
 }
 
@@ -37,7 +41,7 @@
   gap: 0.3rem;
   padding: 0.35rem 0.7rem;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.06);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
   border: 1px solid var(--mp-barva);
   color: var(--mp-barva);
   font-size: 0.7rem;
@@ -45,6 +49,21 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  box-shadow: 0 0 12px var(--mp-barva);
+}
+
+/* ---------- dekorativní kompas (HUD prvek, fixní vůči obrazovce) ---------- */
+
+.mapa-kompas {
+  position: fixed;
+  top: calc(3.6rem + env(safe-area-inset-top));
+  right: 0.8rem;
+  width: 46px;
+  height: 46px;
+  z-index: 5;
+  opacity: 0.85;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.5));
+  pointer-events: none;
 }
 
 .mapa-platno {
@@ -69,19 +88,42 @@
   inset: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(180deg, #16321f 0%, #1c3d26 35%, #234a2d 65%, #16321f 100%);
+  z-index: 0;
+  /* Soumrakové fantasy pozadí místo ploché zeleně — indigo/fialová
+     s teplejším pruhem uprostřed, ať plátno nepůsobí jako jedna barva. */
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 45%, rgba(124, 58, 237, 0.14) 0%, transparent 65%),
+    linear-gradient(180deg, #171233 0%, #171938 30%, #121531 55%, #16112a 78%, #0c0a16 100%);
+}
+
+.mapa-cesta {
+  animation: mapa-cesta-tok 5s linear infinite;
+}
+
+@keyframes mapa-cesta-tok {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+.mapa-vinetace {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 90% 60% at 50% 50%, transparent 55%, rgba(4, 3, 10, 0.6) 100%);
 }
 
 /* ---------- místa na mapě ---------- */
 
 .mapa-pin {
   position: absolute;
+  z-index: 2;
   transform: translate(-50%, -50%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.3rem;
-  width: 84px;
+  width: 90px;
   background: none;
   border: none;
   padding: 0;
@@ -90,47 +132,102 @@
   font-family: inherit;
 }
 
-.mapa-pin:active .mapa-pin-ikona { transform: scale(0.92); }
+.mapa-pin:active .mapa-pin-znacka { transform: rotate(-45deg) scale(0.9); }
 
-.mapa-pin-ikona {
-  width: 48px;
-  height: 48px;
+/* Stín na "zemi" pod pinem — dává mu dojem, že na mapě skutečně stojí.
+   Záporný margin ho přitáhne těsně pod špičku kapky bez závislosti na
+   přesné geometrii otočeného tvaru. */
+.mapa-pin-stin {
+  width: 22px;
+  height: 7px;
   border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  filter: blur(2px);
+  margin-top: -5px;
+  margin-bottom: 0.3rem;
+}
+
+/* Klasický tvar mapového špendlíku — kruh se špičkou dolů, otočený ze čtverce */
+.mapa-pin-znacka {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  background: linear-gradient(145deg, var(--mp-barva), rgba(0, 0, 0, 0.35));
+  box-shadow:
+    0 6px 14px rgba(0, 0, 0, 0.5),
+    0 0 0 3px rgba(12, 10, 22, 0.9),
+    0 0 16px var(--mp-barva);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.4rem;
-  background: rgba(12, 10, 22, 0.88);
-  border: 2px solid var(--mp-barva);
-  box-shadow: 0 0 14px var(--mp-barva);
   transition: transform 0.12s ease;
 }
 
+/* Skleněný lesk vlevo nahoře — odlišuje pin od ploché barevné skvrny */
+.mapa-pin-znacka::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  left: 7px;
+  width: 12px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.4);
+  filter: blur(1.5px);
+}
+
+.mapa-pin-ikona {
+  transform: rotate(45deg);
+  font-size: 1.3rem;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+}
+
 .mapa-pin-nazev {
+  margin-top: 0.4rem;
+  padding: 0.15rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: rgba(8, 6, 16, 0.6);
+  backdrop-filter: blur(3px);
   font-size: 0.62rem;
   font-weight: 700;
   text-align: center;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.85);
   line-height: 1.2;
 }
 
 /* Hlavní město je cíl cesty — vizuálně větší a nápadnější než ostatní. */
-.mapa-pin--hlavni-mesto .mapa-pin-ikona {
-  width: 62px;
-  height: 62px;
-  font-size: 1.9rem;
+.mapa-pin--hlavni-mesto .mapa-pin-znacka {
+  width: 56px;
+  height: 56px;
   animation: mapa-hlavni-mesto-dech 3s ease-in-out infinite;
 }
 
+.mapa-pin--hlavni-mesto .mapa-pin-ikona {
+  font-size: 1.7rem;
+}
+
 .mapa-pin--hlavni-mesto .mapa-pin-nazev {
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 800;
   color: var(--mp-barva);
+  background: rgba(8, 6, 16, 0.75);
 }
 
 @keyframes mapa-hlavni-mesto-dech {
-  0%, 100% { box-shadow: 0 0 14px var(--mp-barva); }
-  50% { box-shadow: 0 0 26px var(--mp-barva); }
+  0%,
+  100% {
+    box-shadow:
+      0 6px 14px rgba(0, 0, 0, 0.5),
+      0 0 0 3px rgba(12, 10, 22, 0.9),
+      0 0 16px var(--mp-barva);
+  }
+  50% {
+    box-shadow:
+      0 6px 18px rgba(0, 0, 0, 0.5),
+      0 0 0 3px rgba(12, 10, 22, 0.9),
+      0 0 30px var(--mp-barva);
+  }
 }
 
 /* ---------- list po klepnutí ---------- */
@@ -164,7 +261,21 @@
   text-align: center;
 }
 
-.mapa-sheet-ikona { font-size: 2rem; }
+.mapa-sheet-znak {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.25), transparent 60%),
+    linear-gradient(145deg, var(--mp-barva), rgba(0, 0, 0, 0.4));
+  box-shadow: 0 0 18px var(--mp-barva);
+  margin-bottom: 0.2rem;
+}
+
+.mapa-sheet-ikona { font-size: 1.7rem; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6)); }
 
 .mapa-sheet-typ {
   font-size: 0.62rem;
@@ -213,5 +324,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mapa-pin--hlavni-mesto .mapa-pin-ikona { animation: none; }
+  .mapa-pin--hlavni-mesto .mapa-pin-znacka { animation: none; }
+  .mapa-cesta { animation: none; }
 }
