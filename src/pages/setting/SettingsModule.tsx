@@ -180,6 +180,23 @@ export const SettingsModule: React.FC = () => {
         </button>
       </section>
 
+      {/* Podpora — vidí ji každý přihlášený, na rozdíl od Administrace
+          níž bez žádné podmínky. Admin otevře stejnou obrazovku a uvidí
+          v ní tikety od všech (RLS to rozhoduje, ne tenhle odkaz). */}
+      <section className="settings-card">
+        <div className="settings-card-head">
+          <span className="settings-card-icon blue" aria-hidden="true">💬</span>
+          <div>
+            <h2 className="settings-card-title">Podpora</h2>
+            <p className="settings-card-sub">Máš dotaz nebo problém? Napiš nám.</p>
+          </div>
+        </div>
+
+        <button className="settings-save-btn" onClick={() => navigate('/podpora')}>
+          Otevřít podporu
+        </button>
+      </section>
+
       {/* Administrace — vidí ji admin i moderátor, každý přes jiné
           oprávnění. Tlačítko samo nikoho nechrání (role v prohlížeči
           si jde přepsat), skutečná data za ním si přístup ověřují sama

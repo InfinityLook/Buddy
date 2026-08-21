@@ -8,6 +8,7 @@ import RewardModule from '@/pages/reward/RewardModule.tsx'
 import SettingsModule from '@/pages/setting/SettingsModule.tsx'
 import ShopModule from '@/pages/shop/ShopModule.tsx'
 import AdminModule from '@/pages/admin/AdminModule.tsx'
+import SupportModule from '@/pages/support/SupportModule.tsx'
 // Herní hub si s sebou nese Three.js, takže se načítá až při vstupu —
 // zbytek aplikace tím nezůstane těžší.
 const GameModule = lazy(() => import('@/game/GameModule'))
@@ -201,6 +202,20 @@ export default function App() {
             element={
               dovnitr ? (
                 <SettingsModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* Route pro podporu — jako /social a /hra stačí přihlášení,
+              žádné zvláštní oprávnění. Admin vidí stejnou obrazovku,
+              jen mu RLS pustí i cizí tikety (viz SupportModule.tsx). */}
+          <Route
+            path="/podpora"
+            element={
+              dovnitr ? (
+                <SupportModule />
               ) : (
                 <Navigate to="/" replace />
               )

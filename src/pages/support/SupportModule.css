@@ -1,0 +1,271 @@
+/* ==========================================
+   SUPPORT MODULE — stejný design systém jako Reward/Shop/Admin
+   (glass karty, neonové akcenty, mobil na první místě).
+   Slouží dvěma pohledům stejnou obrazovkou: uživateli (jen svoje
+   tikety) i adminovi (všechny) — viz komentář v SupportModule.tsx.
+   ========================================== */
+
+.support-page {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.18) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.16) 0%, transparent 35%),
+    var(--bg-base);
+  color: var(--text-primary);
+  padding: calc(0.75rem + env(safe-area-inset-top)) 0.75rem calc(1.25rem + env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.support-page--vlakno {
+  height: 100vh;
+  height: 100dvh;
+}
+
+.support-top-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.support-back-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.3rem;
+}
+
+.support-title {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+}
+
+.support-subtitle {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.support-card {
+  background: var(--bg-glass);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.support-card-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+}
+
+.support-empty {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.support-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.support-input,
+.support-textarea {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.8rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.support-form-akce {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+}
+
+.support-btn {
+  background: rgba(251, 191, 36, 0.14);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fbbf24;
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.support-btn--tlumene {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.support-btn--ano {
+  background: rgba(52, 211, 153, 0.15);
+  border-color: rgba(52, 211, 153, 0.4);
+  color: #34d399;
+}
+
+.support-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.support-novy-btn {
+  align-self: stretch;
+  text-align: center;
+}
+
+.support-tiket-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.support-tiket-radek {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.7rem;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.support-tiket-radek:active { transform: scale(0.99); }
+
+.support-tiket-hlavicka {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.support-tiket-meta {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.support-stav {
+  flex-shrink: 0;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-pill);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.support-stav--otevreny {
+  background: rgba(251, 191, 36, 0.18);
+  color: #fbbf24;
+}
+
+.support-stav--vyrizeny {
+  background: rgba(52, 211, 153, 0.18);
+  color: #34d399;
+}
+
+.support-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  background: rgba(18, 20, 38, 0.95);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 0.5rem 0.9rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.75rem;
+  z-index: 20;
+}
+
+/* ------------------------------------------
+   VLÁKNO TIKETU
+   ------------------------------------------ */
+
+.support-vlakno {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.2rem;
+}
+
+.support-bublina-obal {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.support-bublina-obal.je-podpora {
+  justify-content: flex-end;
+}
+
+.support-bublina {
+  max-width: 80%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+}
+
+.support-bublina.je-podpora {
+  background: rgba(251, 191, 36, 0.14);
+  border-color: rgba(251, 191, 36, 0.3);
+}
+
+.support-bublina-text {
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.support-bublina-cas {
+  align-self: flex-end;
+  font-size: 0.58rem;
+  color: var(--text-secondary);
+}
+
+.support-odpoved-form {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.support-odpoved-form .support-input {
+  flex: 1;
+  min-width: 0;
+}
