@@ -1,5 +1,5 @@
 import { supabase } from '@/core/supabase/client'
-import { AdminPrehled } from './types'
+import { AdminPrehled, AuditLogRadek } from './types'
 
 interface Vysledek {
   ok: boolean
@@ -124,4 +124,43 @@ export const zabanujCelouAppku = async (uzivatelId: string, zabanovat: boolean):
   } catch {
     return { ok: false, chyba: 'Nejde se připojit. Zkontroluj internet.' }
   }
+}
+
+// ---------- audit log ----------
+//
+// audit_log nemá SELECT politiku pro nikoho než jsem_admin() (viz
+// migrace audit_log_admin_akci) — čte se přes nacti_audit_log(), stejně
+// admin-gated jako admin_prehled()/nacti_social_bany(). Zápisy do
+// tabulky nejdou přes tenhle soubor vůbec: dělá je buď databáze sama
+// (SECURITY DEFINER funkce/triggery na existujících admin akcích), nebo
+// api/admin-ban.ts pro tu jedinou akci, která není zápisem do databáze
+// (Auth Admin API volání).
+
+export const nactiAuditLog = async (pocet = 50, posun = 0): Promise<AuditLogRadek[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase.rpc('nacti_audit_log', { pocet, posun })
+  if (error || !data) return []
+
+  return data.map(
+    (r: {
+      id: string
+      admin_id: string | null
+      admin_jmeno: string | null
+      akce: string
+      cil_id: string | null
+      cil_jmeno: string | null
+      detail: Record<string, unknown> | null
+      vytvoreno_v: string
+    }) => ({
+      id: r.id,
+      adminId: r.admin_id,
+      adminJmeno: r.admin_jmeno,
+      akce: r.akce,
+      cilId: r.cil_id,
+      cilJmeno: r.cil_jmeno,
+      detail: r.detail,
+      vytvorenoV: r.vytvoreno_v,
+    })
+  )
 }

@@ -118,6 +118,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return chyba(res, 502, 'Nepovedlo se to.')
     }
 
+    // Auth Admin API volání nejde zachytit databázovým triggerem (žádný
+    // řádek se nemění) — proto se do audit_log zapisuje rovnou odsud,
+    // stejným service role klientem, který ban právě provedl. Chyba
+    // zápisu do logu nesmí shodit už provedený ban, proto se jen loguje.
+    const { error: logError } = await admin.from('audit_log').insert({
+      admin_id: mojeId,
+      akce: zabanovat ? 'ban_app' : 'unban_app',
+      cil_id: cilId,
+    })
+    if (logError) console.error('admin-ban: zápis do audit_log selhal', logError)
+
     return res.status(200).json({ ok: true })
   }
 
