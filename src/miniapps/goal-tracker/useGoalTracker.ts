@@ -54,7 +54,9 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
           }),
         }))
 
-        if (justCompleted) useGamificationStore.getState().addXp(XP_PER_COMPLETED_GOAL)
+        // recordAction, ne holé addXp — počítadlo splněných cílů a XP se
+        // tak nemůžou rozejít, stejně jako u ostatních miniapek.
+        if (justCompleted) useGamificationStore.getState().recordAction('goal', XP_PER_COMPLETED_GOAL)
       },
 
       addGoal: (title, target, unit, category) => {

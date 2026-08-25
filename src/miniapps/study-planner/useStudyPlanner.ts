@@ -41,9 +41,11 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
       toggleTask: (id) =>
         set((state) => {
           const task = state.tasks.find((t) => t.id === id)
-          // XP jen za odškrtnutí (splnění) úkolu, ne za jeho zpětné odškrtnutí
+          // XP jen za odškrtnutí (splnění) úkolu, ne za jeho zpětné odškrtnutí.
+          // recordAction, ne holé addXp — počítadlo splněných úkolů a XP se
+          // tak nemůžou rozejít, stejně jako u ostatních miniapek.
           if (task && !task.completed) {
-            useGamificationStore.getState().addXp(XP_PER_COMPLETED_TASK)
+            useGamificationStore.getState().recordAction('task', XP_PER_COMPLETED_TASK)
           }
           return {
             tasks: state.tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)),

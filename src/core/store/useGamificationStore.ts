@@ -19,6 +19,9 @@ export type ActivityKind =
   | 'workout'
   | 'battle'
   | 'boss'
+  | 'task'
+  | 'goal'
+  | 'pomodoro'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -58,6 +61,9 @@ export const DEFAULT_BADGES: Badge[] = [
   { id: 'xp_1000', title: 'Tisícovka', description: 'Nasbírej celkem 1000 XP.', icon: '💎', unlockedAt: null },
   { id: 'arena_champion', title: 'Šampion arény', description: 'Vyhraj 5 soubojů v Aréně.', icon: '⚔️', unlockedAt: null },
   { id: 'boss_slayer', title: 'Přemožitel strážce', description: 'Poraz svého prvního bosse.', icon: '👑', unlockedAt: null },
+  { id: 'task_planner', title: 'Plánovač', description: 'Splň 10 úkolů ve Studijním plánovači.', icon: '📋', unlockedAt: null },
+  { id: 'goal_getter', title: 'Cílevědomý', description: 'Splň 5 cílů v Goal Trackeru.', icon: '🎯', unlockedAt: null },
+  { id: 'focus_master', title: 'Mistr soustředění', description: 'Dokonči 10 soustředění v Pomodoru.', icon: '⏳', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti
@@ -70,6 +76,9 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   workout: { badgeId: 'fitness_starter', needed: 5 },
   battle: { badgeId: 'arena_champion', needed: 5 },
   boss: { badgeId: 'boss_slayer', needed: 1 },
+  task: { badgeId: 'task_planner', needed: 10 },
+  goal: { badgeId: 'goal_getter', needed: 5 },
+  pomodoro: { badgeId: 'focus_master', needed: 10 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není

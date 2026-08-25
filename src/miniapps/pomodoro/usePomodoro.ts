@@ -162,7 +162,11 @@ export const usePomodoro = () => {
 
     if (modeRef.current === 'work') {
       incrementCompletedSessions()
-      useGamificationStore.getState().addXp(xpForWorkBlock(settingsRef.current.work))
+      // recordAction, ne holé addXp — počítadlo dokončených soustředění (pro
+      // odznak) a XP se tak nemůžou rozejít, stejně jako u ostatních miniapek.
+      // completedSessions výš je oddělené počítadlo pro zobrazení v appce,
+      // recordAction vede svoje vlastní pro gamifikaci.
+      useGamificationStore.getState().recordAction('pomodoro', xpForWorkBlock(settingsRef.current.work))
 
       const nextPosition = cyclePosition + 1
       setCyclePosition(nextPosition)
