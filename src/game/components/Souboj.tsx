@@ -153,6 +153,7 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
                       {karta.poskozeniOd}–{karta.poskozeniDo}
                       {bonus ? ' ⚡' : ''}
                     </span>
+                    {!!karta.vlastniLeceni && <span className="souboj-karta-leceni">💚+{karta.vlastniLeceni}</span>}
                   </button>
                 )
               })}

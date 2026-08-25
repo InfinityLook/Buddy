@@ -20,6 +20,12 @@ export interface Karta {
   /** Rozsah poškození, ze kterého se při zahrání karty losuje jedno číslo. */
   poskozeniOd: number
   poskozeniDo: number
+  /** Volitelný vedlejší efekt (Fáze 5, cards) — flat léčení vlastní
+   *  výdrže navrch k poškození. Jen pár silnějších karet u živlů se
+   *  "podpůrnou" flavor (světlo/voda/příroda) ho má — oheň/vzduch/
+   *  arkána/tma zůstávají čistě útočné, to je záměrný rozdíl v
+   *  charakteru živlů, ne nedopatření. Nepřítomné/undefined = 0. */
+  vlastniLeceni?: number
 }
 
 export interface Nepritel {

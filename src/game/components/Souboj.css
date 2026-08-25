@@ -186,6 +186,14 @@
   font-weight: 700;
 }
 
+/* Vedlejší efekt karty (Fáze 5, cards) — jen pár silnějších karet u
+   podpůrných živlů (světlo/voda/příroda) ho má, viz combat/karty.ts. */
+.souboj-karta-leceni {
+  font-size: 0.6rem;
+  color: #4ade80;
+  font-weight: 700;
+}
+
 /* ---------- signální schopnost (jednou za souboj) ---------- */
 
 .souboj-schopnost {

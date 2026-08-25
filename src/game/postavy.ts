@@ -72,7 +72,7 @@ export const POSTAVY: Postava[] = [
     bojVydrz: 100,
     obchodNasobicCeny: 1.2,
     specialniSchopnost: {
-      nazev: 'Arkánní výboj',
+      nazev: 'Arkánní příval',
       popis: 'Vypustí čistou arkánní energii — jistý zásah bez ohledu na kartu v ruce.',
       ikona: '💥',
       typ: 'poskozeni',

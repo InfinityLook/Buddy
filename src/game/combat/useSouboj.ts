@@ -47,6 +47,10 @@ interface SoubojStav {
   hracZivoty: number
   nepritelZivoty: number
   ruka: Karta[]
+  /** Zbytek zamíchaného balíčku, ze kterého se dealuje další ruka —
+   *  viz dalsiRuka níž. Když v něm nezbývá dost karet, zamíchá se
+   *  čerstvá kopie celého balíčku, ne že by hráči "došly karty". */
+  balicek: Karta[]
   log: string[]
   odmenaXp: number
   odmenaKredity: number
@@ -68,32 +72,48 @@ interface VysledekAkce {
   blokujeProtiutok: boolean
 }
 
-const nahodnaRuka = (): Karta[] => {
-  const zbyva = [...KARTY]
-  const vybrane: Karta[] = []
-  for (let i = 0; i < 3 && zbyva.length > 0; i++) {
-    const idx = Math.floor(Math.random() * zbyva.length)
-    vybrane.push(zbyva.splice(idx, 1)[0])
+/** Fisher–Yates zamíchání celého balíčku — nová kopie, originál KARTY
+ *  nikdy nemutuje. */
+const zamichanyBalicek = (): Karta[] => {
+  const pole = [...KARTY]
+  for (let i = pole.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[pole[i], pole[j]] = [pole[j], pole[i]]
   }
-  return vybrane
+  return pole
+}
+
+/** Vytáhne novou trojici karet z balíčku — Fáze 5 (cards): dřív se
+ *  ruka losovala pokaždé znovu z celého poolu nezávisle, takže se
+ *  klidně mohla stejná karta objevit v ruce čtyřikrát za sebou. Teď
+ *  se dealuje z jednoho zamíchaného balíčku bez opakování, dokud
+ *  nedojde — pak se zamíchá čerstvá kopie a pokračuje se dál, jako
+ *  nové "kolo" balíčku, ne že by hráči něco došlo. */
+const dalsiRuka = (balicek: Karta[]): { ruka: Karta[]; balicek: Karta[] } => {
+  const zdroj = balicek.length >= 3 ? balicek : zamichanyBalicek()
+  return { ruka: zdroj.slice(0, 3), balicek: zdroj.slice(3) }
 }
 
 const vRozsahu = (od: number, doC: number) => Math.floor(od + Math.random() * (doC - od + 1))
 
-const pocatecniStav = (maxVydrz: number, nepratele: Nepritel[]): SoubojStav => ({
-  faze: 'probiha',
-  indexNepritele: 0,
-  hracZivoty: maxVydrz,
-  nepritelZivoty: nepratele[0].zivoty,
-  ruka: nahodnaRuka(),
-  log:
-    nepratele.length > 1
-      ? [`Souboj se ${nepratele[0].jmeno} začíná! (1. ze ${nepratele.length})`]
-      : [`Souboj s ${nepratele[0].jmeno} začíná!`],
-  odmenaXp: 0,
-  odmenaKredity: 0,
-  schopnostPouzita: false,
-})
+const pocatecniStav = (maxVydrz: number, nepratele: Nepritel[]): SoubojStav => {
+  const { ruka, balicek } = dalsiRuka(zamichanyBalicek())
+  return {
+    faze: 'probiha',
+    indexNepritele: 0,
+    hracZivoty: maxVydrz,
+    nepritelZivoty: nepratele[0].zivoty,
+    ruka,
+    balicek,
+    log:
+      nepratele.length > 1
+        ? [`Souboj se ${nepratele[0].jmeno} začíná! (1. ze ${nepratele.length})`]
+        : [`Souboj s ${nepratele[0].jmeno} začíná!`],
+    odmenaXp: 0,
+    odmenaKredity: 0,
+    schopnostPouzita: false,
+  }
+}
 
 /** Aplikuje jednu vyhodnocenou hráčovu akci na aktuální stav — poškození/
  *  léčení, kontrola výhry (a případně dalšího soupeře v dungeonu), a
@@ -132,12 +152,13 @@ const vyhodnotAkci = (
     }
 
     const dalsi = nepratele[dalsiIndex]
+    const rukaDalsihoSoupere = dalsiRuka(s.balicek)
     return {
       ...s,
       hracZivoty: hracZivotyPoAkci,
       indexNepritele: dalsiIndex,
       nepritelZivoty: dalsi.zivoty,
-      ruka: nahodnaRuka(),
+      ...rukaDalsihoSoupere,
       odmenaXp,
       odmenaKredity,
       log: [...s.log, akce.zprava, `${aktualni.jmeno} poražen! Před tebou další soupeř: ${dalsi.jmeno}.`],
@@ -145,11 +166,12 @@ const vyhodnotAkci = (
   }
 
   if (akce.blokujeProtiutok) {
+    const rukaPoStitu = dalsiRuka(s.balicek)
     return {
       ...s,
       hracZivoty: hracZivotyPoAkci,
       nepritelZivoty: nepritelZivotyNove,
-      ruka: nahodnaRuka(),
+      ...rukaPoStitu,
       log: [...s.log, akce.zprava, `${aktualni.jmeno} útočí, ale štít ho odráží beze ztráty výdrže!`],
     }
   }
@@ -172,7 +194,7 @@ const vyhodnotAkci = (
     ...s,
     hracZivoty: hracZivotyNove,
     nepritelZivoty: nepritelZivotyNove,
-    ruka: nahodnaRuka(),
+    ...dalsiRuka(s.balicek),
     log: [...s.log, akce.zprava, zpravaProtiutoku],
   }
 }
@@ -217,13 +239,14 @@ export const useSouboj = (postava: Postava, nepratele: Nepritel[]) => {
         const kriticky = Math.random() < postava.bojKriticka + kritickaBonus
         if (kriticky) poskozeni = Math.round(poskozeni * postava.bojKritickyNasobic)
 
+        const leceni = karta.vlastniLeceni ?? 0
         const zprava = `${postava.jmeno} zahrál/a ${karta.nazev}${bonus ? ' (bonus živlu)' : ''}${
           kriticky ? ' — kritický zásah!' : ''
-        } → ${poskozeni} poškození.`
+        } → ${poskozeni} poškození${leceni > 0 ? ` (+${leceni} vlastní výdrže)` : ''}.`
 
         return vyhodnotAkci(s, postava, nepratele, maxVydrz, {
           poskozeniNepriteli: poskozeni,
-          zmenaVlastniVydrze: 0,
+          zmenaVlastniVydrze: leceni,
           zprava,
           blokujeProtiutok: false,
         })
