@@ -7,10 +7,12 @@
 // primitiv (kvádry, kužely, koule) obarvených podle týhle konfigurace,
 // stylizovaný "low-poly" vzhled místo nedosažitelného fotorealismu.
 //
-// Pět lokací zatím (Emberfall, dungeon Molten Core, Greenhaven,
-// Voidspire, Frostheim). Další lokace ze Season 1 (Solace, …) přibydou
-// stejným vzorem — nová položka sem + odpovídající quest v quests.ts
-// (nebo u dungeonu rovnou několik nepřátel v combat/nepratele.ts).
+// Šest lokací (Emberfall, dungeon Molten Core, Greenhaven, Voidspire,
+// Frostheim, Solace) — Solace uzavírá hlavní dějovou linku Season 1
+// (viz combat/nepratele.ts a data/quests.ts), zbývají už jen vedlejší
+// questy stejným vzorem — nová položka sem + odpovídající quest v
+// quests.ts (nebo u dungeonu rovnou několik nepřátel v
+// combat/nepratele.ts).
 //
 // Greenhaven si přitom drží svůj vlastní typ 'mesto' v lokace.ts beze
 // změny (viz Fáze 7 — přítomnost tady rozhoduje o 3D vstupu, ne typ na
@@ -117,6 +119,22 @@ export const SVETY_PODLE_LOKACE: Record<string, SvetKonfigurace> = {
     polomerSveta: 25,
     start: [0, 9],
     poziceSetkani: [0, -9],
+    polomerSetkani: 3.2,
+  },
+  solace: {
+    // Prastará krypta pod trůnním sálem — jediná Season-1 lokace, co
+    // NENÍ divočina za městem (Emberfall pole, Greenhaven les, Voidspire
+    // pole, Frostheim jeskyně), ale prostor přímo pod hlavním městem
+    // samotným, odpovídá finálovému rázu dějové linky. Teplá zlatavá
+    // paleta (na rozdíl od studeného Molten Core) a menší polomerSveta
+    // — sevřená, obřadní krypta, ne otevřená pláň.
+    barvaOblohy: '#3d2b0f',
+    barvaMlhy: '#4a3512',
+    barvaZeme: '#5c4419',
+    teren: 'jeskyne',
+    polomerSveta: 20,
+    start: [0, 8],
+    poziceSetkani: [0, -8],
     polomerSetkani: 3.2,
   },
 }

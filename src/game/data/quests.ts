@@ -13,14 +13,15 @@
 // se plní soubojem na víc než jedné lokaci, by odvozený vztah nešel
 // vůbec zapsat.
 //
-// Čtyři questy zatím — Ztracené štěně (Emberfall, vertikální řez z
-// Fáze 1), Probuzený les (Greenhaven), Probuzená královna (Voidspire)
-// a Probuzený mráz (Frostheim), všechny tři z Fáze 10. Zbylých 26
-// questů ze Season 1 se přidává stejným vzorem — nová položka sem +
+// Pět questů — Ztracené štěně (Emberfall, vertikální řez z Fáze 1),
+// Probuzený les (Greenhaven), Probuzená královna (Voidspire), Probuzený
+// mráz (Frostheim) a Poslední probuzení (Solace, finále hlavní dějové
+// linky) — poslední čtyři z Fáze 10. Zbývá už jen 25 vedlejších questů
+// ze Season 1, přidávají se stejným vzorem — nová položka sem +
 // odpovídající nepřítel v nepratele.ts + vlastní SvetKonfigurace ve
-// world.ts. Lokace samotná (lokace.ts) nemusí být nová ani měnit typ
-// — viz Greenhaven/Voidspire/Frostheim, všechny pořád 'mesto', 3D svět
-// jen zpřístupní přítomnost ve SVETY_PODLE_LOKACE (Fáze 7).
+// world.ts. Lokace samotná (lokace.ts) nemusí být nová ani měnit typ —
+// viz Greenhaven/Voidspire/Frostheim/Solace, 3D svět jen zpřístupní
+// přítomnost ve SVETY_PODLE_LOKACE (Fáze 7).
 // ==========================================
 
 export type TypCile = 'boj'
@@ -98,6 +99,21 @@ export const QUESTS: Quest[] = [
     dialogPriPrijeti: 'probuzeny-mraz-prijeti',
     dialogPriDokonceni: 'probuzeny-mraz-dokonceni',
   },
+  {
+    // Finále hlavní dějové linky Season 1 — jediný quest, co se plní
+    // víc než jedním nepřítelem na jedné lokaci (solace v
+    // nepratele.ts má dva), stejný mechanismus jako u dungeonu: výdrž
+    // se mezi nimi neobnoví, `onVyhra` se spustí až po poražení obou.
+    id: 'posledni-probuzeni',
+    nazev: 'Poslední probuzení',
+    lokaceId: 'solace',
+    popis:
+      'Čtyři strážci povstali z klidu, který trval staletí. Velekancléřka svolává radu — vše ukazuje na prastarou kryptu pod trůnním sálem Solace, kam po celý její život nikdo nesestoupil. Nebudeš tam sám a výdrž se ti mezi souboji neobnoví.',
+    cile: [{ id: 'porazit-prvniho-strazce', popis: 'Sestup do krypty pod Solace a poraz Prvního strážce.', typ: 'boj' }],
+    odmenaPopis: 'XP, kredity z boje a Koruna prvního strážce — nejsilnější relikvie Season 1.',
+    dialogPriPrijeti: 'posledni-probuzeni-prijeti',
+    dialogPriDokonceni: 'posledni-probuzeni-dokonceni',
+  },
 ]
 
 /** Lokace -> (quest, cíl), který se plní výhrou v souboji na téhle
@@ -108,4 +124,5 @@ export const BOJOVY_CIL_PODLE_LOKACE: Record<string, { questId: string; cilId: s
   greenhaven: { questId: 'probuzeny-les', cilId: 'porazit-strazce-lesa' },
   voidspire: { questId: 'probuzena-kralovna', cilId: 'porazit-stinovou-kralovnu' },
   frostheim: { questId: 'probuzeny-mraz', cilId: 'porazit-zamrzleho-strazce' },
+  solace: { questId: 'posledni-probuzeni', cilId: 'porazit-prvniho-strazce' },
 }

@@ -18,8 +18,10 @@ import { Nepritel } from './types'
 // konci (Strážce jeskyně); Greenhaven, Voidspire a Frostheim (Fáze 10,
 // Season 1) mají každý svého, rovnou jako své jediné setkání (stejný
 // tvar jako Emberfall — jeden Nepritel v poli, ne dungeonová série).
-// Poslední pojmenovaný boss ze Season 1 (The First Guardian, Solace)
-// přibyde stejným vzorem, až přibyde i jeho lokace.
+// Solace uzavírá hlavní dějovou linku Season 1 s posledním pojmenovaným
+// bossem ze zadání (První strážce, "The First Guardian") — jediná z
+// pěti dějových lokací zpátky ve tvaru dungeonu (víc soupeřů za sebou,
+// výdrž se neobnoví), ne jednoho setkání, ať finále působí náročněji.
 // ==========================================
 
 export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
@@ -161,6 +163,50 @@ export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
       zuriPodHp: 0.4,
       zuriNasobicPoskozeni: 1.6,
       vybaveniId: 'ledovy-stit',
+    },
+  ],
+
+  // Finále hlavní dějové linky Season 1 (Fáze 10) — jediná ze pěti
+  // lokací s VÍC než jedním nepřítelem: stejný "dungeonový" tvar jako
+  // Molten Core (výdrž se mezi soupeři neobnoví), ne jednoduché
+  // setkání jako Greenhaven/Voidspire/Frostheim, ať finále poslední
+  // dějové lokace působí náročněji než ty předchozí čtyři.
+  solace: [
+    {
+      id: 'probuzeny-strazny-solace',
+      jmeno: 'Probuzený strážný',
+      ikona: '⚔️',
+      zivoty: 55,
+      poskozeniOd: 5,
+      poskozeniDo: 9,
+      odmenaXp: 30,
+      odmenaKredity: 20,
+      lupId: 'lecivy-lektvar',
+      sanceNaLup: 0.5,
+    },
+    {
+      // Poslední pojmenovaný boss ze zadání — "The First Guardian".
+      // Zuřivá fáze nastupuje dřív než u ostatních (pod 35 %, ne
+      // 40 %), odpovídá roli finálového soupeře hlavní dějové linky —
+      // ale protože je to DRUHÝ soupeř v řadě po Probuzeném strážném
+      // (výdrž se mezi nimi neobnoví, stejně jako v dungeonu), jeho
+      // vlastní čísla zůstávají srovnatelná s ostatními bossy, ne
+      // ještě navrch přitížená — jinak by šlo o souboj, co jde
+      // reálně vyhrát jen s postavou o pár úrovní výš.
+      id: 'prvni-strazce',
+      jmeno: 'První strážce',
+      ikona: '🗿',
+      zivoty: 100,
+      poskozeniOd: 8,
+      poskozeniDo: 13,
+      odmenaXp: 80,
+      odmenaKredity: 50,
+      lupId: 'lecivy-lektvar',
+      sanceNaLup: 0.7,
+      jeBoss: true,
+      zuriPodHp: 0.35,
+      zuriNasobicPoskozeni: 1.6,
+      vybaveniId: 'koruna-prvniho-strazce',
     },
   ],
 }

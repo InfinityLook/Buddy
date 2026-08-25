@@ -157,4 +157,37 @@ export const STORY: Record<string, DialogSekvence> = {
       },
     ],
   },
+  'posledni-probuzeni-prijeti': {
+    id: 'posledni-probuzeni-prijeti',
+    radky: [
+      {
+        mluvci: 'Velekancléřka Solace',
+        ikona: '👑',
+        text: 'Čtyři strážci povstali z klidu, který trval staletí — Emberfall, Greenhaven, Voidspire, Frostheim. Něco je budí odsud, ze srdce Solace.',
+      },
+      { mluvci: '__hrac__', ikona: '', text: 'Odtud to všechno začalo. Odtud to taky skončí.' },
+      {
+        mluvci: 'Velekancléřka Solace',
+        ikona: '👑',
+        text: 'Pod trůnním sálem leží krypta stará jako samo království. Nikdo do ní nesestoupil za mého života.',
+      },
+      { mluvci: '__buddy__', ikona: '', text: 'Ať je tam cokoli, půjdu s tebou — jako vždycky.' },
+    ],
+  },
+  'posledni-probuzeni-dokonceni': {
+    id: 'posledni-probuzeni-dokonceni',
+    radky: [
+      { mluvci: '__buddy__', ikona: '', text: 'První strážce klesá k zemi... a s ním i to volání, co budilo ty ostatní.' },
+      {
+        mluvci: 'Velekancléřka Solace',
+        ikona: '👑',
+        text: 'Byl to on od začátku — první strážce, první probuzený, matka všech ostatních.',
+      },
+      {
+        mluvci: 'Velekancléřka Solace',
+        ikona: '👑',
+        text: 'Klid, co se vrátil, možná nebude trvat navždy — ale dnes si zasloužíš odpočinek. Buddy Realm ti bude vděčný.',
+      },
+    ],
+  },
 }

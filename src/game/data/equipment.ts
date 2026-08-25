@@ -85,4 +85,19 @@ export const VYBAVENI: Vybaveni[] = [
     bonusPoskozeni: 0,
     bonusKriticka: 0,
   },
+  {
+    // Pátá relikvie (Fáze 10) — od Prvního strážce (Solace, finále
+    // hlavní dějové linky Season 1). Záměrně nejsilnější ze všech pěti
+    // a všestranná (všechny tři bonusy zároveň, ne jeden dominantní) —
+    // odměna za finálový souboj má být citelně lepší než čtyři
+    // specializované relikvie z cesty k němu, ne jen další z řady.
+    id: 'koruna-prvniho-strazce',
+    nazev: 'Koruna prvního strážce',
+    popis: 'Relikvie Prvního strážce, matky všech ostatních — nese v sobě kus síly každého z nich.',
+    ikona: '👑',
+    zdroj: 'Poraz Prvního strážce (krypta pod Solace)',
+    bonusVydrz: 10,
+    bonusPoskozeni: 0.06,
+    bonusKriticka: 0.05,
+  },
 ]
