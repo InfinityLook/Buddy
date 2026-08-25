@@ -228,3 +228,26 @@
 
 /* Filtry se při čtyřech položkách musí vejít i na úzký displej */
 .qn-filters { flex-wrap: wrap; }
+
+/* Řazení */
+.qn-sort-select {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px;
+  font-size: 0.7rem;
+  font-family: inherit;
+  align-self: flex-start;
+}
+
+/* Připnutá poznámka — barevný okraj vlevo, ať je na první pohled jasné,
+   proč netrží na obvyklé pozici v pořadí, co zvolené řazení dá. */
+.qn-card--pinned {
+  border-left: 2px solid #ec4899;
+}
+
+.qn-icon-btn--active {
+  color: #f472b6;
+  background: rgba(236, 72, 153, 0.15);
+}

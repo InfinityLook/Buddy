@@ -11,6 +11,7 @@ import {
   INITIAL_NOTES,
   Note,
   NoteCategory,
+  NoteSortMode,
 } from './types'
 
 const XP_PER_NOTE = 5
@@ -20,6 +21,7 @@ interface QuickNotesState {
   addNote: (title: string, content: string, category: NoteCategory) => void
   updateNote: (id: string, title: string, content: string, category: NoteCategory) => void
   deleteNote: (id: string) => void
+  togglePin: (id: string) => void
 }
 
 const isDemoNote = (note: Note) =>
@@ -43,6 +45,8 @@ const useQuickNotesStore = create<QuickNotesState>()(
           category,
           createdAt: formatDate(),
           updatedAt: null,
+          pinned: false,
+          updatedAtTs: null,
         }
 
         set((state) => ({ notes: [newNote, ...state.notes] }))
@@ -63,6 +67,7 @@ const useQuickNotesStore = create<QuickNotesState>()(
                   content: content.trim(),
                   category,
                   updatedAt: formatDate(),
+                  updatedAtTs: Date.now(),
                 }
               : note
           ),
@@ -71,6 +76,13 @@ const useQuickNotesStore = create<QuickNotesState>()(
 
       deleteNote: (id) =>
         set((state) => ({ notes: state.notes.filter((n) => n.id !== id) })),
+
+      togglePin: (id) =>
+        set((state) => ({
+          notes: state.notes.map((note) =>
+            note.id === id ? { ...note, pinned: !note.pinned } : note
+          ),
+        })),
     }),
     {
       name: 'schoolbuddy-quick-notes-storage',
@@ -85,15 +97,41 @@ const useQuickNotesStore = create<QuickNotesState>()(
   )
 )
 
+// Řadí už vyfiltrovaný seznam podle zvoleného módu. "newest"/"oldest"
+// nepotřebují žádný uložený časový otisk — addNote nové poznámky vždycky
+// vkládá na začátek pole, takže pořadí v poli už samo je "nejnovější
+// první"; "oldest" je jen jeho zrcadlo. "updated" jediné potřebuje
+// skutečnou hodnotu (updatedAtTs) — u needitované poznámky chybí, proto
+// spadne na zápornou pozici v (už seřazeném) poli: novější needitované
+// poznámky tak pořád vyjdou před staršími needitovanými, a jakákoli
+// opravdu editovaná poznámka (kladný, mnohem větší časový otisk) je
+// vždycky přebije.
+const sortNotes = (list: Note[], mode: NoteSortMode): Note[] => {
+  switch (mode) {
+    case 'newest':
+      return list
+    case 'oldest':
+      return [...list].reverse()
+    case 'updated':
+      return list
+        .map((note, index) => ({ note, index }))
+        .sort((a, b) => (b.note.updatedAtTs ?? -b.index) - (a.note.updatedAtTs ?? -a.index))
+        .map((x) => x.note)
+    case 'alphabetical':
+      return [...list].sort((a, b) => a.title.localeCompare(b.title, 'cs'))
+  }
+}
+
 export const useQuickNotes = () => {
-  const { notes, addNote, updateNote, deleteNote } = useQuickNotesStore()
+  const { notes, addNote, updateNote, deleteNote, togglePin } = useQuickNotesStore()
   const [filter, setFilter] = useState<string>(ALL_NOTES)
   const [search, setSearch] = useState('')
+  const [sortMode, setSortMode] = useState<NoteSortMode>('newest')
 
   const filteredNotes = useMemo(() => {
     const query = normalizeText(search.trim())
 
-    return notes.filter((note) => {
+    const matching = notes.filter((note) => {
       const matchesCategory = filter === ALL_NOTES || note.category === filter
       const matchesSearch =
         query === '' ||
@@ -101,7 +139,12 @@ export const useQuickNotes = () => {
         normalizeText(note.content).includes(query)
       return matchesCategory && matchesSearch
     })
-  }, [notes, filter, search])
+
+    const sorted = sortNotes(matching, sortMode)
+    // Připnuté napřed, ale v pořadí, které dal zvolený sort — filter()
+    // pořadí zachovává, takže tohle jen rozdělí, nic nepřerovná navíc.
+    return [...sorted.filter((n) => n.pinned), ...sorted.filter((n) => !n.pinned)]
+  }, [notes, filter, search, sortMode])
 
   return {
     notes: filteredNotes,
@@ -110,8 +153,11 @@ export const useQuickNotes = () => {
     setFilter,
     search,
     setSearch,
+    sortMode,
+    setSortMode,
     addNote,
     updateNote,
     deleteNote,
+    togglePin,
   }
 }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useQuickNotes } from './useQuickNotes'
-import { ALL_NOTES, NOTE_CATEGORIES, Note, NoteCategory } from './types'
+import { ALL_NOTES, NOTE_CATEGORIES, NOTE_SORT_MODES, Note, NoteCategory, NoteSortMode, SORT_LABELS } from './types'
 import './QuickNotes.css'
 
 export const QuickNotes: React.FC = () => {
@@ -11,9 +11,12 @@ export const QuickNotes: React.FC = () => {
     setFilter,
     search,
     setSearch,
+    sortMode,
+    setSortMode,
     addNote,
     updateNote,
     deleteNote,
+    togglePin,
   } = useQuickNotes()
 
   // null = formulář zavřený, '' = zakládá se nová, jinak id upravované
@@ -64,7 +67,7 @@ export const QuickNotes: React.FC = () => {
       </div>
 
       {/* Hledání dává smysl, až když je v čem hledat */}
-      {totalCount > 3 && (
+      {totalCount > 0 && (
         <input
           type="search"
           className="qn-search"
@@ -85,6 +88,22 @@ export const QuickNotes: React.FC = () => {
           </button>
         ))}
       </div>
+
+      {/* Řazení dává smysl, až je co řadit navzájem */}
+      {totalCount > 1 && (
+        <select
+          className="qn-sort-select"
+          value={sortMode}
+          onChange={(e) => setSortMode(e.target.value as NoteSortMode)}
+          aria-label="Řadit poznámky"
+        >
+          {NOTE_SORT_MODES.map((mode) => (
+            <option key={mode} value={mode}>
+              {SORT_LABELS[mode]}
+            </option>
+          ))}
+        </select>
+      )}
 
       {isFormOpen && (
         <form className="qn-form" onSubmit={handleSubmit}>
@@ -146,10 +165,18 @@ export const QuickNotes: React.FC = () => {
           </div>
         ) : (
           notes.map((n) => (
-            <div key={n.id} className="qn-card">
+            <div key={n.id} className={`qn-card ${n.pinned ? 'qn-card--pinned' : ''}`}>
               <div className="qn-card-top">
                 <span className={`qn-tag ${n.category.toLowerCase()}`}>{n.category}</span>
                 <div className="qn-card-actions">
+                  <button
+                    className={`qn-icon-btn ${n.pinned ? 'qn-icon-btn--active' : ''}`}
+                    onClick={() => togglePin(n.id)}
+                    aria-label={n.pinned ? `Odepnout ${n.title}` : `Připnout ${n.title}`}
+                    aria-pressed={n.pinned}
+                  >
+                    📌
+                  </button>
                   <button
                     className="qn-icon-btn"
                     onClick={() => openEdit(n)}
