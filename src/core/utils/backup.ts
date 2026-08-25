@@ -54,6 +54,7 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-game-character-storage', storage: 'secure', label: 'Herní postavy' },
   { key: 'schoolbuddy-quest-storage', storage: 'secure', label: 'Herní questy' },
   { key: 'schoolbuddy-inventar-storage', storage: 'secure', label: 'Herní batoh' },
+  { key: 'schoolbuddy-vybaveni-storage', storage: 'secure', label: 'Herní vybavení' },
   { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
   // Role a kredity stojí (nebo budou stát) peníze. Do zálohy patří, aby
   // byla věrným snímkem, ale zpátky se nikdy nezapisují — jinak by stačilo

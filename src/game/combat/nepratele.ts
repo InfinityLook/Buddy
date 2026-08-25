@@ -94,6 +94,7 @@ export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
       jeBoss: true,
       zuriPodHp: 0.4,
       zuriNasobicPoskozeni: 1.6,
+      vybaveniId: 'amulet-strazce',
     },
   ],
 }

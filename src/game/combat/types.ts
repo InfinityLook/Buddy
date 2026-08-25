@@ -54,4 +54,9 @@ export interface Nepritel {
    *  jeBoss, žádná druhá fáze). */
   zuriPodHp?: number
   zuriNasobicPoskozeni?: number
+  /** Vybavení (Fáze 9), co tenhle nepřítel garantovaně upustí při
+   *  výhře — id z game/data/equipment.ts. Na rozdíl od lupId/sanceNaLup
+   *  žádná náhoda: signální relikvii bosse hráč dostane vždycky, ne že
+   *  by mu ji smůla mohla upřít. */
+  vybaveniId?: string
 }

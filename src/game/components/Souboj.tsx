@@ -2,12 +2,14 @@ import React, { useEffect, useRef } from 'react'
 import { useSouboj } from '../combat/useSouboj'
 import { BARVA_ZIVLU, NAZEV_ZIVLU } from '../combat/karty'
 import { LUP } from '../data/items'
+import { VYBAVENI } from '../data/equipment'
 import { Nepritel } from '../combat/types'
 import { Postava } from '../types'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useWalletStore } from '@/core/store/useWalletStore'
 import { useGameCharacter } from '../useGameCharacter'
 import { useInventarStore } from '../useInventarStore'
+import { useVybaveniStore } from '../useVybaveniStore'
 import './Souboj.css'
 
 interface Props {
@@ -61,6 +63,7 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
   const credit = useWalletStore((s) => s.credit)
   const pridatXpPostave = useGameCharacter((s) => s.pridatXpPostave)
   const pridatPredmet = useInventarStore((s) => s.pridatPredmet)
+  const ziskatVybaveni = useVybaveniStore((s) => s.ziskatVybaveni)
   // Hlídá, aby se odměna připsala jen jednou za výhru — "Zkusit znovu"
   // vrátí fázi zpátky na 'probiha', což odemkne odměnu pro příští výhru.
   const odmenaPripsana = useRef(false)
@@ -81,6 +84,9 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
     credit(odmenaKredity)
     pridatXpPostave(postava.id, odmenaXp)
     for (const lupId of ziskanyLup) pridatPredmet(lupId)
+    // Vybavení (Fáze 9) — garantovaný drop, ne loot na losování jako
+    // ziskanyLup výš (viz combat/types.ts Nepritel.vybaveniId).
+    if (nepritel.vybaveniId) ziskatVybaveni(nepritel.vybaveniId)
     onVyhra?.()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faze])
@@ -239,6 +245,13 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
                         </span>
                       ))}
                       .
+                    </>
+                  )}
+                  {nepritel.vybaveniId && (
+                    <>
+                      {' '}
+                      Získáváš relikvii: {VYBAVENI.find((p) => p.id === nepritel.vybaveniId)?.ikona}{' '}
+                      {VYBAVENI.find((p) => p.id === nepritel.vybaveniId)?.nazev} — nasaď si ji na kartě Hrdina.
                     </>
                   )}
                 </p>

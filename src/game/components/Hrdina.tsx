@@ -1,6 +1,8 @@
 import React from 'react'
 import { useGameCharacter } from '../useGameCharacter'
 import { useWalletStore } from '@/core/store/useWalletStore'
+import { useVybaveniStore } from '../useVybaveniStore'
+import { VYBAVENI } from '../data/equipment'
 import { Postava } from '../types'
 import {
   Dovednost,
@@ -47,12 +49,20 @@ export const Hrdina: React.FC<Props> = ({ postava, onOdejit, onOtevritObchod }) 
   const progres = useGameCharacter((s) => s.progres[postava.id]) ?? vychoziProgres()
   const vylepsitDovednost = useGameCharacter((s) => s.vylepsitDovednost)
   const ownedItems = useWalletStore((s) => s.ownedItems)
+  const vlastneneVybaveni = useVybaveniStore((s) => s.vlastnene)
+  const nasazenaVybaveniId = useVybaveniStore((s) => s.nasazene[postava.id])
+  const nasaditVybaveni = useVybaveniStore((s) => s.nasaditVybaveni)
 
   const naMaximu = progres.uroven >= MAX_UROVEN
   const potrebaXp = naMaximu ? 0 : xpProDalsiUroven(progres.uroven)
   const postupProcenta = naMaximu ? 100 : Math.min(100, (progres.xp / potrebaXp) * 100)
 
-  const { maxVydrz, poskozeniBonus, kritickaBonus } = vypocitejBojoveStatistiky(postava, progres, ownedItems)
+  const { maxVydrz, poskozeniBonus, kritickaBonus } = vypocitejBojoveStatistiky(
+    postava,
+    progres,
+    ownedItems,
+    nasazenaVybaveniId
+  )
   const kritickaCelkem = postava.bojKriticka + kritickaBonus
   const poskozeniZivel = (1 + poskozeniBonus) * postava.bojNasobicPoskozeni - 1
 
@@ -140,6 +150,45 @@ export const Hrdina: React.FC<Props> = ({ postava, onOdejit, onOtevritObchod }) 
             🏪 Otevřít tržiště
           </button>
         </div>
+      </section>
+
+      {/* ---------- vybavení (Fáze 9) — vlastní se účtově (jako
+          obchod), ale nasazuje se za tuhle konkrétní postavu; efekt se
+          promítá i do Statistik výš (stejný vypocitejBojoveStatistiky
+          jako v souboji, viz komentář nahoře souboru). ---------- */}
+      <section className="hr-sekce">
+        <h2 className="hr-sekce-title">Vybavení</h2>
+        {vlastneneVybaveni.length === 0 ? (
+          <p className="hr-sekce-hint">Zatím nemáš žádné vybavení — poraz bosse pro jejich vzácné relikvie.</p>
+        ) : (
+          <div className="hr-strom">
+            {VYBAVENI.filter((v) => vlastneneVybaveni.includes(v.id)).map((v) => {
+              const nasazeno = nasazenaVybaveniId === v.id
+              const efekty = [
+                v.bonusVydrz > 0 ? `+${v.bonusVydrz} výdrže` : null,
+                v.bonusPoskozeni > 0 ? `+${Math.round(v.bonusPoskozeni * 100)} % poškození` : null,
+                v.bonusKriticka > 0 ? `+${Math.round(v.bonusKriticka * 100)} % kritická šance` : null,
+              ].filter(Boolean)
+              return (
+                <div key={v.id} className={`hr-uzel${nasazeno ? ' hr-uzel--nasazeno' : ''}`}>
+                  <span className="hr-uzel-ikona" aria-hidden="true">
+                    {v.ikona}
+                  </span>
+                  <div className="hr-uzel-text">
+                    <span className="hr-uzel-jmeno">{v.nazev}</span>
+                    <span className="hr-uzel-efekt">{efekty.join(', ')}</span>
+                  </div>
+                  <button
+                    className="hr-vylepsit"
+                    onClick={() => nasaditVybaveni(postava.id, nasazeno ? null : v.id)}
+                  >
+                    {nasazeno ? 'Sundat' : 'Nasadit'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </section>
 
       {/* ---------- strom dovedností ---------- */}

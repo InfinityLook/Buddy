@@ -5,7 +5,9 @@ import { Postava } from '../types'
 import { useWalletStore } from '@/core/store/useWalletStore'
 import { useGameCharacter } from '../useGameCharacter'
 import { useInventarStore } from '../useInventarStore'
+import { useVybaveniStore } from '../useVybaveniStore'
 import { LUP } from '../data/items'
+import { VYBAVENI } from '../data/equipment'
 import { bojoveBonusyZProgresu, PostavaProgres, vychoziProgres } from '../leveling'
 
 export interface BojoveStatistiky {
@@ -18,26 +20,31 @@ export interface BojoveStatistiky {
   kritickaBonus: number
 }
 
-/** Efektivní bojové bonusy postavy — sečtené z obchodu (useWalletStore.
- *  ownedItems) a z úrovně/dovedností té konkrétní postavy (leveling.ts).
- *  Používá jak samotný souboj (zahratKartu níž), tak Hrdina.tsx pro
- *  zobrazení statistik mimo boj — jeden zdroj pravdy, ať čísla v souboji
- *  a na kartě postavy nikdy nerozjedou. */
+/** Efektivní bojové bonusy postavy — sečtené ze TŘÍ nezávislých zdrojů:
+ *  obchodu (useWalletStore.ownedItems, účtové a trvalé), úrovně/
+ *  dovedností té konkrétní postavy (leveling.ts) a jejího aktuálně
+ *  nasazeného vybavení (Fáze 9, useVybaveniStore — na rozdíl od obchodu
+ *  jde vyměnit/sundat, na rozdíl od dovedností to nejde "přerozdělit",
+ *  jen nahradit jiným kusem). Používá jak samotný souboj (zahratKartu
+ *  níž), tak Hrdina.tsx pro zobrazení statistik mimo boj — jeden zdroj
+ *  pravdy, ať čísla v souboji a na kartě postavy nikdy nerozjedou. */
 export const vypocitejBojoveStatistiky = (
   postava: Postava,
   progres: PostavaProgres,
-  ownedItems: string[]
+  ownedItems: string[],
+  nasazenaVybaveniId?: string
 ): BojoveStatistiky => {
   const obchodVydrz = ownedItems.includes('elixir-vytrvalosti') ? 15 : 0
   const obchodPoskozeni = ownedItems.includes('nabrousena-cepel') ? 0.1 : 0
   const obchodKriticka = ownedItems.includes('stastna-mince') ? 0.05 : 0
 
   const bonusyProgresu = bojoveBonusyZProgresu(progres)
+  const vybaveni = nasazenaVybaveniId ? VYBAVENI.find((p) => p.id === nasazenaVybaveniId) : undefined
 
   return {
-    maxVydrz: postava.bojVydrz + obchodVydrz + bonusyProgresu.vydrz,
-    poskozeniBonus: obchodPoskozeni + bonusyProgresu.poskozeni,
-    kritickaBonus: obchodKriticka + bonusyProgresu.kriticka,
+    maxVydrz: postava.bojVydrz + obchodVydrz + bonusyProgresu.vydrz + (vybaveni?.bonusVydrz ?? 0),
+    poskozeniBonus: obchodPoskozeni + bonusyProgresu.poskozeni + (vybaveni?.bonusPoskozeni ?? 0),
+    kritickaBonus: obchodKriticka + bonusyProgresu.kriticka + (vybaveni?.bonusKriticka ?? 0),
   }
 }
 
@@ -280,7 +287,13 @@ const vyhodnotAkci = (
 export const useSouboj = (postava: Postava, nepratele: Nepritel[]) => {
   const ownedItems = useWalletStore((s) => s.ownedItems)
   const progres = useGameCharacter((s) => s.progres[postava.id]) ?? vychoziProgres()
-  const { maxVydrz, poskozeniBonus, kritickaBonus } = vypocitejBojoveStatistiky(postava, progres, ownedItems)
+  const nasazenaVybaveniId = useVybaveniStore((s) => s.nasazene[postava.id])
+  const { maxVydrz, poskozeniBonus, kritickaBonus } = vypocitejBojoveStatistiky(
+    postava,
+    progres,
+    ownedItems,
+    nasazenaVybaveniId
+  )
   const predmetyVBatohu = useInventarStore((s) => s.predmety)
   const spotrebovatPredmet = useInventarStore((s) => s.spotrebovatPredmet)
 

@@ -340,3 +340,11 @@
   color: var(--text-muted);
   cursor: default;
 }
+
+/* ---------- vybavení (Fáze 9) — reuses .hr-uzel/.hr-vylepsit z
+   dovednostního stromu výš, jen s odznakem nasazeného kusu ---------- */
+
+.hr-uzel--nasazeno {
+  border-color: var(--tp-barva);
+  box-shadow: 0 0 16px var(--tp-barva);
+}
