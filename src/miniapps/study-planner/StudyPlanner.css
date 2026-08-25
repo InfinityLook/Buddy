@@ -214,6 +214,13 @@
   letter-spacing: 0.4px;
 }
 
+.sp-hint {
+  margin: 0;
+  font-size: 0.65rem;
+  color: #64748b;
+  line-height: 1.4;
+}
+
 .sp-empty {
   margin: 0;
   padding: 1.2rem 0.5rem;

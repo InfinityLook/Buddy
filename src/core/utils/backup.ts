@@ -39,7 +39,7 @@ export const BACKUP_STORES: BackupStore[] = [
   // takže se sice zálohují (soubor má být věrný snímek), ale nikdy se
   // nezapisují zpět.
   { key: 'schoolbuddy-gamification-storage', storage: 'secure', label: 'XP a odznaky', restorable: false },
-  { key: 'schoolbuddy-study-planner-storage', storage: 'secure', label: 'Study Planner' },
+  { key: 'schoolbuddy-study-planner-storage', storage: 'secure', label: 'Planer' },
   { key: 'schoolbuddy-quick-notes-storage', storage: 'secure', label: 'Quick Notes' },
   { key: 'schoolbuddy-flashcards-storage', storage: 'secure', label: 'Flashcards' },
   { key: 'schoolbuddy-goal-tracker-storage', storage: 'secure', label: 'Goal Tracker' },

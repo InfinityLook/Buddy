@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
+import { requestNotificationPermission, showAppNotification } from '@/core/utils/notify'
 import {
   DEMO_TASK_IDS,
   DEMO_TASK_TOPICS,
@@ -18,6 +19,9 @@ const XP_PER_COMPLETED_TASK = 10
 
 interface StudyPlannerState {
   tasks: StudyTask[]
+  // Datum (YYYY-MM-DD), kdy naposledy odešlo upozornění na termíny —
+  // nejvýš jedno za den, ať appka nenotifikuje při každém návratu.
+  lastReminderDate: string | null
   toggleTask: (id: string) => void
   addTask: (subject: string, topic: string, dueDate: string, priority: TaskPriority) => void
   updateTask: (
@@ -37,6 +41,7 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
   persist(
     (set) => ({
       tasks: INITIAL_TASKS,
+      lastReminderDate: null,
 
       toggleTask: (id) =>
         set((state) => {
@@ -65,6 +70,13 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
         }
 
         set((state) => ({ tasks: [newTask, ...state.tasks] }))
+
+        // Založení prvního úkolu je nejpřirozenější chvíle zeptat se na
+        // svolení k notifikacím — teprve teď je jasné, že uživatel chce
+        // termíny hlídat. Volá se synchronně uvnitř kliknutí na "Přidat
+        // do plánu", pořád v gestu uživatele. Bez svolení volání jen
+        // tiše nic neudělá (viz core/utils/notify.ts).
+        requestNotificationPermission()
       },
 
       updateTask: (id, subject, topic, dueDate, priority) => {
@@ -95,11 +107,65 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
       merge: (persisted, current) => {
         const saved = persisted as Partial<StudyPlannerState> | undefined
         const tasks = (saved?.tasks ?? []).filter((task) => !isDemoTask(task))
-        return { ...current, ...saved, tasks }
+        return { ...current, ...saved, tasks, lastReminderDate: saved?.lastReminderDate ?? null }
       },
     }
   )
 )
+
+// ==========================================
+// Upozornění na termíny — systémová notifikace, ne jen ta v aplikaci
+// (zvonek v profilu, ProfilNotifications.tsx, ten už "N nesplněných
+// úkolů" ukazoval dřív, ale jen uvnitř appky, a bez rozlišení naléhavosti).
+//
+// Kontroluje se stejným "modulovým" vzorem jako Pomodoro
+// (core/utils/registerSW.ts, usePomodoro.ts) — setupStudyPlannerReminders
+// se volá jednou z App.tsx, ne z komponenty StudyPlanner.tsx, protože
+// AppModule/ProfilModule (a tím i tenhle store) se do hlavního balíčku
+// načítají hned při startu appky (viz import v ProfilNotifications.tsx),
+// takže kontrola termínů má fungovat i pro uživatele, co Study Planner
+// zrovna nemá otevřený.
+// ==========================================
+
+let remindersStarted = false
+
+const checkDueReminders = () => {
+  const state = useStudyPlannerStore.getState()
+  const today = todayIso()
+  // Nejvýš jedno upozornění za den — bez týhle podmínky by se kontrola
+  // spouštěla při každém návratu do appky.
+  if (state.lastReminderDate === today) return
+
+  const overdue = state.tasks.filter(
+    (t) => !t.completed && /^\d{4}-\d{2}-\d{2}$/.test(t.dueDate) && t.dueDate < today
+  ).length
+  const dueToday = state.tasks.filter((t) => !t.completed && t.dueDate === today).length
+  if (overdue === 0 && dueToday === 0) return
+
+  useStudyPlannerStore.setState({ lastReminderDate: today })
+
+  const parts: string[] = []
+  if (overdue > 0) parts.push(`${overdue}× po termínu`)
+  if (dueToday > 0) parts.push(`${dueToday}× dnes`)
+
+  void showAppNotification('📚 Termíny v Planeru', parts.join(' · '), 'study-planner')
+}
+
+/** Zapne kontrolu termínů. Volá se jednou ze startu aplikace (App.tsx). */
+export const setupStudyPlannerReminders = (): void => {
+  if (remindersStarted) return
+  remindersStarted = true
+
+  checkDueReminders()
+
+  // Nová kalendářní den mohl začít i bez toho, aby appka prošla plným
+  // znovunačtením — telefon jen probudil PWA na pozadí.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') checkDueReminders()
+  })
+  window.addEventListener('focus', checkDueReminders)
+  window.addEventListener('online', checkDueReminders)
+}
 
 // Nesplněné napřed, uvnitř podle termínu a při shodě podle priority.
 // Úkol po termínu tak nikdy nezapadne pod ten, co je až za měsíc.

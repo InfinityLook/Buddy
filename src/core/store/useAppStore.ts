@@ -51,7 +51,7 @@ interface AppState {
 }
 
 const DEFAULT_APPS: AppItem[] = [
-  { id: 'study-planner', title: 'Study Planner', category: 'Produktivita', icon: 'study-planner', color: 'purple', active: true, favorite: false },
+  { id: 'study-planner', title: 'Planer', category: 'Produktivita', icon: 'study-planner', color: 'purple', active: true, favorite: false },
   { id: 'flashcards', title: 'Flashcards', category: 'Vzdělávání', icon: 'flashcards', color: 'cyan', active: true, favorite: true },
   { id: 'pomodoro', title: 'Pomodoro', category: 'Produktivita', icon: 'pomodoro', color: 'orange', active: true, favorite: false },
   { id: 'math-solver', title: 'Math Solver', category: 'Nástroje', icon: 'math-solver', color: 'green', active: true, favorite: false },

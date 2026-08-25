@@ -26,6 +26,7 @@ import { isSupabaseConfigured } from '@/core/supabase/client'
 import { useAuthStore } from '@/core/store/useAuthStore'
 import { setupRoleDevTools, startRoleSync, useHasPermission } from '@/core/role'
 import { startInbox } from '@/social/inbox'
+import { setupStudyPlannerReminders } from '@/miniapps/study-planner/useStudyPlanner'
 
 export default function App() {
   const { isAuthed, login, logout } = useAuthStore()
@@ -86,6 +87,9 @@ export default function App() {
     // Přidělení role z konzole. Jen ve vývoji — v produkčním buildu se
     // celý blok vyhodí, viz core/role/devTools.ts.
     setupRoleDevTools()
+    // Upozornění na termíny v Planeru — kontroluje se hned a pak při
+    // každém návratu do appky, ne jen když je Planer zrovna otevřený.
+    setupStudyPlannerReminders()
   }, [])
 
   return (

@@ -93,7 +93,7 @@ export const useNotificationItems = (): NotificationItem[] => {
     if (pending > 0) {
       items.push({
         id: `tasks-${pending}`,
-        title: `Ve Study Planneru na tebe čeká nesplněných úkolů: ${pending}`,
+        title: `V Planeru na tebe čeká nesplněných úkolů: ${pending}`,
         time: 'Úkoly',
       })
     }

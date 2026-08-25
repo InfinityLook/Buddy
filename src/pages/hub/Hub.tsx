@@ -56,7 +56,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // Store aplikací — používáme pro deep-link do konkrétní miniaplikace
   const { setActiveAppId } = useAppStore()
 
-  // Reálné úkoly ze Study Planneru pro denní výzvu
+  // Reálné úkoly z Planeru pro denní výzvu
   const { tasks } = useStudyPlanner()
 
   const [toast, setToast] = useState<string | null>(null)
@@ -143,7 +143,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
     navigate('/profil')
   }
 
-  // Denní výzva otevře přímo Study Planner s úkoly; tlačítko Zpět v aplikaci
+  // Denní výzva otevře přímo Planer s úkoly; tlačítko Zpět v aplikaci
   // pak vrátí uživatele zpátky do Hubu, ne jen do seznamu aplikací.
   const handleChallengeClick = () => {
     setActiveAppId('study-planner', '/hub')
@@ -269,7 +269,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </div>
         </header>
 
-        {/* Denní výzva — reálné úkoly ze Study Planneru */}
+        {/* Denní výzva — reálné úkoly z Planeru */}
         <button className="hub-banner" onClick={handleChallengeClick}>
           <span className="hub-banner-tag">DENNÍ VÝZVA</span>
           <span className="hub-banner-text">{dailyChallenge}</span>

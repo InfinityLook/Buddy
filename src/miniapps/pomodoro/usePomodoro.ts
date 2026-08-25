@@ -6,8 +6,8 @@ import { useGamificationStore } from '@/core/store/useGamificationStore'
 import {
   notificationsEnabled,
   requestNotificationPermission,
-  showCompletionNotification,
-} from './pomodoroNotify'
+  showAppNotification,
+} from '@/core/utils/notify'
 import {
   DEFAULT_SETTINGS,
   LIMITS,
@@ -188,9 +188,10 @@ const usePomodoroStore = create<PomodoroState>()(
         }
 
         const finishedMode = state.mode
-        void showCompletionNotification(
+        void showAppNotification(
           finishedMode === 'work' ? '⏰ Soustředění dokončeno' : '⏰ Pauza skončila',
-          finishedMode === 'work' ? 'Blok doběhl — čas na pauzu.' : 'Pauza doběhla — zpátky do práce?'
+          finishedMode === 'work' ? 'Blok doběhl — čas na pauzu.' : 'Pauza doběhla — zpátky do práce?',
+          'pomodoro'
         )
 
         if (finishedMode === 'work') {

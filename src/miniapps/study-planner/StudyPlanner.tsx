@@ -72,11 +72,17 @@ export const StudyPlanner: React.FC = () => {
   return (
     <div className="sp-app">
       <div className="sp-header">
-        <h2>Study Planner</h2>
+        <h2>Planer</h2>
         <button className="sp-add-btn" onClick={isFormOpen ? closeForm : openAdd}>
           {isFormOpen ? '✕' : '+ Nový úkol'}
         </button>
       </div>
+
+      {totalCount === 0 && (
+        <p className="sp-hint">
+          🔔 Založ první úkol a dovolíme upozorňovat, když se blíží nebo mine termín.
+        </p>
+      )}
 
       {totalCount > 0 && (
         <div className="sp-summary">
