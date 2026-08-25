@@ -141,9 +141,14 @@
 }
 
 .dropdown-menu {
-  position: absolute;
-  top: 100%;
-  left: 0;
+  /* position: fixed, ne absolute — .doc-menu-nav má overflow-x: auto
+     kvůli řádkům, co se nevejdou na úzký telefon, a CSS spec kvůli tomu
+     dopočítá i overflow-y na 'auto' (nejde obejít explicitním
+     overflow-y: visible). Menu jako position: absolute potomek by se tak
+     ořízlo na výšku samotného řádku tlačítek a bylo by neviditelné.
+     Souřadnice top/left dopočítává MenuNav.tsx z getBoundingClientRect
+     tlačítka, které menu otevřelo. */
+  position: fixed;
   background-color: #1e293b;
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 8px;
@@ -152,6 +157,7 @@
   display: flex;
   flex-direction: column;
   min-width: 170px;
+  max-width: calc(100vw - 1.5rem);
   z-index: 100;
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useLayoutEffect, useRef, useState, useEffect } from 'react'
 import { MenuDropdown } from '../types'
 import { useDocumentStore } from '../useDocumentStore'
 import { sanitizeLinkUrl } from '../importContent'
@@ -28,6 +28,35 @@ export const MenuNav: React.FC<MenuNavProps> = ({ editorRef, onOpenManager, onNo
   // Výběr v editoru zmizí, jakmile fokus převezme dialog pro výběr souboru.
   // Uložíme si ho, ať obrázek přistane tam, kde uživatel stál.
   const savedRange = useRef<Range | null>(null)
+
+  // Tlačítka Soubor/Úpravy/Vložit/Formát leží v .doc-menu-nav, což má
+  // overflow-x: auto kvůli řádkům s víc položkami, než se vejde na
+  // úzký telefon. CSS spec ale u takového kontejneru automaticky
+  // dopočítá i overflow-y na 'auto' (nejde to obejít explicitním
+  // overflow-y: visible), takže by se rozbalené menu — position:
+  // absolute potomek uvnitř — oříznulo na výšku samotného řádku
+  // tlačítek a bylo by prakticky neviditelné. Dropdown proto dostává
+  // pozici přes position: fixed dopočítanou z getBoundingClientRect
+  // tlačítka, což ho z toho ořezávajícího kontextu úplně vyjme.
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number } | null>(null)
+  const buttonRefs = useRef<Partial<Record<Exclude<MenuDropdown, null>, HTMLButtonElement | null>>>({})
+  const setButtonRef = (key: Exclude<MenuDropdown, null>) => (el: HTMLButtonElement | null) => {
+    buttonRefs.current[key] = el
+  }
+
+  useLayoutEffect(() => {
+    const button = activeMenu ? buttonRefs.current[activeMenu] : null
+    if (!button) {
+      setDropdownPos(null)
+      return
+    }
+    const rect = button.getBoundingClientRect()
+    // U posledního tlačítka (Formát) by menu ukotvené přesně k levému
+    // okraji tlačítka na úzkém telefonu přesahovalo za pravý okraj
+    // obrazovky — přiskřípneme ho, ať zůstane celé viditelné.
+    const left = Math.min(rect.left, window.innerWidth - 190)
+    setDropdownPos({ top: rect.bottom, left: Math.max(8, left) })
+  }, [activeMenu])
 
   useEffect(() => {
     const handleClickOutside = (e: TouchEvent | MouseEvent) => {
@@ -137,11 +166,15 @@ export const MenuNav: React.FC<MenuNavProps> = ({ editorRef, onOpenManager, onNo
   return (
     <nav className="doc-menu-nav" ref={menuRef}>
       <div className="menu-item-wrapper">
-        <button className="menu-btn" onClick={() => setActiveMenu(activeMenu === 'file' ? null : 'file')}>
+        <button
+          ref={setButtonRef('file')}
+          className="menu-btn"
+          onClick={() => setActiveMenu(activeMenu === 'file' ? null : 'file')}
+        >
           Soubor
         </button>
-        {activeMenu === 'file' && (
-          <div className="dropdown-menu">
+        {activeMenu === 'file' && dropdownPos && (
+          <div className="dropdown-menu" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
             <button onClick={() => { createNewDocument(); setActiveMenu(null) }}>📄 Nový dokument</button>
             <button onClick={() => { saveCurrentDocument(); setActiveMenu(null) }}>💾 Uložit do appky</button>
             <button onClick={() => { onOpenManager(); setActiveMenu(null) }}>📂 Procházet soubory</button>
@@ -154,11 +187,15 @@ export const MenuNav: React.FC<MenuNavProps> = ({ editorRef, onOpenManager, onNo
       </div>
 
       <div className="menu-item-wrapper">
-        <button className="menu-btn" onClick={() => setActiveMenu(activeMenu === 'edit' ? null : 'edit')}>
+        <button
+          ref={setButtonRef('edit')}
+          className="menu-btn"
+          onClick={() => setActiveMenu(activeMenu === 'edit' ? null : 'edit')}
+        >
           Úpravy
         </button>
-        {activeMenu === 'edit' && (
-          <div className="dropdown-menu">
+        {activeMenu === 'edit' && dropdownPos && (
+          <div className="dropdown-menu" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
             <button onClick={() => exec('undo')}>↩ Zpět</button>
             <button onClick={() => exec('redo')}>↪ Vpřed</button>
             <div className="dropdown-divider" />
@@ -168,11 +205,15 @@ export const MenuNav: React.FC<MenuNavProps> = ({ editorRef, onOpenManager, onNo
       </div>
 
       <div className="menu-item-wrapper">
-        <button className="menu-btn" onClick={() => setActiveMenu(activeMenu === 'insert' ? null : 'insert')}>
+        <button
+          ref={setButtonRef('insert')}
+          className="menu-btn"
+          onClick={() => setActiveMenu(activeMenu === 'insert' ? null : 'insert')}
+        >
           Vložit
         </button>
-        {activeMenu === 'insert' && (
-          <div className="dropdown-menu">
+        {activeMenu === 'insert' && dropdownPos && (
+          <div className="dropdown-menu" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
             <button onClick={handlePickImage}>🖼️ Obrázek ze zařízení</button>
             <button onClick={handleInsertLink}>🔗 Odkaz</button>
             <button onClick={() => exec('insertHorizontalRule')}>➖ Vodorovná čára</button>
@@ -181,11 +222,15 @@ export const MenuNav: React.FC<MenuNavProps> = ({ editorRef, onOpenManager, onNo
       </div>
 
       <div className="menu-item-wrapper">
-        <button className="menu-btn" onClick={() => setActiveMenu(activeMenu === 'format' ? null : 'format')}>
+        <button
+          ref={setButtonRef('format')}
+          className="menu-btn"
+          onClick={() => setActiveMenu(activeMenu === 'format' ? null : 'format')}
+        >
           Formát
         </button>
-        {activeMenu === 'format' && (
-          <div className="dropdown-menu">
+        {activeMenu === 'format' && dropdownPos && (
+          <div className="dropdown-menu" style={{ top: dropdownPos.top, left: dropdownPos.left }}>
             <button onClick={() => exec('removeFormat')}>🧹 Vymazat formát</button>
             <button onClick={() => exec('subscript')}>x₂ Dolní index</button>
             <button onClick={() => exec('superscript')}>x² Horní index</button>
