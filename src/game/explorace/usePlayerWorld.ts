@@ -120,7 +120,7 @@ export const usePlayerWorld = ({ konfigurace, onSetkani }: UsePlayerWorldOptions
     // místo setkání, ať hráči nic neblokuje výhled ani cestu ---
     const dekorace = new THREE.Group()
     scene.add(dekorace)
-    const pocetDekoraci = konfigurace.teren === 'les' ? 46 : 22
+    const pocetDekoraci = konfigurace.teren === 'les' ? 46 : konfigurace.teren === 'jeskyne' ? 30 : 22
     const volnaZonaKolem = (x: number, z: number, px: number, pz: number, min: number) =>
       Math.hypot(x - px, z - pz) < min
 
@@ -140,7 +140,8 @@ export const usePlayerWorld = ({ konfigurace, onSetkani }: UsePlayerWorldOptions
           volnaZonaKolem(x, z, konfigurace.poziceSetkani[0], konfigurace.poziceSetkani[1], konfigurace.polomerSetkani + 2.5))
       )
 
-      const jeStrom = konfigurace.teren === 'les' || Math.random() > 0.45
+      // Jeskyně nemá stromy — jen kameny (sutiny/krápníkové balvany).
+      const jeStrom = konfigurace.teren !== 'jeskyne' && (konfigurace.teren === 'les' || Math.random() > 0.45)
       const skupinaObjektu = new THREE.Group()
 
       if (jeStrom) {

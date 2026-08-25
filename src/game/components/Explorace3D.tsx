@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Postava, Lokace } from '../types'
 import { SVETY_PODLE_LOKACE } from '../data/world'
 import { QUESTS } from '../data/quests'
+import { NEPRATELE_PODLE_LOKACE } from '../combat/nepratele'
 import { useQuestStore, jeCilSplneny } from '../useQuestStore'
 import { usePlayerWorld } from '../explorace/usePlayerWorld'
 import { VirtualniJoystick } from './VirtualniJoystick'
@@ -33,6 +34,12 @@ export const Explorace3D: React.FC<Props> = ({ postava, lokace, onSetkani, onOde
   // pro budoucí víceúčelové questy je tohle jediné správné chování
   // (ne poslední/první bez ohledu na stav).
   const aktivniCil = quest?.cile.find((c) => !jeCilSplneny(quest.id, c.id, splneneCile))
+  // Lokace bez questu, co má víc nepřátel za sebou (dungeon), dostane
+  // místo cíle questu upozornění na to, co ji dělá jinou — výdrž se
+  // mezi souboji v jedné návštěvě neobnoví. Bez týhle větve by 3D
+  // vstupní chodba dungeonu neměla žádný HUD vůbec, na rozdíl od
+  // Emberfallu, který ho má vždycky (přes quest).
+  const nepratele = !quest ? NEPRATELE_PODLE_LOKACE[lokace.id] : undefined
 
   const [napovedaViditelna, setNapovedaViditelna] = useState(true)
 
@@ -88,6 +95,13 @@ export const Explorace3D: React.FC<Props> = ({ postava, lokace, onSetkani, onOde
         <div className="explorace-quest-hud">
           <span className="explorace-quest-jmeno">📜 {quest.nazev}</span>
           <span className="explorace-quest-cil">{aktivniCil.popis}</span>
+        </div>
+      )}
+
+      {nepratele && nepratele.length > 1 && (
+        <div className="explorace-quest-hud explorace-quest-hud--varovani">
+          <span className="explorace-quest-jmeno">⚠️ {nepratele.length} nepřátel za sebou</span>
+          <span className="explorace-quest-cil">Výdrž se mezi nimi neobnoví — připrav se předem.</span>
         </div>
       )}
 

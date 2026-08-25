@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LOKACE, POPIS_TYPU } from '../lokace'
 import { NEPRATELE_PODLE_LOKACE } from '../combat/nepratele'
+import { SVETY_PODLE_LOKACE } from '../data/world'
 import { QUESTS } from '../data/quests'
 import { STORY } from '../data/story'
 import { useQuestStore, stavQuestu, jeCilSplneny } from '../useQuestStore'
@@ -71,13 +72,18 @@ export const MapaSveta: React.FC<Props> = ({
   const splneneCile = useQuestStore((s) => s.splneneCile)
 
   const detail = LOKACE.find((l) => l.id === otevrena) ?? null
-  // 'explorace' lokace mají nepřítele taky (viz combat/nepratele.ts —
-  // souboj samotný na konci 3D průzkumu ho pořád potřebuje), ale
-  // souboj se z listu místa nespouští přímo — nejdřív musí hráč projít
-  // 3D svět a najít ho tam (viz jeExplorace níž).
+  // Lokace s nepřítelem, co má i 3D svět (viz jeExplorace níž), ho
+  // pořád potřebuje pro souboj samotný na konci průzkumu — ale souboj
+  // se z listu místa nespouští přímo, nejdřív musí hráč projít 3D svět
+  // a najít ho tam.
   const nepratele = detail ? NEPRATELE_PODLE_LOKACE[detail.id] : undefined
   const jeTrziste = detail?.typ === 'trziste'
-  const jeExplorace = detail?.typ === 'explorace'
+  // Jestli má lokace 3D průzkum se pozná podle přítomnosti v
+  // SVETY_PODLE_LOKACE (data/world.ts), ne podle Lokace.typ — typ je
+  // jen popisek na mapě (Dungeon, Aréna, …), 3D svět je nezávislá
+  // vlastnost. Molten Core (typ 'dungeon') díky tomu má 3D vstupní
+  // chodbu a přitom si drží svůj vlastní popisek/barvu na mapě.
+  const jeExplorace = detail ? !!SVETY_PODLE_LOKACE[detail.id] : false
   const quest = detail ? QUESTS.find((q) => q.lokaceId === detail.id) : undefined
   const questStav = quest ? stavQuestu(quest.id, aktivniQuesty, dokonceneQuesty) : undefined
 
@@ -176,7 +182,11 @@ export const MapaSveta: React.FC<Props> = ({
               {jeTrziste
                 ? 'Trvalá vylepšení za kredity z boje — elixíry, čepele a další věci, co platí pro celou tvou partu.'
                 : jeExplorace
-                  ? (quest?.popis ?? 'Nové místo k prozkoumání ve 3D — vydej se dovnitř a podívej se, co tam najdeš.')
+                  ? quest
+                    ? quest.popis
+                    : nepratele && nepratele.length > 1
+                      ? `Temná chodba vede k ${nepratele.length} nepřátelům za sebou — výdrž se mezi nimi neobnoví. Vejdi dovnitř a najdi je.`
+                      : 'Nové místo k prozkoumání ve 3D — vydej se dovnitř a podívej se, co tam najdeš.'
                   : nepratele
                     ? nepratele.length > 1
                       ? `${nepratele.length} nepřátel na tebe čeká za sebou — výdrž se mezi nimi neobnoví. Troufneš si?`

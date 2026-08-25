@@ -85,6 +85,13 @@
   color: var(--text-secondary);
 }
 
+/* Varianta bez questu (dungeon) — upozornění na sérii nepřátel místo
+   cíle questu, jiná barva jména ať je na první pohled jasné, že to
+   neznamená totéž. */
+.explorace-quest-hud--varovani .explorace-quest-jmeno {
+  color: #ef4444;
+}
+
 /* ---------- zaměřovač uprostřed obrazovky ---------- */
 
 .explorace-zamerovac {
