@@ -12,6 +12,13 @@ name: CI
 # schovávat je v CI by nic nechránilo. OPENROUTER_API_KEY a
 # SUPABASE_SERVICE_ROLE_KEY se sem naopak nikdy nedávají — ty
 # testy (buddy-chat, admin-ban) v e2e/security vrstvě zatím nejsou.
+#
+# node-version: 22, ne 20 — jsdom (přes vitest/whatwg-url) na Node 20
+# spadne hned při startu ("webidl.util.markAsUncloneable is not a
+# function", jsdomův vlastní vnořený undici potřebuje webidl internals,
+# co Node 20 nemá). whatwg-url@17 to ostatně sám hlásí přes npm
+# EBADENGINE (^22.14.0 || >=24.0.0). Node 22 je i to, na čem běžely
+# a byly ověřené všechny testy celou tuhle session.
 # ==========================================
 
 on:
@@ -30,7 +37,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npm run test
@@ -41,7 +48,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium

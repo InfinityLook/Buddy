@@ -56,9 +56,22 @@ export default defineConfig({
     // Sestavení je záměrně mimo tenhle příkaz (CI ho spouští jako
     // samostatný krok před testy) — `vite preview` čte hotové dist/,
     // build sem zabalený by ho pokaždé dělal znovu i lokálně.
-    command: `npm run preview -- --port ${PORT} --strictPort`,
+    //
+    // --host 127.0.0.1 je schválně natvrdo, ne defaultní `localhost` —
+    // na GitHub Actions runnerech se `localhost` občas přeloží na ::1
+    // dřív než na 127.0.0.1, server pak poslouchá jen na IPv6 a
+    // Playwrightova IPv4 kontrola (url níž) na něj nikdy nenarazí,
+    // takže jen tiše čeká celých 30 s a spadne na timeoutu bez jediné
+    // hlášky. Vynucením stejné adresy na obou stranách tahle třída
+    // chyby zmizí úplně, ne že by ji jen zakryl delší timeout.
+    command: `npm run preview -- --port ${PORT} --strictPort --host 127.0.0.1`,
     url: `http://127.0.0.1:${PORT}`,
     reuseExistingServer: !process.env.CI,
-    timeout: 30_000,
+    timeout: 60_000,
+    // Bez tohohle Playwright výstup serveru při selhání vůbec
+    // nezobrazí — příští podobná chyba (ať už stejná, nebo jiná) bude
+    // aspoň vidět v CI logu, ne jen jako holé "Timed out waiting".
+    stdout: 'pipe',
+    stderr: 'pipe',
   },
 })
