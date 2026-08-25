@@ -33,29 +33,6 @@
   padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem;
 }
 
-.examprep-back-btn {
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-  font-size: 1.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: transform 0.15s ease, filter 0.15s ease;
-  outline: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.examprep-back-btn:active {
-  transform: scale(0.9);
-  filter: brightness(1.25);
-}
-
 .examprep-title-group {
   flex: 1;
   min-width: 0;

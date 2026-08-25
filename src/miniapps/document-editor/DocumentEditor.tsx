@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Header } from './components/Header'
 import { MenuNav } from './components/MenuNav'
 import { MainToolbar } from './components/MainToolbar'
@@ -11,15 +10,10 @@ import { useDocumentStore } from './useDocumentStore'
 import { ActiveTab } from './types'
 import './DocumentEditor.css'
 
-interface DocumentEditorProps {
-  onBack?: () => void
-}
-
 // Jak dlouho po posledním úderu do klávesnice se dokument uloží sám
 const AUTOSAVE_DELAY = 1200
 
-export const DocumentEditor: React.FC<DocumentEditorProps> = ({ onBack }) => {
-  const navigate = useNavigate()
+export const DocumentEditor: React.FC = () => {
   const editorRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<ActiveTab>('editor')
   const [showMore, setShowMore] = useState(false)
@@ -51,8 +45,10 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({ onBack }) => {
     }
   }, [currentContent, currentTitle, isSaved, autosaveCurrent])
 
-  // Odchod z editoru (zpět, zavření záložky, přepnutí aplikace) nesmí
-  // spolknout posledních pár vteřin psaní.
+  // Odchod z editoru (zavření záložky, přepnutí aplikace, ale i odchod
+  // přes společné "Zpět do seznamu" v AppModule.tsx — to komponentu
+  // odmountuje, takže i tenhle efekt při odchodu doběhne) nesmí spolknout
+  // posledních pár vteřin psaní.
   useEffect(() => {
     const flush = () => autosaveCurrent()
     window.addEventListener('pagehide', flush)
@@ -66,16 +62,10 @@ export const DocumentEditor: React.FC<DocumentEditorProps> = ({ onBack }) => {
     }
   }, [autosaveCurrent])
 
-  const handleBack = () => {
-    autosaveCurrent()
-    if (onBack) onBack()
-    else navigate('/apps')
-  }
-
   return (
     <div className="doc-editor-container">
       <header className="doc-header">
-        <Header onBack={handleBack} />
+        <Header />
         <div className="tab-switcher">
           <button
             className={`tab-btn ${activeTab === 'editor' ? 'active' : ''}`}

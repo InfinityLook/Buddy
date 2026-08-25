@@ -1,5 +1,4 @@
 import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 
 import { DashboardTab } from './components/DashboardTab'
@@ -11,12 +10,11 @@ import './ExamPrepApp.css'
 
 type TabType = 'dashboard' | 'subjects' | 'flashcards' | 'simulator'
 
-interface ExamPrepAppProps {
-  onBack?: () => void
-}
-
-export const ExamPrepApp: React.FC<ExamPrepAppProps> = ({ onBack }) => {
-  const navigate = useNavigate()
+// Vlastní tlačítko zpět tu dřív bylo navíc — AppModule.tsx kolem každé
+// otevřené miniaplikace už kreslí společnou hlavičku s "Zpět do seznamu",
+// takže tohle druhé šipkové tlačítko vedlo do stejného místa a jen
+// zabíralo místo. Viz stejná oprava v document-editor/components/Header.tsx.
+export const ExamPrepApp: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
 
   // Gamifikace
@@ -26,26 +24,10 @@ export const ExamPrepApp: React.FC<ExamPrepAppProps> = ({ onBack }) => {
   // by uživatel četl "přidej si okruhy" a musel hledat kde.
   const goToSubjects = () => setActiveTab('subjects')
 
-  const handleBack = () => {
-    if (onBack) {
-      onBack()
-    } else {
-      navigate('/apps')
-    }
-  }
-
   return (
     <div className="examprep-container">
       {/* Header */}
       <header className="examprep-header">
-        <button 
-          className="examprep-back-btn" 
-          onClick={handleBack}
-          aria-label="Zpět do aplikací"
-        >
-          ←
-        </button>
-
         <div className="examprep-title-group">
           <h1 className="examprep-title">Maturitní Centrum</h1>
           <p className="examprep-subtitle">ExamPrep Hub</p>

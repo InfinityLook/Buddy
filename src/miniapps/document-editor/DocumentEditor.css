@@ -30,15 +30,6 @@
   padding: 0.5rem 0.75rem;
 }
 
-.doc-back-btn {
-  background: transparent;
-  border: none;
-  color: #f8fafc;
-  font-size: 1.4rem;
-  cursor: pointer;
-  padding: 0.2rem 0.4rem;
-}
-
 .doc-title-wrapper {
   flex: 1;
   display: flex;
