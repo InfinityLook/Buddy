@@ -7,6 +7,7 @@ import { Souboj } from './components/Souboj'
 import { Obchod } from './components/Obchod'
 import { Hrdina } from './components/Hrdina'
 import { Questy } from './components/Questy'
+import { Inventar } from './components/Inventar'
 import { StoryDialog } from './components/StoryDialog'
 import { useGameCharacter } from './useGameCharacter'
 import { useQuestStore } from './useQuestStore'
@@ -43,8 +44,9 @@ const Explorace3D = React.lazy(() =>
 //  6) zvoleno + obchod    -> Obchod
 //  7) zvoleno + hrdina    -> Hrdina (postava, statistiky, vylepšení, dovednosti)
 //  8) zvoleno + questy     -> Questy (quest log, viz Questy.tsx)
-//  9) zvoleno + průzkum    -> Explorace3D (3D svět, viz níž)
-// 10) zvoleno              -> MapaSveta
+//  9) zvoleno + batoh      -> Inventar (loot, viz Inventar.tsx)
+// 10) zvoleno + průzkum    -> Explorace3D (3D svět, viz níž)
+// 11) zvoleno              -> MapaSveta
 //
 // Herní smyčka MAPA → LOKACE → 3D SVĚT → PRŮZKUM → SETKÁNÍ → SOUBOJ →
 // ODMĚNA → QUEST SPLNĚN → XP → STORY → ZPĚT NA MAPU: MapaSveta u
@@ -72,6 +74,7 @@ export const GameModule: React.FC = () => {
   const [obchodOtevren, setObchodOtevren] = useState(false)
   const [hrdinaOtevren, setHrdinaOtevren] = useState(false)
   const [questyOtevreny, setQuestyOtevreny] = useState(false)
+  const [inventarOtevren, setInventarOtevren] = useState(false)
   const [exploraceLokaceId, setExploraceLokaceId] = useState<string | null>(null)
   const [storyId, setStoryId] = useState<string | null>(null)
   const splnitCil = useQuestStore((s) => s.splnitCil)
@@ -163,7 +166,12 @@ export const GameModule: React.FC = () => {
     return <Questy onOdejit={() => setQuestyOtevreny(false)} />
   }
 
-  // 9) Průzkum má přednost, dokud probíhá — jen tady se odblokuje
+  // 9) Batoh má přednost, dokud je otevřený
+  if (aktivniPostava && inventarOtevren) {
+    return <Inventar onOdejit={() => setInventarOtevren(false)} />
+  }
+
+  // 10) Průzkum má přednost, dokud probíhá — jen tady se odblokuje
   // setSoubojLokaceId, které pak výš (krok 4) na dalším renderu
   // přepne na Souboj, aniž by Explorace3D o Souboj.tsx cokoli vědělo.
   const lokaceExplorace = exploraceLokaceId ? LOKACE.find((l) => l.id === exploraceLokaceId) : undefined
@@ -180,7 +188,7 @@ export const GameModule: React.FC = () => {
     )
   }
 
-  // 10) Zvoleno, za koho se hraje — mapa
+  // 11) Zvoleno, za koho se hraje — mapa
   if (aktivniPostava) {
     return (
       <MapaSveta
@@ -190,6 +198,7 @@ export const GameModule: React.FC = () => {
         onVstoupitDoSveta={setExploraceLokaceId}
         onOtevritHrdinu={() => setHrdinaOtevren(true)}
         onOtevritQuesty={() => setQuestyOtevreny(true)}
+        onOtevritInventar={() => setInventarOtevren(true)}
       />
     )
   }

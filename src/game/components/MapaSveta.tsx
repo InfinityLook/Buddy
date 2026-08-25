@@ -31,6 +31,8 @@ interface Props {
   onOtevritHrdinu: () => void
   /** Volá se na dlaždici Questy v menu mapy (viz Questy.tsx). */
   onOtevritQuesty: () => void
+  /** Volá se na dlaždici Batoh v menu mapy (viz Inventar.tsx). */
+  onOtevritInventar: () => void
 }
 
 // ==========================================
@@ -54,6 +56,7 @@ export const MapaSveta: React.FC<Props> = ({
   onVstoupitDoSveta,
   onOtevritHrdinu,
   onOtevritQuesty,
+  onOtevritInventar,
 }) => {
   const navigate = useNavigate()
   const progres = useGameCharacter((s) => s.progres[postava.id]) ?? vychoziProgres()
@@ -284,6 +287,18 @@ export const MapaSveta: React.FC<Props> = ({
                   📜
                 </span>
                 <span className="mapa-menu-dlazdice-nazev">Questy</span>
+              </button>
+              <button
+                className="mapa-menu-dlazdice"
+                onClick={() => {
+                  setMenuOtevrene(false)
+                  onOtevritInventar()
+                }}
+              >
+                <span className="mapa-menu-dlazdice-ikona" aria-hidden="true">
+                  🎒
+                </span>
+                <span className="mapa-menu-dlazdice-nazev">Batoh</span>
               </button>
             </div>
           </div>

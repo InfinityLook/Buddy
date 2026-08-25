@@ -24,6 +24,8 @@ export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
       poskozeniDo: 12,
       odmenaXp: 40,
       odmenaKredity: 25,
+      lupId: 'lecivy-lektvar',
+      sanceNaLup: 0.4,
     },
   ],
 
@@ -40,6 +42,8 @@ export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
       poskozeniDo: 9,
       odmenaXp: 20,
       odmenaKredity: 12,
+      lupId: 'lecivy-lektvar',
+      sanceNaLup: 0.5,
     },
   ],
 
@@ -73,6 +77,8 @@ export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
       poskozeniDo: 14,
       odmenaXp: 50,
       odmenaKredity: 35,
+      lupId: 'lecivy-lektvar',
+      sanceNaLup: 0.6,
     },
   ],
 }

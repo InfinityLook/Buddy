@@ -262,6 +262,63 @@
   color: var(--text-secondary);
 }
 
+/* ---------- batohové předměty (Fáze 6, inventory) ---------- */
+
+.souboj-predmet {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid #4ade80;
+  color: var(--text-primary);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
+  transition: transform 0.12s ease;
+}
+
+.souboj-predmet:active { transform: scale(0.98); }
+
+.souboj-predmet-ikona {
+  flex-shrink: 0;
+  font-size: 1.4rem;
+}
+
+.souboj-predmet-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.souboj-predmet-nazev {
+  font-size: 0.76rem;
+  font-weight: 800;
+  color: #4ade80;
+}
+
+.souboj-predmet-popis {
+  font-size: 0.66rem;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.souboj-predmet-pocet {
+  flex-shrink: 0;
+  padding: 0.2rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: #4ade80;
+  color: #06121f;
+  font-size: 0.62rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 /* ---------- konec souboje ---------- */
 
 .souboj-konec {

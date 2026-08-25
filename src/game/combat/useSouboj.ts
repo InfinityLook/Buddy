@@ -4,6 +4,8 @@ import { Karta, Nepritel } from './types'
 import { Postava } from '../types'
 import { useWalletStore } from '@/core/store/useWalletStore'
 import { useGameCharacter } from '../useGameCharacter'
+import { useInventarStore } from '../useInventarStore'
+import { LUP } from '../data/items'
 import { bojoveBonusyZProgresu, PostavaProgres, vychoziProgres } from '../leveling'
 
 export interface BojoveStatistiky {
@@ -58,6 +60,13 @@ interface SoubojStav {
    *  pouzitSchopnost níž. Nezresetuje se mezi soupeři v dungeonu,
    *  jen mezi celými souboji (zkusitZnovu). */
   schopnostPouzita: boolean
+  /** Lup vydrolený z poražených nepřátel tohohle souboje (Fáze 6,
+   *  inventory) — id z game/data/items.ts, jedno na poraženého
+   *  nepřítele, co lup má. Souboj.tsx ho po výhře přidá do batohu přes
+   *  useInventarStore.pridatPredmet — sám useSouboj do žádného storu
+   *  nezapisuje, jen si výsledky pamatuje ve svém stavu (stejně jako
+   *  odmenaXp/odmenaKredity). */
+  ziskanyLup: string[]
 }
 
 /** Výsledek jedné hráčovy akce (karta i schopnost) v jednotném tvaru —
@@ -112,8 +121,15 @@ const pocatecniStav = (maxVydrz: number, nepratele: Nepritel[]): SoubojStav => {
     odmenaXp: 0,
     odmenaKredity: 0,
     schopnostPouzita: false,
+    ziskanyLup: [],
   }
 }
+
+/** Rozhodne, jestli poražený nepřítel zrovna upustil svůj loot —
+ *  čistá funkce (žádný zápis do storu), aby vyhodnotAkci níž zůstala
+ *  čistá taky. */
+const vyhodnotLup = (nepritel: Nepritel): string | null =>
+  nepritel.lupId && Math.random() < (nepritel.sanceNaLup ?? 0) ? nepritel.lupId : null
 
 /** Aplikuje jednu vyhodnocenou hráčovu akci na aktuální stav — poškození/
  *  léčení, kontrola výhry (a případně dalšího soupeře v dungeonu), a
@@ -133,6 +149,9 @@ const vyhodnotAkci = (
   if (nepritelZivotyNove <= 0) {
     const odmenaXp = s.odmenaXp + aktualni.odmenaXp
     const odmenaKredity = s.odmenaKredity + aktualni.odmenaKredity
+    const novyLup = vyhodnotLup(aktualni)
+    const ziskanyLup = novyLup ? [...s.ziskanyLup, novyLup] : s.ziskanyLup
+    const zpravaLupu = novyLup ? ` ${LUP.find((l) => l.id === novyLup)?.ikona ?? ''} Získáváš loot!` : ''
     const dalsiIndex = s.indexNepritele + 1
 
     if (dalsiIndex >= nepratele.length) {
@@ -143,10 +162,11 @@ const vyhodnotAkci = (
         faze: 'vyhra',
         odmenaXp,
         odmenaKredity,
+        ziskanyLup,
         log: [
           ...s.log,
           akce.zprava,
-          nepratele.length > 1 ? `${aktualni.jmeno} poražen! Dungeon dokončen.` : `${aktualni.jmeno} poražen! Výhra.`,
+          `${aktualni.jmeno} poražen! ${nepratele.length > 1 ? 'Dungeon dokončen.' : 'Výhra.'}${zpravaLupu}`,
         ],
       }
     }
@@ -161,7 +181,8 @@ const vyhodnotAkci = (
       ...rukaDalsihoSoupere,
       odmenaXp,
       odmenaKredity,
-      log: [...s.log, akce.zprava, `${aktualni.jmeno} poražen! Před tebou další soupeř: ${dalsi.jmeno}.`],
+      ziskanyLup,
+      log: [...s.log, akce.zprava, `${aktualni.jmeno} poražen!${zpravaLupu} Před tebou další soupeř: ${dalsi.jmeno}.`],
     }
   }
 
@@ -202,26 +223,32 @@ const vyhodnotAkci = (
 // ==========================================
 // Tahový soubojový stav — žije jen jako React state uvnitř Souboj.tsx,
 // nic se nepersistuje (souboj se dá kdykoli přerušit návratem na mapu
-// beze ztráty postavy). Hráč zahraje kartu NEBO jednou za souboj
-// použije postavinu signální schopnost (viz pouzitSchopnost), dá
-// poškození (s bonusem za postavin živel a šancí na kritický zásah u
-// karet), pak automaticky odpoví nepřítel — dokud jedna ze stran
+// beze ztráty postavy). Hráč v jednom tahu zahraje kartu, NEBO jednou
+// za souboj použije postavinu signální schopnost (pouzitSchopnost),
+// NEBO spotřebuje batohový předmět (pouzitPredmet, Fáze 6, inventory)
+// — všechny tři běží přes stejnou vyhodnotAkci výš, dá poškození/
+// léčení, pak automaticky odpoví nepřítel — dokud jedna ze stran
 // nedojde na nulu.
 //
 // Nepřátel může být víc za sebou (dungeon) — hráčova výdrž se mezi nimi
-// NEOBNOVUJE, jen se plynule pokračuje na dalšího, a odměna se sčítá.
+// NEOBNOVUJE, jen se plynule pokračuje na dalšího, a odměna (XP, kredity,
+// i případný loot) se sčítá.
 // Aréna s jedním nepřítelem funguje úplně stejně, jen bez přechodu.
 //
 // Bonusy se sčítají ze dvou nezávislých zdrojů: koupené předměty
 // z obchodu (useWalletStore.ownedItems, platí pro kohokoli z party) a
 // úroveň/dovednosti té KONKRÉTNÍ postavy (useGameCharacter.progres,
 // viz leveling.ts) — obojí se přičítá k postaviným vlastním číslům.
+// Batohový loot (useInventarStore) je oddělený systém — obchodní
+// položky jsou trvalé, loot je spotřební, viz komentář v data/items.ts.
 // ==========================================
 
 export const useSouboj = (postava: Postava, nepratele: Nepritel[]) => {
   const ownedItems = useWalletStore((s) => s.ownedItems)
   const progres = useGameCharacter((s) => s.progres[postava.id]) ?? vychoziProgres()
   const { maxVydrz, poskozeniBonus, kritickaBonus } = vypocitejBojoveStatistiky(postava, progres, ownedItems)
+  const predmetyVBatohu = useInventarStore((s) => s.predmety)
+  const spotrebovatPredmet = useInventarStore((s) => s.spotrebovatPredmet)
 
   const [stav, setStav] = useState<SoubojStav>(() => pocatecniStav(maxVydrz, nepratele))
 
@@ -292,6 +319,33 @@ export const useSouboj = (postava: Postava, nepratele: Nepritel[]) => {
     })
   }, [postava, nepratele, maxVydrz])
 
+  /** Použije jeden kus batohového předmětu — na rozdíl od pouzitSchopnost
+   *  není omezené na jednou za souboj, jen počtem kusů v batohu.
+   *  Spotřebování z useInventarStore proběhne ihned (mimo React state
+   *  souboje); pokud hráč předmět neměl, spotrebovatPredmet vrátí
+   *  false a nic dalšího se neodehraje. */
+  const pouzitPredmet = useCallback(
+    (lupId: string) => {
+      const lup = LUP.find((l) => l.id === lupId)
+      if (!lup || !spotrebovatPredmet(lupId)) return
+
+      setStav((s) => {
+        if (s.faze !== 'probiha') return s
+        if (lup.typ === 'leceni') {
+          const uzdraveni = vRozsahu(lup.hodnotaOd, lup.hodnotaDo)
+          return vyhodnotAkci(s, postava, nepratele, maxVydrz, {
+            poskozeniNepriteli: 0,
+            zmenaVlastniVydrze: uzdraveni,
+            zprava: `${postava.jmeno} použil/a ${lup.nazev} → +${uzdraveni} výdrže.`,
+            blokujeProtiutok: false,
+          })
+        }
+        return s
+      })
+    },
+    [postava, nepratele, maxVydrz, spotrebovatPredmet]
+  )
+
   const zkusitZnovu = useCallback(() => {
     setStav(pocatecniStav(maxVydrz, nepratele))
   }, [maxVydrz, nepratele])
@@ -312,8 +366,11 @@ export const useSouboj = (postava: Postava, nepratele: Nepritel[]) => {
     odmenaXp: stav.odmenaXp,
     odmenaKredity: stav.odmenaKredity,
     schopnostPouzita: stav.schopnostPouzita,
+    ziskanyLup: stav.ziskanyLup,
+    predmetyVBatohu,
     zahratKartu,
     pouzitSchopnost,
+    pouzitPredmet,
     zkusitZnovu,
   }
 }

@@ -37,4 +37,9 @@ export interface Nepritel {
   poskozeniDo: number
   odmenaXp: number
   odmenaKredity: number
+  /** Volitelný loot (Fáze 6, inventory) — id z game/data/items.ts a
+   *  šance 0–1, že ho poražený nepřítel upustí. Nepřítomné/undefined =
+   *  žádný loot z tohohle nepřítele. */
+  lupId?: string
+  sanceNaLup?: number
 }

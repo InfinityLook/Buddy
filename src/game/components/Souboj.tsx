@@ -1,11 +1,13 @@
 import React, { useEffect, useRef } from 'react'
 import { useSouboj } from '../combat/useSouboj'
 import { BARVA_ZIVLU, NAZEV_ZIVLU } from '../combat/karty'
+import { LUP } from '../data/items'
 import { Nepritel } from '../combat/types'
 import { Postava } from '../types'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useWalletStore } from '@/core/store/useWalletStore'
 import { useGameCharacter } from '../useGameCharacter'
+import { useInventarStore } from '../useInventarStore'
 import './Souboj.css'
 
 interface Props {
@@ -47,13 +49,17 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
     odmenaXp,
     odmenaKredity,
     schopnostPouzita,
+    ziskanyLup,
+    predmetyVBatohu,
     zahratKartu,
     pouzitSchopnost,
+    pouzitPredmet,
     zkusitZnovu,
   } = useSouboj(postava, nepratele)
   const recordAction = useGamificationStore((s) => s.recordAction)
   const credit = useWalletStore((s) => s.credit)
   const pridatXpPostave = useGameCharacter((s) => s.pridatXpPostave)
+  const pridatPredmet = useInventarStore((s) => s.pridatPredmet)
   // Hlídá, aby se odměna připsala jen jednou za výhru — "Zkusit znovu"
   // vrátí fázi zpátky na 'probiha', což odemkne odměnu pro příští výhru.
   const odmenaPripsana = useRef(false)
@@ -68,6 +74,7 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
     recordAction('battle', odmenaXp)
     credit(odmenaKredity)
     pridatXpPostave(postava.id, odmenaXp)
+    for (const lupId of ziskanyLup) pridatPredmet(lupId)
     onVyhra?.()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faze])
@@ -178,6 +185,23 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
               </span>
               <span className="souboj-schopnost-stav">{schopnostPouzita ? 'Použito' : '1×'}</span>
             </button>
+
+            {/* Batohový loot (Fáze 6, inventory) — jen tolikrát, kolik
+                kusů hráč doopravdy má, ne jednou za souboj jako
+                schopnost. Řádek se vůbec nezobrazí, když batoh
+                neobsahuje nic použitelného v boji. */}
+            {LUP.filter((l) => (predmetyVBatohu[l.id] ?? 0) > 0).map((lup) => (
+              <button key={lup.id} className="souboj-predmet" onClick={() => pouzitPredmet(lup.id)}>
+                <span className="souboj-predmet-ikona" aria-hidden="true">
+                  {lup.ikona}
+                </span>
+                <span className="souboj-predmet-text">
+                  <span className="souboj-predmet-nazev">{lup.nazev}</span>
+                  <span className="souboj-predmet-popis">{lup.popis}</span>
+                </span>
+                <span className="souboj-predmet-pocet">×{predmetyVBatohu[lup.id]}</span>
+              </button>
+            ))}
           </>
         )}
 
@@ -191,6 +215,19 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
                 <h2>{celkemSouperu > 1 ? 'Dungeon dokončen!' : 'Výhra!'}</h2>
                 <p>
                   Získáváš {odmenaXp} XP a {odmenaKredity} kreditů.
+                  {ziskanyLup.length > 0 && (
+                    <>
+                      {' '}
+                      Do batohu přibylo:{' '}
+                      {ziskanyLup.map((id, i) => (
+                        <span key={i}>
+                          {i > 0 && ', '}
+                          {LUP.find((l) => l.id === id)?.ikona} {LUP.find((l) => l.id === id)?.nazev}
+                        </span>
+                      ))}
+                      .
+                    </>
+                  )}
                 </p>
               </>
             ) : (
