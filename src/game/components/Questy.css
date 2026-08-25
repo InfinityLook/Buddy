@@ -1,0 +1,102 @@
+/* ==========================================
+   QUESTY — přehled questů podle stavu, viz komentář v .tsx. Stejný
+   stránkový vzor jako Hrdina.css (fixed + overflow-y, sekce s
+   nadpisem, karty se skleněným pozadím).
+   ========================================== */
+
+.questy {
+  position: fixed;
+  inset: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  background:
+    radial-gradient(ellipse 70% 40% at 50% 15%, rgba(251, 191, 36, 0.12) 0%, transparent 60%),
+    linear-gradient(180deg, #171233 0%, #171938 30%, #121531 55%, #16112a 78%, #0c0a16 100%);
+  color: var(--text-primary);
+  padding: calc(3.6rem + env(safe-area-inset-top)) 0.9rem calc(2rem + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+.qs-top-bar {
+  margin-bottom: 1.1rem;
+}
+
+.qs-top-bar .game-back-btn {
+  position: static;
+}
+
+.qs-title {
+  margin: 0 0 1.2rem;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+
+.qs-prazdno {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.qs-sekce {
+  margin-bottom: 1.5rem;
+}
+
+.qs-sekce-title {
+  margin: 0 0 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.qs-karta {
+  padding: 0.9rem 1rem;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.06), var(--bg-glass) 55%);
+  backdrop-filter: blur(14px);
+  border: 1.5px solid var(--border-subtle);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.3);
+  margin-bottom: 0.8rem;
+}
+
+.qs-karta--dostupny {
+  opacity: 0.75;
+  border-style: dashed;
+}
+
+.qs-karta--splneny {
+  opacity: 0.6;
+}
+
+.qs-karta-jmeno {
+  margin: 0 0 0.2rem;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #fbbf24;
+}
+
+.qs-karta-lokace {
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.qs-karta-cile {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.qs-karta-cile li {
+  font-size: 0.76rem;
+  color: var(--text-primary);
+}
+
+.qs-karta-cile li.je-splneny {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}

@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Postava, Lokace } from '../types'
 import { SVETY_PODLE_LOKACE } from '../data/world'
-import { QUESTS, QUEST_PODLE_LOKACE } from '../data/quests'
+import { QUESTS } from '../data/quests'
+import { useQuestStore, jeCilSplneny } from '../useQuestStore'
 import { usePlayerWorld } from '../explorace/usePlayerWorld'
 import { VirtualniJoystick } from './VirtualniJoystick'
 import './Explorace3D.css'
@@ -26,8 +27,12 @@ interface Props {
 
 export const Explorace3D: React.FC<Props> = ({ postava, lokace, onSetkani, onOdejit }) => {
   const konfigurace = SVETY_PODLE_LOKACE[lokace.id]
-  const questId = QUEST_PODLE_LOKACE[lokace.id]
-  const quest = questId ? QUESTS.find((q) => q.id === questId) : undefined
+  const quest = QUESTS.find((q) => q.lokaceId === lokace.id)
+  const splneneCile = useQuestStore((s) => s.splneneCile)
+  // HUD ukazuje první nesplněný cíl — dneska má quest jen jeden, ale
+  // pro budoucí víceúčelové questy je tohle jediné správné chování
+  // (ne poslední/první bez ohledu na stav).
+  const aktivniCil = quest?.cile.find((c) => !jeCilSplneny(quest.id, c.id, splneneCile))
 
   const [napovedaViditelna, setNapovedaViditelna] = useState(true)
 
@@ -79,10 +84,10 @@ export const Explorace3D: React.FC<Props> = ({ postava, lokace, onSetkani, onOde
         </span>
       </div>
 
-      {quest && (
+      {quest && aktivniCil && (
         <div className="explorace-quest-hud">
           <span className="explorace-quest-jmeno">📜 {quest.nazev}</span>
-          <span className="explorace-quest-cil">{quest.cil}</span>
+          <span className="explorace-quest-cil">{aktivniCil.popis}</span>
         </div>
       )}
 

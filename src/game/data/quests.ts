@@ -1,30 +1,42 @@
 // ==========================================
-// Questy — data-driven, ne zadrátované v JSX. Tenhle soubor drží jen
-// TEXT a VAZBU na lokaci; skutečná odměna (XP, kredity) žije tam, kde
-// vždycky žila — u nepřítele v combat/nepratele.ts — aby nikdy
-// nevznikly dvě čísla pro tutéž věc. Splnění questu se řeší přes
-// QUEST_PODLE_LOKACE: GameModule.tsx po výhře v souboji na dané
-// lokaci zjistí odsud, který quest se má označit za splněný (viz
-// Souboj.tsx `onVyhra`) — samotný souboj o questech neví nic.
+// Questy — data-driven, ne zadrátované v JSX. Quest engine (Fáze 2)
+// zobecňuje vertikální řez z Fáze 1: quest teď má výslovný životní
+// cyklus (nedostupný -> aktivní -> splněný, viz useQuestStore.ts) a
+// pole `cile` místo jednoho plochého textu, protože ne každý
+// budoucí quest ze Season 1 se splní jedním soubojem — "Sedm symbolů"
+// nebo "Hlas ve zdi" budou potřebovat víc kroků, možná i jiných typů
+// (dialog, návštěva místa, sebraný předmět), ne jen `typ: 'boj'`.
+//
+// BOJOVY_CIL_PODLE_LOKACE zůstává výslovná tabulka (stejný vzor jako
+// NEPRATELE_PODLE_LOKACE / SVETY_PODLE_LOKACE) místo odvozování
+// "vyhraj na lokaci questu = spinil jsi jeho první cíl" — quest, který
+// se plní soubojem na víc než jedné lokaci, by odvozený vztah nešel
+// vůbec zapsat.
 //
 // Zatím je tu jeden quest (Ztracené štěně, Emberfall) jako vertikální
-// řez celým herním smyčkem: MAPA → LOKACE → 3D SVĚT → PRŮZKUM →
-// SETKÁNÍ → SOUBOJ → ODMĚNA → QUEST SPLNĚN → XP → ZPĚT NA MAPU.
-// Zbylých 29 questů ze Season 1 se přidává stejným vzorem — nová
-// položka sem + nová lokace v lokace.ts + nový nepřítel v
-// nepratele.ts + případně vlastní SvetKonfigurace ve world.ts.
+// řez celým herním smyčkem. Zbylých 29 questů ze Season 1 se přidává
+// stejným vzorem — nová položka sem + nová lokace v lokace.ts + nový
+// nepřítel v nepratele.ts + případně vlastní SvetKonfigurace ve
+// world.ts.
 // ==========================================
+
+export type TypCile = 'boj'
+
+export interface QuestCil {
+  id: string
+  /** Text checklistu — co má hráč konkrétně udělat, viz Questy.tsx a list místa v MapaSveta.tsx. */
+  popis: string
+  typ: TypCile
+}
 
 export interface Quest {
   id: string
   nazev: string
-  /** Lokace na mapě, ke které je quest vázaný — MapaSveta podle ní
-   *  ukazuje detail questu v listu místa. */
+  /** Lokace na mapě, kde se quest přijímá a kde má svůj 3D svět. */
   lokaceId: string
-  /** Úvodní text — proč quest vůbec existuje. */
+  /** Úvodní text — proč quest vůbec existuje, ukazuje se před přijetím. */
   popis: string
-  /** Co má hráč konkrétně udělat. */
-  cil: string
+  cile: QuestCil[]
   /** Krátký popisek odměny pro list místa — skutečná čísla dává
    *  nepřítel v combat/nepratele.ts, tohle je jen text k přečtení. */
   odmenaPopis: string
@@ -37,14 +49,14 @@ export const QUESTS: Quest[] = [
     lokaceId: 'emberfall',
     popis:
       'Stará vdova z Emberfallu shání svého psa — zaběhl do polí za městem právě ve chvíli, kdy se odtamtud přivalila podivná stínová mlha.',
-    cil: 'Projdi pole za Emberfallem a poraz Stínovlčáka, který štěněti stojí v cestě.',
+    cile: [{ id: 'porazit-vlcaka', popis: 'Poraz Stínovlčáka, který štěněti stojí v cestě.', typ: 'boj' }],
     odmenaPopis: 'XP, kredity z boje a vděčnost celého Emberfallu.',
   },
 ]
 
-/** Lokace -> quest, který se touto lokací plní. Jedna lokace = jeden
- *  aktivní quest (žádná lokace jich zatím nemá víc), proto obyčejný
- *  slovník místo pole. */
-export const QUEST_PODLE_LOKACE: Record<string, string> = {
-  emberfall: 'ztracene-stene',
+/** Lokace -> (quest, cíl), který se plní výhrou v souboji na téhle
+ *  lokaci. GameModule.tsx po výhře zavolá `splnitCil(questId, cilId)`
+ *  — souboj samotný o questech neví nic (viz Souboj.tsx `onVyhra`). */
+export const BOJOVY_CIL_PODLE_LOKACE: Record<string, { questId: string; cilId: string }> = {
+  emberfall: { questId: 'ztracene-stene', cilId: 'porazit-vlcaka' },
 }

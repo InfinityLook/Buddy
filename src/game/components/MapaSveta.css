@@ -334,6 +334,35 @@
   cursor: pointer;
 }
 
+/* Checklist cílů questu — vidět, jakmile je quest přijatý (viz
+   MapaSveta.tsx, stav 'aktivni'/'splneny'), i bez otevírání Questy.tsx. */
+.mapa-sheet-cile {
+  margin: 0.6rem 0 0;
+  padding: 0;
+  list-style: none;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  text-align: left;
+}
+
+.mapa-sheet-cile li {
+  font-size: 0.74rem;
+  color: var(--text-primary);
+}
+
+.mapa-sheet-cile li.je-splneny {
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.mapa-sheet-quest-hotovo {
+  margin: 0.7rem 0 0;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+}
+
 .mapa-sheet-close {
   margin-top: 0.7rem;
   width: 100%;

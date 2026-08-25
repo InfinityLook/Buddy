@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LOKACE, POPIS_TYPU } from '../lokace'
 import { NEPRATELE_PODLE_LOKACE } from '../combat/nepratele'
-import { QUESTS, QUEST_PODLE_LOKACE } from '../data/quests'
+import { QUESTS } from '../data/quests'
+import { useQuestStore, stavQuestu, jeCilSplneny } from '../useQuestStore'
 import { Postava } from '../types'
 import { useGameCharacter } from '../useGameCharacter'
 import { vychoziProgres } from '../leveling'
@@ -26,6 +27,8 @@ interface Props {
   /** Volá se klepnutím na značku postavy v horní liště nebo na dlaždici
    *  Hrdina v menu mapy — obojí vede na stejnou obrazovku (viz Hrdina.tsx). */
   onOtevritHrdinu: () => void
+  /** Volá se na dlaždici Questy v menu mapy (viz Questy.tsx). */
+  onOtevritQuesty: () => void
 }
 
 // ==========================================
@@ -48,12 +51,18 @@ export const MapaSveta: React.FC<Props> = ({
   onVstoupitDoObchodu,
   onVstoupitDoSveta,
   onOtevritHrdinu,
+  onOtevritQuesty,
 }) => {
   const navigate = useNavigate()
   const progres = useGameCharacter((s) => s.progres[postava.id]) ?? vychoziProgres()
   const [otevrena, setOtevrena] = useState<string | null>(null)
   const [menuOtevrene, setMenuOtevrene] = useState(false)
   const platnoRef = useRef<HTMLDivElement>(null)
+
+  const prijmoutQuest = useQuestStore((s) => s.prijmoutQuest)
+  const aktivniQuesty = useQuestStore((s) => s.aktivni)
+  const dokonceneQuesty = useQuestStore((s) => s.dokoncene)
+  const splneneCile = useQuestStore((s) => s.splneneCile)
 
   const detail = LOKACE.find((l) => l.id === otevrena) ?? null
   // 'explorace' lokace mají nepřítele taky (viz combat/nepratele.ts —
@@ -63,7 +72,8 @@ export const MapaSveta: React.FC<Props> = ({
   const nepratele = detail ? NEPRATELE_PODLE_LOKACE[detail.id] : undefined
   const jeTrziste = detail?.typ === 'trziste'
   const jeExplorace = detail?.typ === 'explorace'
-  const quest = detail ? QUESTS.find((q) => q.id === QUEST_PODLE_LOKACE[detail.id]) : undefined
+  const quest = detail ? QUESTS.find((q) => q.lokaceId === detail.id) : undefined
+  const questStav = quest ? stavQuestu(quest.id, aktivniQuesty, dokonceneQuesty) : undefined
 
   // Mapa je větší než displej na obě strany — při vstupu ji vycentruje
   // na hlavní město (Solace), střed světa i příběhu, místo levého
@@ -169,7 +179,25 @@ export const MapaSveta: React.FC<Props> = ({
                       ? 'Hlavní město je vyhrazené pro dějovou linku hry — ta zatím nevznikla, přijde v některém z dalších kroků.'
                       : 'Tohle místo zatím nikam nevede — je připravené a obsah do něj teprve přibude.'}
             </p>
-            {jeExplorace && (
+
+            {/* Quest se musí nejdřív přijmout, teprve pak jde vstoupit
+                do světa — cíle se ukazují hned, ať je jasné, na čem
+                quest reálně stojí. */}
+            {jeExplorace && quest && questStav === 'nedostupny' && (
+              <button className="mapa-sheet-boj" onClick={() => prijmoutQuest(quest.id)}>
+                📜 Přijmout quest
+              </button>
+            )}
+            {jeExplorace && quest && questStav !== 'nedostupny' && (
+              <ul className="mapa-sheet-cile">
+                {quest.cile.map((c) => (
+                  <li key={c.id} className={jeCilSplneny(quest.id, c.id, splneneCile) ? 'je-splneny' : ''}>
+                    <span aria-hidden="true">{jeCilSplneny(quest.id, c.id, splneneCile) ? '✅' : '⬜'}</span> {c.popis}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {jeExplorace && (!quest || questStav !== 'nedostupny') && (
               <button
                 className="mapa-sheet-boj"
                 onClick={() => {
@@ -179,6 +207,9 @@ export const MapaSveta: React.FC<Props> = ({
               >
                 🌲 Vstoupit do světa
               </button>
+            )}
+            {jeExplorace && quest && questStav === 'splneny' && (
+              <p className="mapa-sheet-quest-hotovo">✅ Quest splněn — svět se dá i tak znovu projít.</p>
             )}
             {nepratele && !jeExplorace && (
               <button
@@ -231,6 +262,18 @@ export const MapaSveta: React.FC<Props> = ({
                   🧙
                 </span>
                 <span className="mapa-menu-dlazdice-nazev">Hrdina</span>
+              </button>
+              <button
+                className="mapa-menu-dlazdice"
+                onClick={() => {
+                  setMenuOtevrene(false)
+                  onOtevritQuesty()
+                }}
+              >
+                <span className="mapa-menu-dlazdice-ikona" aria-hidden="true">
+                  📜
+                </span>
+                <span className="mapa-menu-dlazdice-nazev">Questy</span>
               </button>
             </div>
           </div>

@@ -6,12 +6,13 @@ import { MapaSveta } from './components/MapaSveta'
 import { Souboj } from './components/Souboj'
 import { Obchod } from './components/Obchod'
 import { Hrdina } from './components/Hrdina'
+import { Questy } from './components/Questy'
 import { useGameCharacter } from './useGameCharacter'
 import { useQuestStore } from './useQuestStore'
 import { POSTAVY } from './postavy'
 import { Postava, PostavaId } from './types'
 import { NEPRATELE_PODLE_LOKACE } from './combat/nepratele'
-import { QUEST_PODLE_LOKACE } from './data/quests'
+import { BOJOVY_CIL_PODLE_LOKACE } from './data/quests'
 import { LOKACE } from './lokace'
 import './GameModule.css'
 
@@ -38,8 +39,9 @@ const Explorace3D = React.lazy(() =>
 //  4) zvoleno + souboj    -> Souboj
 //  5) zvoleno + obchod    -> Obchod
 //  6) zvoleno + hrdina    -> Hrdina (postava, statistiky, vylepšení, dovednosti)
-//  7) zvoleno + průzkum    -> Explorace3D (3D svět, viz níž)
-//  8) zvoleno              -> MapaSveta
+//  7) zvoleno + questy     -> Questy (quest log, viz Questy.tsx)
+//  8) zvoleno + průzkum    -> Explorace3D (3D svět, viz níž)
+//  9) zvoleno              -> MapaSveta
 //
 // Herní smyčka MAPA → LOKACE → 3D SVĚT → PRŮZKUM → SETKÁNÍ → SOUBOJ →
 // ODMĚNA → QUEST SPLNĚN → XP → ZPĚT NA MAPU: MapaSveta u 'explorace'
@@ -47,7 +49,9 @@ const Explorace3D = React.lazy(() =>
 // — teprve Explorace3D.onSetkani (hráč došel k nepříteli ve 3D světě)
 // nastaví soubojLokaceId, který odsud dál běží úplně stejně jako
 // soubojová/dungeonová lokace vždycky běžela. Výhra navíc přes
-// QUEST_PODLE_LOKACE označí odpovídající quest za splněný.
+// BOJOVY_CIL_PODLE_LOKACE splní odpovídající cíl questu (viz
+// useQuestStore.ts — quest se dokončí sám, jakmile jsou splněné
+// všechny jeho cíle).
 // ==========================================
 
 type Rezim = 'vyber' | 'pridat'
@@ -63,8 +67,9 @@ export const GameModule: React.FC = () => {
   const [soubojLokaceId, setSoubojLokaceId] = useState<string | null>(null)
   const [obchodOtevren, setObchodOtevren] = useState(false)
   const [hrdinaOtevren, setHrdinaOtevren] = useState(false)
+  const [questyOtevreny, setQuestyOtevreny] = useState(false)
   const [exploraceLokaceId, setExploraceLokaceId] = useState<string | null>(null)
-  const dokoncitQuest = useQuestStore((s) => s.dokoncitQuest)
+  const splnitCil = useQuestStore((s) => s.splnitCil)
 
   const party = postavyId
     .map((id) => POSTAVY.find((p) => p.id === id))
@@ -96,7 +101,7 @@ export const GameModule: React.FC = () => {
   // (viz Explorace3D.onSetkani níž). Odchod proto zavírá i případně
   // otevřený průzkum, ať se hráč po souboji vrátí na mapu, ne zpátky
   // do 3D světa.
-  const questIdSouboje = soubojLokaceId ? QUEST_PODLE_LOKACE[soubojLokaceId] : undefined
+  const bojovyCilSouboje = soubojLokaceId ? BOJOVY_CIL_PODLE_LOKACE[soubojLokaceId] : undefined
   if (aktivniPostava && nepratele) {
     return (
       <Souboj
@@ -108,7 +113,9 @@ export const GameModule: React.FC = () => {
           setSoubojLokaceId(null)
           setExploraceLokaceId(null)
         }}
-        onVyhra={questIdSouboje ? () => dokoncitQuest(questIdSouboje) : undefined}
+        onVyhra={
+          bojovyCilSouboje ? () => splnitCil(bojovyCilSouboje.questId, bojovyCilSouboje.cilId) : undefined
+        }
       />
     )
   }
@@ -132,7 +139,12 @@ export const GameModule: React.FC = () => {
     )
   }
 
-  // 7) Průzkum má přednost, dokud probíhá — jen tady se odblokuje
+  // 7) Questy mají přednost, dokud jsou otevřené
+  if (aktivniPostava && questyOtevreny) {
+    return <Questy onOdejit={() => setQuestyOtevreny(false)} />
+  }
+
+  // 8) Průzkum má přednost, dokud probíhá — jen tady se odblokuje
   // setSoubojLokaceId, které pak výš (krok 4) na dalším renderu
   // přepne na Souboj, aniž by Explorace3D o Souboj.tsx cokoli vědělo.
   const lokaceExplorace = exploraceLokaceId ? LOKACE.find((l) => l.id === exploraceLokaceId) : undefined
@@ -149,7 +161,7 @@ export const GameModule: React.FC = () => {
     )
   }
 
-  // 8) Zvoleno, za koho se hraje — mapa
+  // 9) Zvoleno, za koho se hraje — mapa
   if (aktivniPostava) {
     return (
       <MapaSveta
@@ -158,6 +170,7 @@ export const GameModule: React.FC = () => {
         onVstoupitDoObchodu={() => setObchodOtevren(true)}
         onVstoupitDoSveta={setExploraceLokaceId}
         onOtevritHrdinu={() => setHrdinaOtevren(true)}
+        onOtevritQuesty={() => setQuestyOtevreny(true)}
       />
     )
   }
