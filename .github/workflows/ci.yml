@@ -9,7 +9,7 @@ name: CI
 # VITE_SUPABASE_URL/VITE_SUPABASE_PUBLISHABLE_KEY jsou tady natvrdo,
 # ne jako Secrets — jsou to "publishable" klíče, které stejně končí
 # viditelné v každém staženém JS bundlu (viz .env.example), takže
-# schovávat je v CI by nic nechránilo. GEMINI_API_KEY a
+# schovávat je v CI by nic nechránilo. OPENROUTER_API_KEY a
 # SUPABASE_SERVICE_ROLE_KEY se sem naopak nikdy nedávají — ty
 # testy (buddy-chat, admin-ban) v e2e/security vrstvě zatím nejsou.
 # ==========================================

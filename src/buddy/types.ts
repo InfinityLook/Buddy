@@ -13,7 +13,7 @@ export interface BuddyZprava {
 /**
  * necinny    — čeká na klepnutí, ať mluví uživatel
  * posloucha  — rozpoznávání řeči běží
- * premysli   — zpráva odešla na server, čeká se na Gemini
+ * premysli   — zpráva odešla na server, čeká se na OpenRouter
  * mluvi      — Buddy nahlas čte odpověď
  * chyba      — něco selhalo, text chyby je v BuddyVoiceResult.chyba
  */

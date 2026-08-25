@@ -3,8 +3,8 @@ import { BuddyZprava } from './types'
 
 // ==========================================
 // Jediné místo, které mluví s api/buddy-chat.ts — stejný princip jako
-// social/api.ts pro Supabase. Server si klíč k Gemini hlídá sám, tenhle
-// soubor jen posílá historii rozhovoru a čeká na text odpovědi.
+// social/api.ts pro Supabase. Server si klíč k OpenRouteru hlídá sám,
+// tenhle soubor jen posílá historii rozhovoru a čeká na text odpovědi.
 // ==========================================
 
 export interface BuddyOdpovedVysledek {

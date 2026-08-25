@@ -1,15 +1,20 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { GoogleGenAI } from '@google/genai'
 
 // ==========================================
 // Server pro hlasového Buddyho.
 //
 // Jediné místo v celé appce, kde běží něco jiného než statický klient —
-// a jediný důvod, proč vůbec existuje: Gemini API klíč nesmí nikdy
-// ležet v prohlížeči. Klientský JS balíček je veřejně stažitelný (viz
-// varování u rolí v core/role/types.ts, stejná logika), takže cokoli
-// tajného v něm by si mohl kdokoli vzít a utrácet tím z účtu, na kterém
-// je klíč založený.
+// a jediný důvod, proč vůbec existuje: API klíč nesmí nikdy ležet v
+// prohlížeči. Klientský JS balíček je veřejně stažitelný (viz varování
+// u rolí v core/role/types.ts, stejná logika), takže cokoli tajného v
+// něm by si mohl kdokoli vzít a utrácet tím z účtu, na kterém je klíč
+// založený.
+//
+// Používá OpenRouter (https://openrouter.ai) — jednotné OpenAI-kompatibilní
+// API nad víc modely, s bezplatnou vrstvou (modely končící ":free" v
+// jejich katalogu). Volá se obyčejným fetch přímo na jejich REST
+// endpoint, žádné SDK — OpenRouter je jen tenká vrstva nad chat-completions
+// tvarem, který zná kdejaká knihovna i bez ní.
 //
 // Přístup hlídá platný Supabase přihlašovací token, ne žádný denní
 // limit zpráv (to je vědomé rozhodnutí, ne nedodělek) — appka ale musí
@@ -18,7 +23,7 @@ import { GoogleGenAI } from '@google/genai'
 // vůbec spustil.
 // ==========================================
 
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+const MODEL = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free'
 
 // Odpověď se čte nahlas přes syntézu řeči — dlouhá odpověď se dlouho
 // poslouchá a formátování (odrážky, hvězdičky) TTS čte doslova a zní to
@@ -69,9 +74,9 @@ const overSeSupabase = async (token: string): Promise<boolean> => {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return chyba(res, 405, 'Jen POST.')
 
-  const apiKlic = process.env.GEMINI_API_KEY
+  const apiKlic = process.env.OPENROUTER_API_KEY
   if (!apiKlic) {
-    return chyba(res, 500, 'Hlasový režim není na serveru nastavený (chybí GEMINI_API_KEY).')
+    return chyba(res, 500, 'Hlasový režim není na serveru nastavený (chybí OPENROUTER_API_KEY).')
   }
 
   const hlavicka = req.headers.authorization
@@ -102,38 +107,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return chyba(res, 400, 'Historie musí končit zprávou od uživatele.')
   }
 
-  const ai = new GoogleGenAI({ apiKey: apiKlic })
+  // OpenAI-kompatibilní tvar zpráv, který OpenRouter (a skoro všechno
+  // ostatní) čeká — systémová instrukce jako první zpráva, ne
+  // samostatné pole jako u Gemini SDK.
+  const messages = [
+    { role: 'system' as const, content: SYSTEM_INSTRUKCE },
+    ...historie.map((z) => ({
+      role: z.odesilatel === 'uzivatel' ? ('user' as const) : ('assistant' as const),
+      content: z.text,
+    })),
+  ]
 
   try {
-    const odpoved = await ai.models.generateContent({
-      model: MODEL,
-      contents: historie.map((z) => ({
-        role: z.odesilatel === 'uzivatel' ? ('user' as const) : ('model' as const),
-        parts: [{ text: z.text }],
-      })),
-      config: {
-        systemInstruction: SYSTEM_INSTRUKCE,
+    const odpoved = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKlic}`,
+        'Content-Type': 'application/json',
+        // OpenRouter tyhle dvě hlavičky doporučuje pro identifikaci
+        // appky v jejich žebříčcích — appka bez nich funguje úplně
+        // stejně, jen se v jejich přehledu neukáže.
+        'HTTP-Referer': 'https://schoolbuddy.app',
+        'X-Title': 'SchoolBuddy',
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages,
         temperature: 0.8,
         // Strop na délku odpovědi — dlouhá odpověď se nejen hůř
         // poslouchá, ale při hlasovém rozhovoru i hůř čeká.
-        maxOutputTokens: 300,
-      },
+        max_tokens: 300,
+      }),
     })
 
-    const text = odpoved.text?.trim()
+    if (odpoved.status === 429) {
+      return chyba(res, 429, 'Buddy má teď plno (bezplatná kvóta). Zkus to za chvíli znovu.')
+    }
+
+    if (!odpoved.ok) {
+      const telo = await odpoved.text().catch(() => '')
+      console.error('buddy-chat: OpenRouter selhalo', odpoved.status, telo)
+      return chyba(res, 502, 'Buddy teď neodpovídá. Zkus to prosím znovu.')
+    }
+
+    const data = (await odpoved.json()) as {
+      choices?: { message?: { content?: string } }[]
+    }
+    const text = data.choices?.[0]?.message?.content?.trim()
+
     if (!text) {
-      // Gemini umí vrátit prázdnou odpověď (např. bezpečnostní filtr) —
-      // uživatel má dostat srozumitelnou hlášku, ne tichou chybu.
+      // OpenRouter umí vrátit prázdnou odpověď (např. model odmítl,
+      // nebo bezplatná vrstva zrovna nemá kapacitu) — uživatel má
+      // dostat srozumitelnou hlášku, ne tichou chybu.
       return chyba(res, 502, 'Buddy teď neví, jak odpovědět. Zkus to prosím jinak.')
     }
 
     return res.status(200).json({ text })
   } catch (err) {
-    const status = (err as { status?: number })?.status
-    if (status === 429) {
-      return chyba(res, 429, 'Buddy má teď plno (bezplatná kvóta). Zkus to za chvíli znovu.')
-    }
-    console.error('buddy-chat: Gemini selhalo', err)
+    console.error('buddy-chat: OpenRouter selhalo', err)
     return chyba(res, 502, 'Buddy teď neodpovídá. Zkus to prosím znovu.')
   }
 }
