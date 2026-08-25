@@ -13,13 +13,14 @@
 // se plní soubojem na víc než jedné lokaci, by odvozený vztah nešel
 // vůbec zapsat.
 //
-// Dva questy zatím — Ztracené štěně (Emberfall, vertikální řez z Fáze
-// 1) a Probuzený les (Greenhaven, Fáze 10). Zbylých 28 questů ze
-// Season 1 se přidává stejným vzorem — nová položka sem + odpovídající
-// nepřítel v nepratele.ts + vlastní SvetKonfigurace ve world.ts.
-// Lokace samotná (lokace.ts) nemusí být nová ani měnit typ — viz
-// Greenhaven, pořád 'mesto', 3D svět jen zpřístupní přítomnost ve
-// SVETY_PODLE_LOKACE (Fáze 7).
+// Tři questy zatím — Ztracené štěně (Emberfall, vertikální řez z Fáze
+// 1), Probuzený les (Greenhaven) a Probuzená královna (Voidspire),
+// obě z Fáze 10. Zbylých 27 questů ze Season 1 se přidává stejným
+// vzorem — nová položka sem + odpovídající nepřítel v nepratele.ts +
+// vlastní SvetKonfigurace ve world.ts. Lokace samotná (lokace.ts)
+// nemusí být nová ani měnit typ — viz Greenhaven/Voidspire, oba pořád
+// 'mesto', 3D svět jen zpřístupní přítomnost ve SVETY_PODLE_LOKACE
+// (Fáze 7).
 // ==========================================
 
 export type TypCile = 'boj'
@@ -75,6 +76,17 @@ export const QUESTS: Quest[] = [
     dialogPriPrijeti: 'probuzeny-les-prijeti',
     dialogPriDokonceni: 'probuzeny-les-dokonceni',
   },
+  {
+    id: 'probuzena-kralovna',
+    nazev: 'Probuzená královna',
+    lokaceId: 'voidspire',
+    popis:
+      'Z Voidspire hlásí strážní věže podivné siluety mezi kopci Shadowveilu — a každou noc se přibližují o kus blíž k hradbám.',
+    cile: [{ id: 'porazit-stinovou-kralovnu', popis: 'Vydej se do Shadowveilu a poraz Stínovou královnu.', typ: 'boj' }],
+    odmenaPopis: 'XP, kredity z boje a garantovaná relikvie Stínové královny.',
+    dialogPriPrijeti: 'probuzena-kralovna-prijeti',
+    dialogPriDokonceni: 'probuzena-kralovna-dokonceni',
+  },
 ]
 
 /** Lokace -> (quest, cíl), který se plní výhrou v souboji na téhle
@@ -83,4 +95,5 @@ export const QUESTS: Quest[] = [
 export const BOJOVY_CIL_PODLE_LOKACE: Record<string, { questId: string; cilId: string }> = {
   emberfall: { questId: 'ztracene-stene', cilId: 'porazit-vlcaka' },
   greenhaven: { questId: 'probuzeny-les', cilId: 'porazit-strazce-lesa' },
+  voidspire: { questId: 'probuzena-kralovna', cilId: 'porazit-stinovou-kralovnu' },
 }

@@ -91,4 +91,37 @@ export const STORY: Record<string, DialogSekvence> = {
       },
     ],
   },
+  'probuzena-kralovna-prijeti': {
+    id: 'probuzena-kralovna-prijeti',
+    radky: [
+      {
+        mluvci: 'Strážný Voidspire',
+        ikona: '🗼',
+        text: 'Ty stíny nejsou obyčejná tma. Mají tvar — a každou noc se přiblíží o kousek dál k hradbám.',
+      },
+      { mluvci: '__hrac__', ikona: '', text: 'Zjistím, co je za tím řídí.' },
+      {
+        mluvci: 'Strážný Voidspire',
+        ikona: '🗼',
+        text: 'Staré zvěsti mluví o královně, co ve Shadowveilu spala od pádu jejího království. Kéž by to byly jen zvěsti.',
+      },
+      { mluvci: '__buddy__', ikona: '', text: 'Emberfall, Věčný les, teď Shadowveil... něco to všechno budí najednou.' },
+    ],
+  },
+  'probuzena-kralovna-dokonceni': {
+    id: 'probuzena-kralovna-dokonceni',
+    radky: [
+      { mluvci: '__buddy__', ikona: '', text: 'Stíny kolem ní se rozplývají do noci, odkud přišly.' },
+      {
+        mluvci: 'Strážný Voidspire',
+        ikona: '🗼',
+        text: 'Byla jen první z nich, co se probudila. Cítím to — nebude poslední.',
+      },
+      {
+        mluvci: 'Strážný Voidspire',
+        ikona: '🗼',
+        text: 'Emberfall, Greenhaven, teď my... kdosi budí staré strážce jednoho po druhém. Zbývá zjistit proč.',
+      },
+    ],
+  },
 }

@@ -7,10 +7,10 @@
 // primitiv (kvádry, kužely, koule) obarvených podle týhle konfigurace,
 // stylizovaný "low-poly" vzhled místo nedosažitelného fotorealismu.
 //
-// Tři lokace zatím (Emberfall, dungeon Molten Core, Greenhaven). Další
-// lokace ze Season 1 (Voidspire, Frostheim, Solace, …) přibydou stejným
-// vzorem — nová položka sem + odpovídající quest v quests.ts (nebo u
-// dungeonu rovnou několik nepřátel v combat/nepratele.ts).
+// Čtyři lokace zatím (Emberfall, dungeon Molten Core, Greenhaven,
+// Voidspire). Další lokace ze Season 1 (Frostheim, Solace, …) přibydou
+// stejným vzorem — nová položka sem + odpovídající quest v quests.ts
+// (nebo u dungeonu rovnou několik nepřátel v combat/nepratele.ts).
 //
 // Greenhaven si přitom drží svůj vlastní typ 'mesto' v lokace.ts beze
 // změny (viz Fáze 7 — přítomnost tady rozhoduje o 3D vstupu, ne typ na
@@ -86,6 +86,20 @@ export const SVETY_PODLE_LOKACE: Record<string, SvetKonfigurace> = {
     barvaZeme: '#23421f',
     teren: 'les',
     polomerSveta: 24,
+    start: [0, 9],
+    poziceSetkani: [0, -9],
+    polomerSetkani: 3.2,
+  },
+  voidspire: {
+    // Shadowveil ("The Corrupted Lands") kolem Voidspire — otrávená
+    // fialová pláň, ne les ani jeskyně (teren zůstává 'pole', mění se
+    // jen paleta) — stejný princip jako u Emberfallu: terén popisuje
+    // hustotu/typ dekorace, náladu místa dělá barva.
+    barvaOblohy: '#241830',
+    barvaMlhy: '#2a1a3d',
+    barvaZeme: '#3d2a4d',
+    teren: 'pole',
+    polomerSveta: 25,
     start: [0, 9],
     poziceSetkani: [0, -9],
     polomerSetkani: 3.2,

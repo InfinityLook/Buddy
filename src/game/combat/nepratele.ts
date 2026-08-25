@@ -15,11 +15,11 @@ import { Nepritel } from './types'
 // Boss (Fáze 8) je jen Nepritel s jeBoss/zuriPodHp/zuriNasobicPoskozeni
 // navíc (viz types.ts) — žádný nový záznam v týhle mapě, žádná nová
 // lokace, jen tři pole na existujícím záznamu. Dungeon má jednoho, na
-// konci (Strážce jeskyně); Greenhaven (Fáze 10, Season 1) má druhého,
-// rovnou jako své jediné setkání (stejný tvar jako Emberfall — jeden
-// Nepritel v poli, ne dungeonová série). Další pojmenovaní bossové ze
-// Season 1 (Rootmother, Shadow Queen, …) přibydou stejným vzorem, až
-// přibydou i jejich lokace.
+// konci (Strážce jeskyně); Greenhaven a Voidspire (Fáze 10, Season 1)
+// mají každý svého, rovnou jako své jediné setkání (stejný tvar jako
+// Emberfall — jeden Nepritel v poli, ne dungeonová série). Další
+// pojmenovaní bossové ze Season 1 (Rootmother, Frozen Guardian, …)
+// přibydou stejným vzorem, až přibydou i jejich lokace.
 // ==========================================
 
 export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
@@ -118,6 +118,28 @@ export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
       zuriPodHp: 0.4,
       zuriNasobicPoskozeni: 1.5,
       vybaveniId: 'trnova-koruna',
+    },
+  ],
+
+  // Třetí lokace Season 1 (Fáze 10) — Stínová královna, "Shadow Queen"
+  // ze zadání. Stejný tvar jako Greenhaven: jedno 'explorace' setkání,
+  // rovnou boss.
+  voidspire: [
+    {
+      id: 'stinova-kralovna',
+      jmeno: 'Stínová královna',
+      ikona: '🌑',
+      zivoty: 95,
+      poskozeniOd: 8,
+      poskozeniDo: 15,
+      odmenaXp: 50,
+      odmenaKredity: 35,
+      lupId: 'lecivy-lektvar',
+      sanceNaLup: 0.5,
+      jeBoss: true,
+      zuriPodHp: 0.4,
+      zuriNasobicPoskozeni: 1.55,
+      vybaveniId: 'stinovy-plast',
     },
   ],
 }

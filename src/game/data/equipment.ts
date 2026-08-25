@@ -56,4 +56,19 @@ export const VYBAVENI: Vybaveni[] = [
     bonusPoskozeni: 0.08,
     bonusKriticka: 0,
   },
+  {
+    // Třetí relikvie (Fáze 10, Season 1) — od Stínové královny
+    // (Voidspire/Shadowveil). Vychýlená na kritickou šanci, kde
+    // předchozí dvě byly vydrž/poškození — tři relikvie teď pokrývají
+    // tři různé archetypy postavy (obranář/útočník/riskér), ne tři
+    // varianty téhož.
+    id: 'stinovy-plast',
+    nazev: 'Stínový plášť',
+    popis: 'Relikvie poražené Stínové královny — halí nositele stínem a bystří jeho úder na slabá místa.',
+    ikona: '🖤',
+    zdroj: 'Poraz Stínovou královnu (Shadowveil u Voidspire)',
+    bonusVydrz: 2,
+    bonusPoskozeni: 0,
+    bonusKriticka: 0.08,
+  },
 ]
