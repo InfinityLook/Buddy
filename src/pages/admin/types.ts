@@ -1,17 +1,74 @@
+import type { Permission } from '@/core/role'
+
 // ==========================================
 // Tvary dat Admin panelu.
 // ==========================================
 
 export type AdminTab = 'prehled' | 'social-report' | 'notifikace' | 'audit-log' | 'uzivatele' | 'system' | 'konzole'
 
-export const ADMIN_TABS: { id: AdminTab; label: string; icon: string }[] = [
-  { id: 'prehled', label: 'Přehled', icon: '📊' },
-  { id: 'social-report', label: 'SocialReport', icon: '🚩' },
-  { id: 'notifikace', label: 'Notifikace', icon: '📣' },
-  { id: 'audit-log', label: 'Audit log', icon: '📜' },
-  { id: 'uzivatele', label: 'Uživatelé', icon: '👥' },
-  { id: 'system', label: 'Systém', icon: '🩺' },
-  { id: 'konzole', label: 'Konzole', icon: '⌨️' },
+export interface AdminTabDef {
+  id: AdminTab
+  label: string
+  icon: string
+  /** Krátký popis pro řádek v menu (AdminModule.tsx) — co sekce dělá. */
+  popis: string
+  /** Nejnižší oprávnění, co sekci otevře — 'moderation.content' (má ho
+   *  i moderátor) nebo 'admin.panel' (jen správce). Řídí zároveň
+   *  filtrování menu (viz AdminModule.tsx) i štítek požadované role
+   *  vedle položky, žádný zdvojený seznam. */
+  permission: Extract<Permission, 'moderation.content' | 'admin.panel'>
+}
+
+export const ADMIN_TABS: AdminTabDef[] = [
+  {
+    id: 'prehled',
+    label: 'Přehled',
+    icon: '📊',
+    popis: 'Stav aplikace, růst za 14 dní a živé parametry.',
+    permission: 'admin.panel',
+  },
+  {
+    id: 'social-report',
+    label: 'SocialReport',
+    icon: '🚩',
+    popis: 'Hlášení ze Social — vyřešit, zamítnout, zabanovat.',
+    permission: 'moderation.content',
+  },
+  {
+    id: 'notifikace',
+    label: 'Notifikace',
+    icon: '📣',
+    popis: 'Rozeslat oznámení, co uvidí každý přihlášený uživatel.',
+    permission: 'admin.panel',
+  },
+  {
+    id: 'audit-log',
+    label: 'Audit log',
+    icon: '📜',
+    popis: 'Kdo, co a kdy udělal jako správce nebo moderátor.',
+    permission: 'admin.panel',
+  },
+  {
+    id: 'uzivatele',
+    label: 'Uživatelé',
+    icon: '👥',
+    popis: 'Hledat účty a měnit jejich role.',
+    permission: 'admin.panel',
+  },
+  {
+    id: 'system',
+    label: 'Systém',
+    icon: '🩺',
+    popis: 'Chyby zachycené appkou přímo u uživatelů.',
+    permission: 'admin.panel',
+  },
+  {
+    id: 'konzole',
+    label: 'Konzole',
+    icon: '⌨️',
+    popis: 'Příkazový řádek appky — appinfo a další.',
+    permission: 'admin.panel',
+  },
 ]
 
 /** Role, které jde nastavit z Uživatelů — stejná čtveřice jako
