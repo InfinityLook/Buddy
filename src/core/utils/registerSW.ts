@@ -19,6 +19,12 @@ let started = false
 
 const hasServiceWorker = () => typeof navigator !== 'undefined' && 'serviceWorker' in navigator
 
+/** Aktuální registrace service workeru, pokud už proběhla — používá ji
+ *  Pomodoro pro systémovou notifikaci po vypršení bloku
+ *  (ServiceWorkerRegistration.showNotification, na Androidu jediný
+ *  funkční způsob u nainstalované PWA). */
+export const getServiceWorkerRegistration = (): ServiceWorkerRegistration | null => registration
+
 /**
  * Zeptá se serveru, jestli neexistuje novější service worker.
  *

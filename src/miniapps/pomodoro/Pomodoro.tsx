@@ -24,6 +24,7 @@ export const Pomodoro: React.FC = () => {
     updateSettings,
     resetStats,
     xpPerBlock,
+    notificationsEnabled,
   } = usePomodoro()
 
   const [showSettings, setShowSettings] = useState(false)
@@ -180,6 +181,12 @@ export const Pomodoro: React.FC = () => {
           <span className="pomo-settings-hint">
             Za dokončené soustředění dostaneš {xpPerBlock} XP — odměna se odvíjí od
             délky bloku.
+          </span>
+
+          <span className="pomo-settings-hint">
+            Časovač běží dál, i když z Pomodora odejdeš jinam v appce — po skončení
+            bloku přijde notifikace.{' '}
+            {!notificationsEnabled && 'Zapni si je povolením při prvním spuštění časovače.'}
           </span>
         </div>
       )}
