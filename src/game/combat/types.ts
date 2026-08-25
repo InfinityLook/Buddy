@@ -42,4 +42,16 @@ export interface Nepritel {
    *  žádný loot z tohohle nepřítele. */
   lupId?: string
   sanceNaLup?: number
+  /** Boss (Fáze 8) — jen kosmetika a zdroj pro odznak, dokud nepřítel
+   *  nemá i zuriPodHp/zuriNasobicPoskozeni níž. Odděleno od "má hodně
+   *  životů", protože ne každý silný nepřítel má být boss (a naopak by
+   *  boss teoreticky mohl mít málo životů, kdyby to jeho zuřivá fáze
+   *  vykompenzovala). */
+  jeBoss?: boolean
+  /** Práh (podíl max. životů, 0–1), pod který boss "zuří" — od tý
+   *  chvíle do konce souboje násobí svůj protiútok zuriNasobicPoskozeni.
+   *  Nepřítomné = boss žádnou zuřivou fázi nemá (zatím jen kosmetický
+   *  jeBoss, žádná druhá fáze). */
+  zuriPodHp?: number
+  zuriNasobicPoskozeni?: number
 }

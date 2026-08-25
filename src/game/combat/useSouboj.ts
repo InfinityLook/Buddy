@@ -67,6 +67,12 @@ interface SoubojStav {
    *  nezapisuje, jen si výsledky pamatuje ve svém stavu (stejně jako
    *  odmenaXp/odmenaKredity). */
   ziskanyLup: string[]
+  /** Fáze 8 (bossové) — true od chvíle, kdy aktuální boss poprvé klesl
+   *  pod svůj zuriPodHp práh, do konce souboje s ním. Resetuje se na
+   *  false při přechodu na dalšího soupeře (dungeon) i při zkusitZnovu —
+   *  je to vlastnost AKTUÁLNÍHO souboje s AKTUÁLNÍM nepřítelem, ne
+   *  postavy. */
+  nepritelZuri: boolean
 }
 
 /** Výsledek jedné hráčovy akce (karta i schopnost) v jednotném tvaru —
@@ -122,6 +128,7 @@ const pocatecniStav = (maxVydrz: number, nepratele: Nepritel[]): SoubojStav => {
     odmenaKredity: 0,
     schopnostPouzita: false,
     ziskanyLup: [],
+    nepritelZuri: false,
   }
 }
 
@@ -146,6 +153,18 @@ const vyhodnotAkci = (
   const nepritelZivotyNove = Math.max(0, s.nepritelZivoty - akce.poskozeniNepriteli)
   const hracZivotyPoAkci = Math.max(0, Math.min(maxVydrz, s.hracZivoty + akce.zmenaVlastniVydrze))
 
+  // Fáze 8 (bossové) — jednou nastoupí, nepřestane platit dřív, než
+  // souboj s tímhle konkrétním soupeřem skončí (life > 0, i kdyby ho
+  // hráč mezitím doléčil — zuřivost neustupuje, jen zesiluje protiútok).
+  const zuriTeto =
+    s.nepritelZuri ||
+    (!!aktualni.jeBoss &&
+      aktualni.zuriPodHp !== undefined &&
+      nepritelZivotyNove > 0 &&
+      nepritelZivotyNove <= aktualni.zivoty * aktualni.zuriPodHp)
+  const zuriPoprve = zuriTeto && !s.nepritelZuri
+  const zpravaZuri = zuriPoprve ? [`😡 ${aktualni.jmeno} se rozzuřil! Jeho útoky teď bolí víc.`] : []
+
   if (nepritelZivotyNove <= 0) {
     const odmenaXp = s.odmenaXp + aktualni.odmenaXp
     const odmenaKredity = s.odmenaKredity + aktualni.odmenaKredity
@@ -163,6 +182,7 @@ const vyhodnotAkci = (
         odmenaXp,
         odmenaKredity,
         ziskanyLup,
+        nepritelZuri: false,
         log: [
           ...s.log,
           akce.zprava,
@@ -182,6 +202,7 @@ const vyhodnotAkci = (
       odmenaXp,
       odmenaKredity,
       ziskanyLup,
+      nepritelZuri: false,
       log: [...s.log, akce.zprava, `${aktualni.jmeno} poražen!${zpravaLupu} Před tebou další soupeř: ${dalsi.jmeno}.`],
     }
   }
@@ -193,11 +214,13 @@ const vyhodnotAkci = (
       hracZivoty: hracZivotyPoAkci,
       nepritelZivoty: nepritelZivotyNove,
       ...rukaPoStitu,
-      log: [...s.log, akce.zprava, `${aktualni.jmeno} útočí, ale štít ho odráží beze ztráty výdrže!`],
+      nepritelZuri: zuriTeto,
+      log: [...s.log, akce.zprava, ...zpravaZuri, `${aktualni.jmeno} útočí, ale štít ho odráží beze ztráty výdrže!`],
     }
   }
 
-  const protiutok = vRozsahu(aktualni.poskozeniOd, aktualni.poskozeniDo)
+  const zuriNasobic = zuriTeto ? (aktualni.zuriNasobicPoskozeni ?? 1) : 1
+  const protiutok = Math.round(vRozsahu(aktualni.poskozeniOd, aktualni.poskozeniDo) * zuriNasobic)
   const hracZivotyNove = Math.max(0, hracZivotyPoAkci - protiutok)
   const zpravaProtiutoku = `${aktualni.jmeno} útočí za ${protiutok} poškození.`
 
@@ -207,7 +230,8 @@ const vyhodnotAkci = (
       hracZivoty: 0,
       nepritelZivoty: nepritelZivotyNove,
       faze: 'prohra',
-      log: [...s.log, akce.zprava, zpravaProtiutoku, `${postava.jmeno} padl/a v boji...`],
+      nepritelZuri: zuriTeto,
+      log: [...s.log, akce.zprava, ...zpravaZuri, zpravaProtiutoku, `${postava.jmeno} padl/a v boji...`],
     }
   }
 
@@ -216,7 +240,8 @@ const vyhodnotAkci = (
     hracZivoty: hracZivotyNove,
     nepritelZivoty: nepritelZivotyNove,
     ...dalsiRuka(s.balicek),
-    log: [...s.log, akce.zprava, zpravaProtiutoku],
+    nepritelZuri: zuriTeto,
+    log: [...s.log, akce.zprava, ...zpravaZuri, zpravaProtiutoku],
   }
 }
 
@@ -234,6 +259,15 @@ const vyhodnotAkci = (
 // NEOBNOVUJE, jen se plynule pokračuje na dalšího, a odměna (XP, kredity,
 // i případný loot) se sčítá.
 // Aréna s jedním nepřítelem funguje úplně stejně, jen bez přechodu.
+//
+// Bossové (Fáze 8) jsou obyčejný Nepritel s pár volitelnými poli navíc
+// (jeBoss, zuriPodHp, zuriNasobicPoskozeni v combat/types.ts) — žádný
+// nový soubojový systém, jen jedna podmínka uvnitř vyhodnotAkci výš,
+// co jednou (a nevratně, dokud s ním souboj trvá) zesílí jeho
+// protiútok, jakmile klesne pod svůj práh životů. Souboj.tsx z toho
+// vyčte nepritelZuri a jeBoss čistě pro zobrazení (štítek, zář,
+// varování v logu) — nic z toho neovlivňuje karty/schopnosti/předměty
+// samotné, ty útočí úplně stejně jako na kohokoli jiného.
 //
 // Bonusy se sčítají ze dvou nezávislých zdrojů: koupené předměty
 // z obchodu (useWalletStore.ownedItems, platí pro kohokoli z party) a
@@ -367,6 +401,7 @@ export const useSouboj = (postava: Postava, nepratele: Nepritel[]) => {
     odmenaKredity: stav.odmenaKredity,
     schopnostPouzita: stav.schopnostPouzita,
     ziskanyLup: stav.ziskanyLup,
+    nepritelZuri: stav.nepritelZuri,
     predmetyVBatohu,
     zahratKartu,
     pouzitSchopnost,

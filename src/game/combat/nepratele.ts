@@ -11,6 +11,13 @@ import { Nepritel } from './types'
 //
 // Další bojová lokace je stejným vzorem jeden záznam navíc tady, žádná
 // změna v MapaSveta.tsx/Souboj.tsx.
+//
+// Boss (Fáze 8) je jen Nepritel s jeBoss/zuriPodHp/zuriNasobicPoskozeni
+// navíc (viz types.ts) — žádný nový záznam v týhle mapě, žádná nová
+// lokace, jen tři pole na existujícím záznamu. Dungeon jich zatím má
+// jednoho, na konci (Strážce jeskyně) — pojmenovaní bossové ze Season 1
+// (Forest Guardian, Rootmother, …) přibydou stejným vzorem, až přibydou
+// i jejich lokace.
 // ==========================================
 
 export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
@@ -69,16 +76,24 @@ export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
       odmenaKredity: 15,
     },
     {
+      // První boss (Fáze 8) — už dřív byl posledním a nejsilnějším ze
+      // tří soupeřů dungeonu, teď k tomu dostal i skutečnou zuřivou
+      // fázi: pod 40 % životů násobí protiútok 1,6× (viz combat/
+      // useSouboj.ts vyhodnotAkci) a poražení odemyká odznak "Přemožitel
+      // strážce" (viz useGamificationStore.ts, ActivityKind 'boss').
       id: 'strazce-jeskyne',
       jmeno: 'Strážce jeskyně',
       ikona: '👹',
       zivoty: 100,
       poskozeniOd: 8,
       poskozeniDo: 14,
-      odmenaXp: 50,
-      odmenaKredity: 35,
+      odmenaXp: 60,
+      odmenaKredity: 40,
       lupId: 'lecivy-lektvar',
       sanceNaLup: 0.6,
+      jeBoss: true,
+      zuriPodHp: 0.4,
+      zuriNasobicPoskozeni: 1.6,
     },
   ],
 }

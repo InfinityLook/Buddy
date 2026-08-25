@@ -18,6 +18,7 @@ export type ActivityKind =
   | 'transaction'
   | 'workout'
   | 'battle'
+  | 'boss'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -56,6 +57,7 @@ export const DEFAULT_BADGES: Badge[] = [
   { id: 'level_5', title: 'Zkušený', description: 'Dostaň se na úroveň 5.', icon: '⭐', unlockedAt: null },
   { id: 'xp_1000', title: 'Tisícovka', description: 'Nasbírej celkem 1000 XP.', icon: '💎', unlockedAt: null },
   { id: 'arena_champion', title: 'Šampion arény', description: 'Vyhraj 5 soubojů v Aréně.', icon: '⚔️', unlockedAt: null },
+  { id: 'boss_slayer', title: 'Přemožitel strážce', description: 'Poraz svého prvního bosse.', icon: '👑', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti
@@ -67,6 +69,7 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   transaction: { badgeId: 'budget_master', needed: 15 },
   workout: { badgeId: 'fitness_starter', needed: 5 },
   battle: { badgeId: 'arena_champion', needed: 5 },
+  boss: { badgeId: 'boss_slayer', needed: 1 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není

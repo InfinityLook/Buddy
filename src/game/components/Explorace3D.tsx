@@ -101,7 +101,10 @@ export const Explorace3D: React.FC<Props> = ({ postava, lokace, onSetkani, onOde
       {nepratele && nepratele.length > 1 && (
         <div className="explorace-quest-hud explorace-quest-hud--varovani">
           <span className="explorace-quest-jmeno">⚠️ {nepratele.length} nepřátel za sebou</span>
-          <span className="explorace-quest-cil">Výdrž se mezi nimi neobnoví — připrav se předem.</span>
+          <span className="explorace-quest-cil">
+            Výdrž se mezi nimi neobnoví — připrav se předem.
+            {nepratele.some((n) => n.jeBoss) ? ' Na konci čeká boss (👑).' : ''}
+          </span>
         </div>
       )}
 

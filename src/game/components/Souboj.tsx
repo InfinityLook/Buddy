@@ -50,6 +50,7 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
     odmenaKredity,
     schopnostPouzita,
     ziskanyLup,
+    nepritelZuri,
     predmetyVBatohu,
     zahratKartu,
     pouzitSchopnost,
@@ -72,6 +73,11 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
     if (faze !== 'vyhra' || odmenaPripsana.current) return
     odmenaPripsana.current = true
     recordAction('battle', odmenaXp)
+    // Boss (Fáze 8) je pořád ten samý souboj, jen s posledním soupeřem
+    // typu Nepritel.jeBoss — odznak proto jde přes stejné recordAction,
+    // jen s 0 XP navíc (to už připsal řádek výš), ať se počítadlo
+    // a odznak nikdy nerozejdou se skutečným počtem výher.
+    if (nepritel.jeBoss) recordAction('boss', 0)
     credit(odmenaKredity)
     pridatXpPostave(postava.id, odmenaXp)
     for (const lupId of ziskanyLup) pridatPredmet(lupId)
@@ -116,7 +122,13 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
 
           <span className="souboj-versus">VS</span>
 
-          <div className="souboj-bojovnik" style={{ '--sb-barva': '#f87171' } as React.CSSProperties}>
+          <div
+            className={`souboj-bojovnik${nepritel.jeBoss ? ' souboj-bojovnik--boss' : ''}${
+              nepritelZuri ? ' souboj-bojovnik--zuri' : ''
+            }`}
+            style={{ '--sb-barva': '#f87171' } as React.CSSProperties}
+          >
+            {nepritel.jeBoss && <span className="souboj-boss-znacka">👑 BOSS</span>}
             <span className="souboj-ikona" aria-hidden="true">
               {nepritel.ikona}
             </span>
@@ -130,6 +142,7 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
             <span className="souboj-zivoty-cislo">
               {nepritelZivoty} / {nepritelMaxZivoty}
             </span>
+            {nepritelZuri && <span className="souboj-zuri-znacka">😡 Rozzuřen</span>}
           </div>
         </div>
 
@@ -210,9 +223,9 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
             {faze === 'vyhra' ? (
               <>
                 <span className="souboj-konec-ikona" aria-hidden="true">
-                  🏆
+                  {nepritel.jeBoss ? '👑' : '🏆'}
                 </span>
-                <h2>{celkemSouperu > 1 ? 'Dungeon dokončen!' : 'Výhra!'}</h2>
+                <h2>{nepritel.jeBoss ? 'Boss poražen!' : celkemSouperu > 1 ? 'Dungeon dokončen!' : 'Výhra!'}</h2>
                 <p>
                   Získáváš {odmenaXp} XP a {odmenaKredity} kreditů.
                   {ziskanyLup.length > 0 && (

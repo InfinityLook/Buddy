@@ -185,7 +185,9 @@ export const MapaSveta: React.FC<Props> = ({
                   ? quest
                     ? quest.popis
                     : nepratele && nepratele.length > 1
-                      ? `Temná chodba vede k ${nepratele.length} nepřátelům za sebou — výdrž se mezi nimi neobnoví. Vejdi dovnitř a najdi je.`
+                      ? `Temná chodba vede k ${nepratele.length} nepřátelům za sebou — výdrž se mezi nimi neobnoví. Vejdi dovnitř a najdi je.${
+                          nepratele.some((n) => n.jeBoss) ? ' Na konci čeká boss.' : ''
+                        }`
                       : 'Nové místo k prozkoumání ve 3D — vydej se dovnitř a podívej se, co tam najdeš.'
                   : nepratele
                     ? nepratele.length > 1
