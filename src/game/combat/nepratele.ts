@@ -14,10 +14,12 @@ import { Nepritel } from './types'
 //
 // Boss (Fáze 8) je jen Nepritel s jeBoss/zuriPodHp/zuriNasobicPoskozeni
 // navíc (viz types.ts) — žádný nový záznam v týhle mapě, žádná nová
-// lokace, jen tři pole na existujícím záznamu. Dungeon jich zatím má
-// jednoho, na konci (Strážce jeskyně) — pojmenovaní bossové ze Season 1
-// (Forest Guardian, Rootmother, …) přibydou stejným vzorem, až přibydou
-// i jejich lokace.
+// lokace, jen tři pole na existujícím záznamu. Dungeon má jednoho, na
+// konci (Strážce jeskyně); Greenhaven (Fáze 10, Season 1) má druhého,
+// rovnou jako své jediné setkání (stejný tvar jako Emberfall — jeden
+// Nepritel v poli, ne dungeonová série). Další pojmenovaní bossové ze
+// Season 1 (Rootmother, Shadow Queen, …) přibydou stejným vzorem, až
+// přibydou i jejich lokace.
 // ==========================================
 
 export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
@@ -95,6 +97,27 @@ export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
       zuriPodHp: 0.4,
       zuriNasobicPoskozeni: 1.6,
       vybaveniId: 'amulet-strazce',
+    },
+  ],
+
+  // Druhá lokace Season 1 (Fáze 10) — stejný tvar jako Emberfall
+  // (jedno 'explorace' setkání, jeden Nepritel), tady rovnou boss.
+  greenhaven: [
+    {
+      id: 'strazce-lesa',
+      jmeno: 'Strážce lesa',
+      ikona: '🌳',
+      zivoty: 90,
+      poskozeniOd: 7,
+      poskozeniDo: 13,
+      odmenaXp: 45,
+      odmenaKredity: 30,
+      lupId: 'lecivy-lektvar',
+      sanceNaLup: 0.5,
+      jeBoss: true,
+      zuriPodHp: 0.4,
+      zuriNasobicPoskozeni: 1.5,
+      vybaveniId: 'trnova-koruna',
     },
   ],
 }

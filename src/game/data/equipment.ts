@@ -12,10 +12,9 @@
 // Získává se garantovaně, ne losem jako batohový loot (Nepritel.lupId/
 // sanceNaLup) — poražení konkrétního bosse odemkne jeho signální
 // relikvii natrvalo (viz combat/types.ts Nepritel.vybaveniId,
-// Souboj.tsx). Zatím jedna položka, od jediného existujícího bosse
-// (Strážce jeskyně) — další bossové (Fáze 10, Season 1) přinesou
-// vlastní stejným vzorem, jeden záznam navíc tady + vybaveniId na
-// jejich Nepritel.
+// Souboj.tsx). Každý boss ze Season 1 (Fáze 10) přidává vlastní
+// relikvii stejným vzorem — jeden záznam navíc tady + vybaveniId na
+// jeho Nepritel, žádná nová soustava.
 // ==========================================
 
 export interface Vybaveni {
@@ -42,5 +41,19 @@ export const VYBAVENI: Vybaveni[] = [
     bonusVydrz: 12,
     bonusPoskozeni: 0,
     bonusKriticka: 0.04,
+  },
+  {
+    // Druhá relikvie (Fáze 10, Season 1) — od Strážce lesa (Greenhaven/
+    // Věčný les). Útočná, na rozdíl od amuletu — dvě relikvie teď
+    // nabízí skutečnou volbu buď/nebo (obě zabírají stejné, jediné
+    // vybavené místo), ne jen druhý kus se stejným efektem.
+    id: 'trnova-koruna',
+    nazev: 'Trnová koruna',
+    popis: 'Relikvie poraženého Strážce lesa — dodává úderům trnitou sílu.',
+    ikona: '🌿',
+    zdroj: 'Poraz Strážce lesa (Věčný les u Greenhavenu)',
+    bonusVydrz: 4,
+    bonusPoskozeni: 0.08,
+    bonusKriticka: 0,
   },
 ]

@@ -13,11 +13,13 @@
 // se plní soubojem na víc než jedné lokaci, by odvozený vztah nešel
 // vůbec zapsat.
 //
-// Zatím je tu jeden quest (Ztracené štěně, Emberfall) jako vertikální
-// řez celým herním smyčkem. Zbylých 29 questů ze Season 1 se přidává
-// stejným vzorem — nová položka sem + nová lokace v lokace.ts + nový
-// nepřítel v nepratele.ts + případně vlastní SvetKonfigurace ve
-// world.ts.
+// Dva questy zatím — Ztracené štěně (Emberfall, vertikální řez z Fáze
+// 1) a Probuzený les (Greenhaven, Fáze 10). Zbylých 28 questů ze
+// Season 1 se přidává stejným vzorem — nová položka sem + odpovídající
+// nepřítel v nepratele.ts + vlastní SvetKonfigurace ve world.ts.
+// Lokace samotná (lokace.ts) nemusí být nová ani měnit typ — viz
+// Greenhaven, pořád 'mesto', 3D svět jen zpřístupní přítomnost ve
+// SVETY_PODLE_LOKACE (Fáze 7).
 // ==========================================
 
 export type TypCile = 'boj'
@@ -62,6 +64,17 @@ export const QUESTS: Quest[] = [
     dialogPriPrijeti: 'ztracene-stene-prijeti',
     dialogPriDokonceni: 'ztracene-stene-dokonceni',
   },
+  {
+    id: 'probuzeny-les',
+    nazev: 'Probuzený les',
+    lokaceId: 'greenhaven',
+    popis:
+      'Trní a zkažená zvěř se v noci plíží až k hradbám Greenhavenu — hlídka tvrdí, že to všechno vychází ze srdce Věčného lesa, kde odjakživa panoval klid.',
+    cile: [{ id: 'porazit-strazce-lesa', popis: 'Vydej se do Věčného lesa a poraz to, co v něm probudilo trní.', typ: 'boj' }],
+    odmenaPopis: 'XP, kredity z boje a garantovaná relikvie Strážce lesa.',
+    dialogPriPrijeti: 'probuzeny-les-prijeti',
+    dialogPriDokonceni: 'probuzeny-les-dokonceni',
+  },
 ]
 
 /** Lokace -> (quest, cíl), který se plní výhrou v souboji na téhle
@@ -69,4 +82,5 @@ export const QUESTS: Quest[] = [
  *  — souboj samotný o questech neví nic (viz Souboj.tsx `onVyhra`). */
 export const BOJOVY_CIL_PODLE_LOKACE: Record<string, { questId: string; cilId: string }> = {
   emberfall: { questId: 'ztracene-stene', cilId: 'porazit-vlcaka' },
+  greenhaven: { questId: 'probuzeny-les', cilId: 'porazit-strazce-lesa' },
 }

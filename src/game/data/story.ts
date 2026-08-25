@@ -10,10 +10,10 @@
 // (resp. za pevnou identitu Buddyho). Cokoli jiného je NPC se svým
 // vlastním jménem/ikonou přímo v datech.
 //
-// Zatím dvě sekvence pro jediný existující quest (Ztracené štěně) —
-// jeden dialog při přijetí, jeden po jeho splnění (přesně "Story"
-// krok mezi soubojem/odměnou a návratem na mapu z herní smyčky).
-// Další questy přidávají další sekvence sem, žádná nová soustava.
+// Dvě sekvence na quest — jeden dialog při přijetí, jeden po jeho
+// splnění (přesně "Story" krok mezi soubojem/odměnou a návratem na
+// mapu z herní smyčky). Další questy přidávají další sekvence sem,
+// žádná nová soustava.
 // ==========================================
 
 export interface DialogRadek {
@@ -55,6 +55,39 @@ export const STORY: Record<string, DialogSekvence> = {
         mluvci: 'Stará vdova',
         ikona: '👵',
         text: 'Ta mlha... říkala jsem si, že to není náhoda. Něco se probouzí za Emberfallem. Možná bys to měl prozkoumat dál — až přijde čas.',
+      },
+    ],
+  },
+  'probuzeny-les-prijeti': {
+    id: 'probuzeny-les-prijeti',
+    radky: [
+      {
+        mluvci: 'Hlídka Greenhavenu',
+        ikona: '🛡️',
+        text: 'Nechoď tam sám. Trní roste rychleji, než ho stačíme sekat, a v noci slyšíme z lesa vrčení, co tam nikdy nebývalo.',
+      },
+      { mluvci: '__hrac__', ikona: '', text: 'Zjistím, co se tam probudilo.' },
+      {
+        mluvci: 'Hlídka Greenhavenu',
+        ikona: '🛡️',
+        text: 'Věčný les byl tichý celé věky. Ať je to cokoli, nemá to tam co dělat.',
+      },
+      { mluvci: '__buddy__', ikona: '', text: 'Stejná mlha jako u Emberfallu... tohle není náhoda, tuším to.' },
+    ],
+  },
+  'probuzeny-les-dokonceni': {
+    id: 'probuzeny-les-dokonceni',
+    radky: [
+      { mluvci: '__buddy__', ikona: '', text: 'Trní kolem něj vadne — bez něj ztrácí sílu.' },
+      {
+        mluvci: 'Hlídka Greenhavenu',
+        ikona: '🛡️',
+        text: 'Strážce lesa tu spal od nepaměti. Něco ho probudilo, a nebyla to náhoda.',
+      },
+      {
+        mluvci: 'Hlídka Greenhavenu',
+        ikona: '🛡️',
+        text: 'Napřed Emberfall, teď Věčný les... jako by se probouzelo něco mnohem staršího.',
       },
     ],
   },
