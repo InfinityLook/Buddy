@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LOKACE, POPIS_TYPU } from '../lokace'
 import { NEPRATELE_PODLE_LOKACE } from '../combat/nepratele'
+import { QUESTS, QUEST_PODLE_LOKACE } from '../data/quests'
 import { Postava } from '../types'
 import { useGameCharacter } from '../useGameCharacter'
 import { vychoziProgres } from '../leveling'
@@ -20,6 +21,8 @@ interface Props {
   onVstoupitDoBoje: (lokaceId: string) => void
   /** Volá se po potvrzení vstupu na tržiště. */
   onVstoupitDoObchodu: (lokaceId: string) => void
+  /** Volá se po potvrzení vstupu do 3D průzkumu (viz Explorace3D.tsx). */
+  onVstoupitDoSveta: (lokaceId: string) => void
   /** Volá se klepnutím na značku postavy v horní liště nebo na dlaždici
    *  Hrdina v menu mapy — obojí vede na stejnou obrazovku (viz Hrdina.tsx). */
   onOtevritHrdinu: () => void
@@ -39,7 +42,13 @@ interface Props {
 // jen to, na čem piny leží.
 // ==========================================
 
-export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoupitDoObchodu, onOtevritHrdinu }) => {
+export const MapaSveta: React.FC<Props> = ({
+  postava,
+  onVstoupitDoBoje,
+  onVstoupitDoObchodu,
+  onVstoupitDoSveta,
+  onOtevritHrdinu,
+}) => {
   const navigate = useNavigate()
   const progres = useGameCharacter((s) => s.progres[postava.id]) ?? vychoziProgres()
   const [otevrena, setOtevrena] = useState<string | null>(null)
@@ -47,8 +56,14 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoup
   const platnoRef = useRef<HTMLDivElement>(null)
 
   const detail = LOKACE.find((l) => l.id === otevrena) ?? null
+  // 'explorace' lokace mají nepřítele taky (viz combat/nepratele.ts —
+  // souboj samotný na konci 3D průzkumu ho pořád potřebuje), ale
+  // souboj se z listu místa nespouští přímo — nejdřív musí hráč projít
+  // 3D svět a najít ho tam (viz jeExplorace níž).
   const nepratele = detail ? NEPRATELE_PODLE_LOKACE[detail.id] : undefined
   const jeTrziste = detail?.typ === 'trziste'
+  const jeExplorace = detail?.typ === 'explorace'
+  const quest = detail ? QUESTS.find((q) => q.id === QUEST_PODLE_LOKACE[detail.id]) : undefined
 
   // Mapa je větší než displej na obě strany — při vstupu ji vycentruje
   // na hlavní město (Solace), střed světa i příběhu, místo levého
@@ -144,15 +159,28 @@ export const MapaSveta: React.FC<Props> = ({ postava, onVstoupitDoBoje, onVstoup
             <p className="mapa-sheet-text">
               {jeTrziste
                 ? 'Trvalá vylepšení za kredity z boje — elixíry, čepele a další věci, co platí pro celou tvou partu.'
-                : nepratele
-                  ? nepratele.length > 1
-                    ? `${nepratele.length} nepřátel na tebe čeká za sebou — výdrž se mezi nimi neobnoví. Troufneš si?`
-                    : `${nepratele[0].jmeno} tě čeká — troufneš si na souboj?`
-                  : detail.typ === 'hlavni-mesto'
-                    ? 'Hlavní město je vyhrazené pro dějovou linku hry — ta zatím nevznikla, přijde v některém z dalších kroků.'
-                    : 'Tohle místo zatím nikam nevede — je připravené a obsah do něj teprve přibude.'}
+                : jeExplorace
+                  ? (quest?.popis ?? 'Nové místo k prozkoumání ve 3D — vydej se dovnitř a podívej se, co tam najdeš.')
+                  : nepratele
+                    ? nepratele.length > 1
+                      ? `${nepratele.length} nepřátel na tebe čeká za sebou — výdrž se mezi nimi neobnoví. Troufneš si?`
+                      : `${nepratele[0].jmeno} tě čeká — troufneš si na souboj?`
+                    : detail.typ === 'hlavni-mesto'
+                      ? 'Hlavní město je vyhrazené pro dějovou linku hry — ta zatím nevznikla, přijde v některém z dalších kroků.'
+                      : 'Tohle místo zatím nikam nevede — je připravené a obsah do něj teprve přibude.'}
             </p>
-            {nepratele && (
+            {jeExplorace && (
+              <button
+                className="mapa-sheet-boj"
+                onClick={() => {
+                  onVstoupitDoSveta(detail.id)
+                  setOtevrena(null)
+                }}
+              >
+                🌲 Vstoupit do světa
+              </button>
+            )}
+            {nepratele && !jeExplorace && (
               <button
                 className="mapa-sheet-boj"
                 onClick={() => {

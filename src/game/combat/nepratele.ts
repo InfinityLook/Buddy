@@ -27,6 +27,22 @@ export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
     },
   ],
 
+  // Setkání se spouští v 3D průzkumu (Explorace3D.tsx), ne klepnutím na
+  // pin — hráč k němu musí dojít world.ts SVETY_PODLE_LOKACE.emberfall
+  // pozici. Souboj samotný pak běží beze změny ve 2D (Souboj.tsx).
+  emberfall: [
+    {
+      id: 'stinovy-vlcak',
+      jmeno: 'Stínovlčák',
+      ikona: '🐺',
+      zivoty: 45,
+      poskozeniOd: 4,
+      poskozeniDo: 9,
+      odmenaXp: 20,
+      odmenaKredity: 12,
+    },
+  ],
+
   'dungeon-stinne-jeskyne': [
     {
       id: 'jeskynni-krysak',

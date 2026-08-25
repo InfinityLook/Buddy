@@ -5,6 +5,21 @@
    svůj CSS soubor importuje sama, nespoléhá na tenhle.
    ========================================== */
 
+/* Zástupný stav, dokud se stahuje lazy chunk Explorace3D (three.js) —
+   viz React.lazy v GameModule.tsx. Vlastní obrazovky mají svoje CSS,
+   tohle je jediný sdílený "loading" stav, proto patří sem. */
+.game-lazy-fallback {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0c0a16;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
 .game-back-btn {
   position: absolute;
   top: calc(0.9rem + env(safe-area-inset-top));

@@ -34,7 +34,7 @@ export interface Postava {
   obchodNasobicCeny: number
 }
 
-export type LokaceTyp = 'mesto' | 'dungeon' | 'arena' | 'vesnice' | 'trziste' | 'hlavni-mesto'
+export type LokaceTyp = 'mesto' | 'dungeon' | 'arena' | 'vesnice' | 'trziste' | 'hlavni-mesto' | 'explorace'
 
 export interface Lokace {
   id: string

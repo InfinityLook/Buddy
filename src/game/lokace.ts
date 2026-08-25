@@ -32,6 +32,11 @@ export const LOKACE: Lokace[] = [
 
   { id: 'windport', typ: 'trziste', nazev: 'Windport', ikona: '🏪', barva: '#f59e0b', x: 32.9, y: 71.6 },
 
+  // První 3D průzkumná lokace (viz game/data/world.ts, game/explorace/) —
+  // otevírá se z listu místa jinak než souboj/tržiště: tlačítkem "Vstoupit
+  // do světa" (MapaSveta.tsx podle SVETY_PODLE_LOKACE), ne rovnou do boje.
+  { id: 'emberfall', typ: 'explorace', nazev: 'Emberfall', ikona: '🐾', barva: '#f97316', x: 57.3, y: 48.8 },
+
   // Id zůstávají beze změny oproti starým místům se stejnou rolí —
   // NEPRATELE_PODLE_LOKACE (combat/nepratele.ts) na ně klíčuje, a
   // přejmenování id by tichem přerušilo jediný obsah, co v aréně/
@@ -48,4 +53,5 @@ export const POPIS_TYPU: Record<Lokace['typ'], string> = {
   vesnice: 'Vesnice',
   trziste: 'Tržiště',
   'hlavni-mesto': 'Hlavní město',
+  explorace: 'Průzkum',
 }

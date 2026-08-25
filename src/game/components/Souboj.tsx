@@ -14,6 +14,11 @@ interface Props {
   nazevMista: string
   ikonaMista: string
   onOdejit: () => void
+  /** Volitelné — volá se jednou při skutečné výhře, vedle recordAction/
+   *  credit/pridatXpPostave níž. GameModule.tsx ji předává jen na
+   *  lokacích s questem (viz game/data/quests.ts QUEST_PODLE_LOKACE),
+   *  aby tenhle soubor nemusel o questech vůbec vědět. */
+  onVyhra?: () => void
 }
 
 // ==========================================
@@ -27,7 +32,7 @@ interface Props {
 // jednou na výhru, ne na každé zobrazení výherní obrazovky.
 // ==========================================
 
-export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaMista, onOdejit }) => {
+export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaMista, onOdejit, onVyhra }) => {
   const {
     faze,
     hracZivoty,
@@ -61,6 +66,7 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
     recordAction('battle', odmenaXp)
     credit(odmenaKredity)
     pridatXpPostave(postava.id, odmenaXp)
+    onVyhra?.()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [faze])
 

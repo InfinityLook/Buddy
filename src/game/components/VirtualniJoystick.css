@@ -1,0 +1,47 @@
+/* ==========================================
+   VIRTUÁLNÍ JOYSTICK — pohyb ve 3D průzkumu na mobilu, viz komentář
+   v .tsx. Fixní vlevo dole, mimo DOM strom plátna (Explorace3D.tsx),
+   ať dotyk na něm nikdy nespustí otáčení kamerou.
+   ========================================== */
+
+.explorace-joystick {
+  position: fixed;
+  left: 1.1rem;
+  bottom: calc(1.6rem + env(safe-area-inset-bottom));
+  z-index: 20;
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: rgba(12, 10, 22, 0.45);
+  backdrop-filter: blur(6px);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  touch-action: none;
+}
+
+.explorace-joystick-knoflik {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.14));
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  /* Přechod jen na klidový návrat po puštění — během tažení by
+     zpožďoval odezvu za prstem. Nastaveno inline při pusteno(). */
+  transition: transform 0.15s ease-out;
+  pointer-events: none;
+}
+
+.explorace-joystick:active .explorace-joystick-knoflik {
+  transition: none;
+}
+
+/* Myš s přesným ukazatelem = desktop → joystick jen překáží, tam se
+   hraje WASD + tažením myši (viz usePlayerWorld.ts). Zůstává i na
+   dotykovém desktopu s dotykovou obrazovkou (pointer: coarse). */
+@media (pointer: fine) {
+  .explorace-joystick { display: none; }
+}
