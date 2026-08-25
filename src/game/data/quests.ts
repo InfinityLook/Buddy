@@ -40,6 +40,14 @@ export interface Quest {
   /** Krátký popisek odměny pro list místa — skutečná čísla dává
    *  nepřítel v combat/nepratele.ts, tohle je jen text k přečtení. */
   odmenaPopis: string
+  /** Id sekvence v data/story.ts, přehraje se hned po přijetí questu
+   *  (MapaSveta.tsx). Volitelné — quest bez příběhu prostě žádný
+   *  dialog nespustí. */
+  dialogPriPrijeti?: string
+  /** Id sekvence v data/story.ts, přehraje se po výhře v souboji, co
+   *  quest doopravdy dokončil (GameModule.tsx, mezi soubojem a
+   *  návratem na mapu — přesně "Story" krok herní smyčky). */
+  dialogPriDokonceni?: string
 }
 
 export const QUESTS: Quest[] = [
@@ -51,6 +59,8 @@ export const QUESTS: Quest[] = [
       'Stará vdova z Emberfallu shání svého psa — zaběhl do polí za městem právě ve chvíli, kdy se odtamtud přivalila podivná stínová mlha.',
     cile: [{ id: 'porazit-vlcaka', popis: 'Poraz Stínovlčáka, který štěněti stojí v cestě.', typ: 'boj' }],
     odmenaPopis: 'XP, kredity z boje a vděčnost celého Emberfallu.',
+    dialogPriPrijeti: 'ztracene-stene-prijeti',
+    dialogPriDokonceni: 'ztracene-stene-dokonceni',
   },
 ]
 

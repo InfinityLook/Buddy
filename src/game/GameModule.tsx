@@ -7,12 +7,14 @@ import { Souboj } from './components/Souboj'
 import { Obchod } from './components/Obchod'
 import { Hrdina } from './components/Hrdina'
 import { Questy } from './components/Questy'
+import { StoryDialog } from './components/StoryDialog'
 import { useGameCharacter } from './useGameCharacter'
 import { useQuestStore } from './useQuestStore'
 import { POSTAVY } from './postavy'
 import { Postava, PostavaId } from './types'
 import { NEPRATELE_PODLE_LOKACE } from './combat/nepratele'
-import { BOJOVY_CIL_PODLE_LOKACE } from './data/quests'
+import { BOJOVY_CIL_PODLE_LOKACE, QUESTS } from './data/quests'
+import { STORY } from './data/story'
 import { LOKACE } from './lokace'
 import './GameModule.css'
 
@@ -37,21 +39,23 @@ const Explorace3D = React.lazy(() =>
 //  2) party, nic zvoleno, rezim 'pridat' -> TvorbaPostavy (další postava)
 //  3) party, nic zvoleno, rezim 'vyber'  -> VyberPostavy (za koho hrát)
 //  4) zvoleno + souboj    -> Souboj
-//  5) zvoleno + obchod    -> Obchod
-//  6) zvoleno + hrdina    -> Hrdina (postava, statistiky, vylepšení, dovednosti)
-//  7) zvoleno + questy     -> Questy (quest log, viz Questy.tsx)
-//  8) zvoleno + průzkum    -> Explorace3D (3D svět, viz níž)
-//  9) zvoleno              -> MapaSveta
+//  5) zvoleno + story      -> StoryDialog (jen po výhře, co dokončila quest)
+//  6) zvoleno + obchod    -> Obchod
+//  7) zvoleno + hrdina    -> Hrdina (postava, statistiky, vylepšení, dovednosti)
+//  8) zvoleno + questy     -> Questy (quest log, viz Questy.tsx)
+//  9) zvoleno + průzkum    -> Explorace3D (3D svět, viz níž)
+// 10) zvoleno              -> MapaSveta
 //
 // Herní smyčka MAPA → LOKACE → 3D SVĚT → PRŮZKUM → SETKÁNÍ → SOUBOJ →
-// ODMĚNA → QUEST SPLNĚN → XP → ZPĚT NA MAPU: MapaSveta u 'explorace'
-// lokací (viz lokace.ts) nabízí "Vstoupit do světa" místo rovnou boje
-// — teprve Explorace3D.onSetkani (hráč došel k nepříteli ve 3D světě)
-// nastaví soubojLokaceId, který odsud dál běží úplně stejně jako
-// soubojová/dungeonová lokace vždycky běžela. Výhra navíc přes
-// BOJOVY_CIL_PODLE_LOKACE splní odpovídající cíl questu (viz
+// ODMĚNA → QUEST SPLNĚN → XP → STORY → ZPĚT NA MAPU: MapaSveta u
+// 'explorace' lokací (viz lokace.ts) nabízí "Vstoupit do světa" místo
+// rovnou boje — teprve Explorace3D.onSetkani (hráč došel k nepříteli
+// ve 3D světě) nastaví soubojLokaceId, který odsud dál běží úplně
+// stejně jako soubojová/dungeonová lokace vždycky běžela. Výhra navíc
+// přes BOJOVY_CIL_PODLE_LOKACE splní odpovídající cíl questu (viz
 // useQuestStore.ts — quest se dokončí sám, jakmile jsou splněné
-// všechny jeho cíle).
+// všechny jeho cíle) a `splnitCil` vrátí true právě tehdy, když to byl
+// poslední cíl — jen pak se spustí `dialogPriDokonceni` (Story krok).
 // ==========================================
 
 type Rezim = 'vyber' | 'pridat'
@@ -69,6 +73,7 @@ export const GameModule: React.FC = () => {
   const [hrdinaOtevren, setHrdinaOtevren] = useState(false)
   const [questyOtevreny, setQuestyOtevreny] = useState(false)
   const [exploraceLokaceId, setExploraceLokaceId] = useState<string | null>(null)
+  const [storyId, setStoryId] = useState<string | null>(null)
   const splnitCil = useQuestStore((s) => s.splnitCil)
 
   const party = postavyId
@@ -114,19 +119,33 @@ export const GameModule: React.FC = () => {
           setExploraceLokaceId(null)
         }}
         onVyhra={
-          bojovyCilSouboje ? () => splnitCil(bojovyCilSouboje.questId, bojovyCilSouboje.cilId) : undefined
+          bojovyCilSouboje
+            ? () => {
+                const dokonceno = splnitCil(bojovyCilSouboje.questId, bojovyCilSouboje.cilId)
+                if (!dokonceno) return
+                const dokoncenyQuest = QUESTS.find((q) => q.id === bojovyCilSouboje.questId)
+                if (dokoncenyQuest?.dialogPriDokonceni) setStoryId(dokoncenyQuest.dialogPriDokonceni)
+              }
+            : undefined
         }
       />
     )
   }
 
-  // 5) Obchod má přednost, dokud je otevřený
+  // 5) Story má přednost, dokud je nastavený — nastaví se jen výhrou,
+  // co dokončila quest (viz onVyhra výš), takže se zobrazí přesně
+  // jednou, mezi opuštěním souboje a návratem na mapu.
+  if (aktivniPostava && storyId) {
+    return <StoryDialog sekvence={STORY[storyId]} postava={aktivniPostava} onDokonceno={() => setStoryId(null)} />
+  }
+
+  // 6) Obchod má přednost, dokud je otevřený
   if (aktivniPostava && obchodOtevren) {
     return <Obchod postava={aktivniPostava} onOdejit={() => setObchodOtevren(false)} />
   }
 
-  // 6) Hrdina má přednost, dokud je otevřený (obchod nad ním má
-  // přednost — viz krok 5 výš — takže "Otevřít tržiště" v sekci
+  // 7) Hrdina má přednost, dokud je otevřený (obchod nad ním má
+  // přednost — viz krok 6 výš — takže "Otevřít tržiště" v sekci
   // Vylepšení nechá hrdinaOtevren beze změny a po zavření obchodu se
   // uživatel vrátí zpátky sem, ne rovnou na mapu).
   if (aktivniPostava && hrdinaOtevren) {
@@ -139,12 +158,12 @@ export const GameModule: React.FC = () => {
     )
   }
 
-  // 7) Questy mají přednost, dokud jsou otevřené
+  // 8) Questy mají přednost, dokud jsou otevřené
   if (aktivniPostava && questyOtevreny) {
     return <Questy onOdejit={() => setQuestyOtevreny(false)} />
   }
 
-  // 8) Průzkum má přednost, dokud probíhá — jen tady se odblokuje
+  // 9) Průzkum má přednost, dokud probíhá — jen tady se odblokuje
   // setSoubojLokaceId, které pak výš (krok 4) na dalším renderu
   // přepne na Souboj, aniž by Explorace3D o Souboj.tsx cokoli vědělo.
   const lokaceExplorace = exploraceLokaceId ? LOKACE.find((l) => l.id === exploraceLokaceId) : undefined
@@ -161,7 +180,7 @@ export const GameModule: React.FC = () => {
     )
   }
 
-  // 9) Zvoleno, za koho se hraje — mapa
+  // 10) Zvoleno, za koho se hraje — mapa
   if (aktivniPostava) {
     return (
       <MapaSveta

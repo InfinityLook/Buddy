@@ -51,8 +51,11 @@ interface QuestState {
   prijmoutQuest: (questId: string) => void
   /** Označí cíl za splněný; pokud tím byl splněný poslední cíl
    *  questu, přesune celý quest z aktivni do dokoncene. Klidně voláno
-   *  vícekrát pro stejný cíl — druhé a další volání jsou no-op. */
-  splnitCil: (questId: string, cilId: string) => void
+   *  vícekrát pro stejný cíl — druhé a další volání jsou no-op.
+   *  Vrací true, právě když tímhle voláním quest doopravdy dokončil —
+   *  GameModule.tsx podle toho pozná, kdy spustit `dialogPriDokonceni`
+   *  (viz data/quests.ts), ne při každém dílčím splnění cíle. */
+  splnitCil: (questId: string, cilId: string) => boolean
 }
 
 export const useQuestStore = create<QuestState>()(
@@ -70,23 +73,24 @@ export const useQuestStore = create<QuestState>()(
 
       splnitCil: (questId, cilId) => {
         const quest = QUESTS.find((q) => q.id === questId)
-        if (!quest) return
+        if (!quest) return false
 
-        set((state) => {
-          if (state.dokoncene.includes(questId)) return state
+        const state = get()
+        if (state.dokoncene.includes(questId)) return false
 
-          const jizSplnene = state.splneneCile[questId] ?? []
-          if (jizSplnene.includes(cilId)) return state
+        const jizSplnene = state.splneneCile[questId] ?? []
+        if (jizSplnene.includes(cilId)) return false
 
-          const noveSplnene = [...jizSplnene, cilId]
-          const vsechnySplneny = quest.cile.every((c) => noveSplnene.includes(c.id))
+        const noveSplnene = [...jizSplnene, cilId]
+        const vsechnySplneny = quest.cile.every((c) => noveSplnene.includes(c.id))
 
-          return {
-            splneneCile: { ...state.splneneCile, [questId]: noveSplnene },
-            aktivni: vsechnySplneny ? state.aktivni.filter((id) => id !== questId) : state.aktivni,
-            dokoncene: vsechnySplneny ? [...state.dokoncene, questId] : state.dokoncene,
-          }
+        set({
+          splneneCile: { ...state.splneneCile, [questId]: noveSplnene },
+          aktivni: vsechnySplneny ? state.aktivni.filter((id) => id !== questId) : state.aktivni,
+          dokoncene: vsechnySplneny ? [...state.dokoncene, questId] : state.dokoncene,
         })
+
+        return vsechnySplneny
       },
     }),
     {

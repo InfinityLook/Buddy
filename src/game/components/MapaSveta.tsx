@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { LOKACE, POPIS_TYPU } from '../lokace'
 import { NEPRATELE_PODLE_LOKACE } from '../combat/nepratele'
 import { QUESTS } from '../data/quests'
+import { STORY } from '../data/story'
 import { useQuestStore, stavQuestu, jeCilSplneny } from '../useQuestStore'
 import { Postava } from '../types'
 import { useGameCharacter } from '../useGameCharacter'
 import { vychoziProgres } from '../leveling'
+import { StoryDialog } from './StoryDialog'
 import './MapaSveta.css'
 
 /** Přesné rozměry public/backgrounds/mapa-sveta.jpg v px — musí sedět
@@ -57,6 +59,7 @@ export const MapaSveta: React.FC<Props> = ({
   const progres = useGameCharacter((s) => s.progres[postava.id]) ?? vychoziProgres()
   const [otevrena, setOtevrena] = useState<string | null>(null)
   const [menuOtevrene, setMenuOtevrene] = useState(false)
+  const [dialogId, setDialogId] = useState<string | null>(null)
   const platnoRef = useRef<HTMLDivElement>(null)
 
   const prijmoutQuest = useQuestStore((s) => s.prijmoutQuest)
@@ -184,7 +187,14 @@ export const MapaSveta: React.FC<Props> = ({
                 do světa — cíle se ukazují hned, ať je jasné, na čem
                 quest reálně stojí. */}
             {jeExplorace && quest && questStav === 'nedostupny' && (
-              <button className="mapa-sheet-boj" onClick={() => prijmoutQuest(quest.id)}>
+              <button
+                className="mapa-sheet-boj"
+                onClick={() => {
+                  prijmoutQuest(quest.id)
+                  if (quest.dialogPriPrijeti) setDialogId(quest.dialogPriPrijeti)
+                  else setOtevrena(null)
+                }}
+              >
                 📜 Přijmout quest
               </button>
             )}
@@ -278,6 +288,17 @@ export const MapaSveta: React.FC<Props> = ({
             </div>
           </div>
         </>
+      )}
+
+      {dialogId && (
+        <StoryDialog
+          sekvence={STORY[dialogId]}
+          postava={postava}
+          onDokonceno={() => {
+            setDialogId(null)
+            setOtevrena(null)
+          }}
+        />
       )}
     </div>
   )
