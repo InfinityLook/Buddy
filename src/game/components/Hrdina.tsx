@@ -113,6 +113,22 @@ export const Hrdina: React.FC<Props> = ({ postava, onOdejit, onOtevritObchod }) 
         </div>
       </section>
 
+      {/* ---------- signální schopnost (čistě informační — použije se
+          až v souboji, viz Souboj.tsx) ---------- */}
+      <section className="hr-sekce">
+        <h2 className="hr-sekce-title">Schopnost</h2>
+        <div className="hr-schopnost-karta">
+          <span className="hr-schopnost-ikona" aria-hidden="true">
+            {postava.specialniSchopnost.ikona}
+          </span>
+          <div className="hr-schopnost-text">
+            <span className="hr-schopnost-nazev">{postava.specialniSchopnost.nazev}</span>
+            <span className="hr-schopnost-popis">{postava.specialniSchopnost.popis}</span>
+            <span className="hr-schopnost-hint">Jednou za souboj, mimo běžné kartičky.</span>
+          </div>
+        </div>
+      </section>
+
       {/* ---------- vylepšení (zkratka do tržiště) ---------- */}
       <section className="hr-sekce">
         <h2 className="hr-sekce-title">Vylepšení</h2>

@@ -46,7 +46,9 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
     log,
     odmenaXp,
     odmenaKredity,
+    schopnostPouzita,
     zahratKartu,
+    pouzitSchopnost,
     zkusitZnovu,
   } = useSouboj(postava, nepratele)
   const recordAction = useGamificationStore((s) => s.recordAction)
@@ -131,29 +133,51 @@ export const Souboj: React.FC<Props> = ({ postava, nepratele, nazevMista, ikonaM
         </div>
 
         {faze === 'probiha' && (
-          <div className="souboj-ruka">
-            {ruka.map((karta) => {
-              const bonus = karta.zivel === postava.bojZivel
-              return (
-                <button
-                  key={karta.id}
-                  className={`souboj-karta${bonus ? ' souboj-karta--bonus' : ''}`}
-                  style={{ '--sk-barva': BARVA_ZIVLU[karta.zivel] } as React.CSSProperties}
-                  onClick={() => zahratKartu(karta)}
-                >
-                  <span className="souboj-karta-ikona" aria-hidden="true">
-                    {karta.ikona}
-                  </span>
-                  <span className="souboj-karta-nazev">{karta.nazev}</span>
-                  <span className="souboj-karta-zivel">{NAZEV_ZIVLU[karta.zivel]}</span>
-                  <span className="souboj-karta-poskozeni">
-                    {karta.poskozeniOd}–{karta.poskozeniDo}
-                    {bonus ? ' ⚡' : ''}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+          <>
+            <div className="souboj-ruka">
+              {ruka.map((karta) => {
+                const bonus = karta.zivel === postava.bojZivel
+                return (
+                  <button
+                    key={karta.id}
+                    className={`souboj-karta${bonus ? ' souboj-karta--bonus' : ''}`}
+                    style={{ '--sk-barva': BARVA_ZIVLU[karta.zivel] } as React.CSSProperties}
+                    onClick={() => zahratKartu(karta)}
+                  >
+                    <span className="souboj-karta-ikona" aria-hidden="true">
+                      {karta.ikona}
+                    </span>
+                    <span className="souboj-karta-nazev">{karta.nazev}</span>
+                    <span className="souboj-karta-zivel">{NAZEV_ZIVLU[karta.zivel]}</span>
+                    <span className="souboj-karta-poskozeni">
+                      {karta.poskozeniOd}–{karta.poskozeniDo}
+                      {bonus ? ' ⚡' : ''}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Signální schopnost — jednou za souboj, mimo karetní balíček
+                (viz useSouboj.ts pouzitSchopnost). Vlastní řádek, ne
+                čtvrtá karta v mřížce, ať je hned vidět, že je mechanicky
+                jiná (garantovaný efekt, žádná náhoda v kartě). */}
+            <button
+              className="souboj-schopnost"
+              style={{ '--sb-barva': postava.barva } as React.CSSProperties}
+              disabled={schopnostPouzita}
+              onClick={pouzitSchopnost}
+            >
+              <span className="souboj-schopnost-ikona" aria-hidden="true">
+                {postava.specialniSchopnost.ikona}
+              </span>
+              <span className="souboj-schopnost-text">
+                <span className="souboj-schopnost-nazev">{postava.specialniSchopnost.nazev}</span>
+                <span className="souboj-schopnost-popis">{postava.specialniSchopnost.popis}</span>
+              </span>
+              <span className="souboj-schopnost-stav">{schopnostPouzita ? 'Použito' : '1×'}</span>
+            </button>
+          </>
         )}
 
         {faze !== 'probiha' && (

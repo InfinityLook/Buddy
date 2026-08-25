@@ -21,6 +21,13 @@ import { Postava } from './types'
 //
 // Zeme jako živel zůstala (viz karty.ts), jen přeznačená na Přírodu —
 // Elařin živel z reference je Nature, ne kámen.
+//
+// specialniSchopnost (Fáze 4, combat system) dává každé postavě jednu
+// signální schopnost mimo karetní balíček, použitelnou jednou za
+// souboj — reálná taktická volba navíc k "kterou ze tří karet zahrát".
+// Typ schopnosti odpovídá roli z reference: Kael (Tank) blokuje,
+// Elara (Healer) léčí, Lyra/Rayen (Mage/Assassin) mají jistý silný
+// zásah, Drakon (Bruiser) nejvyšší poškození za cenu vlastní výdrže.
 // ==========================================
 
 export const POSTAVY: Postava[] = [
@@ -39,6 +46,15 @@ export const POSTAVY: Postava[] = [
     bojKritickyNasobic: 1.5,
     bojVydrz: 150,
     obchodNasobicCeny: 1,
+    specialniSchopnost: {
+      nazev: 'Vodní štít',
+      popis: 'Vytvoří vodní štít, který úplně pohltí příští útok nepřítele.',
+      ikona: '🛡️',
+      typ: 'stit',
+      hodnotaOd: 0,
+      hodnotaDo: 0,
+      vlastniNaklad: 0,
+    },
   },
   {
     id: 'lyra',
@@ -55,6 +71,15 @@ export const POSTAVY: Postava[] = [
     bojKritickyNasobic: 1.75,
     bojVydrz: 100,
     obchodNasobicCeny: 1.2,
+    specialniSchopnost: {
+      nazev: 'Arkánní výboj',
+      popis: 'Vypustí čistou arkánní energii — jistý zásah bez ohledu na kartu v ruce.',
+      ikona: '💥',
+      typ: 'poskozeni',
+      hodnotaOd: 20,
+      hodnotaDo: 28,
+      vlastniNaklad: 0,
+    },
   },
   {
     id: 'rayen',
@@ -71,6 +96,15 @@ export const POSTAVY: Postava[] = [
     bojKritickyNasobic: 2,
     bojVydrz: 100,
     obchodNasobicCeny: 1,
+    specialniSchopnost: {
+      nazev: 'Zákeřný úder',
+      popis: 'Jediný přesný zásah do slabiny — nejvyšší jistá rána ze všech postav.',
+      ikona: '🗡️',
+      typ: 'poskozeni',
+      hodnotaOd: 26,
+      hodnotaDo: 36,
+      vlastniNaklad: 0,
+    },
   },
   {
     id: 'elara',
@@ -87,6 +121,15 @@ export const POSTAVY: Postava[] = [
     bojKritickyNasobic: 1.5,
     bojVydrz: 130,
     obchodNasobicCeny: 1,
+    specialniSchopnost: {
+      nazev: 'Přírodní obnova',
+      popis: 'Přivolá sílu přírody a doplní si výdrž.',
+      ikona: '💚',
+      typ: 'leceni',
+      hodnotaOd: 22,
+      hodnotaDo: 30,
+      vlastniNaklad: 0,
+    },
   },
   {
     id: 'drakon',
@@ -103,5 +146,14 @@ export const POSTAVY: Postava[] = [
     bojKritickyNasobic: 1.75,
     bojVydrz: 140,
     obchodNasobicCeny: 1,
+    specialniSchopnost: {
+      nazev: 'Dračí zuřivost',
+      popis: 'Vrhne se do útoku bez ohledu na vlastní bezpečí — nejvyšší poškození ze všech, ale i sám sebe zraní.',
+      ikona: '🔥',
+      typ: 'poskozeni',
+      hodnotaOd: 30,
+      hodnotaDo: 42,
+      vlastniNaklad: 12,
+    },
   },
 ]

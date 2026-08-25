@@ -2,6 +2,27 @@ import { Zivel } from './combat/types'
 
 export type PostavaId = 'kael' | 'lyra' | 'rayen' | 'elara' | 'drakon'
 
+export type TypSchopnosti = 'poskozeni' | 'leceni' | 'stit'
+
+/** Postavina signální schopnost — jednou za souboj, mimo karetní balíček
+ *  (viz combat/karty.ts). Tři druhy efektu, ne obecný systém staveb —
+ *  přesně tolik, kolik dnešní čtyři schopnosti potřebují; obecnější
+ *  soustava (hoření, omráčení, …) počká, až ji doopravdy zdůvodní nová
+ *  schopnost, co se do těchhle tří nevejde. */
+export interface SpecialniSchopnost {
+  nazev: string
+  popis: string
+  ikona: string
+  typ: TypSchopnosti
+  /** Rozsah čísla efektu — poškození u 'poskozeni', uzdravení u
+   *  'leceni'. Nepoužije se u 'stit' (efekt je binární). */
+  hodnotaOd: number
+  hodnotaDo: number
+  /** Kolik vlastní výdrže schopnost navíc stojí — jen Drakonova
+   *  zuřivost, 0 jinak. */
+  vlastniNaklad: number
+}
+
 export interface Postava {
   id: PostavaId
   jmeno: string
@@ -30,8 +51,10 @@ export interface Postava {
   bojKritickyNasobic: number
   /** Výdrž — životy v souboji. */
   bojVydrz: number
-  /** Násobič cen v budoucím herním obchodě — 1 = beze změny, 1.2 = Angel. */
+  /** Násobič cen v obchodě — 1 = beze změny, 1.2 = Lyra. */
   obchodNasobicCeny: number
+  /** Signální schopnost — jednou za souboj, viz Souboj.tsx/useSouboj.ts. */
+  specialniSchopnost: SpecialniSchopnost
 }
 
 export type LokaceTyp = 'mesto' | 'dungeon' | 'arena' | 'vesnice' | 'trziste' | 'hlavni-mesto' | 'explorace'
