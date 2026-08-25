@@ -71,4 +71,18 @@ export const VYBAVENI: Vybaveni[] = [
     bonusPoskozeni: 0,
     bonusKriticka: 0.08,
   },
+  {
+    // Čtvrtá relikvie (Fáze 10, Season 1) — od Zamrzlého strážce
+    // (Frostheim/Frosthold). Čistě obranná, žádné poškození ani
+    // kritická šance navíc — na rozdíl od Amuletu strážce (vydrž +
+    // kritická šance dohromady) je tohle "zeď", ne všestranný kus.
+    id: 'ledovy-stit',
+    nazev: 'Ledový štít',
+    popis: 'Relikvie poraženého Zamrzlého strážce — mráz kolem nositele vydrží i ty nejtvrdší rány.',
+    ikona: '🛡️',
+    zdroj: 'Poraz Zamrzlého strážce (Frosthold u Frostheimu)',
+    bonusVydrz: 16,
+    bonusPoskozeni: 0,
+    bonusKriticka: 0,
+  },
 ]

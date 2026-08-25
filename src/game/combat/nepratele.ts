@@ -15,11 +15,11 @@ import { Nepritel } from './types'
 // Boss (Fáze 8) je jen Nepritel s jeBoss/zuriPodHp/zuriNasobicPoskozeni
 // navíc (viz types.ts) — žádný nový záznam v týhle mapě, žádná nová
 // lokace, jen tři pole na existujícím záznamu. Dungeon má jednoho, na
-// konci (Strážce jeskyně); Greenhaven a Voidspire (Fáze 10, Season 1)
-// mají každý svého, rovnou jako své jediné setkání (stejný tvar jako
-// Emberfall — jeden Nepritel v poli, ne dungeonová série). Další
-// pojmenovaní bossové ze Season 1 (Rootmother, Frozen Guardian, …)
-// přibydou stejným vzorem, až přibydou i jejich lokace.
+// konci (Strážce jeskyně); Greenhaven, Voidspire a Frostheim (Fáze 10,
+// Season 1) mají každý svého, rovnou jako své jediné setkání (stejný
+// tvar jako Emberfall — jeden Nepritel v poli, ne dungeonová série).
+// Poslední pojmenovaný boss ze Season 1 (The First Guardian, Solace)
+// přibyde stejným vzorem, až přibyde i jeho lokace.
 // ==========================================
 
 export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
@@ -140,6 +140,27 @@ export const NEPRATELE_PODLE_LOKACE: Record<string, Nepritel[]> = {
       zuriPodHp: 0.4,
       zuriNasobicPoskozeni: 1.55,
       vybaveniId: 'stinovy-plast',
+    },
+  ],
+
+  // Čtvrtá lokace Season 1 (Fáze 10) — Zamrzlý strážce, "Frozen
+  // Guardian" ze zadání. Stejný tvar jako Greenhaven/Voidspire.
+  frostheim: [
+    {
+      id: 'zamrzly-strazce',
+      jmeno: 'Zamrzlý strážce',
+      ikona: '🧊',
+      zivoty: 100,
+      poskozeniOd: 9,
+      poskozeniDo: 16,
+      odmenaXp: 55,
+      odmenaKredity: 38,
+      lupId: 'lecivy-lektvar',
+      sanceNaLup: 0.5,
+      jeBoss: true,
+      zuriPodHp: 0.4,
+      zuriNasobicPoskozeni: 1.6,
+      vybaveniId: 'ledovy-stit',
     },
   ],
 }

@@ -124,4 +124,37 @@ export const STORY: Record<string, DialogSekvence> = {
       },
     ],
   },
+  'probuzeny-mraz-prijeti': {
+    id: 'probuzeny-mraz-prijeti',
+    radky: [
+      {
+        mluvci: 'Hlídka Frostheimu',
+        ikona: '🏔️',
+        text: 'Karavana se ztratila v bouři a nevrátila se. Když jsme ji šli hledat, led sám praskal — jako by se pod ním něco hýbalo.',
+      },
+      { mluvci: '__hrac__', ikona: '', text: 'Podívám se, co se probudilo pod ledem.' },
+      {
+        mluvci: 'Hlídka Frostheimu',
+        ikona: '🏔️',
+        text: 'Frosthold byl vždycky tichý, i v nejhorší bouři. Tohle ticho je jiné.',
+      },
+      { mluvci: '__buddy__', ikona: '', text: 'Emberfall, Věčný les, Shadowveil, teď led... cítím, že to spolu souvisí.' },
+    ],
+  },
+  'probuzeny-mraz-dokonceni': {
+    id: 'probuzeny-mraz-dokonceni',
+    radky: [
+      { mluvci: '__buddy__', ikona: '', text: 'Led kolem něj taje — poprvé za staletí.' },
+      {
+        mluvci: 'Hlídka Frostheimu',
+        ikona: '🏔️',
+        text: 'Zamrzlý strážce chránil Frosthold odjakživa. Někdo ho probudil proti nám, ne aby nás bránil.',
+      },
+      {
+        mluvci: 'Hlídka Frostheimu',
+        ikona: '🏔️',
+        text: 'Emberfall, Greenhaven, Voidspire, teď my... kdosi budí staré strážce jednoho po druhém, a blíží se to k srdci království.',
+      },
+    ],
+  },
 }

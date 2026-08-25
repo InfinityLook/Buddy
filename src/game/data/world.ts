@@ -7,8 +7,8 @@
 // primitiv (kvádry, kužely, koule) obarvených podle týhle konfigurace,
 // stylizovaný "low-poly" vzhled místo nedosažitelného fotorealismu.
 //
-// Čtyři lokace zatím (Emberfall, dungeon Molten Core, Greenhaven,
-// Voidspire). Další lokace ze Season 1 (Frostheim, Solace, …) přibydou
+// Pět lokací zatím (Emberfall, dungeon Molten Core, Greenhaven,
+// Voidspire, Frostheim). Další lokace ze Season 1 (Solace, …) přibydou
 // stejným vzorem — nová položka sem + odpovídající quest v quests.ts
 // (nebo u dungeonu rovnou několik nepřátel v combat/nepratele.ts).
 //
@@ -99,6 +99,21 @@ export const SVETY_PODLE_LOKACE: Record<string, SvetKonfigurace> = {
     barvaMlhy: '#2a1a3d',
     barvaZeme: '#3d2a4d',
     teren: 'pole',
+    polomerSveta: 25,
+    start: [0, 9],
+    poziceSetkani: [0, -9],
+    polomerSetkani: 3.2,
+  },
+  frostheim: {
+    // Frosthold ("The Frozen North") kolem Frostheimu — mrazivá,
+    // řídce zarostlá pustina, teren 'jeskyne' schválně (jen kameny/
+    // ledové balvany, žádné stromy v ledu), i když samotné místo
+    // jeskyně není — stejný princip jako u Voidspire: teren řídí typ
+    // dekorace, ne doslovný název místa.
+    barvaOblohy: '#0f1f2e',
+    barvaMlhy: '#13293d',
+    barvaZeme: '#1c3a4a',
+    teren: 'jeskyne',
     polomerSveta: 25,
     start: [0, 9],
     poziceSetkani: [0, -9],

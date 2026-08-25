@@ -13,14 +13,14 @@
 // se plní soubojem na víc než jedné lokaci, by odvozený vztah nešel
 // vůbec zapsat.
 //
-// Tři questy zatím — Ztracené štěně (Emberfall, vertikální řez z Fáze
-// 1), Probuzený les (Greenhaven) a Probuzená královna (Voidspire),
-// obě z Fáze 10. Zbylých 27 questů ze Season 1 se přidává stejným
-// vzorem — nová položka sem + odpovídající nepřítel v nepratele.ts +
-// vlastní SvetKonfigurace ve world.ts. Lokace samotná (lokace.ts)
-// nemusí být nová ani měnit typ — viz Greenhaven/Voidspire, oba pořád
-// 'mesto', 3D svět jen zpřístupní přítomnost ve SVETY_PODLE_LOKACE
-// (Fáze 7).
+// Čtyři questy zatím — Ztracené štěně (Emberfall, vertikální řez z
+// Fáze 1), Probuzený les (Greenhaven), Probuzená královna (Voidspire)
+// a Probuzený mráz (Frostheim), všechny tři z Fáze 10. Zbylých 26
+// questů ze Season 1 se přidává stejným vzorem — nová položka sem +
+// odpovídající nepřítel v nepratele.ts + vlastní SvetKonfigurace ve
+// world.ts. Lokace samotná (lokace.ts) nemusí být nová ani měnit typ
+// — viz Greenhaven/Voidspire/Frostheim, všechny pořád 'mesto', 3D svět
+// jen zpřístupní přítomnost ve SVETY_PODLE_LOKACE (Fáze 7).
 // ==========================================
 
 export type TypCile = 'boj'
@@ -87,6 +87,17 @@ export const QUESTS: Quest[] = [
     dialogPriPrijeti: 'probuzena-kralovna-prijeti',
     dialogPriDokonceni: 'probuzena-kralovna-dokonceni',
   },
+  {
+    id: 'probuzeny-mraz',
+    nazev: 'Probuzený mráz',
+    lokaceId: 'frostheim',
+    popis:
+      'Karavana se ztratila v bouři u Frostheimu a nevrátila se. Hlídka, co ji šla hledat, tvrdí, že led pod nimi praskal, jako by se pod ním něco hýbalo.',
+    cile: [{ id: 'porazit-zamrzleho-strazce', popis: 'Vydej se do Frostholdu a poraz Zamrzlého strážce.', typ: 'boj' }],
+    odmenaPopis: 'XP, kredity z boje a garantovaná relikvie Zamrzlého strážce.',
+    dialogPriPrijeti: 'probuzeny-mraz-prijeti',
+    dialogPriDokonceni: 'probuzeny-mraz-dokonceni',
+  },
 ]
 
 /** Lokace -> (quest, cíl), který se plní výhrou v souboji na téhle
@@ -96,4 +107,5 @@ export const BOJOVY_CIL_PODLE_LOKACE: Record<string, { questId: string; cilId: s
   emberfall: { questId: 'ztracene-stene', cilId: 'porazit-vlcaka' },
   greenhaven: { questId: 'probuzeny-les', cilId: 'porazit-strazce-lesa' },
   voidspire: { questId: 'probuzena-kralovna', cilId: 'porazit-stinovou-kralovnu' },
+  frostheim: { questId: 'probuzeny-mraz', cilId: 'porazit-zamrzleho-strazce' },
 }
