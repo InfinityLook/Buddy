@@ -110,6 +110,28 @@ export const najdiPodleKodu = async (kod: string): Promise<NalezVysledek> => {
   return { stav: 'nalezen', profil: profilZRadku(data[0]) }
 }
 
+/**
+ * Vyhledávání podle jména — appka se přejmenovává na Buddy a necílí
+ * jen na školáky, takže hledání jen podle kódu přestává být jedinou
+ * cestou. Kód (najdiPodleKodu výš) zůstává v API beze změny, jen ho
+ * Social v UI přestává nabízet — počítá se s ním pro budoucí secret chat.
+ *
+ * Stejně jako u kódu jde přes řízenou funkci v databázi (hledej_podle_
+ * jmena), ne přes plain čtení tabulky profiles — ta by musela pustit
+ * všechny řádky komukoli přihlášenému. Funkce sama omezí počet výsledků
+ * a vynechá vzájemně blokované; kratší než dvouznakový dotaz vrátí
+ * prázdno, ať appka nemůže dotazem "a" stáhnout kus celé appky.
+ */
+export const hledejPodleJmena = async (dotaz: string): Promise<SocialProfil[]> => {
+  if (!supabase) return []
+  if (dotaz.trim().length < 2) return []
+
+  const { data, error } = await supabase.rpc('hledej_podle_jmena', { dotaz: dotaz.trim() })
+  if (error || !data) return []
+
+  return data.map(profilZRadku)
+}
+
 export const poslatZadost = async (komuId: string): Promise<Vysledek> => {
   if (!supabase) return NENI_CLOUD
 

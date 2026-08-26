@@ -179,51 +179,6 @@
 
 .social-empty-note--stred { text-align: center; padding: 1.5rem 0; }
 
-/* ---------- můj kód ---------- */
-
-.social-code-card {
-  position: relative;
-  overflow: hidden;
-  background: linear-gradient(135deg, rgba(53, 196, 240, 0.14), rgba(138, 92, 246, 0.12)),
-    var(--bg-glass);
-  border-color: rgba(53, 196, 240, 0.3);
-}
-
-/* Přelesk přejíždějící přes kartu — dělá z ní "digitální průkazku",
-   ne jen další kartu se stejným pozadím jako všechny ostatní. */
-.social-code-card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: -60%;
-  width: 45%;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.14), transparent);
-  animation: social-shimmer 5.5s ease-in-out infinite;
-  pointer-events: none;
-}
-
-@keyframes social-shimmer {
-  0%, 25% { left: -60%; }
-  75%, 100% { left: 130%; }
-}
-
-.social-code-row {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.social-code {
-  flex: 1;
-  font-size: 1.25rem;
-  font-weight: 800;
-  letter-spacing: 2px;
-  color: var(--accent-cyan);
-  /* Kód se opisuje z obrazovky, tak ať jde vybrat */
-  user-select: all;
-}
-
 /* ---------- řádky ---------- */
 
 .social-row {
@@ -918,7 +873,6 @@
    vážně napříč celou aplikací, ne jen tam, kde si na to někdo vzpomněl. */
 @media (prefers-reduced-motion: reduce) {
   .social-hero-icon,
-  .social-code-card::after,
   .social-zalozka,
   .social-avatar-prstenec,
   .social-avatar-pulz,

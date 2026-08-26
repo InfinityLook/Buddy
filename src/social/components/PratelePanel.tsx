@@ -13,11 +13,10 @@ interface Props {
 }
 
 export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
-  const [kod, setKod] = useState('')
-  const [nalezeny, setNalezeny] = useState<SocialProfil | null>(null)
+  const [dotaz, setDotaz] = useState('')
+  const [vysledky, setVysledky] = useState<SocialProfil[]>([])
   const [hleda, setHleda] = useState(false)
-  const [potiz, setPotiz] = useState<string | null>(null)
-  const [zkopirovano, setZkopirovano] = useState(false)
+  const [hledano, setHledano] = useState(false)
   const [hledatPratele, setHledatPratele] = useState('')
   // Nahlásit dřív šlo jen z konkrétní zprávy v chatu (NahlasitDialog v
   // ChatView.tsx) — kdo obtěžoval mimo chat (třeba žádostmi o přátelství),
@@ -28,155 +27,66 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
   const prichozi = stav.zadosti.filter((z) => z.smer === 'prichozi')
   const odchozi = stav.zadosti.filter((z) => z.smer === 'odchozi')
 
-  // Hledání jen v už schválených přátelích, ne v celé appce — najít
-  // nového člověka jde jedině přes kód (viz CLAUDE.md), tohle je filtr
-  // nad seznamem, co uživatel už na obrazovce má.
+  // Hledání jen v už schválených přátelích, ne v celé appce — to dělá
+  // sekce NAJÍT LIDI výš, tohle je filtr nad seznamem, co uživatel
+  // už na obrazovce má.
   const filtrovaniPratele = useMemo(() => {
     const dotaz = normalizeText(hledatPratele.trim())
     if (!dotaz) return stav.pratele
     return stav.pratele.filter((p) => normalizeText(p.profil.displayName).includes(dotaz))
   }, [stav.pratele, hledatPratele])
 
-  const hledat = async () => {
+  const hledatLidi = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (dotaz.trim().length < 2) return
+
     setHleda(true)
-    setPotiz(null)
-    setNalezeny(null)
-
-    // Vlastní kód se pozná tady, ne v databázi: funkce hledání sama sebe
-    // schválně přeskakuje, takže by vrátila prázdno a uživatel by dostal
-    // "takový kód nikomu nepatří" u kódu, který má před očima na displeji.
-    if (stav.profil && api.ocistiKod(kod) === stav.profil.friendCode) {
-      setHleda(false)
-      setPotiz('Tohle je tvůj vlastní kód. Potřebuješ kód toho druhého.')
-      return
-    }
-
-    const vysledek = await api.najdiPodleKodu(kod)
+    const vysledek = await api.hledejPodleJmena(dotaz)
+    setVysledky(vysledek)
+    setHledano(true)
     setHleda(false)
-
-    if (vysledek.stav === 'nalezen') setNalezeny(vysledek.profil)
-    else if (vysledek.stav === 'chyba') setPotiz(vysledek.chyba)
-    else setPotiz('Takový kód nikomu nepatří. Zkontroluj, jestli sedí každý znak.')
   }
 
-  const kopirovatKod = async () => {
-    if (!stav.profil) return
-    try {
-      await navigator.clipboard.writeText(api.formatujKod(stav.profil.friendCode))
-      stav.rekni('Kód zkopírován.')
-      // Ikona se na chvíli překlopí na fajfku — vizuální potvrzení hned
-      // u tlačítka, ne jen v hlášce dole, na kterou člověk nemusí koukat.
-      setZkopirovano(true)
-      window.setTimeout(() => setZkopirovano(false), 1400)
-    } catch {
-      // Schránka bez povolení nebo v nezabezpečeném kontextu — kód je
-      // stejně vidět na obrazovce, takže to není konec světa.
-      stav.rekni('Zkopírovat se nepovedlo, přepiš ho ručně.')
-    }
-  }
-
-  // Sdílení jde přes appku, kterou si uživatel sám vybere (SMS, cokoli) —
-  // kód tak doputuje tam, kde si s kamarádem už normálně píšou, žádná
-  // nová cesta, jak by appka mohla někoho najít.
-  const sdiletKod = async () => {
-    if (!stav.profil) return
-    try {
-      await navigator.share({ text: `Přidej si mě v SchoolBuddy: ${api.formatujKod(stav.profil.friendCode)}` })
-    } catch {
-      // AbortError (uživatel sdílení zavřel) i cokoli jiného — nic se
-      // nestalo, není co hlásit jako chybu.
-    }
-  }
-
-  // Čte se vždycky přes ocistiKod (velká písmena, jen povolené znaky) a
-  // znovu naformátuje formatujKod — funguje stejně, ať přišel text ručním
-  // psaním, vložením ze schránky, nebo s pomlčkou uprostřed po smazání znaku.
-  const zpracovatKod = (vstup: string) => {
-    setKod(api.formatujKod(api.ocistiKod(vstup).slice(0, 8)))
-    setPotiz(null)
-    setNalezeny(null)
-  }
-
-  const vlozitKod = async () => {
-    try {
-      const text = await navigator.clipboard.readText()
-      if (text) zpracovatKod(text)
-      else stav.rekni('Ve schránce nic není.')
-    } catch {
-      stav.rekni('Vložit ze schránky se nepovedlo, přepiš kód ručně.')
-    }
+  const pridatPritele = async (profil: SocialProfil) => {
+    const ok = await stav.provest(() => api.poslatZadost(profil.id), 'Žádost odeslána.')
+    if (ok) setVysledky((v) => v.filter((p) => p.id !== profil.id))
   }
 
   return (
     <div className="social-panel">
-      {/* Můj kód */}
-      <section className="social-card social-code-card">
-        <span className="social-card-label">TVŮJ KÓD</span>
-        <div className="social-code-row">
-          <span className="social-code">
-            {stav.profil ? api.formatujKod(stav.profil.friendCode) : '········'}
-          </span>
-          {typeof navigator !== 'undefined' && 'share' in navigator && (
-            <button className="social-icon-btn" onClick={sdiletKod} aria-label="Sdílet kód">
-              <SocialIcon name="share" size={16} />
-            </button>
-          )}
-          <button
-            className={`social-icon-btn ${zkopirovano ? 'social-icon-btn--ano' : ''}`}
-            onClick={kopirovatKod}
-            aria-label="Zkopírovat kód"
-          >
-            <SocialIcon name={zkopirovano ? 'check' : 'copy'} size={16} />
-          </button>
-        </div>
-        <p className="social-hint">
-          Pošli ho tomu, s kým se chceš spojit. Bez kódu tě nikdo nenajde.
-        </p>
-      </section>
-
-      {/* Přidat podle kódu */}
+      {/* Najít lidi podle jména */}
       <section className="social-card">
-        <span className="social-card-label">PŘIDAT KAMARÁDA</span>
-        <div className="social-add-row">
+        <span className="social-card-label">NAJÍT LIDI</span>
+        <form className="social-add-row" onSubmit={hledatLidi}>
           <input
             className="social-input"
-            placeholder="ABCD-2345"
-            value={kod}
-            maxLength={9}
-            onChange={(e) => zpracovatKod(e.target.value)}
+            placeholder="Jméno…"
+            value={dotaz}
+            maxLength={40}
+            onChange={(e) => {
+              setDotaz(e.target.value)
+              setHledano(false)
+            }}
           />
-          <button className="social-icon-btn" onClick={vlozitKod} aria-label="Vložit ze schránky">
-            <SocialIcon name="paste" size={16} />
+          <button className="social-btn" type="submit" disabled={hleda || dotaz.trim().length < 2}>
+            {hleda ? '…' : 'Hledat'}
           </button>
-          <button className="social-btn" onClick={hledat} disabled={hleda || api.ocistiKod(kod).length < 8}>
-            {hleda ? '…' : 'Najít'}
-          </button>
-        </div>
+        </form>
 
-        {potiz && <p className="social-empty-note">{potiz}</p>}
+        {hledano && vysledky.length === 0 && (
+          <p className="social-empty-note">Nikoho takového jsme nenašli.</p>
+        )}
 
-        {nalezeny && (
-          <div className="social-row">
-            <SocialAvatar id={nalezeny.id} jmeno={nalezeny.displayName} />
-            <span className="social-row-name">{nalezeny.displayName}</span>
-            <button
-              className="social-btn social-btn--small"
-              onClick={async () => {
-                const ok = await stav.provest(
-                  () => api.poslatZadost(nalezeny.id),
-                  'Žádost odeslána.'
-                )
-                if (ok) {
-                  setNalezeny(null)
-                  setKod('')
-                }
-              }}
-            >
+        {vysledky.map((profil) => (
+          <div key={profil.id} className="social-row">
+            <SocialAvatar id={profil.id} jmeno={profil.displayName} />
+            <span className="social-row-name">{profil.displayName}</span>
+            <button className="social-btn social-btn--small" onClick={() => pridatPritele(profil)}>
               <SocialIcon name="plus" size={14} />
               Přidat
             </button>
           </div>
-        )}
+        ))}
       </section>
 
       {/* Došlé žádosti */}
@@ -241,7 +151,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
 
         {stav.pratele.length === 0 ? (
           <p className="social-empty-note">
-            Zatím nikdo. Pošli někomu svůj kód nebo zadej jeho.
+            Zatím nikdo. Najdi si někoho podle jména výš.
           </p>
         ) : filtrovaniPratele.length === 0 ? (
           <p className="social-empty-note">Nikdo takový mezi přáteli není.</p>
