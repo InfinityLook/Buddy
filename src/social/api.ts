@@ -198,6 +198,12 @@ const nactiProfily = async (ids: string[]): Promise<Map<string, SocialProfil>> =
   return mapa
 }
 
+/** Jeden profil — používá ho inbox.ts, aby do notifikace o nové zprávě
+ *  doplnil jméno odesílatele (živé doručování posílá jen syrový řádek
+ *  zprávy, žádné jméno). */
+export const nactiProfil = async (id: string): Promise<SocialProfil | null> =>
+  (await nactiProfily([id])).get(id) ?? null
+
 export const nactiPratele = async (): Promise<Pritel[]> => {
   if (!supabase) return []
 

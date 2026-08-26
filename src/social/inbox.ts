@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { useAccount } from '@/core/supabase/auth'
 import { supabase } from '@/core/supabase/client'
-import { nactiChaty, sledovatVsechnyZpravy } from './api'
+import { showAppNotification } from '@/core/utils/notify'
+import { nactiChaty, nactiProfil, sledovatVsechnyZpravy } from './api'
 
 // ==========================================
 // Nepřečtené zprávy napříč aplikací.
@@ -79,6 +80,20 @@ export const startInbox = (): void => {
       if (zprava.chatId === otevrenyChat) return
 
       useInbox.setState((s) => ({ neprectene: s.neprectene + 1 }))
+
+      // Systémová notifikace — stejná podmínka jako počítadlo výš (ne
+      // vlastní zpráva, ne chat, co má uživatel zrovna otevřený), jen
+      // navíc potřebuje jméno odesílatele, které živé doručení neposílá.
+      // tag: `social-${chatId}` — druhá zpráva ze stejného chatu předchozí
+      // notifikaci nahradí místo hromadění, stejně jako Pomodoro dělá
+      // s tagem 'pomodoro'.
+      void nactiProfil(zprava.odesilatelId).then((profil) => {
+        void showAppNotification(
+          `💬 ${profil?.displayName ?? 'Nová zpráva'}`,
+          zprava.text,
+          `social-${zprava.chatId}`
+        )
+      })
     })
 
     void prepocitat()

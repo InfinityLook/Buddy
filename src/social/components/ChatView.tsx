@@ -4,6 +4,7 @@ import { NahlasitDialog } from './NahlasitDialog'
 import * as api from '../api'
 import type { Chat, Zprava } from '../types'
 import type { SocialStav } from '../useSocial'
+import { requestNotificationPermission } from '@/core/utils/notify'
 
 interface Props {
   chat: Chat
@@ -62,6 +63,12 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
   const odeslat = async (e: React.FormEvent) => {
     e.preventDefault()
     if (posila || !text.trim()) return
+
+    // Synchronně, ještě před prvním await — odeslání zprávy je nejjasnější
+    // gesto "chci vědět, až mi někdo odepíše", a mimo tenhle gestový
+    // řetězec by prohlížeč dialog o svolení odmítl zobrazit (viz Pomodoro/
+    // Planer, core/utils/notify.ts).
+    requestNotificationPermission()
 
     setPosila(true)
     const vysledek = await api.poslatZpravu(chat.id, text)
