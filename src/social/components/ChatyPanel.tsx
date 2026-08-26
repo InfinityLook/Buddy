@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import * as api from '../api'
+import { normalizeText } from '@/core/utils/text'
 import type { SocialStav } from '../useSocial'
 
 interface Props {
@@ -33,6 +34,19 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
   const [zakladaSkupinu, setZakladaSkupinu] = useState(false)
   const [nazev, setNazev] = useState('')
   const [vybrani, setVybrani] = useState<string[]>([])
+  const [hledatChaty, setHledatChaty] = useState('')
+
+  // Hledá v názvu chatu i v náhledu poslední zprávy — u skupiny s obecným
+  // názvem je náhled často to jediné, podle čeho si člověk chat vybaví.
+  const filtrovaneChaty = useMemo(() => {
+    const dotaz = normalizeText(hledatChaty.trim())
+    if (!dotaz) return stav.chaty
+    return stav.chaty.filter(
+      (ch) =>
+        normalizeText(ch.nazev).includes(dotaz) ||
+        normalizeText(ch.posledniZprava ?? '').includes(dotaz)
+    )
+  }, [stav.chaty, hledatChaty])
 
   const prepnout = (id: string) =>
     setVybrani((v) => (v.includes(id) ? v.filter((x) => x !== id) : [...v, id]))
@@ -113,12 +127,24 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
       <section className="social-card">
         <span className="social-card-label">CHATY ({stav.chaty.length})</span>
 
+        {stav.chaty.length > 0 && (
+          <input
+            type="search"
+            className="social-input social-input--full"
+            placeholder="Hledat v chatech…"
+            value={hledatChaty}
+            onChange={(e) => setHledatChaty(e.target.value)}
+          />
+        )}
+
         {stav.chaty.length === 0 ? (
           <p className="social-empty-note">
             Zatím žádný chat. Otevři ho u někoho v seznamu přátel.
           </p>
+        ) : filtrovaneChaty.length === 0 ? (
+          <p className="social-empty-note">Žádný chat tomu neodpovídá.</p>
         ) : (
-          stav.chaty.map((ch) => (
+          filtrovaneChaty.map((ch) => (
             <button
               key={ch.id}
               className={`social-row social-row--chat ${ch.neprectene > 0 ? 'ma-neprectene' : ''}`}

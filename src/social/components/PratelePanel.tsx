@@ -1,7 +1,8 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import * as api from '../api'
+import { normalizeText } from '@/core/utils/text'
 import type { SocialStav } from '../useSocial'
 import type { SocialProfil } from '../types'
 
@@ -16,9 +17,19 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
   const [hleda, setHleda] = useState(false)
   const [potiz, setPotiz] = useState<string | null>(null)
   const [zkopirovano, setZkopirovano] = useState(false)
+  const [hledatPratele, setHledatPratele] = useState('')
 
   const prichozi = stav.zadosti.filter((z) => z.smer === 'prichozi')
   const odchozi = stav.zadosti.filter((z) => z.smer === 'odchozi')
+
+  // Hledání jen v už schválených přátelích, ne v celé appce — najít
+  // nového člověka jde jedině přes kód (viz CLAUDE.md), tohle je filtr
+  // nad seznamem, co uživatel už na obrazovce má.
+  const filtrovaniPratele = useMemo(() => {
+    const dotaz = normalizeText(hledatPratele.trim())
+    if (!dotaz) return stav.pratele
+    return stav.pratele.filter((p) => normalizeText(p.profil.displayName).includes(dotaz))
+  }, [stav.pratele, hledatPratele])
 
   const hledat = async () => {
     setHleda(true)
@@ -176,12 +187,24 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
       <section className="social-card">
         <span className="social-card-label">PŘÁTELÉ ({stav.pratele.length})</span>
 
+        {stav.pratele.length > 0 && (
+          <input
+            type="search"
+            className="social-input social-input--full"
+            placeholder="Hledat mezi přáteli…"
+            value={hledatPratele}
+            onChange={(e) => setHledatPratele(e.target.value)}
+          />
+        )}
+
         {stav.pratele.length === 0 ? (
           <p className="social-empty-note">
             Zatím nikdo. Pošli někomu svůj kód nebo zadej jeho.
           </p>
+        ) : filtrovaniPratele.length === 0 ? (
+          <p className="social-empty-note">Nikdo takový mezi přáteli není.</p>
         ) : (
-          stav.pratele.map((p) => (
+          filtrovaniPratele.map((p) => (
             <div key={p.vazbaId} className="social-row">
               <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} />
               <span className="social-row-name">{p.profil.displayName}</span>
