@@ -357,6 +357,26 @@
   white-space: nowrap;
 }
 
+/* Avatar + jméno jako <button> (viz PratelePanel.tsx) — otevírá profil,
+   sourozenec akčních tlačítek napravo, ne jejich rodič (tlačítko
+   v tlačítku by bylo neplatné HTML, viz stejná poznámka u
+   PostavaKarta v game hubu). Reset na vzhled shodný s .social-row's
+   předchozím přímým obsahem. */
+.social-row-otevrit {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 1;
+  min-width: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
 /* ---------- tlačítka ---------- */
 
 .social-btn {
@@ -538,6 +558,19 @@
   font-size: 0.9rem;
   font-weight: 800;
   min-width: 0;
+}
+
+/* Titulek jako <button> jde jen u dvojice (viz ChatView.tsx) — reset na
+   vzhled shodný s obyčejným <span>, jen navíc kurzor a text zarovnaný
+   doleva, ať je jasné, že jde klepnout. */
+.social-chat-title--klikatelny {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .social-chat-pocet {
@@ -795,6 +828,109 @@
 
 .social-dialog-akce { display: flex; gap: 0.45rem; }
 .social-dialog-akce .social-btn { flex: 1; }
+
+/* ---------- profil cizího účtu (VerejnyProfilDialog.tsx) ---------- */
+/* Vlastní verze .profil-* tříd z pages/profil/ProfilModule.css — ten
+   soubor se v Social vůbec nenačítá (každá stránka má svůj vlastní CSS
+   soubor, viz CLAUDE.md), takže spoléhat na jeho třídy by tu nic
+   nevykreslilo. Barvy/hodnoty schválně shodné se skutečným Profilem,
+   jen přes stejné globální --accent-* proměnné, ne přes lokální alias. */
+
+.social-profil-hlava {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.social-profil-hlava-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.social-profil-role-tag {
+  align-self: flex-start;
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 0.1rem 0.45rem;
+  border-radius: 12px;
+}
+
+.social-profil-role-tag--vip {
+  background: rgba(251, 191, 36, 0.18);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.4);
+}
+
+.social-profil-role-tag--moderator {
+  background: rgba(53, 196, 240, 0.18);
+  color: var(--accent-cyan);
+  border: 1px solid rgba(53, 196, 240, 0.4);
+}
+
+.social-profil-role-tag--admin {
+  background: rgba(248, 113, 113, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+.social-profil-uroven {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+  padding: 0.4rem 0.6rem;
+}
+
+.social-profil-uroven-hlava {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.social-profil-xp-text {
+  font-size: 0.62rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.social-profil-xp-bar-bg {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 0.25rem;
+}
+
+.social-profil-xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-violet));
+  border-radius: 10px;
+}
+
+.social-profil-serie {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  align-self: flex-start;
+  padding: 0.25rem 0.6rem;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #fca5a5;
+}
+
+.social-profil-serie span {
+  font-size: 0.6rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.social-profil-akce { flex-wrap: wrap; }
 
 .social-info-list {
   margin: 0;

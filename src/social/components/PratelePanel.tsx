@@ -10,9 +10,10 @@ import type { SocialProfil } from '../types'
 interface Props {
   stav: SocialStav
   onOtevritChat: (chatId: string) => void
+  onOtevritProfil: (userId: string) => void
 }
 
-export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
+export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritProfil }) => {
   const [dotaz, setDotaz] = useState('')
   const [vysledky, setVysledky] = useState<SocialProfil[]>([])
   const [hleda, setHleda] = useState(false)
@@ -79,8 +80,10 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
 
         {vysledky.map((profil) => (
           <div key={profil.id} className="social-row">
-            <SocialAvatar id={profil.id} jmeno={profil.displayName} />
-            <span className="social-row-name">{profil.displayName}</span>
+            <button className="social-row-otevrit" onClick={() => onOtevritProfil(profil.id)}>
+              <SocialAvatar id={profil.id} jmeno={profil.displayName} />
+              <span className="social-row-name">{profil.displayName}</span>
+            </button>
             <button className="social-btn social-btn--small" onClick={() => pridatPritele(profil)}>
               <SocialIcon name="plus" size={14} />
               Přidat
@@ -95,8 +98,10 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
           <span className="social-card-label">ŽÁDOSTI ({prichozi.length})</span>
           {prichozi.map((z) => (
             <div key={z.id} className="social-row">
-              <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} pulzuje />
-              <span className="social-row-name">{z.profil.displayName}</span>
+              <button className="social-row-otevrit" onClick={() => onOtevritProfil(z.profil.id)}>
+                <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} pulzuje />
+                <span className="social-row-name">{z.profil.displayName}</span>
+              </button>
               <button
                 className="social-icon-btn social-icon-btn--ano"
                 aria-label="Přijmout"
@@ -121,8 +126,10 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
           <span className="social-card-label">ČEKÁ NA ODPOVĚĎ ({odchozi.length})</span>
           {odchozi.map((z) => (
             <div key={z.id} className="social-row">
-              <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} />
-              <span className="social-row-name">{z.profil.displayName}</span>
+              <button className="social-row-otevrit" onClick={() => onOtevritProfil(z.profil.id)}>
+                <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} />
+                <span className="social-row-name">{z.profil.displayName}</span>
+              </button>
               <button
                 className="social-icon-btn social-icon-btn--ne"
                 aria-label="Zrušit žádost"
@@ -158,8 +165,10 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
         ) : (
           filtrovaniPratele.map((p) => (
             <div key={p.vazbaId} className="social-row">
-              <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} />
-              <span className="social-row-name">{p.profil.displayName}</span>
+              <button className="social-row-otevrit" onClick={() => onOtevritProfil(p.profil.id)}>
+                <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} />
+                <span className="social-row-name">{p.profil.displayName}</span>
+              </button>
 
               <button
                 className="social-icon-btn"

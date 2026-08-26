@@ -11,12 +11,13 @@ interface Props {
   chat: Chat
   stav: SocialStav
   onZpet: () => void
+  onOtevritProfil: (userId: string) => void
 }
 
 const cas = (iso: string) =>
   new Date(iso).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
 
-export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
+export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil }) => {
   const [zpravy, setZpravy] = useState<Zprava[]>([])
   const [text, setText] = useState('')
   const [posila, setPosila] = useState(false)
@@ -171,20 +172,31 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
           <SocialIcon name="arrow-left" size={18} />
         </button>
 
-        <span className="social-chat-title">
-          <span className="social-chat-nazev-radek">
-            {!chat.jeSkupina && !!chat.ucastnici[0] && online.has(chat.ucastnici[0].id) && (
-              <span className="social-online-tecka" aria-label="Je v chatu online" title="Online" />
-            )}
-            {chat.nazev}
-          </span>
-          {chat.jeSkupina && (
-            <span className="social-chat-pocet">
-              {chat.ucastnici.length + 1} lidí
-              {online.size > 0 && ` · ${online.size} tu teď`}
+        {/* Skupina nemá jeden profil k zobrazení, jen zůstává statický
+            titulek — profil jde otevřít jen u dvojice, kde je jasné, čí. */}
+        {!chat.jeSkupina && chat.ucastnici[0] ? (
+          <button
+            className="social-chat-title social-chat-title--klikatelny"
+            onClick={() => onOtevritProfil(chat.ucastnici[0].id)}
+          >
+            <span className="social-chat-nazev-radek">
+              {online.has(chat.ucastnici[0].id) && (
+                <span className="social-online-tecka" aria-label="Je v chatu online" title="Online" />
+              )}
+              {chat.nazev}
             </span>
-          )}
-        </span>
+          </button>
+        ) : (
+          <span className="social-chat-title">
+            <span className="social-chat-nazev-radek">{chat.nazev}</span>
+            {chat.jeSkupina && (
+              <span className="social-chat-pocet">
+                {chat.ucastnici.length + 1} lidí
+                {online.size > 0 && ` · ${online.size} tu teď`}
+              </span>
+            )}
+          </span>
+        )}
 
         {chat.jeSkupina && (
           <button

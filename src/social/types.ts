@@ -17,6 +17,21 @@ export interface MujProfil extends SocialProfil {
   friendCode: string
 }
 
+/**
+ * Cizí profil k zobrazení (přátelé, hlavička 1:1 chatu, výsledky
+ * hledání) — přes precti_verejny_profil, ne přímé čtení profiles: to by
+ * pokrylo přátele a spoluúčastníky chatu, ale ne někoho z výsledků
+ * hledání, se kterým ještě žádný vztah neexistuje.
+ */
+export interface VerejnyProfil extends SocialProfil {
+  xp: number
+  level: number
+  streakDays: number
+  /** RoleId jako string — core/role/registry.ts's getRole() ho převede
+   *  na ikonu/název/tón pro nálepku role. */
+  roleId: string
+}
+
 export interface Zadost {
   id: string
   profil: SocialProfil

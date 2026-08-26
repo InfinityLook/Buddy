@@ -10,6 +10,7 @@ import type {
   SocialProfil,
   TajnaZprava,
   TajnyChat,
+  VerejnyProfil,
   Vysledek,
   Zadost,
   Zprava,
@@ -227,6 +228,32 @@ const nactiProfily = async (ids: string[]): Promise<Map<string, SocialProfil>> =
  *  zprávy, žádné jméno). */
 export const nactiProfil = async (id: string): Promise<SocialProfil | null> =>
   (await nactiProfily([id])).get(id) ?? null
+
+/**
+ * Cizí profil k zobrazení v dialogu (VerejnyProfilDialog.tsx) — jde přes
+ * řízenou funkci (precti_verejny_profil), ne přímé čtení profiles: to by
+ * pokrylo přátele a spoluúčastníky chatu (viz jeho RLS politika), ale ne
+ * někoho z výsledků hledání, se kterým ještě žádný vztah neexistuje.
+ * Stejná funkce se použije ze všech tří vstupních bodů, ne dvě různé
+ * cesty podle toho, odkud se profil otevřel.
+ */
+export const nactiVerejnyProfil = async (id: string): Promise<VerejnyProfil | null> => {
+  if (!supabase) return null
+
+  const { data, error } = await supabase.rpc('precti_verejny_profil', { cil: id })
+  if (error || !data || data.length === 0) return null
+
+  const r = data[0]
+  return {
+    id,
+    displayName: r.display_name?.trim() || 'Student',
+    avatarUrl: r.avatar_url,
+    xp: r.xp,
+    level: r.level,
+    streakDays: r.streak_days,
+    roleId: r.role,
+  }
+}
 
 export const nactiPratele = async (): Promise<Pritel[]> => {
   if (!supabase) return []

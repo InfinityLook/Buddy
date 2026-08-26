@@ -8,6 +8,7 @@ import { BlokovaniPanel } from './components/BlokovaniPanel'
 import { ModeracePanel } from './components/ModeracePanel'
 import { TajnyChatPanel } from './components/TajnyChatPanel'
 import { TajnyChatView } from './components/TajnyChatView'
+import { VerejnyProfilDialog } from './components/VerejnyProfilDialog'
 import { useSocial } from './useSocial'
 import { useTajnyChat } from './useTajnyChat'
 import { nastavOtevrenyChat } from './inbox'
@@ -43,6 +44,10 @@ export const SocialModule: React.FC = () => {
   const [zalozka, setZalozka] = useState<Zalozka>('pratele')
   const [otevrenyChat, setOtevrenyChat] = useState<string | null>(null)
   const [otevrenyTajnyChat, setOtevrenyTajnyChat] = useState<string | null>(null)
+  // Dialog s profilem se otevírá nad čímkoli jiným (seznam, chat) —
+  // proto vlastní stav tady nahoře, ne uvnitř panelu/ChatView, odkud
+  // se otevřel.
+  const [otevrenyProfil, setOtevrenyProfil] = useState<string | null>(null)
 
   const chat = useMemo(
     () => stav.chaty.find((ch) => ch.id === otevrenyChat) ?? null,
@@ -91,7 +96,12 @@ export const SocialModule: React.FC = () => {
         // Otevřený chat zabírá celou obrazovku — na telefonu není kam
         // dát seznam i rozhovor vedle sebe.
         <>
-          <ChatView chat={chat} stav={stav} onZpet={() => setOtevrenyChat(null)} />
+          <ChatView
+            chat={chat}
+            stav={stav}
+            onZpet={() => setOtevrenyChat(null)}
+            onOtevritProfil={setOtevrenyProfil}
+          />
           {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
         </>
       ) : tajnyChat ? (
@@ -149,7 +159,13 @@ export const SocialModule: React.FC = () => {
             <p className="social-empty-note social-empty-note--stred">Načítám…</p>
           ) : (
             <>
-              {zalozka === 'pratele' && <PratelePanel stav={stav} onOtevritChat={setOtevrenyChat} />}
+              {zalozka === 'pratele' && (
+                <PratelePanel
+                  stav={stav}
+                  onOtevritChat={setOtevrenyChat}
+                  onOtevritProfil={setOtevrenyProfil}
+                />
+              )}
               {zalozka === 'chaty' && <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />}
               {zalozka === 'blokovani' && <BlokovaniPanel stav={stav} />}
               {zalozka === 'hlaseni' && <ModeracePanel stav={stav} />}
@@ -165,6 +181,15 @@ export const SocialModule: React.FC = () => {
 
           {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
         </>
+      )}
+
+      {otevrenyProfil && (
+        <VerejnyProfilDialog
+          userId={otevrenyProfil}
+          stav={stav}
+          onOtevritChat={setOtevrenyChat}
+          onZavrit={() => setOtevrenyProfil(null)}
+        />
       )}
     </div>
   )
