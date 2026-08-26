@@ -1,0 +1,120 @@
+/* ==========================================
+   Zámek appky — stejný design systém jako Login.css, ať to při
+   startu nepůsobí jako jiná aplikace.
+   ========================================== */
+
+.biometric-lock {
+  position: relative;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 0%, #131b30 0%, var(--bg-base) 60%);
+}
+
+.biometric-lock-glow {
+  position: absolute;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.biometric-lock-glow--cyan {
+  background: var(--accent-cyan);
+  top: -80px;
+  left: -80px;
+}
+
+.biometric-lock-glow--violet {
+  background: var(--accent-violet);
+  bottom: -100px;
+  right: -100px;
+}
+
+.biometric-lock-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  padding: 36px 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.biometric-lock-icon {
+  font-size: 2.6rem;
+  margin-bottom: 12px;
+}
+
+.biometric-lock-title {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.biometric-lock-sub {
+  margin: 0 0 22px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.biometric-lock-error {
+  width: 100%;
+  margin: 0 0 16px;
+  padding: 0.5rem 0.65rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.32);
+  color: #ffb4b4;
+}
+
+.biometric-lock-btn {
+  width: 100%;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-on-accent);
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  cursor: pointer;
+  box-shadow: var(--shadow-glow-cyan);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.biometric-lock-btn:active {
+  transform: scale(0.98);
+}
+
+.biometric-lock-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.biometric-lock-vypnout {
+  margin-top: 16px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}

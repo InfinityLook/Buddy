@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { useHasPermission } from '@/core/role'
 import { useThemeStore, VSECHNY_VZHLEDY } from '@/core/theme'
+import { jeBiometrieDostupna, zaregistrujBiometrii } from '@/core/utils/biometrics'
 import './SettingsModule.css'
 
 // ==========================================
@@ -24,6 +25,7 @@ export const SettingsModule: React.FC = () => {
 
   const [form, setForm] = useState({ name: profile.name, email: profile.email, motto: profile.motto })
   const [toast, setToast] = useState<string | null>(null)
+  const [biometrieProbiha, setBiometrieProbiha] = useState(false)
 
   // Když se profil změní jinde (obnova ze zálohy), formulář se srovná
   useEffect(() => {
@@ -209,17 +211,44 @@ export const SettingsModule: React.FC = () => {
         <div className="settings-toggle-row">
           <div className="settings-toggle-text">
             <span className="settings-toggle-title">Biometrické přihlášení</span>
-            <span className="settings-toggle-sub">Otisk prstu nebo Face ID</span>
+            <span className="settings-toggle-sub">
+              Otisk prstu nebo Face ID zamkne appku na tomhle zařízení
+            </span>
           </div>
           <button
             className={`settings-switch ${profile.security.biometrics ? 'on' : ''}`}
             role="switch"
             aria-checked={profile.security.biometrics}
             aria-label="Biometrické přihlášení"
-            onClick={() => {
-              const zapnuto = !profile.security.biometrics
-              updateSecurity({ biometrics: zapnuto })
-              showToast(zapnuto ? 'Biometrie zapnuta' : 'Biometrie vypnuta')
+            disabled={biometrieProbiha}
+            onClick={async () => {
+              // Vypnutí nepotřebuje žádné ověření — appka WebAuthn credential
+              // z JS smazat neumí (rozhraní to nenabízí), jen si přestane
+              // pamatovat jeho id, takže se appka na něj přestane ptát.
+              if (profile.security.biometrics) {
+                updateSecurity({ biometrics: false, biometricCredentialId: undefined })
+                showToast('Biometrie vypnuta')
+                return
+              }
+
+              setBiometrieProbiha(true)
+              const dostupna = await jeBiometrieDostupna()
+              if (!dostupna) {
+                setBiometrieProbiha(false)
+                showToast('Tohle zařízení nebo prohlížeč biometrii nepodporuje.')
+                return
+              }
+
+              const credentialId = await zaregistrujBiometrii(profile.name)
+              setBiometrieProbiha(false)
+
+              if (!credentialId) {
+                showToast('Nepovedlo se to. Zkus to znovu.')
+                return
+              }
+
+              updateSecurity({ biometrics: true, biometricCredentialId: credentialId })
+              showToast('Biometrie zapnuta ✓')
             }}
           >
             <span className="settings-switch-knob" />

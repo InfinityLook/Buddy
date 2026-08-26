@@ -19,6 +19,10 @@ const LEGACY_STORAGE_KEY = 'buddy_profile_v1'
 export interface ProfileSecurity {
   biometrics: boolean
   loginAlerts: boolean
+  // Id WebAuthn credentialu založeného core/utils/biometrics.ts —
+  // váže se na konkrétní zařízení a prohlížeč, nesynchronizuje se
+  // s cloudem. Chybí, dokud uživatel biometrii poprvé nezapne.
+  biometricCredentialId?: string
 }
 
 export interface ProfileData {

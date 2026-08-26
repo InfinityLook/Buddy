@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { lazy, Suspense, useEffect } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import Login from './pages/login/Login.tsx'
 import Hub from './pages/hub/Hub.tsx'
 import AppModule from '@/pages/app/AppModule.tsx'
@@ -17,7 +17,9 @@ const GameModule = lazy(() => import('@/game/GameModule'))
 // proto musí jet líně stejně tak, jinak by ho zatížila každá návštěva.
 const SocialModule = lazy(() => import('@/social/SocialModule'))
 import { BootGate } from '@/components/BootGate'
+import { BiometricLock } from '@/components/BiometricLock'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
+import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
 import { setupErrorReporting } from '@/core/utils/errorReporting'
 import { startCloudSync } from '@/core/supabase/cloudSync'
@@ -32,6 +34,22 @@ import { setupStudyPlannerReminders } from '@/miniapps/study-planner/useStudyPla
 export default function App() {
   const { isAuthed, login, logout } = useAuthStore()
   const stavUctu = useAccount((s) => s.status)
+  const { profile, updateSecurity } = useProfileData()
+
+  // Biometrický zámek (viz core/utils/biometrics.ts) se ptá jednou za
+  // start appky, ne při každé navigaci. useRef, ne obyčejná proměnná ani
+  // useState: potřebujeme hodnotu spočítanou přesně jednou, při úplně
+  // prvním renderu, a pak už neměnnou po zbytek relace — kdyby se
+  // počítala z živého profile.security.biometrics při každém renderu,
+  // zapnutí přepínače v Nastavení by appku zamklo hned uprostřed
+  // rozdělané relace (přesně tohle se dřív dělo, dokud tenhle ref
+  // nebyl, chycené e2e testem: toast "Biometrie zapnuta ✓" se ani
+  // nestihl ukázat, než zámek celou stránku pod ním vyměnil).
+  const vyzadovaloZamekPriStartu = useRef(
+    !!profile.security.biometrics && !!profile.security.biometricCredentialId
+  ).current
+  const [odemceno, setOdemceno] = useState(false)
+  const potrebujeOdemceni = vyzadovaloZamekPriStartu && !odemceno
 
   // Reaguje na změnu vzhledu i na vypršení VIP kdykoli — ne jednorázově
   // ze startovního useEffectu níž, protože obojí se může stát, i když
@@ -106,6 +124,22 @@ export default function App() {
     <BootGate>
       {cekaSeNaOdpoved ? (
         <div className="app-suspense-fallback">Přihlašuji…</div>
+      ) : dovnitr && potrebujeOdemceni ? (
+        <BiometricLock
+          credentialId={profile.security.biometricCredentialId as string}
+          onUnlock={() => setOdemceno(true)}
+          onVypnoutZamek={() => {
+            // Vypnutí zámku bez ověření je záměr, ne díra: kdo se dostal
+            // až sem, sedí u tohohle konkrétního odemčeného zařízení se
+            // secureStorage v dosahu (jen obfuskace, ne šifrování — viz
+            // core/utils/secureStorage.ts) — stejná hranice jako všude
+            // jinde v appce, kde je klient jen UI vrstva nad reálnou daty.
+            // Hlavně tohle appku nesmí zaseknout, když credential patří
+            // jinému zařízení (typicky po obnově zálohy).
+            updateSecurity({ biometrics: false, biometricCredentialId: undefined })
+            setOdemceno(true)
+          }}
+        />
       ) : (
       <BrowserRouter>
         <Routes>

@@ -3,6 +3,9 @@ import * as v from 'valibot'
 export const ProfileSecuritySchema = v.object({
   biometrics: v.boolean(),
   loginAlerts: v.boolean(),
+  // Volitelné — chybí ve starších uložených profilech i dokud uživatel
+  // biometrii poprvé nezapne. Povinné pole by starší data zahodilo.
+  biometricCredentialId: v.optional(v.string()),
 })
 
 export const ProfileSchema = v.object({
