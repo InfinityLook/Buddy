@@ -8,7 +8,13 @@ import { useAppStore } from '@/core/store/useAppStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { getLevelProgress } from '@/core/utils/gamificationUtils'
 import { sklonujUkoly } from '@/core/utils/text'
-import { exportFullBackup, importDataFromJson, restoreFullBackup } from '@/core/utils/backup'
+import { importDataFromJson, restoreFullBackup } from '@/core/utils/backup'
+import {
+  exportFullBackupWithFiles,
+  importZipBackup,
+  jeZipZaloha,
+  restoreFilesFromZip,
+} from '@/core/utils/fileBackup'
 import {
   SNAPSHOT_SOURCE_LABEL,
   SnapshotInfo,
@@ -156,14 +162,17 @@ export const HubModule: React.FC<HubModuleProps> = ({
   }
 
   const handleExportBackup = async () => {
-    const ok = exportFullBackup()
+    const ok = await exportFullBackupWithFiles()
     if (ok) {
-      // Stejnou zálohu si necháme i v aplikaci, ať se dá vrátit bez souboru
+      // Zálohu v aplikaci si necháme jen s metadaty (viz backupHistory.ts) —
+      // obsah souborů leží ve stejné IndexedDB, kterou tenhle snímek
+      // nepřepisuje, takže se vrácením v rámci JEDNOHO zařízení neztratí.
+      // Chybět můžou až po přenosu na jiné zařízení, na to je zip výš.
       await saveSnapshot('manual')
       setSnapshots(await listSnapshots())
     }
     setCloudOpen(false)
-    showToast(ok ? 'Záloha všech dat byla stažena.' : 'Zálohu se nepodařilo vytvořit.')
+    showToast(ok ? 'Záloha všech dat (i souborů) byla stažena.' : 'Zálohu se nepodařilo vytvořit.')
   }
 
   // Společný závěr obnovy — story jsou v paměti už zrehydratované,
@@ -203,7 +212,12 @@ export const HubModule: React.FC<HubModuleProps> = ({
     if (!file) return
 
     try {
-      const data = await importDataFromJson<unknown>(file)
+      // .zip = nová záloha i s obsahem souborů, .json = starší
+      // metadata-only formát — obojí musí jít nahrát dál.
+      const zipova = jeZipZaloha(file)
+      const { envelope: data, soubory } = zipova
+        ? await importZipBackup(file)
+        : { envelope: await importDataFromJson<unknown>(file), soubory: new Map<string, Blob>() }
 
       // Současný stav si schováme, ať jde obnova vzít zpět
       await saveSnapshot('before-restore')
@@ -218,10 +232,14 @@ export const HubModule: React.FC<HubModuleProps> = ({
       // Nahraný soubor si necháme i v historii, ať se dá vybrat znovu
       if (!result.legacy) await saveSnapshot('file', data as never)
 
+      const obnovenoSouboru = soubory.size > 0 ? await restoreFilesFromZip(soubory, data) : 0
+
       finishRestore(
         result.legacy
           ? 'Obnoveno ze starší zálohy (jen seznam aplikací). Načítám znovu…'
-          : `Obnoveno (${result.restored.length} částí). Načítám znovu…`
+          : `Obnoveno (${result.restored.length} částí${
+              obnovenoSouboru > 0 ? `, ${obnovenoSouboru} souborů` : ''
+            }). Načítám znovu…`
       )
     } catch {
       showToast('Soubor není platná záloha.')
@@ -428,8 +446,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <h3 className="hub-sheet-title">☁️ Uložená data</h3>
             <p className="hub-sheet-desc">
               Data máš uložená přímo v zařízení. Můžeš si je zazálohovat do souboru
-              nebo obnovit z dřívější zálohy. XP, úroveň a odznaky obnova nemění —
-              ty ti zůstanou tak, jak sis je vysloužil.
+              (i s obsahem souborů ze Správce souborů) nebo obnovit z dřívější
+              zálohy. XP, úroveň a odznaky obnova nemění — ty ti zůstanou tak,
+              jak sis je vysloužil.
             </p>
 
             <button className="hub-sheet-btn" onClick={() => { void handleExportBackup() }}>
@@ -481,7 +500,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <input
               ref={fileInputRef}
               type="file"
-              accept="application/json"
+              accept=".zip,.json,application/zip,application/json"
               hidden
               onChange={handleImportFile}
             />
