@@ -23,6 +23,7 @@
     "react-router-dom": "^6.26.2",
     "three": "^0.169.0",
     "valibot": "^0.30.0",
+    "web-push": "^3.6.7",
     "zustand": "^4.5.2"
   },
   "devDependencies": {
@@ -33,6 +34,7 @@
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",
     "@types/three": "^0.169.0",
+    "@types/web-push": "^3.6.4",
     "@vercel/node": "^5.10.2",
     "@vitejs/plugin-react": "^4.3.1",
     "@vitest/ui": "^4.1.11",

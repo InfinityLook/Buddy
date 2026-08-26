@@ -8,6 +8,7 @@ import {
   requestNotificationPermission,
   showAppNotification,
 } from '@/core/utils/notify'
+import { nahlasPomodoroCasovac, zajistiPushPrihlaseni, zrusPomodoroCasovac } from '@/core/utils/push'
 import {
   DEFAULT_SETTINGS,
   LIMITS,
@@ -36,12 +37,17 @@ const xpForWorkBlock = (minutes: number) => Math.max(1, Math.round(minutes * XP_
 // odmount komponenty: uživatel může z Pomodora odejít jinam v appce
 // a blok poběží dál, s notifikací po vypršení (viz pomodoroNotify.ts).
 //
-// Mez: timer je plán JS runtime, ne systémová služba. Přežije odchod
-// jinam v appce nebo krátké zhasnutí displeje, ale ne úplné zavření PWA
-// z multitaskingu ani reload — na to appka nemá push backend (viz
-// api/ v CLAUDE.md). Proto endsAt (absolutní čas konce) i po takovém
-// výpadku správně dopočítá zbývající čas při dalším otevření Pomodora —
-// viz onRehydrateStorage níž.
+// Modulový timer sám o sobě je plán JS runtime, ne systémová služba —
+// přežije odchod jinam v appce nebo krátké zhasnutí displeje, ale ne
+// úplné zavření PWA z multitaskingu. core/utils/push.ts (Web Push +
+// api/pomodoro-push.ts, Vercel Cron) je druhá, nezávislá cesta ke
+// stejnému cíli: server ví, kdy blok skončí (nahlasPomodoroCasovac),
+// a pošle notifikaci i bez běžícího JS na zařízení. Obě cesty běží
+// vedle sebe schválně — kdo push nemá (starší prohlížeč, cloud
+// nenastavený), dostane aspoň modulový timer, jak fungoval vždycky.
+// endsAt (absolutní čas konce) i tak zůstává zdrojem pravdy pro
+// dopočet zbývajícího času při dalším otevření Pomodora — viz
+// onRehydrateStorage níž.
 // ==========================================
 
 let completionTimer: ReturnType<typeof setTimeout> | null = null
@@ -145,6 +151,12 @@ const usePomodoroStore = create<PomodoroState>()(
         const endsAt = Date.now() + state.remainingSeconds * 1000
         set({ isRunning: true, endsAt })
         armTimer(state.remainingSeconds)
+
+        // Push je doplněk k modulovému timeru výš, ne náhrada — obojí
+        // se natáhne na stejný endsAt nezávisle na sobě (viz komentář
+        // na začátku souboru).
+        void zajistiPushPrihlaseni()
+        void nahlasPomodoroCasovac(endsAt, state.mode === 'work' ? 'prace' : 'pauza')
       },
 
       pause: () => {
@@ -153,12 +165,16 @@ const usePomodoroStore = create<PomodoroState>()(
         disarmTimer()
         const remaining = Math.max(0, Math.round((state.endsAt - Date.now()) / 1000))
         set({ isRunning: false, endsAt: null, remainingSeconds: remaining })
+        // Zastavený blok nemá co server hlídat — bez tohohle by cron
+        // poslal push i na pauzu, kterou uživatel sám přerušil.
+        void zrusPomodoroCasovac()
       },
 
       resetTimer: () => {
         disarmTimer()
         const state = get()
         set({ isRunning: false, endsAt: null, remainingSeconds: durationFor(state.mode, state.settings) })
+        void zrusPomodoroCasovac()
       },
 
       switchMode: (mode, autoStart = false) => {
@@ -167,8 +183,11 @@ const usePomodoroStore = create<PomodoroState>()(
         const duration = durationFor(mode, state.settings)
 
         if (autoStart) {
-          set({ mode, remainingSeconds: duration, isRunning: true, endsAt: Date.now() + duration * 1000 })
+          const endsAt = Date.now() + duration * 1000
+          set({ mode, remainingSeconds: duration, isRunning: true, endsAt })
           armTimer(duration)
+          void zajistiPushPrihlaseni()
+          void nahlasPomodoroCasovac(endsAt, mode === 'work' ? 'prace' : 'pauza')
         } else {
           set({ mode, remainingSeconds: duration, isRunning: false, endsAt: null })
         }
@@ -180,6 +199,12 @@ const usePomodoroStore = create<PomodoroState>()(
         // modulový timer i nějaká budoucí druhá cesta na stejný okamžik.
         if (!state.isRunning) return
         disarmTimer()
+
+        // Blok doběhl v popředí — appka o tom už ví a notifikaci
+        // zvládne sama (showAppNotification níž). Server o něj dál
+        // nemusí pečovat, jinak by cron poslal push i na blok, který
+        // uživatel dostal ohlášený tady.
+        void zrusPomodoroCasovac()
 
         if (state.settings.soundEnabled) {
           playChime()

@@ -124,13 +124,17 @@ export default defineConfig(({ command }) => {
           // miniaplikaci nikdy neotevře, ho nesmí stáhnout při instalaci
           // PWA. Runtime caching pravidlo níž ho místo toho uloží při
           // prvním otevření Form Checku a od té chvíle jede z cache.
-          globIgnores: ['**/js/auto-update.js', '**/mediapipe/**'],
+          globIgnores: ['**/js/auto-update.js', '**/mediapipe/**', '**/push-sw.js'],
           navigateFallbackDenylist: [/^\/api\//, /^\/version\.json$/, /^\/js\//],
           // Precache staré verze se po aktivaci nového SW smaže,
           // takže se v prohlížeči nehromadí zastaralé soubory.
           cleanupOutdatedCaches: true,
           skipWaiting: true,
           clientsClaim: true,
+          // generateSW nedovolí vlastní event listener napsat přímo —
+          // tohle je jediná cesta, jak dostat push-sw.js's `push`/
+          // `notificationclick` handlery do vygenerovaného sw.js.
+          importScripts: ['/push-sw.js'],
           runtimeCaching: [
             // version.json se nesmí nikdy dostat do cache, jinak by
             // kontrola verzí navždy hlásila tu starou.
