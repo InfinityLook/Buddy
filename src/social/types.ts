@@ -117,3 +117,32 @@ export interface Hlaseni {
   stav: StavHlaseni
   vyrizenoAt: string | null
 }
+
+// ==========================================
+// Tajný chat
+//
+// Vlastní tabulky (tajne_chaty/tajne_zpravy), ne rozšíření Chat/Zprava
+// výš — jiná hranice přístupu (jen VIP/moderátor/admin, mizící zprávy,
+// bez moderátorského dohledu) i jiná pravidla založení (musí to potvrdit
+// druhá strana), takže sdílet tvar s běžným chatem by jen matlo dvoje
+// pravidla do jednoho typu.
+// ==========================================
+
+export type StavTajnehoChatu = 'cekajici' | 'aktivni' | 'zamitnuto'
+
+export interface TajnyChat {
+  id: string
+  druhy: SocialProfil
+  /** Založil ho přihlášený, nebo ho jen dostal jako pozvánku? */
+  zalozilJa: boolean
+  stav: StavTajnehoChatu
+  createdAt: string
+}
+
+export interface TajnaZprava {
+  id: string
+  chatId: string
+  odesilatelId: string
+  text: string
+  createdAt: string
+}

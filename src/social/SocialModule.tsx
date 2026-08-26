@@ -6,7 +6,10 @@ import { ChatyPanel } from './components/ChatyPanel'
 import { ChatView } from './components/ChatView'
 import { BlokovaniPanel } from './components/BlokovaniPanel'
 import { ModeracePanel } from './components/ModeracePanel'
+import { TajnyChatPanel } from './components/TajnyChatPanel'
+import { TajnyChatView } from './components/TajnyChatView'
 import { useSocial } from './useSocial'
+import { useTajnyChat } from './useTajnyChat'
 import { nastavOtevrenyChat } from './inbox'
 import { useAmbientScene } from './scene/useAmbientScene'
 import './SocialModule.css'
@@ -23,7 +26,7 @@ import './SocialModule.css'
 // chaty i posílat žádosti komukoli bez skutečného účtu.
 // ==========================================
 
-type Zalozka = 'pratele' | 'chaty' | 'blokovani' | 'hlaseni'
+type Zalozka = 'pratele' | 'chaty' | 'blokovani' | 'hlaseni' | 'tajne'
 
 const ZALOZKY: { id: Zalozka; popis: string; ikona: string }[] = [
   { id: 'pratele', popis: 'Přátelé', ikona: 'users' },
@@ -35,14 +38,27 @@ const ZALOZKY: { id: Zalozka; popis: string; ikona: string }[] = [
 export const SocialModule: React.FC = () => {
   const navigate = useNavigate()
   const stav = useSocial()
+  const tajnyStav = useTajnyChat()
 
   const [zalozka, setZalozka] = useState<Zalozka>('pratele')
   const [otevrenyChat, setOtevrenyChat] = useState<string | null>(null)
+  const [otevrenyTajnyChat, setOtevrenyTajnyChat] = useState<string | null>(null)
 
   const chat = useMemo(
     () => stav.chaty.find((ch) => ch.id === otevrenyChat) ?? null,
     [stav.chaty, otevrenyChat]
   )
+
+  const tajnyChat = useMemo(
+    () => tajnyStav.chaty.find((ch) => ch.id === otevrenyTajnyChat) ?? null,
+    [tajnyStav.chaty, otevrenyTajnyChat]
+  )
+
+  // Záložky jsou fixní pole nahoře, ale Tajný chat se do něj přidává jen
+  // komu to oprávnění vůbec dovolí — kdo ho nemá, o funkci ani neví.
+  const zalozky = tajnyStav.smim
+    ? [...ZALOZKY, { id: 'tajne' as const, popis: 'Tajný chat', ikona: 'lock' }]
+    : ZALOZKY
 
   // Schránka musí vědět, do kterého chatu se uživatel dívá — zprávy
   // z otevřeného rozhovoru se do počtu nepřečtených počítat nemají.
@@ -65,13 +81,27 @@ export const SocialModule: React.FC = () => {
 
   return (
     <div className="social-page">
-      <div ref={ambientRef} className={`social-ambient ${chat ? 'je-skryty' : ''}`} aria-hidden="true" />
+      <div
+        ref={ambientRef}
+        className={`social-ambient ${chat || tajnyChat ? 'je-skryty' : ''}`}
+        aria-hidden="true"
+      />
 
       {chat ? (
         // Otevřený chat zabírá celou obrazovku — na telefonu není kam
         // dát seznam i rozhovor vedle sebe.
         <>
           <ChatView chat={chat} stav={stav} onZpet={() => setOtevrenyChat(null)} />
+          {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
+        </>
+      ) : tajnyChat ? (
+        <>
+          <TajnyChatView
+            chat={tajnyChat}
+            mujId={stav.mujId}
+            rekni={stav.rekni}
+            onZpet={() => setOtevrenyTajnyChat(null)}
+          />
           {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
         </>
       ) : (
@@ -90,8 +120,15 @@ export const SocialModule: React.FC = () => {
           </div>
 
           <div className="social-zalozky">
-            {ZALOZKY.map((z) => {
-              const odznak = z.id === 'pratele' ? cekaZadosti : z.id === 'chaty' ? neprectene : 0
+            {zalozky.map((z) => {
+              const odznak =
+                z.id === 'pratele'
+                  ? cekaZadosti
+                  : z.id === 'chaty'
+                    ? neprectene
+                    : z.id === 'tajne'
+                      ? tajnyStav.cekajiciNaMe
+                      : 0
 
               return (
                 <button
@@ -115,6 +152,13 @@ export const SocialModule: React.FC = () => {
               {zalozka === 'chaty' && <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />}
               {zalozka === 'blokovani' && <BlokovaniPanel stav={stav} />}
               {zalozka === 'hlaseni' && <ModeracePanel stav={stav} />}
+              {zalozka === 'tajne' && tajnyStav.smim && (
+                <TajnyChatPanel
+                  tajnyStav={tajnyStav}
+                  rekni={stav.rekni}
+                  onOtevrit={setOtevrenyTajnyChat}
+                />
+              )}
             </>
           )}
 

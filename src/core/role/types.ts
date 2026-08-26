@@ -34,6 +34,11 @@ export type Permission =
   // jiná role, ani moderátor. Samo o sobě nic nechrání (viz varování
   // výš), server má vlastní jsem_admin() a admin_prehled() ho vyžaduje.
   | 'admin.panel'
+  // Tajný chat v Social — mizící zprávy jen mezi VIP/moderátory/adminy
+  // navzájem. Skutečnou hranici drží databáze (viz zaloz_tajny_chat/
+  // posli_tajnou_zpravu), tohle jen řídí, komu se v UI vůbec ukáže
+  // záložka a tlačítko.
+  | 'social.secretChat'
 
 export type RoleId = 'user' | 'vip' | 'moderator' | 'admin'
 

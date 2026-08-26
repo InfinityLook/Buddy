@@ -8,6 +8,8 @@ import type {
   MujProfil,
   Pritel,
   SocialProfil,
+  TajnaZprava,
+  TajnyChat,
   Vysledek,
   Zadost,
   Zprava,
@@ -859,5 +861,180 @@ export const sledovatPritomnost = (
   return {
     zrusit: () => void klient.removeChannel(kanal),
     oznamPsani: () => void kanal.send({ type: 'broadcast', event: 'psani', payload: { userId: mujId } }),
+  }
+}
+
+// ==========================================
+// Tajný chat
+//
+// Jen pro VIP/moderátory/admina navzájem, mizící zprávy, bez
+// moderátorského dohledu (na rozdíl od Hlášení výš je vidí jen admin).
+// Založení i odeslání jde přes SECURITY DEFINER funkce v databázi
+// (zaloz_tajny_chat/potvrd_tajny_chat/posli_tajnou_zpravu) — ne přes
+// plain insert jako u messages/support_zpravy, protože ověření "má
+// tenhle účet pořád VIP/moderátora/admina" nejde bezpečně schovat do
+// RLS WITH CHECK bez grantnutí pomocné funkce, kterou by pak šlo volat
+// napřímo a zjišťovat roli kohokoli (viz komentář u ma_pravo_na_tajny_
+// chat v migraci). Tenhle soubor jen volá RPC a mapuje výsledek — kdo
+// smí co, rozhoduje výhradně databáze, tlačítko v UI je jen pohodlí.
+// ==========================================
+
+/**
+ * Založí (nebo najde už existující) tajný chat s cílem — druhá strana
+ * ho musí potvrdit přes potvrdTajnyChat, než se dá do něj psát. Cíl se
+ * hledá stejně jako dřív přátelství přes kód (najdiPodleKodu) — tady se
+ * to konečně hodí, jak bylo od začátku plánováno.
+ */
+export const zalozTajnyChat = async (cilId: string): Promise<{ chatId: string | null } & Vysledek> => {
+  if (!supabase) return { ...NENI_CLOUD, chatId: null }
+
+  const { data, error } = await supabase.rpc('zaloz_tajny_chat', { cil: cilId })
+  if (error || !data) return { ...chyba(error), chatId: null }
+
+  return { ok: true, chatId: data as string }
+}
+
+export const potvrdTajnyChat = async (chatId: string, prijmout: boolean): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase.rpc('potvrd_tajny_chat', {
+    p_chat_id: chatId,
+    p_prijmout: prijmout,
+  })
+
+  return error ? chyba(error) : { ok: true }
+}
+
+/**
+ * Vlastní tajné chaty — čekající pozvánky (odeslané i přijaté) i aktivní.
+ * Na rozdíl od nactiChaty() žádné stránkování ani poslední zpráva v
+ * náhledu — mizící obsah se do náhledu v seznamu záměrně nedává, ať se
+ * text zprávy neobjeví o víc míst, než je nutné.
+ */
+export const nactiTajneChaty = async (): Promise<TajnyChat[]> => {
+  if (!supabase) return []
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return []
+
+  const { data, error } = await supabase
+    .from('tajne_chaty')
+    .select('id, ucastnik_a, ucastnik_b, zalozil, stav, created_at')
+    .order('created_at', { ascending: false })
+
+  if (error || !data) return []
+
+  const druheIdy = data.map((r) => (r.ucastnik_a === ja ? r.ucastnik_b : r.ucastnik_a))
+  const profily = await nactiProfily(druheIdy)
+
+  return data
+    .map((r) => {
+      const druheId = r.ucastnik_a === ja ? r.ucastnik_b : r.ucastnik_a
+      const druhy = profily.get(druheId)
+      if (!druhy) return null
+
+      return {
+        id: r.id,
+        druhy,
+        zalozilJa: r.zalozil === ja,
+        stav: r.stav as TajnyChat['stav'],
+        createdAt: r.created_at,
+      }
+    })
+    .filter((c): c is TajnyChat => c !== null)
+}
+
+const tajnaZpravaZRadku = (r: {
+  id: string
+  chat_id: string
+  odesilatel: string
+  text: string
+  created_at: string
+}): TajnaZprava => ({
+  id: r.id,
+  chatId: r.chat_id,
+  odesilatelId: r.odesilatel,
+  text: r.text,
+  createdAt: r.created_at,
+})
+
+/** Bez stránkování — mizící obsah se nehromadí do stovek zpráv jako
+ *  běžný chat, malý jednorázový select stačí. */
+export const nactiTajneZpravy = async (chatId: string): Promise<TajnaZprava[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('tajne_zpravy')
+    .select('id, chat_id, odesilatel, text, created_at')
+    .eq('chat_id', chatId)
+    .order('created_at', { ascending: true })
+
+  if (error || !data) return []
+  return data.map(tajnaZpravaZRadku)
+}
+
+export const posliTajnouZpravu = async (
+  chatId: string,
+  text: string
+): Promise<{ zprava: TajnaZprava | null } & Vysledek> => {
+  if (!supabase) return { ...NENI_CLOUD, zprava: null }
+
+  const orezany = text.trim()
+  if (!orezany) return { ok: false, chyba: 'Prázdnou zprávu poslat nejde.', zprava: null }
+
+  const { data, error } = await supabase.rpc('posli_tajnou_zpravu', {
+    p_chat_id: chatId,
+    p_text: orezany,
+  })
+
+  if (error || !data) return { ...chyba(error), zprava: null }
+  return { ok: true, zprava: tajnaZpravaZRadku(data) }
+}
+
+/** Líné mazání expirovaných zpráv — volá se příležitostně (otevření
+ *  panelu, odeslání zprávy). Chyba se schválně ignoruje: SELECT politika
+ *  expirované skryje i bez fyzického smazání, takže selhání úklidu nikdy
+ *  neprozradí něco, co by se jinak neukázalo. */
+export const vycistiExpirovaneTajneZpravy = async (): Promise<void> => {
+  if (!supabase) return
+  await supabase.rpc('smaz_expirovane_tajne_zpravy')
+}
+
+export const sledovatTajneChaty = (zmena: () => void): (() => void) => {
+  const klient = supabase
+  if (!klient) return () => {}
+
+  const kanal = klient
+    .channel(`tajne-chaty:${++poradiKanalu}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'tajne_chaty' }, () => zmena())
+    .subscribe()
+
+  return () => {
+    void klient.removeChannel(kanal)
+  }
+}
+
+export const sledovatTajnyChat = (
+  chatId: string,
+  prisla: (z: TajnaZprava) => void
+): (() => void) => {
+  const klient = supabase
+  if (!klient) return () => {}
+
+  const kanal = klient
+    .channel(`tajny-chat:${chatId}:${++poradiKanalu}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'tajne_zpravy', filter: `chat_id=eq.${chatId}` },
+      (payload) => {
+        const radek = payload.new as Parameters<typeof tajnaZpravaZRadku>[0] | null
+        if (radek?.id) prisla(tajnaZpravaZRadku(radek))
+      }
+    )
+    .subscribe()
+
+  return () => {
+    void klient.removeChannel(kanal)
   }
 }

@@ -157,6 +157,9 @@
 }
 
 .social-card-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
   font-size: 0.6rem;
   letter-spacing: 1px;
   color: var(--text-muted);
@@ -168,6 +171,18 @@
   font-size: 0.65rem;
   color: var(--text-muted);
   line-height: 1.45;
+}
+
+/* Banner nad zprávami v Tajném chatu — připomínka mizení, ne obyčejný
+   nápovědný text, proto vlastní pozadí/rámeček navíc k .social-hint. */
+.social-hint--tajny {
+  margin: 0 0.75rem 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: 10px;
+  text-align: center;
+  background: rgba(167, 139, 250, 0.1);
+  border: 1px solid rgba(167, 139, 250, 0.25);
+  color: var(--text-secondary);
 }
 
 .social-empty-note {
