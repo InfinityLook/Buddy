@@ -18,6 +18,9 @@ const POPIS_AKCE: Record<string, string> = {
   vyridit_hlaseni: 'Vyřízení hlášení',
   poslat_oznameni: 'Odeslání oznámení',
   smazat_oznameni: 'Smazání oznámení',
+  zalozit_tajny_chat: 'Založení tajného chatu',
+  potvrdit_tajny_chat: 'Potvrzení tajného chatu',
+  zamitnout_tajny_chat: 'Zamítnutí tajného chatu',
 }
 
 /** Detail je volný jsonb — zobrazí se jen pár známých klíčů čitelně,
