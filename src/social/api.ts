@@ -1119,3 +1119,33 @@ export const sledovatTajnyChat = (
     void klient.removeChannel(kanal)
   }
 }
+
+/**
+ * Živé doručování napříč všemi tajnými chaty najednou — obdoba
+ * sledovatVsechnyZpravy pro messages, jen bez filtru na jeden chat.
+ * Používá se pro systémovou notifikaci (useTajnyChat.ts), ne pro
+ * zobrazení uvnitř otevřeného chatu (to řeší sledovatTajnyChat výš).
+ * Bez filtru schválně — Realtime uplatňuje stejná pravidla jako běžné
+ * čtení (viz SELECT politika na tajne_zpravy), takže sem dorazí jen
+ * zprávy z chatů, kde je uživatel účastníkem.
+ */
+export const sledovatVsechnyTajneZpravy = (prisla: (z: TajnaZprava) => void): (() => void) => {
+  const klient = supabase
+  if (!klient) return () => {}
+
+  const kanal = klient
+    .channel(`vsechny-tajne-zpravy:${++poradiKanalu}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'tajne_zpravy' },
+      (payload) => {
+        const radek = payload.new as Parameters<typeof tajnaZpravaZRadku>[0] | null
+        if (radek?.id) prisla(tajnaZpravaZRadku(radek))
+      }
+    )
+    .subscribe()
+
+  return () => {
+    void klient.removeChannel(kanal)
+  }
+}

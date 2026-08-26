@@ -26,6 +26,10 @@ export const TajnyChatPanel: React.FC<Props> = ({ tajnyStav, rekni, onOtevrit })
   const cekajiciNaMe = tajnyStav.chaty.filter((c) => c.stav === 'cekajici' && !c.zalozilJa)
   const cekajiciOdMe = tajnyStav.chaty.filter((c) => c.stav === 'cekajici' && c.zalozilJa)
   const aktivni = tajnyStav.chaty.filter((c) => c.stav === 'aktivni')
+  // Dřív slepá ulička — zaloz_tajny_chat teď zamítnutou pozvánku umí
+  // znovupoužít jako novou (viz migrace), takže tahle sekce jen dává
+  // vědět, že šlo o zamítnutí, ne že appka mlčí o tom, co se stalo.
+  const zamitnute = tajnyStav.chaty.filter((c) => c.stav === 'zamitnuto')
 
   const zalozit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -136,6 +140,20 @@ export const TajnyChatPanel: React.FC<Props> = ({ tajnyStav, rekni, onOtevrit })
               <span className="social-hlaseni-stav">Čeká na potvrzení</span>
             </div>
           ))}
+        </section>
+      )}
+
+      {zamitnute.length > 0 && (
+        <section className="social-card">
+          <span className="social-card-label">ZAMÍTNUTÉ ({zamitnute.length})</span>
+          {zamitnute.map((c) => (
+            <div key={c.id} className="social-row">
+              <SocialAvatar id={c.druhy.id} jmeno={c.druhy.displayName} tlumeny />
+              <span className="social-row-name">{c.druhy.displayName}</span>
+              <span className="social-hlaseni-stav">Zamítnuto</span>
+            </div>
+          ))}
+          <p className="social-hint">Zkus to znovu — pozvi znovu jeho kódem výš.</p>
         </section>
       )}
 

@@ -9,6 +9,7 @@ interface Props {
   chat: Chat
   stav: SocialStav
   onZavrit: () => void
+  onOtevritProfil: (userId: string) => void
 }
 
 // Přejmenovat smí kterýkoli člen (hlídá RLS na chats), odebrat někoho
@@ -16,7 +17,7 @@ interface Props {
 // tlačítko na odebrání zobrazí, jen když se zakladatelId shoduje s mujId.
 // Vlastní odchod ze skupiny řeší existující tlačítko "Opustit chat"
 // v hlavičce, tady se schválně neopakuje.
-export const SpravaSkupinyDialog: React.FC<Props> = ({ chat, stav, onZavrit }) => {
+export const SpravaSkupinyDialog: React.FC<Props> = ({ chat, stav, onZavrit, onOtevritProfil }) => {
   const [nazev, setNazev] = useState(chat.nazev)
   const [ukladaNazev, setUkladaNazev] = useState(false)
   const [pridavaId, setPridavaId] = useState<string | null>(null)
@@ -110,10 +111,12 @@ export const SpravaSkupinyDialog: React.FC<Props> = ({ chat, stav, onZavrit }) =
         </div>
         {chat.ucastnici.map((u) => (
           <div key={u.id} className="social-row">
-            <SocialAvatar id={u.id} jmeno={u.displayName} />
-            <span className="social-row-name">
-              {u.displayName} {chat.zakladatelId === u.id && '· zakladatel/ka'}
-            </span>
+            <button className="social-row-otevrit" onClick={() => onOtevritProfil(u.id)}>
+              <SocialAvatar id={u.id} jmeno={u.displayName} />
+              <span className="social-row-name">
+                {u.displayName} {chat.zakladatelId === u.id && '· zakladatel/ka'}
+              </span>
+            </button>
             {jsemZakladatel && chat.zakladatelId !== u.id && (
               <button
                 className="social-icon-btn social-icon-btn--ne"

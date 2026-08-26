@@ -339,7 +339,12 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
       )}
 
       {spravaOtevrena && (
-        <SpravaSkupinyDialog chat={chat} stav={stav} onZavrit={() => setSpravaOtevrena(false)} />
+        <SpravaSkupinyDialog
+          chat={chat}
+          stav={stav}
+          onZavrit={() => setSpravaOtevrena(false)}
+          onOtevritProfil={onOtevritProfil}
+        />
       )}
     </div>
   )

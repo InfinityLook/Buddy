@@ -10,7 +10,7 @@ import { TajnyChatPanel } from './components/TajnyChatPanel'
 import { TajnyChatView } from './components/TajnyChatView'
 import { VerejnyProfilDialog } from './components/VerejnyProfilDialog'
 import { useSocial } from './useSocial'
-import { useTajnyChat } from './useTajnyChat'
+import { useTajnyChat, nastavOtevrenyTajnyChat } from './useTajnyChat'
 import { nastavOtevrenyChat } from './inbox'
 import { useAmbientScene } from './scene/useAmbientScene'
 import './SocialModule.css'
@@ -71,6 +71,13 @@ export const SocialModule: React.FC = () => {
     nastavOtevrenyChat(otevrenyChat)
     return () => nastavOtevrenyChat(null)
   }, [otevrenyChat])
+
+  // Totéž pro tajný chat — jinak by notifikace přišla i na zprávu
+  // z rozhovoru, který má uživatel zrovna otevřený (viz useTajnyChat.ts).
+  useEffect(() => {
+    nastavOtevrenyTajnyChat(otevrenyTajnyChat)
+    return () => nastavOtevrenyTajnyChat(null)
+  }, [otevrenyTajnyChat])
 
   const cekaZadosti = stav.zadosti.filter((z) => z.smer === 'prichozi').length
   const neprectene = stav.chaty.reduce((soucet, ch) => soucet + ch.neprectene, 0)
