@@ -41,6 +41,9 @@ export interface Chat {
   posledniZprava: string | null
   posledniCas: string | null
   neprectene: number
+  /** Kdo skupinu založil — přejmenovat smí kterýkoli člen (hlídá RLS),
+   *  ale odebrat někoho jiného jen zakladatel (odebrat_ze_skupiny). */
+  zakladatelId: string
 }
 
 export interface Zprava {

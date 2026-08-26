@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { NahlasitDialog } from './NahlasitDialog'
+import { SpravaSkupinyDialog } from './SpravaSkupinyDialog'
 import * as api from '../api'
 import type { Chat, Zprava } from '../types'
 import type { SocialStav } from '../useSocial'
@@ -23,6 +24,7 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
   // přímo u tlačítka, než zpráva stihne dorazit přes realtime.
   const [odeslano, setOdeslano] = useState(false)
   const [nahlasit, setNahlasit] = useState<{ userId: string; zpravaId?: string } | null>(null)
+  const [spravaOtevrena, setSpravaOtevrena] = useState(false)
   const konecRef = useRef<HTMLDivElement>(null)
 
   // Načtení a živý odběr. Odběr se ruší při odchodu — bez toho by po
@@ -99,6 +101,16 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
             <span className="social-chat-pocet">{chat.ucastnici.length + 1} lidí</span>
           )}
         </span>
+
+        {chat.jeSkupina && (
+          <button
+            className="social-icon-btn"
+            aria-label="Spravovat skupinu"
+            onClick={() => setSpravaOtevrena(true)}
+          >
+            <SocialIcon name="settings" size={17} />
+          </button>
+        )}
 
         <button
           className="social-icon-btn social-icon-btn--ne"
@@ -195,6 +207,10 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
           stav={stav}
           onZavrit={() => setNahlasit(null)}
         />
+      )}
+
+      {spravaOtevrena && (
+        <SpravaSkupinyDialog chat={chat} stav={stav} onZavrit={() => setSpravaOtevrena(false)} />
       )}
     </div>
   )

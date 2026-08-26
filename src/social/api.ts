@@ -308,7 +308,7 @@ export const nactiChaty = async (): Promise<Chat[]> => {
   const precteno = new Map((clenstvi ?? []).map((c) => [c.chat_id, c.last_read_at]))
 
   const [{ data: chaty }, { data: vsichniClenove }, { data: zpravy }] = await Promise.all([
-    supabase.from('chats').select('id, is_group, name').in('id', chatIds),
+    supabase.from('chats').select('id, is_group, name, created_by').in('id', chatIds),
     supabase.from('chat_members').select('chat_id, user_id').in('chat_id', chatIds),
     supabase
       .from('messages')
@@ -345,6 +345,7 @@ export const nactiChaty = async (): Promise<Chat[]> => {
         neprectene: chatZpravy.filter(
           (z) => z.sender_id !== ja && od !== undefined && z.created_at > od
         ).length,
+        zakladatelId: ch.created_by,
       }
     })
     .sort((a, b) => (b.posledniCas ?? '').localeCompare(a.posledniCas ?? ''))
@@ -402,6 +403,59 @@ export const opustitChat = async (chatId: string): Promise<Vysledek> => {
     .delete()
     .eq('chat_id', chatId)
     .eq('user_id', ja)
+
+  return error ? chyba(error) : { ok: true }
+}
+
+/**
+ * Přejmenování skupiny — plain UPDATE, žádná zvláštní funkce netřeba.
+ * RLS už dřív pouštělo "přejmenovat skupinu smí její člen", jen to klient
+ * nikdy nevolal.
+ */
+export const prejmenovatSkupinu = async (chatId: string, novyNazev: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const orezany = novyNazev.trim()
+  if (!orezany) return { ok: false, chyba: 'Název nemůže být prázdný.' }
+  if (orezany.length > 40) return { ok: false, chyba: 'Název je moc dlouhý (nejvýš 40 znaků).' }
+
+  const { error } = await supabase.from('chats').update({ name: orezany }).eq('id', chatId)
+  return error ? chyba(error) : { ok: true }
+}
+
+/**
+ * Přidání člena do existující skupiny — plain INSERT. RLS na chat_members
+ * ("přidat člena smí zakladatel nebo člen") sama ověří, že přidávaný je
+ * přítel toho, kdo ho přidává, a že není zablokovaný.
+ */
+export const pridatDoSkupiny = async (chatId: string, uzivatelId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase
+    .from('chat_members')
+    .insert({ chat_id: chatId, user_id: uzivatelId })
+
+  if (error) {
+    if (error.code === '23505') return { ok: false, chyba: 'Tenhle člověk už ve skupině je.' }
+    return chyba(error)
+  }
+
+  return { ok: true }
+}
+
+/**
+ * Odebrání někoho JINÉHO ze skupiny — na rozdíl od přejmenování/přidání
+ * tohle plain RLS nezvládne (žádné pravidlo bezpečně nepustí "smaž
+ * členství někoho jiného"). Jde přes odebrat_ze_skupiny(), která uvnitř
+ * ověří, že voláme jako zakladatel skupiny.
+ */
+export const odebratZeSkupiny = async (chatId: string, uzivatelId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase.rpc('odebrat_ze_skupiny', {
+    p_chat_id: chatId,
+    p_cil: uzivatelId,
+  })
 
   return error ? chyba(error) : { ok: true }
 }
