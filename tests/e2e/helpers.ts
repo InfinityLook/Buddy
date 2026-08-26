@@ -96,8 +96,26 @@ export const mockSupabase = async (ctx: BrowserContext, data: MockData, options:
 
     if (req.method() === 'GET') {
       let vysledek = [...radky]
+      // order/limit se dřív ignorovaly úplně — stačilo to, dokud žádný
+      // test nepotřeboval ověřit, že appka skutečně čte "posledních N",
+      // ne "všechno". Social/ChatView.tsx teď stránkuje zprávy přes
+      // order+limit+lt (viz nactiZpravy v api.ts), a bez skutečného
+      // řazení/ořezání v mocku by test tuhle logiku neodlišil od staré,
+      // chybné verze — obojí by mockem prošlo stejně.
+      let razeni: { sloupec: string; sestupne: boolean } | null = null
+      let limit: number | null = null
+
       for (const [klic, hodnota] of url.searchParams) {
-        if (['select', 'order', 'limit'].includes(klic)) continue
+        if (klic === 'select') continue
+        if (klic === 'order') {
+          const [sloupec, smer] = hodnota.split('.')
+          razeni = { sloupec, sestupne: smer === 'desc' }
+          continue
+        }
+        if (klic === 'limit') {
+          limit = Number(hodnota)
+          continue
+        }
         if (hodnota.startsWith('eq.')) {
           const v = hodnota.slice(3)
           vysledek = vysledek.filter((r) => String(r[klic]) === v)
@@ -107,19 +125,48 @@ export const mockSupabase = async (ctx: BrowserContext, data: MockData, options:
             .split(',')
             .map((s) => s.replace(/^"|"$/g, ''))
           vysledek = vysledek.filter((r) => seznam.includes(String(r[klic])))
+        } else if (hodnota.startsWith('lt.')) {
+          const v = hodnota.slice(3)
+          vysledek = vysledek.filter((r) => String(r[klic]) < v)
+        } else if (hodnota.startsWith('gt.')) {
+          const v = hodnota.slice(3)
+          vysledek = vysledek.filter((r) => String(r[klic]) > v)
         }
       }
+
+      if (razeni) {
+        const { sloupec, sestupne } = razeni
+        vysledek.sort((a, b) => {
+          const av = String(a[sloupec] ?? '')
+          const bv = String(b[sloupec] ?? '')
+          if (av === bv) return 0
+          const vzestupne = av < bv ? -1 : 1
+          return sestupne ? -vzestupne : vzestupne
+        })
+      }
+      if (limit !== null) vysledek = vysledek.slice(0, limit)
+
       const jedno = (req.headers()['accept'] || '').includes('vnd.pgrst.object')
       return jedno ? json(vysledek[0] ?? null) : json(vysledek)
     }
 
     if (req.method() === 'POST') {
       const telo = JSON.parse(req.postData() || '{}')
-      const nove = (Array.isArray(telo) ? telo : [telo]).map((r, i) => ({
-        id: `${tabulka}-${Date.now()}-${i}`,
-        created_at: new Date().toISOString(),
-        ...r,
-      }))
+      // Sloupce, co existující řádky téhle tabulky mají, ale nový řádek
+      // je nezadal, doplníme jako null. Bez toho appka po INSERT ...
+      // SELECT dostane u nezadaného sloupce (typicky deleted_at)
+      // undefined místo null, jaké by vrátil opravdový Postgres —
+      // a klientský kód spoléhající na `=== null` (ChatView.tsx: je
+      // zpráva smazaná?) by se v testu choval jinak než v produkci.
+      const znameSloupce = new Set(radky.flatMap((r) => Object.keys(r)))
+      const nove = (Array.isArray(telo) ? telo : [telo]).map((r, i) => {
+        const zaklad: Record<string, unknown> = {
+          id: `${tabulka}-${Date.now()}-${i}`,
+          created_at: new Date().toISOString(),
+        }
+        for (const sloupec of znameSloupce) if (!(sloupec in r)) zaklad[sloupec] = null
+        return { ...zaklad, ...r }
+      })
       radky.push(...nove)
       const jednoP = (req.headers()['accept'] || '').includes('vnd.pgrst.object')
       return json(jednoP ? nove[0] : nove, 201)

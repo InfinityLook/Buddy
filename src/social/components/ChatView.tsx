@@ -27,10 +27,18 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
   const [spravaOtevrena, setSpravaOtevrena] = useState(false)
   const [online, setOnline] = useState<Set<string>>(new Set())
   const [pisouId, setPisouId] = useState<string | null>(null)
+  // Jestli má cenu nabízet "Načíst starší" — plná stránka napovídá, že
+  // před ní může být ještě víc, kratší stránka znamená konec historie.
+  const [maStarsi, setMaStarsi] = useState(false)
+  const [nacitaStarsi, setNacitaStarsi] = useState(false)
   const konecRef = useRef<HTMLDivElement>(null)
   const oznamPsaniRef = useRef<(() => void) | null>(null)
   const posledniOznamRef = useRef(0)
   const pisePricasRef = useRef<number | null>(null)
+  // Načtení starších zpráv je prepend, ne nová zpráva na konci — bez
+  // téhle pojistky by efekt níž po každém "Načíst starší" odskočil
+  // pohled zpátky dolů, přesně tam, odkud se uživatel snažil odejít.
+  const preskocitScrollRef = useRef(false)
 
   // Načtení a živý odběr. Odběr se ruší při odchodu — bez toho by po
   // každém otevření chatu zůstal viset další otevřený kanál.
@@ -38,7 +46,9 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
     let platne = true
 
     void api.nactiZpravy(chat.id).then((z) => {
-      if (platne) setZpravy(z)
+      if (!platne) return
+      setZpravy(z)
+      setMaStarsi(z.length >= api.ZPRAV_NA_STRANKU)
     })
     void api.oznacitPrecteno(chat.id)
 
@@ -92,8 +102,25 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
   }, [chat.id, stav.mujId])
 
   useEffect(() => {
+    if (preskocitScrollRef.current) {
+      preskocitScrollRef.current = false
+      return
+    }
     konecRef.current?.scrollIntoView({ block: 'end' })
   }, [zpravy])
+
+  const nacistStarsi = async () => {
+    if (zpravy.length === 0 || nacitaStarsi) return
+    setNacitaStarsi(true)
+
+    const starsi = await api.nactiZpravy(chat.id, zpravy[0].createdAt)
+    setMaStarsi(starsi.length >= api.ZPRAV_NA_STRANKU)
+    if (starsi.length > 0) {
+      preskocitScrollRef.current = true
+      setZpravy((s) => [...starsi, ...s])
+    }
+    setNacitaStarsi(false)
+  }
 
   const napovedPsani = (hodnota: string) => {
     setText(hodnota)
@@ -121,13 +148,17 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
     const vysledek = await api.poslatZpravu(chat.id, text)
     setPosila(false)
 
-    if (vysledek.ok) {
+    if (vysledek.ok && vysledek.zprava) {
       setText('')
       setOdeslano(true)
       window.setTimeout(() => setOdeslano(false), 900)
-      // Vlastní zprávu doplní realtime; kdyby se odběr nestihl navázat,
-      // načtení ji dorovná.
-      setZpravy(await api.nactiZpravy(chat.id))
+      // Přidáme rovnou vrácenou zprávu, ne přes nactiZpravy(chat.id) bez
+      // `pred` — to by po opravě stránkování vrátilo jen nejnovější
+      // stránku a zahodilo starší historii, kterou uživatel případně
+      // už dřív načetl přes "Načíst starší". Realtime tutéž zprávu
+      // stejně doručí znovu (stejné id), sledovatChat ji jen přepíše
+      // na místě, žádná duplicita.
+      setZpravy((s) => [...s, vysledek.zprava as Zprava])
     } else {
       stav.rekni(vysledek.chyba ?? 'Zpráva neodešla.')
     }
@@ -169,6 +200,15 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
           className="social-icon-btn social-icon-btn--ne"
           aria-label="Opustit chat"
           onClick={async () => {
+            // Nevratná akce (vlastní historii chatu tím ztratíš) hned vedle
+            // dalších tlačítek v hlavičce — bez potvrzení jedno klepnutí
+            // od omylu, stejně jako odebrání člena ze skupiny (viz
+            // SpravaSkupinyDialog.tsx).
+            const zprava = chat.jeSkupina
+              ? `Opustit skupinu „${chat.nazev}“? Přijdeš o její historii.`
+              : `Opustit chat s ${chat.nazev}? Přijdeš o jeho historii.`
+            if (!window.confirm(zprava)) return
+
             const ok = await stav.provest(() => api.opustitChat(chat.id), 'Chat opuštěn.')
             if (ok) onZpet()
           }}
@@ -182,6 +222,12 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
           <p className="social-empty-note social-empty-note--stred">
             Zatím tu nikdo nic nenapsal. Začni.
           </p>
+        )}
+
+        {maStarsi && (
+          <button className="social-btn social-btn--tlumene social-nacist-starsi" onClick={nacistStarsi} disabled={nacitaStarsi}>
+            {nacitaStarsi ? 'Načítám…' : 'Načíst starší zprávy'}
+          </button>
         )}
 
         {zpravy.map((z) => {
@@ -210,8 +256,20 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
                       className="social-mini-btn"
                       onClick={async () => {
                         const v = await api.smazatZpravu(z.id)
-                        if (v.ok) setZpravy(await api.nactiZpravy(chat.id))
-                        else stav.rekni(v.chyba ?? 'Smazat se nepovedlo.')
+                        if (v.ok) {
+                          // Patchneme tenhle jeden řádek na místě — stejný
+                          // důvod jako u odeslání, refetch by mohl zahodit
+                          // starší historii načtenou přes "Načíst starší".
+                          setZpravy((s) =>
+                            s.map((m) =>
+                              m.id === z.id
+                                ? { ...m, text: 'Zpráva smazána', smazanoAt: new Date().toISOString() }
+                                : m
+                            )
+                          )
+                        } else {
+                          stav.rekni(v.chyba ?? 'Smazat se nepovedlo.')
+                        }
                       }}
                     >
                       <SocialIcon name="trash" size={12} />

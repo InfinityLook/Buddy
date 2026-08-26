@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
+import { NahlasitDialog } from './NahlasitDialog'
 import * as api from '../api'
 import { normalizeText } from '@/core/utils/text'
 import type { SocialStav } from '../useSocial'
@@ -18,6 +19,11 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
   const [potiz, setPotiz] = useState<string | null>(null)
   const [zkopirovano, setZkopirovano] = useState(false)
   const [hledatPratele, setHledatPratele] = useState('')
+  // Nahlásit dřív šlo jen z konkrétní zprávy v chatu (NahlasitDialog v
+  // ChatView.tsx) — kdo obtěžoval mimo chat (třeba žádostmi o přátelství),
+  // neměl jak ho nahlásit, aniž by s ním napřed musel/a psát. Dialog
+  // zpravaId od začátku bral jako nepovinné, jen tady na něj nebylo tlačítko.
+  const [nahlasit, setNahlasit] = useState<SocialProfil | null>(null)
 
   const prichozi = stav.zadosti.filter((z) => z.smer === 'prichozi')
   const odchozi = stav.zadosti.filter((z) => z.smer === 'odchozi')
@@ -222,6 +228,14 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
               </button>
 
               <button
+                className="social-icon-btn"
+                aria-label={`Nahlásit ${p.profil.displayName}`}
+                onClick={() => setNahlasit(p.profil)}
+              >
+                <SocialIcon name="flag" size={16} />
+              </button>
+
+              <button
                 className="social-icon-btn social-icon-btn--ne"
                 aria-label={`Zablokovat ${p.profil.displayName}`}
                 onClick={() =>
@@ -237,6 +251,10 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
           ))
         )}
       </section>
+
+      {nahlasit && (
+        <NahlasitDialog userId={nahlasit.id} stav={stav} onZavrit={() => setNahlasit(null)} />
+      )}
     </div>
   )
 }

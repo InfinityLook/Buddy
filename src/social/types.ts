@@ -44,7 +44,16 @@ export interface Chat {
   /** Kdo skupinu založil — přejmenovat smí kterýkoli člen (hlídá RLS),
    *  ale odebrat někoho jiného jen zakladatel (odebrat_ze_skupiny). */
   zakladatelId: string
+  /** Emoji z pevné nabídky (viz IKONY_SKUPIN), null = výchozí "#".
+   *  U dvojice se nepoužívá, ta má barvu podle protějšku. */
+  ikona: string | null
 }
+
+// Nabídka emoji pro skupinový chat — SpravaSkupinyDialog.tsx z ní
+// staví výběr, pevná sada kvůli check constraintu na sloupci (viz
+// migrace ikona_skupinoveho_chatu) i proto, aby appka nemusela řešit
+// upload/moderaci libovolného obrázku kvůli jedné ikonce skupiny.
+export const IKONY_SKUPIN = ['🎉', '📚', '🎮', '⚽', '🎨', '🎵', '🍕', '🌟', '🐱', '⭐'] as const
 
 export interface Zprava {
   id: string

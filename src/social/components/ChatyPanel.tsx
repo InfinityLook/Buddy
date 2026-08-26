@@ -150,7 +150,7 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
               className={`social-row social-row--chat ${ch.neprectene > 0 ? 'ma-neprectene' : ''}`}
               onClick={() => onOtevritChat(ch.id)}
             >
-              <SocialAvatar id={ch.id} jmeno={ch.nazev} jeSkupina={ch.jeSkupina} />
+              <SocialAvatar id={ch.id} jmeno={ch.nazev} jeSkupina={ch.jeSkupina} ikona={ch.ikona} />
 
               <span className="social-chat-text">
                 <span className="social-chat-nazev">{ch.nazev}</span>

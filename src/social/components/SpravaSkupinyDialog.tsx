@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import * as api from '../api'
-import type { Chat } from '../types'
+import { IKONY_SKUPIN, type Chat } from '../types'
 import type { SocialStav } from '../useSocial'
 
 interface Props {
@@ -21,6 +21,7 @@ export const SpravaSkupinyDialog: React.FC<Props> = ({ chat, stav, onZavrit }) =
   const [ukladaNazev, setUkladaNazev] = useState(false)
   const [pridavaId, setPridavaId] = useState<string | null>(null)
   const [odebiraId, setOdebiraId] = useState<string | null>(null)
+  const [nastavujeIkonu, setNastavujeIkonu] = useState(false)
 
   const jsemZakladatel = stav.mujId === chat.zakladatelId
 
@@ -29,6 +30,13 @@ export const SpravaSkupinyDialog: React.FC<Props> = ({ chat, stav, onZavrit }) =
     setUkladaNazev(true)
     await stav.provest(() => api.prejmenovatSkupinu(chat.id, nazev), 'Skupina přejmenována.')
     setUkladaNazev(false)
+  }
+
+  const vybratIkonu = async (ikona: string | null) => {
+    if (ikona === chat.ikona || nastavujeIkonu) return
+    setNastavujeIkonu(true)
+    await stav.provest(() => api.nastavIkonuSkupiny(chat.id, ikona), 'Ikona nastavena.')
+    setNastavujeIkonu(false)
   }
 
   const pridat = async (uzivatelId: string) => {
@@ -68,6 +76,29 @@ export const SpravaSkupinyDialog: React.FC<Props> = ({ chat, stav, onZavrit }) =
           >
             Uložit
           </button>
+        </div>
+
+        <span className="social-card-label">IKONA</span>
+        <div className="social-ikony-mrizka">
+          <button
+            className={`social-ikona-volba ${chat.ikona === null ? 'is-vybrana' : ''}`}
+            aria-label="Bez ikony (#)"
+            disabled={nastavujeIkonu}
+            onClick={() => vybratIkonu(null)}
+          >
+            #
+          </button>
+          {IKONY_SKUPIN.map((ikona) => (
+            <button
+              key={ikona}
+              className={`social-ikona-volba ${chat.ikona === ikona ? 'is-vybrana' : ''}`}
+              aria-label={`Ikona ${ikona}`}
+              disabled={nastavujeIkonu}
+              onClick={() => vybratIkonu(ikona)}
+            >
+              {ikona}
+            </button>
+          ))}
         </div>
 
         <span className="social-card-label">ČLENOVÉ ({chat.ucastnici.length + 1})</span>

@@ -308,7 +308,7 @@ export const nactiChaty = async (): Promise<Chat[]> => {
   const precteno = new Map((clenstvi ?? []).map((c) => [c.chat_id, c.last_read_at]))
 
   const [{ data: chaty }, { data: vsichniClenove }, { data: zpravy }] = await Promise.all([
-    supabase.from('chats').select('id, is_group, name, created_by').in('id', chatIds),
+    supabase.from('chats').select('id, is_group, name, created_by, icon').in('id', chatIds),
     supabase.from('chat_members').select('chat_id, user_id').in('chat_id', chatIds),
     supabase
       .from('messages')
@@ -346,6 +346,7 @@ export const nactiChaty = async (): Promise<Chat[]> => {
           (z) => z.sender_id !== ja && od !== undefined && z.created_at > od
         ).length,
         zakladatelId: ch.created_by,
+        ikona: ch.icon,
       }
     })
     .sort((a, b) => (b.posledniCas ?? '').localeCompare(a.posledniCas ?? ''))
@@ -423,6 +424,15 @@ export const prejmenovatSkupinu = async (chatId: string, novyNazev: string): Pro
   return error ? chyba(error) : { ok: true }
 }
 
+/** Ikona skupiny — plain UPDATE, stejná RLS jako přejmenování (sloupcově
+ *  neomezená). `ikona: null` vrátí skupinu na výchozí "#". */
+export const nastavIkonuSkupiny = async (chatId: string, ikona: string | null): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase.from('chats').update({ icon: ikona }).eq('id', chatId)
+  return error ? chyba(error) : { ok: true }
+}
+
 /**
  * Přidání člena do existující skupiny — plain INSERT. RLS na chat_members
  * ("přidat člena smí zakladatel nebo člen") sama ověří, že přidávaný je
@@ -478,36 +488,72 @@ const zpravaZRadku = (r: {
   smazanoAt: r.deleted_at,
 })
 
-export const nactiZpravy = async (chatId: string): Promise<Zprava[]> => {
+// Kolik zpráv se načte na jedno zavolání nactiZpravy — první stránka
+// i každá další přes "Načíst starší".
+export const ZPRAV_NA_STRANKU = 50
+
+/**
+ * Načte jednu stránku zpráv, seřazenou od nejstarší po nejnovější (tak
+ * je appka zobrazuje). Bez `pred` vrátí nejnovější stránku — dřív se tu
+ * řadilo vzestupně A ROVNOU omezovalo limitem, což u chatu s víc než
+ * 200 zprávami vracelo 200 NEJSTARŠÍCH, ne nejnovějších: po znovuotevření
+ * appky by nešly vidět žádné aktuální zprávy, jen dávná historie. Proto
+ * se řadí sestupně (nejnovější napřed), omezí limitem, a teprve výsledek
+ * se otočí do pořadí pro zobrazení.
+ *
+ * `pred` (ISO čas nejstarší už načtené zprávy) posune okno dál do
+ * historie — volá ho "Načíst starší zprávy" v ChatView.tsx.
+ */
+export const nactiZpravy = async (chatId: string, pred?: string): Promise<Zprava[]> => {
   if (!supabase) return []
 
-  const { data, error } = await supabase
+  let dotaz = supabase
     .from('messages')
     .select('id, chat_id, sender_id, body, created_at, deleted_at')
     .eq('chat_id', chatId)
-    .order('created_at', { ascending: true })
-    .limit(200)
+    .order('created_at', { ascending: false })
+    .limit(ZPRAV_NA_STRANKU)
 
+  if (pred) dotaz = dotaz.lt('created_at', pred)
+
+  const { data, error } = await dotaz
   if (error || !data) return []
-  return data.map(zpravaZRadku)
+  return data.map(zpravaZRadku).reverse()
 }
 
-export const poslatZpravu = async (chatId: string, text: string): Promise<Vysledek> => {
-  if (!supabase) return NENI_CLOUD
+/**
+ * Vrací i vloženou zprávu, ne jen ok/chyba — ChatView.tsx ji potřebuje
+ * rovnou přidat do zobrazeného seznamu. Dřív se po odeslání celý seznam
+ * znovu načítal přes nactiZpravy(chatId) bez `pred`, což po opravě
+ * stránkování (viz výš) vrací jen nejnovější stránku — kdyby uživatel
+ * měl načtenou i starší historii přes "Načíst starší", tenhle refetch
+ * by ji zahodil. INSERT ... RETURNING tu na rozdíl od zakládání chatu
+ * (viz CLAUDE.md) projde bez potíží: SELECT politika zpráv žádá jen
+ * členství v chatu a "sender mě neblokuje", což o vlastní zprávě
+ * neplatí nikdy.
+ */
+export const poslatZpravu = async (
+  chatId: string,
+  text: string
+): Promise<{ zprava: Zprava | null } & Vysledek> => {
+  if (!supabase) return { ...NENI_CLOUD, zprava: null }
 
   const orezany = text.trim()
-  if (!orezany) return { ok: false, chyba: 'Prázdnou zprávu poslat nejde.' }
-  if (orezany.length > 4000) return { ok: false, chyba: 'Zpráva je moc dlouhá.' }
+  if (!orezany) return { ok: false, chyba: 'Prázdnou zprávu poslat nejde.', zprava: null }
+  if (orezany.length > 4000) return { ok: false, chyba: 'Zpráva je moc dlouhá.', zprava: null }
 
   const { data: relace } = await supabase.auth.getSession()
   const ja = relace.session?.user?.id
-  if (!ja) return NENI_CLOUD
+  if (!ja) return { ...NENI_CLOUD, zprava: null }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('messages')
     .insert({ chat_id: chatId, sender_id: ja, body: orezany })
+    .select('id, chat_id, sender_id, body, created_at, deleted_at')
+    .single()
 
-  return error ? chyba(error) : { ok: true }
+  if (error || !data) return { ...chyba(error), zprava: null }
+  return { ok: true, zprava: zpravaZRadku(data) }
 }
 
 /**
