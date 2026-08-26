@@ -25,12 +25,19 @@ import { signOut, startAuthWatch, useAccount } from '@/core/supabase/auth'
 import { isSupabaseConfigured } from '@/core/supabase/client'
 import { useAuthStore } from '@/core/store/useAuthStore'
 import { setupRoleDevTools, startRoleSync, useHasPermission } from '@/core/role'
+import { useAppliedTheme } from '@/core/theme'
 import { startInbox } from '@/social/inbox'
 import { setupStudyPlannerReminders } from '@/miniapps/study-planner/useStudyPlanner'
 
 export default function App() {
   const { isAuthed, login, logout } = useAuthStore()
   const stavUctu = useAccount((s) => s.status)
+
+  // Reaguje na změnu vzhledu i na vypršení VIP kdykoli — ne jednorázově
+  // ze startovního useEffectu níž, protože obojí se může stát, i když
+  // uživatel zrovna kouká jinam. Běží bez ohledu na přihlášení, ať je
+  // zvolený vzhled vidět i na přihlašovací obrazovce.
+  useAppliedTheme()
 
   // Do aplikace se vejde jen se skutečným účtem. Jedinou výjimkou je
   // build bez nastaveného cloudu: tam nemá jak účet vzniknout a zamčené

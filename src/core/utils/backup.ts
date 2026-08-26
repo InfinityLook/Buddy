@@ -56,6 +56,11 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-inventar-storage', storage: 'secure', label: 'Herní batoh' },
   { key: 'schoolbuddy-vybaveni-storage', storage: 'secure', label: 'Herní vybavení' },
   { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
+  // Na rozdíl od role/kreditů níž je restorable: true bezpečné i pro
+  // VIP vzhled — resolveActiveThemeId (core/theme/themes.ts) ověřuje
+  // oprávnění znovu při každém použití, takže obnovená volba VIP
+  // vzhledu bez skutečného VIP prostě zůstane nepoužitá, ne aplikovaná.
+  { key: 'schoolbuddy-theme-storage', storage: 'secure', label: 'Vzhled aplikace' },
   // Role a kredity stojí (nebo budou stát) peníze. Do zálohy patří, aby
   // byla věrným snímkem, ale zpátky se nikdy nezapisují — jinak by stačilo
   // upravit si vyexportovaný JSON a naimportovat si VIP zadarmo. Rozhodovat

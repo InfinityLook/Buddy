@@ -240,12 +240,12 @@ export const ProfilModule: React.FC = () => {
           <span className="profil-arrow">❯</span>
         </div>
 
-        <div className="profil-menu-row profil-menu-row--soon" onClick={() => showToast('Vzhled aplikace bude brzy dostupný!')}>
+        <div className="profil-menu-row" onClick={() => navigate('/nastaveni')}>
           <div className="profil-menu-left">
             <div className="profil-menu-icon">🎨</div>
             <div className="profil-menu-text">
-              <span className="profil-menu-title">Vzhled aplikace<span className="profil-badge-soon">BRZY</span></span>
-              <span className="profil-menu-sub">Motiv, jazyk a další nastavení</span>
+              <span className="profil-menu-title">Vzhled aplikace</span>
+              <span className="profil-menu-sub">5 barevných vzhledů, 2 jen pro VIP</span>
             </div>
           </div>
           <span className="profil-arrow">❯</span>

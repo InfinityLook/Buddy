@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { useHasPermission } from '@/core/role'
+import { useThemeStore, VSECHNY_VZHLEDY } from '@/core/theme'
 import './SettingsModule.css'
 
 // ==========================================
@@ -15,6 +16,11 @@ export const SettingsModule: React.FC = () => {
   const { profile, updateProfile, updateSecurity, resetProfile } = useProfileData()
   const smiAdmin = useHasPermission('admin.panel')
   const smiModerovat = useHasPermission('moderation.content')
+  // Stejné oprávnění, jaké už uděluje prémiová kosmetika v obchodě —
+  // vzhled aplikace je jen další kus kosmetiky, ne nová kategorie.
+  const smiPremium = useHasPermission('cosmetics.premium')
+  const themeId = useThemeStore((s) => s.themeId)
+  const setThemeId = useThemeStore((s) => s.setThemeId)
 
   const [form, setForm] = useState({ name: profile.name, email: profile.email, motto: profile.motto })
   const [toast, setToast] = useState<string | null>(null)
@@ -44,6 +50,15 @@ export const SettingsModule: React.FC = () => {
       resetProfile()
       showToast('Profil byl vrácen do výchozího stavu')
     }
+  }
+
+  const vybratVzhled = (id: (typeof VSECHNY_VZHLEDY)[number]['id'], vip: boolean, nazev: string) => {
+    if (vip && !smiPremium) {
+      showToast('Tenhle vzhled je jen pro VIP.')
+      return
+    }
+    setThemeId(id)
+    showToast(`Vzhled „${nazev}“ nastaven ✓`)
   }
 
   return (
@@ -122,6 +137,62 @@ export const SettingsModule: React.FC = () => {
             </span>
             <span className="settings-toggle-sub">Ozvučení reakcí a odměn</span>
           </div>
+        </div>
+      </section>
+
+      {/* Vzhled aplikace — 5 barevných palet, 3 volné a 2 pro VIP (viz
+          core/theme/themes.ts). Karta jen vykresluje VSECHNY_VZHLEDY —
+          přidat šestý vzhled znamená dopsat ho tam, ne sem. */}
+      <section className="settings-card">
+        <div className="settings-card-head">
+          <span
+            className="settings-card-icon"
+            style={{ background: 'linear-gradient(135deg, #a855f7, #f5c451)' }}
+            aria-hidden="true"
+          >
+            🎨
+          </span>
+          <div>
+            <h2 className="settings-card-title">Vzhled aplikace</h2>
+            <p className="settings-card-sub">5 barevných vzhledů — 3 volně, 2 jen pro VIP</p>
+          </div>
+        </div>
+
+        <div className="settings-theme-grid">
+          {VSECHNY_VZHLEDY.map((tema) => {
+            const zamceno = tema.vip && !smiPremium
+            const aktivni = tema.id === themeId
+
+            return (
+              <button
+                key={tema.id}
+                className={`settings-theme-card ${aktivni ? 'is-aktivni' : ''} ${zamceno ? 'je-zamceno' : ''}`}
+                onClick={() => vybratVzhled(tema.id, tema.vip, tema.nazev)}
+              >
+                <div
+                  className="settings-theme-swatch"
+                  style={{
+                    background: `linear-gradient(135deg, ${tema.bgPanel}, ${tema.bgPanelRaised})`,
+                    borderColor: tema.borderStrong,
+                  }}
+                >
+                  <span className="settings-theme-dot" style={{ background: tema.accentCyan }} />
+                  <span className="settings-theme-dot" style={{ background: tema.accentViolet }} />
+                  <span className="settings-theme-dot" style={{ background: tema.accentMagenta }} />
+
+                  {tema.vip && (
+                    <span className="settings-theme-vip">{zamceno ? '🔒' : '👑'} VIP</span>
+                  )}
+                  {aktivni && <span className="settings-theme-check">✓</span>}
+                </div>
+
+                <span className="settings-theme-nazev">
+                  {tema.ikona} {tema.nazev}
+                </span>
+                <span className="settings-theme-popis">{tema.popis}</span>
+              </button>
+            )
+          })}
         </div>
       </section>
 
