@@ -152,6 +152,16 @@ export const mockSupabase = async (ctx: BrowserContext, data: MockData, options:
 
     if (req.method() === 'POST') {
       const telo = JSON.parse(req.postData() || '{}')
+      const zaznamy = Array.isArray(telo) ? telo : [telo]
+      // .upsert(row, { onConflict: 'sloupec' }) posílá ?on_conflict=sloupec —
+      // appka to používá při startu (cloudSync.ts nahrává profil). Bez
+      // podpory tady by to spadlo do "vždycky přidej nový řádek" a
+      // vytvořilo druhý řádek se stejným id: další .single()/.maybeSingle()
+      // čtení pak dostane "více než jeden řádek" a appka to potichu
+      // vyhodnotí jako chybu (přesně tohle mě chytilo na TVŮJ KÓD, co
+      // zůstávalo "········", dokud tenhle upsert chyběl).
+      const onConflict = url.searchParams.get('on_conflict')
+
       // Sloupce, co existující řádky téhle tabulky mají, ale nový řádek
       // je nezadal, doplníme jako null. Bez toho appka po INSERT ...
       // SELECT dostane u nezadaného sloupce (typicky deleted_at)
@@ -159,17 +169,27 @@ export const mockSupabase = async (ctx: BrowserContext, data: MockData, options:
       // a klientský kód spoléhající na `=== null` (ChatView.tsx: je
       // zpráva smazaná?) by se v testu choval jinak než v produkci.
       const znameSloupce = new Set(radky.flatMap((r) => Object.keys(r)))
-      const nove = (Array.isArray(telo) ? telo : [telo]).map((r, i) => {
+
+      const vysledek = zaznamy.map((r, i) => {
+        if (onConflict) {
+          const existujici = radky.find((row) => String(row[onConflict]) === String(r[onConflict]))
+          if (existujici) {
+            Object.assign(existujici, r)
+            return existujici
+          }
+        }
         const zaklad: Record<string, unknown> = {
           id: `${tabulka}-${Date.now()}-${i}`,
           created_at: new Date().toISOString(),
         }
         for (const sloupec of znameSloupce) if (!(sloupec in r)) zaklad[sloupec] = null
-        return { ...zaklad, ...r }
+        const novy = { ...zaklad, ...r }
+        radky.push(novy)
+        return novy
       })
-      radky.push(...nove)
+
       const jednoP = (req.headers()['accept'] || '').includes('vnd.pgrst.object')
-      return json(jednoP ? nove[0] : nove, 201)
+      return json(jednoP ? vysledek[0] : vysledek, 201)
     }
 
     if (req.method() === 'PATCH') {

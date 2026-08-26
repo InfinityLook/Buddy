@@ -75,6 +75,38 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
     }
   }
 
+  // Sdílení jde přes appku, kterou si uživatel sám vybere (SMS, cokoli) —
+  // kód tak doputuje tam, kde si s kamarádem už normálně píšou, žádná
+  // nová cesta, jak by appka mohla někoho najít.
+  const sdiletKod = async () => {
+    if (!stav.profil) return
+    try {
+      await navigator.share({ text: `Přidej si mě v SchoolBuddy: ${api.formatujKod(stav.profil.friendCode)}` })
+    } catch {
+      // AbortError (uživatel sdílení zavřel) i cokoli jiného — nic se
+      // nestalo, není co hlásit jako chybu.
+    }
+  }
+
+  // Čte se vždycky přes ocistiKod (velká písmena, jen povolené znaky) a
+  // znovu naformátuje formatujKod — funguje stejně, ať přišel text ručním
+  // psaním, vložením ze schránky, nebo s pomlčkou uprostřed po smazání znaku.
+  const zpracovatKod = (vstup: string) => {
+    setKod(api.formatujKod(api.ocistiKod(vstup).slice(0, 8)))
+    setPotiz(null)
+    setNalezeny(null)
+  }
+
+  const vlozitKod = async () => {
+    try {
+      const text = await navigator.clipboard.readText()
+      if (text) zpracovatKod(text)
+      else stav.rekni('Ve schránce nic není.')
+    } catch {
+      stav.rekni('Vložit ze schránky se nepovedlo, přepiš kód ručně.')
+    }
+  }
+
   return (
     <div className="social-panel">
       {/* Můj kód */}
@@ -84,6 +116,11 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
           <span className="social-code">
             {stav.profil ? api.formatujKod(stav.profil.friendCode) : '········'}
           </span>
+          {typeof navigator !== 'undefined' && 'share' in navigator && (
+            <button className="social-icon-btn" onClick={sdiletKod} aria-label="Sdílet kód">
+              <SocialIcon name="share" size={16} />
+            </button>
+          )}
           <button
             className={`social-icon-btn ${zkopirovano ? 'social-icon-btn--ano' : ''}`}
             onClick={kopirovatKod}
@@ -106,13 +143,12 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
             placeholder="ABCD-2345"
             value={kod}
             maxLength={9}
-            onChange={(e) => {
-              setKod(e.target.value.toUpperCase())
-              setPotiz(null)
-              setNalezeny(null)
-            }}
+            onChange={(e) => zpracovatKod(e.target.value)}
           />
-          <button className="social-btn" onClick={hledat} disabled={hleda || kod.length < 8}>
+          <button className="social-icon-btn" onClick={vlozitKod} aria-label="Vložit ze schránky">
+            <SocialIcon name="paste" size={16} />
+          </button>
+          <button className="social-btn" onClick={hledat} disabled={hleda || api.ocistiKod(kod).length < 8}>
             {hleda ? '…' : 'Najít'}
           </button>
         </div>
