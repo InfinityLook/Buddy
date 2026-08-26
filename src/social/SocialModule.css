@@ -173,16 +173,31 @@
   line-height: 1.45;
 }
 
-/* Banner nad zprávami v Tajném chatu — připomínka mizení, ne obyčejný
-   nápovědný text, proto vlastní pozadí/rámeček navíc k .social-hint. */
+/* Banner nad zprávami v Tajném chatu — připomínka mizení + časovač
+   vedle sebe, ne obyčejný nápovědný text, proto vlastní pozadí/rámeček
+   navíc k .social-hint. */
 .social-hint--tajny {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   margin: 0 0.75rem 0.4rem;
   padding: 0.4rem 0.6rem;
   border-radius: 10px;
-  text-align: center;
   background: rgba(167, 139, 250, 0.1);
   border: 1px solid rgba(167, 139, 250, 0.25);
   color: var(--text-secondary);
+}
+
+.social-tajny-casovac {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  background: rgba(167, 139, 250, 0.18);
+  border: 1px solid rgba(167, 139, 250, 0.35);
+  border-radius: 6px;
+  padding: 0.15rem 0.3rem;
 }
 
 .social-empty-note {

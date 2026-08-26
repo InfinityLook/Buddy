@@ -137,12 +137,40 @@ export interface TajnyChat {
   zalozilJa: boolean
   stav: StavTajnehoChatu
   createdAt: string
+  /** Za kolik sekund od odeslání zpráva zmizí — nastavuje ho kterýkoli
+   *  účastník (viz CASOVACE_TAJNEHO_CHATU), mění se jen dopředu. */
+  expiraceSekund: number
 }
 
+/**
+ * `text` z api.ts/DB pohledu nese od zavedení E2E šifrování base64
+ * šifru, ne čitelný text — proto `cifra`, ne `text`. `TajnyChatView.tsx`
+ * je jediné místo, které ji umí (s klíčem konkrétního chatu) přeložit
+ * zpátky na zobrazitelnou zprávu.
+ */
 export interface TajnaZprava {
   id: string
   chatId: string
   odesilatelId: string
-  text: string
+  cifra: string
+  iv: string
   createdAt: string
 }
+
+/** Presety mizení zpráv — stejná sada, jakou nabízí "mizící zprávy"
+ *  v běžných messengerech (Telegram Secret Chat aj.), vynucená i na
+ *  databázi (check constraint na tajne_chaty.expirace_sekund), ne jen
+ *  tady v UI. */
+export const CASOVACE_TAJNEHO_CHATU: { sekund: number; popis: string }[] = [
+  { sekund: 10, popis: '10 s' },
+  { sekund: 30, popis: '30 s' },
+  { sekund: 60, popis: '1 min' },
+  { sekund: 300, popis: '5 min' },
+  { sekund: 600, popis: '10 min' },
+  { sekund: 900, popis: '15 min' },
+  { sekund: 1800, popis: '30 min' },
+  { sekund: 3600, popis: '1 h' },
+  { sekund: 14400, popis: '4 h' },
+  { sekund: 28800, popis: '8 h' },
+  { sekund: 43200, popis: '12 h' },
+]

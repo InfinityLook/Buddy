@@ -101,6 +101,7 @@ export const SocialModule: React.FC = () => {
             mujId={stav.mujId}
             rekni={stav.rekni}
             onZpet={() => setOtevrenyTajnyChat(null)}
+            onZmenaNastaveni={tajnyStav.obnovit}
           />
           {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
         </>

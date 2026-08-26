@@ -67,7 +67,8 @@ export const TajnyChatPanel: React.FC<Props> = ({ tajnyStav, rekni, onOtevrit })
           <SocialIcon name="lock" size={13} /> ZALOŽIT TAJNÝ CHAT
         </span>
         <p className="social-hint">
-          Jen mezi VIP, moderátory a adminy. Zprávy samy mizí po 48 hodinách.
+          Jen mezi VIP, moderátory a adminy. End-to-end šifrované, zprávy samy
+          mizí — časovač nastavíš uvnitř chatu.
         </p>
         <form className="social-add-row" onSubmit={zalozit}>
           <input

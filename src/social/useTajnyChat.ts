@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useHasPermission } from '@/core/role'
 import * as api from './api'
+import { exportujVerejnyKlic, zajistiKlicovyPar } from './tajnyChatCrypto'
 import type { TajnyChat } from './types'
 
 // ==========================================
@@ -36,6 +37,20 @@ export const useTajnyChat = () => {
     if (!smim) return
     return api.sledovatTajneChaty(() => void obnovit())
   }, [smim, obnovit])
+
+  // Klíčový pár zařízení musí existovat a být nahraný na serveru dřív,
+  // než ho o něj kdokoli druhý požádá — proto se řeší hned tady, při
+  // vstupu do Social s oprávněním, ne až při otevření konkrétního chatu.
+  // Kdo oprávnění nemá, se sem vůbec nedostane, žádný klíč se negeneruje
+  // ani nenahrává zbytečně.
+  useEffect(() => {
+    if (!smim) return
+    void (async () => {
+      const { verejny } = await zajistiKlicovyPar()
+      const base64 = await exportujVerejnyKlic(verejny)
+      await api.nahrajVerejnyKlic(base64)
+    })()
+  }, [smim])
 
   // Pozvánky, co čekají na potvrzení přihlášeným — odznak na záložce.
   const cekajiciNaMe = chaty.filter((c) => c.stav === 'cekajici' && !c.zalozilJa).length

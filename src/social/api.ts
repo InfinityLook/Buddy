@@ -920,7 +920,7 @@ export const nactiTajneChaty = async (): Promise<TajnyChat[]> => {
 
   const { data, error } = await supabase
     .from('tajne_chaty')
-    .select('id, ucastnik_a, ucastnik_b, zalozil, stav, created_at')
+    .select('id, ucastnik_a, ucastnik_b, zalozil, stav, created_at, expirace_sekund')
     .order('created_at', { ascending: false })
 
   if (error || !data) return []
@@ -940,9 +940,23 @@ export const nactiTajneChaty = async (): Promise<TajnyChat[]> => {
         zalozilJa: r.zalozil === ja,
         stav: r.stav as TajnyChat['stav'],
         createdAt: r.created_at,
+        expiraceSekund: r.expirace_sekund,
       }
     })
     .filter((c): c is TajnyChat => c !== null)
+}
+
+/** Kdo smí kdy sáhnout na chat, hlídá zaloz_tajny_chat/potvrd_tajny_chat
+ *  (viz migrace); tohle je jen řízené volání téhle jedné funkce. */
+export const nastavExpiraciTajnehoChatu = async (chatId: string, sekund: number): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase.rpc('nastav_expiraci_tajneho_chatu', {
+    p_chat_id: chatId,
+    p_sekund: sekund,
+  })
+
+  return error ? chyba(error) : { ok: true }
 }
 
 const tajnaZpravaZRadku = (r: {
@@ -950,23 +964,27 @@ const tajnaZpravaZRadku = (r: {
   chat_id: string
   odesilatel: string
   text: string
+  iv: string
   created_at: string
 }): TajnaZprava => ({
   id: r.id,
   chatId: r.chat_id,
   odesilatelId: r.odesilatel,
-  text: r.text,
+  cifra: r.text,
+  iv: r.iv,
   createdAt: r.created_at,
 })
 
 /** Bez stránkování — mizící obsah se nehromadí do stovek zpráv jako
- *  běžný chat, malý jednorázový select stačí. */
+ *  běžný chat, malý jednorázový select stačí. Vrací šifru (viz
+ *  TajnaZprava v types.ts) — dešifruje ji až volající, který zná klíč
+ *  konkrétního chatu (TajnyChatView.tsx). */
 export const nactiTajneZpravy = async (chatId: string): Promise<TajnaZprava[]> => {
   if (!supabase) return []
 
   const { data, error } = await supabase
     .from('tajne_zpravy')
-    .select('id, chat_id, odesilatel, text, created_at')
+    .select('id, chat_id, odesilatel, text, iv, created_at')
     .eq('chat_id', chatId)
     .order('created_at', { ascending: true })
 
@@ -974,22 +992,58 @@ export const nactiTajneZpravy = async (chatId: string): Promise<TajnaZprava[]> =
   return data.map(tajnaZpravaZRadku)
 }
 
+/** `cifra`/`iv` musí být už zašifrované na volající straně
+ *  (tajnyChatCrypto.ts) — api.ts sám nešifruje ani nedešifruje nic,
+ *  jen přenáší, co dostal. */
 export const posliTajnouZpravu = async (
   chatId: string,
-  text: string
+  cifra: string,
+  iv: string
 ): Promise<{ zprava: TajnaZprava | null } & Vysledek> => {
   if (!supabase) return { ...NENI_CLOUD, zprava: null }
-
-  const orezany = text.trim()
-  if (!orezany) return { ok: false, chyba: 'Prázdnou zprávu poslat nejde.', zprava: null }
+  if (!cifra || !iv) return { ok: false, chyba: 'Prázdnou zprávu poslat nejde.', zprava: null }
 
   const { data, error } = await supabase.rpc('posli_tajnou_zpravu', {
     p_chat_id: chatId,
-    p_text: orezany,
+    p_text: cifra,
+    p_iv: iv,
   })
 
   if (error || !data) return { ...chyba(error), zprava: null }
   return { ok: true, zprava: tajnaZpravaZRadku(data) }
+}
+
+// ---------- E2E klíče ----------
+//
+// Veřejné klíče jen — soukromý nikdy neopustí zařízení (viz
+// tajnyChatCrypto.ts). Nahrání je plain upsert (RLS pouští jen zápis
+// vlastního user_id, žádné riziko zneužití cizí identity), čtení jde
+// přes stejnou tabulku chráněnou RLS, co pustí jen účastníka společného
+// tajného chatu — viz migrace tajny_chat_e2e_a_casovac.
+
+export const nahrajVerejnyKlic = async (base64: string): Promise<void> => {
+  if (!supabase) return
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return
+
+  await supabase
+    .from('tajne_klice')
+    .upsert({ user_id: ja, verejny_klic: base64 }, { onConflict: 'user_id' })
+}
+
+export const nactiVerejnyKlic = async (userId: string): Promise<string | null> => {
+  if (!supabase) return null
+
+  const { data, error } = await supabase
+    .from('tajne_klice')
+    .select('verejny_klic')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error || !data) return null
+  return data.verejny_klic
 }
 
 /** Líné mazání expirovaných zpráv — volá se příležitostně (otevření
