@@ -746,3 +746,50 @@ export const sledovatVsechnyZpravy = (prisla: (z: Zprava) => void): (() => void)
     void klient.removeChannel(kanal)
   }
 }
+
+// ==========================================
+// Kdo je v chatu právě teď a kdo píše.
+//
+// Schválně bez globálního "kdo je online" kanálu — to by ukazovalo
+// online tečku i lidem, které jsi třeba jen jednou odmítl, protože
+// jednou viděli tvoje id. Přítomnost se drží jen uvnitř konkrétního
+// chatu: vidí ji jen ten, s kým už chat sdílíš, přes stejnou hranici
+// (id chatu), jakou už dodržuje živé doručování zpráv.
+//
+// Presence i psaní jedou na jednom kanálu — obojí platí jen pro lidi,
+// co mají tenhle chat zrovna otevřený, není důvod pro dva kanály.
+// ==========================================
+
+export const sledovatPritomnost = (
+  chatId: string,
+  mujId: string,
+  zmenaOnline: (onlineIds: string[]) => void,
+  prislaPsani: (kdoId: string) => void
+): { zrusit: () => void; oznamPsani: () => void } => {
+  const klient = supabase
+  if (!klient) return { zrusit: () => {}, oznamPsani: () => {} }
+
+  const kanal = klient.channel(`chat-pritomnost:${chatId}:${++poradiKanalu}`, {
+    config: { presence: { key: mujId } },
+  })
+
+  kanal
+    .on('presence', { event: 'sync' }, () => {
+      const stav = kanal.presenceState()
+      zmenaOnline(Object.keys(stav).filter((id) => id !== mujId))
+    })
+    .on('broadcast', { event: 'psani' }, (payload) => {
+      const kdoId = (payload.payload as { userId?: string } | undefined)?.userId
+      if (kdoId && kdoId !== mujId) prislaPsani(kdoId)
+    })
+    .subscribe((status) => {
+      // track() jde zavolat, až kanál doopravdy naváže spojení — dřív
+      // by tichá selhala, přítomnost by se nikdy neprojevila.
+      if (status === 'SUBSCRIBED') void kanal.track({ online_at: new Date().toISOString() })
+    })
+
+  return {
+    zrusit: () => void klient.removeChannel(kanal),
+    oznamPsani: () => void kanal.send({ type: 'broadcast', event: 'psani', payload: { userId: mujId } }),
+  }
+}

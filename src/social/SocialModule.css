@@ -561,6 +561,31 @@
   color: var(--text-muted);
 }
 
+.social-chat-nazev-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.social-online-tecka {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.25);
+}
+
+/* "Píše…" nad políčkem na psaní — stejná barva a tón jako počítadlo lidí */
+.social-pise-oznam {
+  margin: 0;
+  padding: 0.2rem 0.75rem 0;
+  font-size: 0.62rem;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
 .social-zpravy {
   flex: 1;
   overflow-y: auto;

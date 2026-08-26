@@ -25,7 +25,12 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
   const [odeslano, setOdeslano] = useState(false)
   const [nahlasit, setNahlasit] = useState<{ userId: string; zpravaId?: string } | null>(null)
   const [spravaOtevrena, setSpravaOtevrena] = useState(false)
+  const [online, setOnline] = useState<Set<string>>(new Set())
+  const [pisouId, setPisouId] = useState<string | null>(null)
   const konecRef = useRef<HTMLDivElement>(null)
+  const oznamPsaniRef = useRef<(() => void) | null>(null)
+  const posledniOznamRef = useRef(0)
+  const pisePricasRef = useRef<number | null>(null)
 
   // Načtení a živý odběr. Odběr se ruší při odchodu — bez toho by po
   // každém otevření chatu zůstal viset další otevřený kanál.
@@ -58,9 +63,49 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
     // stav.obnovit se mění s identitou účtu, ne s každým vykreslením
   }, [chat.id, stav.obnovit])
 
+  // Kdo je v chatu právě teď a kdo píše — jeden kanál na oboje, viz
+  // sledovatPritomnost v api.ts. Bez platného mujId (relace se ještě
+  // nenačetla) nemá smysl kanál vůbec zakládat.
+  useEffect(() => {
+    if (!stav.mujId) return
+
+    const { zrusit, oznamPsani } = api.sledovatPritomnost(
+      chat.id,
+      stav.mujId,
+      (onlineIds) => setOnline(new Set(onlineIds)),
+      (kdoId) => {
+        setPisouId(kdoId)
+        if (pisePricasRef.current) window.clearTimeout(pisePricasRef.current)
+        // Zpráva "píše…" sama zmizí, když pár vteřin nepřijde další —
+        // žádná zvláštní "přestal jsem psát" událost není potřeba.
+        pisePricasRef.current = window.setTimeout(() => setPisouId(null), 3000)
+      }
+    )
+    oznamPsaniRef.current = oznamPsani
+
+    return () => {
+      oznamPsaniRef.current = null
+      if (pisePricasRef.current) window.clearTimeout(pisePricasRef.current)
+      setPisouId(null)
+      zrusit()
+    }
+  }, [chat.id, stav.mujId])
+
   useEffect(() => {
     konecRef.current?.scrollIntoView({ block: 'end' })
   }, [zpravy])
+
+  const napovedPsani = (hodnota: string) => {
+    setText(hodnota)
+    if (!hodnota.trim() || !oznamPsaniRef.current) return
+
+    // Netřeba posílat na každý úder klávesy — jedna zpráva za 2 s stačí,
+    // druhá strana si "píše…" drží 3 s od poslední přijaté (viz výš).
+    const ted = Date.now()
+    if (ted - posledniOznamRef.current < 2000) return
+    posledniOznamRef.current = ted
+    oznamPsaniRef.current()
+  }
 
   const odeslat = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -96,9 +141,17 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
         </button>
 
         <span className="social-chat-title">
-          {chat.nazev}
+          <span className="social-chat-nazev-radek">
+            {!chat.jeSkupina && !!chat.ucastnici[0] && online.has(chat.ucastnici[0].id) && (
+              <span className="social-online-tecka" aria-label="Je v chatu online" title="Online" />
+            )}
+            {chat.nazev}
+          </span>
           {chat.jeSkupina && (
-            <span className="social-chat-pocet">{chat.ucastnici.length + 1} lidí</span>
+            <span className="social-chat-pocet">
+              {chat.ucastnici.length + 1} lidí
+              {online.size > 0 && ` · ${online.size} tu teď`}
+            </span>
           )}
         </span>
 
@@ -182,13 +235,19 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet }) => {
         <div ref={konecRef} />
       </div>
 
+      {pisouId && (
+        <p className="social-pise-oznam">
+          {chat.ucastnici.find((u) => u.id === pisouId)?.displayName ?? 'Někdo'} píše…
+        </p>
+      )}
+
       <form className="social-psani" onSubmit={odeslat}>
         <input
           className="social-input social-input--zprava"
           placeholder="Napiš zprávu…"
           value={text}
           maxLength={4000}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => napovedPsani(e.target.value)}
           disabled={posila}
         />
         <button
