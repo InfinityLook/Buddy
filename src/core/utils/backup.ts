@@ -5,13 +5,18 @@ import { validateAppsData } from './validation'
 // ==========================================
 // Záloha a obnova VŠECH dat aplikace.
 //
-// SchoolBuddy nemá backend, takže tenhle soubor je jediná cesta, jak si
+// Appka nemá backend, takže tenhle soubor je jediná cesta, jak si
 // uživatel data odnese na jiné zařízení nebo je zachrání před vymazáním
 // úložiště prohlížeče. Dřív se exportoval jen seznam dlaždic (`apps`),
 // takže záloha ve skutečnosti neobsahovala nic z toho, co uživatel
 // vytvořil — úkoly, poznámky, kartičky ani XP.
-// ==========================================
-
+//
+// BACKUP_FORMAT ('schoolbuddy-backup') zůstává beze změny i po
+// přejmenování appky na Buddy — je to identifikátor formátu souboru
+// uvnitř JSON obálky, ne značka appky, a existující zálohy uživatelů
+// ho takhle mají zapsané. Změna by starší zálohy udělala neplatnými
+// (validateBackupEnvelope by je odmítla), stejná úvaha jako u klíčů
+// v BACKUP_STORES níž.
 export const BACKUP_FORMAT = 'schoolbuddy-backup'
 export const BACKUP_VERSION = 1
 
@@ -121,7 +126,7 @@ export const collectFullBackup = (): BackupEnvelope => {
 }
 
 // Exportuje data ze storu do JSON souboru a spustí stažení
-export const exportDataToJson = (data: unknown, filename = 'schoolbuddy-backup.json') => {
+export const exportDataToJson = (data: unknown, filename = 'buddy-backup.json') => {
   try {
     const jsonString = JSON.stringify(data, null, 2)
     const blob = new Blob([jsonString], { type: 'application/json' })
@@ -145,7 +150,7 @@ export const exportDataToJson = (data: unknown, filename = 'schoolbuddy-backup.j
 export const exportFullBackup = (): boolean =>
   exportDataToJson(
     collectFullBackup(),
-    `schoolbuddy-zaloha-${new Date().toISOString().slice(0, 10)}.json`
+    `buddy-zaloha-${new Date().toISOString().slice(0, 10)}.json`
   )
 
 // Načte JSON soubor vybraný uživatelem
@@ -224,7 +229,7 @@ export const restoreFullBackup = (incoming: unknown): RestoreResult => {
       success: false,
       legacy: false,
       restored: [],
-      error: 'Soubor není platná záloha SchoolBuddy.',
+      error: 'Soubor není platná záloha Buddy.',
     }
   }
 

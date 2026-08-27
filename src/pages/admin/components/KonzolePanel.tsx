@@ -15,7 +15,7 @@ interface Radek {
 
 export const KonzolePanel: React.FC = () => {
   const [radky, setRadky] = useState<Radek[]>([
-    { typ: 'vystup', text: 'SchoolBuddy Admin Konzole — napiš "help" pro seznam příkazů.' },
+    { typ: 'vystup', text: 'Buddy Admin Konzole — napiš "help" pro seznam příkazů.' },
   ])
   const [vstup, setVstup] = useState('')
   const konecRef = useRef<HTMLDivElement>(null)

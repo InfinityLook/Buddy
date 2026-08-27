@@ -96,7 +96,7 @@ export default function Login({ onLogin }: LoginProps) {
               </defs>
             </svg>
           </span>
-          <span className="login-brand__name">SchoolBuddy</span>
+          <span className="login-brand__name">Buddy</span>
         </div>
 
         <h1 className="login-title">{registruje ? 'Založ si účet' : 'Vítej zpátky'}</h1>
@@ -178,7 +178,7 @@ export default function Login({ onLogin }: LoginProps) {
         </p>
       </div>
 
-      <p className="login-footer">© {new Date().getFullYear()} SchoolBuddy</p>
+      <p className="login-footer">© {new Date().getFullYear()} Buddy</p>
     </div>
   )
 }

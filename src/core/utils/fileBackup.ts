@@ -31,7 +31,7 @@ export const exportFullBackupWithFiles = async (): Promise<boolean> => {
     const url = URL.createObjectURL(zipBlob)
     const link = document.createElement('a')
     link.href = url
-    link.download = `schoolbuddy-zaloha-${new Date().toISOString().slice(0, 10)}.zip`
+    link.download = `buddy-zaloha-${new Date().toISOString().slice(0, 10)}.zip`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)

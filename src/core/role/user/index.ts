@@ -11,9 +11,9 @@ import type { RoleDefinition } from '../types'
 
 export const USER_ROLE: RoleDefinition = {
   id: 'user',
-  title: 'Student',
+  title: 'Uživatel',
   description: 'Základní účet se všemi miniaplikacemi, XP i odznaky.',
-  icon: '🎒',
+  icon: '👤',
   tone: 'user',
   permissions: ['shop.view', 'shop.purchase'],
   purchasable: false,

@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 // ==========================================
 // Připojení na Supabase.
 //
-// SchoolBuddy je offline-first: cloud je doplněk, ne podmínka běhu.
+// Buddy je offline-first: cloud je doplněk, ne podmínka běhu.
 // Když proměnné prostředí chybí (lokální build, nasazení bez nastavení),
 // zůstane klient null a celá synchronizace se tiše přeskočí — aplikace
 // funguje dál nad localStorage přesně jako dřív.

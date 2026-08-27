@@ -167,7 +167,7 @@ export const setupPWAUpdates = () => {
       void checkForUpdates()
     },
     onOfflineReady() {
-      console.info('[update] SchoolBuddy je připraven k použití offline.')
+      console.info('[update] Buddy je připraven k použití offline.')
     },
     onRegisterError(error) {
       console.warn('[update] Service worker se nepodařilo zaregistrovat:', error)

@@ -52,7 +52,7 @@ export interface ProfileData {
   readNotifications: string[]
 }
 
-// Výchozí avatar je vložené SVG, ne odkaz na CDN — SchoolBuddy má fungovat
+// Výchozí avatar je vložené SVG, ne odkaz na CDN — appka má fungovat
 // offline a tohle byl jediný externí požadavek v celé aplikaci.
 // Data URI (a ne import z assets/) proto, že se hodnota ukládá mezi data
 // uživatele: cesta do /assets/ nese hash buildu, takže po každém
@@ -78,7 +78,7 @@ const LEGACY_REMOTE_AVATAR = 'https://images.unsplash.com/'
 // Úroveň, XP ani série tu schválně nejsou — jediným zdrojem pravdy
 // pro gamifikaci je useGamificationStore.
 export const DEFAULT_PROFILE: ProfileData = {
-  name: 'Student',
+  name: 'Uživatel',
   email: '',
   motto: 'Každý den je nová šance stát se lepší verzí sebe.',
   bio: '',

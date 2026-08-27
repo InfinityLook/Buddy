@@ -145,7 +145,7 @@ export const BootGate: React.FC<BootGateProps> = ({ children }) => {
 
         <div className="boot-gate-brand">
           <span className="boot-gate-mark">✦</span>
-          <span className="boot-gate-name">SchoolBuddy</span>
+          <span className="boot-gate-name">Buddy</span>
         </div>
 
         <div className="boot-gate-bar" aria-hidden="true">

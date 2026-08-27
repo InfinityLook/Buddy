@@ -72,7 +72,7 @@ export const nactiTikety = async (): Promise<Tiket[]> => {
   if (ciziIds.length === 0) return tikety
 
   const { data: profily } = await supabase.from('profiles').select('id, display_name').in('id', ciziIds)
-  const jmena = new Map((profily ?? []).map((p) => [p.id, p.display_name?.trim() || 'Student']))
+  const jmena = new Map((profily ?? []).map((p) => [p.id, p.display_name?.trim() || 'Uživatel']))
 
   return tikety.map((t) => (t.userId === ja ? t : { ...t, uzivatelJmeno: jmena.get(t.userId) ?? 'Neznámý' }))
 }

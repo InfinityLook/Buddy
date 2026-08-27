@@ -195,7 +195,7 @@ export const ProfilModule: React.FC = () => {
             />
           </div>
           <div className="profil-user-info">
-            <span className="profil-badge">✦ AI Student</span>
+            <span className="profil-badge">✦ Buddy Parťák</span>
             {/* Obyčejný uživatel žádný další tag nedostává — je to
                 výchozí stav, ne úspěch, který by stálo za to vyzdvihovat. */}
             {aktivniRole.id !== 'user' && (
@@ -338,7 +338,7 @@ export const ProfilModule: React.FC = () => {
             <div className="profil-menu-text">
               <span className="profil-menu-title">Verze aplikace</span>
               <span className="profil-menu-sub">
-                {updateChecking ? 'Kontroluji…' : `SchoolBuddy ${APP_VERSION} — klepni pro kontrolu aktualizací`}
+                {updateChecking ? 'Kontroluji…' : `Buddy ${APP_VERSION} — klepni pro kontrolu aktualizací`}
               </span>
             </div>
           </div>

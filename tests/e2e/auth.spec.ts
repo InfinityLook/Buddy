@@ -16,7 +16,7 @@ test.describe('přihlašovací brána', () => {
 
     await page.goto('/')
 
-    await expect(page.getByText('SchoolBuddy', { exact: true })).toBeVisible()
+    await expect(page.getByText('Buddy', { exact: true })).toBeVisible()
     await expect(page.getByRole('heading', { name: 'Vítej zpátky' })).toBeVisible()
     // Bez relace appka nesmí sama od sebe skočit dál.
     await expect(page).toHaveURL('/')

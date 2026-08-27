@@ -28,8 +28,9 @@ const MODEL = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct
 // Odpověď se čte nahlas přes syntézu řeči — dlouhá odpověď se dlouho
 // poslouchá a formátování (odrážky, hvězdičky) TTS čte doslova a zní to
 // rozbitě. Instrukce proto trvá na stručnosti a obyčejném textu.
-const SYSTEM_INSTRUKCE = `Jsi Buddy, přátelský a chytrý hlasový společník ve studijní aplikaci
-SchoolBuddy pro středoškolské a vysokoškolské studenty. Mluvíš vždycky česky.
+const SYSTEM_INSTRUKCE = `Jsi Buddy, přátelský a chytrý hlasový společník v appce Buddy — parťák na
+produktivitu, studium i každodenní život, pro kohokoli, ne jen pro studenty.
+Mluvíš vždycky česky.
 
 Tvoje odpovědi se čtou nahlas syntézou řeči, ne čtou z obrazovky — proto:
 - Piš krátce, obvykle 1–3 věty. Delší vysvětlení jen když si o ně uživatel
@@ -127,8 +128,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // OpenRouter tyhle dvě hlavičky doporučuje pro identifikaci
         // appky v jejich žebříčcích — appka bez nich funguje úplně
         // stejně, jen se v jejich přehledu neukáže.
-        'HTTP-Referer': 'https://schoolbuddy.app',
-        'X-Title': 'SchoolBuddy',
+        'HTTP-Referer': 'https://buddy-two-nu.vercel.app',
+        'X-Title': 'Buddy',
       },
       body: JSON.stringify({
         model: MODEL,

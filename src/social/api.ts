@@ -62,7 +62,7 @@ const profilZRadku = (r: {
   avatar_url: string | null
 }): SocialProfil => ({
   id: r.id,
-  displayName: r.display_name?.trim() || 'Student',
+  displayName: r.display_name?.trim() || 'Uživatel',
   avatarUrl: r.avatar_url,
 })
 
@@ -248,7 +248,7 @@ export const nactiVerejnyProfil = async (id: string): Promise<VerejnyProfil | nu
   const r = data[0]
   return {
     id,
-    displayName: r.display_name?.trim() || 'Student',
+    displayName: r.display_name?.trim() || 'Uživatel',
     avatarUrl: r.avatar_url,
     xp: r.xp,
     level: r.level,
@@ -285,7 +285,7 @@ export const nactiNavrhyPratel = async (): Promise<PratelskyNavrh[]> => {
   return (data as { id: string; display_name: string; avatar_url: string | null; spolecni: number }[]).map(
     (r) => ({
       id: r.id,
-      displayName: r.display_name?.trim() || 'Student',
+      displayName: r.display_name?.trim() || 'Uživatel',
       avatarUrl: r.avatar_url,
       spolecni: r.spolecni,
     })

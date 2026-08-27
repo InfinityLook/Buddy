@@ -260,7 +260,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
         <header className="hub-header">
           <div className="hub-logo">
             <span className="hub-logo-mark">✦</span>
-            <span className="hub-logo-text">SchoolBuddy</span>
+            <span className="hub-logo-text">Buddy</span>
           </div>
 
           <div className="hub-header-right">

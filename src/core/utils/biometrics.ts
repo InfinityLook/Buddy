@@ -60,11 +60,11 @@ export const zaregistrujBiometrii = async (jmeno: string): Promise<string | null
     const credential = (await navigator.credentials.create({
       publicKey: {
         challenge: nahodnyBuffer(32),
-        rp: { name: 'SchoolBuddy' },
+        rp: { name: 'Buddy' },
         user: {
           id: nahodnyBuffer(16),
           name: jmeno || 'student',
-          displayName: jmeno || 'Student',
+          displayName: jmeno || 'Uživatel',
         },
         pubKeyCredParams: [
           { type: 'public-key', alg: -7 }, // ES256

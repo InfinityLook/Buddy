@@ -74,9 +74,9 @@ export default defineConfig(({ command }) => {
         registerType: 'autoUpdate',
         includeAssets: ['favicon.ico', 'icons/apple-touch-icon.png'],
         manifest: {
-          name: 'SchoolBuddy',
-          short_name: 'SchoolBuddy',
-          description: 'Tvůj studijní parťák, který ti pomůže zvládnout školu.',
+          name: 'Buddy',
+          short_name: 'Buddy',
+          description: 'Tvůj parťák pro práci, studium i volný čas.',
           theme_color: '#0a0e1a',
           background_color: '#0a0e1a',
           display: 'standalone',
