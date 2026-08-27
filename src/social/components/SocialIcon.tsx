@@ -52,6 +52,14 @@ export const SocialIcon: React.FC<SocialIconProps> = ({ name, size = 20, classNa
       return <svg {...common}><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M8 4H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>
     case 'lock':
       return <svg {...common}><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+    case 'bell':
+      return <svg {...common}><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+    case 'bell-off':
+      return <svg {...common}><path d="M8.7 3a6 6 0 0 1 9.3 5c0 3.7.9 6 1.6 7.3"/><path d="M17.7 17H3s3-2 3-9c0-.5 0-1 .2-1.5"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/><path d="m2 2 20 20"/></svg>
+    case 'reply':
+      return <svg {...common}><path d="m9 17-5-5 5-5"/><path d="M4 12h10a5 5 0 0 1 5 5v2"/></svg>
+    case 'smile':
+      return <svg {...common}><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/></svg>
     default:
       return null
   }

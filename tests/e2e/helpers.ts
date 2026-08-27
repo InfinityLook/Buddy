@@ -192,16 +192,29 @@ export const mockSupabase = async (ctx: BrowserContext, data: MockData, options:
       return json(jednoP ? vysledek[0] : vysledek, 201)
     }
 
+    // Společné pro PATCH/DELETE: appka dřív vždycky filtrovala jen podle
+    // `id` (zrusitVazbu, odblokovat, ...), takže to bylo jediné, co tenhle
+    // mock uměl. ztlumitChat()/odebratReakci() ale mažou/aktualizují podle
+    // dvou až tří jiných sloupců najednou (chat_id+user_id,
+    // message_id+user_id+emoji) — bez obecného `eq.` filtru níž by PATCH
+    // beze stopy `id` v URL potichu přepsal/DELETE smazal úplně všechny
+    // řádky tabulky, ne jen ten jeden mířený.
+    const shoduSFiltry = (r: Record<string, unknown>): boolean => {
+      for (const [klic, hodnota] of url.searchParams) {
+        if (klic === 'select') continue
+        if (hodnota.startsWith('eq.') && String(r[klic]) !== hodnota.slice(3)) return false
+      }
+      return true
+    }
+
     if (req.method() === 'PATCH') {
       const telo = JSON.parse(req.postData() || '{}')
-      const id = url.searchParams.get('id')?.slice(3)
-      for (const r of radky) if (!id || String(r.id) === id) Object.assign(r, telo)
+      for (const r of radky) if (shoduSFiltry(r)) Object.assign(r, telo)
       return json([])
     }
 
     if (req.method() === 'DELETE') {
-      const id = url.searchParams.get('id')?.slice(3)
-      data[tabulka] = radky.filter((r) => id && String(r.id) !== id)
+      data[tabulka] = radky.filter((r) => !shoduSFiltry(r))
       return json([])
     }
 

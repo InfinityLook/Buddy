@@ -34,6 +34,13 @@ export const nastavOtevrenyChat = (chatId: string | null): void => {
   if (chatId) void prepocitat()
 }
 
+// Ztlumené chaty se nemají počítat do souhrnného odznaku ani spouštět
+// OS notifikaci (viz prepocitat/realtime posluchač níž) — jejich vlastní
+// odznak v ChatyPanel.tsx dál ukazuje skutečný počet, tohle je jen
+// mezipaměť pro tenhle modul, aby živé doručování zprávy nemuselo kvůli
+// jednomu bitu tahat celý nactiChaty() znovu.
+let ztlumeneChaty = new Set<string>()
+
 /** Spočítá nepřečtené z databáze. Zdrojem pravdy je server, ne přírůstky. */
 export const prepocitat = async (): Promise<void> => {
   if (useAccount.getState().status !== 'signed-in') {
@@ -43,10 +50,11 @@ export const prepocitat = async (): Promise<void> => {
 
   const chaty = await nactiChaty()
   const otevreny = useInbox.getState().otevrenyChat
+  ztlumeneChaty = new Set(chaty.filter((ch) => ch.mujMuted).map((ch) => ch.id))
 
   useInbox.setState({
     neprectene: chaty
-      .filter((ch) => ch.id !== otevreny)
+      .filter((ch) => ch.id !== otevreny && !ch.mujMuted)
       .reduce((soucet, ch) => soucet + ch.neprectene, 0),
   })
 }
@@ -74,10 +82,13 @@ export const startInbox = (): void => {
     }
 
     zrusitOdber = sledovatVsechnyZpravy((zprava) => {
-      // Vlastní zprávy se nepočítají a zprávy z otevřeného chatu taky ne
+      // Vlastní zprávy se nepočítají, zprávy z otevřeného chatu taky ne,
+      // a ztlumený chat (viz ztlumeneChaty výš) nemá zvedat souhrnný
+      // odznak ani spouštět notifikaci — to je celý smysl ztlumení.
       const { otevrenyChat } = useInbox.getState()
       if (zprava.odesilatelId === useAccount.getState().userId) return
       if (zprava.chatId === otevrenyChat) return
+      if (ztlumeneChaty.has(zprava.chatId)) return
 
       useInbox.setState((s) => ({ neprectene: s.neprectene + 1 }))
 

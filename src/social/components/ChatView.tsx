@@ -3,7 +3,7 @@ import { SocialIcon } from './SocialIcon'
 import { NahlasitDialog } from './NahlasitDialog'
 import { SpravaSkupinyDialog } from './SpravaSkupinyDialog'
 import * as api from '../api'
-import type { Chat, Zprava } from '../types'
+import { EMOJI_REAKCI, type Chat, type Reakce, type Zprava } from '../types'
 import type { SocialStav } from '../useSocial'
 import { requestNotificationPermission } from '@/core/utils/notify'
 
@@ -16,6 +16,11 @@ interface Props {
 
 const cas = (iso: string) =>
   new Date(iso).toLocaleTimeString('cs-CZ', { hour: '2-digit', minute: '2-digit' })
+
+// Krátký náhled do citace nad composerem/uvnitř bubliny — celá zpráva by
+// v jednom řádku citace zabrala moc místa.
+const zkratit = (text: string, delka = 60): string =>
+  text.length > delka ? `${text.slice(0, delka).trimEnd()}…` : text
 
 export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil }) => {
   const [zpravy, setZpravy] = useState<Zprava[]>([])
@@ -32,6 +37,21 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
   // před ní může být ještě víc, kratší stránka znamená konec historie.
   const [maStarsi, setMaStarsi] = useState(false)
   const [nacitaStarsi, setNacitaStarsi] = useState(false)
+  // Na koho se právě odpovídá — null = běžná nová zpráva. Zobrazí se
+  // jako citace nad composerem, dokud se buď neodešle, nebo nezruší.
+  const [odpovidamNa, setOdpovidamNa] = useState<Zprava | null>(null)
+  // Reakce celého chatu naráz (viz nactiReakce v api.ts), ne po jedné
+  // za zprávu — levnější dotaz a jednodušší živé doručování.
+  const [reakce, setReakce] = useState<Reakce[]>([])
+  // Id zprávy, u které je zrovna otevřená malá nabídka emoji — jen jedna
+  // najednou, druhé klepnutí tu první zavře.
+  const [pickerPro, setPickerPro] = useState<string | null>(null)
+  // last_read_at ostatních členů — u dvojice z toho ChatView spočítá
+  // "Přečteno" pod vlastní poslední zprávou (viz níž).
+  const [prectenost, setPrectenost] = useState<Record<string, string>>({})
+  // Optimistické zrcadlo chat.mujMuted — přepínač v hlavičce reaguje
+  // hned, ne až po dokončení požadavku na server.
+  const [ztlumeno, setZtlumeno] = useState(chat.mujMuted)
   const konecRef = useRef<HTMLDivElement>(null)
   const oznamPsaniRef = useRef<(() => void) | null>(null)
   const posledniOznamRef = useRef(0)
@@ -40,6 +60,8 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
   // téhle pojistky by efekt níž po každém "Načíst starší" odskočil
   // pohled zpátky dolů, přesně tam, odkud se uživatel snažil odejít.
   const preskocitScrollRef = useRef(false)
+
+  useEffect(() => setZtlumeno(chat.mujMuted), [chat.mujMuted])
 
   // Načtení a živý odběr. Odběr se ruší při odchodu — bez toho by po
   // každém otevření chatu zůstal viset další otevřený kanál.
@@ -52,8 +74,10 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
       setMaStarsi(z.length >= api.ZPRAV_NA_STRANKU)
     })
     void api.oznacitPrecteno(chat.id)
+    void api.nactiReakce(chat.id).then((r) => platne && setReakce(r))
+    void api.nactiPrectenost(chat.id).then((p) => platne && setPrectenost(p))
 
-    const zrusit = api.sledovatChat(chat.id, (nova) => {
+    const zrusitZpravy = api.sledovatChat(chat.id, (nova) => {
       setZpravy((stare) => {
         // Realtime posílá i změny (smazání), ne jen nové zprávy
         const i = stare.findIndex((z) => z.id === nova.id)
@@ -66,9 +90,21 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
       void api.oznacitPrecteno(chat.id)
     })
 
+    const zrusitReakce = api.sledovatReakce(
+      chat.id,
+      (r) => setReakce((stare) => (stare.some((s) => s.id === r.id) ? stare : [...stare, r])),
+      (id) => setReakce((stare) => stare.filter((r) => r.id !== id))
+    )
+
+    const zrusitPrectenost = api.sledovatPrectenost(chat.id, (userId, lastReadAt) =>
+      setPrectenost((stare) => ({ ...stare, [userId]: lastReadAt }))
+    )
+
     return () => {
       platne = false
-      zrusit()
+      zrusitZpravy()
+      zrusitReakce()
+      zrusitPrectenost()
       void stav.obnovit()
     }
     // stav.obnovit se mění s identitou účtu, ne s každým vykreslením
@@ -146,11 +182,12 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
     requestNotificationPermission()
 
     setPosila(true)
-    const vysledek = await api.poslatZpravu(chat.id, text)
+    const vysledek = await api.poslatZpravu(chat.id, text, odpovidamNa?.id ?? null)
     setPosila(false)
 
     if (vysledek.ok && vysledek.zprava) {
       setText('')
+      setOdpovidamNa(null)
       setOdeslano(true)
       window.setTimeout(() => setOdeslano(false), 900)
       // Přidáme rovnou vrácenou zprávu, ne přes nactiZpravy(chat.id) bez
@@ -164,6 +201,55 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
       stav.rekni(vysledek.chyba ?? 'Zpráva neodešla.')
     }
   }
+
+  const prepnoutZtlumeni = async () => {
+    const nove = !ztlumeno
+    setZtlumeno(nove)
+    const v = await api.ztlumitChat(chat.id, nove)
+    if (!v.ok) {
+      setZtlumeno(!nove)
+      stav.rekni(v.chyba ?? 'Ztlumení se nepovedlo.')
+    } else {
+      // Ať se ChatyPanel.tsx a souhrnný odznak srovnají se serverem
+      void stav.obnovit()
+    }
+  }
+
+  const prepnoutReakci = async (messageId: string, emoji: string) => {
+    setPickerPro(null)
+    const moje = reakce.find(
+      (r) => r.messageId === messageId && r.userId === stav.mujId && r.emoji === emoji
+    )
+
+    if (moje) {
+      // Optimisticky hned pryč, server jen potvrzuje
+      setReakce((s) => s.filter((r) => r.id !== moje.id))
+      const v = await api.odebratReakci(messageId, emoji)
+      if (!v.ok) setReakce((s) => [...s, moje])
+      return
+    }
+
+    const v = await api.pridatReakci(messageId, emoji)
+    if (v.ok && v.reakce) {
+      setReakce((s) => (s.some((r) => r.id === v.reakce!.id) ? s : [...s, v.reakce as Reakce]))
+    } else if (!v.ok) {
+      stav.rekni(v.chyba ?? 'Reakce se nepovedla.')
+    }
+  }
+
+  // "Přečteno" dává smysl jen u dvojice — u skupiny by šlo o "přečteno
+  // N z M", záměrně (zatím) nepostavené.
+  const protejsek = !chat.jeSkupina ? chat.ucastnici[0] : undefined
+  const posledniModId = (() => {
+    for (let i = zpravy.length - 1; i >= 0; i--) {
+      if (zpravy[i].odesilatelId === stav.mujId) return zpravy[i].id
+    }
+    return null
+  })()
+  const posledniModCas = posledniModId ? zpravy.find((z) => z.id === posledniModId)?.createdAt : undefined
+  const protejsekPrectenoAz = protejsek ? prectenost[protejsek.id] : undefined
+  const jePrecteno =
+    !!posledniModCas && !!protejsekPrectenoAz && protejsekPrectenoAz >= posledniModCas
 
   return (
     <div className="social-chat-view">
@@ -197,6 +283,15 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
             )}
           </span>
         )}
+
+        <button
+          className="social-icon-btn"
+          aria-label={ztlumeno ? 'Zapnout notifikace' : 'Ztlumit chat'}
+          title={ztlumeno ? 'Zapnout notifikace' : 'Ztlumit chat'}
+          onClick={prepnoutZtlumeni}
+        >
+          <SocialIcon name={ztlumeno ? 'bell-off' : 'bell'} size={17} />
+        </button>
 
         {chat.jeSkupina && (
           <button
@@ -246,6 +341,17 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
           const moje = z.odesilatelId === stav.mujId
           const smazana = z.smazanoAt !== null
           const odesilatel = chat.ucastnici.find((u) => u.id === z.odesilatelId)
+          // Náhled citace se hledá jen v už načtené stránce — u starší,
+          // ještě nenačtené zprávy se ukáže obecná náhrada bez textu.
+          const puvodni = z.replyToId ? zpravy.find((m) => m.id === z.replyToId) : null
+
+          const reakceZpravy = reakce.filter((r) => r.messageId === z.id)
+          const reakceSkupiny = Object.values(
+            reakceZpravy.reduce<Record<string, Reakce[]>>((acc, r) => {
+              ;(acc[r.emoji] ??= []).push(r)
+              return acc
+            }, {})
+          )
 
           return (
             <div key={z.id} className={`social-bublina-obal ${moje ? 'je-moje' : ''}`}>
@@ -257,12 +363,61 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
               )}
 
               <div className={`social-bublina ${moje ? 'je-moje' : ''} ${smazana ? 'je-smazana' : ''}`}>
-                <span className="social-bublina-text">{z.text}</span>
-                <span className="social-bublina-cas">{cas(z.createdAt)}</span>
+                {z.replyToId && (
+                  <div className="social-bublina-citace">
+                    {puvodni && !puvodni.smazanoAt ? (
+                      <>
+                        <span className="social-bublina-citace-jmeno">
+                          {puvodni.odesilatelId === stav.mujId
+                            ? 'Ty'
+                            : chat.ucastnici.find((u) => u.id === puvodni.odesilatelId)?.displayName ??
+                              'Někdo'}
+                        </span>
+                        <span className="social-bublina-citace-text">{zkratit(puvodni.text)}</span>
+                      </>
+                    ) : (
+                      <span className="social-bublina-citace-text">Odpověď na dřívější zprávu</span>
+                    )}
+                  </div>
+                )}
+                <span className="social-bublina-radek">
+                  <span className="social-bublina-text">{z.text}</span>
+                  <span className="social-bublina-cas">{cas(z.createdAt)}</span>
+                </span>
               </div>
+
+              {reakceSkupiny.length > 0 && (
+                <div className="social-reakce-pruh">
+                  {reakceSkupiny.map((skupina) => {
+                    const jeMoje = skupina.some((r) => r.userId === stav.mujId)
+                    return (
+                      <button
+                        key={skupina[0].emoji}
+                        className={`social-reakce-pil ${jeMoje ? 'je-moje' : ''}`}
+                        onClick={() => prepnoutReakci(z.id, skupina[0].emoji)}
+                      >
+                        {skupina[0].emoji} {skupina.length}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
 
               {!smazana && (
                 <div className="social-bublina-akce">
+                  <button
+                    className="social-mini-btn"
+                    onClick={() => setPickerPro((p) => (p === z.id ? null : z.id))}
+                  >
+                    <SocialIcon name="smile" size={12} />
+                    Reagovat
+                  </button>
+
+                  <button className="social-mini-btn" onClick={() => setOdpovidamNa(z)}>
+                    <SocialIcon name="reply" size={12} />
+                    Odpovědět
+                  </button>
+
                   {moje ? (
                     <button
                       className="social-mini-btn"
@@ -298,6 +453,20 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
                   )}
                 </div>
               )}
+
+              {pickerPro === z.id && (
+                <div className="social-reakce-picker">
+                  {EMOJI_REAKCI.map((emoji) => (
+                    <button key={emoji} onClick={() => prepnoutReakci(z.id, emoji)}>
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {moje && z.id === posledniModId && jePrecteno && (
+                <span className="social-precteno">Přečteno</span>
+              )}
             </div>
           )
         })}
@@ -309,6 +478,21 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
         <p className="social-pise-oznam">
           {chat.ucastnici.find((u) => u.id === pisouId)?.displayName ?? 'Někdo'} píše…
         </p>
+      )}
+
+      {odpovidamNa && (
+        <div className="social-odpoved-lista">
+          <span className="social-odpoved-text">
+            Odpovídáš na: {zkratit(odpovidamNa.text, 80)}
+          </span>
+          <button
+            className="social-icon-btn"
+            aria-label="Zrušit odpověď"
+            onClick={() => setOdpovidamNa(null)}
+          >
+            <SocialIcon name="x" size={14} />
+          </button>
+        </div>
       )}
 
       <form className="social-psani" onSubmit={odeslat}>
@@ -323,6 +507,7 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
         <button
           className={`social-send-btn ${odeslano ? 'je-odeslano' : ''}`}
           type="submit"
+          aria-label="Odeslat"
           disabled={posila || !text.trim()}
         >
           <SocialIcon name={odeslano ? 'check' : 'send'} size={18} />

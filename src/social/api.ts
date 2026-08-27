@@ -4,6 +4,7 @@ import type {
   NalezVysledek,
   DuvodNahlaseni,
   Hlaseni,
+  Reakce,
   StavHlaseni,
   MujProfil,
   Pritel,
@@ -350,13 +351,14 @@ export const nactiChaty = async (): Promise<Chat[]> => {
 
   const { data: clenstvi } = await supabase
     .from('chat_members')
-    .select('chat_id, last_read_at')
+    .select('chat_id, last_read_at, muted')
     .eq('user_id', ja)
 
   const chatIds = (clenstvi ?? []).map((c) => c.chat_id)
   if (chatIds.length === 0) return []
 
   const precteno = new Map((clenstvi ?? []).map((c) => [c.chat_id, c.last_read_at]))
+  const ztlumeno = new Map((clenstvi ?? []).map((c) => [c.chat_id, c.muted]))
 
   const [{ data: chaty }, { data: vsichniClenove }, { data: zpravy }] = await Promise.all([
     supabase.from('chats').select('id, is_group, name, created_by, icon').in('id', chatIds),
@@ -398,9 +400,74 @@ export const nactiChaty = async (): Promise<Chat[]> => {
         ).length,
         zakladatelId: ch.created_by,
         ikona: ch.icon,
+        mujMuted: ztlumeno.get(ch.id) ?? false,
       }
     })
     .sort((a, b) => (b.posledniCas ?? '').localeCompare(a.posledniCas ?? ''))
+}
+
+/** Ztlumí/zapne zpátky notifikace pro tenhle chat — jen na mém vlastním
+ *  řádku v chat_members, stejná "jen svoje" UPDATE politika jako
+ *  u last_read_at (viz oznacitPrecteno). Neopouští chat, jen umlčí
+ *  schránku (inbox.ts) — historie a odznak přímo v ChatyPanel.tsx
+ *  zůstávají beze změny. */
+export const ztlumitChat = async (chatId: string, ztlumit: boolean): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase
+    .from('chat_members')
+    .update({ muted: ztlumit })
+    .eq('chat_id', chatId)
+    .eq('user_id', ja)
+
+  return error ? chyba(error) : { ok: true }
+}
+
+/**
+ * Kdy naposled kdo z chatu četl — jednorázové načtení při otevření
+ * chatu, doplněné živě přes sledovatPrectenost níž. Používá se jen
+ * u dvojice (1:1), kde je jasné, čí "Přečteno" pod vlastní poslední
+ * zprávou ukázat — u skupiny by šlo o "přečteno N z M", zatím
+ * záměrně nepostavené (viz ChatView.tsx).
+ */
+export const nactiPrectenost = async (chatId: string): Promise<Record<string, string>> => {
+  if (!supabase) return {}
+
+  const { data, error } = await supabase
+    .from('chat_members')
+    .select('user_id, last_read_at')
+    .eq('chat_id', chatId)
+
+  if (error || !data) return {}
+  return Object.fromEntries(data.map((r) => [r.user_id, r.last_read_at]))
+}
+
+/** Živě sleduje last_read_at ostatních členů — "Přečteno" se tak objeví
+ *  bez nutnosti chat zavřít a znovu otevřít. */
+export const sledovatPrectenost = (
+  chatId: string,
+  zmena: (userId: string, lastReadAt: string) => void
+): (() => void) => {
+  const klient = supabase
+  if (!klient) return () => {}
+
+  const kanal = klient
+    .channel(`chat-prectenost:${chatId}:${++poradiKanalu}`)
+    .on(
+      'postgres_changes',
+      { event: 'UPDATE', schema: 'public', table: 'chat_members', filter: `chat_id=eq.${chatId}` },
+      (payload) => {
+        const r = payload.new as { user_id?: string; last_read_at?: string } | null
+        if (r?.user_id && r.last_read_at) zmena(r.user_id, r.last_read_at)
+      }
+    )
+    .subscribe()
+
+  return () => void klient.removeChannel(kanal)
 }
 
 /**
@@ -530,6 +597,7 @@ const zpravaZRadku = (r: {
   body: string
   created_at: string
   deleted_at: string | null
+  reply_to_id?: string | null
 }): Zprava => ({
   id: r.id,
   chatId: r.chat_id,
@@ -537,6 +605,7 @@ const zpravaZRadku = (r: {
   text: r.body,
   createdAt: r.created_at,
   smazanoAt: r.deleted_at,
+  replyToId: r.reply_to_id ?? null,
 })
 
 // Kolik zpráv se načte na jedno zavolání nactiZpravy — první stránka
@@ -560,7 +629,7 @@ export const nactiZpravy = async (chatId: string, pred?: string): Promise<Zprava
 
   let dotaz = supabase
     .from('messages')
-    .select('id, chat_id, sender_id, body, created_at, deleted_at')
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id')
     .eq('chat_id', chatId)
     .order('created_at', { ascending: false })
     .limit(ZPRAV_NA_STRANKU)
@@ -585,7 +654,8 @@ export const nactiZpravy = async (chatId: string, pred?: string): Promise<Zprava
  */
 export const poslatZpravu = async (
   chatId: string,
-  text: string
+  text: string,
+  replyToId?: string | null
 ): Promise<{ zprava: Zprava | null } & Vysledek> => {
   if (!supabase) return { ...NENI_CLOUD, zprava: null }
 
@@ -599,8 +669,8 @@ export const poslatZpravu = async (
 
   const { data, error } = await supabase
     .from('messages')
-    .insert({ chat_id: chatId, sender_id: ja, body: orezany })
-    .select('id, chat_id, sender_id, body, created_at, deleted_at')
+    .insert({ chat_id: chatId, sender_id: ja, body: orezany, reply_to_id: replyToId ?? null })
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id')
     .single()
 
   if (error || !data) return { ...chyba(error), zprava: null }
@@ -671,6 +741,112 @@ export const sledovatChat = (chatId: string, prisla: (z: Zprava) => void): (() =
   return () => {
     void klient.removeChannel(kanal)
   }
+}
+
+// ---------- reakce na zprávy ----------
+
+const reakceZRadku = (r: { id: string; message_id: string; user_id: string; emoji: string }): Reakce => ({
+  id: r.id,
+  messageId: r.message_id,
+  userId: r.user_id,
+  emoji: r.emoji,
+})
+
+/** Načte všechny reakce celého chatu naráz, ne po jedné za zprávu —
+ *  chat_id je na message_reactions schválně denormalizovaný (viz
+ *  migrace), díky čemu stačí jeden dotaz při otevření chatu. */
+export const nactiReakce = async (chatId: string): Promise<Reakce[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('message_reactions')
+    .select('id, message_id, user_id, emoji')
+    .eq('chat_id', chatId)
+
+  if (error || !data) return []
+  return data.map(reakceZRadku)
+}
+
+/**
+ * Přidá reakci. Unikátní (message_id, user_id, emoji) na databázi
+ * znamená, že druhé klepnutí na stejné emoji vrátí 23505 (porušení
+ * unikátnosti), ne skutečnou chybu — appka to bere jako no-op úspěch,
+ * ne jako "nepovedlo se to".
+ */
+export const pridatReakci = async (
+  messageId: string,
+  emoji: string
+): Promise<{ reakce: Reakce | null } & Vysledek> => {
+  if (!supabase) return { ...NENI_CLOUD, reakce: null }
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return { ...NENI_CLOUD, reakce: null }
+
+  const { data, error } = await supabase
+    .from('message_reactions')
+    .insert({ message_id: messageId, user_id: ja, emoji })
+    .select('id, message_id, user_id, emoji')
+    .single()
+
+  if (!error && data) return { ok: true, reakce: reakceZRadku(data) }
+  if ((error as { code?: string } | null)?.code === '23505') return { ok: true, reakce: null }
+  return { ...chyba(error), reakce: null }
+}
+
+/** Odebere vlastní reakci — id v databázi zná až po vložení (viz výš),
+ *  takže se maže podle trojice sloupců, na kterou je i unikátní index. */
+export const odebratReakci = async (messageId: string, emoji: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase
+    .from('message_reactions')
+    .delete()
+    .eq('message_id', messageId)
+    .eq('user_id', ja)
+    .eq('emoji', emoji)
+
+  return error ? chyba(error) : { ok: true }
+}
+
+/** Živé doručování reakcí — INSERT i DELETE, filtrované na chat přes
+ *  denormalizovaný chat_id (viz migrace). */
+export const sledovatReakce = (
+  chatId: string,
+  pridana: (r: Reakce) => void,
+  smazana: (id: string) => void
+): (() => void) => {
+  const klient = supabase
+  if (!klient) return () => {}
+
+  const kanal = klient
+    .channel(`chat-reakce:${chatId}:${++poradiKanalu}`)
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'message_reactions', filter: `chat_id=eq.${chatId}` },
+      (payload) => {
+        const r = payload.new as Parameters<typeof reakceZRadku>[0] | null
+        if (r?.id) pridana(reakceZRadku(r))
+      }
+    )
+    .on(
+      'postgres_changes',
+      { event: 'DELETE', schema: 'public', table: 'message_reactions', filter: `chat_id=eq.${chatId}` },
+      (payload) => {
+        // REPLICA IDENTITY DEFAULT: DELETE posílá v "old" jen primární
+        // klíč smazané řádky, ne celou řádku — proto se maže podle id,
+        // ne podle trojice message_id/user_id/emoji (viz Reakce v types.ts).
+        const stara = payload.old as { id?: string } | null
+        if (stara?.id) smazana(stara.id)
+      }
+    )
+    .subscribe()
+
+  return () => void klient.removeChannel(kanal)
 }
 
 // ---------- nahlášení ----------

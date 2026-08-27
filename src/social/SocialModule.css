@@ -676,13 +676,22 @@
 }
 
 .social-bublina {
+  /* Sloupec, ne řádek — citovaná zpráva (viz .social-bublina-citace)
+     má sedět nad textem, ne vedle něj. Text a čas samotné zůstávají
+     v řádku uvnitř .social-bublina-radek. */
   display: flex;
-  align-items: flex-end;
-  gap: 0.4rem;
+  flex-direction: column;
+  gap: 0.3rem;
   padding: 0.45rem 0.65rem;
   border-radius: var(--radius-md);
   background: var(--bg-panel-raised);
   border: 1px solid var(--border-subtle);
+}
+
+.social-bublina-radek {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
 }
 
 .social-bublina.je-moje {
@@ -711,7 +720,106 @@
   opacity: 0.7;
 }
 
-.social-bublina-akce { padding: 0 0.3rem; }
+.social-bublina-akce { padding: 0 0.3rem; display: flex; gap: 0.3rem; }
+
+/* Citovaná zpráva nad textem — levý barevný pruh jako u messengerů,
+   ať je na první pohled jasné, že jde o odkaz na dřívější zprávu. */
+.social-bublina-citace {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  padding: 0.25rem 0.5rem;
+  border-left: 2px solid currentColor;
+  opacity: 0.75;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.social-bublina-citace-jmeno { font-size: 0.6rem; font-weight: 700; }
+.social-bublina-citace-text {
+  font-size: 0.68rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Lišta nad composerem, dokud se odpovídá na konkrétní zprávu */
+.social-odpoved-lista {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+}
+
+.social-odpoved-text {
+  flex: 1;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Reakce pod bublinou — pilulky s emoji a počtem, vlastní zvýrazněná */
+.social-reakce-pruh {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.social-reakce-pil {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.08rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.68rem;
+  cursor: pointer;
+}
+
+.social-reakce-pil.je-moje {
+  background: rgba(53, 196, 240, 0.16);
+  border-color: var(--accent-cyan);
+}
+
+/* Malá nabídka emoji, otevřená z akce "Reagovat" */
+.social-reakce-picker {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: var(--radius-pill);
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-subtle);
+  align-self: flex-start;
+}
+
+.social-bublina-obal.je-moje .social-reakce-picker { align-self: flex-end; }
+
+.social-reakce-picker button {
+  background: none;
+  border: none;
+  font-size: 1.05rem;
+  line-height: 1;
+  padding: 0.1rem;
+  cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.social-reakce-picker button:active { transform: scale(1.25); }
+
+/* "Přečteno" pod vlastní poslední zprávou — jen u dvojice */
+.social-precteno {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  padding-right: 0.3rem;
+}
+
+/* Ztlumený chat v seznamu — malý zvonek vedle názvu */
+.social-chat-ztlumeno { color: var(--text-muted); flex-shrink: 0; }
 
 .social-psani {
   display: flex;

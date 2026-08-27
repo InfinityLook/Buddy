@@ -62,6 +62,11 @@ export interface Chat {
   /** Emoji z pevné nabídky (viz IKONY_SKUPIN), null = výchozí "#".
    *  U dvojice se nepoužívá, ta má barvu podle protějšku. */
   ikona: string | null
+  /** Ztlumil jsem si tenhle chat sám (chat_members.muted, jen můj
+   *  řádek) — inbox.ts ho pak přeskočí v souhrnném počtu i notifikaci,
+   *  ale odznak přímo u chatu v ChatyPanel.tsx dál ukazuje skutečný
+   *  počet nepřečtených, ať je vidět, co čeká, když se tam podíváš. */
+  mujMuted: boolean
 }
 
 // Nabídka emoji pro skupinový chat — SpravaSkupinyDialog.tsx z ní
@@ -77,7 +82,32 @@ export interface Zprava {
   text: string
   createdAt: string
   smazanoAt: string | null
+  /** Id zprávy, na kterou tahle odpovídá — null u běžné zprávy. Náhled
+   *  citované zprávy se hledá jen v už načtených `zpravy` v ChatView.tsx
+   *  (bez zvláštního dotazu); u starší, ještě nenačtené zprávy se ukáže
+   *  obecná náhrada bez textu. */
+  replyToId: string | null
 }
+
+/**
+ * Krátká emoji reakce na zprávu — vlastní tabulka `message_reactions`,
+ * ne sloupec na `messages`: jedna zpráva může mít reakce od víc lidí
+ * a víc různých emoji najednou. `id` je potřeba i na klientovi, ne jen
+ * v databázi — živé mazání přes Realtime posílá u DELETE (REPLICA
+ * IDENTITY DEFAULT) jen primární klíč smazané řádky, žádné jiné
+ * sloupce, takže jedině podle něj jde reakci v místním stavu najít
+ * a odebrat (viz sledovatReakce v api.ts).
+ */
+export interface Reakce {
+  id: string
+  messageId: string
+  userId: string
+  emoji: string
+}
+
+/** Pevná nabídka reakcí, žádný picker se stovkami emoji — stejný
+ *  "pevná sada, ne libovolný vstup" přístup jako IKONY_SKUPIN výš. */
+export const EMOJI_REAKCI = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const
 
 export type DuvodNahlaseni = 'spam' | 'obtezovani' | 'nevhodny_obsah' | 'jine'
 

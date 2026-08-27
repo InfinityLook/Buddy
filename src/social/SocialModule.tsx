@@ -80,7 +80,12 @@ export const SocialModule: React.FC = () => {
   }, [otevrenyTajnyChat])
 
   const cekaZadosti = stav.zadosti.filter((z) => z.smer === 'prichozi').length
-  const neprectene = stav.chaty.reduce((soucet, ch) => soucet + ch.neprectene, 0)
+  // Ztlumené chaty se do souhrnného odznaku na záložce nepočítají —
+  // stejné vynechání jako u globální schránky v inbox.ts, jinak by
+  // ztlumení chatu na tomhle číslo nemělo vůbec žádný efekt.
+  const neprectene = stav.chaty
+    .filter((ch) => !ch.mujMuted)
+    .reduce((soucet, ch) => soucet + ch.neprectene, 0)
 
   // Ambientní pozadí žije mimo React a musí se postavit přesně jednou —
   // proto containerRef nesmí zmizet z DOMu, ať uživatel otevře chat,

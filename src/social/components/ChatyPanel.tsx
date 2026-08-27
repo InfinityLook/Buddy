@@ -153,7 +153,12 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
               <SocialAvatar id={ch.id} jmeno={ch.nazev} jeSkupina={ch.jeSkupina} ikona={ch.ikona} />
 
               <span className="social-chat-text">
-                <span className="social-chat-nazev">{ch.nazev}</span>
+                <span className="social-chat-nazev">
+                  {ch.nazev}
+                  {ch.mujMuted && (
+                    <SocialIcon name="bell-off" size={12} className="social-chat-ztlumeno" />
+                  )}
+                </span>
                 <span className="social-chat-nahled">
                   {ch.posledniZprava ?? 'Zatím bez zpráv'}
                 </span>
