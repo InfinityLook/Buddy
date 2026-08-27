@@ -4,6 +4,7 @@ import type {
   NalezVysledek,
   DuvodNahlaseni,
   Hlaseni,
+  PratelskyNavrh,
   Reakce,
   StavHlaseni,
   MujProfil,
@@ -254,7 +255,41 @@ export const nactiVerejnyProfil = async (id: string): Promise<VerejnyProfil | nu
     streakDays: r.streak_days,
     roleId: r.role,
     motto: r.motto?.trim() ?? '',
+    bannerUrl: r.banner_url,
+    bio: r.bio?.trim() ?? '',
+    frameId: r.frame_id,
+    pinnedBadges: r.pinned_badges ?? [],
   }
+}
+
+/** Počet společných přátel s cílem — jen číslo, appka schválně nikdy
+ *  neukazuje seznam cizích přátelství (viz komentář u pocet_spolecnych_pratel
+ *  v migraci). */
+export const nactiPocetSpolecnychPratel = async (cilId: string): Promise<number> => {
+  if (!supabase) return 0
+
+  const { data, error } = await supabase.rpc('pocet_spolecnych_pratel', { cil: cilId })
+  return error || typeof data !== 'number' ? 0 : data
+}
+
+/**
+ * Návrhy nových přátel podle společných přátel — capped na 8 na
+ * databázi (navrhy_pratel()), appka to číslo nijak nenavyšuje.
+ */
+export const nactiNavrhyPratel = async (): Promise<PratelskyNavrh[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase.rpc('navrhy_pratel')
+  if (error || !data) return []
+
+  return (data as { id: string; display_name: string; avatar_url: string | null; spolecni: number }[]).map(
+    (r) => ({
+      id: r.id,
+      displayName: r.display_name?.trim() || 'Student',
+      avatarUrl: r.avatar_url,
+      spolecni: r.spolecni,
+    })
+  )
 }
 
 export const nactiPratele = async (): Promise<Pritel[]> => {

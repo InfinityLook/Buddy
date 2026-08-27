@@ -47,6 +47,11 @@ export const mergeSnapshots = (local: CloudSnapshot, remote: CloudSnapshot | nul
     // Prázdné pole z jedné strany nesmí přepsat vyplněné z druhé.
     displayName: local.displayName.trim() || remote.displayName,
     motto: local.motto.trim() || remote.motto,
+    bio: local.bio.trim() || remote.bio,
+    frameId: local.frameId ?? remote.frameId,
+    // Prázdný seznam z jedné strany taky nesmí přepsat vyplněný
+    // z druhé — stejné pravidlo jako u textových polí výš.
+    pinnedBadges: local.pinnedBadges.length > 0 ? local.pinnedBadges : remote.pinnedBadges,
     xp,
     // Úroveň se dopočítá z XP, ať nemůže zůstat viset na staré hodnotě
     level: getLevelFromXp(xp),
@@ -61,6 +66,9 @@ export const mergeSnapshots = (local: CloudSnapshot, remote: CloudSnapshot | nul
 export const snapshotsEqual = (a: CloudSnapshot, b: CloudSnapshot): boolean =>
   a.displayName === b.displayName &&
   a.motto === b.motto &&
+  a.bio === b.bio &&
+  a.frameId === b.frameId &&
+  JSON.stringify(a.pinnedBadges) === JSON.stringify(b.pinnedBadges) &&
   a.xp === b.xp &&
   a.level === b.level &&
   a.streakDays === b.streakDays &&

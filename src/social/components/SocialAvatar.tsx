@@ -1,5 +1,6 @@
 import React from 'react'
 import { avatarGradient } from '../avatarColor'
+import type { AvatarFrame } from '../avatarFrames'
 
 interface Props {
   /** Id uživatele — základ barvy prstenu, ne jen ozdoba, viz avatarColor.ts */
@@ -16,6 +17,11 @@ interface Props {
    *  i s fotkou, ať jde poznat "moje/jeho" na první pohled stejně
    *  jako dřív. */
   avatarUrl?: string | null
+  /** Už vyhodnocený rámeček (social/avatarFrames.ts's resolveActiveFrameId)
+   *  — komponenta sama neřeší VIP platnost, to už udělal volající, kde
+   *  je po ruce role majitele avataru. Bez něj (většina míst) se drží
+   *  výchozí prsten podle avatarGradient(id). */
+  frame?: AvatarFrame | null
   /** Příchozí žádost dostane pulzující prstenec, ať upoutá pozornost
    *  dřív, než si člověk přečte text vedle ní. */
   pulzuje?: boolean
@@ -30,11 +36,12 @@ export const SocialAvatar: React.FC<Props> = ({
   jeSkupina,
   ikona,
   avatarUrl,
+  frame,
   pulzuje,
   tlumeny,
   velikost = 34,
 }) => {
-  const barvy = jeSkupina ? null : avatarGradient(id)
+  const barvy = jeSkupina ? null : frame ? { a: frame.a, b: frame.b } : avatarGradient(id)
 
   const style = barvy
     ? ({ '--sa-a': barvy.a, '--sa-b': barvy.b } as React.CSSProperties)
@@ -42,7 +49,7 @@ export const SocialAvatar: React.FC<Props> = ({
 
   return (
     <span
-      className={`social-avatar-wrap ${tlumeny ? 'je-tlumeny' : ''}`}
+      className={`social-avatar-wrap ${tlumeny ? 'je-tlumeny' : ''} ${frame ? 'ma-ramecek' : ''}`}
       style={{ width: velikost, height: velikost, ...style }}
       aria-hidden="true"
     >

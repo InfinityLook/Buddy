@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { SocialIcon } from './components/SocialIcon'
 import { PratelePanel } from './components/PratelePanel'
 import { ChatyPanel } from './components/ChatyPanel'
@@ -13,6 +13,7 @@ import { useSocial } from './useSocial'
 import { useTajnyChat, nastavOtevrenyTajnyChat } from './useTajnyChat'
 import { nastavOtevrenyChat } from './inbox'
 import { useAmbientScene } from './scene/useAmbientScene'
+import { najdiPodleKodu } from './api'
 import './SocialModule.css'
 
 // ==========================================
@@ -38,6 +39,7 @@ const ZALOZKY: { id: Zalozka; popis: string; ikona: string }[] = [
 
 export const SocialModule: React.FC = () => {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const stav = useSocial()
   const tajnyStav = useTajnyChat()
 
@@ -48,6 +50,29 @@ export const SocialModule: React.FC = () => {
   // proto vlastní stav tady nahoře, ne uvnitř panelu/ChatView, odkud
   // se otevřel.
   const [otevrenyProfil, setOtevrenyProfil] = useState<string | null>(null)
+
+  // Sdílený odkaz na profil (?kod=..., viz shareLink.ts) — jednorázově
+  // při načtení, stejný vzor jako AppModule.tsx's ?kategorie= seed.
+  // Parametr se z URL zase odstraní, ať znovunačtení stránky nebo
+  // návrat přes historii prohlížeče neotevře profil podruhé.
+  useEffect(() => {
+    const kod = searchParams.get('kod')
+    if (!kod) return
+
+    setSearchParams((p) => {
+      const nove = new URLSearchParams(p)
+      nove.delete('kod')
+      return nove
+    }, { replace: true })
+
+    void najdiPodleKodu(kod).then((nalez) => {
+      if (nalez.stav === 'nalezen') setOtevrenyProfil(nalez.profil.id)
+      else if (nalez.stav === 'vlastni') stav.rekni('To je tvůj vlastní kód.')
+      else stav.rekni(nalez.stav === 'chyba' ? nalez.chyba ?? 'Nepovedlo se to.' : 'Takový odkaz už neplatí.')
+    })
+    // stav.rekni je z useCallback s prázdným polem závislostí (useSocial.ts),
+    // takže je mezi vykresleními stabilní a nepatří do závislostí tady.
+  }, [searchParams, stav.rekni])
 
   const chat = useMemo(
     () => stav.chaty.find((ch) => ch.id === otevrenyChat) ?? null,

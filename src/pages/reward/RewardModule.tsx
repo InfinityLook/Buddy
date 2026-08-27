@@ -2,8 +2,16 @@ import React, { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
+import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
 import './RewardModule.css'
+
+// Kolik odznaků smí být na veřejném profilu vystavených najednou — víc
+// by přestalo být "výběr toho nejlepšího" a bylo by to jen druhý,
+// zkrácený seznam. Stejná mez jako CHECK constraint pripnute_odznaky_max_3
+// na databázi (migrace social_faze2...), appka ji tady jen hlídá dřív,
+// než by narazila na server.
+const MAX_PRIPNUTYCH = 3
 
 // Zdroje XP odpovídají hodnotám natvrdo v jednotlivých miniaplikacích
 // (XP_PER_COMPLETED_TASK apod.). Když se některá z nich změní, je potřeba
@@ -37,6 +45,17 @@ export const RewardModule: React.FC = () => {
   const navigate = useNavigate()
   const { level, xp, streakDays, badges } = useGamificationStore()
   const { setActiveAppId } = useAppStore()
+  const { profile, updateProfile } = useProfileData()
+
+  const prepnoutPripnuti = (badgeId: string) => {
+    const jePripnuty = profile.pinnedBadges.includes(badgeId)
+    if (jePripnuty) {
+      updateProfile({ pinnedBadges: profile.pinnedBadges.filter((id) => id !== badgeId) })
+      return
+    }
+    if (profile.pinnedBadges.length >= MAX_PRIPNUTYCH) return
+    updateProfile({ pinnedBadges: [...profile.pinnedBadges, badgeId] })
+  }
 
   const xpToNext = getXpForNextLevel(level)
   const progressPercent = getLevelProgress(xp)
@@ -118,6 +137,7 @@ export const RewardModule: React.FC = () => {
         <div className="reward-badge-grid">
           {sortedBadges.map((badge) => {
             const unlocked = badge.unlockedAt !== null
+            const pripnuty = profile.pinnedBadges.includes(badge.id)
 
             return (
               <article
@@ -136,6 +156,19 @@ export const RewardModule: React.FC = () => {
                       : 'Zatím zamčeno'}
                   </span>
                 </div>
+                {/* Vystavení na veřejném profilu (VerejnyProfilDialog.tsx) —
+                    jen u odemčených, appka nedovolí připnout něco, co
+                    uživatel ještě nemá. */}
+                {unlocked && (
+                  <button
+                    className={`reward-badge-pin ${pripnuty ? 'je-pripnuty' : ''}`}
+                    aria-label={pripnuty ? `Zrušit vystavení odznaku ${badge.title}` : `Vystavit odznak ${badge.title} na profilu`}
+                    disabled={!pripnuty && profile.pinnedBadges.length >= MAX_PRIPNUTYCH}
+                    onClick={() => prepnoutPripnuti(badge.id)}
+                  >
+                    📌
+                  </button>
+                )}
               </article>
             )
           })}

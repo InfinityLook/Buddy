@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { getRole } from '@/core/role'
 import { getLevelProgress, getXpForNextLevel } from '@/core/utils/gamificationUtils'
+import { DEFAULT_BADGES } from '@/core/store/useGamificationStore'
+import type { Badge } from '@/core/types/gamification.types'
+import { resolveActiveFrameId } from '../avatarFrames'
 import { SocialAvatar } from './SocialAvatar'
 import { SocialIcon } from './SocialIcon'
 import { NahlasitDialog } from './NahlasitDialog'
@@ -30,16 +33,21 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
   const [profil, setProfil] = useState<VerejnyProfil | null>(null)
   const [nacita, setNacita] = useState(true)
   const [nahlasit, setNahlasit] = useState(false)
+  // Nezávislé na hlavním profilu — appka ho nemá kam napsat zpátky,
+  // ať se nemusí čekat, než dojede spolu se zbytkem.
+  const [spolecni, setSpolecni] = useState<number | null>(null)
 
   useEffect(() => {
     let platne = true
     setNacita(true)
+    setSpolecni(null)
 
     void api.nactiVerejnyProfil(userId).then((p) => {
       if (!platne) return
       setProfil(p)
       setNacita(false)
     })
+    void api.nactiPocetSpolecnychPratel(userId).then((n) => platne && setSpolecni(n))
 
     return () => {
       platne = false
@@ -54,6 +62,12 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
   const role = profil ? getRole(profil.roleId) : null
   const xpDoDalsi = profil ? getXpForNextLevel(profil.level) : 0
   const progres = profil ? getLevelProgress(profil.xp) : 0
+  const ramecek = profil ? resolveActiveFrameId(profil.frameId, profil.roleId) : null
+  const pripnute: Badge[] = profil
+    ? profil.pinnedBadges
+        .map((id) => DEFAULT_BADGES.find((b) => b.id === id))
+        .filter((b): b is Badge => b !== undefined)
+    : []
 
   return (
     <>
@@ -67,8 +81,22 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
           </p>
         ) : (
           <>
+            {profil.bannerUrl && (
+              <div
+                className="social-profil-banner"
+                style={{ backgroundImage: `url(${profil.bannerUrl})` }}
+                aria-hidden="true"
+              />
+            )}
+
             <div className="social-profil-hlava">
-              <SocialAvatar id={profil.id} jmeno={profil.displayName} avatarUrl={profil.avatarUrl} velikost={56} />
+              <SocialAvatar
+                id={profil.id}
+                jmeno={profil.displayName}
+                avatarUrl={profil.avatarUrl}
+                frame={ramecek}
+                velikost={56}
+              />
               <div className="social-profil-hlava-text">
                 <h3 className="social-dialog-title">{profil.displayName}</h3>
                 {role && role.id !== 'user' && (
@@ -76,10 +104,26 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
                     {role.icon} {role.title}
                   </span>
                 )}
+                {spolecni !== null && spolecni > 0 && !jeToJa && (
+                  <span className="social-profil-spolecni">
+                    {spolecni} {spolecni === 1 ? 'společný přítel' : spolecni < 5 ? 'společní přátelé' : 'společných přátel'}
+                  </span>
+                )}
               </div>
             </div>
 
             {profil.motto && <p className="social-profil-motto">{profil.motto}</p>}
+            {profil.bio && <p className="social-profil-bio">{profil.bio}</p>}
+
+            {pripnute.length > 0 && (
+              <div className="social-profil-odznaky">
+                {pripnute.map((b) => (
+                  <span key={b.id} className="social-profil-odznak" title={b.title}>
+                    {b.icon}
+                  </span>
+                ))}
+              </div>
+            )}
 
             <div className="social-profil-uroven">
               <div className="social-profil-uroven-hlava">

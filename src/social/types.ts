@@ -33,6 +33,22 @@ export interface VerejnyProfil extends SocialProfil {
   /** Appka ho synchronizuje odjakživa (core/supabase/sync.ts) — jen ho
    *  precti_verejny_profil dřív nevracel, protože nebylo kam ho zobrazit. */
   motto: string
+  bannerUrl: string | null
+  bio: string
+  /** Id z social/avatarFrames.ts — vyhodnoť přes resolveActiveFrameId
+   *  s touhle rolí, ne přímo, ať se neplatný VIP rámeček tiše nezobrazí. */
+  frameId: string | null
+  /** Server je už protřídil proti user_badges (precti_verejny_profil) —
+   *  co appka dostane, to má cenu rovnou vykreslit. */
+  pinnedBadges: string[]
+}
+
+/** Návrh nového přítele — social/api.ts's nactiNavrhyPratel(). */
+export interface PratelskyNavrh {
+  id: string
+  displayName: string
+  avatarUrl: string | null
+  spolecni: number
 }
 
 export interface Zadost {

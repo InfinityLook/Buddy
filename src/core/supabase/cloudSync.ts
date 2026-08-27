@@ -47,6 +47,9 @@ const localSnapshot = (): CloudSnapshot => {
   return {
     displayName: profile.name,
     motto: profile.motto,
+    bio: profile.bio,
+    frameId: profile.frameId,
+    pinnedBadges: profile.pinnedBadges,
     xp: game.xp,
     level: game.level,
     streakDays: game.streakDays,
@@ -68,8 +71,20 @@ const applyLocally = (snapshot: CloudSnapshot) => {
   })
 
   const { profile, updateProfile } = useProfileStore.getState()
-  if (profile.name !== snapshot.displayName || profile.motto !== snapshot.motto) {
-    updateProfile({ name: snapshot.displayName, motto: snapshot.motto })
+  if (
+    profile.name !== snapshot.displayName ||
+    profile.motto !== snapshot.motto ||
+    profile.bio !== snapshot.bio ||
+    profile.frameId !== snapshot.frameId ||
+    JSON.stringify(profile.pinnedBadges) !== JSON.stringify(snapshot.pinnedBadges)
+  ) {
+    updateProfile({
+      name: snapshot.displayName,
+      motto: snapshot.motto,
+      bio: snapshot.bio,
+      frameId: snapshot.frameId,
+      pinnedBadges: snapshot.pinnedBadges,
+    })
   }
 }
 

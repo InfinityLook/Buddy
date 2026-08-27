@@ -29,7 +29,25 @@ export interface ProfileData {
   name: string
   email: string
   motto: string
+  // Delší, volitelný text vedle motta — appka ho synchronizuje stejným
+  // pravidlem jako motto (core/supabase/merge.ts), jen ho dřív neměla
+  // kam napsat. Bez vztahu k avatar/banner fotkám níž.
+  bio: string
   avatar: string
+  // Cover fotka v Supabase Storage (core/supabase/avatarStorage.ts).
+  // Na rozdíl od `avatar` výš (místní data URI, vždy) je to veřejná
+  // URL, viditelná i ostatním v Social, a null dokud appka nikdy nic
+  // nenahrála. Skutečná profilová fotka jde stejnou cestou, ale zůstává
+  // jen v Supabase (profiles.avatar_url) — appka si tam pro ni nemusí
+  // držet lokální kopii, protože se nikde neukazuje uživateli samotnému.
+  bannerUrl: string | null
+  // Id z social/avatarFrames.ts's AVATAR_FRAMES, null = výchozí prsten
+  // podle barvy id (SocialAvatar.tsx). VIP rámeček se validuje znovu
+  // při každém zobrazení, ne jen tady při výběru.
+  frameId: string | null
+  // Nejvýš 3 id z DEFAULT_BADGES, appka to hlídá při výběru
+  // (RewardModule.tsx) i server znovu při čtení (precti_verejny_profil).
+  pinnedBadges: string[]
   security: ProfileSecurity
   readNotifications: string[]
 }
@@ -63,7 +81,11 @@ export const DEFAULT_PROFILE: ProfileData = {
   name: 'Student',
   email: '',
   motto: 'Každý den je nová šance stát se lepší verzí sebe.',
+  bio: '',
   avatar: DEFAULT_AVATAR,
+  bannerUrl: null,
+  frameId: null,
+  pinnedBadges: [],
   security: { biometrics: false, loginAlerts: true },
   readNotifications: [],
 }
@@ -77,6 +99,7 @@ const normalizeProfile = (saved: ProfileData | undefined): ProfileData => {
     ...saved,
     security: { ...DEFAULT_PROFILE.security, ...(saved.security ?? {}) },
     readNotifications: Array.isArray(saved.readNotifications) ? saved.readNotifications : [],
+    pinnedBadges: Array.isArray(saved.pinnedBadges) ? saved.pinnedBadges : [],
   }
 
   if (typeof merged.avatar !== 'string' || merged.avatar.startsWith(LEGACY_REMOTE_AVATAR) || !merged.avatar) {

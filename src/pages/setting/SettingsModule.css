@@ -133,6 +133,24 @@
   border-color: rgba(53, 196, 240, 0.5);
 }
 
+.settings-field textarea {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: 0.55rem 0.6rem;
+  font-size: 1rem;
+  font-family: inherit;
+  outline: none;
+  width: 100%;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.settings-field textarea:focus {
+  border-color: rgba(53, 196, 240, 0.5);
+}
+
 .settings-save-btn {
   margin-top: 0.15rem;
   background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
@@ -336,6 +354,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Kruhový náhled rámečku avataru — na rozdíl od .settings-theme-swatch
+   (obdélník) ukazuje přesně to, co uživatel doopravdy uvidí kolem
+   fotky, ne jen barevnou ukázku. */
+.settings-ramecek-nahled {
+  position: relative;
+  height: 56px;
+  width: 56px;
+  margin: 0 auto;
+  border-radius: 50%;
 }
 
 .settings-theme-nazev {

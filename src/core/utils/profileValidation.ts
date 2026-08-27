@@ -12,7 +12,14 @@ export const ProfileSchema = v.object({
   name: v.string(),
   email: v.string(),
   motto: v.string(),
+  // Optional s výchozí hodnotou (ne jen v.optional bez ní) — ProfileData
+  // má tahle pole povinná, takže výstup validace musí vždycky nést
+  // skutečnou hodnotu, i pro starší uložený profil, který je ještě nemá.
+  bio: v.optional(v.string(), ''),
   avatar: v.string(),
+  bannerUrl: v.optional(v.nullable(v.string()), null),
+  frameId: v.optional(v.nullable(v.string()), null),
+  pinnedBadges: v.optional(v.array(v.string()), []),
   security: ProfileSecuritySchema,
   readNotifications: v.array(v.string()),
 })

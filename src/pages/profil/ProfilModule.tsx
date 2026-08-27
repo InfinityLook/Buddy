@@ -5,7 +5,7 @@ import { useAppStore } from '@/core/store/useAppStore'
 import { useGoalTracker } from '@/miniapps/goal-tracker/useGoalTracker'
 import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
 import { fileToResizedDataUrl } from '@/utils/image'
-import { nahrajAvatarDoCloudu } from '@/core/supabase/avatarStorage'
+import { nahrajAvatarDoCloudu, nahrajBannerDoCloudu } from '@/core/supabase/avatarStorage'
 import { isSupabaseConfigured } from '@/core/supabase/client'
 import { APP_VERSION, applyUpdateNow, checkForUpdates, hasNewerVersion } from '@/core/utils/registerSW'
 import { useProfileData } from './hooks/useProfileData'
@@ -46,6 +46,7 @@ export const ProfilModule: React.FC = () => {
   const [toastMsg, setToastMsg] = useState<string | null>(null)
   const [updateChecking, setUpdateChecking] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
+  const bannerInputRef = useRef<HTMLInputElement>(null)
 
   const showToast = (message: string) => {
     setToastMsg(message)
@@ -103,6 +104,28 @@ export const ProfilModule: React.FC = () => {
     }
   }
 
+  // Banner nemá lokální obdobu jako avatar (viz useProfileData.ts) —
+  // je vidět jen ostatním v Social, takže bez cloudu nemá smysl vůbec
+  // zkoušet, na rozdíl od handleAvatarSelected výš.
+  const handleBannerSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+
+    if (!isSupabaseConfigured) {
+      showToast('Cover fotka potřebuje připojený cloud.')
+      return
+    }
+
+    const url = await nahrajBannerDoCloudu(file)
+    if (url) {
+      updateProfile({ bannerUrl: url })
+      showToast('Cover fotka nastavena ✓')
+    } else {
+      showToast('Nahrání se nepovedlo')
+    }
+  }
+
   const xpToNext = getXpForNextLevel(level)
   const progressPercent = getLevelProgress(xp)
   const unlockedBadges = badges.filter((b) => b.unlockedAt !== null)
@@ -136,6 +159,23 @@ export const ProfilModule: React.FC = () => {
 
       {/* Main User Card */}
       <div className="profil-user-card">
+        <button
+          className="profil-banner"
+          style={profile.bannerUrl ? { backgroundImage: `url(${profile.bannerUrl})` } : undefined}
+          aria-label="Upravit cover fotku"
+          onClick={() => bannerInputRef.current?.click()}
+        >
+          {!profile.bannerUrl && <span className="profil-banner-hint">🖼️ Přidat cover fotku</span>}
+          <span className="profil-banner-edit">✏️</span>
+        </button>
+        <input
+          ref={bannerInputRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={handleBannerSelected}
+        />
+
         <div className="profil-user-main">
           <div className="profil-avatar-wrapper">
             <img src={profile.avatar} alt={profile.name} className="profil-avatar-img" />

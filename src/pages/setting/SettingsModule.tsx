@@ -4,6 +4,7 @@ import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { useHasPermission } from '@/core/role'
 import { useThemeStore, VSECHNY_VZHLEDY } from '@/core/theme'
 import { jeBiometrieDostupna, zaregistrujBiometrii } from '@/core/utils/biometrics'
+import { AVATAR_FRAMES } from '@/social/avatarFrames'
 import './SettingsModule.css'
 
 // ==========================================
@@ -23,14 +24,19 @@ export const SettingsModule: React.FC = () => {
   const themeId = useThemeStore((s) => s.themeId)
   const setThemeId = useThemeStore((s) => s.setThemeId)
 
-  const [form, setForm] = useState({ name: profile.name, email: profile.email, motto: profile.motto })
+  const [form, setForm] = useState({
+    name: profile.name,
+    email: profile.email,
+    motto: profile.motto,
+    bio: profile.bio,
+  })
   const [toast, setToast] = useState<string | null>(null)
   const [biometrieProbiha, setBiometrieProbiha] = useState(false)
 
   // Když se profil změní jinde (obnova ze zálohy), formulář se srovná
   useEffect(() => {
-    setForm({ name: profile.name, email: profile.email, motto: profile.motto })
-  }, [profile.name, profile.email, profile.motto])
+    setForm({ name: profile.name, email: profile.email, motto: profile.motto, bio: profile.bio })
+  }, [profile.name, profile.email, profile.motto, profile.bio])
 
   const showToast = (message: string) => {
     setToast(message)
@@ -43,8 +49,22 @@ export const SettingsModule: React.FC = () => {
       showToast('Jméno nemůže být prázdné')
       return
     }
-    updateProfile({ name: form.name.trim(), email: form.email.trim(), motto: form.motto.trim() })
+    updateProfile({
+      name: form.name.trim(),
+      email: form.email.trim(),
+      motto: form.motto.trim(),
+      bio: form.bio.trim(),
+    })
     showToast('Uloženo ✓')
+  }
+
+  const vybratRamecek = (id: string | null, vip: boolean, nazev: string) => {
+    if (vip && !smiPremium) {
+      showToast('Tenhle rámeček je jen pro VIP.')
+      return
+    }
+    updateProfile({ frameId: id })
+    showToast(id ? `Rámeček „${nazev}“ nastaven ✓` : 'Rámeček zrušen ✓')
   }
 
   const handleResetProfile = () => {
@@ -109,6 +129,18 @@ export const SettingsModule: React.FC = () => {
               value={form.motto}
               onChange={(e) => setForm((f) => ({ ...f, motto: e.target.value }))}
               placeholder="Tvoje osobní motto"
+            />
+          </label>
+
+          <label className="settings-field">
+            <span>O mně</span>
+            <textarea
+              className="settings-textarea"
+              value={form.bio}
+              maxLength={300}
+              rows={3}
+              onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+              placeholder="Pár vět o sobě — zájmy, oblíbený předmět, cokoli chceš"
             />
           </label>
 
@@ -192,6 +224,60 @@ export const SettingsModule: React.FC = () => {
                   {tema.ikona} {tema.nazev}
                 </span>
                 <span className="settings-theme-popis">{tema.popis}</span>
+              </button>
+            )
+          })}
+        </div>
+      </section>
+
+      {/* Rámeček avataru — pevná paleta místo barvy podle id, viz
+          social/avatarFrames.ts. Stejná mřížka jako Vzhled aplikace výš,
+          jen náhled je kruh (jak rámeček doopravdy vypadá), ne obdélník. */}
+      <section className="settings-card">
+        <div className="settings-card-head">
+          <span
+            className="settings-card-icon"
+            style={{ background: 'linear-gradient(135deg, #7dd3fc, #fbbf24)' }}
+            aria-hidden="true"
+          >
+            🖼️
+          </span>
+          <div>
+            <h2 className="settings-card-title">Rámeček avataru</h2>
+            <p className="settings-card-sub">Pevná barva prstenu místo té podle jména — 2 volně, 2 jen pro VIP</p>
+          </div>
+        </div>
+
+        <div className="settings-theme-grid">
+          <button
+            className={`settings-theme-card ${profile.frameId === null ? 'is-aktivni' : ''}`}
+            onClick={() => vybratRamecek(null, false, 'Výchozí')}
+          >
+            <div className="settings-ramecek-nahled" style={{ background: 'var(--bg-panel-raised)' }}>
+              {profile.frameId === null && <span className="settings-theme-check">✓</span>}
+            </div>
+            <span className="settings-theme-nazev">Výchozí</span>
+            <span className="settings-theme-popis">Barva prstenu podle jména</span>
+          </button>
+
+          {AVATAR_FRAMES.map((ramecek) => {
+            const zamceno = ramecek.vip && !smiPremium
+            const aktivni = ramecek.id === profile.frameId
+
+            return (
+              <button
+                key={ramecek.id}
+                className={`settings-theme-card ${aktivni ? 'is-aktivni' : ''} ${zamceno ? 'je-zamceno' : ''}`}
+                onClick={() => vybratRamecek(ramecek.id, ramecek.vip, ramecek.nazev)}
+              >
+                <div
+                  className="settings-ramecek-nahled"
+                  style={{ background: `conic-gradient(from 0deg, ${ramecek.a}, ${ramecek.b}, ${ramecek.a})` }}
+                >
+                  {ramecek.vip && <span className="settings-theme-vip">{zamceno ? '🔒' : '👑'} VIP</span>}
+                  {aktivni && <span className="settings-theme-check">✓</span>}
+                </div>
+                <span className="settings-theme-nazev">{ramecek.nazev}</span>
               </button>
             )
           })}

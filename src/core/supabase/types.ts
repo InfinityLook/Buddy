@@ -9,6 +9,18 @@
 export interface CloudSnapshot {
   displayName: string
   motto: string
+  // Delší, volitelný text vedle motta (jedna věta vs. odstavec) —
+  // stejné pravidlo synchronizace jako motto, viz merge.ts.
+  bio: string
+  // Id z core/theme/avatarFrames.ts's AVATAR_FRAMES, nebo null (výchozí
+  // prsten podle barvy id). VIP rámeček se ověřuje znovu při každém
+  // zobrazení cizího profilu (viz resolveActiveFrameId), ne tady.
+  frameId: string | null
+  // Nejvýš 3 id odznaků z DEFAULT_BADGES, vybraná k vystavení na
+  // veřejném profilu — precti_verejny_profil je navíc filtruje proti
+  // user_badges, takže i kdyby sem někdo propašoval neodemčené id,
+  // server ho stejně nikdy nevrátí.
+  pinnedBadges: string[]
   xp: number
   level: number
   streakDays: number

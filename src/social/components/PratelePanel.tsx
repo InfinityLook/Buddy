@@ -1,11 +1,14 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+import QRCode from 'qrcode'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import { NahlasitDialog } from './NahlasitDialog'
+import { SkenovatKodDialog } from './SkenovatKodDialog'
 import * as api from '../api'
 import { normalizeText } from '@/core/utils/text'
+import { profilOdkaz } from '../shareLink'
 import type { SocialStav } from '../useSocial'
-import type { SocialProfil } from '../types'
+import type { PratelskyNavrh, SocialProfil } from '../types'
 
 interface Props {
   stav: SocialStav
@@ -24,9 +27,38 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
   // neměl jak ho nahlásit, aniž by s ním napřed musel/a psát. Dialog
   // zpravaId od začátku bral jako nepovinné, jen tady na něj nebylo tlačítko.
   const [nahlasit, setNahlasit] = useState<SocialProfil | null>(null)
+  const [navrhy, setNavrhy] = useState<PratelskyNavrh[]>([])
+  const [qr, setQr] = useState<string | null>(null)
+  const [sken, setSken] = useState(false)
+  const [zkopirovano, setZkopirovano] = useState(false)
+
+  // QR se generuje z vlastního kódu, jakmile ho appka zná — čistě
+  // klientská knihovna (qrcode), žádný síťový dotaz.
+  useEffect(() => {
+    const kod = stav.profil?.friendCode
+    if (!kod) return
+    let platne = true
+    void QRCode.toDataURL(profilOdkaz(kod), { margin: 1, width: 168 }).then(
+      (url) => platne && setQr(url)
+    )
+    return () => {
+      platne = false
+    }
+  }, [stav.profil?.friendCode])
 
   const prichozi = stav.zadosti.filter((z) => z.smer === 'prichozi')
   const odchozi = stav.zadosti.filter((z) => z.smer === 'odchozi')
+
+  // Návrhy se přenačtou při každé změně přátel/žádostí (stav.pratele
+  // se mění po přijetí/odeslání žádosti) — bez toho by appka pořád
+  // nabízela někoho, koho uživatel mezitím už přidal.
+  useEffect(() => {
+    let platne = true
+    void api.nactiNavrhyPratel().then((n) => platne && setNavrhy(n))
+    return () => {
+      platne = false
+    }
+  }, [stav.pratele, stav.zadosti])
 
   // Hledání jen v už schválených přátelích, ne v celé appce — to dělá
   // sekce NAJÍT LIDI výš, tohle je filtr nad seznamem, co uživatel
@@ -53,8 +85,43 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
     if (ok) setVysledky((v) => v.filter((p) => p.id !== profil.id))
   }
 
+  const pridatZNavrhu = async (navrh: PratelskyNavrh) => {
+    const ok = await stav.provest(() => api.poslatZadost(navrh.id), 'Žádost odeslána.')
+    if (ok) setNavrhy((n) => n.filter((x) => x.id !== navrh.id))
+  }
+
   return (
     <div className="social-panel">
+      {/* Sdílet vlastní profil — přátelský kód dřív appka nikde
+          nezobrazovala (viz CLAUDE.md), ta stará "TVŮJ KÓD" obrazovka
+          ustoupila hledání podle jména. Tohle není její návrat, je to
+          nová funkce: rychlé párování naskenováním, ne prohledávání. */}
+      {stav.profil && (
+        <section className="social-card social-muj-profil">
+          <span className="social-card-label">MŮJ PROFIL</span>
+          <div className="social-muj-profil-radek">
+            {qr && <img src={qr} alt="QR kód profilu" className="social-qr" />}
+            <div className="social-muj-profil-akce">
+              <span className="social-muj-kod">{api.formatujKod(stav.profil.friendCode)}</span>
+              <button
+                className="social-btn social-btn--small"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(profilOdkaz(stav.profil!.friendCode))
+                  setZkopirovano(true)
+                  window.setTimeout(() => setZkopirovano(false), 2000)
+                }}
+              >
+                <SocialIcon name={zkopirovano ? 'check' : 'copy'} size={13} />
+                {zkopirovano ? 'Zkopírováno' : 'Kopírovat odkaz'}
+              </button>
+              <button className="social-btn social-btn--small social-btn--tlumene" onClick={() => setSken(true)}>
+                📷 Naskenovat kód
+              </button>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Najít lidi podle jména */}
       <section className="social-card">
         <span className="social-card-label">NAJÍT LIDI</span>
@@ -91,6 +158,32 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
           </div>
         ))}
       </section>
+
+      {/* Návrhy podle společných přátel — navrhy_pratel() na databázi
+          už vylučuje sebe, stávající přátele, čekající žádosti
+          i blokované, appka tu jen vykresluje, co dostala. */}
+      {navrhy.length > 0 && (
+        <section className="social-card">
+          <span className="social-card-label">NÁVRHY</span>
+          {navrhy.map((n) => (
+            <div key={n.id} className="social-row">
+              <button className="social-row-otevrit" onClick={() => onOtevritProfil(n.id)}>
+                <SocialAvatar id={n.id} jmeno={n.displayName} avatarUrl={n.avatarUrl} />
+                <span className="social-row-name">
+                  {n.displayName}
+                  <span className="social-row-sub">
+                    {n.spolecni} {n.spolecni === 1 ? 'společný přítel' : n.spolecni < 5 ? 'společní přátelé' : 'společných přátel'}
+                  </span>
+                </span>
+              </button>
+              <button className="social-btn social-btn--small" onClick={() => pridatZNavrhu(n)}>
+                <SocialIcon name="plus" size={14} />
+                Přidat
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
 
       {/* Došlé žádosti */}
       {prichozi.length > 0 && (
@@ -209,6 +302,10 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
 
       {nahlasit && (
         <NahlasitDialog userId={nahlasit.id} stav={stav} onZavrit={() => setNahlasit(null)} />
+      )}
+
+      {sken && (
+        <SkenovatKodDialog stav={stav} onOtevritProfil={onOtevritProfil} onZavrit={() => setSken(false)} />
       )}
     </div>
   )

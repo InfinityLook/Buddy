@@ -82,6 +82,46 @@
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 }
 
+/* Cover fotka — full-bleed přes horní okraj karty, proto záporný okraj
+   přesně rovný jejímu vlastnímu paddingu (0.5rem 0.75rem výš). Bez
+   nastavené fotky ukazuje jen tichou výzvu, ne prázdné místo, co
+   vypadá jako chyba. */
+.profil-banner {
+  position: relative;
+  height: 84px;
+  margin: -0.5rem -0.75rem 0.15rem;
+  border: none;
+  border-radius: var(--profil-radius-lg) var(--profil-radius-lg) 0 0;
+  background-color: var(--bg-panel-raised);
+  background-size: cover;
+  background-position: center;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.profil-banner-hint {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.profil-banner-edit {
+  position: absolute;
+  bottom: 0.4rem;
+  right: 0.5rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+}
+
 .profil-user-main {
   display: flex;
   align-items: center;
