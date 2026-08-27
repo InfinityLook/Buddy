@@ -11,6 +11,11 @@ interface Props {
   /** Emoji skupiny (Chat.ikona) — bez ní se drží výchozí "#". U víc
    *  skupin najednou to bylo jinak nerozeznatelné, viz Chat.ikona. */
   ikona?: string | null
+  /** Skutečná fotka profilu (core/supabase/avatarStorage.ts) — když je,
+   *  vyplní celý kruh místo iniciály. Barevný prsten okolo zůstává
+   *  i s fotkou, ať jde poznat "moje/jeho" na první pohled stejně
+   *  jako dřív. */
+  avatarUrl?: string | null
   /** Příchozí žádost dostane pulzující prstenec, ať upoutá pozornost
    *  dřív, než si člověk přečte text vedle ní. */
   pulzuje?: boolean
@@ -24,6 +29,7 @@ export const SocialAvatar: React.FC<Props> = ({
   jmeno,
   jeSkupina,
   ikona,
+  avatarUrl,
   pulzuje,
   tlumeny,
   velikost = 34,
@@ -42,9 +48,13 @@ export const SocialAvatar: React.FC<Props> = ({
     >
       {pulzuje && <span className="social-avatar-pulz" />}
       <span className="social-avatar-prstenec" />
-      <span className={`social-avatar ${jeSkupina ? 'is-skupina' : ''}`}>
-        {jeSkupina ? ikona ?? '#' : jmeno.charAt(0).toUpperCase()}
-      </span>
+      {!jeSkupina && avatarUrl && !tlumeny ? (
+        <img src={avatarUrl} alt="" className="social-avatar social-avatar--foto" />
+      ) : (
+        <span className={`social-avatar ${jeSkupina ? 'is-skupina' : ''}`}>
+          {jeSkupina ? ikona ?? '#' : jmeno.charAt(0).toUpperCase()}
+        </span>
+      )}
     </span>
   )
 }

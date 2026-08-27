@@ -104,7 +104,7 @@ export const SpravaSkupinyDialog: React.FC<Props> = ({ chat, stav, onZavrit, onO
 
         <span className="social-card-label">ČLENOVÉ ({chat.ucastnici.length + 1})</span>
         <div className="social-row">
-          <SocialAvatar id={stav.mujId ?? ''} jmeno="Ty" />
+          <SocialAvatar id={stav.mujId ?? ''} jmeno="Ty" avatarUrl={stav.profil?.avatarUrl} />
           <span className="social-row-name">
             Ty {chat.zakladatelId === stav.mujId && '· zakladatel/ka'}
           </span>
@@ -112,7 +112,7 @@ export const SpravaSkupinyDialog: React.FC<Props> = ({ chat, stav, onZavrit, onO
         {chat.ucastnici.map((u) => (
           <div key={u.id} className="social-row">
             <button className="social-row-otevrit" onClick={() => onOtevritProfil(u.id)}>
-              <SocialAvatar id={u.id} jmeno={u.displayName} />
+              <SocialAvatar id={u.id} jmeno={u.displayName} avatarUrl={u.avatarUrl} />
               <span className="social-row-name">
                 {u.displayName} {chat.zakladatelId === u.id && '· zakladatel/ka'}
               </span>
@@ -135,7 +135,7 @@ export const SpravaSkupinyDialog: React.FC<Props> = ({ chat, stav, onZavrit, onO
             <span className="social-card-label">PŘIDAT PŘÍTELE</span>
             {priteleKPridani.map((p) => (
               <div key={p.vazbaId} className="social-row">
-                <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} />
+                <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} avatarUrl={p.profil.avatarUrl} />
                 <span className="social-row-name">{p.profil.displayName}</span>
                 <button
                   className="social-icon-btn social-icon-btn--ano"

@@ -30,6 +30,9 @@ export interface VerejnyProfil extends SocialProfil {
   /** RoleId jako string — core/role/registry.ts's getRole() ho převede
    *  na ikonu/název/tón pro nálepku role. */
   roleId: string
+  /** Appka ho synchronizuje odjakživa (core/supabase/sync.ts) — jen ho
+   *  precti_verejny_profil dřív nevracel, protože nebylo kam ho zobrazit. */
+  motto: string
 }
 
 export interface Zadost {
@@ -109,11 +112,15 @@ export interface Reakce {
  *  "pevná sada, ne libovolný vstup" přístup jako IKONY_SKUPIN výš. */
 export const EMOJI_REAKCI = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const
 
-export type DuvodNahlaseni = 'spam' | 'obtezovani' | 'nevhodny_obsah' | 'jine'
+export type DuvodNahlaseni = 'spam' | 'obtezovani' | 'nevhodny_obsah' | 'nevhodne_foto' | 'jine'
 
+// nevhodne_foto přibylo se Sociál Fází 2 (skutečná fotka profilu přes
+// Supabase Storage) — bez ML kontroly obsahu je hlášení jediná
+// moderace, kterou appka nad nahranými fotkami má.
 export const DUVODY: { id: DuvodNahlaseni; popis: string }[] = [
   { id: 'obtezovani', popis: 'Obtěžuje mě nebo mi vyhrožuje' },
   { id: 'nevhodny_obsah', popis: 'Posílá nevhodný obsah' },
+  { id: 'nevhodne_foto', popis: 'Nevhodná profilová fotka' },
   { id: 'spam', popis: 'Spam nebo reklama' },
   { id: 'jine', popis: 'Něco jiného' },
 ]

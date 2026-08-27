@@ -81,7 +81,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
         {vysledky.map((profil) => (
           <div key={profil.id} className="social-row">
             <button className="social-row-otevrit" onClick={() => onOtevritProfil(profil.id)}>
-              <SocialAvatar id={profil.id} jmeno={profil.displayName} />
+              <SocialAvatar id={profil.id} jmeno={profil.displayName} avatarUrl={profil.avatarUrl} />
               <span className="social-row-name">{profil.displayName}</span>
             </button>
             <button className="social-btn social-btn--small" onClick={() => pridatPritele(profil)}>
@@ -99,7 +99,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
           {prichozi.map((z) => (
             <div key={z.id} className="social-row">
               <button className="social-row-otevrit" onClick={() => onOtevritProfil(z.profil.id)}>
-                <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} pulzuje />
+                <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} avatarUrl={z.profil.avatarUrl} pulzuje />
                 <span className="social-row-name">{z.profil.displayName}</span>
               </button>
               <button
@@ -127,7 +127,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
           {odchozi.map((z) => (
             <div key={z.id} className="social-row">
               <button className="social-row-otevrit" onClick={() => onOtevritProfil(z.profil.id)}>
-                <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} />
+                <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} avatarUrl={z.profil.avatarUrl} />
                 <span className="social-row-name">{z.profil.displayName}</span>
               </button>
               <button
@@ -166,7 +166,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
           filtrovaniPratele.map((p) => (
             <div key={p.vazbaId} className="social-row">
               <button className="social-row-otevrit" onClick={() => onOtevritProfil(p.profil.id)}>
-                <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} />
+                <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} avatarUrl={p.profil.avatarUrl} />
                 <span className="social-row-name">{p.profil.displayName}</span>
               </button>
 

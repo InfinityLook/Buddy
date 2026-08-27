@@ -253,6 +253,7 @@ export const nactiVerejnyProfil = async (id: string): Promise<VerejnyProfil | nu
     level: r.level,
     streakDays: r.streak_days,
     roleId: r.role,
+    motto: r.motto?.trim() ?? '',
   }
 }
 
@@ -893,6 +894,7 @@ const DUVOD_POPIS: Record<string, string> = {
   spam: 'Spam nebo reklama',
   obtezovani: 'Obtěžování',
   nevhodny_obsah: 'Nevhodný obsah',
+  nevhodne_foto: 'Nevhodná profilová fotka',
   jine: 'Jiné',
 }
 

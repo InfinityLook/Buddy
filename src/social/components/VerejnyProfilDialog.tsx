@@ -68,7 +68,7 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
         ) : (
           <>
             <div className="social-profil-hlava">
-              <SocialAvatar id={profil.id} jmeno={profil.displayName} velikost={56} />
+              <SocialAvatar id={profil.id} jmeno={profil.displayName} avatarUrl={profil.avatarUrl} velikost={56} />
               <div className="social-profil-hlava-text">
                 <h3 className="social-dialog-title">{profil.displayName}</h3>
                 {role && role.id !== 'user' && (
@@ -78,6 +78,8 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
                 )}
               </div>
             </div>
+
+            {profil.motto && <p className="social-profil-motto">{profil.motto}</p>}
 
             <div className="social-profil-uroven">
               <div className="social-profil-uroven-hlava">

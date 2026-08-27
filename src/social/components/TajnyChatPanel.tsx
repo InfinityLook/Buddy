@@ -97,7 +97,7 @@ export const TajnyChatPanel: React.FC<Props> = ({ tajnyStav, rekni, onOtevrit })
           <span className="social-card-label">ČEKÁ NA TEBE ({cekajiciNaMe.length})</span>
           {cekajiciNaMe.map((c) => (
             <div key={c.id} className="social-row">
-              <SocialAvatar id={c.druhy.id} jmeno={c.druhy.displayName} pulzuje />
+              <SocialAvatar id={c.druhy.id} jmeno={c.druhy.displayName} avatarUrl={c.druhy.avatarUrl} pulzuje />
               <span className="social-row-name">{c.druhy.displayName}</span>
               <button
                 className="social-icon-btn social-icon-btn--ano"
@@ -135,7 +135,7 @@ export const TajnyChatPanel: React.FC<Props> = ({ tajnyStav, rekni, onOtevrit })
           <span className="social-card-label">ČEKÁ NA DRUHOU STRANU ({cekajiciOdMe.length})</span>
           {cekajiciOdMe.map((c) => (
             <div key={c.id} className="social-row">
-              <SocialAvatar id={c.druhy.id} jmeno={c.druhy.displayName} />
+              <SocialAvatar id={c.druhy.id} jmeno={c.druhy.displayName} avatarUrl={c.druhy.avatarUrl} />
               <span className="social-row-name">{c.druhy.displayName}</span>
               <span className="social-hlaseni-stav">Čeká na potvrzení</span>
             </div>
@@ -148,7 +148,7 @@ export const TajnyChatPanel: React.FC<Props> = ({ tajnyStav, rekni, onOtevrit })
           <span className="social-card-label">ZAMÍTNUTÉ ({zamitnute.length})</span>
           {zamitnute.map((c) => (
             <div key={c.id} className="social-row">
-              <SocialAvatar id={c.druhy.id} jmeno={c.druhy.displayName} tlumeny />
+              <SocialAvatar id={c.druhy.id} jmeno={c.druhy.displayName} avatarUrl={c.druhy.avatarUrl} tlumeny />
               <span className="social-row-name">{c.druhy.displayName}</span>
               <span className="social-hlaseni-stav">Zamítnuto</span>
             </div>
@@ -167,7 +167,7 @@ export const TajnyChatPanel: React.FC<Props> = ({ tajnyStav, rekni, onOtevrit })
         ) : (
           aktivni.map((c) => (
             <button key={c.id} className="social-row social-row--chat" onClick={() => onOtevrit(c.id)}>
-              <SocialAvatar id={c.druhy.id} jmeno={c.druhy.displayName} />
+              <SocialAvatar id={c.druhy.id} jmeno={c.druhy.displayName} avatarUrl={c.druhy.avatarUrl} />
               <span className="social-chat-text">
                 <span className="social-chat-nazev">{c.druhy.displayName}</span>
                 <span className="social-chat-nahled">Tajný chat</span>

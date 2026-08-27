@@ -5,6 +5,8 @@ import { useAppStore } from '@/core/store/useAppStore'
 import { useGoalTracker } from '@/miniapps/goal-tracker/useGoalTracker'
 import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
 import { fileToResizedDataUrl } from '@/utils/image'
+import { nahrajAvatarDoCloudu } from '@/core/supabase/avatarStorage'
+import { isSupabaseConfigured } from '@/core/supabase/client'
 import { APP_VERSION, applyUpdateNow, checkForUpdates, hasNewerVersion } from '@/core/utils/registerSW'
 import { useProfileData } from './hooks/useProfileData'
 import { useCloudStatus, syncNow } from '@/core/supabase/cloudSync'
@@ -89,6 +91,15 @@ export const ProfilModule: React.FC = () => {
       showToast('Fotka aktualizována ✓')
     } catch {
       showToast('Obrázek se nepodařilo načíst')
+      return
+    }
+
+    // Nahrání do cloudu je doplněk, ne podmínka — appka právě ukázala
+    // "Fotka aktualizována ✓" bez ohledu na to, jak tohle dopadne.
+    // Bez cloudu (isSupabaseConfigured === false) nemá kam nahrát.
+    if (isSupabaseConfigured) {
+      const url = await nahrajAvatarDoCloudu(file)
+      if (url) showToast('Fotka viditelná i přátelům v Social ✓')
     }
   }
 

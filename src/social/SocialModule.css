@@ -321,6 +321,14 @@
   font-weight: 800;
 }
 
+/* Skutečná fotka (core/supabase/avatarStorage.ts) místo iniciály —
+   stejný kruhový výřez (inset+border-radius), jen s obrázkem místo
+   přechodu, ať fotka nikdy nezdeformuje poměr stran. */
+.social-avatar--foto {
+  object-fit: cover;
+  background: var(--bg-panel-raised);
+}
+
 /* Příchozí žádost — rozpínající se prstenec navíc, ať se pozornost
    nejdřív zastaví na avataru a teprve pak na textu vedle něj. */
 .social-avatar-pulz {
@@ -981,6 +989,17 @@
   background: rgba(248, 113, 113, 0.18);
   color: #f87171;
   border: 1px solid rgba(248, 113, 113, 0.4);
+}
+
+/* Bio (motto) — stejné pole appka odjakživa ukazuje na vlastním
+   profilu (ProfilModule.tsx), tady poprvé i na cizím. */
+.social-profil-motto {
+  margin: 0;
+  padding: 0 0.1rem;
+  font-size: 0.74rem;
+  font-style: italic;
+  color: var(--text-secondary);
+  line-height: 1.4;
 }
 
 .social-profil-uroven {

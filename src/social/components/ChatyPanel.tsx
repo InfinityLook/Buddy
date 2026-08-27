@@ -105,7 +105,7 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
                     }`}
                     onClick={() => prepnout(p.profil.id)}
                   >
-                    <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} />
+                    <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} avatarUrl={p.profil.avatarUrl} />
                     <span className="social-row-name">{p.profil.displayName}</span>
                     {vybrani.includes(p.profil.id) && <SocialIcon name="check" size={16} />}
                   </button>
@@ -150,7 +150,13 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
               className={`social-row social-row--chat ${ch.neprectene > 0 ? 'ma-neprectene' : ''}`}
               onClick={() => onOtevritChat(ch.id)}
             >
-              <SocialAvatar id={ch.id} jmeno={ch.nazev} jeSkupina={ch.jeSkupina} ikona={ch.ikona} />
+              <SocialAvatar
+                id={ch.id}
+                jmeno={ch.nazev}
+                jeSkupina={ch.jeSkupina}
+                ikona={ch.ikona}
+                avatarUrl={!ch.jeSkupina ? ch.ucastnici[0]?.avatarUrl : null}
+              />
 
               <span className="social-chat-text">
                 <span className="social-chat-nazev">
