@@ -43,7 +43,7 @@
 /* Obsah musí ležet nad ambientní vrstvou explicitně — fixed prvek se
    umí propsat nad obyčejný tok i bez z-indexu, tohle je pojistka. */
 .social-top-bar,
-.social-zalozky,
+.social-bottom-nav,
 .social-panel,
 .social-chat-view {
   position: relative;
@@ -51,12 +51,13 @@
 }
 
 /* ---------- hlavička ---------- */
-
+/* Zúžená schválně — dřív nesla i podnadpis a dýchající emoji, ale ty
+   patřily k záložkám nad obsahem, které teď žijí dole (viz níž). Holé
+   "← Zpět do Hubu" nad názvem je stejný minimální vzor, jaký mívá
+   Instagram/TikTok nahoře na obrazovce: jen značka, žádný popisek. */
 .social-top-bar {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
+  flex-direction: column;
 }
 
 .social-back-btn {
@@ -67,6 +68,7 @@
   cursor: pointer;
   padding: 0;
   margin-bottom: 0.5rem;
+  align-self: flex-start;
 }
 
 .social-title {
@@ -76,70 +78,76 @@
   letter-spacing: -0.3px;
 }
 
-.social-subtitle {
-  color: var(--text-secondary);
-  font-size: 0.7rem;
-  margin: 0.15rem 0 0;
-  line-height: 1.4;
-}
-
-.social-hero-icon {
-  font-size: 2rem;
-  animation: social-hero-dech 3.6s ease-in-out infinite;
-}
-
-@keyframes social-hero-dech {
-  0%, 100% { transform: scale(1); filter: drop-shadow(0 0 14px rgba(53, 196, 240, 0.45)); }
-  50% { transform: scale(1.07); filter: drop-shadow(0 0 20px rgba(53, 196, 240, 0.65)); }
-}
-
-/* ---------- záložky ---------- */
-
-/* Vodorovný scroll, ne flex:1 na pěti (šesti se Tajným chatem)
-   položkách do jednoho řádku — to je přesně to, co dřív "Tajný chat"
-   zalamovalo na dva řádky a všechno namačkalo k sobě. Každá záložka má
-   teď přirozenou šířku podle textu, řádek se posouvá prstem stejně
-   jako karuselový výběr postavy ve hře (TvorbaPostavy.css). */
-.social-zalozky {
+/* ---------- spodní navigace ---------- */
+/* Instagram/TikTok vzor: ikony dole na pevno přilepené k okraji, ne
+   záložky nahoře nad obsahem. Stejný sticky+gradientový podklad jako
+   Hub's .hub-bottom-bar (HubModule.css) — dvě různé lišty pro totéž by
+   appka nemusela mít. flex:1 tu na rozdíl od staré horní řady nevadí:
+   samotná ikona s jednoslovným popiskem pod sebou se nemá kam zalomit
+   ani na pěti/šesti položkách v řadě, takže vodorovný scroll (řešení
+   staré verze) už není potřeba vůbec. */
+.social-bottom-nav {
   display: flex;
-  gap: 0.35rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity;
-  padding-bottom: 0.1rem;
-  margin-bottom: -0.1rem;
+  align-items: stretch;
+  margin-top: auto;
+  padding-top: 0.4rem;
+  padding-bottom: 0.25rem;
+  position: sticky;
+  bottom: 0;
 }
 
-.social-zalozka {
-  flex: 0 0 auto;
+.social-bottom-nav::before {
+  content: '';
+  position: absolute;
+  inset: -0.7rem -0.75rem calc(-1.25rem - env(safe-area-inset-bottom)) -0.75rem;
+  background: linear-gradient(180deg, rgba(6, 10, 22, 0) 0%, rgba(6, 10, 22, 0.92) 45%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.social-nav-item {
+  position: relative;
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.3rem;
-  padding: 0.5rem 0.65rem;
-  border-radius: var(--radius-md);
-  background: var(--bg-panel);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
+  gap: 0.2rem;
+  border: none;
+  background: none;
+  color: var(--text-muted);
   font-family: inherit;
-  font-size: 0.7rem;
+  font-size: 0.56rem;
   font-weight: 700;
-  white-space: nowrap;
   cursor: pointer;
-  scroll-snap-align: start;
+  transition: color 0.2s ease, transform 0.15s ease;
 }
 
-.social-zalozka {
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease,
-    border-color 0.2s ease;
+.social-nav-item:active { transform: scale(0.92); }
+
+.social-nav-item.is-aktivni { color: var(--accent-cyan); }
+
+.social-nav-icon-wrap {
+  position: relative;
+  display: inline-flex;
 }
 
-.social-zalozka.is-aktivni {
-  background: var(--accent-cyan);
-  border-color: var(--accent-cyan);
-  color: var(--text-on-accent);
-  box-shadow: var(--shadow-glow-cyan);
-  transform: translateY(-1px);
+.social-nav-odznak {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-magenta);
+  color: #fff;
+  font-size: 0.48rem;
+  font-weight: 800;
+  line-height: 14px;
+  text-align: center;
+  border: 2px solid var(--bg-base);
+  box-sizing: border-box;
 }
 
 /* ---------- karty ---------- */
@@ -1220,7 +1228,10 @@
 .social-toast {
   position: fixed;
   left: 50%;
-  bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  /* 4.5rem místo dřívějších 1.25rem — appka teď má na tomhle místě
+     přilepenou spodní navigaci (social-bottom-nav), toast musí plavat
+     nad ní, ne se s ní překrývat. */
+  bottom: calc(4.5rem + env(safe-area-inset-bottom));
   transform: translateX(-50%);
   z-index: 60;
   max-width: min(420px, calc(100vw - 2rem));
@@ -1310,8 +1321,7 @@
    od kruhu v Hubu po tenhle modul appka bere prefers-reduced-motion
    vážně napříč celou aplikací, ne jen tam, kde si na to někdo vzpomněl. */
 @media (prefers-reduced-motion: reduce) {
-  .social-hero-icon,
-  .social-zalozka,
+  .social-nav-item,
   .social-avatar-prstenec,
   .social-avatar-pulz,
   .social-row--chat.ma-neprectene .social-odznak,

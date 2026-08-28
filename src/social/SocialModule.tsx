@@ -160,41 +160,10 @@ export const SocialModule: React.FC = () => {
       ) : (
         <>
           <div className="social-top-bar">
-            <div>
-              <button className="social-back-btn" onClick={() => navigate('/hub')}>
-                ← Zpět do Hubu
-              </button>
-              <h1 className="social-title">Social</h1>
-              <p className="social-subtitle">
-                Přátelé, chaty a klid od těch, se kterými si psát nechceš.
-              </p>
-            </div>
-            <span className="social-hero-icon" aria-hidden="true">👥</span>
-          </div>
-
-          <div className="social-zalozky">
-            {zalozky.map((z) => {
-              const odznak =
-                z.id === 'profil'
-                  ? cekaZadosti
-                  : z.id === 'chaty'
-                    ? neprectene
-                    : z.id === 'tajne'
-                      ? tajnyStav.cekajiciNaMe
-                      : 0
-
-              return (
-                <button
-                  key={z.id}
-                  className={`social-zalozka ${zalozka === z.id ? 'is-aktivni' : ''}`}
-                  onClick={() => setZalozka(z.id)}
-                >
-                  <SocialIcon name={z.ikona} size={15} />
-                  {z.popis}
-                  {odznak > 0 && <span className="social-odznak">{odznak}</span>}
-                </button>
-              )
-            })}
+            <button className="social-back-btn" onClick={() => navigate('/hub')}>
+              ← Zpět do Hubu
+            </button>
+            <h1 className="social-title">Social</h1>
           </div>
 
           {stav.nacita ? (
@@ -222,6 +191,37 @@ export const SocialModule: React.FC = () => {
           )}
 
           {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
+
+          {/* Spodní navigace, ne horní záložky — Instagram/TikTok vzor,
+              viz komentář v SocialModule.css. Poslední prvek v .social-page's
+              flex sloupci, margin-top: auto ho posune ke dnu i s krátkým
+              obsahem, position: sticky ho tam udrží i při delším scrollu. */}
+          <div className="social-bottom-nav">
+            {zalozky.map((z) => {
+              const odznak =
+                z.id === 'profil'
+                  ? cekaZadosti
+                  : z.id === 'chaty'
+                    ? neprectene
+                    : z.id === 'tajne'
+                      ? tajnyStav.cekajiciNaMe
+                      : 0
+
+              return (
+                <button
+                  key={z.id}
+                  className={`social-nav-item ${zalozka === z.id ? 'is-aktivni' : ''}`}
+                  onClick={() => setZalozka(z.id)}
+                >
+                  <span className="social-nav-icon-wrap">
+                    <SocialIcon name={z.ikona} size={21} />
+                    {odznak > 0 && <span className="social-nav-odznak">{odznak}</span>}
+                  </span>
+                  {z.popis}
+                </button>
+              )
+            })}
+          </div>
         </>
       )}
 
