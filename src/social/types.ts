@@ -106,6 +106,20 @@ export interface Zprava {
    *  (bez zvláštního dotazu); u starší, ještě nenačtené zprávy se ukáže
    *  obecná náhrada bez textu. */
   replyToId: string | null
+  /** Cesta v privátním bucketu `chat-media`, ne plná URL — appka si
+   *  k ní teprve při vykreslení vyžádá krátkodobě platný podepsaný
+   *  odkaz (api.ts's ziskejUrlMedia), null u běžné textové zprávy. */
+  mediaPath: string | null
+  mediaType: 'image' | 'video' | null
+}
+
+/** Text, který api.ts's poslatZpravu uloží do `body`, když uživatel
+ *  pošle médium bez vlastního popisku — sdílené s ChatView.tsx, ať se
+ *  ta samá hláška nemusí schovávat pod bublinou jako "popisek", který
+ *  ve skutečnosti nikdo nenapsal. */
+export const VYCHOZI_POPISEK_MEDIA: Record<'image' | 'video', string> = {
+  image: '📷 Fotka',
+  video: '🎥 Video',
 }
 
 /**

@@ -3,9 +3,40 @@ import { SocialIcon } from './SocialIcon'
 import { NahlasitDialog } from './NahlasitDialog'
 import { SpravaSkupinyDialog } from './SpravaSkupinyDialog'
 import * as api from '../api'
-import { EMOJI_REAKCI, type Chat, type Reakce, type Zprava } from '../types'
+import { EMOJI_REAKCI, VYCHOZI_POPISEK_MEDIA, type Chat, type Reakce, type Zprava } from '../types'
 import type { SocialStav } from '../useSocial'
 import { requestNotificationPermission } from '@/core/utils/notify'
+
+// Podepsaný odkaz na fotku/video se vyžaduje jednou za bublinu, ne při
+// každém vykreslení — vlastní malá komponenta místo inline logiky přímo
+// v mapě zpráv, ať se hook (useEffect) drží u jedné konkrétní zprávy.
+const ZpravaMedium: React.FC<{ path: string; typ: 'image' | 'video' }> = ({ path, typ }) => {
+  const [url, setUrl] = useState<string | null>(null)
+  const [selhalo, setSelhalo] = useState(false)
+
+  useEffect(() => {
+    let platne = true
+    setUrl(null)
+    setSelhalo(false)
+    void api.ziskejUrlMedia(path).then((u) => {
+      if (!platne) return
+      if (u) setUrl(u)
+      else setSelhalo(true)
+    })
+    return () => {
+      platne = false
+    }
+  }, [path])
+
+  if (selhalo) return <p className="social-media-chyba">Médium se nepodařilo načíst.</p>
+  if (!url) return <div className="social-media-nacita" aria-hidden="true" />
+
+  return typ === 'video' ? (
+    <video className="social-bublina-media" src={url} controls playsInline />
+  ) : (
+    <img className="social-bublina-media" src={url} alt="" />
+  )
+}
 
 interface Props {
   chat: Chat
@@ -31,6 +62,10 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
   const [odeslano, setOdeslano] = useState(false)
   const [nahlasit, setNahlasit] = useState<{ userId: string; zpravaId?: string } | null>(null)
   const [spravaOtevrena, setSpravaOtevrena] = useState(false)
+  // Nahrávání média blokuje jen tlačítko sponky, ne celý composer —
+  // text jde psát dál, i když se zrovna nahrává fotka z minulého klepnutí.
+  const [nahravaMedium, setNahravaMedium] = useState(false)
+  const souborInputRef = useRef<HTMLInputElement>(null)
   const [online, setOnline] = useState<Set<string>>(new Set())
   const [pisouId, setPisouId] = useState<string | null>(null)
   // Jestli má cenu nabízet "Načíst starší" — plná stránka napovídá, že
@@ -196,6 +231,34 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
       // už dřív načetl přes "Načíst starší". Realtime tutéž zprávu
       // stejně doručí znovu (stejné id), sledovatChat ji jen přepíše
       // na místě, žádná duplicita.
+      setZpravy((s) => [...s, vysledek.zprava as Zprava])
+    } else {
+      stav.rekni(vysledek.chyba ?? 'Zpráva neodešla.')
+    }
+  }
+
+  // Sponka: vybraný soubor se nejdřív nahraje do Storage (nahratChatMedium),
+  // teprve pak vznikne samotná zpráva s odkazem na něj — stejné pořadí
+  // jako u avatara/banneru, jen tady výsledkem není sloupec v profiles,
+  // ale nová řádka v messages. Text v composeru (pokud nějaký je) jde
+  // jako popisek spolu s médiem, ne jako samostatná druhá zpráva.
+  const poslatMedium = async (soubor: File) => {
+    requestNotificationPermission()
+    setNahravaMedium(true)
+
+    const medium = await api.nahratChatMedium(chat.id, soubor)
+    if (!medium) {
+      setNahravaMedium(false)
+      stav.rekni('Soubor se nepovedlo nahrát — zkontroluj typ a velikost (video max 25 MB).')
+      return
+    }
+
+    const vysledek = await api.poslatZpravu(chat.id, text, odpovidamNa?.id ?? null, medium)
+    setNahravaMedium(false)
+
+    if (vysledek.ok && vysledek.zprava) {
+      setText('')
+      setOdpovidamNa(null)
       setZpravy((s) => [...s, vysledek.zprava as Zprava])
     } else {
       stav.rekni(vysledek.chyba ?? 'Zpráva neodešla.')
@@ -380,8 +443,17 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
                     )}
                   </div>
                 )}
+                {z.mediaPath && z.mediaType && !smazana && (
+                  <ZpravaMedium path={z.mediaPath} typ={z.mediaType} />
+                )}
                 <span className="social-bublina-radek">
-                  <span className="social-bublina-text">{z.text}</span>
+                  {/* Automatický popisek ("📷 Fotka"/"🎥 Video", viz
+                      poslatZpravu v api.ts) se pod médiem znovu nevypisuje
+                      jako by ho někdo napsal — ukáže se jen skutečný,
+                      uživatelem zadaný popisek. */}
+                  {!(z.mediaPath && z.mediaType && z.text === VYCHOZI_POPISEK_MEDIA[z.mediaType]) && (
+                    <span className="social-bublina-text">{z.text}</span>
+                  )}
                   <span className="social-bublina-cas">{cas(z.createdAt)}</span>
                 </span>
               </div>
@@ -496,6 +568,26 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
       )}
 
       <form className="social-psani" onSubmit={odeslat}>
+        <input
+          ref={souborInputRef}
+          type="file"
+          accept="image/*,video/*"
+          className="social-soubor-input"
+          onChange={(e) => {
+            const soubor = e.target.files?.[0]
+            e.target.value = '' // stejný soubor jde vybrat i podruhé za sebou
+            if (soubor) void poslatMedium(soubor)
+          }}
+        />
+        <button
+          type="button"
+          className="social-icon-btn"
+          aria-label="Přiložit fotku nebo video"
+          disabled={nahravaMedium}
+          onClick={() => souborInputRef.current?.click()}
+        >
+          <SocialIcon name={nahravaMedium ? 'send' : 'attach'} size={18} />
+        </button>
         <input
           className="social-input social-input--zprava"
           placeholder="Napiš zprávu…"

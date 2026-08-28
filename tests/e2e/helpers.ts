@@ -80,6 +80,32 @@ export const mockSupabase = async (ctx: BrowserContext, data: MockData, options:
 
     if (cesta.startsWith('/auth/v1')) return json({})
 
+    // Storage's podepsané odkazy (social/api.ts's ziskejUrlMedia) mají
+    // úplně jiný response tvar než /rest/v1 — signedURL (velké URL),
+    // relativní k this.url, ne signedUrl/absolutní. Bez týhle větve by
+    // request spadl do obecného "neznámá cesta → []" fallbacku níž,
+    // který storage-js interpretuje jako "žádná chyba, jen prázdná
+    // odpověď" a klient by si sám poskládal nesmyslné src obsahující
+    // doslova "undefined" — appka by na tom nespadla, ale ani nic
+    // nezobrazila a nepřešla do chybového stavu, jen tiše selhala.
+    if (cesta.startsWith('/storage/v1/object/sign/')) {
+      return json({ signedURL: `/mock-signed/${cesta.replace('/storage/v1/object/sign/', '')}` })
+    }
+
+    // Odkaz z předchozí větve appka doopravdy použije jako <img src>/
+    // <video src> — bez skutečné odpovědi na GET by prohlížeč dostal
+    // JSON tam, kde čeká obrázek/video, a bublina by zůstala neviditelná
+    // (0×0) i když appka nic nezkazila. 1×1 průhledné PNG stačí na to,
+    // aby <img> mělo skutečný rozměr a test mohl ověřit, že se bublina
+    // opravdu vykreslila, ne že appka jen tiše mlčí.
+    if (cesta.startsWith('/mock-signed/')) {
+      const gif1x1 = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        'base64'
+      )
+      return route.fulfill({ status: 200, contentType: 'image/png', body: gif1x1 })
+    }
+
     if (cesta.startsWith('/rest/v1/rpc/')) {
       const jmeno = cesta.replace('/rest/v1/rpc/', '')
       if (jmeno in (options.rpc ?? {})) {

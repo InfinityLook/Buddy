@@ -864,6 +864,59 @@
   overflow-wrap: anywhere;
 }
 
+/* ---------- foto/video zpráva (ChatView.tsx's ZpravaMedium) ---------- */
+
+.social-bublina-media {
+  display: block;
+  /* Pevná šířka i výška, ne jen max-width/max-height — bez explicitního
+     rozměru se <img>/<video> (nahrazovaný prvek) sizuje podle vlastního
+     vnitřního rozměru zdroje, ne podle limitu. Malá fotka (nebo cokoli
+     menšího než 240×200) by se pak vykreslila drobná místo vyplnění
+     náhledu — stejná chyba jako dřív u .social-avatar--foto, jen tady
+     bez position:absolute. object-fit: cover ořízne poměr stran, ať
+     výška/šířka fotky nedeformuje pevný box. */
+  width: 240px;
+  height: 200px;
+  max-width: 100%;
+  border-radius: calc(var(--radius-md) - 3px);
+  object-fit: cover;
+}
+
+.social-media-nacita {
+  width: 180px;
+  height: 140px;
+  border-radius: calc(var(--radius-md) - 3px);
+  background: rgba(255, 255, 255, 0.08);
+  animation: social-media-pulz 1.4s ease-in-out infinite;
+}
+
+@keyframes social-media-pulz {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.9; }
+}
+
+.social-media-chyba {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Vlastní tlačítko (SocialIcon "attach") nahrazuje výchozí vzhled
+   souborového vstupu — input zůstává v DOMu kvůli .click() z tlačítka,
+   jen se nikdy nevykresluje sám o sobě. */
+.social-soubor-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .social-bublina-cas {
   flex-shrink: 0;
   font-size: 0.52rem;

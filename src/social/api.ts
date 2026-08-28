@@ -1,4 +1,5 @@
 import { supabase } from '@/core/supabase/client'
+import { fileToResizedBlob } from '@/utils/image'
 import type {
   Chat,
   NalezVysledek,
@@ -17,6 +18,7 @@ import type {
   Zadost,
   Zprava,
 } from './types'
+import { VYCHOZI_POPISEK_MEDIA } from './types'
 
 // ==========================================
 // Jediné místo, kde Social mluví se Supabase.
@@ -634,6 +636,8 @@ const zpravaZRadku = (r: {
   created_at: string
   deleted_at: string | null
   reply_to_id?: string | null
+  media_path?: string | null
+  media_type?: string | null
 }): Zprava => ({
   id: r.id,
   chatId: r.chat_id,
@@ -642,6 +646,8 @@ const zpravaZRadku = (r: {
   createdAt: r.created_at,
   smazanoAt: r.deleted_at,
   replyToId: r.reply_to_id ?? null,
+  mediaPath: r.media_path ?? null,
+  mediaType: r.media_type === 'image' || r.media_type === 'video' ? r.media_type : null,
 })
 
 // Kolik zpráv se načte na jedno zavolání nactiZpravy — první stránka
@@ -665,7 +671,7 @@ export const nactiZpravy = async (chatId: string, pred?: string): Promise<Zprava
 
   let dotaz = supabase
     .from('messages')
-    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id')
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type')
     .eq('chat_id', chatId)
     .order('created_at', { ascending: false })
     .limit(ZPRAV_NA_STRANKU)
@@ -691,26 +697,119 @@ export const nactiZpravy = async (chatId: string, pred?: string): Promise<Zprava
 export const poslatZpravu = async (
   chatId: string,
   text: string,
-  replyToId?: string | null
+  replyToId?: string | null,
+  medium?: { path: string; type: 'image' | 'video' } | null
 ): Promise<{ zprava: Zprava | null } & Vysledek> => {
   if (!supabase) return { ...NENI_CLOUD, zprava: null }
 
   const orezany = text.trim()
-  if (!orezany) return { ok: false, chyba: 'Prázdnou zprávu poslat nejde.', zprava: null }
+  // Prázdný text jde poslat jedině s médiem — pak je to popisek, ne
+  // celá zpráva. Bez média platí stará podmínka beze změny.
+  if (!medium && !orezany) return { ok: false, chyba: 'Prázdnou zprávu poslat nejde.', zprava: null }
   if (orezany.length > 4000) return { ok: false, chyba: 'Zpráva je moc dlouhá.', zprava: null }
 
   const { data: relace } = await supabase.auth.getSession()
   const ja = relace.session?.user?.id
   if (!ja) return { ...NENI_CLOUD, zprava: null }
 
+  // messages.body má CHECK length(body) >= 1 — médium bez popisku
+  // dostane čitelnou náhradu, ne prázdný řetězec, který by sloupec
+  // stejně odmítl.
+  const telo = orezany || (medium ? VYCHOZI_POPISEK_MEDIA[medium.type] : '')
+
   const { data, error } = await supabase
     .from('messages')
-    .insert({ chat_id: chatId, sender_id: ja, body: orezany, reply_to_id: replyToId ?? null })
-    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id')
+    .insert({
+      chat_id: chatId,
+      sender_id: ja,
+      body: telo,
+      reply_to_id: replyToId ?? null,
+      media_path: medium?.path ?? null,
+      media_type: medium?.type ?? null,
+    })
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type')
     .single()
 
   if (error || !data) return { ...chyba(error), zprava: null }
   return { ok: true, zprava: zpravaZRadku(data) }
+}
+
+// Bucket 'chat-media' je privátní (na rozdíl od 'avatary') — chat je
+// soukromý mezi svými členy, ne veřejný jako profilová fotka. Appka
+// proto nikdy neukládá plnou URL, jen cestu (media_path výš); k zobrazení
+// slouží ziskejUrlMedia() níž, RLS na storage.objects (migrace
+// pridej_media_zpravy_v_chatu) žádost o podepsaný odkaz stejně pustí
+// jen členovi daného chatu.
+const CHAT_MEDIA_BUCKET = 'chat-media'
+// Shodné s file_size_limit bucketu — kontrola na klientovi jen ušetří
+// uživateli čekání na upload, který by server stejně odmítl.
+const MAX_VIDEO_BYTES = 25 * 1024 * 1024
+
+export interface NahraneMedium {
+  path: string
+  type: 'image' | 'video'
+}
+
+/** Nahraje vybraný soubor do složky daného chatu. Obrázek se předtím
+ *  zmenší (stejná cesta jako avatar/banner v avatarStorage.ts) — video
+ *  appka zmenšit nedokáže, jen ohlídá limit velikosti. */
+export const nahratChatMedium = async (chatId: string, file: File): Promise<NahraneMedium | null> => {
+  if (!supabase) return null
+
+  const jeObrazek = file.type.startsWith('image/')
+  const jeVideo = file.type.startsWith('video/')
+  if (!jeObrazek && !jeVideo) return null
+  if (jeVideo && file.size > MAX_VIDEO_BYTES) return null
+
+  try {
+    const blob: Blob = jeObrazek ? await fileToResizedBlob(file, 1600, 0.85) : file
+    const pripona = jeObrazek ? 'jpg' : file.name.split('.').pop() || 'mp4'
+    const cesta = `${chatId}/${crypto.randomUUID()}.${pripona}`
+
+    const { error } = await supabase.storage
+      .from(CHAT_MEDIA_BUCKET)
+      .upload(cesta, blob, { contentType: jeObrazek ? 'image/jpeg' : file.type || 'video/mp4' })
+    if (error) throw error
+
+    return { path: cesta, type: jeObrazek ? 'image' : 'video' }
+  } catch {
+    return null
+  }
+}
+
+// Podepsané URL mají omezenou platnost (1 h) — appka si je nevyžádá
+// znovu při každém vykreslení, jen drží krátkou paměťovou cache podle
+// cesty, ať scrollování historií nezpůsobí zbytečnou dávku dotazů na
+// Storage. Modulová proměnná záměrně — sdílená napříč všemi otevřenými
+// bublinami, ne znovu vytvářená v každé komponentě.
+const mediaUrlCache = new Map<string, { url: string; platnaDo: number }>()
+const PODEPSANE_URL_PLATNOST_S = 3600
+
+/** Vyžádá krátkodobě platný odkaz na médium — appka ho nikdy neukládá
+ *  natrvalo, jen si ho drží pár minut v paměti pro rychlé znovupoužití. */
+export const ziskejUrlMedia = async (path: string): Promise<string | null> => {
+  if (!supabase) return null
+
+  const ted = Date.now()
+  const zCache = mediaUrlCache.get(path)
+  if (zCache && zCache.platnaDo > ted) return zCache.url
+
+  const { data, error } = await supabase.storage
+    .from(CHAT_MEDIA_BUCKET)
+    .createSignedUrl(path, PODEPSANE_URL_PLATNOST_S)
+  // Kontrola i na skutečný obsah signedUrl, ne jen na to, že `data`
+  // je pravdivé — bez ní by prázdná/neúplná odpověď (žádná chyba, ale
+  // taky žádný použitelný odkaz) prošla jako úspěch a appka by pak
+  // vykreslila <img>/<video> s nesmyslným src místo hlášky o chybě.
+  if (error || !data?.signedUrl) return null
+
+  // O minutu dřív než skutečné vypršení, ať appka nikdy nenabídne odkaz,
+  // který server mezitím stihl odmítnout jako prošlý.
+  mediaUrlCache.set(path, {
+    url: data.signedUrl,
+    platnaDo: ted + (PODEPSANE_URL_PLATNOST_S - 60) * 1000,
+  })
+  return data.signedUrl
 }
 
 /**
