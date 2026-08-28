@@ -9,22 +9,30 @@ import { resolveActiveFrameId } from '../avatarFrames'
 import { SocialAvatar } from './SocialAvatar'
 import { SocialIcon } from './SocialIcon'
 import { SkenovatKodDialog } from './SkenovatKodDialog'
+import { PratelePanel } from './PratelePanel'
 import * as api from '../api'
 import { profilOdkaz } from '../shareLink'
 import type { SocialStav } from '../useSocial'
 
 interface Props {
   stav: SocialStav
+  onOtevritChat: (chatId: string) => void
   onOtevritProfil: (userId: string) => void
 }
 
 // ==========================================
-// Vlastní profil jako samostatná záložka, ne karta natěsno nad Přátelé —
-// stejný model, jaký zná Instagram: klepnu na "Profil" a vidím svou
-// vlastní stránku (avatar, bio, úroveň, odznaky), ne cizí seznam se svým
-// profilem vmáčknutým nahoru. Sdílecí blok (QR/kód/skenování) se sem
-// přesunul z PratelePanel.tsx beze změny obsahu — patří koncepčně sem,
-// ne mezi hledání a žádosti o přátelství.
+// Vlastní profil jako hlavní záložka Social, ne karta natěsno nad
+// Přátelé — stejný model, jaký zná Instagram: klepnu na "Profil"
+// a vidím svou vlastní stránku (avatar, bio, úroveň, odznaky), pod ní
+// hned seznam přátel a hledání, ne cizí seznam se svým profilem
+// vmáčknutým nahoru na samostatné záložce. Přátelé jako vlastní
+// záložka zmizeli úplně — PratelePanel.tsx (hledání/návrhy/žádosti/
+// seznam) appka teď vykresluje jako součást týhle obrazovky, ne vedle
+// ní, a Profil se přesunul na první místo v menu záložek
+// (SocialModule.tsx), protože je teď hlavní obrazovkou Social, ne
+// sdílecí kód schovaný na konci. Sdílecí blok (QR/kód/skenování) se
+// sem přesunul z PratelePanel.tsx beze změny obsahu — patří koncepčně
+// sem, ne mezi hledání a žádosti o přátelství.
 //
 // Na rozdíl od VerejnyProfilDialog.tsx (cizí profil) tady appka nic
 // netahá přes precti_verejny_profil() — pro vlastní profil má všechna
@@ -35,7 +43,7 @@ interface Props {
 // dává kartě stejný 1rem padding, ať bannerův záporný okraj sedí i tady.
 // ==========================================
 
-export const MujProfilPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
+export const MujProfilPanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritProfil }) => {
   const navigate = useNavigate()
   const { profile } = useProfileData()
   const gamifikace = useGamificationStore()
@@ -162,6 +170,8 @@ export const MujProfilPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
       {sken && (
         <SkenovatKodDialog stav={stav} onOtevritProfil={onOtevritProfil} onZavrit={() => setSken(false)} />
       )}
+
+      <PratelePanel stav={stav} onOtevritChat={onOtevritChat} onOtevritProfil={onOtevritProfil} />
     </div>
   )
 }

@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { SocialIcon } from './components/SocialIcon'
-import { PratelePanel } from './components/PratelePanel'
 import { MujProfilPanel } from './components/MujProfilPanel'
 import { ChatyPanel } from './components/ChatyPanel'
 import { ChatView } from './components/ChatView'
@@ -29,17 +28,18 @@ import './SocialModule.css'
 // chaty i posílat žádosti komukoli bez skutečného účtu.
 // ==========================================
 
-type Zalozka = 'pratele' | 'chaty' | 'blokovani' | 'hlaseni' | 'profil' | 'tajne'
+type Zalozka = 'profil' | 'chaty' | 'blokovani' | 'hlaseni' | 'tajne'
 
+// Přátelé už nejsou vlastní záložka — seznam přátel, hledání podle
+// jména i žádosti se přesunuly rovnou do Profilu (viz MujProfilPanel.tsx,
+// které teď PratelePanel vykresluje jako svou součást). Profil je proto
+// první záložka, ne poslední: je to teď hlavní obrazovka Social, ne
+// jen sdílecí kód schovaný na konci.
 const ZALOZKY: { id: Zalozka; popis: string; ikona: string }[] = [
-  { id: 'pratele', popis: 'Přátelé', ikona: 'users' },
+  { id: 'profil', popis: 'Profil', ikona: 'user' },
   { id: 'chaty', popis: 'Chaty', ikona: 'chat' },
   { id: 'blokovani', popis: 'Blokovaní', ikona: 'block' },
   { id: 'hlaseni', popis: 'Hlášení', ikona: 'flag' },
-  // Profil je poslední ze základních záložek schválně — stejné pořadí
-  // jako u Instagramu, kde vlastní profil je taky až napravo, ne
-  // karta vmáčknutá nahoru nad seznam přátel (viz MujProfilPanel.tsx).
-  { id: 'profil', popis: 'Profil', ikona: 'user' },
 ]
 
 export const SocialModule: React.FC = () => {
@@ -48,7 +48,7 @@ export const SocialModule: React.FC = () => {
   const stav = useSocial()
   const tajnyStav = useTajnyChat()
 
-  const [zalozka, setZalozka] = useState<Zalozka>('pratele')
+  const [zalozka, setZalozka] = useState<Zalozka>('profil')
   const [otevrenyChat, setOtevrenyChat] = useState<string | null>(null)
   const [otevrenyTajnyChat, setOtevrenyTajnyChat] = useState<string | null>(null)
   // Dialog s profilem se otevírá nad čímkoli jiným (seznam, chat) —
@@ -175,7 +175,7 @@ export const SocialModule: React.FC = () => {
           <div className="social-zalozky">
             {zalozky.map((z) => {
               const odznak =
-                z.id === 'pratele'
+                z.id === 'profil'
                   ? cekaZadosti
                   : z.id === 'chaty'
                     ? neprectene
@@ -201,18 +201,15 @@ export const SocialModule: React.FC = () => {
             <p className="social-empty-note social-empty-note--stred">Načítám…</p>
           ) : (
             <>
-              {zalozka === 'pratele' && (
-                <PratelePanel
-                  stav={stav}
-                  onOtevritChat={setOtevrenyChat}
-                  onOtevritProfil={setOtevrenyProfil}
-                />
-              )}
               {zalozka === 'chaty' && <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />}
               {zalozka === 'blokovani' && <BlokovaniPanel stav={stav} />}
               {zalozka === 'hlaseni' && <ModeracePanel stav={stav} />}
               {zalozka === 'profil' && (
-                <MujProfilPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />
+                <MujProfilPanel
+                  stav={stav}
+                  onOtevritChat={setOtevrenyChat}
+                  onOtevritProfil={setOtevrenyProfil}
+                />
               )}
               {zalozka === 'tajne' && tajnyStav.smim && (
                 <TajnyChatPanel
