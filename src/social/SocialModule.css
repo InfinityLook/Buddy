@@ -336,6 +336,14 @@
   flex-shrink: 0;
   --sa-a: var(--accent-orange);
   --sa-b: var(--accent-magenta);
+  /* Plná barva pod prstencem i obsahem — ne kosmetika, ale mezera mezi
+     nimi (viz .social-avatar's inset níž). Bez ní byl mezi prstencem
+     a obsahem jen ~0,5px průhledný lem, který na fotce/výchozím
+     avataru s podobným odstínem jako jedna z hashovaných barev
+     prstence prakticky zmizel — část prstence tak vypadala "schovaná
+     za" obsahem, i když šlo jen o barevnou shodu, ne o chybu vrstvení. */
+  background: var(--bg-base);
+  border-radius: 50%;
 }
 
 /* Prstenec je kónický přechod s vyříznutou dírou přes masku — stejná
@@ -360,7 +368,7 @@
 
 .social-avatar {
   position: absolute;
-  inset: 3px;
+  inset: 5px;
   border-radius: 50%;
   display: flex;
   align-items: center;
