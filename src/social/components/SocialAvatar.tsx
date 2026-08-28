@@ -27,6 +27,11 @@ interface Props {
   pulzuje?: boolean
   /** Zablokovaný účet je schválně bez barvy — viz komentář v BlokovaniPanel.css. */
   tlumeny?: boolean
+  /** Appka-wide "má appku otevřenou" mezi přáteli (social/presence.ts's
+   *  useOnlineFriends) — volající sem dá už vyhodnocené `true`/`false`,
+   *  komponenta sama žádnou přítomnost neřeší, stejně jako u `frame`
+   *  výš. U skupiny appka tečku nikdy nekreslí — nikdo konkrétní. */
+  online?: boolean
   velikost?: number
 }
 
@@ -39,6 +44,7 @@ export const SocialAvatar: React.FC<Props> = ({
   frame,
   pulzuje,
   tlumeny,
+  online,
   velikost = 34,
 }) => {
   const barvy = jeSkupina ? null : frame ? { a: frame.a, b: frame.b } : avatarGradient(id)
@@ -61,6 +67,9 @@ export const SocialAvatar: React.FC<Props> = ({
         <span className={`social-avatar ${jeSkupina ? 'is-skupina' : ''}`}>
           {jeSkupina ? ikona ?? '#' : jmeno.charAt(0).toUpperCase()}
         </span>
+      )}
+      {online && !jeSkupina && !tlumeny && (
+        <span className="social-avatar-online-tecka" aria-label="Online" title="Online" />
       )}
     </span>
   )

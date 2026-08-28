@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import * as api from '../api'
+import { useOnlineFriends } from '../presence'
 import { normalizeText } from '@/core/utils/text'
 import type { SocialStav } from '../useSocial'
 
@@ -35,6 +36,7 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
   const [nazev, setNazev] = useState('')
   const [vybrani, setVybrani] = useState<string[]>([])
   const [hledatChaty, setHledatChaty] = useState('')
+  const online = useOnlineFriends()
 
   // Hledá v názvu chatu i v náhledu poslední zprávy — u skupiny s obecným
   // názvem je náhled často to jediné, podle čeho si člověk chat vybaví.
@@ -156,6 +158,7 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
                 jeSkupina={ch.jeSkupina}
                 ikona={ch.ikona}
                 avatarUrl={!ch.jeSkupina ? ch.ucastnici[0]?.avatarUrl : null}
+                online={!ch.jeSkupina && !!ch.ucastnici[0] && online.has(ch.ucastnici[0].id)}
               />
 
               <span className="social-chat-text">

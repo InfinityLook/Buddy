@@ -29,6 +29,7 @@ import { useAuthStore } from '@/core/store/useAuthStore'
 import { setupRoleDevTools, startRoleSync, useHasPermission } from '@/core/role'
 import { useAppliedTheme } from '@/core/theme'
 import { startInbox } from '@/social/inbox'
+import { startPresence } from '@/social/presence'
 import { setupStudyPlannerReminders } from '@/miniapps/study-planner/useStudyPlanner'
 
 export default function App() {
@@ -109,6 +110,10 @@ export default function App() {
     startRoleSync()
     // Nepřečtené zprávy se hlídají po celou dobu běhu, ne jen v Socialu
     startInbox()
+    // Totéž pro "jsem tu" tep pro appka-wide online status mezi
+    // přáteli (social/presence.ts) — appka musí vědět, že je uživatel
+    // aktivní, i když je zrovna v Hubu, ne jen v Socialu.
+    startPresence()
     // Přidělení role z konzole. Jen ve vývoji — v produkčním buildu se
     // celý blok vyhodí, viz core/role/devTools.ts.
     setupRoleDevTools()

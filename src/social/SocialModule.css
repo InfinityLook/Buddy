@@ -1075,6 +1075,26 @@
   box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.25);
 }
 
+/* Rohová tečka na avataru (SocialAvatar.tsx's `online` prop) —
+   appka-wide "má appku otevřenou" mezi přáteli, jiná otázka než
+   .social-online-tecka výš (ta odpovídá "má otevřený zrovna tenhle
+   chat"). Vlastní podkladová barva (border), ne jen box-shadow — na
+   fotce profilu (social-avatar--foto) by tečka bez ní splývala
+   s okrajem obrázku, stejný "prstenec potřebuje podklad" důvod jako
+   u social-avatar-wrap/social-avatar's mezery mezi sebou. */
+.social-avatar-online-tecka {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 30%;
+  min-width: 8px;
+  max-width: 13px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #34d399;
+  border: 2px solid var(--bg-base);
+}
+
 /* "Píše…" nad políčkem na psaní — stejná barva a tón jako počítadlo lidí */
 .social-pise-oznam {
   margin: 0;

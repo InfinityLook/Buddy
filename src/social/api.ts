@@ -1217,11 +1217,16 @@ export const sledovatVsechnyZpravy = (prisla: (z: Zprava) => void): (() => void)
 // ==========================================
 // Kdo je v chatu právě teď a kdo píše.
 //
-// Schválně bez globálního "kdo je online" kanálu — to by ukazovalo
-// online tečku i lidem, které jsi třeba jen jednou odmítl, protože
-// jednou viděli tvoje id. Přítomnost se drží jen uvnitř konkrétního
-// chatu: vidí ji jen ten, s kým už chat sdílíš, přes stejnou hranici
-// (id chatu), jakou už dodržuje živé doručování zpráv.
+// Schválně bez globálního "kdo je online" Realtime Presence kanálu —
+// to by ukazovalo online tečku i lidem, které jsi třeba jen jednou
+// odmítl, protože jednou viděli tvoje id. Přítomnost se drží jen
+// uvnitř konkrétního chatu: vidí ji jen ten, s kým už chat sdílíš,
+// přes stejnou hranici (id chatu), jakou už dodržuje živé doručování
+// zpráv. (Appka od téhle chvíle má i druhý, samostatný druh
+// "online" — appka-wide, ale jen mezi přáteli, viz sekce Přítomnost
+// mezi přáteli níž; ta záměrně nejde přes tenhle Presence kanál ani
+// ho nenahrazuje, řeší jinou otázku — "má appku vůbec otevřenou", ne
+// "má otevřený zrovna tenhle chat".)
 //
 // Presence i psaní jedou na jednom kanálu — obojí platí jen pro lidi,
 // co mají tenhle chat zrovna otevřený, není důvod pro dva kanály.
@@ -1258,6 +1263,70 @@ export const sledovatPritomnost = (
   return {
     zrusit: () => void klient.removeChannel(kanal),
     oznamPsani: () => void kanal.send({ type: 'broadcast', event: 'psani', payload: { userId: mujId } }),
+  }
+}
+
+// ==========================================
+// Přítomnost mezi přáteli — appka-wide "má appku otevřenou vůbec",
+// ne "má otevřený zrovna tenhle chat" (to řeší sledovatPritomnost
+// výš). Schválně jen mezi přáteli, ne globální kanál pro kohokoli —
+// stejná zdrženlivost, jen tentokrát rozšířená na "přátelům ano",
+// ne "nikomu", protože appka to takhle explicitně chtěla. Plain
+// tabulka (`presence`) s `last_seen_at`, ne skutečný Realtime
+// Presence kanál — appka "online" odvozuje na klientovi z toho, jak
+// čerstvý je poslední záznam (viz JE_ONLINE_PRAH_MS v presence.ts),
+// stejná "absolutní čas, ne countdown" logika jako Pomodoro/
+// registerSW.ts jinde v týhle appce.
+// ==========================================
+
+/** Zapíše "jsem tu" — volá ho jen presence.ts's heartbeat, appka jinde
+ *  přítomnost nezapisuje. Upsert, ne insert: appka vlastní řádek má
+ *  nejvýš jeden na účet, druhé volání jen posune čas. */
+export const zaznamenejPritomnost = async (): Promise<void> => {
+  if (!supabase) return
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return
+
+  await supabase
+    .from('presence')
+    .upsert({ user_id: ja, last_seen_at: new Date().toISOString() }, { onConflict: 'user_id' })
+}
+
+/** Poslední známá přítomnost všech přátel najednou — RLS na `presence`
+ *  stejně vrátí jen ty, se kterými je appka doopravdy přátelská a kdo
+ *  ji neblokuje, takže appka se tu neptá na přátelství znovu. */
+export const nactiPritomnostPratel = async (): Promise<Map<string, string>> => {
+  const mapa = new Map<string, string>()
+  if (!supabase) return mapa
+
+  const { data, error } = await supabase.from('presence').select('user_id, last_seen_at')
+  if (error || !data) return mapa
+
+  for (const r of data) mapa.set(r.user_id as string, r.last_seen_at as string)
+  return mapa
+}
+
+/** Živé změny přítomnosti — nový záznam i posunutý čas dorazí stejnou
+ *  cestou (INSERT i UPDATE), appka je nerozlišuje, jen si přepíše
+ *  poslední známý čas pro daného uživatele. Bez filtru schválně:
+ *  Realtime uplatňuje stejná pravidla jako běžné čtení (viz SELECT
+ *  politika na presence), takže sem dorazí jen přátelé. */
+export const sledovatPritomnostPratel = (zmena: (userId: string, lastSeenAt: string) => void): (() => void) => {
+  const klient = supabase
+  if (!klient) return () => {}
+
+  const kanal = klient
+    .channel(`pratelska-pritomnost:${++poradiKanalu}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'presence' }, (payload) => {
+      const radek = payload.new as { user_id?: string; last_seen_at?: string } | null
+      if (radek?.user_id && radek.last_seen_at) zmena(radek.user_id, radek.last_seen_at)
+    })
+    .subscribe()
+
+  return () => {
+    void klient.removeChannel(kanal)
   }
 }
 

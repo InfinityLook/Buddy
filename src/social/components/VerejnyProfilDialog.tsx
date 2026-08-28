@@ -8,6 +8,7 @@ import { SocialAvatar } from './SocialAvatar'
 import { SocialIcon } from './SocialIcon'
 import { NahlasitDialog } from './NahlasitDialog'
 import { PrispevekProhlizec } from './PrispevekProhlizec'
+import { useOnlineFriends } from '../presence'
 import * as api from '../api'
 import type { Prispevek, VerejnyProfil, VztahSledovani } from '../types'
 import type { SocialStav } from '../useSocial'
@@ -37,6 +38,7 @@ interface Props {
 // ==========================================
 
 export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritChat, onZavrit }) => {
+  const online = useOnlineFriends()
   const [profil, setProfil] = useState<VerejnyProfil | null>(null)
   const [nacita, setNacita] = useState(true)
   const [nahlasit, setNahlasit] = useState(false)
@@ -132,6 +134,7 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
                 jmeno={profil.displayName}
                 avatarUrl={profil.avatarUrl}
                 frame={ramecek}
+                online={online.has(profil.id)}
                 velikost={56}
               />
               <div className="social-profil-hlava-text">

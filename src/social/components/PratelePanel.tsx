@@ -3,6 +3,7 @@ import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import { NahlasitDialog } from './NahlasitDialog'
 import * as api from '../api'
+import { useOnlineFriends } from '../presence'
 import { normalizeText } from '@/core/utils/text'
 import type { SocialStav } from '../useSocial'
 import type { SocialProfil } from '../types'
@@ -27,6 +28,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
   // neměl jak ho nahlásit, aniž by s ním napřed musel/a psát. Dialog
   // zpravaId od začátku bral jako nepovinné, jen tady na něj nebylo tlačítko.
   const [nahlasit, setNahlasit] = useState<SocialProfil | null>(null)
+  const online = useOnlineFriends()
 
   // Hledání jen v už schválených přátelích, ne v celé appce — to dělá
   // Vyhledávač, tohle je filtr nad seznamem, co uživatel už na
@@ -62,7 +64,12 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
           filtrovaniPratele.map((p) => (
             <div key={p.vazbaId} className="social-row">
               <button className="social-row-otevrit" onClick={() => onOtevritProfil(p.profil.id)}>
-                <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} avatarUrl={p.profil.avatarUrl} />
+                <SocialAvatar
+                  id={p.profil.id}
+                  jmeno={p.profil.displayName}
+                  avatarUrl={p.profil.avatarUrl}
+                  online={online.has(p.profil.id)}
+                />
                 <span className="social-row-name">{p.profil.displayName}</span>
               </button>
 
