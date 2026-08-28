@@ -1,8 +1,6 @@
 import React, { lazy, Suspense, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
-import { useAppStore } from '@/core/store/useAppStore'
-import { useGoalTracker } from '@/miniapps/goal-tracker/useGoalTracker'
 import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
 import { fileToResizedDataUrl } from '@/utils/image'
 import { nahrajAvatarDoCloudu, nahrajBannerDoCloudu } from '@/core/supabase/avatarStorage'
@@ -12,7 +10,6 @@ import { useProfileData } from './hooks/useProfileData'
 import { useCloudStatus, syncNow } from '@/core/supabase/cloudSync'
 import { useActiveRole } from '@/core/role'
 import { ProfilNotifications } from './components/ProfilNotifications'
-import { ProfilGoals } from './components/ProfilGoals'
 import { ProfilToast } from './components/ProfilToast'
 import './ProfilModule.css'
 
@@ -33,9 +30,7 @@ const CLOUD_LABELS: Record<string, string> = {
 
 export const ProfilModule: React.FC = () => {
   const navigate = useNavigate()
-  const { level, xp, streakDays, badges } = useGamificationStore()
-  const { setActiveAppId } = useAppStore()
-  const { goals } = useGoalTracker()
+  const { level, xp, streakDays } = useGamificationStore()
   const { profile, updateProfile, markNotificationRead } = useProfileData()
   const cloudStatus = useCloudStatus((state) => state.status)
   // Vyprší-li VIP, resolveActiveRoleId za tímhle hookem tiše spadne
@@ -133,7 +128,6 @@ export const ProfilModule: React.FC = () => {
 
   const xpToNext = getXpForNextLevel(level)
   const progressPercent = getLevelProgress(xp)
-  const unlockedBadges = badges.filter((b) => b.unlockedAt !== null)
 
   return (
     <div className="profil-page">
@@ -234,42 +228,6 @@ export const ProfilModule: React.FC = () => {
             <span style={{ fontSize: '0.6rem', color: '#64748b' }}>dní v řadě</span>
           </div>
         </div>
-      </div>
-
-      {/* Achievements & Goals */}
-      <div className="profil-two-col">
-        <div className="profil-col-card">
-          <div className="profil-col-head">
-            <span>Moje úspěchy</span>
-            {/* Profil ukazuje jen odemčené odznaky, celý přehled včetně
-                zamčených a podmínek žije v modulu Odměny. */}
-            <button className="profil-link-btn" onClick={() => navigate('/odmeny')}>Zobrazit vše</button>
-          </div>
-          {unlockedBadges.length === 0 ? (
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>Zatím žádné odemčené odznaky. Začni studovat! 💪</p>
-          ) : (
-            unlockedBadges.map((badge) => (
-              <div className="profil-list-item" key={badge.id}>
-                <span className="profil-item-icon">{badge.icon}</span>
-                <div className="profil-item-details">
-                  <span className="profil-item-title">{badge.title}</span>
-                  <span className="profil-item-sub">
-                    {badge.unlockedAt ? new Date(badge.unlockedAt).toLocaleDateString('cs-CZ') : ''}
-                  </span>
-                </div>
-                <span>✅</span>
-              </div>
-            ))
-          )}
-        </div>
-
-        <ProfilGoals
-          goals={goals}
-          onShowAll={() => {
-            setActiveAppId('goal-tracker', '/profil')
-            navigate('/apps')
-          }}
-        />
       </div>
 
       {/* Příspěvky, počty sledujících, sdílení vlastního kódu a přátelé —
