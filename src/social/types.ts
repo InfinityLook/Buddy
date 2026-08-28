@@ -110,16 +110,17 @@ export interface Zprava {
    *  k ní teprve při vykreslení vyžádá krátkodobě platný podepsaný
    *  odkaz (api.ts's ziskejUrlMedia), null u běžné textové zprávy. */
   mediaPath: string | null
-  mediaType: 'image' | 'video' | null
+  mediaType: 'image' | 'video' | 'audio' | null
 }
 
 /** Text, který api.ts's poslatZpravu uloží do `body`, když uživatel
  *  pošle médium bez vlastního popisku — sdílené s ChatView.tsx, ať se
  *  ta samá hláška nemusí schovávat pod bublinou jako "popisek", který
  *  ve skutečnosti nikdo nenapsal. */
-export const VYCHOZI_POPISEK_MEDIA: Record<'image' | 'video', string> = {
+export const VYCHOZI_POPISEK_MEDIA: Record<'image' | 'video' | 'audio', string> = {
   image: '📷 Fotka',
   video: '🎥 Video',
+  audio: '🎤 Hlasovka',
 }
 
 /**

@@ -647,7 +647,10 @@ const zpravaZRadku = (r: {
   smazanoAt: r.deleted_at,
   replyToId: r.reply_to_id ?? null,
   mediaPath: r.media_path ?? null,
-  mediaType: r.media_type === 'image' || r.media_type === 'video' ? r.media_type : null,
+  mediaType:
+    r.media_type === 'image' || r.media_type === 'video' || r.media_type === 'audio'
+      ? r.media_type
+      : null,
 })
 
 // Kolik zpráv se načte na jedno zavolání nactiZpravy — první stránka
@@ -698,7 +701,7 @@ export const poslatZpravu = async (
   chatId: string,
   text: string,
   replyToId?: string | null,
-  medium?: { path: string; type: 'image' | 'video' } | null
+  medium?: { path: string; type: 'image' | 'video' | 'audio' } | null
 ): Promise<{ zprava: Zprava | null } & Vysledek> => {
   if (!supabase) return { ...NENI_CLOUD, zprava: null }
 
@@ -742,36 +745,42 @@ export const poslatZpravu = async (
 // jen členovi daného chatu.
 const CHAT_MEDIA_BUCKET = 'chat-media'
 // Shodné s file_size_limit bucketu — kontrola na klientovi jen ušetří
-// uživateli čekání na upload, který by server stejně odmítl.
+// uživateli čekání na upload, který by server stejně odmítl. Platí i pro
+// hlasovky (výrazně menší v praxi, ale appka jim nedává zvláštní, nižší
+// limit — jeden strop je jednodušší než dva).
 const MAX_VIDEO_BYTES = 25 * 1024 * 1024
 
 export interface NahraneMedium {
   path: string
-  type: 'image' | 'video'
+  type: 'image' | 'video' | 'audio'
 }
 
-/** Nahraje vybraný soubor do složky daného chatu. Obrázek se předtím
- *  zmenší (stejná cesta jako avatar/banner v avatarStorage.ts) — video
- *  appka zmenšit nedokáže, jen ohlídá limit velikosti. */
+/** Nahraje vybraný soubor (nebo z ChatView.tsx's nahrávání hlasu
+ *  poskládaný Blob zabalený do File) do složky daného chatu. Obrázek se
+ *  předtím zmenší (stejná cesta jako avatar/banner v avatarStorage.ts) —
+ *  video a hlasovku appka zmenšit nedokáže, jen ohlídá limit velikosti. */
 export const nahratChatMedium = async (chatId: string, file: File): Promise<NahraneMedium | null> => {
   if (!supabase) return null
 
   const jeObrazek = file.type.startsWith('image/')
   const jeVideo = file.type.startsWith('video/')
-  if (!jeObrazek && !jeVideo) return null
-  if (jeVideo && file.size > MAX_VIDEO_BYTES) return null
+  const jeAudio = file.type.startsWith('audio/')
+  if (!jeObrazek && !jeVideo && !jeAudio) return null
+  if ((jeVideo || jeAudio) && file.size > MAX_VIDEO_BYTES) return null
 
   try {
     const blob: Blob = jeObrazek ? await fileToResizedBlob(file, 1600, 0.85) : file
-    const pripona = jeObrazek ? 'jpg' : file.name.split('.').pop() || 'mp4'
+    const vychoziPripona = jeAudio ? 'webm' : 'mp4'
+    const pripona = jeObrazek ? 'jpg' : file.name.split('.').pop() || vychoziPripona
     const cesta = `${chatId}/${crypto.randomUUID()}.${pripona}`
+    const typ: NahraneMedium['type'] = jeObrazek ? 'image' : jeAudio ? 'audio' : 'video'
 
     const { error } = await supabase.storage
       .from(CHAT_MEDIA_BUCKET)
       .upload(cesta, blob, { contentType: jeObrazek ? 'image/jpeg' : file.type || 'video/mp4' })
     if (error) throw error
 
-    return { path: cesta, type: jeObrazek ? 'image' : 'video' }
+    return { path: cesta, type: typ }
   } catch {
     return null
   }

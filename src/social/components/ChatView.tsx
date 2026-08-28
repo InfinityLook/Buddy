@@ -38,6 +38,86 @@ const ZpravaMedium: React.FC<{ path: string; typ: 'image' | 'video' }> = ({ path
   )
 }
 
+// Feature-detekce jednou při načtení modulu, ne při každém vykreslení —
+// prostředí se za běhu nemění. Bez MediaRecorder appka mic tlačítko
+// vůbec nenabídne (viz JSX composeru níž), stejný "radši schovej, než
+// nabídni něco nefunkčního" přístup jako u BuddyOverlay.tsx.
+const PODPORUJE_NAHRAVANI_HLASU =
+  typeof MediaRecorder !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
+
+// mm:ss — hlasovky appka nedrží dost dlouhé na to, aby se hodily hodiny.
+const formatDelku = (s: number): string => {
+  const cele = Math.max(0, Math.round(s))
+  return `${Math.floor(cele / 60)}:${String(cele % 60).padStart(2, '0')}`
+}
+
+// Vlastní přehrávač místo <video controls> u obrázku/videa výš —
+// hlasovka je jen zvuk, prohlížečův výchozí <audio controls> na malé
+// šířce bubliny nevejde a vypadá cize proti zbytku appky. Skutečný
+// <audio> element zůstává v DOMu jen jako zdroj přehrávání, appka mu
+// nikdy neukazuje jeho vlastní ovládací prvky.
+const ZpravaHlasovka: React.FC<{ path: string }> = ({ path }) => {
+  const [url, setUrl] = useState<string | null>(null)
+  const [selhalo, setSelhalo] = useState(false)
+  const [hraje, setHraje] = useState(false)
+  const [delka, setDelka] = useState(0)
+  const [pozice, setPozice] = useState(0)
+  const audioRef = useRef<HTMLAudioElement>(null)
+
+  useEffect(() => {
+    let platne = true
+    setUrl(null)
+    setSelhalo(false)
+    void api.ziskejUrlMedia(path).then((u) => {
+      if (!platne) return
+      if (u) setUrl(u)
+      else setSelhalo(true)
+    })
+    return () => {
+      platne = false
+    }
+  }, [path])
+
+  if (selhalo) return <p className="social-media-chyba">Hlasovku se nepodařilo načíst.</p>
+  if (!url) return <div className="social-media-nacita social-media-nacita--hlas" aria-hidden="true" />
+
+  return (
+    <div className="social-hlasovka">
+      <audio
+        ref={audioRef}
+        src={url}
+        preload="metadata"
+        onLoadedMetadata={(e) => setDelka(e.currentTarget.duration || 0)}
+        onTimeUpdate={(e) => setPozice(e.currentTarget.currentTime)}
+        onEnded={() => {
+          setHraje(false)
+          setPozice(0)
+        }}
+      />
+      <button
+        type="button"
+        className="social-hlasovka-prehrat"
+        aria-label={hraje ? 'Pozastavit' : 'Přehrát hlasovku'}
+        onClick={() => {
+          if (!audioRef.current) return
+          if (hraje) audioRef.current.pause()
+          else void audioRef.current.play()
+          setHraje(!hraje)
+        }}
+      >
+        <SocialIcon name={hraje ? 'pause' : 'play'} size={15} />
+      </button>
+      <div className="social-hlasovka-pruh">
+        <div
+          className="social-hlasovka-vyplneni"
+          style={{ width: `${delka > 0 ? (pozice / delka) * 100 : 0}%` }}
+        />
+      </div>
+      <span className="social-hlasovka-cas">{formatDelku(hraje || pozice > 0 ? pozice : delka)}</span>
+    </div>
+  )
+}
+
 interface Props {
   chat: Chat
   stav: SocialStav
@@ -66,6 +146,15 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
   // text jde psát dál, i když se zrovna nahrává fotka z minulého klepnutí.
   const [nahravaMedium, setNahravaMedium] = useState(false)
   const souborInputRef = useRef<HTMLInputElement>(null)
+  // Nahrávání hlasovky — na rozdíl od nahravaMedium výš (jedno klepnutí,
+  // pozadí) tohle je stavový stroj (nic → nahrávám → poslat/zrušit)
+  // s viditelnou hodinkou, proto vlastní composer řádek, ne jen ikona.
+  const [nahravaHlas, setNahravaHlas] = useState(false)
+  const [hlasovyCasS, setHlasovyCasS] = useState(0)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const zvukChunkyRef = useRef<Blob[]>([])
+  const zvukStreamRef = useRef<MediaStream | null>(null)
+  const hlasovyIntervalRef = useRef<number | null>(null)
   const [online, setOnline] = useState<Set<string>>(new Set())
   const [pisouId, setPisouId] = useState<string | null>(null)
   // Jestli má cenu nabízet "Načíst starší" — plná stránka napovídá, že
@@ -249,7 +338,7 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
     const medium = await api.nahratChatMedium(chat.id, soubor)
     if (!medium) {
       setNahravaMedium(false)
-      stav.rekni('Soubor se nepovedlo nahrát — zkontroluj typ a velikost (video max 25 MB).')
+      stav.rekni('Soubor se nepovedlo nahrát — zkontroluj typ a velikost (max 25 MB).')
       return
     }
 
@@ -264,6 +353,76 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
       stav.rekni(vysledek.chyba ?? 'Zpráva neodešla.')
     }
   }
+
+  // Mikrofon: klepnutí na "mic" spustí nahrávání (nahrazuje odesílací
+  // tlačítko, dokud je composer prázdný — viz JSX níž), druhé klepnutí
+  // ho ukončí a buď pošle, nebo zahodí. Feature-detekce jako u
+  // BuddyOverlay.tsx/SkenovatKodDialog.tsx — appka radši tlačítko
+  // schová (viz JSX), než aby nabídla něco, co stejně selže.
+  const zacitNahravaniHlasu = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      zvukStreamRef.current = stream
+
+      const typ = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4'].find((t) =>
+        MediaRecorder.isTypeSupported(t)
+      )
+      const recorder = new MediaRecorder(stream, typ ? { mimeType: typ } : undefined)
+      zvukChunkyRef.current = []
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) zvukChunkyRef.current.push(e.data)
+      }
+      mediaRecorderRef.current = recorder
+      recorder.start()
+
+      setNahravaHlas(true)
+      setHlasovyCasS(0)
+      hlasovyIntervalRef.current = window.setInterval(() => setHlasovyCasS((s) => s + 1), 1000)
+    } catch {
+      stav.rekni('Přístup k mikrofonu se nepovedlo získat.')
+    }
+  }
+
+  // Uklidí mikrofon/časovač vždycky, poslání je jen volitelný krok navíc
+  // uvnitř — stejná struktura jako "Zkusit znovu" na jiných místech appky,
+  // kde úklid nesmí záviset na tom, jak akce dopadla.
+  const ukoncitNahravaniHlasu = (poslatZaznam: boolean) => {
+    const recorder = mediaRecorderRef.current
+    if (!recorder) return
+
+    if (hlasovyIntervalRef.current) window.clearInterval(hlasovyIntervalRef.current)
+    hlasovyIntervalRef.current = null
+
+    recorder.onstop = () => {
+      zvukStreamRef.current?.getTracks().forEach((t) => t.stop())
+      zvukStreamRef.current = null
+      mediaRecorderRef.current = null
+      setNahravaHlas(false)
+
+      const kusy = zvukChunkyRef.current
+      zvukChunkyRef.current = []
+      if (!poslatZaznam || kusy.length === 0) return
+
+      const blob = new Blob(kusy, { type: recorder.mimeType || 'audio/webm' })
+      const pripona = recorder.mimeType?.includes('mp4') ? 'm4a' : 'webm'
+      const soubor = new File([blob], `hlasovka-${Date.now()}.${pripona}`, { type: blob.type })
+      void poslatMedium(soubor)
+    }
+
+    recorder.stop()
+  }
+
+  // Odchod z chatu (i uprostřed nahrávání) nesmí nechat mikrofon svítit
+  // na pozadí — stejná disciplína jako usePoseEngine.ts's úklid kamery.
+  useEffect(() => {
+    return () => {
+      if (hlasovyIntervalRef.current) window.clearInterval(hlasovyIntervalRef.current)
+      zvukStreamRef.current?.getTracks().forEach((t) => t.stop())
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        mediaRecorderRef.current.stop()
+      }
+    }
+  }, [])
 
   const prepnoutZtlumeni = async () => {
     const nove = !ztlumeno
@@ -444,7 +603,11 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
                   </div>
                 )}
                 {z.mediaPath && z.mediaType && !smazana && (
-                  <ZpravaMedium path={z.mediaPath} typ={z.mediaType} />
+                  z.mediaType === 'audio' ? (
+                    <ZpravaHlasovka path={z.mediaPath} />
+                  ) : (
+                    <ZpravaMedium path={z.mediaPath} typ={z.mediaType} />
+                  )
                 )}
                 <span className="social-bublina-radek">
                   {/* Automatický popisek ("📷 Fotka"/"🎥 Video", viz
@@ -567,44 +730,87 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
         </div>
       )}
 
-      <form className="social-psani" onSubmit={odeslat}>
-        <input
-          ref={souborInputRef}
-          type="file"
-          accept="image/*,video/*"
-          className="social-soubor-input"
-          onChange={(e) => {
-            const soubor = e.target.files?.[0]
-            e.target.value = '' // stejný soubor jde vybrat i podruhé za sebou
-            if (soubor) void poslatMedium(soubor)
-          }}
-        />
-        <button
-          type="button"
-          className="social-icon-btn"
-          aria-label="Přiložit fotku nebo video"
-          disabled={nahravaMedium}
-          onClick={() => souborInputRef.current?.click()}
-        >
-          <SocialIcon name={nahravaMedium ? 'send' : 'attach'} size={18} />
-        </button>
-        <input
-          className="social-input social-input--zprava"
-          placeholder="Napiš zprávu…"
-          value={text}
-          maxLength={4000}
-          onChange={(e) => napovedPsani(e.target.value)}
-          disabled={posila}
-        />
-        <button
-          className={`social-send-btn ${odeslano ? 'je-odeslano' : ''}`}
-          type="submit"
-          aria-label="Odeslat"
-          disabled={posila || !text.trim()}
-        >
-          <SocialIcon name={odeslano ? 'check' : 'send'} size={18} />
-        </button>
-      </form>
+      {/* Dokud se nahrává hlasovka, composer schová celý formulář za tenhle
+          řádek — psát ani přikládat souběžně nejde, stejně jako appka
+          nedovolí odeslat prázdnou zprávu. */}
+      {nahravaHlas ? (
+        <div className="social-psani social-nahravani-hlasu">
+          <span className="social-nahravani-tecka" aria-hidden="true" />
+          <span className="social-nahravani-cas">{formatDelku(hlasovyCasS)}</span>
+          <span className="social-nahravani-popis">Nahrávám hlasovku…</span>
+          <button
+            type="button"
+            className="social-icon-btn social-icon-btn--ne"
+            aria-label="Zrušit nahrávku"
+            onClick={() => ukoncitNahravaniHlasu(false)}
+          >
+            <SocialIcon name="x" size={18} />
+          </button>
+          <button
+            type="button"
+            className="social-send-btn"
+            aria-label="Odeslat hlasovku"
+            onClick={() => ukoncitNahravaniHlasu(true)}
+          >
+            <SocialIcon name="check" size={18} />
+          </button>
+        </div>
+      ) : (
+        <form className="social-psani" onSubmit={odeslat}>
+          <input
+            ref={souborInputRef}
+            type="file"
+            accept="image/*,video/*"
+            className="social-soubor-input"
+            onChange={(e) => {
+              const soubor = e.target.files?.[0]
+              e.target.value = '' // stejný soubor jde vybrat i podruhé za sebou
+              if (soubor) void poslatMedium(soubor)
+            }}
+          />
+          <button
+            type="button"
+            className="social-icon-btn"
+            aria-label="Přiložit fotku nebo video"
+            disabled={nahravaMedium}
+            onClick={() => souborInputRef.current?.click()}
+          >
+            <SocialIcon name={nahravaMedium ? 'send' : 'attach'} size={18} />
+          </button>
+          <input
+            className="social-input social-input--zprava"
+            placeholder="Napiš zprávu…"
+            value={text}
+            maxLength={4000}
+            onChange={(e) => napovedPsani(e.target.value)}
+            disabled={posila}
+          />
+          {/* Mikrofon nahrazuje odesílací tlačítko, dokud je pole prázdné —
+              stejný vzor jako Messenger/WhatsApp, ať appka nemusí mít dvě
+              tlačítka vedle sebe napořád. Text má vždycky přednost: jakmile
+              je co odeslat jako text, mic zmizí. */}
+          {!text.trim() && PODPORUJE_NAHRAVANI_HLASU ? (
+            <button
+              type="button"
+              className="social-send-btn"
+              aria-label="Nahrát hlasovou zprávu"
+              disabled={posila || nahravaMedium}
+              onClick={() => void zacitNahravaniHlasu()}
+            >
+              <SocialIcon name="mic" size={18} />
+            </button>
+          ) : (
+            <button
+              className={`social-send-btn ${odeslano ? 'je-odeslano' : ''}`}
+              type="submit"
+              aria-label="Odeslat"
+              disabled={posila || !text.trim()}
+            >
+              <SocialIcon name={odeslano ? 'check' : 'send'} size={18} />
+            </button>
+          )}
+        </form>
+      )}
 
       {nahlasit && (
         <NahlasitDialog

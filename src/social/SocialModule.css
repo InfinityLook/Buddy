@@ -917,6 +917,92 @@
   border: 0;
 }
 
+/* ---------- hlasová zpráva (ChatView.tsx's ZpravaHlasovka) ---------- */
+
+.social-media-nacita--hlas {
+  width: 180px;
+  height: 40px;
+}
+
+.social-hlasovka {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 180px;
+  padding: 0.3rem;
+}
+
+.social-hlasovka-prehrat {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.16);
+  color: inherit;
+  cursor: pointer;
+}
+
+/* Vlastní tečka pro přehrávač/nahrávku — .social-play-icon už zabírá
+   trojúhelník uvnitř kolečka, tady stačí prostý pruh. */
+.social-hlasovka-pruh {
+  flex: 1;
+  height: 3px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+}
+
+.social-hlasovka-vyplneni {
+  height: 100%;
+  background: currentColor;
+  border-radius: 10px;
+  transition: width 0.15s linear;
+}
+
+.social-hlasovka-cas {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+/* ---------- nahrávání hlasovky (composer, ChatView.tsx) ---------- */
+
+.social-nahravani-hlasu {
+  align-items: center;
+}
+
+.social-nahravani-tecka {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f87171;
+  animation: social-nahravani-tep 1.2s ease-in-out infinite;
+}
+
+@keyframes social-nahravani-tep {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.social-nahravani-cas {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.social-nahravani-popis {
+  flex: 1;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
 .social-bublina-cas {
   flex-shrink: 0;
   font-size: 0.52rem;
@@ -1424,10 +1510,14 @@
   .social-duvod,
   .social-row--chat,
   .social-row--volba,
-  .social-hlaseni {
+  .social-hlaseni,
+  .social-nahravani-tecka,
+  .social-media-nacita,
+  .social-media-nacita--hlas {
     animation: none !important;
     transition: none !important;
   }
 
   .social-avatar-pulz { opacity: 0; }
+  .social-nahravani-tecka { opacity: 1; }
 }
