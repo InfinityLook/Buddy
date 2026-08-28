@@ -6,7 +6,7 @@ import { PratelePanel } from '@/social/components/PratelePanel'
 import { SkenovatKodDialog } from '@/social/components/SkenovatKodDialog'
 import { VerejnyProfilDialog } from '@/social/components/VerejnyProfilDialog'
 import { PridatPrispevekDialog } from './PridatPrispevekDialog'
-import { PrispevekProhlizec } from './PrispevekProhlizec'
+import { PrispevekProhlizec } from '@/social/components/PrispevekProhlizec'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import * as socialApi from '@/social/api'
 import { profilOdkaz } from '@/social/shareLink'
@@ -90,40 +90,40 @@ export const ProfilSocialniSekce: React.FC = () => {
   return (
     <div className="social-panel">
       {/* Počty — appčina obdoba IG "Followers/Following/Posts" řádku.
-          Vlastní profil nemá tlačítko "Sledovat" (to dává smysl jen
-          na cizím profilu, viz VerejnyProfilDialog v pozdější fázi) —
-          úpravu jména/fotky/bia už appka nabízí jinde na týhle stránce. */}
-      <section className="social-card profil-staty-karta">
-        <div className="profil-staty-radek">
-          <div className="profil-staty-cislo">
+          Vlastní profil nemá tlačítko "Sledovat" (to dává smysl jen na
+          cizím profilu, viz VerejnyProfilDialog.tsx) — úpravu jména/
+          fotky/bia už appka nabízí jinde na týhle stránce. */}
+      <section className="social-card social-staty-karta">
+        <div className="social-staty-radek">
+          <div className="social-staty-cislo">
             <strong>{prispevky.length}</strong>
             <span>Příspěvky</span>
           </div>
-          <div className="profil-staty-cislo">
+          <div className="social-staty-cislo">
             <strong>{vztah?.sledujiciCelkem ?? 0}</strong>
             <span>Sledující</span>
           </div>
-          <div className="profil-staty-cislo">
+          <div className="social-staty-cislo">
             <strong>{vztah?.sledovaniCelkem ?? 0}</strong>
             <span>Sledovaní</span>
           </div>
         </div>
 
-        <div className="profil-prispevky-taby">
+        <div className="social-prispevky-taby">
           <button
-            className={`profil-prispevky-tab ${tab === 'foto' ? 'is-aktivni' : ''}`}
+            className={`social-prispevky-tab ${tab === 'foto' ? 'is-aktivni' : ''}`}
             onClick={() => setTab('foto')}
           >
             <SocialIcon name="attach" size={15} /> Příspěvky
           </button>
           <button
-            className={`profil-prispevky-tab ${tab === 'video' ? 'is-aktivni' : ''}`}
+            className={`social-prispevky-tab ${tab === 'video' ? 'is-aktivni' : ''}`}
             onClick={() => setTab('video')}
           >
             <SocialIcon name="play" size={15} /> Videa
           </button>
           <button
-            className={`profil-prispevky-tab ${tab === 'ulozeno' ? 'is-aktivni' : ''}`}
+            className={`social-prispevky-tab ${tab === 'ulozeno' ? 'is-aktivni' : ''}`}
             onClick={() => setTab('ulozeno')}
           >
             Uloženo
@@ -135,9 +135,9 @@ export const ProfilSocialniSekce: React.FC = () => {
             Ukládání příspěvků bude brzy. ✨
           </p>
         ) : (
-          <div className="profil-prispevky-mrizka">
+          <div className="social-prispevky-mrizka">
             <button
-              className="profil-prispevek-pridat"
+              className="social-prispevek-pridat"
               onClick={() => vstupRef.current?.click()}
               aria-label="Přidat příspěvek"
             >
@@ -159,7 +159,7 @@ export const ProfilSocialniSekce: React.FC = () => {
               zobrazovaneMrizky.map((p) => (
                 <button
                   key={p.id}
-                  className="profil-prispevek-dlazdice"
+                  className="social-prispevek-dlazdice"
                   onClick={() => setOtevrenyPrispevek(p)}
                 >
                   {p.mediaType === 'video' ? (
@@ -167,12 +167,12 @@ export const ProfilSocialniSekce: React.FC = () => {
                   ) : (
                     <img src={p.mediaUrl} alt="" />
                   )}
-                  {p.mediaType === 'video' && <span className="profil-prispevek-video-znacka">▶</span>}
+                  {p.mediaType === 'video' && <span className="social-prispevek-video-znacka">▶</span>}
                 </button>
               ))}
 
             {!nacitaPrispevky && zobrazovaneMrizky.length === 0 && (
-              <p className="social-empty-note profil-prispevky-prazdno">
+              <p className="social-empty-note social-prispevky-prazdno">
                 {tab === 'foto' ? 'Zatím žádné fotky.' : 'Zatím žádná videa.'}
               </p>
             )}
@@ -238,6 +238,7 @@ export const ProfilSocialniSekce: React.FC = () => {
       {otevrenyPrispevek && (
         <PrispevekProhlizec
           prispevek={otevrenyPrispevek}
+          jeMoje
           onZavrit={() => setOtevrenyPrispevek(null)}
           onSmazano={() => {
             setOtevrenyPrispevek(null)

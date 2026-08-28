@@ -1730,6 +1730,117 @@
   line-height: 1.45;
 }
 
+/* ---------- příspěvky (Posts | Videos | Saved) ----------
+   Instagram-styl počty/taby/mřížka — sdílené mezi vlastním profilem
+   appky (pages/profil/components/ProfilSocialniSekce.tsx) a cizím
+   profilem tady v Social (VerejnyProfilDialog.tsx). Žije tady, ne
+   v ProfilModule.css, protože jedině tenhle soubor je zaručeně
+   načtený všude, kde se kterýkoli z nich může vykreslit — Social
+   samo o sobě appka otevře, aniž by kdy prošla přes /profil. */
+
+.social-staty-karta {
+  gap: 0.7rem;
+}
+
+.social-staty-radek {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+}
+
+.social-staty-cislo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.social-staty-cislo strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.social-staty-cislo span {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.social-prispevky-taby {
+  display: flex;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.social-prispevky-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  padding: 0.55rem 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.social-prispevky-tab.is-aktivni {
+  color: var(--accent-cyan);
+  box-shadow: inset 0 -2px 0 var(--accent-cyan);
+}
+
+.social-prispevky-mrizka {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.social-prispevek-pridat {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-panel-raised);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.social-prispevek-dlazdice {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--bg-panel-raised);
+}
+
+.social-prispevek-dlazdice img,
+.social-prispevek-dlazdice video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.social-prispevek-video-znacka {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  color: #fff;
+  font-size: 0.7rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.social-prispevky-prazdno {
+  grid-column: 1 / -1;
+  padding: 1rem 0;
+}
+
 /* ---------- hláška ---------- */
 
 .social-toast {

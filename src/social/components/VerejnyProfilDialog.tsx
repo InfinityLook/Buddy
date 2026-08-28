@@ -7,8 +7,9 @@ import { resolveActiveFrameId } from '../avatarFrames'
 import { SocialAvatar } from './SocialAvatar'
 import { SocialIcon } from './SocialIcon'
 import { NahlasitDialog } from './NahlasitDialog'
+import { PrispevekProhlizec } from './PrispevekProhlizec'
 import * as api from '../api'
-import type { VerejnyProfil } from '../types'
+import type { Prispevek, VerejnyProfil, VztahSledovani } from '../types'
 import type { SocialStav } from '../useSocial'
 
 interface Props {
@@ -27,6 +28,12 @@ interface Props {
 // Akce (přidat/napsat/nahlásit/(od)blokovat) jsou přímo tady, ne jen
 // na řádku v seznamu, odkud se dialog otevřel — funguje i z výsledků
 // hledání, kde žádný řádek s vlastními tlačítky není.
+//
+// Počty/taby/mřížka příspěvků a tlačítko Sledovat/Sledujete jsou stejná
+// sekce appka teď ukazuje i na vlastním profilu appky (pages/profil/
+// components/ProfilSocialniSekce.tsx) — tady navíc s reálným
+// jednosměrným sledováním, protože na cizím profilu (na rozdíl od
+// vlastního) dává smysl.
 // ==========================================
 
 export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritChat, onZavrit }) => {
@@ -37,10 +44,19 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
   // ať se nemusí čekat, než dojede spolu se zbytkem.
   const [spolecni, setSpolecni] = useState<number | null>(null)
 
+  const [vztah, setVztah] = useState<VztahSledovani | null>(null)
+  const [meniSledovani, setMeniSledovani] = useState(false)
+  const [prispevky, setPrispevky] = useState<Prispevek[]>([])
+  const [nacitaPrispevky, setNacitaPrispevky] = useState(true)
+  const [tab, setTab] = useState<'foto' | 'video' | 'ulozeno'>('foto')
+  const [otevrenyPrispevek, setOtevrenyPrispevek] = useState<Prispevek | null>(null)
+
   useEffect(() => {
     let platne = true
     setNacita(true)
     setSpolecni(null)
+    setVztah(null)
+    setNacitaPrispevky(true)
 
     void api.nactiVerejnyProfil(userId).then((p) => {
       if (!platne) return
@@ -48,6 +64,12 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
       setNacita(false)
     })
     void api.nactiPocetSpolecnychPratel(userId).then((n) => platne && setSpolecni(n))
+    void api.nactiVztahSledovani(userId).then((v) => platne && setVztah(v))
+    void api.nactiPrispevky(userId).then((p) => {
+      if (!platne) return
+      setPrispevky(p)
+      setNacitaPrispevky(false)
+    })
 
     return () => {
       platne = false
@@ -68,6 +90,21 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
         .map((id) => DEFAULT_BADGES.find((b) => b.id === id))
         .filter((b): b is Badge => b !== undefined)
     : []
+
+  // Přepnutí sledování — appka si počty vždycky znovu natáhne z
+  // databáze, ne že by si je jen sama o jedno posunula. Server je
+  // stejně jediná pravda a rozdíl je nepostřehnutelný.
+  const prepnoutSledovani = async () => {
+    if (!vztah || meniSledovani) return
+    setMeniSledovani(true)
+    const akce = vztah.sledujiHo ? api.prestatSledovatUcet : api.sledovatUcet
+    const vysledek = await akce(userId)
+    if (vysledek.ok) void api.nactiVztahSledovani(userId).then(setVztah)
+    else stav.rekni(vysledek.chyba ?? 'Nepovedlo se to.')
+    setMeniSledovani(false)
+  }
+
+  const zobrazovaneMrizky = prispevky.filter((p) => (tab === 'video' ? p.mediaType === 'video' : p.mediaType === 'image'))
 
   return (
     <>
@@ -145,6 +182,14 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
 
         {!nacita && profil && !jeToJa && (
           <div className="social-dialog-akce social-profil-akce">
+            <button
+              className={`social-btn ${vztah?.sledujiHo ? 'social-btn--tlumene' : ''}`}
+              onClick={prepnoutSledovani}
+              disabled={!vztah || meniSledovani}
+            >
+              {vztah?.sledujiHo ? 'Sledujete' : 'Sledovat'}
+            </button>
+
             {pritel ? (
               <button
                 className="social-btn"
@@ -195,6 +240,76 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
           </div>
         )}
 
+        {!nacita && profil && (
+          <>
+            <div className="social-staty-radek">
+              <div className="social-staty-cislo">
+                <strong>{prispevky.length}</strong>
+                <span>Příspěvky</span>
+              </div>
+              <div className="social-staty-cislo">
+                <strong>{vztah?.sledujiciCelkem ?? 0}</strong>
+                <span>Sledující</span>
+              </div>
+              <div className="social-staty-cislo">
+                <strong>{vztah?.sledovaniCelkem ?? 0}</strong>
+                <span>Sledovaní</span>
+              </div>
+            </div>
+
+            <div className="social-prispevky-taby">
+              <button
+                className={`social-prispevky-tab ${tab === 'foto' ? 'is-aktivni' : ''}`}
+                onClick={() => setTab('foto')}
+              >
+                <SocialIcon name="attach" size={15} /> Příspěvky
+              </button>
+              <button
+                className={`social-prispevky-tab ${tab === 'video' ? 'is-aktivni' : ''}`}
+                onClick={() => setTab('video')}
+              >
+                <SocialIcon name="play" size={15} /> Videa
+              </button>
+              <button
+                className={`social-prispevky-tab ${tab === 'ulozeno' ? 'is-aktivni' : ''}`}
+                onClick={() => setTab('ulozeno')}
+              >
+                Uloženo
+              </button>
+            </div>
+
+            {tab === 'ulozeno' ? (
+              <p className="social-empty-note social-empty-note--stred">
+                Ukládání příspěvků bude brzy. ✨
+              </p>
+            ) : (
+              <div className="social-prispevky-mrizka">
+                {!nacitaPrispevky &&
+                  zobrazovaneMrizky.map((p) => (
+                    <button
+                      key={p.id}
+                      className="social-prispevek-dlazdice"
+                      onClick={() => setOtevrenyPrispevek(p)}
+                    >
+                      {p.mediaType === 'video' ? (
+                        <video src={p.mediaUrl} muted playsInline />
+                      ) : (
+                        <img src={p.mediaUrl} alt="" />
+                      )}
+                      {p.mediaType === 'video' && <span className="social-prispevek-video-znacka">▶</span>}
+                    </button>
+                  ))}
+
+                {!nacitaPrispevky && zobrazovaneMrizky.length === 0 && (
+                  <p className="social-empty-note social-prispevky-prazdno">
+                    {tab === 'foto' ? 'Zatím žádné fotky.' : 'Zatím žádná videa.'}
+                  </p>
+                )}
+              </div>
+            )}
+          </>
+        )}
+
         <div className="social-dialog-akce">
           <button className="social-btn social-btn--tlumene" onClick={onZavrit}>
             Zavřít
@@ -203,6 +318,18 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
       </div>
 
       {nahlasit && <NahlasitDialog userId={userId} stav={stav} onZavrit={() => setNahlasit(false)} />}
+
+      {otevrenyPrispevek && (
+        <PrispevekProhlizec
+          prispevek={otevrenyPrispevek}
+          jeMoje={jeToJa}
+          onZavrit={() => setOtevrenyPrispevek(null)}
+          onSmazano={() => {
+            setOtevrenyPrispevek(null)
+            void api.nactiPrispevky(userId).then(setPrispevky)
+          }}
+        />
+      )}
     </>
   )
 }
