@@ -25,6 +25,16 @@
   --profil-radius-md: var(--radius-md);
 }
 
+/* Zástupný stav, dokud se stahuje lazy PratelSekce.tsx (celé Social
+   API) — viz React.lazy v ProfilModule.tsx. */
+.profil-lazy-fallback {
+  margin: 0;
+  padding: 0.9rem;
+  color: var(--profil-text-sub);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
 /* Kontejner natvrdo na výšku displeje bez scrollu, se stejným
    síťovaným pozadím (radial gradienty) jako Hub a App obrazovky */
 .profil-container {

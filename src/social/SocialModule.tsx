@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { SocialIcon } from './components/SocialIcon'
-import { MujProfilPanel } from './components/MujProfilPanel'
+import { DomuPanel } from './components/DomuPanel'
 import { ChatyPanel } from './components/ChatyPanel'
 import { ChatView } from './components/ChatView'
 import { VyhledavacPanel } from './components/VyhledavacPanel'
@@ -27,7 +27,7 @@ import './SocialModule.css'
 // chaty i posílat žádosti komukoli bez skutečného účtu.
 // ==========================================
 
-type Zalozka = 'profil' | 'chaty' | 'vyhledavac' | 'nastaveni'
+type Zalozka = 'chaty' | 'domu' | 'vyhledavac' | 'nastaveni'
 
 // Fáze 2 rozvržení: čtyři pevné položky pro úplně každého, ne pět/šest
 // podle role. Hledání nových lidí (dřív karta nad seznamem přátel
@@ -36,9 +36,19 @@ type Zalozka = 'profil' | 'chaty' | 'vyhledavac' | 'nastaveni'
 // dovolí) Tajný chat se přesunuly do Nastavení jako menu, přesně jako
 // AdminModule.tsx — spodní lišta se tak VIP/moderátorům/adminům
 // neroztahuje o další ikonu navíc, viz NastaveniPanel.tsx.
+//
+// "Profil" mezitím přestala být záložka Social — appka má jen jeden
+// skutečný profil (pages/profil/ProfilModule.tsx) a mít jeho kopii i
+// tady bylo matoucí (dvě různé "moje" obrazovky se jménem, avatarem
+// a úrovní, ne vždy stejně aktuální). Tlačítko na jejím místě proto
+// vede rovnou tam (viz spodní navigace níž), Social's vlastní seznam
+// přátel a sdílení kódu se přestěhovaly do ProfilModule.tsx (lazy
+// PratelSekce.tsx — Social API nesmí zatížit appčin hlavní balíček).
+// Uvolněné místo uprostřed lišty zabrala nová "Domů" (DomuPanel.tsx) —
+// zatím jen story pruh, zbytek se doplní v pozdější fázi.
 const ZALOZKY: { id: Zalozka; popis: string; ikona: string }[] = [
-  { id: 'profil', popis: 'Profil', ikona: 'user' },
   { id: 'chaty', popis: 'Chaty', ikona: 'chat' },
+  { id: 'domu', popis: 'Domů', ikona: 'home' },
   { id: 'vyhledavac', popis: 'Vyhledávač', ikona: 'search' },
   { id: 'nastaveni', popis: 'Nastavení', ikona: 'settings' },
 ]
@@ -49,7 +59,7 @@ export const SocialModule: React.FC = () => {
   const stav = useSocial()
   const tajnyStav = useTajnyChat()
 
-  const [zalozka, setZalozka] = useState<Zalozka>('profil')
+  const [zalozka, setZalozka] = useState<Zalozka>('domu')
   const [otevrenyChat, setOtevrenyChat] = useState<string | null>(null)
   const [otevrenyTajnyChat, setOtevrenyTajnyChat] = useState<string | null>(null)
   // Dialog s profilem se otevírá nad čímkoli jiným (seznam, chat) —
@@ -166,13 +176,7 @@ export const SocialModule: React.FC = () => {
           ) : (
             <>
               {zalozka === 'chaty' && <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />}
-              {zalozka === 'profil' && (
-                <MujProfilPanel
-                  stav={stav}
-                  onOtevritChat={setOtevrenyChat}
-                  onOtevritProfil={setOtevrenyProfil}
-                />
-              )}
+              {zalozka === 'domu' && <DomuPanel stav={stav} />}
               {zalozka === 'vyhledavac' && (
                 <VyhledavacPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />
               )}
@@ -193,6 +197,17 @@ export const SocialModule: React.FC = () => {
               flex sloupci, margin-top: auto ho posune ke dnu i s krátkým
               obsahem, position: sticky ho tam udrží i při delším scrollu. */}
           <div className="social-bottom-nav">
+            {/* Ne záložka jako zbytek lišty — opouští Social úplně
+                a jde na appčin skutečný profil (pages/profil/ProfilModule.tsx),
+                viz komentář u Zalozka výš. Zůstává na svém původním
+                místě vlevo, jen mění, co se stane po klepnutí. */}
+            <button className="social-nav-item" onClick={() => navigate('/profil')}>
+              <span className="social-nav-icon-wrap">
+                <SocialIcon name="user" size={21} />
+              </span>
+              Profil
+            </button>
+
             {ZALOZKY.map((z) => {
               const odznak =
                 z.id === 'vyhledavac'

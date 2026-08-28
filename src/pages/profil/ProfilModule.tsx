@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { lazy, Suspense, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
@@ -15,6 +15,11 @@ import { ProfilNotifications } from './components/ProfilNotifications'
 import { ProfilGoals } from './components/ProfilGoals'
 import { ProfilToast } from './components/ProfilToast'
 import './ProfilModule.css'
+
+// Lazy — viz komentář nahoře v PratelSekce.tsx: tenhle soubor natahuje
+// celé Social API, který drtivá většina návštěv téhle (netlazy) stránky
+// vůbec nepotřebuje.
+const PratelSekce = lazy(() => import('./components/PratelSekce'))
 
 // Popis stavu synchronizace pro řádek v menu. Musí být srozumitelný
 // i pro toho, kdo o Supabase nikdy neslyšel.
@@ -266,6 +271,12 @@ export const ProfilModule: React.FC = () => {
           }}
         />
       </div>
+
+      {/* Přátelé a sdílení vlastního kódu — přesunuté ze Social's
+          bývalé Profil záložky, viz PratelSekce.tsx. */}
+      <Suspense fallback={<p className="profil-lazy-fallback">Načítám přátele…</p>}>
+        <PratelSekce />
+      </Suspense>
 
       {/* Settings Menu */}
       <div className="profil-settings-list">
