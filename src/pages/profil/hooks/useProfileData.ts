@@ -57,6 +57,12 @@ export interface ProfileData {
 // Data URI (a ne import z assets/) proto, že se hodnota ukládá mezi data
 // uživatele: cesta do /assets/ nese hash buildu, takže po každém
 // nasazení by starým uživatelům obrázek zmizel.
+//
+// Postavička (hlava + ramena) je posunutá o 11 nahoru oproti prvnímu
+// pokusu (cy 38→27, cesta 57→46/75→64) — ramena dřív sahala až na
+// úplný spodní okraj (0 px mezera dole proti 23 px nahoře), takže
+// uvnitř kruhového avataru vypadala ikonka posazená moc dole. Teď má
+// nahoře i dole skoro stejnou mezeru (~11-12 px), doopravdy vycentrovaná.
 const DEFAULT_AVATAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96">
   <defs>
     <linearGradient id="a" x1="0" y1="0" x2="1" y2="1">
@@ -65,8 +71,8 @@ const DEFAULT_AVATAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0
     </linearGradient>
   </defs>
   <rect width="96" height="96" fill="url(#a)"/>
-  <circle cx="48" cy="38" r="15" fill="#f2f5fb"/>
-  <path d="M48 57c-14 0-25 8-25 18v21h50V75c0-10-11-18-25-18z" fill="#f2f5fb"/>
+  <circle cx="48" cy="27" r="15" fill="#f2f5fb"/>
+  <path d="M48 46c-14 0-25 8-25 18v21h50V64c0-10-11-18-25-18z" fill="#f2f5fb"/>
 </svg>`
 
 export const DEFAULT_AVATAR = `data:image/svg+xml,${encodeURIComponent(DEFAULT_AVATAR_SVG)}`
