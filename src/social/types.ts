@@ -240,6 +240,49 @@ export interface TajnaZprava {
   createdAt: string
 }
 
+// ==========================================
+// Stories
+//
+// Vlastní tabulky (stories/story_views), ne rozšíření Zprava/Chat výš —
+// story nepatří žádnému chatu, je to jeden příspěvek viditelný všem
+// přátelům najednou a mizí po 24 h stejným "belt and suspenders"
+// mechanismem jako tajne_zpravy (RLS skryje prošlou story hned, úklidová
+// funkce ji fyzicky smaže později). Na rozdíl od tajného chatu bez
+// šifrování — obsahem je jedna veřejná (mezi přáteli) fotka, ne
+// soukromá konverzace, takže tu není co skrývat před samotným Supabase.
+// ==========================================
+
+export interface Story {
+  id: string
+  autorId: string
+  /** Cesta v privátním bucketu `stories`, ne plná URL — stejný důvod
+   *  jako Zprava.mediaPath výš, jen jiný bucket (api.ts's ziskejUrlStory). */
+  mediaPath: string
+  caption: string | null
+  createdAt: string
+  expiruje: string
+}
+
+/**
+ * Stories jednoho autora seskupené pro pruh nahoře v MujProfilPanel.tsx —
+ * appka je nezobrazuje jako plochý seznam, ale po autorech s kroužkem
+ * kolem avatara, stejně jako Instagram/TikTok.
+ */
+export interface StorySkupina {
+  autor: SocialProfil
+  stories: Story[]
+  /** Přihlášený viděl už úplně všechny — určuje, jestli je kroužek
+   *  barevný, nebo jen šedý (už zhlédnuto). */
+  vsechnyZhlednute: boolean
+}
+
+/** Kdo si moji story přečetl — StoryProhlizec.tsx to ukáže autorovi
+ *  pod otevřenou story, ne cizímu divákovi. */
+export interface StoryZhlednuti {
+  viewer: SocialProfil
+  zhlednutoAt: string
+}
+
 /** Presety mizení zpráv — stejná sada, jakou nabízí "mizící zprávy"
  *  v běžných messengerech (Telegram Secret Chat aj.), vynucená i na
  *  databázi (check constraint na tajne_chaty.expirace_sekund), ne jen

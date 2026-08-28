@@ -10,6 +10,7 @@ import { SocialAvatar } from './SocialAvatar'
 import { SocialIcon } from './SocialIcon'
 import { SkenovatKodDialog } from './SkenovatKodDialog'
 import { PratelePanel } from './PratelePanel'
+import { StoriesBar } from './StoriesBar'
 import * as api from '../api'
 import { profilOdkaz } from '../shareLink'
 import type { SocialStav } from '../useSocial'
@@ -75,6 +76,8 @@ export const MujProfilPanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevrit
 
   return (
     <div className="social-panel">
+      {stav.mujId && <StoriesBar mujId={stav.mujId} mojeJmeno={profile.name} mujAvatar={profile.avatar} />}
+
       <section className="social-card social-card--profil">
         {profile.bannerUrl && (
           <div

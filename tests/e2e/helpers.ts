@@ -98,7 +98,18 @@ export const mockSupabase = async (ctx: BrowserContext, data: MockData, options:
     // (0×0) i když appka nic nezkazila. 1×1 průhledné PNG stačí na to,
     // aby <img> mělo skutečný rozměr a test mohl ověřit, že se bublina
     // opravdu vykreslila, ne že appka jen tiše mlčí.
-    if (cesta.startsWith('/mock-signed/')) {
+    //
+    // Prefix je "/storage/v1/mock-signed/", ne jen "/mock-signed/" —
+    // storage-js skládá výsledné URL jako `${this.url}${signedURL}`,
+    // kde `this.url` u storage klienta už samo obsahuje "/storage/v1"
+    // (viz createSignedUrl výš v knihovně). Kratší prefix tuhle větev
+    // nikdy netrefil, požadavek spadl do obecného REST fallbacku níž,
+    // který vrátil `[]` s `content-type: application/json` — <img> pak
+    // dostal JSON tam, kde čekal obrázek, a vykreslil se jako neviditelný
+    // (0×0), přesně ten bug, kterému měl tenhle blok předejít. Prošlo to
+    // tehdy jen proto, že žádný test dřív neověřoval skutečnou viditelnost
+    // a rozměr obrázku, jen že <img> element v DOMu vůbec existuje.
+    if (cesta.startsWith('/storage/v1/mock-signed/')) {
       const gif1x1 = Buffer.from(
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
         'base64'

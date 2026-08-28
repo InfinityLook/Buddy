@@ -11,6 +11,9 @@ import type {
   MujProfil,
   Pritel,
   SocialProfil,
+  Story,
+  StorySkupina,
+  StoryZhlednuti,
   TajnaZprava,
   TajnyChat,
   VerejnyProfil,
@@ -790,22 +793,23 @@ export const nahratChatMedium = async (chatId: string, file: File): Promise<Nahr
 // znovu při každém vykreslení, jen drží krátkou paměťovou cache podle
 // cesty, ať scrollování historií nezpůsobí zbytečnou dávku dotazů na
 // Storage. Modulová proměnná záměrně — sdílená napříč všemi otevřenými
-// bublinami, ne znovu vytvářená v každé komponentě.
+// bublinami, ne znovu vytvářená v každé komponentě. Klíč cache je
+// "bucket/cesta", ne jen cesta — od Stories přibyl druhý privátní bucket
+// (viz níž) a bez bucketu v klíči by dvě různé věci se stejným řetězcem
+// cesty (nepravděpodobné, ale ne nemožné — obě cesty začínají uuid)
+// sdílely jeden záznam v cache.
 const mediaUrlCache = new Map<string, { url: string; platnaDo: number }>()
 const PODEPSANE_URL_PLATNOST_S = 3600
 
-/** Vyžádá krátkodobě platný odkaz na médium — appka ho nikdy neukládá
- *  natrvalo, jen si ho drží pár minut v paměti pro rychlé znovupoužití. */
-export const ziskejUrlMedia = async (path: string): Promise<string | null> => {
+const ziskejPodepsanouUrl = async (bucket: string, path: string): Promise<string | null> => {
   if (!supabase) return null
 
   const ted = Date.now()
-  const zCache = mediaUrlCache.get(path)
+  const klic = `${bucket}/${path}`
+  const zCache = mediaUrlCache.get(klic)
   if (zCache && zCache.platnaDo > ted) return zCache.url
 
-  const { data, error } = await supabase.storage
-    .from(CHAT_MEDIA_BUCKET)
-    .createSignedUrl(path, PODEPSANE_URL_PLATNOST_S)
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(path, PODEPSANE_URL_PLATNOST_S)
   // Kontrola i na skutečný obsah signedUrl, ne jen na to, že `data`
   // je pravdivé — bez ní by prázdná/neúplná odpověď (žádná chyba, ale
   // taky žádný použitelný odkaz) prošla jako úspěch a appka by pak
@@ -814,12 +818,18 @@ export const ziskejUrlMedia = async (path: string): Promise<string | null> => {
 
   // O minutu dřív než skutečné vypršení, ať appka nikdy nenabídne odkaz,
   // který server mezitím stihl odmítnout jako prošlý.
-  mediaUrlCache.set(path, {
+  mediaUrlCache.set(klic, {
     url: data.signedUrl,
     platnaDo: ted + (PODEPSANE_URL_PLATNOST_S - 60) * 1000,
   })
   return data.signedUrl
 }
+
+/** Vyžádá krátkodobě platný odkaz na médium v chatu — appka ho nikdy
+ *  neukládá natrvalo, jen si ho drží pár minut v paměti pro rychlé
+ *  znovupoužití. */
+export const ziskejUrlMedia = (path: string): Promise<string | null> =>
+  ziskejPodepsanouUrl(CHAT_MEDIA_BUCKET, path)
 
 /**
  * Smazání je měkké: text se přepíše a doplní čas smazání. Druhá strana
@@ -1464,6 +1474,204 @@ export const sledovatVsechnyTajneZpravy = (prisla: (z: TajnaZprava) => void): ((
         if (radek?.id) prisla(tajnaZpravaZRadku(radek))
       }
     )
+    .subscribe()
+
+  return () => {
+    void klient.removeChannel(kanal)
+  }
+}
+
+// ==========================================
+// Stories — 24hodinové příspěvky viditelné přátelům.
+//
+// Bucket 'stories' je privátní stejně jako 'chat-media', ne veřejný jako
+// 'avatary' — story je adresovaná přátelům, ne komukoli s odkazem, takže
+// appka zase nikdy neukládá plnou URL, jen cestu (Story.mediaPath),
+// a odkaz si vyžádá až při zobrazení (ziskejUrlStory níž).
+// ==========================================
+
+const STORIES_BUCKET = 'stories'
+
+const storyZRadku = (r: {
+  id: string
+  user_id: string
+  media_path: string
+  caption: string | null
+  created_at: string
+  expiruje_at: string
+}): Story => ({
+  id: r.id,
+  autorId: r.user_id,
+  mediaPath: r.media_path,
+  caption: r.caption,
+  createdAt: r.created_at,
+  expiruje: r.expiruje_at,
+})
+
+/** Vyžádá krátkodobě platný odkaz na fotku story — stejná cache
+ *  a stejné pravidlo jako u chatových médií (ziskejUrlMedia výš), jen
+ *  jiný bucket. */
+export const ziskejUrlStory = (path: string): Promise<string | null> =>
+  ziskejPodepsanouUrl(STORIES_BUCKET, path)
+
+/**
+ * Nahraje fotku do vlastní složky privátního bucketu a založí řádek
+ * v jednom volání — na rozdíl od chatového média tu není žádná zpráva,
+ * ke které by se médium připojovalo, takže žádná druhá tabulka ani
+ * orphan-row hazard, na který by bylo potřeba dávat pozor.
+ */
+export const pridatStory = async (file: File, caption?: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+  if (!file.type.startsWith('image/')) return { ok: false, chyba: 'Story může být jen fotka.' }
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  try {
+    const blob = await fileToResizedBlob(file, 1600, 0.85)
+    const cesta = `${ja}/${crypto.randomUUID()}.jpg`
+
+    const { error: chybaNahrani } = await supabase.storage
+      .from(STORIES_BUCKET)
+      .upload(cesta, blob, { contentType: 'image/jpeg' })
+    if (chybaNahrani) throw chybaNahrani
+
+    const oreznuty = caption?.trim().slice(0, 200) || null
+    const { error } = await supabase.from('stories').insert({ user_id: ja, media_path: cesta, caption: oreznuty })
+    if (error) throw error
+
+    return { ok: true }
+  } catch (e) {
+    return chyba(e)
+  }
+}
+
+/**
+ * Vlastní i přátelské aktivní stories, seskupené po autorech pro pruh
+ * v MujProfilPanel.tsx. RLS na `stories` už samo omezuje na "moje nebo
+ * od přítele, co mě neblokuje a koho neblokuju já", takže appka se tu
+ * neptá na přátelství znovu — jen se ptá, co jí databáze vůbec ukáže.
+ *
+ * Úklid prošlých řádků (smaz_expirovane_stories) se volá stejně
+ * "na dobré slovo" jako u tajných zpráv — chyba appce nevadí, RLS
+ * beztak skryje prošlou story hned, i kdyby fyzicky ještě existovala.
+ */
+export const nactiStories = async (): Promise<StorySkupina[]> => {
+  if (!supabase) return []
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return []
+
+  await supabase.rpc('smaz_expirovane_stories').then(
+    () => {},
+    () => {}
+  )
+
+  const { data, error } = await supabase
+    .from('stories')
+    .select('id, user_id, media_path, caption, created_at, expiruje_at')
+    .order('created_at', { ascending: true })
+
+  if (error || !data || data.length === 0) return []
+
+  const ids = Array.from(new Set(data.map((r) => r.user_id)))
+  const profily = await nactiProfily(ids)
+
+  const { data: zhlednute } = await supabase
+    .from('story_views')
+    .select('story_id')
+    .eq('viewer_id', ja)
+    .in(
+      'story_id',
+      data.map((r) => r.id)
+    )
+  const zhledId = new Set((zhlednute ?? []).map((r) => r.story_id as string))
+
+  const podleAutora = new Map<string, Story[]>()
+  for (const r of data) {
+    const seznam = podleAutora.get(r.user_id) ?? []
+    seznam.push(storyZRadku(r))
+    podleAutora.set(r.user_id, seznam)
+  }
+
+  const skupiny: StorySkupina[] = []
+  for (const [autorId, stories] of podleAutora) {
+    const autor = profily.get(autorId)
+    if (!autor) continue
+    skupiny.push({ autor, stories, vsechnyZhlednute: stories.every((s) => zhledId.has(s.id)) })
+  }
+
+  // Vlastní pruh vždycky první, ostatní podle nejnovějšího příspěvku —
+  // stejné pořadí, jaké má "Váš příběh" v Instagramu/TikToku.
+  skupiny.sort((a, b) => {
+    if (a.autor.id === ja) return -1
+    if (b.autor.id === ja) return 1
+    return b.stories[b.stories.length - 1].createdAt.localeCompare(a.stories[a.stories.length - 1].createdAt)
+  })
+
+  return skupiny
+}
+
+/** Zaznamená zhlédnutí — druhé zhlédnutí stejné story tou samou osobou
+ *  narazí na primární klíč (story_id, viewer_id), ne na skutečnou
+ *  chybu (stejné "23505 = no-op úspěch" jako u pridatReakci výš). */
+export const oznacitZhlednuti = async (storyId: string): Promise<void> => {
+  if (!supabase) return
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return
+
+  await supabase.from('story_views').insert({ story_id: storyId, viewer_id: ja })
+}
+
+/** Kdo si přečetl moji story — jen autor tohle podle RLS vůbec dostane
+ *  (story_views SELECT politika), pro cizí story vrátí appka jen prázdno. */
+export const nactiZhlednuti = async (storyId: string): Promise<StoryZhlednuti[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('story_views')
+    .select('viewer_id, zhlednuto_at')
+    .eq('story_id', storyId)
+    .order('zhlednuto_at', { ascending: false })
+
+  if (error || !data || data.length === 0) return []
+
+  const profily = await nactiProfily(data.map((r) => r.viewer_id))
+  return data
+    .map((r) => {
+      const viewer = profily.get(r.viewer_id)
+      return viewer ? { viewer, zhlednutoAt: r.zhlednuto_at } : null
+    })
+    .filter((z): z is StoryZhlednuti => z !== null)
+}
+
+/** Smazání je natvrdo, ne měkké jako u zpráv — story nemá odpovědi,
+ *  na které by se něco odkazovalo, takže tu není co zachovávat jako
+ *  kontext. RLS dovolí smazat jen vlastní (`user_id = auth.uid()`). */
+export const smazatStory = async (id: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase.from('stories').delete().eq('id', id)
+  return error ? chyba(error) : { ok: true }
+}
+
+/**
+ * Živé objevení nové story — obdoba sledovatVazby výš, jen nad tabulkou
+ * stories. Bez filtru schválně: Realtime uplatňuje stejná pravidla jako
+ * běžné čtení (viz SELECT politika na stories), takže sem dorazí jen
+ * příspěvky, které by uživatel uviděl i obyčejným dotazem.
+ */
+export const sledovatStories = (zmena: () => void): (() => void) => {
+  const klient = supabase
+  if (!klient) return () => {}
+
+  const kanal = klient
+    .channel(`moje-stories:${++poradiKanalu}`)
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'stories' }, () => zmena())
     .subscribe()
 
   return () => {
