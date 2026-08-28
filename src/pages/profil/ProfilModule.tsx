@@ -5,9 +5,7 @@ import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUt
 import { fileToResizedDataUrl } from '@/utils/image'
 import { nahrajAvatarDoCloudu, nahrajBannerDoCloudu } from '@/core/supabase/avatarStorage'
 import { isSupabaseConfigured } from '@/core/supabase/client'
-import { APP_VERSION, applyUpdateNow, checkForUpdates, hasNewerVersion } from '@/core/utils/registerSW'
 import { useProfileData } from './hooks/useProfileData'
-import { useCloudStatus, syncNow } from '@/core/supabase/cloudSync'
 import { useActiveRole } from '@/core/role'
 import { ProfilNotifications } from './components/ProfilNotifications'
 import { ProfilToast } from './components/ProfilToast'
@@ -18,68 +16,23 @@ import './ProfilModule.css'
 // stránky vůbec nepotřebuje.
 const ProfilSocialniSekce = lazy(() => import('./components/ProfilSocialniSekce'))
 
-// Popis stavu synchronizace pro řádek v menu. Musí být srozumitelný
-// i pro toho, kdo o Supabase nikdy neslyšel.
-const CLOUD_LABELS: Record<string, string> = {
-  off: 'Cloud není nastavený — data zůstávají jen v tomhle zařízení',
-  connecting: 'Připojuji…',
-  synced: 'XP a odznaky zálohované v cloudu',
-  offline: 'Offline — odešle se, až bude signál',
-  error: 'Synchronizace se nepovedla, klepni pro nový pokus',
-}
-
 export const ProfilModule: React.FC = () => {
   const navigate = useNavigate()
   const { level, xp, streakDays } = useGamificationStore()
   const { profile, updateProfile, markNotificationRead } = useProfileData()
-  const cloudStatus = useCloudStatus((state) => state.status)
   // Vyprší-li VIP, resolveActiveRoleId za tímhle hookem tiše spadne
   // zpátky na 'user' — tag proto vždycky odpovídá skutečně platné roli,
   // ne tomu, co je poslední uložené.
   const aktivniRole = useActiveRole()
-  // Důvod selhání. Bez něj řádek jen oznámil, že se to nepovedlo, a
-  // dohledat proč šlo pouze přes konzoli prohlížeče — na telefonu tedy
-  // prakticky vůbec.
-  const cloudError = useCloudStatus((state) => state.error)
 
   const [notifOpen, setNotifOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
-  const [updateChecking, setUpdateChecking] = useState(false)
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const bannerInputRef = useRef<HTMLInputElement>(null)
 
   const showToast = (message: string) => {
     setToastMsg(message)
     window.setTimeout(() => setToastMsg(null), 2500)
-  }
-
-  // Ruční pojistka pro případ, že by si automatická aktualizace nevšimla
-  // nové verze — třeba když telefon dlouho visel offline.
-  const handleCheckUpdates = async () => {
-    if (updateChecking) return
-    if (!navigator.onLine) {
-      showToast('Jsi offline — aktualizace zkusím později')
-      return
-    }
-
-    setUpdateChecking(true)
-    showToast('Kontroluji aktualizace…')
-    try {
-      const newer = await hasNewerVersion()
-      if (newer) {
-        showToast('Nová verze nalezena, načítám ji…')
-        await applyUpdateNow()
-        return
-      }
-      // I bez nové verze stojí za to pobídnout service worker,
-      // kdyby náhodou uvízl na starém buildu.
-      await checkForUpdates()
-      showToast(`Máš nejnovější verzi (${APP_VERSION}) ✓`)
-    } catch {
-      showToast('Kontrolu se nepodařilo dokončit')
-    } finally {
-      setUpdateChecking(false)
-    }
   }
 
   const handleAvatarSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -236,85 +189,6 @@ export const ProfilModule: React.FC = () => {
       <Suspense fallback={<p className="profil-lazy-fallback">Načítám…</p>}>
         <ProfilSocialniSekce />
       </Suspense>
-
-      {/* Settings Menu */}
-      <div className="profil-settings-list">
-        <div className="profil-menu-row" onClick={() => navigate('/nastaveni')}>
-          <div className="profil-menu-left">
-            <div className="profil-menu-icon">👤</div>
-            <div className="profil-menu-text">
-              <span className="profil-menu-title">Osobní informace</span>
-              <span className="profil-menu-sub">Upravit jméno, e-mail a další údaje</span>
-            </div>
-          </div>
-          <span className="profil-arrow">❯</span>
-        </div>
-
-        <div className="profil-menu-row" onClick={() => navigate('/nastaveni')}>
-          <div className="profil-menu-left">
-            <div className="profil-menu-icon">🛡️</div>
-            <div className="profil-menu-text">
-              <span className="profil-menu-title">Zabezpečení</span>
-              <span className="profil-menu-sub">Heslo, přihlášení a ochrana účtu</span>
-            </div>
-          </div>
-          <span className="profil-arrow">❯</span>
-        </div>
-
-        <div className="profil-menu-row" onClick={() => navigate('/nastaveni')}>
-          <div className="profil-menu-left">
-            <div className="profil-menu-icon">🎨</div>
-            <div className="profil-menu-text">
-              <span className="profil-menu-title">Vzhled aplikace</span>
-              <span className="profil-menu-sub">5 barevných vzhledů, 2 jen pro VIP</span>
-            </div>
-          </div>
-          <span className="profil-arrow">❯</span>
-        </div>
-
-        <div className="profil-menu-row profil-menu-row--soon" onClick={() => showToast('Nápověda bude brzy dostupná!')}>
-          <div className="profil-menu-left">
-            <div className="profil-menu-icon">❓</div>
-            <div className="profil-menu-text">
-              <span className="profil-menu-title">Nápověda a podpora<span className="profil-badge-soon">BRZY</span></span>
-              <span className="profil-menu-sub">Často kladené otázky a kontakt</span>
-            </div>
-          </div>
-          <span className="profil-arrow">❯</span>
-        </div>
-
-        <div className="profil-menu-row" onClick={() => { void syncNow() }}>
-          <div className="profil-menu-left">
-            <div className="profil-menu-icon">☁️</div>
-            <div className="profil-menu-text">
-              <span className="profil-menu-title">
-                Synchronizace
-                <span className={`profil-cloud-dot is-${cloudStatus}`} aria-hidden="true" />
-              </span>
-              <span className="profil-menu-sub">
-                {CLOUD_LABELS[cloudStatus] ?? CLOUD_LABELS.off}
-              </span>
-              {cloudStatus === 'error' && cloudError && (
-                <span className="profil-menu-detail">{cloudError}</span>
-              )}
-            </div>
-          </div>
-          <span className="profil-arrow">❯</span>
-        </div>
-
-        <div className="profil-menu-row" onClick={() => { void handleCheckUpdates() }}>
-          <div className="profil-menu-left">
-            <div className="profil-menu-icon">🔄</div>
-            <div className="profil-menu-text">
-              <span className="profil-menu-title">Verze aplikace</span>
-              <span className="profil-menu-sub">
-                {updateChecking ? 'Kontroluji…' : `Buddy ${APP_VERSION} — klepni pro kontrolu aktualizací`}
-              </span>
-            </div>
-          </div>
-          <span className="profil-arrow">❯</span>
-        </div>
-      </div>
 
       <ProfilNotifications
         open={notifOpen}

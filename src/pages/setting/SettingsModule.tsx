@@ -5,6 +5,8 @@ import { useHasPermission } from '@/core/role'
 import { useThemeStore, VSECHNY_VZHLEDY } from '@/core/theme'
 import { jeBiometrieDostupna, zaregistrujBiometrii } from '@/core/utils/biometrics'
 import { AVATAR_FRAMES } from '@/social/avatarFrames'
+import { useCloudStatus, syncNow } from '@/core/supabase/cloudSync'
+import { APP_VERSION, applyUpdateNow, checkForUpdates, hasNewerVersion } from '@/core/utils/registerSW'
 import './SettingsModule.css'
 
 // ==========================================
@@ -12,6 +14,16 @@ import './SettingsModule.css'
 // to místo, kam patří všechno další nastavení — dřív bylo schované
 // v bottom sheetu nad profilem, kam se víc sekcí rozumně nevejde.
 // ==========================================
+
+// Popis stavu synchronizace pro kartu Synchronizace. Musí být srozumitelný
+// i pro toho, kdo o Supabase nikdy neslyšel.
+const CLOUD_LABELS: Record<string, string> = {
+  off: 'Cloud není nastavený — data zůstávají jen v tomhle zařízení',
+  connecting: 'Připojuji…',
+  synced: 'XP a odznaky zálohované v cloudu',
+  offline: 'Offline — odešle se, až bude signál',
+  error: 'Synchronizace se nepovedla, klepni pro nový pokus',
+}
 
 export const SettingsModule: React.FC = () => {
   const navigate = useNavigate()
@@ -23,6 +35,11 @@ export const SettingsModule: React.FC = () => {
   const smiPremium = useHasPermission('cosmetics.premium')
   const themeId = useThemeStore((s) => s.themeId)
   const setThemeId = useThemeStore((s) => s.setThemeId)
+  const cloudStatus = useCloudStatus((state) => state.status)
+  // Důvod selhání. Bez něj karta jen oznámí, že se to nepovedlo, a
+  // dohledat proč šlo pouze přes konzoli prohlížeče — na telefonu tedy
+  // prakticky vůbec.
+  const cloudError = useCloudStatus((state) => state.error)
 
   const [form, setForm] = useState({
     name: profile.name,
@@ -32,6 +49,7 @@ export const SettingsModule: React.FC = () => {
   })
   const [toast, setToast] = useState<string | null>(null)
   const [biometrieProbiha, setBiometrieProbiha] = useState(false)
+  const [updateChecking, setUpdateChecking] = useState(false)
 
   // Když se profil změní jinde (obnova ze zálohy), formulář se srovná
   useEffect(() => {
@@ -81,6 +99,35 @@ export const SettingsModule: React.FC = () => {
     }
     setThemeId(id)
     showToast(`Vzhled „${nazev}“ nastaven ✓`)
+  }
+
+  // Ruční pojistka pro případ, že by si automatická aktualizace nevšimla
+  // nové verze — třeba když telefon dlouho visel offline.
+  const handleCheckUpdates = async () => {
+    if (updateChecking) return
+    if (!navigator.onLine) {
+      showToast('Jsi offline — aktualizace zkusím později')
+      return
+    }
+
+    setUpdateChecking(true)
+    showToast('Kontroluji aktualizace…')
+    try {
+      const newer = await hasNewerVersion()
+      if (newer) {
+        showToast('Nová verze nalezena, načítám ji…')
+        await applyUpdateNow()
+        return
+      }
+      // I bez nové verze stojí za to pobídnout service worker,
+      // kdyby náhodou uvízl na starém buildu.
+      await checkForUpdates()
+      showToast(`Máš nejnovější verzi (${APP_VERSION}) ✓`)
+    } catch {
+      showToast('Kontrolu se nepodařilo dokončit')
+    } finally {
+      setUpdateChecking(false)
+    }
   }
 
   return (
@@ -363,6 +410,49 @@ export const SettingsModule: React.FC = () => {
 
         <button className="settings-danger-btn" onClick={handleResetProfile}>
           🗑️ Vrátit profil do výchozího stavu
+        </button>
+      </section>
+
+      {/* Synchronizace a Verze aplikace — přesunuté sem z Profilu spolu se
+          zbytkem menu nastavení (Osobní informace/Zabezpečení/Vzhled
+          aplikace tam byly jen odkazy sem, takže zmizely beze zbytku —
+          duplikovat kartu, která už na týhle stránce existuje, nemá
+          smysl). Na rozdíl od těch tří tahle dvě řešila něco skutečného
+          přímo na místě (stav cloudu, kontrola aktualizací), proto sem
+          šly jako plnohodnotné karty, ne jen coby smazaný odkaz. */}
+      <section className="settings-card">
+        <div className="settings-card-head">
+          <span className="settings-card-icon blue" aria-hidden="true">☁️</span>
+          <div>
+            <h2 className="settings-card-title">
+              Synchronizace
+              <span className={`settings-cloud-dot is-${cloudStatus}`} aria-hidden="true" />
+            </h2>
+            <p className="settings-card-sub">{CLOUD_LABELS[cloudStatus] ?? CLOUD_LABELS.off}</p>
+            {cloudStatus === 'error' && cloudError && (
+              <p className="settings-error-detail">{cloudError}</p>
+            )}
+          </div>
+        </div>
+
+        <button className="settings-save-btn" onClick={() => { void syncNow() }}>
+          Zkusit synchronizaci znovu
+        </button>
+      </section>
+
+      <section className="settings-card">
+        <div className="settings-card-head">
+          <span className="settings-card-icon purple" aria-hidden="true">🔄</span>
+          <div>
+            <h2 className="settings-card-title">Verze aplikace</h2>
+            <p className="settings-card-sub">
+              {updateChecking ? 'Kontroluji…' : `Buddy ${APP_VERSION}`}
+            </p>
+          </div>
+        </div>
+
+        <button className="settings-save-btn" onClick={() => { void handleCheckUpdates() }}>
+          Zkontrolovat aktualizace
         </button>
       </section>
 

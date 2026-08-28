@@ -378,3 +378,34 @@
   color: var(--text-muted);
   line-height: 1.35;
 }
+
+/* ---------- synchronizace / verze aplikace ---------- */
+
+/* Barevná tečka u karty Synchronizace — na první pohled ukáže, jestli
+   se data dostávají do cloudu, nebo leží jen v zařízení. Přesunuto sem
+   z ProfilModule.css spolu s kartou samotnou. */
+.settings-cloud-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+  background: #64748b;
+}
+
+.settings-cloud-dot.is-synced { background: #22c55e; box-shadow: 0 0 6px rgba(34, 197, 94, 0.7); }
+.settings-cloud-dot.is-connecting { background: #38bdf8; }
+.settings-cloud-dot.is-offline { background: #f59e0b; }
+.settings-cloud-dot.is-error { background: #ef4444; }
+
+/* Technický důvod selhání synchronizace. Ukáže se jen při chybě —
+   uživateli sice nic neřekne, ale je to jediné, podle čeho jde na
+   telefonu poznat, co se pokazilo. */
+.settings-error-detail {
+  margin: 0.15rem 0 0;
+  font-size: 0.62rem;
+  line-height: 1.35;
+  color: #ff9d9d;
+  word-break: break-word;
+}
