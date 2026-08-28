@@ -4,9 +4,8 @@ import { SocialIcon } from './components/SocialIcon'
 import { MujProfilPanel } from './components/MujProfilPanel'
 import { ChatyPanel } from './components/ChatyPanel'
 import { ChatView } from './components/ChatView'
-import { BlokovaniPanel } from './components/BlokovaniPanel'
-import { ModeracePanel } from './components/ModeracePanel'
-import { TajnyChatPanel } from './components/TajnyChatPanel'
+import { VyhledavacPanel } from './components/VyhledavacPanel'
+import { NastaveniPanel } from './components/NastaveniPanel'
 import { TajnyChatView } from './components/TajnyChatView'
 import { VerejnyProfilDialog } from './components/VerejnyProfilDialog'
 import { useSocial } from './useSocial'
@@ -28,18 +27,20 @@ import './SocialModule.css'
 // chaty i posílat žádosti komukoli bez skutečného účtu.
 // ==========================================
 
-type Zalozka = 'profil' | 'chaty' | 'blokovani' | 'hlaseni' | 'tajne'
+type Zalozka = 'profil' | 'chaty' | 'vyhledavac' | 'nastaveni'
 
-// Přátelé už nejsou vlastní záložka — seznam přátel, hledání podle
-// jména i žádosti se přesunuly rovnou do Profilu (viz MujProfilPanel.tsx,
-// které teď PratelePanel vykresluje jako svou součást). Profil je proto
-// první záložka, ne poslední: je to teď hlavní obrazovka Social, ne
-// jen sdílecí kód schovaný na konci.
+// Fáze 2 rozvržení: čtyři pevné položky pro úplně každého, ne pět/šest
+// podle role. Hledání nových lidí (dřív karta nad seznamem přátel
+// v Profilu) má vlastní záložku Vyhledávač — stejný mentální model,
+// jaký zná Instagram/TikTok. Blokovaní, Hlášení a (komu to oprávnění
+// dovolí) Tajný chat se přesunuly do Nastavení jako menu, přesně jako
+// AdminModule.tsx — spodní lišta se tak VIP/moderátorům/adminům
+// neroztahuje o další ikonu navíc, viz NastaveniPanel.tsx.
 const ZALOZKY: { id: Zalozka; popis: string; ikona: string }[] = [
   { id: 'profil', popis: 'Profil', ikona: 'user' },
   { id: 'chaty', popis: 'Chaty', ikona: 'chat' },
-  { id: 'blokovani', popis: 'Blokovaní', ikona: 'block' },
-  { id: 'hlaseni', popis: 'Hlášení', ikona: 'flag' },
+  { id: 'vyhledavac', popis: 'Vyhledávač', ikona: 'search' },
+  { id: 'nastaveni', popis: 'Nastavení', ikona: 'settings' },
 ]
 
 export const SocialModule: React.FC = () => {
@@ -88,12 +89,6 @@ export const SocialModule: React.FC = () => {
     () => tajnyStav.chaty.find((ch) => ch.id === otevrenyTajnyChat) ?? null,
     [tajnyStav.chaty, otevrenyTajnyChat]
   )
-
-  // Záložky jsou fixní pole nahoře, ale Tajný chat se do něj přidává jen
-  // komu to oprávnění vůbec dovolí — kdo ho nemá, o funkci ani neví.
-  const zalozky = tajnyStav.smim
-    ? [...ZALOZKY, { id: 'tajne' as const, popis: 'Tajný chat', ikona: 'lock' }]
-    : ZALOZKY
 
   // Schránka musí vědět, do kterého chatu se uživatel dívá — zprávy
   // z otevřeného rozhovoru se do počtu nepřečtených počítat nemají.
@@ -171,8 +166,6 @@ export const SocialModule: React.FC = () => {
           ) : (
             <>
               {zalozka === 'chaty' && <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />}
-              {zalozka === 'blokovani' && <BlokovaniPanel stav={stav} />}
-              {zalozka === 'hlaseni' && <ModeracePanel stav={stav} />}
               {zalozka === 'profil' && (
                 <MujProfilPanel
                   stav={stav}
@@ -180,11 +173,14 @@ export const SocialModule: React.FC = () => {
                   onOtevritProfil={setOtevrenyProfil}
                 />
               )}
-              {zalozka === 'tajne' && tajnyStav.smim && (
-                <TajnyChatPanel
+              {zalozka === 'vyhledavac' && (
+                <VyhledavacPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />
+              )}
+              {zalozka === 'nastaveni' && (
+                <NastaveniPanel
+                  stav={stav}
                   tajnyStav={tajnyStav}
-                  rekni={stav.rekni}
-                  onOtevrit={setOtevrenyTajnyChat}
+                  onOtevritTajnyChat={setOtevrenyTajnyChat}
                 />
               )}
             </>
@@ -197,13 +193,13 @@ export const SocialModule: React.FC = () => {
               flex sloupci, margin-top: auto ho posune ke dnu i s krátkým
               obsahem, position: sticky ho tam udrží i při delším scrollu. */}
           <div className="social-bottom-nav">
-            {zalozky.map((z) => {
+            {ZALOZKY.map((z) => {
               const odznak =
-                z.id === 'profil'
+                z.id === 'vyhledavac'
                   ? cekaZadosti
                   : z.id === 'chaty'
                     ? neprectene
-                    : z.id === 'tajne'
+                    : z.id === 'nastaveni'
                       ? tajnyStav.cekajiciNaMe
                       : 0
 

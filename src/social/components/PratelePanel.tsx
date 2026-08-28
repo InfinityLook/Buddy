@@ -1,11 +1,11 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import { NahlasitDialog } from './NahlasitDialog'
 import * as api from '../api'
 import { normalizeText } from '@/core/utils/text'
 import type { SocialStav } from '../useSocial'
-import type { PratelskyNavrh, SocialProfil } from '../types'
+import type { SocialProfil } from '../types'
 
 interface Props {
   stav: SocialStav
@@ -13,179 +13,32 @@ interface Props {
   onOtevritProfil: (userId: string) => void
 }
 
+// ==========================================
+// Seznam už schválených přátel — vyhledávání nových lidí, návrhy
+// a žádosti o přátelství mají od Fáze 2 rozvržení vlastní záložku
+// (VyhledavacPanel.tsx); tenhle panel zůstává jen to, co je "moje",
+// vykreslený jako součást Profilu (MujProfilPanel.tsx), ne vedle něj.
+// ==========================================
+
 export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritProfil }) => {
-  const [dotaz, setDotaz] = useState('')
-  const [vysledky, setVysledky] = useState<SocialProfil[]>([])
-  const [hleda, setHleda] = useState(false)
-  const [hledano, setHledano] = useState(false)
   const [hledatPratele, setHledatPratele] = useState('')
   // Nahlásit dřív šlo jen z konkrétní zprávy v chatu (NahlasitDialog v
   // ChatView.tsx) — kdo obtěžoval mimo chat (třeba žádostmi o přátelství),
   // neměl jak ho nahlásit, aniž by s ním napřed musel/a psát. Dialog
   // zpravaId od začátku bral jako nepovinné, jen tady na něj nebylo tlačítko.
   const [nahlasit, setNahlasit] = useState<SocialProfil | null>(null)
-  const [navrhy, setNavrhy] = useState<PratelskyNavrh[]>([])
-
-  const prichozi = stav.zadosti.filter((z) => z.smer === 'prichozi')
-  const odchozi = stav.zadosti.filter((z) => z.smer === 'odchozi')
-
-  // Návrhy se přenačtou při každé změně přátel/žádostí (stav.pratele
-  // se mění po přijetí/odeslání žádosti) — bez toho by appka pořád
-  // nabízela někoho, koho uživatel mezitím už přidal.
-  useEffect(() => {
-    let platne = true
-    void api.nactiNavrhyPratel().then((n) => platne && setNavrhy(n))
-    return () => {
-      platne = false
-    }
-  }, [stav.pratele, stav.zadosti])
 
   // Hledání jen v už schválených přátelích, ne v celé appce — to dělá
-  // sekce NAJÍT LIDI výš, tohle je filtr nad seznamem, co uživatel
-  // už na obrazovce má.
+  // Vyhledávač, tohle je filtr nad seznamem, co uživatel už na
+  // obrazovce má.
   const filtrovaniPratele = useMemo(() => {
     const dotaz = normalizeText(hledatPratele.trim())
     if (!dotaz) return stav.pratele
     return stav.pratele.filter((p) => normalizeText(p.profil.displayName).includes(dotaz))
   }, [stav.pratele, hledatPratele])
 
-  const hledatLidi = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (dotaz.trim().length < 2) return
-
-    setHleda(true)
-    const vysledek = await api.hledejPodleJmena(dotaz)
-    setVysledky(vysledek)
-    setHledano(true)
-    setHleda(false)
-  }
-
-  const pridatPritele = async (profil: SocialProfil) => {
-    const ok = await stav.provest(() => api.poslatZadost(profil.id), 'Žádost odeslána.')
-    if (ok) setVysledky((v) => v.filter((p) => p.id !== profil.id))
-  }
-
-  const pridatZNavrhu = async (navrh: PratelskyNavrh) => {
-    const ok = await stav.provest(() => api.poslatZadost(navrh.id), 'Žádost odeslána.')
-    if (ok) setNavrhy((n) => n.filter((x) => x.id !== navrh.id))
-  }
-
   return (
     <div className="social-panel">
-      {/* Najít lidi podle jména */}
-      <section className="social-card">
-        <span className="social-card-label">NAJÍT LIDI</span>
-        <form className="social-add-row" onSubmit={hledatLidi}>
-          <input
-            className="social-input"
-            placeholder="Jméno…"
-            value={dotaz}
-            maxLength={40}
-            onChange={(e) => {
-              setDotaz(e.target.value)
-              setHledano(false)
-            }}
-          />
-          <button className="social-btn" type="submit" disabled={hleda || dotaz.trim().length < 2}>
-            {hleda ? '…' : 'Hledat'}
-          </button>
-        </form>
-
-        {hledano && vysledky.length === 0 && (
-          <p className="social-empty-note">Nikoho takového jsme nenašli.</p>
-        )}
-
-        {vysledky.map((profil) => (
-          <div key={profil.id} className="social-row">
-            <button className="social-row-otevrit" onClick={() => onOtevritProfil(profil.id)}>
-              <SocialAvatar id={profil.id} jmeno={profil.displayName} avatarUrl={profil.avatarUrl} />
-              <span className="social-row-name">{profil.displayName}</span>
-            </button>
-            <button className="social-btn social-btn--small" onClick={() => pridatPritele(profil)}>
-              <SocialIcon name="plus" size={14} />
-              Přidat
-            </button>
-          </div>
-        ))}
-      </section>
-
-      {/* Návrhy podle společných přátel — navrhy_pratel() na databázi
-          už vylučuje sebe, stávající přátele, čekající žádosti
-          i blokované, appka tu jen vykresluje, co dostala. */}
-      {navrhy.length > 0 && (
-        <section className="social-card">
-          <span className="social-card-label">NÁVRHY</span>
-          {navrhy.map((n) => (
-            <div key={n.id} className="social-row">
-              <button className="social-row-otevrit" onClick={() => onOtevritProfil(n.id)}>
-                <SocialAvatar id={n.id} jmeno={n.displayName} avatarUrl={n.avatarUrl} />
-                <span className="social-row-name">
-                  {n.displayName}
-                  <span className="social-row-sub">
-                    {n.spolecni} {n.spolecni === 1 ? 'společný přítel' : n.spolecni < 5 ? 'společní přátelé' : 'společných přátel'}
-                  </span>
-                </span>
-              </button>
-              <button className="social-btn social-btn--small" onClick={() => pridatZNavrhu(n)}>
-                <SocialIcon name="plus" size={14} />
-                Přidat
-              </button>
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* Došlé žádosti */}
-      {prichozi.length > 0 && (
-        <section className="social-card">
-          <span className="social-card-label">ŽÁDOSTI ({prichozi.length})</span>
-          {prichozi.map((z) => (
-            <div key={z.id} className="social-row">
-              <button className="social-row-otevrit" onClick={() => onOtevritProfil(z.profil.id)}>
-                <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} avatarUrl={z.profil.avatarUrl} pulzuje />
-                <span className="social-row-name">{z.profil.displayName}</span>
-              </button>
-              <button
-                className="social-icon-btn social-icon-btn--ano"
-                aria-label="Přijmout"
-                onClick={() => stav.provest(() => api.prijmoutZadost(z.id), 'Máte se rádi 🎉')}
-              >
-                <SocialIcon name="check" size={16} />
-              </button>
-              <button
-                className="social-icon-btn social-icon-btn--ne"
-                aria-label="Odmítnout"
-                onClick={() => stav.provest(() => api.zrusitVazbu(z.id), 'Žádost odmítnuta.')}
-              >
-                <SocialIcon name="x" size={16} />
-              </button>
-            </div>
-          ))}
-        </section>
-      )}
-
-      {odchozi.length > 0 && (
-        <section className="social-card">
-          <span className="social-card-label">ČEKÁ NA ODPOVĚĎ ({odchozi.length})</span>
-          {odchozi.map((z) => (
-            <div key={z.id} className="social-row">
-              <button className="social-row-otevrit" onClick={() => onOtevritProfil(z.profil.id)}>
-                <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} avatarUrl={z.profil.avatarUrl} />
-                <span className="social-row-name">{z.profil.displayName}</span>
-              </button>
-              <button
-                className="social-icon-btn social-icon-btn--ne"
-                aria-label="Zrušit žádost"
-                onClick={() => stav.provest(() => api.zrusitVazbu(z.id), 'Žádost zrušena.')}
-              >
-                <SocialIcon name="x" size={16} />
-              </button>
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* Přátelé */}
       <section className="social-card">
         <span className="social-card-label">PŘÁTELÉ ({stav.pratele.length})</span>
 
@@ -201,7 +54,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
 
         {stav.pratele.length === 0 ? (
           <p className="social-empty-note">
-            Zatím nikdo. Najdi si někoho podle jména výš.
+            Zatím nikdo. Najdi si někoho ve Vyhledávači.
           </p>
         ) : filtrovaniPratele.length === 0 ? (
           <p className="social-empty-note">Nikdo takový mezi přáteli není.</p>

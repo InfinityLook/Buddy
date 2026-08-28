@@ -281,6 +281,36 @@
   box-shadow: 0 0 0 1px rgba(53, 196, 240, 0.15) inset;
 }
 
+/* ---------- menu v Nastavení (NastaveniPanel.tsx) ---------- */
+/* Stejný "menu → celoobrazovková sekce s vlastním zpět" vzor jako
+   AdminModule.tsx, jen s .social-row's rodinou tříd místo Adminových. */
+.social-nastaveni-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.75rem 0.2rem;
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  background: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.social-card > .social-nastaveni-radek:first-of-type { border-top: none; }
+
+.social-nastaveni-popis { flex: 1; }
+
+.social-nastaveni-sipka {
+  color: var(--text-muted);
+  transform: rotate(180deg);
+  flex-shrink: 0;
+}
+
 .social-row--chat.ma-neprectene .social-chat-nazev { color: var(--accent-cyan); }
 
 .social-row--chat.ma-neprectene .social-odznak {
