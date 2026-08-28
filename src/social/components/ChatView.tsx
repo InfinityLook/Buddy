@@ -164,6 +164,11 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
   // Na koho se právě odpovídá — null = běžná nová zpráva. Zobrazí se
   // jako citace nad composerem, dokud se buď neodešle, nebo nezruší.
   const [odpovidamNa, setOdpovidamNa] = useState<Zprava | null>(null)
+  // Kterou vlastní zprávu appka zrovna upravuje — null = composer píše
+  // novou zprávu. Celá zpráva, ne jen id, ať odeslání editace zná i
+  // její mediaType (potřeba pro náhradní popisek, viz upravitZpravu
+  // v api.ts) bez druhého hledání v `zpravy`.
+  const [upravujeZpravu, setUpravujeZpravu] = useState<Zprava | null>(null)
   // Reakce celého chatu naráz (viz nactiReakce v api.ts), ne po jedné
   // za zprávu — levnější dotaz a jednodušší živé doručování.
   const [reakce, setReakce] = useState<Reakce[]>([])
@@ -295,9 +300,37 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
     oznamPsaniRef.current()
   }
 
+  // Editace nemá vlastní "Odeslat" tlačítko — sdílí composer se psaním
+  // nové zprávy, jen zamíří na jinou funkci v api.ts (upravitZpravu
+  // místo poslatZpravu) a výsledek zapíše přes existující řádek
+  // v `zpravy`, ne jako novou položku na konci.
+  const ulozitUpravu = async (upravovana: Zprava) => {
+    setPosila(true)
+    const vysledek = await api.upravitZpravu(upravovana.id, text, upravovana.mediaType)
+    setPosila(false)
+
+    if (vysledek.ok && vysledek.zprava) {
+      setText('')
+      setUpravujeZpravu(null)
+      setZpravy((s) => s.map((m) => (m.id === upravovana.id ? (vysledek.zprava as Zprava) : m)))
+    } else {
+      stav.rekni(vysledek.chyba ?? 'Úprava se nepovedla.')
+    }
+  }
+
+  // Editace média bez popisku smí odeslat i prázdný text (upravitZpravu
+  // v api.ts pak sama dosadí náhradní "📷 Fotka"/"🎥 Video") — stejné
+  // uvolnění podmínky, jaké má poslatZpravu pro novou zprávu s médiem.
+  const muzeUlozitPrazdny = !!(upravujeZpravu && upravujeZpravu.mediaType)
+
   const odeslat = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (posila || !text.trim()) return
+    if (posila || (!text.trim() && !muzeUlozitPrazdny)) return
+
+    if (upravujeZpravu) {
+      await ulozitUpravu(upravujeZpravu)
+      return
+    }
 
     // Synchronně, ještě před prvním await — odeslání zprávy je nejjasnější
     // gesto "chci vědět, až mi někdo odepíše", a mimo tenhle gestový
@@ -324,6 +357,15 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
     } else {
       stav.rekni(vysledek.chyba ?? 'Zpráva neodešla.')
     }
+  }
+
+  // Otevře composer v editačním režimu — popisek automaticky přiřazený
+  // médiu (viz VYCHOZI_POPISEK_MEDIA) appka nepředvyplní jako by ho
+  // někdo napsal, stejné vynechání jako při vykreslení bubliny níž.
+  const zacitUpravovat = (z: Zprava) => {
+    setOdpovidamNa(null)
+    setUpravujeZpravu(z)
+    setText(z.mediaType && z.text === VYCHOZI_POPISEK_MEDIA[z.mediaType] ? '' : z.text)
   }
 
   // Sponka: vybraný soubor se nejdřív nahraje do Storage (nahratChatMedium),
@@ -617,7 +659,10 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
                   {!(z.mediaPath && z.mediaType && z.text === VYCHOZI_POPISEK_MEDIA[z.mediaType]) && (
                     <span className="social-bublina-text">{z.text}</span>
                   )}
-                  <span className="social-bublina-cas">{cas(z.createdAt)}</span>
+                  <span className="social-bublina-cas">
+                    {z.editedAt && !smazana && <span className="social-bublina-upraveno">(upraveno) </span>}
+                    {cas(z.createdAt)}
+                  </span>
                 </span>
               </div>
 
@@ -648,35 +693,48 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
                     Reagovat
                   </button>
 
-                  <button className="social-mini-btn" onClick={() => setOdpovidamNa(z)}>
+                  <button
+                    className="social-mini-btn"
+                    onClick={() => {
+                      setUpravujeZpravu(null)
+                      setOdpovidamNa(z)
+                    }}
+                  >
                     <SocialIcon name="reply" size={12} />
                     Odpovědět
                   </button>
 
                   {moje ? (
-                    <button
-                      className="social-mini-btn"
-                      onClick={async () => {
-                        const v = await api.smazatZpravu(z.id)
-                        if (v.ok) {
-                          // Patchneme tenhle jeden řádek na místě — stejný
-                          // důvod jako u odeslání, refetch by mohl zahodit
-                          // starší historii načtenou přes "Načíst starší".
-                          setZpravy((s) =>
-                            s.map((m) =>
-                              m.id === z.id
-                                ? { ...m, text: 'Zpráva smazána', smazanoAt: new Date().toISOString() }
-                                : m
+                    <>
+                      <button className="social-mini-btn" onClick={() => zacitUpravovat(z)}>
+                        <SocialIcon name="pencil" size={12} />
+                        Upravit
+                      </button>
+
+                      <button
+                        className="social-mini-btn"
+                        onClick={async () => {
+                          const v = await api.smazatZpravu(z.id)
+                          if (v.ok) {
+                            // Patchneme tenhle jeden řádek na místě — stejný
+                            // důvod jako u odeslání, refetch by mohl zahodit
+                            // starší historii načtenou přes "Načíst starší".
+                            setZpravy((s) =>
+                              s.map((m) =>
+                                m.id === z.id
+                                  ? { ...m, text: 'Zpráva smazána', smazanoAt: new Date().toISOString() }
+                                  : m
+                              )
                             )
-                          )
-                        } else {
-                          stav.rekni(v.chyba ?? 'Smazat se nepovedlo.')
-                        }
-                      }}
-                    >
-                      <SocialIcon name="trash" size={12} />
-                      Smazat
-                    </button>
+                          } else {
+                            stav.rekni(v.chyba ?? 'Smazat se nepovedlo.')
+                          }
+                        }}
+                      >
+                        <SocialIcon name="trash" size={12} />
+                        Smazat
+                      </button>
+                    </>
                   ) : (
                     <button
                       className="social-mini-btn"
@@ -730,6 +788,24 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
         </div>
       )}
 
+      {upravujeZpravu && (
+        <div className="social-odpoved-lista social-uprava-lista">
+          <span className="social-odpoved-text">
+            <SocialIcon name="pencil" size={12} /> Upravuješ zprávu
+          </span>
+          <button
+            className="social-icon-btn"
+            aria-label="Zrušit úpravu"
+            onClick={() => {
+              setUpravujeZpravu(null)
+              setText('')
+            }}
+          >
+            <SocialIcon name="x" size={14} />
+          </button>
+        </div>
+      )}
+
       {/* Dokud se nahrává hlasovka, composer schová celý formulář za tenhle
           řádek — psát ani přikládat souběžně nejde, stejně jako appka
           nedovolí odeslat prázdnou zprávu. */}
@@ -772,14 +848,14 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
             type="button"
             className="social-icon-btn"
             aria-label="Přiložit fotku nebo video"
-            disabled={nahravaMedium}
+            disabled={nahravaMedium || !!upravujeZpravu}
             onClick={() => souborInputRef.current?.click()}
           >
             <SocialIcon name={nahravaMedium ? 'send' : 'attach'} size={18} />
           </button>
           <input
             className="social-input social-input--zprava"
-            placeholder="Napiš zprávu…"
+            placeholder={upravujeZpravu ? 'Uprav zprávu…' : 'Napiš zprávu…'}
             value={text}
             maxLength={4000}
             onChange={(e) => napovedPsani(e.target.value)}
@@ -788,8 +864,10 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
           {/* Mikrofon nahrazuje odesílací tlačítko, dokud je pole prázdné —
               stejný vzor jako Messenger/WhatsApp, ať appka nemusí mít dvě
               tlačítka vedle sebe napořád. Text má vždycky přednost: jakmile
-              je co odeslat jako text, mic zmizí. */}
-          {!text.trim() && PODPORUJE_NAHRAVANI_HLASU ? (
+              je co odeslat jako text, mic zmizí. Při editaci appka mic
+              vůbec nenabídne — nahrát novou hlasovku uprostřed úpravy
+              textu by nedávalo smysl. */}
+          {!text.trim() && !upravujeZpravu && PODPORUJE_NAHRAVANI_HLASU ? (
             <button
               type="button"
               className="social-send-btn"
@@ -803,10 +881,10 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
             <button
               className={`social-send-btn ${odeslano ? 'je-odeslano' : ''}`}
               type="submit"
-              aria-label="Odeslat"
-              disabled={posila || !text.trim()}
+              aria-label={upravujeZpravu ? 'Uložit úpravu' : 'Odeslat'}
+              disabled={posila || (!text.trim() && !muzeUlozitPrazdny)}
             >
-              <SocialIcon name={odeslano ? 'check' : 'send'} size={18} />
+              <SocialIcon name={odeslano ? 'check' : upravujeZpravu ? 'check' : 'send'} size={18} />
             </button>
           )}
         </form>

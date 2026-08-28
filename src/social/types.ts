@@ -111,6 +111,11 @@ export interface Zprava {
    *  odkaz (api.ts's ziskejUrlMedia), null u běžné textové zprávy. */
   mediaPath: string | null
   mediaType: 'image' | 'video' | 'audio' | null
+  /** Kdy byla zpráva naposledy upravena — null u nezměněné. Appka drží
+   *  jen aktuální text, žádnou historii předchozích verzí (stejná
+   *  jednoduchost jako Discord/WhatsApp); ChatView.tsx podle tohohle
+   *  pole vedle zprávy zobrazí "(upraveno)". */
+  editedAt: string | null
 }
 
 /** Text, který api.ts's poslatZpravu uloží do `body`, když uživatel

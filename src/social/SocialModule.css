@@ -1379,6 +1379,21 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Editace sdílí .social-odpoved-lista beze změny rozměrů — jen jemný
+   akcentový pruh vlevo, ať je na první pohled jasné, že tahle lišta
+   neznamená totéž jako citace nad composerem. */
+.social-uprava-lista {
+  border-left: 2px solid var(--accent-cyan);
+}
+
+.social-bublina-upraveno {
+  color: var(--text-muted);
+  font-style: italic;
 }
 
 /* Reakce pod bublinou — pilulky s emoji a počtem, vlastní zvýrazněná */

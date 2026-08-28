@@ -643,6 +643,7 @@ const zpravaZRadku = (r: {
   reply_to_id?: string | null
   media_path?: string | null
   media_type?: string | null
+  edited_at?: string | null
 }): Zprava => ({
   id: r.id,
   chatId: r.chat_id,
@@ -656,6 +657,7 @@ const zpravaZRadku = (r: {
     r.media_type === 'image' || r.media_type === 'video' || r.media_type === 'audio'
       ? r.media_type
       : null,
+  editedAt: r.edited_at ?? null,
 })
 
 // Kolik zpráv se načte na jedno zavolání nactiZpravy — první stránka
@@ -679,7 +681,7 @@ export const nactiZpravy = async (chatId: string, pred?: string): Promise<Zprava
 
   let dotaz = supabase
     .from('messages')
-    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type')
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at')
     .eq('chat_id', chatId)
     .order('created_at', { ascending: false })
     .limit(ZPRAV_NA_STRANKU)
@@ -735,7 +737,42 @@ export const poslatZpravu = async (
       media_path: medium?.path ?? null,
       media_type: medium?.type ?? null,
     })
-    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type')
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at')
+    .single()
+
+  if (error || !data) return { ...chyba(error), zprava: null }
+  return { ok: true, zprava: zpravaZRadku(data) }
+}
+
+/**
+ * Upraví text vlastní zprávy — RLS ("upravit vlastní zprávu", viz
+ * migrace pridej_editaci_zpravy) pustí update jen odesílateli. Appka
+ * nedrží historii předchozích verzí, jen aktuální text + `edited_at`
+ * (appka podle něj vedle zprávy ukáže "(upraveno)") — stejná
+ * jednoduchost jako smazání beze stopy po předchozím obsahu.
+ *
+ * `mediaType` je jen pro médium bez vlastního popisku (stejný důvod
+ * jako u poslatZpravu) — appka jinak nemá odkud vzít náhradní text,
+ * kdyby uživatel při editaci smazal popisek úplně.
+ */
+export const upravitZpravu = async (
+  id: string,
+  novyText: string,
+  mediaType?: 'image' | 'video' | 'audio' | null
+): Promise<{ zprava: Zprava | null } & Vysledek> => {
+  if (!supabase) return { ...NENI_CLOUD, zprava: null }
+
+  const orezany = novyText.trim()
+  if (!mediaType && !orezany) return { ok: false, chyba: 'Prázdnou zprávu poslat nejde.', zprava: null }
+  if (orezany.length > 4000) return { ok: false, chyba: 'Zpráva je moc dlouhá.', zprava: null }
+
+  const telo = orezany || (mediaType ? VYCHOZI_POPISEK_MEDIA[mediaType] : '')
+
+  const { data, error } = await supabase
+    .from('messages')
+    .update({ body: telo, edited_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at')
     .single()
 
   if (error || !data) return { ...chyba(error), zprava: null }

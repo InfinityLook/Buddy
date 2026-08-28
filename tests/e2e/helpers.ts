@@ -259,8 +259,19 @@ export const mockSupabase = async (ctx: BrowserContext, data: MockData, options:
 
     if (req.method() === 'PATCH') {
       const telo = JSON.parse(req.postData() || '{}')
-      for (const r of radky) if (shoduSFiltry(r)) Object.assign(r, telo)
-      return json([])
+      const zmenene: Record<string, unknown>[] = []
+      for (const r of radky) {
+        if (!shoduSFiltry(r)) continue
+        Object.assign(r, telo)
+        zmenene.push(r)
+      }
+      // `.update(...).select().single()` (social/api.ts's upravitZpravu)
+      // čte odpověď zpátky, stejně jako POST výš — bez odpovídání
+      // aktualizovanou řádkou/řádkami by `.single()` dostalo prázdné
+      // pole místo jedné položky a vyhodnotilo to jako chybu, i když
+      // appka UPDATE poslala a mock ho i doopravdy provedl.
+      const jednoP = (req.headers()['accept'] || '').includes('vnd.pgrst.object')
+      return json(jednoP ? (zmenene[0] ?? null) : zmenene)
     }
 
     if (req.method() === 'DELETE') {
