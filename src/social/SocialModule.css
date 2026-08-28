@@ -95,18 +95,28 @@
 
 /* ---------- záložky ---------- */
 
+/* Vodorovný scroll, ne flex:1 na pěti (šesti se Tajným chatem)
+   položkách do jednoho řádku — to je přesně to, co dřív "Tajný chat"
+   zalamovalo na dva řádky a všechno namačkalo k sobě. Každá záložka má
+   teď přirozenou šířku podle textu, řádek se posouvá prstem stejně
+   jako karuselový výběr postavy ve hře (TvorbaPostavy.css). */
 .social-zalozky {
   display: flex;
   gap: 0.35rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+  padding-bottom: 0.1rem;
+  margin-bottom: -0.1rem;
 }
 
 .social-zalozka {
-  flex: 1;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
-  padding: 0.5rem 0.3rem;
+  padding: 0.5rem 0.65rem;
   border-radius: var(--radius-md);
   background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
@@ -114,7 +124,9 @@
   font-family: inherit;
   font-size: 0.7rem;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
+  scroll-snap-align: start;
 }
 
 .social-zalozka {
@@ -1025,7 +1037,13 @@
    soubor se v Social vůbec nenačítá (každá stránka má svůj vlastní CSS
    soubor, viz CLAUDE.md), takže spoléhat na jeho třídy by tu nic
    nevykreslilo. Barvy/hodnoty schválně shodné se skutečným Profilem,
-   jen přes stejné globální --accent-* proměnné, ne přes lokální alias. */
+   jen přes stejné globální --accent-* proměnné, ne přes lokální alias.
+   Stejné .social-profil-* třídy vykresluje i MujProfilPanel.tsx pro
+   vlastní profil jako záložku, ne dialog — proto .social-card--profil
+   hned pod tímhle komentářem dává kartě stejný 1rem padding jako
+   .social-dialog, ať bannerův záporný okraj sedí i mimo dialog. */
+
+.social-card--profil { padding: 1rem; }
 
 /* Cover fotka — full-bleed přes horní roh dialogu, záporný okraj
    přesně rovný jeho vlastnímu paddingu (1rem, viz .social-dialog výš). */

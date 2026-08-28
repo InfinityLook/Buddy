@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { SocialIcon } from './components/SocialIcon'
 import { PratelePanel } from './components/PratelePanel'
+import { MujProfilPanel } from './components/MujProfilPanel'
 import { ChatyPanel } from './components/ChatyPanel'
 import { ChatView } from './components/ChatView'
 import { BlokovaniPanel } from './components/BlokovaniPanel'
@@ -28,13 +29,17 @@ import './SocialModule.css'
 // chaty i posílat žádosti komukoli bez skutečného účtu.
 // ==========================================
 
-type Zalozka = 'pratele' | 'chaty' | 'blokovani' | 'hlaseni' | 'tajne'
+type Zalozka = 'pratele' | 'chaty' | 'blokovani' | 'hlaseni' | 'profil' | 'tajne'
 
 const ZALOZKY: { id: Zalozka; popis: string; ikona: string }[] = [
   { id: 'pratele', popis: 'Přátelé', ikona: 'users' },
   { id: 'chaty', popis: 'Chaty', ikona: 'chat' },
   { id: 'blokovani', popis: 'Blokovaní', ikona: 'block' },
   { id: 'hlaseni', popis: 'Hlášení', ikona: 'flag' },
+  // Profil je poslední ze základních záložek schválně — stejné pořadí
+  // jako u Instagramu, kde vlastní profil je taky až napravo, ne
+  // karta vmáčknutá nahoru nad seznam přátel (viz MujProfilPanel.tsx).
+  { id: 'profil', popis: 'Profil', ikona: 'user' },
 ]
 
 export const SocialModule: React.FC = () => {
@@ -206,6 +211,9 @@ export const SocialModule: React.FC = () => {
               {zalozka === 'chaty' && <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />}
               {zalozka === 'blokovani' && <BlokovaniPanel stav={stav} />}
               {zalozka === 'hlaseni' && <ModeracePanel stav={stav} />}
+              {zalozka === 'profil' && (
+                <MujProfilPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />
+              )}
               {zalozka === 'tajne' && tajnyStav.smim && (
                 <TajnyChatPanel
                   tajnyStav={tajnyStav}
