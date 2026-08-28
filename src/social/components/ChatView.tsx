@@ -501,8 +501,11 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
     }
   }
 
-  // "Přečteno" dává smysl jen u dvojice — u skupiny by šlo o "přečteno
-  // N z M", záměrně (zatím) nepostavené.
+  // "Přečteno" u dvojice zůstává jednoduché ano/ne. U skupiny appka
+  // navíc spočítá, kolik OSTATNÍCH členů (chat.ucastnici už je bez
+  // přihlášeného) poslední vlastní zprávu vidělo — nactiPrectenost/
+  // sledovatPrectenost v api.ts vracely last_read_at všech členů
+  // odjakživa, jen appka do teď četla jen protějškovu jednu položku.
   const protejsek = !chat.jeSkupina ? chat.ucastnici[0] : undefined
   const posledniModId = (() => {
     for (let i = zpravy.length - 1; i >= 0; i--) {
@@ -514,6 +517,12 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
   const protejsekPrectenoAz = protejsek ? prectenost[protejsek.id] : undefined
   const jePrecteno =
     !!posledniModCas && !!protejsekPrectenoAz && protejsekPrectenoAz >= posledniModCas
+  const skupinaPrectenoPocet = chat.jeSkupina
+    ? chat.ucastnici.filter((u) => {
+        const az = prectenost[u.id]
+        return !!posledniModCas && !!az && az >= posledniModCas
+      }).length
+    : 0
 
   return (
     <div className="social-chat-view">
@@ -757,9 +766,19 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
                 </div>
               )}
 
-              {moje && z.id === posledniModId && jePrecteno && (
-                <span className="social-precteno">Přečteno</span>
-              )}
+              {moje &&
+                z.id === posledniModId &&
+                (chat.jeSkupina ? (
+                  skupinaPrectenoPocet > 0 && (
+                    <span className="social-precteno">
+                      {skupinaPrectenoPocet === chat.ucastnici.length
+                        ? 'Přečteno'
+                        : `Přečteno ${skupinaPrectenoPocet} z ${chat.ucastnici.length}`}
+                    </span>
+                  )
+                ) : (
+                  jePrecteno && <span className="social-precteno">Přečteno</span>
+                ))}
             </div>
           )
         })}

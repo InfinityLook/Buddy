@@ -472,10 +472,10 @@ export const ztlumitChat = async (chatId: string, ztlumit: boolean): Promise<Vys
 
 /**
  * Kdy naposled kdo z chatu četl — jednorázové načtení při otevření
- * chatu, doplněné živě přes sledovatPrectenost níž. Používá se jen
- * u dvojice (1:1), kde je jasné, čí "Přečteno" pod vlastní poslední
- * zprávou ukázat — u skupiny by šlo o "přečteno N z M", zatím
- * záměrně nepostavené (viz ChatView.tsx).
+ * chatu, doplněné živě přes sledovatPrectenost níž. Vrací last_read_at
+ * úplně všech členů chatu, ne jen protějšku — u dvojice (1:1) z toho
+ * ChatView.tsx čte jen tu jednu položku, u skupiny spočítá "přečteno
+ * N z M" nad stejnými daty, žádný druhý dotaz.
  */
 export const nactiPrectenost = async (chatId: string): Promise<Record<string, string>> => {
   if (!supabase) return {}

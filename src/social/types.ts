@@ -146,7 +146,7 @@ export interface Reakce {
 
 /** Pevná nabídka reakcí, žádný picker se stovkami emoji — stejný
  *  "pevná sada, ne libovolný vstup" přístup jako IKONY_SKUPIN výš. */
-export const EMOJI_REAKCI = ['👍', '❤️', '😂', '😮', '😢', '🙏'] as const
+export const EMOJI_REAKCI = ['👍', '❤️', '🔥', '😂', '😮', '😢', '🙏'] as const
 
 export type DuvodNahlaseni = 'spam' | 'obtezovani' | 'nevhodny_obsah' | 'nevhodne_foto' | 'jine'
 
