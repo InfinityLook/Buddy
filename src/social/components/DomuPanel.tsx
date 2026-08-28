@@ -10,7 +10,7 @@ interface Props {
 // ==========================================
 // Domů — nová prostřední záložka spodní navigace, náhrada za starou
 // "Profil" záložku (ta teď odkazuje rovnou na appčin skutečný profil,
-// viz SocialModule.tsx a pages/profil/components/PratelSekce.tsx).
+// viz SocialModule.tsx a pages/profil/components/ProfilSocialniSekce.tsx).
 //
 // Zatím nese jen story pruh (StoriesBar.tsx, dřív nahoře v Profilu) —
 // zbytek obrazovky je vědomě prázdný, další obsah sem přibude v pozdější

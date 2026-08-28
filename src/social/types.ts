@@ -283,6 +283,44 @@ export interface StoryZhlednuti {
   zhlednutoAt: string
 }
 
+// ==========================================
+// Sledování (follow) — jednosměrné, na rozdíl od friendships (žádost/
+// přijetí, obousměrné). Sleduješ někoho, aniž by o tom musel vědět
+// nebo to potvrdit, přesně jako Instagram/TikTok. Vlastní tabulka
+// (`follows`), ne rozšíření friendships — dva různé modely vztahu,
+// ne jeden s dvojím významem.
+// ==========================================
+
+/** Vztah sledování mezi přihlášeným a cílovým účtem, z pohledu appky —
+ *  vrací ho api.ts's nactiVztahSledovani(), ne přímé čtení `follows`
+ *  (appka nesmí vytáhnout cizí kompletní seznam sledujících/sledovaných,
+ *  jen počty a svůj vlastní vztah k jednomu konkrétnímu účtu). */
+export interface VztahSledovani {
+  sledujiHo: boolean
+  sledujiciCelkem: number
+  sledovaniCelkem: number
+}
+
+// ==========================================
+// Trvalé příspěvky na profilu — na rozdíl od Story (24 h, mizí) tu
+// zůstávají natrvalo, dokud je autor sám nesmaže. Vlastní tabulka
+// (`posts`), veřejný bucket (jako avatáry, ne privátní jako u chatu/
+// story) — příspěvek na profilu je zamýšlený jako veřejně viditelný.
+// ==========================================
+
+export interface Prispevek {
+  id: string
+  autorId: string
+  /** Cesta ve veřejném bucketu `posts` — appka tu (na rozdíl od
+   *  Zprava.mediaPath/Story.mediaPath) rovnou ukládá i plnou veřejnou
+   *  URL (mediaUrl), žádný podepsaný odkaz není potřeba. */
+  mediaPath: string
+  mediaUrl: string
+  mediaType: 'image' | 'video'
+  caption: string | null
+  createdAt: string
+}
+
 /** Presety mizení zpráv — stejná sada, jakou nabízí "mizící zprávy"
  *  v běžných messengerech (Telegram Secret Chat aj.), vynucená i na
  *  databázi (check constraint na tajne_chaty.expirace_sekund), ne jen

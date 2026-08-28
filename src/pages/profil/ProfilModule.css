@@ -25,7 +25,7 @@
   --profil-radius-md: var(--radius-md);
 }
 
-/* Zástupný stav, dokud se stahuje lazy PratelSekce.tsx (celé Social
+/* Zástupný stav, dokud se stahuje lazy ProfilSocialniSekce.tsx (celé Social
    API) — viz React.lazy v ProfilModule.tsx. */
 .profil-lazy-fallback {
   margin: 0;
@@ -33,6 +33,114 @@
   color: var(--profil-text-sub);
   font-size: 0.82rem;
   text-align: center;
+}
+
+/* ---------- příspěvky (Posts | Videos | Saved) ----------
+   Instagram-styl počty/taby/mřížka — žije uvnitř ProfilSocialniSekce.tsx,
+   která se vykresluje jako .social-card (viz SocialModule.css), proto
+   tahle pravidla cílí jen na to, co je v tom souboru nové navíc. */
+
+.profil-staty-karta {
+  gap: 0.7rem;
+}
+
+.profil-staty-radek {
+  display: flex;
+  justify-content: space-around;
+  text-align: center;
+}
+
+.profil-staty-cislo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.profil-staty-cislo strong {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.profil-staty-cislo span {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.profil-prispevky-taby {
+  display: flex;
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.profil-prispevky-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  background: none;
+  border: none;
+  padding: 0.55rem 0.2rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profil-prispevky-tab.is-aktivni {
+  color: var(--accent-cyan);
+  box-shadow: inset 0 -2px 0 var(--accent-cyan);
+}
+
+.profil-prispevky-mrizka {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+}
+
+.profil-prispevek-pridat {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-panel-raised);
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.profil-prispevek-dlazdice {
+  position: relative;
+  aspect-ratio: 1;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--bg-panel-raised);
+}
+
+.profil-prispevek-dlazdice img,
+.profil-prispevek-dlazdice video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profil-prispevek-video-znacka {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  color: #fff;
+  font-size: 0.7rem;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.profil-prispevky-prazdno {
+  grid-column: 1 / -1;
+  padding: 1rem 0;
 }
 
 /* Kontejner natvrdo na výšku displeje bez scrollu, se stejným
@@ -132,15 +240,29 @@
   font-size: 0.7rem;
 }
 
+/* Vystředěný "IG styl" — avatar nahoře uprostřed, jméno/bio pod ním,
+   ne řádek avatar-vlevo/text-vpravo jaký měl profil dřív. Zbytek karty
+   (level/série níž) se nemění, jen tenhle horní blok identity. */
 .profil-user-main {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0.61rem;
+  text-align: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0 0.15rem;
 }
 
+.profil-user-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Zvětšeno z 46px — vystředěná "IG hero" fotka nese víc vizuální váhy
+   než dřívější malá fotka v levém řádku vedle jména. */
 .profil-avatar-img {
-  width: 46px;
-  height: 46px;
+  width: 78px;
+  height: 78px;
   border-radius: 50%;
   border: 2px solid var(--c-cyan);
   box-shadow: 0 0 10px rgba(53, 196, 240, 0.5);

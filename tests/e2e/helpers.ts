@@ -16,6 +16,14 @@ import type { BrowserContext, Page } from '@playwright/test'
 export const SUPABASE_REF = 'fsrjlxxaehijbflueuin'
 export const SUPABASE_URL = `https://${SUPABASE_REF}.supabase.co`
 
+/** 1×1 průhledné PNG — odpověď na cokoli, co appka použije jako
+ *  <img>/<video> src (podepsané i veřejné Storage odkazy níž). Stačí
+ *  na skutečný nenulový rozměr, který test může ověřit. */
+const PNG_1X1 = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+  'base64'
+)
+
 /** Vloží platnou (nadmnamovanou) Supabase relaci do localStorage ještě
  *  před prvním načtením appky — stejný trik jako `vlozRelaci`/
  *  `addInitScript` napříč celou touhle session. */
@@ -110,11 +118,16 @@ export const mockSupabase = async (ctx: BrowserContext, data: MockData, options:
     // tehdy jen proto, že žádný test dřív neověřoval skutečnou viditelnost
     // a rozměr obrázku, jen že <img> element v DOMu vůbec existuje.
     if (cesta.startsWith('/storage/v1/mock-signed/')) {
-      const gif1x1 = Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
-        'base64'
-      )
-      return route.fulfill({ status: 200, contentType: 'image/png', body: gif1x1 })
+      return route.fulfill({ status: 200, contentType: 'image/png', body: PNG_1X1 })
+    }
+
+    // Veřejný bucket (core/supabase/avatarStorage.ts's avatáry/bannery,
+    // social/api.ts's posts od Fáze profilu s příspěvky) žádný podpis
+    // nepotřebuje — getPublicUrl() jen skládá řetězec lokálně, appka
+    // ale výsledné URL rovnou použije jako <img>/<video> src, takže
+    // musí doopravdy něco vrátit, stejný důvod jako u mock-signed výš.
+    if (cesta.startsWith('/storage/v1/object/public/')) {
+      return route.fulfill({ status: 200, contentType: 'image/png', body: PNG_1X1 })
     }
 
     if (cesta.startsWith('/rest/v1/rpc/')) {

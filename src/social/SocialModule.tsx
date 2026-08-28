@@ -43,7 +43,7 @@ type Zalozka = 'chaty' | 'domu' | 'vyhledavac' | 'nastaveni'
 // a úrovní, ne vždy stejně aktuální). Tlačítko na jejím místě proto
 // vede rovnou tam (viz spodní navigace níž), Social's vlastní seznam
 // přátel a sdílení kódu se přestěhovaly do ProfilModule.tsx (lazy
-// PratelSekce.tsx — Social API nesmí zatížit appčin hlavní balíček).
+// ProfilSocialniSekce.tsx — Social API nesmí zatížit appčin hlavní balíček).
 // Uvolněné místo uprostřed lišty zabrala nová "Domů" (DomuPanel.tsx) —
 // zatím jen story pruh, zbytek se doplní v pozdější fázi.
 const ZALOZKY: { id: Zalozka; popis: string; ikona: string }[] = [

@@ -6,6 +6,7 @@ import type {
   DuvodNahlaseni,
   Hlaseni,
   PratelskyNavrh,
+  Prispevek,
   Reakce,
   StavHlaseni,
   MujProfil,
@@ -18,6 +19,7 @@ import type {
   TajnyChat,
   VerejnyProfil,
   Vysledek,
+  VztahSledovani,
   Zadost,
   Zprava,
 } from './types'
@@ -1479,6 +1481,167 @@ export const sledovatVsechnyTajneZpravy = (prisla: (z: TajnaZprava) => void): ((
   return () => {
     void klient.removeChannel(kanal)
   }
+}
+
+// ==========================================
+// Sledování (follow) — jednosměrné, žádná žádost ani potvrzení druhé
+// strany, na rozdíl od friendships. Seznam sledujících/sledovaných
+// appka nikdy nečte přímo (RLS na `follows` to ani nedovolí pro cizí
+// dvojici) — jen svůj vlastní vztah k jednomu účtu a veřejné počty
+// přes pocet_sledujicich()/pocet_sledovanych().
+// ==========================================
+
+export const sledovatUcet = async (cil: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase.from('follows').insert({ follower_id: ja, following_id: cil })
+  // follows_no_self/unikátní primární klíč — dvojí klepnutí na "Sledovat"
+  // narazí na kolizi (23505), ne na skutečnou chybu (stejné "no-op
+  // úspěch" jako u pridatReakci/oznacitZhlednuti výš).
+  if (error && (error as { code?: string }).code !== '23505') return chyba(error)
+  return { ok: true }
+}
+
+export const prestatSledovatUcet = async (cil: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase.from('follows').delete().eq('follower_id', ja).eq('following_id', cil)
+  return error ? chyba(error) : { ok: true }
+}
+
+/**
+ * Vztah k jednomu konkrétnímu účtu — "sleduju ho už?" plus jeho
+ * veřejné počty (sledujících/sledovaných), vždycky pro cíl `cil`, ne
+ * pro přihlášeného. `sledujiHo` čte přímo z `follows` (RLS pustí
+ * vlastní řádek), počty jdou přes dvě SECURITY DEFINER funkce, protože
+ * plain SELECT na `follows` cizí dvojice nevidí vůbec.
+ */
+export const nactiVztahSledovani = async (cil: string): Promise<VztahSledovani> => {
+  const prazdny: VztahSledovani = { sledujiHo: false, sledujiciCelkem: 0, sledovaniCelkem: 0 }
+  if (!supabase) return prazdny
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return prazdny
+
+  const [vazba, sledujici, sledovani] = await Promise.all([
+    supabase.from('follows').select('follower_id').eq('follower_id', ja).eq('following_id', cil).maybeSingle(),
+    supabase.rpc('pocet_sledujicich', { cil }),
+    supabase.rpc('pocet_sledovanych', { cil }),
+  ])
+
+  return {
+    sledujiHo: !!vazba.data,
+    sledujiciCelkem: typeof sledujici.data === 'number' ? sledujici.data : 0,
+    sledovaniCelkem: typeof sledovani.data === 'number' ? sledovani.data : 0,
+  }
+}
+
+// ==========================================
+// Trvalé příspěvky na profilu (Posts | Videos) — na rozdíl od Stories
+// nemizí, na rozdíl od chatového média patří profilu, ne chatu. Bucket
+// 'posts' je veřejný jako 'avatary', takže appka na rozdíl od
+// ziskejUrlMedia/ziskejUrlStory nikdy nežádá o podepsaný odkaz —
+// getPublicUrl() je čistě lokální skládání řetězce, žádný síťový dotaz.
+// ==========================================
+
+const POSTS_BUCKET = 'posts'
+const MAX_POST_VIDEO_BYTES = 25 * 1024 * 1024
+
+const prispevekZRadku = (
+  klient: NonNullable<typeof supabase>,
+  r: {
+    id: string
+    user_id: string
+    media_path: string
+    media_type: 'image' | 'video'
+    caption: string | null
+    created_at: string
+  }
+): Prispevek => ({
+  id: r.id,
+  autorId: r.user_id,
+  mediaPath: r.media_path,
+  mediaUrl: klient.storage.from(POSTS_BUCKET).getPublicUrl(r.media_path).data.publicUrl,
+  mediaType: r.media_type,
+  caption: r.caption,
+  createdAt: r.created_at,
+})
+
+/** Nahraje fotku/video do vlastní složky veřejného bucketu a založí
+ *  řádek — stejné "jedno volání, žádný orphan-row hazard" zdůvodnění
+ *  jako u pridatStory(): žádná druhá tabulka na příspěvek needukazuje. */
+export const nahratPrispevek = async (file: File, caption?: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const jeObrazek = file.type.startsWith('image/')
+  const jeVideo = file.type.startsWith('video/')
+  if (!jeObrazek && !jeVideo) return { ok: false, chyba: 'Příspěvek může být jen fotka nebo video.' }
+  if (jeVideo && file.size > MAX_POST_VIDEO_BYTES) return { ok: false, chyba: 'Video je moc velké.' }
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  try {
+    const blob: Blob = jeObrazek ? await fileToResizedBlob(file, 1600, 0.85) : file
+    const pripona = jeObrazek ? 'jpg' : file.name.split('.').pop() || 'mp4'
+    const cesta = `${ja}/${crypto.randomUUID()}.${pripona}`
+
+    const { error: chybaNahrani } = await supabase.storage
+      .from(POSTS_BUCKET)
+      .upload(cesta, blob, { contentType: jeObrazek ? 'image/jpeg' : file.type || 'video/mp4' })
+    if (chybaNahrani) throw chybaNahrani
+
+    const { error } = await supabase.from('posts').insert({
+      user_id: ja,
+      media_path: cesta,
+      media_type: jeObrazek ? 'image' : 'video',
+      caption: caption?.trim() || null,
+    })
+    if (error) throw error
+
+    return { ok: true }
+  } catch (e) {
+    return chyba(e)
+  }
+}
+
+/** Příspěvky jednoho účtu, nejnovější první — přes nacti_prispevky(),
+ *  ne přímé čtení `posts` (žádná plain SELECT politika na tabulce
+ *  neexistuje schválně, viz migrace pridej_prispevky). */
+export const nactiPrispevky = async (cil: string): Promise<Prispevek[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase.rpc('nacti_prispevky', { cil })
+  if (error || !data) return []
+
+  const klient = supabase
+  return (
+    data as {
+      id: string
+      user_id: string
+      media_path: string
+      media_type: 'image' | 'video'
+      caption: string | null
+      created_at: string
+    }[]
+  ).map((r) => prispevekZRadku(klient, r))
+}
+
+export const smazatPrispevek = async (id: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase.from('posts').delete().eq('id', id)
+  return error ? chyba(error) : { ok: true }
 }
 
 // ==========================================

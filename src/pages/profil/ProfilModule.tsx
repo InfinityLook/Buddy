@@ -16,10 +16,10 @@ import { ProfilGoals } from './components/ProfilGoals'
 import { ProfilToast } from './components/ProfilToast'
 import './ProfilModule.css'
 
-// Lazy — viz komentář nahoře v PratelSekce.tsx: tenhle soubor natahuje
-// celé Social API, který drtivá většina návštěv téhle (netlazy) stránky
-// vůbec nepotřebuje.
-const PratelSekce = lazy(() => import('./components/PratelSekce'))
+// Lazy — viz komentář nahoře v ProfilSocialniSekce.tsx: tenhle soubor
+// natahuje celé Social API, který drtivá většina návštěv téhle (netlazy)
+// stránky vůbec nepotřebuje.
+const ProfilSocialniSekce = lazy(() => import('./components/ProfilSocialniSekce'))
 
 // Popis stavu synchronizace pro řádek v menu. Musí být srozumitelný
 // i pro toho, kdo o Supabase nikdy neslyšel.
@@ -272,10 +272,11 @@ export const ProfilModule: React.FC = () => {
         />
       </div>
 
-      {/* Přátelé a sdílení vlastního kódu — přesunuté ze Social's
-          bývalé Profil záložky, viz PratelSekce.tsx. */}
-      <Suspense fallback={<p className="profil-lazy-fallback">Načítám přátele…</p>}>
-        <PratelSekce />
+      {/* Příspěvky, počty sledujících, sdílení vlastního kódu a přátelé —
+          přesunuté ze Social's bývalé Profil záložky, viz
+          ProfilSocialniSekce.tsx. */}
+      <Suspense fallback={<p className="profil-lazy-fallback">Načítám…</p>}>
+        <ProfilSocialniSekce />
       </Suspense>
 
       {/* Settings Menu */}
