@@ -97,6 +97,15 @@ export const SocialIcon: React.FC<SocialIconProps> = ({ name, size = 20, classNa
           <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/>
         </svg>
       )
+    // Karusel (víc fotek/videí) na dlaždici v mřížce — stejný "hromádka
+    // čtverců" znak jako Instagram, vyplněné čtverce ať je vidět i v malém.
+    case 'layers':
+      return (
+        <svg {...common} fill="currentColor" stroke="currentColor" strokeWidth={0}>
+          <rect x="3" y="3" width="13" height="13" rx="2" opacity="0.55"/>
+          <rect x="8" y="8" width="13" height="13" rx="2"/>
+        </svg>
+      )
     default:
       return null
   }

@@ -1839,6 +1839,7 @@ const prispevekZRadku = (
     media_type: 'image' | 'video'
     caption: string | null
     created_at: string
+    dalsi_media?: { media_path: string; media_type: 'image' | 'video' }[] | null
   }
 ): Prispevek => ({
   id: r.id,
@@ -1848,40 +1849,79 @@ const prispevekZRadku = (
   mediaType: r.media_type,
   caption: r.caption,
   createdAt: r.created_at,
+  dalsiMedia: (r.dalsi_media ?? []).map((m) => ({
+    mediaUrl: klient.storage.from(POSTS_BUCKET).getPublicUrl(m.media_path).data.publicUrl,
+    mediaType: m.media_type,
+  })),
 })
 
-/** Nahraje fotku/video do vlastní složky veřejného bucketu a založí
- *  řádek — stejné "jedno volání, žádný orphan-row hazard" zdůvodnění
- *  jako u pridatStory(): žádná druhá tabulka na příspěvek needukazuje. */
-export const nahratPrispevek = async (file: File, caption?: string): Promise<Vysledek> => {
-  if (!supabase) return NENI_CLOUD
+// Karusel — Instagram sám povoluje 10, stejné číslo appka přebírá jako
+// vlastní strop, ne že by šlo o technický limit databáze samotné.
+export const MAX_KARUSEL_POLOZEK = 10
 
+const nahratMediumPrispevku = async (
+  klient: NonNullable<typeof supabase>,
+  ja: string,
+  file: File
+): Promise<{ cesta: string; typ: 'image' | 'video' }> => {
   const jeObrazek = file.type.startsWith('image/')
   const jeVideo = file.type.startsWith('video/')
-  if (!jeObrazek && !jeVideo) return { ok: false, chyba: 'Příspěvek může být jen fotka nebo video.' }
-  if (jeVideo && file.size > MAX_POST_VIDEO_BYTES) return { ok: false, chyba: 'Video je moc velké.' }
+  if (!jeObrazek && !jeVideo) throw new Error('Příspěvek může být jen fotka nebo video.')
+  if (jeVideo && file.size > MAX_POST_VIDEO_BYTES) throw new Error('Video je moc velké.')
+
+  const blob: Blob = jeObrazek ? await fileToResizedBlob(file, 1600, 0.85) : file
+  const pripona = jeObrazek ? 'jpg' : file.name.split('.').pop() || 'mp4'
+  const cesta = `${ja}/${crypto.randomUUID()}.${pripona}`
+
+  const { error } = await klient.storage
+    .from(POSTS_BUCKET)
+    .upload(cesta, blob, { contentType: jeObrazek ? 'image/jpeg' : file.type || 'video/mp4' })
+  if (error) throw error
+
+  return { cesta, typ: jeObrazek ? 'image' : 'video' }
+}
+
+/**
+ * Nahraje jednu nebo víc fotek/videí (karusel) do vlastní složky
+ * veřejného bucketu a založí řádek — první položka jde beze změny do
+ * posts.media_path/media_type (stejné "jedno volání, žádný orphan-row
+ * hazard" zdůvodnění jako u pridatStory()), každá další do post_media
+ * s rostoucí position. Selže-li nahrání až u druhé/třetí položky,
+ * první(ch) pár se do bucketu i tak nahrálo — stejný přijatý náklad
+ * jako u kteréhokoli jiného Storage uploadu v týhle appce, co nemá
+ * druhou tabulku, na kterou by orphan blob ukazoval.
+ */
+export const nahratPrispevek = async (soubory: File[], caption?: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+  if (soubory.length === 0) return { ok: false, chyba: 'Vyber aspoň jednu fotku nebo video.' }
+  if (soubory.length > MAX_KARUSEL_POLOZEK) {
+    return { ok: false, chyba: `Nejvíc ${MAX_KARUSEL_POLOZEK} položek na jeden příspěvek.` }
+  }
 
   const { data: relace } = await supabase.auth.getSession()
   const ja = relace.session?.user?.id
   if (!ja) return NENI_CLOUD
 
+  const klient = supabase
+
   try {
-    const blob: Blob = jeObrazek ? await fileToResizedBlob(file, 1600, 0.85) : file
-    const pripona = jeObrazek ? 'jpg' : file.name.split('.').pop() || 'mp4'
-    const cesta = `${ja}/${crypto.randomUUID()}.${pripona}`
+    const [prvni, ...dalsi] = soubory
+    const { cesta, typ } = await nahratMediumPrispevku(klient, ja, prvni)
 
-    const { error: chybaNahrani } = await supabase.storage
-      .from(POSTS_BUCKET)
-      .upload(cesta, blob, { contentType: jeObrazek ? 'image/jpeg' : file.type || 'video/mp4' })
-    if (chybaNahrani) throw chybaNahrani
+    const { data: post, error } = await klient
+      .from('posts')
+      .insert({ user_id: ja, media_path: cesta, media_type: typ, caption: caption?.trim() || null })
+      .select('id')
+      .single()
+    if (error || !post) throw error ?? new Error('Příspěvek se založil, ale nevrátilo se jeho id.')
 
-    const { error } = await supabase.from('posts').insert({
-      user_id: ja,
-      media_path: cesta,
-      media_type: jeObrazek ? 'image' : 'video',
-      caption: caption?.trim() || null,
-    })
-    if (error) throw error
+    for (let i = 0; i < dalsi.length; i++) {
+      const { cesta: dalsiCesta, typ: dalsiTyp } = await nahratMediumPrispevku(klient, ja, dalsi[i])
+      const { error: chybaMedia } = await klient
+        .from('post_media')
+        .insert({ post_id: post.id, media_path: dalsiCesta, media_type: dalsiTyp, position: i + 1 })
+      if (chybaMedia) throw chybaMedia
+    }
 
     return { ok: true }
   } catch (e) {
@@ -1907,6 +1947,7 @@ export const nactiPrispevky = async (cil: string): Promise<Prispevek[]> => {
       media_type: 'image' | 'video'
       caption: string | null
       created_at: string
+      dalsi_media: { media_path: string; media_type: 'image' | 'video' }[]
     }[]
   ).map((r) => prispevekZRadku(klient, r))
 }
@@ -1982,6 +2023,7 @@ export const nactiUlozenePrispevky = async (): Promise<Prispevek[]> => {
       media_type: 'image' | 'video'
       caption: string | null
       created_at: string
+      dalsi_media: { media_path: string; media_type: 'image' | 'video' }[]
     }[]
   ).map((r) => prispevekZRadku(klient, r))
 }
@@ -2008,6 +2050,7 @@ export const nactiFeed = async (kurzor?: string): Promise<Prispevek[]> => {
       media_type: 'image' | 'video'
       caption: string | null
       created_at: string
+      dalsi_media: { media_path: string; media_type: 'image' | 'video' }[]
     }[]
   ).map((r) => prispevekZRadku(klient, r))
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
@@ -175,6 +175,17 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
   // nezavádí žádné zpoždění jednoho kliknutí.
   const { zpracovatKliknuti, srdceViditelne } = useDoubleTapLike(prispevek.id, vztah, setVztah)
 
+  // Karusel — první položka zůstává prispevek.mediaUrl/mediaType, další
+  // přijdou z prispevek.dalsiMedia (viz types.ts). Posun appka nechává
+  // na nativním scroll-snap (žádný gesture kód navíc), jen si sleduje
+  // aktivní index přes onScroll, ať má co ukázat v tečkovém indikátoru.
+  const vsechnaMedia = [
+    { mediaUrl: prispevek.mediaUrl, mediaType: prispevek.mediaType },
+    ...prispevek.dalsiMedia,
+  ]
+  const [aktivniMedium, setAktivniMedium] = useState(0)
+  const karuselRef = useRef<HTMLDivElement>(null)
+
   return createPortal(
     <div className="social-story-prohlizec" role="dialog" aria-modal="true" aria-label="Příspěvek">
       <div className="social-story-prohlizec-hlavicka">
@@ -194,7 +205,24 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
       </div>
 
       <div className="social-story-plocha" onClick={zpracovatKliknuti}>
-        {prispevek.mediaType === 'video' ? (
+        {vsechnaMedia.length > 1 ? (
+          <div
+            className="social-prispevek-karusel"
+            ref={karuselRef}
+            onScroll={(e) => {
+              const el = e.currentTarget
+              if (el.clientWidth > 0) setAktivniMedium(Math.round(el.scrollLeft / el.clientWidth))
+            }}
+          >
+            {vsechnaMedia.map((m, i) =>
+              m.mediaType === 'video' ? (
+                <video key={i} src={m.mediaUrl} className="social-prispevek-karusel-snimek" controls playsInline />
+              ) : (
+                <img key={i} src={m.mediaUrl} alt="" className="social-prispevek-karusel-snimek" />
+              )
+            )}
+          </div>
+        ) : prispevek.mediaType === 'video' ? (
           <video src={prispevek.mediaUrl} className="social-story-obrazek" controls playsInline autoPlay />
         ) : (
           <img src={prispevek.mediaUrl} alt="" className="social-story-obrazek" />
@@ -203,6 +231,13 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
           <span className="social-feed-dvojklik-srdce" aria-hidden="true">
             <SocialIcon name="heart-filled" size={90} />
           </span>
+        )}
+        {vsechnaMedia.length > 1 && (
+          <div className="social-prispevek-karusel-tecky" aria-hidden="true">
+            {vsechnaMedia.map((_, i) => (
+              <span key={i} className={`social-prispevek-karusel-tecka ${i === aktivniMedium ? 'je-aktivni' : ''}`} />
+            ))}
+          </div>
         )}
       </div>
 

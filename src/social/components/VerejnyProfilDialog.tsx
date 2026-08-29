@@ -305,7 +305,13 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
                       ) : (
                         <img src={p.mediaUrl} alt="" />
                       )}
-                      {p.mediaType === 'video' && <span className="social-prispevek-video-znacka">▶</span>}
+                      {p.dalsiMedia.length > 0 ? (
+                        <span className="social-prispevek-karusel-znacka">
+                          <SocialIcon name="layers" size={13} />
+                        </span>
+                      ) : (
+                        p.mediaType === 'video' && <span className="social-prispevek-video-znacka">▶</span>
+                      )}
                     </button>
                   ))}
 

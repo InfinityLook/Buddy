@@ -39,7 +39,7 @@ export const ProfilSocialniSekce: React.FC = () => {
   const [nacitaPrispevky, setNacitaPrispevky] = useState(true)
   const [vztah, setVztah] = useState<VztahSledovani | null>(null)
   const [tab, setTab] = useState<'foto' | 'video' | 'ulozeno'>('foto')
-  const [novySoubor, setNovySoubor] = useState<File | null>(null)
+  const [noveSoubory, setNoveSoubory] = useState<File[] | null>(null)
   const [otevrenyPrispevek, setOtevrenyPrispevek] = useState<Prispevek | null>(null)
   const [otevrenSledujiciTab, setOtevrenSledujiciTab] = useState<'sledujici' | 'sledovani' | null>(null)
   const vstupRef = useRef<HTMLInputElement>(null)
@@ -161,7 +161,13 @@ export const ProfilSocialniSekce: React.FC = () => {
                   ) : (
                     <img src={p.mediaUrl} alt="" />
                   )}
-                  {p.mediaType === 'video' && <span className="social-prispevek-video-znacka">▶</span>}
+                  {p.dalsiMedia.length > 0 ? (
+                    <span className="social-prispevek-karusel-znacka">
+                      <SocialIcon name="layers" size={13} />
+                    </span>
+                  ) : (
+                    p.mediaType === 'video' && <span className="social-prispevek-video-znacka">▶</span>
+                  )}
                 </button>
               ))
             )}
@@ -179,11 +185,12 @@ export const ProfilSocialniSekce: React.FC = () => {
               ref={vstupRef}
               type="file"
               accept="image/*,video/*"
+              multiple
               className="social-soubor-input"
               onChange={(e) => {
-                const soubor = e.target.files?.[0]
+                const soubory = e.target.files ? Array.from(e.target.files) : []
                 e.target.value = ''
-                if (soubor) setNovySoubor(soubor)
+                if (soubory.length > 0) setNoveSoubory(soubory.slice(0, socialApi.MAX_KARUSEL_POLOZEK))
               }}
             />
 
@@ -199,7 +206,13 @@ export const ProfilSocialniSekce: React.FC = () => {
                   ) : (
                     <img src={p.mediaUrl} alt="" />
                   )}
-                  {p.mediaType === 'video' && <span className="social-prispevek-video-znacka">▶</span>}
+                  {p.dalsiMedia.length > 0 ? (
+                    <span className="social-prispevek-karusel-znacka">
+                      <SocialIcon name="layers" size={13} />
+                    </span>
+                  ) : (
+                    p.mediaType === 'video' && <span className="social-prispevek-video-znacka">▶</span>
+                  )}
                 </button>
               ))}
 
@@ -254,12 +267,12 @@ export const ProfilSocialniSekce: React.FC = () => {
         />
       )}
 
-      {novySoubor && (
+      {noveSoubory && (
         <PridatPrispevekDialog
-          soubor={novySoubor}
-          onZavrit={() => setNovySoubor(null)}
+          soubory={noveSoubory}
+          onZavrit={() => setNoveSoubory(null)}
           onHotovo={() => {
-            setNovySoubor(null)
+            setNoveSoubory(null)
             nacistPrispevky()
           }}
         />

@@ -100,6 +100,16 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
         </span>
       )}
 
+      {/* Karusel se ve feedu neprohrabává (svislé listování mezi
+          příspěvky by se rvalo o gesto s vodorovným posunem uvnitř
+          jednoho) — jen značka, ať appka řekne "je jich tu víc", víc
+          jich uvidí až v detailu (onOtevritDetail). */}
+      {prispevek.dalsiMedia.length > 0 && (
+        <span className="social-prispevek-karusel-znacka social-prispevek-karusel-znacka--feed">
+          <SocialIcon name="layers" size={16} />
+        </span>
+      )}
+
       <div className="social-feed-zavoj" aria-hidden="true" />
 
       <div className="social-feed-info">

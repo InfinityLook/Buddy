@@ -355,6 +355,12 @@ export interface Prispevek {
   mediaType: 'image' | 'video'
   caption: string | null
   createdAt: string
+  /** Karusel — druhá a další položka příspěvku (viz post_media na
+   *  databázi). První položka zůstává v mediaPath/mediaUrl/mediaType
+   *  výš beze změny, ať appka nemusí přepisovat nic, co s karuselem
+   *  vůbec nepočítá — prázdné pole u obyčejného jednosnímkového
+   *  příspěvku. */
+  dalsiMedia: { mediaUrl: string; mediaType: 'image' | 'video' }[]
 }
 
 // ==========================================
