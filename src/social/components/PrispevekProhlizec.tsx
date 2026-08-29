@@ -47,6 +47,7 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
   const [nahlasit, setNahlasit] = useState(false)
   const [ulozeno, setUlozeno] = useState<boolean | null>(null)
   const [meniUlozeni, setMeniUlozeni] = useState(false)
+  const [odpovidamNaKomentar, setOdpovidamNaKomentar] = useState<{ id: string; jmeno: string } | null>(null)
 
   useEffect(() => {
     let platne = true
@@ -95,9 +96,10 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
     if (!text || odesila) return
 
     setOdesila(true)
-    const vysledek = await api.pridatKomentar(prispevek.id, text)
+    const vysledek = await api.pridatKomentar(prispevek.id, text, odpovidamNaKomentar?.id)
     if (vysledek.ok) {
       setNovyKomentar('')
+      setOdpovidamNaKomentar(null)
       void api.nactiKomentare(prispevek.id).then(setKomentare)
     }
     setOdesila(false)
@@ -107,6 +109,42 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
     const vysledek = await api.smazatKomentar(id)
     if (vysledek.ok) setKomentare((k) => k.filter((x) => x.id !== id))
   }
+
+  // Appka drží vlákno jen jednu úroveň hluboko (viz Komentar.replyToId)
+  // — odpověď na odpověď se přiřadí ke stejnému kořenovému komentáři,
+  // ne do dalšího zanoření, stejná plochá hloubka jako u Instagramu.
+  const korenoveKomentare = komentare.filter((k) => !k.replyToId)
+  const odpovediPodleRodice = new Map<string, Komentar[]>()
+  for (const k of komentare) {
+    if (!k.replyToId) continue
+    const seznam = odpovediPodleRodice.get(k.replyToId) ?? []
+    seznam.push(k)
+    odpovediPodleRodice.set(k.replyToId, seznam)
+  }
+
+  const komentarRadek = (k: Komentar, jeOdpoved: boolean) => (
+    <div key={k.id} className={`social-prispevek-komentar ${jeOdpoved ? 'social-prispevek-komentar--odpoved' : ''}`}>
+      <SocialAvatar id={k.autor.id} jmeno={k.autor.displayName} avatarUrl={k.autor.avatarUrl} velikost={jeOdpoved ? 22 : 26} />
+      <span className="social-prispevek-komentar-text">
+        <strong>{k.autor.displayName}</strong> {k.text}
+        <button
+          className="social-prispevek-komentar-odpovedet"
+          onClick={() => setOdpovidamNaKomentar({ id: k.replyToId ?? k.id, jmeno: k.autor.displayName })}
+        >
+          Odpovědět
+        </button>
+      </span>
+      {(k.autor.id === mujId || jeMoje) && (
+        <button
+          className="social-prispevek-komentar-smazat"
+          aria-label="Smazat komentář"
+          onClick={() => smazatKomentar(k.id)}
+        >
+          <SocialIcon name="x" size={14} />
+        </button>
+      )}
+    </div>
+  )
 
   // Tady na rozdíl od FeedPrispevek.tsx klik na obrázek dnes nic
   // nedělá — žádný onJedenKlik se nepředává, takže dvojklik-lajk
@@ -173,30 +211,32 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
         {komentare.length === 0 ? (
           <p className="social-empty-note">Zatím žádné komentáře. Buď první.</p>
         ) : (
-          komentare.map((k) => (
-            <div key={k.id} className="social-prispevek-komentar">
-              <SocialAvatar id={k.autor.id} jmeno={k.autor.displayName} avatarUrl={k.autor.avatarUrl} velikost={26} />
-              <span className="social-prispevek-komentar-text">
-                <strong>{k.autor.displayName}</strong> {k.text}
-              </span>
-              {(k.autor.id === mujId || jeMoje) && (
-                <button
-                  className="social-prispevek-komentar-smazat"
-                  aria-label="Smazat komentář"
-                  onClick={() => smazatKomentar(k.id)}
-                >
-                  <SocialIcon name="x" size={14} />
-                </button>
-              )}
-            </div>
+          korenoveKomentare.map((k) => (
+            <React.Fragment key={k.id}>
+              {komentarRadek(k, false)}
+              {(odpovediPodleRodice.get(k.id) ?? []).map((o) => komentarRadek(o, true))}
+            </React.Fragment>
           ))
         )}
       </div>
 
+      {odpovidamNaKomentar && (
+        <div className="social-odpoved-lista">
+          <span className="social-odpoved-text">Odpovídáš {odpovidamNaKomentar.jmeno}</span>
+          <button
+            className="social-icon-btn"
+            aria-label="Zrušit odpověď"
+            onClick={() => setOdpovidamNaKomentar(null)}
+          >
+            <SocialIcon name="x" size={14} />
+          </button>
+        </div>
+      )}
+
       <form className="social-prispevek-komentar-formular" onSubmit={odeslatKomentar}>
         <input
           className="social-input social-input--full"
-          placeholder="Napiš komentář…"
+          placeholder={odpovidamNaKomentar ? `Odpověz ${odpovidamNaKomentar.jmeno}…` : 'Napiš komentář…'}
           value={novyKomentar}
           maxLength={500}
           onChange={(e) => setNovyKomentar(e.target.value)}

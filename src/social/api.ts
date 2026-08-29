@@ -2062,28 +2062,41 @@ export const odebratLajk = async (postId: string): Promise<Vysledek> => {
   return error ? chyba(error) : { ok: true }
 }
 
+/**
+ * Přes SECURITY DEFINER funkci, ne přímý SELECT + nactiProfily() jako
+ * dřív — kdokoli přihlášený smí okomentovat veřejný účet i bez
+ * přátelství (post_comments' vlastní INSERT politika to už dovoluje),
+ * ale obyčejná profiles RLS jméno takového cizího komentujícího
+ * neukáže. Stará verze proto tiše zahazovala komentáře od nepřátel —
+ * viz migrace pridej_odpovedi_na_komentare.
+ */
 export const nactiKomentare = async (postId: string): Promise<Komentar[]> => {
   if (!supabase) return []
 
-  const { data, error } = await supabase
-    .from('post_comments')
-    .select('id, post_id, user_id, text, created_at')
-    .eq('post_id', postId)
-    .order('created_at', { ascending: true })
-
+  const { data, error } = await supabase.rpc('nacti_komentare_prispevku', { p_post_id: postId })
   if (error || !data) return []
 
-  const profily = await nactiProfily(data.map((r) => r.user_id))
-  return data
-    .map((r) => {
-      const autor = profily.get(r.user_id)
-      if (!autor) return null
-      return { id: r.id, postId: r.post_id, autor, text: r.text, createdAt: r.created_at }
-    })
-    .filter((k): k is Komentar => k !== null)
+  return (
+    data as {
+      id: string
+      user_id: string
+      display_name: string | null
+      avatar_url: string | null
+      text: string
+      created_at: string
+      reply_to_id: string | null
+    }[]
+  ).map((r) => ({
+    id: r.id,
+    postId,
+    autor: profilZRadku({ id: r.user_id, display_name: r.display_name, avatar_url: r.avatar_url }),
+    text: r.text,
+    createdAt: r.created_at,
+    replyToId: r.reply_to_id,
+  }))
 }
 
-export const pridatKomentar = async (postId: string, text: string): Promise<Vysledek> => {
+export const pridatKomentar = async (postId: string, text: string, replyToId?: string | null): Promise<Vysledek> => {
   if (!supabase) return NENI_CLOUD
 
   const { data: relace } = await supabase.auth.getSession()
@@ -2095,7 +2108,7 @@ export const pridatKomentar = async (postId: string, text: string): Promise<Vysl
 
   const { error } = await supabase
     .from('post_comments')
-    .insert({ post_id: postId, user_id: ja, text: ocisteny })
+    .insert({ post_id: postId, user_id: ja, text: ocisteny, reply_to_id: replyToId ?? null })
 
   return error ? chyba(error) : { ok: true }
 }

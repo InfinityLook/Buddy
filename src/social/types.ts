@@ -379,6 +379,11 @@ export interface Komentar {
   autor: SocialProfil
   text: string
   createdAt: string
+  /** Id komentáře, na který tenhle odpovídá — null u kořenového
+   *  komentáře. Appka vlákno drží jen jednu úroveň hluboko (odpověď na
+   *  odpověď se přiřadí ke stejnému kořeni, ne do dalšího zanoření) —
+   *  stejná plochá hloubka jako u Instagramu. */
+  replyToId: string | null
 }
 
 /** Presety mizení zpráv — stejná sada, jakou nabízí "mizící zprávy"
