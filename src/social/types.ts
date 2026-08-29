@@ -384,6 +384,8 @@ export interface Komentar {
    *  odpověď se přiřadí ke stejnému kořeni, ne do dalšího zanoření) —
    *  stejná plochá hloubka jako u Instagramu. */
   replyToId: string | null
+  pocetLajku: number
+  lajkujiJa: boolean
 }
 
 /** Presety mizení zpráv — stejná sada, jakou nabízí "mizící zprávy"

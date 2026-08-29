@@ -110,6 +110,21 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
     if (vysledek.ok) setKomentare((k) => k.filter((x) => x.id !== id))
   }
 
+  const [zpracovavaLajkKomentare, setZpracovavaLajkKomentare] = useState<string | null>(null)
+
+  // Stejný "server je jediná pravda" vzor jako prepnoutLajk výš u
+  // příspěvku samotného — po akci appka znovu natáhne celý seznam
+  // komentářů (má ho beztak celý načtený najednou), ne že by si počet
+  // jen sama posunula o jedno.
+  const prepnoutLajkKomentare = async (k: Komentar) => {
+    if (zpracovavaLajkKomentare) return
+    setZpracovavaLajkKomentare(k.id)
+    const akce = k.lajkujiJa ? api.odebratLajkKomentare : api.pridatLajkKomentare
+    const vysledek = await akce(k.id)
+    if (vysledek.ok) void api.nactiKomentare(prispevek.id).then(setKomentare)
+    setZpracovavaLajkKomentare(null)
+  }
+
   // Appka drží vlákno jen jednu úroveň hluboko (viz Komentar.replyToId)
   // — odpověď na odpověď se přiřadí ke stejnému kořenovému komentáři,
   // ne do dalšího zanoření, stejná plochá hloubka jako u Instagramu.
@@ -133,7 +148,16 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
         >
           Odpovědět
         </button>
+        {k.pocetLajku > 0 && <span className="social-prispevek-komentar-lajku">{k.pocetLajku}×❤️</span>}
       </span>
+      <button
+        className={`social-prispevek-komentar-lajk ${k.lajkujiJa ? 'je-lajknuto' : ''}`}
+        aria-label={k.lajkujiJa ? 'Odebrat lajk komentáře' : 'Lajkovat komentář'}
+        disabled={zpracovavaLajkKomentare === k.id}
+        onClick={() => prepnoutLajkKomentare(k)}
+      >
+        <SocialIcon name={k.lajkujiJa ? 'heart-filled' : 'heart'} size={13} />
+      </button>
       {(k.autor.id === mujId || jeMoje) && (
         <button
           className="social-prispevek-komentar-smazat"

@@ -2085,6 +2085,8 @@ export const nactiKomentare = async (postId: string): Promise<Komentar[]> => {
       text: string
       created_at: string
       reply_to_id: string | null
+      pocet_lajku: number
+      lajkuji_ja: boolean
     }[]
   ).map((r) => ({
     id: r.id,
@@ -2093,6 +2095,8 @@ export const nactiKomentare = async (postId: string): Promise<Komentar[]> => {
     text: r.text,
     createdAt: r.created_at,
     replyToId: r.reply_to_id,
+    pocetLajku: r.pocet_lajku,
+    lajkujiJa: r.lajkuji_ja,
   }))
 }
 
@@ -2110,6 +2114,32 @@ export const pridatKomentar = async (postId: string, text: string, replyToId?: s
     .from('post_comments')
     .insert({ post_id: postId, user_id: ja, text: ocisteny, reply_to_id: replyToId ?? null })
 
+  return error ? chyba(error) : { ok: true }
+}
+
+export const pridatLajkKomentare = async (commentId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase.from('comment_likes').insert({ comment_id: commentId, user_id: ja })
+  // Primární klíč (comment_id, user_id) — dvojí klepnutí narazí na
+  // kolizi (23505), ne na skutečnou chybu (stejné "no-op úspěch" jako
+  // u pridatLajk výš).
+  if (error && (error as { code?: string }).code !== '23505') return chyba(error)
+  return { ok: true }
+}
+
+export const odebratLajkKomentare = async (commentId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase.from('comment_likes').delete().eq('comment_id', commentId).eq('user_id', ja)
   return error ? chyba(error) : { ok: true }
 }
 
