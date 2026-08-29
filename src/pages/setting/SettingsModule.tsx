@@ -53,12 +53,15 @@ export const SettingsModule: React.FC = () => {
   const [updateChecking, setUpdateChecking] = useState(false)
   const [soukromy, setSoukromy] = useState(false)
   const [meniSoukromi, setMeniSoukromi] = useState(false)
+  const [skrytOnline, setSkrytOnline] = useState(false)
+  const [meniSkrytOnline, setMeniSkrytOnline] = useState(false)
 
-  // Soukromí žije na profiles.soukromy v cloudu, ne v lokálním
-  // useProfileData — appka ho proto natáhne zvlášť, stejným způsobem
-  // jako VerejnyProfilDialog.tsx čte cizí profil.
+  // Soukromí i skrytí online stavu žijí na profiles v cloudu, ne
+  // v lokálním useProfileData — appka je proto natáhne zvlášť, stejným
+  // způsobem jako VerejnyProfilDialog.tsx čte cizí profil.
   useEffect(() => {
     void api.nactiSoukromy().then(setSoukromy)
+    void api.nactiSkrytOnline().then(setSkrytOnline)
   }, [])
 
   // Když se profil změní jinde (obnova ze zálohy), formulář se srovná
@@ -423,11 +426,14 @@ export const SettingsModule: React.FC = () => {
         </button>
       </section>
 
-      {/* Soukromí — jediný přepínač veřejný/soukromý účet. U veřejného
-          se sledování stane rovnou (bez potvrzení), u soukromého čeká
-          na schválení a příspěvky vidí jen schválení sledující. Plain
+      {/* Soukromí — přepínač veřejný/soukromý účet. U veřejného se
+          sledování stane rovnou (bez potvrzení), u soukromého čeká na
+          schválení a příspěvky vidí jen schválení sledující. Plain
           sloupec profiles.soukromy (social/api.ts), žádná zvláštní
-          databázová funkce — stejné právo jako na jméno/motto. */}
+          databázová funkce — stejné právo jako na jméno/motto.
+          Skrýt online stav (profiles.skryt_online) je druhý přepínač
+          ve stejné kartě — obojí je "co o mně ostatní vidí", stejné
+          téma, jedna karta. */}
       <section className="settings-card">
         <div className="settings-card-head">
           <span className="settings-card-icon purple" aria-hidden="true">🔒</span>
@@ -461,6 +467,36 @@ export const SettingsModule: React.FC = () => {
                 showToast(vysledek.chyba ?? 'Nepovedlo se to.')
               }
               setMeniSoukromi(false)
+            }}
+          >
+            <span className="settings-switch-knob" />
+          </button>
+        </div>
+
+        <div className="settings-toggle-row">
+          <div className="settings-toggle-text">
+            <span className="settings-toggle-title">Skrýt online stav</span>
+            <span className="settings-toggle-sub">
+              Přátelé neuvidí zelenou tečku, že máš appku zrovna otevřenou
+            </span>
+          </div>
+          <button
+            className={`settings-switch ${skrytOnline ? 'on' : ''}`}
+            role="switch"
+            aria-checked={skrytOnline}
+            aria-label="Skrýt online stav"
+            disabled={meniSkrytOnline}
+            onClick={async () => {
+              setMeniSkrytOnline(true)
+              const nove = !skrytOnline
+              const vysledek = await api.nastavSkrytOnline(nove)
+              if (vysledek.ok) {
+                setSkrytOnline(nove)
+                showToast(nove ? 'Online stav je teď skrytý' : 'Online stav je teď vidět přátelům')
+              } else {
+                showToast(vysledek.chyba ?? 'Nepovedlo se to.')
+              }
+              setMeniSkrytOnline(false)
             }}
           >
             <span className="settings-switch-knob" />

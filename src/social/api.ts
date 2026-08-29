@@ -1419,7 +1419,10 @@ export const sledovatPritomnost = (
 
 /** Zapíše "jsem tu" — volá ho jen presence.ts's heartbeat, appka jinde
  *  přítomnost nezapisuje. Upsert, ne insert: appka vlastní řádek má
- *  nejvýš jeden na účet, druhé volání jen posune čas. */
+ *  nejvýš jeden na účet, druhé volání jen posune čas. Kdo si zapnul
+ *  "skrýt online" (profiles.skryt_online), appka tep vůbec nepošle —
+ *  ověřeno při každém tiku, ne jen jednou při startu, ať appka
+ *  respektuje i přepnutí za běhu. */
 export const zaznamenejPritomnost = async (): Promise<void> => {
   if (!supabase) return
 
@@ -1427,9 +1430,25 @@ export const zaznamenejPritomnost = async (): Promise<void> => {
   const ja = relace.session?.user?.id
   if (!ja) return
 
+  const { data: profil } = await supabase.from('profiles').select('skryt_online').eq('id', ja).maybeSingle()
+  if (profil?.skryt_online) return
+
   await supabase
     .from('presence')
     .upsert({ user_id: ja, last_seen_at: new Date().toISOString() }, { onConflict: 'user_id' })
+}
+
+/** Smaže vlastní řádek přítomnosti hned — volá ho SettingsModule.tsx
+ *  při zapnutí "skrýt online", ať skrytí neplatí až za
+ *  JE_ONLINE_PRAH_MS (kdy by tep sám zestárl), ale okamžitě. */
+export const smazatVlastniPritomnost = async (): Promise<void> => {
+  if (!supabase) return
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return
+
+  await supabase.from('presence').delete().eq('user_id', ja)
 }
 
 /** Poslední známá přítomnost všech přátel najednou — RLS na `presence`
@@ -1859,6 +1878,40 @@ export const nastavSoukromy = async (hodnota: boolean): Promise<Vysledek> => {
 
   const { error } = await supabase.from('profiles').update({ soukromy: hodnota }).eq('id', ja)
   return error ? chyba(error) : { ok: true }
+}
+
+/**
+ * Skrýt online stav — čte a zapisuje SettingsModule.tsx (řádek "Skrýt
+ * online stav"). Stejný tvar jako nactiSoukromy/nastavSoukromy výš,
+ * jen jiný sloupec — vynucuje se v zaznamenejPritomnost() (presence.ts's
+ * heartbeat), ne tady.
+ */
+export const nactiSkrytOnline = async (): Promise<boolean> => {
+  if (!supabase) return false
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return false
+
+  const { data } = await supabase.from('profiles').select('skryt_online').eq('id', ja).maybeSingle()
+  return data?.skryt_online ?? false
+}
+
+export const nastavSkrytOnline = async (hodnota: boolean): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase.from('profiles').update({ skryt_online: hodnota }).eq('id', ja)
+  if (error) return chyba(error)
+
+  // Zapnutí smaže vlastní řádek přítomnosti hned, ať skrytí neplatí až
+  // za JE_ONLINE_PRAH_MS (kdy by tep sám zestárl u přátel, co ho vidí).
+  if (hodnota) await smazatVlastniPritomnost()
+
+  return { ok: true }
 }
 
 // ==========================================
