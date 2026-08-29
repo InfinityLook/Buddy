@@ -95,6 +95,13 @@ export interface Chat {
    *  ale odznak přímo u chatu v ChatyPanel.tsx dál ukazuje skutečný
    *  počet nepřečtených, ať je vidět, co čeká, když se tam podíváš. */
   mujMuted: boolean
+  /** Moje vlastní členství v chatu čeká na schválení (chat_members.stav
+   *  = 'pozadavek') — jde jen o 1:1 chat založený někým, koho vzájemně
+   *  nesleduju (viz zaloz_chat na databázi). ChatyPanel.tsx ho proto
+   *  vykresluje v samostatné sekci "Požadavky na zprávy", ne mezi
+   *  běžnými chaty; odpovědí (nebo tlačítkem Přijmout) se změní na
+   *  false, žádost je pak i pro mě obyčejný chat. */
+  pozadavek: boolean
 }
 
 // Nabídka emoji pro skupinový chat — SpravaSkupinyDialog.tsx z ní

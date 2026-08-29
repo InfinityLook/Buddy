@@ -77,7 +77,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
                 className="social-icon-btn"
                 aria-label={`Napsat ${p.profil.displayName}`}
                 onClick={async () => {
-                  const v = await api.otevritChatSPritelem(p.profil.id)
+                  const v = await api.otevritChat(p.profil.id)
                   if (v.ok && v.chatId) onOtevritChat(v.chatId)
                   else stav.rekni(v.chyba ?? 'Chat se nepovedlo otevřít.')
                 }}

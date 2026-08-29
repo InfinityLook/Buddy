@@ -597,6 +597,23 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
         </button>
       </header>
 
+      {/* Žádost o zprávu — 1:1 chat od někoho, koho vzájemně nesleduju
+          (viz zaloz_chat na databázi). Odpovědí se přijme sama (trigger
+          prijmi_pozadavek_po_zprave), tlačítko je tu pro toho, kdo chce
+          schválit bez psaní. "Opustit chat" v hlavičce nahoře dělá
+          totéž co odmítnutí — žádné druhé tlačítko pro to není potřeba. */}
+      {chat.pozadavek && (
+        <div className="social-pozadavek-banner">
+          <span>📩 Žádost o zprávu — napiš zpátky nebo ji přímo přijmi.</span>
+          <button
+            className="social-btn social-btn--small"
+            onClick={() => stav.provest(() => api.prijmoutPozadavekNaZpravu(chat.id), 'Přijato.')}
+          >
+            Přijmout
+          </button>
+        </div>
+      )}
+
       <div className="social-zpravy">
         {zpravy.length === 0 && (
           <p className="social-empty-note social-empty-note--stred">

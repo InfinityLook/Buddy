@@ -386,7 +386,7 @@ export const nactiChaty = async (): Promise<Chat[]> => {
 
   const { data: clenstvi } = await supabase
     .from('chat_members')
-    .select('chat_id, last_read_at, muted')
+    .select('chat_id, last_read_at, muted, stav')
     .eq('user_id', ja)
 
   const chatIds = (clenstvi ?? []).map((c) => c.chat_id)
@@ -394,6 +394,7 @@ export const nactiChaty = async (): Promise<Chat[]> => {
 
   const precteno = new Map((clenstvi ?? []).map((c) => [c.chat_id, c.last_read_at]))
   const ztlumeno = new Map((clenstvi ?? []).map((c) => [c.chat_id, c.muted]))
+  const cekaNaSchvaleni = new Map((clenstvi ?? []).map((c) => [c.chat_id, c.stav === 'pozadavek']))
 
   const [{ data: chaty }, { data: vsichniClenove }, { data: zpravy }] = await Promise.all([
     supabase.from('chats').select('id, is_group, name, created_by, icon').in('id', chatIds),
@@ -436,6 +437,7 @@ export const nactiChaty = async (): Promise<Chat[]> => {
         zakladatelId: ch.created_by,
         ikona: ch.icon,
         mujMuted: ztlumeno.get(ch.id) ?? false,
+        pozadavek: cekaNaSchvaleni.get(ch.id) ?? false,
       }
     })
     .sort((a, b) => (b.posledniCas ?? '').localeCompare(a.posledniCas ?? ''))
@@ -506,13 +508,19 @@ export const sledovatPrectenost = (
 }
 
 /**
- * Chat s jedním člověkem. Když už spolu chat mají, vrátí ten stávající —
- * jinak by po každém otevření vznikl další a rozhovor by se roztříštil.
- * O to i o všechno ostatní se stará `zaloz_chat` v databázi.
+ * Chat s jedním člověkem — přítelem, ale od zavedení žádostí o zprávy
+ * i kýmkoli jiným nezablokovaným (viz zaloz_chat na databázi): u
+ * někoho, koho appka vzájemně nesleduje, tenhle stejný chat prostě
+ * vznikne jako čekající žádost (chat_members.stav = 'pozadavek') místo
+ * rovnou otevřeného chatu — jméno funkce už proto neříká "s přítelem",
+ * dřív to byl jediný případ, dnes je to jen jeden ze dvou. Když už
+ * spolu chat mají, vrátí ten stávající — jinak by po každém otevření
+ * vznikl další a rozhovor by se roztříštil. O to i o všechno ostatní
+ * se stará `zaloz_chat` v databázi.
  */
-export const otevritChatSPritelem = async (
-  pritelId: string
-): Promise<{ chatId: string | null } & Vysledek> => zalozitChat([pritelId], false)
+export const otevritChat = async (
+  druhaStranaId: string
+): Promise<{ chatId: string | null } & Vysledek> => zalozitChat([druhaStranaId], false)
 
 /**
  * Zakládání běží celé v databázi, jedním voláním.
@@ -545,6 +553,9 @@ export const zalozitChat = async (
   return { ok: true, chatId: data }
 }
 
+/** Opuštění chatu je zároveň i odmítnutí žádosti o zprávu — obojí je
+ *  "smaž moje vlastní členství", žádný rozdíl v mechanismu, jen v tom,
+ *  jak se tomu říká, když se chat teprve čeká na schválení. */
 export const opustitChat = async (chatId: string): Promise<Vysledek> => {
   if (!supabase) return NENI_CLOUD
 
@@ -555,6 +566,29 @@ export const opustitChat = async (chatId: string): Promise<Vysledek> => {
   const { error } = await supabase
     .from('chat_members')
     .delete()
+    .eq('chat_id', chatId)
+    .eq('user_id', ja)
+
+  return error ? chyba(error) : { ok: true }
+}
+
+/**
+ * Výslovné přijetí žádosti o zprávu — plain UPDATE vlastního řádku
+ * (stejná "user_id = auth.uid()" politika, jakou už používá
+ * oznacitPrecteno/ztlumitChat, žádná nová politika navíc). Odpověď v
+ * chatu žádost přijme sama (viz trigger prijmi_pozadavek_po_zprave na
+ * databázi) — tohle je pro toho, kdo chce žádost schválit bez psaní.
+ */
+export const prijmoutPozadavekNaZpravu = async (chatId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase
+    .from('chat_members')
+    .update({ stav: 'prijato' })
     .eq('chat_id', chatId)
     .eq('user_id', ja)
 

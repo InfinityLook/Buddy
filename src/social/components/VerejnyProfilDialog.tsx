@@ -209,11 +209,16 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
                     : 'Sledovat'}
             </button>
 
-            {pritel && (
+            {/* Napsat jde i mimo přátele — u nikoho, koho vzájemně
+                nesleduju, ale kdo mě neblokoval, zaloz_chat na databázi
+                jen vznikne jako žádost o zprávu místo rovnou otevřeného
+                chatu (viz otevritChat v api.ts), místo aby appka psaní
+                dopředu odmítla. Blokovaná dvojice ho stejně nezaloží. */}
+            {!jeZablokovany && (
               <button
                 className="social-btn"
                 onClick={async () => {
-                  const v = await api.otevritChatSPritelem(userId)
+                  const v = await api.otevritChat(userId)
                   if (v.ok && v.chatId) {
                     onZavrit()
                     onOtevritChat(v.chatId)

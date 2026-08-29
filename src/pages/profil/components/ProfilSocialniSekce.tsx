@@ -81,7 +81,7 @@ export const ProfilSocialniSekce: React.FC = () => {
   // konkrétní rozhovor (to je čistě lokální stav SocialModule.tsx) —
   // appka proto jen otevře Social, kde si uživatel chat najde v Chatech.
   // Přijatelné zjednodušení, ne bug: chat už v tu chvíli existuje
-  // (api.otevritChatSPritelem ho založí/najde dřív, než tenhle callback
+  // (api.otevritChat ho založí/najde dřív, než tenhle callback
   // vůbec dostane jeho id).
   const otevritSocial = () => navigate('/social')
 

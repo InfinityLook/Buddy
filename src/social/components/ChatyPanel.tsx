@@ -38,17 +38,24 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
   const [hledatChaty, setHledatChaty] = useState('')
   const online = useOnlineFriends()
 
+  // Žádosti o zprávy (1:1 chat od někoho, koho vzájemně nesleduju —
+  // viz zaloz_chat na databázi) žijí ve stejném stav.chaty poli jako
+  // běžné chaty, jen odděleně vykreslené: normální seznam by je jinak
+  // vzal za obyčejnou konverzaci, kterou přehlédnutá žádost není.
+  const bezneChaty = useMemo(() => stav.chaty.filter((ch) => !ch.pozadavek), [stav.chaty])
+  const pozadavkoveChaty = useMemo(() => stav.chaty.filter((ch) => ch.pozadavek), [stav.chaty])
+
   // Hledá v názvu chatu i v náhledu poslední zprávy — u skupiny s obecným
   // názvem je náhled často to jediné, podle čeho si člověk chat vybaví.
   const filtrovaneChaty = useMemo(() => {
     const dotaz = normalizeText(hledatChaty.trim())
-    if (!dotaz) return stav.chaty
-    return stav.chaty.filter(
+    if (!dotaz) return bezneChaty
+    return bezneChaty.filter(
       (ch) =>
         normalizeText(ch.nazev).includes(dotaz) ||
         normalizeText(ch.posledniZprava ?? '').includes(dotaz)
     )
-  }, [stav.chaty, hledatChaty])
+  }, [bezneChaty, hledatChaty])
 
   const prepnout = (id: string) =>
     setVybrani((v) => (v.includes(id) ? v.filter((x) => x !== id) : [...v, id]))
@@ -126,10 +133,49 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
         )}
       </section>
 
-      <section className="social-card">
-        <span className="social-card-label">CHATY ({stav.chaty.length})</span>
+      {/* Žádosti o zprávy — 1:1 chat od někoho, koho vzájemně
+          nesleduju. Odpověď (nebo tlačítko Přijmout přímo v ChatView.tsx)
+          žádost sama přijme, "✕" tady dělá totéž co "Opustit chat"
+          v hlavičce otevřeného chatu — obojí je stejný self-row DELETE. */}
+      {pozadavkoveChaty.length > 0 && (
+        <section className="social-card">
+          <span className="social-card-label">POŽADAVKY NA ZPRÁVY ({pozadavkoveChaty.length})</span>
+          {pozadavkoveChaty.map((ch) => (
+            <div key={ch.id} className="social-row">
+              <button className="social-row-otevrit" onClick={() => onOtevritChat(ch.id)}>
+                <SocialAvatar
+                  id={ch.id}
+                  jmeno={ch.nazev}
+                  avatarUrl={ch.ucastnici[0]?.avatarUrl}
+                />
+                <span className="social-row-name">
+                  {ch.nazev}
+                  <span className="social-row-sub">{ch.posledniZprava ?? 'Zatím bez zpráv'}</span>
+                </span>
+              </button>
+              <button
+                className="social-icon-btn social-icon-btn--ano"
+                aria-label="Přijmout"
+                onClick={() => stav.provest(() => api.prijmoutPozadavekNaZpravu(ch.id), 'Přijato.')}
+              >
+                <SocialIcon name="check" size={16} />
+              </button>
+              <button
+                className="social-icon-btn social-icon-btn--ne"
+                aria-label="Odmítnout"
+                onClick={() => stav.provest(() => api.opustitChat(ch.id), 'Žádost odmítnuta.')}
+              >
+                <SocialIcon name="x" size={16} />
+              </button>
+            </div>
+          ))}
+        </section>
+      )}
 
-        {stav.chaty.length > 0 && (
+      <section className="social-card">
+        <span className="social-card-label">CHATY ({bezneChaty.length})</span>
+
+        {bezneChaty.length > 0 && (
           <input
             type="search"
             className="social-input social-input--full"
@@ -139,7 +185,7 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
           />
         )}
 
-        {stav.chaty.length === 0 ? (
+        {bezneChaty.length === 0 ? (
           <p className="social-empty-note">
             Zatím žádný chat. Otevři ho u někoho v seznamu přátel.
           </p>

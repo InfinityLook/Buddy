@@ -1416,6 +1416,23 @@
   font-style: italic;
 }
 
+/* Banner žádosti o zprávu — pod hlavičkou chatu, dokud moje vlastní
+   členství čeká na schválení (chat.pozadavek). Zlatavá, ne cyan jako
+   citace/editace výš: tohle není akce nad zprávou, ale stav celého
+   chatu, který si zaslouží vlastní barvu, ne odstín zabraný jinam. */
+.social-pozadavek-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: rgba(251, 191, 36, 0.1);
+  border-top: 1px solid rgba(251, 191, 36, 0.3);
+  border-bottom: 1px solid rgba(251, 191, 36, 0.3);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
 /* Reakce pod bublinou — pilulky s emoji a počtem, vlastní zvýrazněná */
 .social-reakce-pruh {
   display: flex;
