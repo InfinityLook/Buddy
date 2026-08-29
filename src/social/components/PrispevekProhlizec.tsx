@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SocialIcon } from './SocialIcon'
+import { SocialAvatar } from './SocialAvatar'
 import * as api from '../api'
-import type { Prispevek } from '../types'
+import type { Komentar, Prispevek, VztahKPrispevku } from '../types'
 
 interface Props {
   prispevek: Prispevek
@@ -12,6 +13,10 @@ interface Props {
    *  nepatří, takže tlačítko smazání se tu (na rozdíl od dřívější
    *  verze, která žila jen v pages/profil/) musí umět skrýt. */
   jeMoje: boolean
+  /** Kdo je přihlášený — potřeba na "je tenhle komentář můj?" (smím ho
+   *  smazat i bez toho, abych byl majitel příspěvku) a na obarvení
+   *  vlastního srdíčka. */
+  mujId: string | null
   onZavrit: () => void
   onSmazano: () => void
 }
@@ -21,12 +26,62 @@ interface Props {
  * appčiným vlastním profilem a cizím profilem tady v Social, stejný
  * "jedna komponenta, ne dvě skoro identické" princip jako u
  * VerejnyProfilDialog.tsx samotného.
+ *
+ * Lajky a komentáře appka natáhne, až se prohlížeč otevře — ne pro
+ * celou mřížku najednou, stejný "jen na vyžádání" princip jako
+ * VerejnyProfilDialog.tsx's vztah/spolecni.
  */
-export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, onZavrit, onSmazano }) => {
+export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, onZavrit, onSmazano }) => {
+  const [vztah, setVztah] = useState<VztahKPrispevku | null>(null)
+  const [meniLajk, setMeniLajk] = useState(false)
+  const [komentare, setKomentare] = useState<Komentar[]>([])
+  const [novyKomentar, setNovyKomentar] = useState('')
+  const [odesila, setOdesila] = useState(false)
+
+  useEffect(() => {
+    let platne = true
+    void api.nactiVztahKPrispevku(prispevek.id).then((v) => platne && setVztah(v))
+    void api.nactiKomentare(prispevek.id).then((k) => platne && setKomentare(k))
+    return () => {
+      platne = false
+    }
+  }, [prispevek.id])
+
   const smazat = async () => {
     if (!window.confirm('Smazat tenhle příspěvek?')) return
     const vysledek = await api.smazatPrispevek(prispevek.id)
     if (vysledek.ok) onSmazano()
+  }
+
+  // Appka si počet i "lajkuji já?" vždycky znovu natáhne z databáze po
+  // akci, ne že by si je jen sama o jedno posunula — server je jediná
+  // pravda, stejný vzor jako prepnoutSledovani ve VerejnyProfilDialog.tsx.
+  const prepnoutLajk = async () => {
+    if (!vztah || meniLajk) return
+    setMeniLajk(true)
+    const akce = vztah.lajkujiJa ? api.odebratLajk : api.pridatLajk
+    const vysledek = await akce(prispevek.id)
+    if (vysledek.ok) void api.nactiVztahKPrispevku(prispevek.id).then(setVztah)
+    setMeniLajk(false)
+  }
+
+  const odeslatKomentar = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const text = novyKomentar.trim()
+    if (!text || odesila) return
+
+    setOdesila(true)
+    const vysledek = await api.pridatKomentar(prispevek.id, text)
+    if (vysledek.ok) {
+      setNovyKomentar('')
+      void api.nactiKomentare(prispevek.id).then(setKomentare)
+    }
+    setOdesila(false)
+  }
+
+  const smazatKomentar = async (id: string) => {
+    const vysledek = await api.smazatKomentar(id)
+    if (vysledek.ok) setKomentare((k) => k.filter((x) => x.id !== id))
   }
 
   return createPortal(
@@ -52,6 +107,61 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, onZavri
       </div>
 
       {prispevek.caption && <p className="social-story-popisek">{prispevek.caption}</p>}
+
+      <div className="social-prispevek-lajk-radek">
+        <button
+          className={`social-prispevek-lajk-btn ${vztah?.lajkujiJa ? 'je-lajknuto' : ''}`}
+          onClick={prepnoutLajk}
+          disabled={!vztah || meniLajk}
+          aria-label={vztah?.lajkujiJa ? 'Odebrat lajk' : 'Lajkovat'}
+        >
+          <SocialIcon name={vztah?.lajkujiJa ? 'heart-filled' : 'heart'} size={20} />
+        </button>
+        <span className="social-prispevek-lajk-pocet">
+          {vztah?.pocetLajku ? `${vztah.pocetLajku} ${vztah.pocetLajku === 1 ? 'lajk' : vztah.pocetLajku < 5 ? 'lajky' : 'lajků'}` : 'Zatím žádný lajk'}
+        </span>
+      </div>
+
+      <div className="social-prispevek-komentare">
+        {komentare.length === 0 ? (
+          <p className="social-empty-note">Zatím žádné komentáře. Buď první.</p>
+        ) : (
+          komentare.map((k) => (
+            <div key={k.id} className="social-prispevek-komentar">
+              <SocialAvatar id={k.autor.id} jmeno={k.autor.displayName} avatarUrl={k.autor.avatarUrl} velikost={26} />
+              <span className="social-prispevek-komentar-text">
+                <strong>{k.autor.displayName}</strong> {k.text}
+              </span>
+              {(k.autor.id === mujId || jeMoje) && (
+                <button
+                  className="social-prispevek-komentar-smazat"
+                  aria-label="Smazat komentář"
+                  onClick={() => smazatKomentar(k.id)}
+                >
+                  <SocialIcon name="x" size={14} />
+                </button>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <form className="social-prispevek-komentar-formular" onSubmit={odeslatKomentar}>
+        <input
+          className="social-input social-input--full"
+          placeholder="Napiš komentář…"
+          value={novyKomentar}
+          maxLength={500}
+          onChange={(e) => setNovyKomentar(e.target.value)}
+        />
+        <button
+          className="social-btn social-btn--small"
+          type="submit"
+          disabled={!novyKomentar.trim() || odesila}
+        >
+          <SocialIcon name="send" size={16} />
+        </button>
+      </form>
     </div>,
     // Portál do document.body — stejný důvod jako u StoryProhlizec.tsx/
     // pages/profil/components/PridatPrispevekDialog.tsx.

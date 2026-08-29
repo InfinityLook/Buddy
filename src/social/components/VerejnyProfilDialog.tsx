@@ -342,6 +342,7 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
         <PrispevekProhlizec
           prispevek={otevrenyPrispevek}
           jeMoje={jeToJa}
+          mujId={stav.mujId}
           onZavrit={() => setOtevrenyPrispevek(null)}
           onSmazano={() => {
             setOtevrenyPrispevek(null)

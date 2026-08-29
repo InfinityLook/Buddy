@@ -239,6 +239,7 @@ export const ProfilSocialniSekce: React.FC = () => {
         <PrispevekProhlizec
           prispevek={otevrenyPrispevek}
           jeMoje
+          mujId={stav.mujId}
           onZavrit={() => setOtevrenyPrispevek(null)}
           onSmazano={() => {
             setOtevrenyPrispevek(null)

@@ -344,6 +344,30 @@ export interface Prispevek {
   createdAt: string
 }
 
+// ==========================================
+// Lajky a komentáře — první skutečný engagement u příspěvků (dřív jen
+// galerie bez zpětné vazby). Viditelnost kopíruje viditelnost samotného
+// příspěvku (soukromý účet skrývá obojí před nepřáteli, viz
+// smi_videt_prispevky_uzivatele na databázi) — appka to sama nehlídá,
+// jen se spolehne na to, co RLS vrátí/dovolí.
+// ==========================================
+
+/** Vztah přihlášeného k jednomu příspěvku — appka ho natáhne, až
+ *  PrispevekProhlizec.tsx příspěvek otevře, ne pro celou mřížku
+ *  najednou (viz nactiVztahKPrispevku v api.ts). */
+export interface VztahKPrispevku {
+  pocetLajku: number
+  lajkujiJa: boolean
+}
+
+export interface Komentar {
+  id: string
+  postId: string
+  autor: SocialProfil
+  text: string
+  createdAt: string
+}
+
 /** Presety mizení zpráv — stejná sada, jakou nabízí "mizící zprávy"
  *  v běžných messengerech (Telegram Secret Chat aj.), vynucená i na
  *  databázi (check constraint na tajne_chaty.expirace_sekund), ne jen

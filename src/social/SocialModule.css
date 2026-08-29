@@ -896,6 +896,88 @@
   font-size: 0.88rem;
 }
 
+/* Lajk a komentáře — PrispevekProhlizec.tsx přebírá tmavé pozadí od
+   .social-story-prohlizec (sdílený portál), proto bílý/šedý text
+   místo obvyklých --text-* proměnných, které na tomhle pozadí
+   nekontrastují. */
+.social-prispevek-lajk-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 1rem 0.4rem;
+  flex-shrink: 0;
+}
+
+.social-prispevek-lajk-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+}
+
+.social-prispevek-lajk-btn.je-lajknuto {
+  color: #f43f5e;
+}
+
+.social-prispevek-lajk-pocet {
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.social-prispevek-komentare {
+  flex-shrink: 1;
+  overflow-y: auto;
+  max-height: 26vh;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.social-prispevek-komentar {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.social-prispevek-komentar-text {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.social-prispevek-komentar-text strong {
+  color: #fff;
+  margin-right: 0.3rem;
+}
+
+.social-prispevek-komentar-smazat {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.5);
+  padding: 0.2rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.social-prispevek-komentar-formular {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+  padding: 0.6rem 1rem calc(0.6rem + env(safe-area-inset-bottom));
+  flex-shrink: 0;
+}
+
+.social-prispevek-komentar-formular .social-input {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
 .social-story-zhlednuti-btn {
   align-self: center;
   margin-bottom: calc(0.8rem + env(safe-area-inset-bottom));

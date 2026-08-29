@@ -5,6 +5,7 @@ import type {
   NalezVysledek,
   DuvodNahlaseni,
   Hlaseni,
+  Komentar,
   PratelskyNavrh,
   Prispevek,
   Reakce,
@@ -19,6 +20,7 @@ import type {
   TajnyChat,
   VerejnyProfil,
   Vysledek,
+  VztahKPrispevku,
   VztahSledovani,
   Zadost,
   Zprava,
@@ -1812,6 +1814,104 @@ export const smazatPrispevek = async (id: string): Promise<Vysledek> => {
   if (!supabase) return NENI_CLOUD
 
   const { error } = await supabase.from('posts').delete().eq('id', id)
+  return error ? chyba(error) : { ok: true }
+}
+
+// ==========================================
+// Lajky a komentáře — viz types.ts's VztahKPrispevku/Komentar. Plain
+// tabulky (`post_likes`/`post_comments`), ne řízené funkce jako u
+// posts samotných: appka RLS pustí přečíst celou dvojici (post_id,
+// user_id)/(post_id, user_id, text) u příspěvku, který smí vidět
+// (stejná viditelnost jako u nacti_prispevky), takže "kolik" appka
+// spočítá z délky pole, ne z druhého dotazu.
+// ==========================================
+
+/** Počet lajků a "lajkuji já?" pro jeden příspěvek — appka jich natáhne
+ *  jeden dotaz, ne dva (count() + eq(user_id)). */
+export const nactiVztahKPrispevku = async (postId: string): Promise<VztahKPrispevku> => {
+  const prazdny: VztahKPrispevku = { pocetLajku: 0, lajkujiJa: false }
+  if (!supabase) return prazdny
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+
+  const { data, error } = await supabase.from('post_likes').select('user_id').eq('post_id', postId)
+  if (error || !data) return prazdny
+
+  return { pocetLajku: data.length, lajkujiJa: !!ja && data.some((r) => r.user_id === ja) }
+}
+
+export const pridatLajk = async (postId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase.from('post_likes').insert({ post_id: postId, user_id: ja })
+  // Primární klíč (post_id, user_id) — dvojí klepnutí narazí na kolizi
+  // (23505), ne na skutečnou chybu (stejné "no-op úspěch" jako
+  // u pridatReakci/sledovatUcet výš).
+  if (error && (error as { code?: string }).code !== '23505') return chyba(error)
+  return { ok: true }
+}
+
+export const odebratLajk = async (postId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase.from('post_likes').delete().eq('post_id', postId).eq('user_id', ja)
+  return error ? chyba(error) : { ok: true }
+}
+
+export const nactiKomentare = async (postId: string): Promise<Komentar[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('post_comments')
+    .select('id, post_id, user_id, text, created_at')
+    .eq('post_id', postId)
+    .order('created_at', { ascending: true })
+
+  if (error || !data) return []
+
+  const profily = await nactiProfily(data.map((r) => r.user_id))
+  return data
+    .map((r) => {
+      const autor = profily.get(r.user_id)
+      if (!autor) return null
+      return { id: r.id, postId: r.post_id, autor, text: r.text, createdAt: r.created_at }
+    })
+    .filter((k): k is Komentar => k !== null)
+}
+
+export const pridatKomentar = async (postId: string, text: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const ocisteny = text.trim()
+  if (!ocisteny) return { ok: false, chyba: 'Komentář nemůže být prázdný.' }
+
+  const { error } = await supabase
+    .from('post_comments')
+    .insert({ post_id: postId, user_id: ja, text: ocisteny })
+
+  return error ? chyba(error) : { ok: true }
+}
+
+/** Smí autor komentáře, nebo majitel příspěvku — obojí hlídá RLS,
+ *  appka jen zavolá stejný DELETE bez ohledu na to, kdo z těch dvou
+ *  klepnul. */
+export const smazatKomentar = async (id: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase.from('post_comments').delete().eq('id', id)
   return error ? chyba(error) : { ok: true }
 }
 

@@ -76,6 +76,18 @@ export const SocialIcon: React.FC<SocialIconProps> = ({ name, size = 20, classNa
       return <svg {...common}><path d="m9 17-5-5 5-5"/><path d="M4 12h10a5 5 0 0 1 5 5v2"/></svg>
     case 'smile':
       return <svg {...common}><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9h.01"/><path d="M15 9h.01"/></svg>
+    case 'heart':
+      return <svg {...common}><path d="M19.5 12.6 12 20l-7.5-7.4a4.9 4.9 0 0 1 7-6.9l.5.5.5-.5a4.9 4.9 0 0 1 7 6.9Z"/></svg>
+    // Lajkovaná srdíčko — vyplněné, ne jen obrys, stejný "vyplněné = aktivní"
+    // signál jako zaškrtnutý checkmark jinde v appce. Vlastní case místo
+    // vyplňování outline verze za běhu, ať appka nemusí nikam přidávat
+    // druhý prop jen pro tenhle jeden případ.
+    case 'heart-filled':
+      return (
+        <svg {...common} fill="currentColor" stroke="none">
+          <path d="M19.5 12.6 12 20l-7.5-7.4a4.9 4.9 0 0 1 7-6.9l.5.5.5-.5a4.9 4.9 0 0 1 7 6.9Z"/>
+        </svg>
+      )
     default:
       return null
   }

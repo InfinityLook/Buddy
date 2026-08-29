@@ -232,7 +232,14 @@ export const mockSupabase = async (ctx: BrowserContext, data: MockData, options:
           id: `${tabulka}-${Date.now()}-${i}`,
           created_at: new Date().toISOString(),
         }
-        for (const sloupec of znameSloupce) if (!(sloupec in r)) zaklad[sloupec] = null
+        // `sloupec in zaklad` navíc k `sloupec in r`: bez týhle podmínky by
+        // smyčka null-em přepsala i právě vygenerované id/created_at výš,
+        // jakmile tabulka měla aspoň jeden existující řádek (znameSloupce
+        // pak "id"/"created_at" obsahuje) a klient je sám neposlal — přesně
+        // to, co dřív dělá každý reálný INSERT bez explicitního id. Objevilo
+        // se to poprvé až u komentářů u příspěvků, protože to byl první
+        // insert do neprázdné tabulky bez vlastního id v těle.
+        for (const sloupec of znameSloupce) if (!(sloupec in r) && !(sloupec in zaklad)) zaklad[sloupec] = null
         const novy = { ...zaklad, ...r }
         radky.push(novy)
         return novy
