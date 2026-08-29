@@ -51,14 +51,28 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
     setHleda(false)
   }
 
-  const pridatPritele = async (profil: SocialProfil) => {
-    const ok = await stav.provest(() => api.poslatZadost(profil.id), 'Žádost odeslána.')
-    if (ok) setVysledky((v) => v.filter((p) => p.id !== profil.id))
+  // Text úspěchu závisí na tom, co se ze sledování doopravdy stalo — u
+  // veřejného účtu je hned 'prijato', u soukromého 'cekajici' (server to
+  // rozhodne, appka jen ohlásí výsledek, viz sledovatUcet v api.ts).
+  const zpravaPoSledovani = (stav?: 'cekajici' | 'prijato') =>
+    stav === 'cekajici' ? 'Žádost o sledování odeslána.' : 'Sleduješ ✓'
+
+  const sledovat = async (profil: SocialProfil) => {
+    const vysledek = await api.sledovatUcet(profil.id)
+    stav.rekni(vysledek.ok ? zpravaPoSledovani(vysledek.stav) : vysledek.chyba ?? 'Nepovedlo se to.')
+    if (vysledek.ok) {
+      setVysledky((v) => v.filter((p) => p.id !== profil.id))
+      await stav.obnovit()
+    }
   }
 
-  const pridatZNavrhu = async (navrh: PratelskyNavrh) => {
-    const ok = await stav.provest(() => api.poslatZadost(navrh.id), 'Žádost odeslána.')
-    if (ok) setNavrhy((n) => n.filter((x) => x.id !== navrh.id))
+  const sledovatZNavrhu = async (navrh: PratelskyNavrh) => {
+    const vysledek = await api.sledovatUcet(navrh.id)
+    stav.rekni(vysledek.ok ? zpravaPoSledovani(vysledek.stav) : vysledek.chyba ?? 'Nepovedlo se to.')
+    if (vysledek.ok) {
+      setNavrhy((n) => n.filter((x) => x.id !== navrh.id))
+      await stav.obnovit()
+    }
   }
 
   return (
@@ -92,9 +106,9 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
               <SocialAvatar id={profil.id} jmeno={profil.displayName} avatarUrl={profil.avatarUrl} />
               <span className="social-row-name">{profil.displayName}</span>
             </button>
-            <button className="social-btn social-btn--small" onClick={() => pridatPritele(profil)}>
+            <button className="social-btn social-btn--small" onClick={() => sledovat(profil)}>
               <SocialIcon name="plus" size={14} />
-              Přidat
+              Sledovat
             </button>
           </div>
         ))}
@@ -117,36 +131,37 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
                   </span>
                 </span>
               </button>
-              <button className="social-btn social-btn--small" onClick={() => pridatZNavrhu(n)}>
+              <button className="social-btn social-btn--small" onClick={() => sledovatZNavrhu(n)}>
                 <SocialIcon name="plus" size={14} />
-                Přidat
+                Sledovat
               </button>
             </div>
           ))}
         </section>
       )}
 
-      {/* Došlé žádosti */}
+      {/* Došlé žádosti o sledování — objeví se jen u soukromého účtu,
+          veřejné sledování se stane přítelem/sledujícím rovnou. */}
       {prichozi.length > 0 && (
         <section className="social-card">
-          <span className="social-card-label">ŽÁDOSTI ({prichozi.length})</span>
+          <span className="social-card-label">ŽÁDOSTI O SLEDOVÁNÍ ({prichozi.length})</span>
           {prichozi.map((z) => (
-            <div key={z.id} className="social-row">
+            <div key={z.profil.id} className="social-row">
               <button className="social-row-otevrit" onClick={() => onOtevritProfil(z.profil.id)}>
                 <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} avatarUrl={z.profil.avatarUrl} pulzuje />
                 <span className="social-row-name">{z.profil.displayName}</span>
               </button>
               <button
                 className="social-icon-btn social-icon-btn--ano"
-                aria-label="Přijmout"
-                onClick={() => stav.provest(() => api.prijmoutZadost(z.id), 'Máte se rádi 🎉')}
+                aria-label="Schválit"
+                onClick={() => stav.provest(() => api.schvalitZadost(z.profil.id), 'Schváleno 🎉')}
               >
                 <SocialIcon name="check" size={16} />
               </button>
               <button
                 className="social-icon-btn social-icon-btn--ne"
                 aria-label="Odmítnout"
-                onClick={() => stav.provest(() => api.zrusitVazbu(z.id), 'Žádost odmítnuta.')}
+                onClick={() => stav.provest(() => api.zrusitVazbu(z.profil.id), 'Žádost odmítnuta.')}
               >
                 <SocialIcon name="x" size={16} />
               </button>
@@ -157,9 +172,9 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
 
       {odchozi.length > 0 && (
         <section className="social-card">
-          <span className="social-card-label">ČEKÁ NA ODPOVĚĎ ({odchozi.length})</span>
+          <span className="social-card-label">ČEKÁ NA SCHVÁLENÍ ({odchozi.length})</span>
           {odchozi.map((z) => (
-            <div key={z.id} className="social-row">
+            <div key={z.profil.id} className="social-row">
               <button className="social-row-otevrit" onClick={() => onOtevritProfil(z.profil.id)}>
                 <SocialAvatar id={z.profil.id} jmeno={z.profil.displayName} avatarUrl={z.profil.avatarUrl} />
                 <span className="social-row-name">{z.profil.displayName}</span>
@@ -167,7 +182,7 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
               <button
                 className="social-icon-btn social-icon-btn--ne"
                 aria-label="Zrušit žádost"
-                onClick={() => stav.provest(() => api.zrusitVazbu(z.id), 'Žádost zrušena.')}
+                onClick={() => stav.provest(() => api.zrusitVazbu(z.profil.id), 'Žádost zrušena.')}
               >
                 <SocialIcon name="x" size={16} />
               </button>

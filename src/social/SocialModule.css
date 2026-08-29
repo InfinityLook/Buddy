@@ -1686,6 +1686,14 @@
   border: 1px solid rgba(248, 113, 113, 0.4);
 }
 
+/* Soukromý účet — neutrální, ne barva role: neznamená žádné oprávnění,
+   jen že sledování čeká na schválení a příspěvky jsou skryté. */
+.social-profil-role-tag--soukromy {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+}
+
 /* Bio (motto) — stejné pole appka odjakživa ukazuje na vlastním
    profilu (ProfilModule.tsx), tady poprvé i na cizím. */
 .social-profil-motto {

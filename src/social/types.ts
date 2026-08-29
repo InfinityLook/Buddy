@@ -1,7 +1,7 @@
 // ==========================================
 // Tvary sociální části.
 //
-// Odpovídají tabulkám v Supabase (profiles, friendships, blocks, chats,
+// Odpovídají tabulkám v Supabase (profiles, follows, blocks, chats,
 // chat_members, messages, reports). Když se mění schéma, mění se i tohle —
 // jinak si TypeScript myslí, že přišlo něco jiného, než co doopravdy přišlo.
 // ==========================================
@@ -41,6 +41,11 @@ export interface VerejnyProfil extends SocialProfil {
   /** Server je už protřídil proti user_badges (precti_verejny_profil) —
    *  co appka dostane, to má cenu rovnou vykreslit. */
   pinnedBadges: string[]
+  /** Soukromý účet: sledování čeká na schválení a příspěvky vidí jen
+   *  autor a jeho (vzájemní) přátelé — VerejnyProfilDialog.tsx podle
+   *  tohohle mění text tlačítka a skrývá mřížku, dokud sledování
+   *  neschválí. Vynucené na databázi (nacti_prispevky), ne jen v UI. */
+  soukromy: boolean
 }
 
 /** Návrh nového přítele — social/api.ts's nactiNavrhyPratel(). */
@@ -51,17 +56,21 @@ export interface PratelskyNavrh {
   spolecni: number
 }
 
+/** Čekající žádost o sledování (jen u soukromého cíle) — buď moje
+ *  odchozí, nebo cizí příchozí, kterou mám schválit/odmítnout. Žádné
+ *  `id` řádku: dvojice (protistrana, směr) appce stačí, přijetí/odmítnutí
+ *  jde přes id protistrany (viz schvalitZadost/zrusitVazbu v api.ts). */
 export interface Zadost {
-  id: string
   profil: SocialProfil
   /** Přišla mně, nebo jsem ji poslal já? */
   smer: 'prichozi' | 'odchozi'
   createdAt: string
 }
 
+/** Přítel = vzájemné (oboustranné) sledování — viz je_muj_pritel() na
+ *  databázi. Žádné vlastní `id` vztahu: sledování jsou dva nezávislé
+ *  řádky ve `follows`, ne jeden společný. */
 export interface Pritel {
-  /** Id řádku přátelství — přes něj se přátelství ruší */
-  vazbaId: string
   profil: SocialProfil
 }
 
@@ -289,11 +298,13 @@ export interface StoryZhlednuti {
 }
 
 // ==========================================
-// Sledování (follow) — jednosměrné, na rozdíl od friendships (žádost/
-// přijetí, obousměrné). Sleduješ někoho, aniž by o tom musel vědět
-// nebo to potvrdit, přesně jako Instagram/TikTok. Vlastní tabulka
-// (`follows`), ne rozšíření friendships — dva různé modely vztahu,
-// ne jeden s dvojím významem.
+// Sledování (follow) — od sjednocení s přátelstvím jediný vztahový
+// model appky (viz je_muj_pritel() na databázi). U veřejného účtu je
+// sledování okamžité, jako na Instagramu; u soukromého čeká na
+// schválení cílem (stav 'cekajici'), než se stane 'prijato'. Vzájemné
+// (oboustranně 'prijato') sledování = přítel — to je to, co appka dřív
+// řešila zvlášť přes friendships. Vlastní tabulka (`follows`), protože
+// vztah je z podstaty jednosměrný (dva řádky, ne jeden sdílený).
 // ==========================================
 
 /** Vztah sledování mezi přihlášeným a cílovým účtem, z pohledu appky —
@@ -301,7 +312,7 @@ export interface StoryZhlednuti {
  *  (appka nesmí vytáhnout cizí kompletní seznam sledujících/sledovaných,
  *  jen počty a svůj vlastní vztah k jednomu konkrétnímu účtu). */
 export interface VztahSledovani {
-  sledujiHo: boolean
+  stavSledovani: 'nesleduje' | 'cekajici' | 'prijato'
   sledujiciCelkem: number
   sledovaniCelkem: number
 }

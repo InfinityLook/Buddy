@@ -144,27 +144,12 @@ export const hledejPodleJmena = async (dotaz: string): Promise<SocialProfil[]> =
   return data.map(profilZRadku)
 }
 
-export const poslatZadost = async (komuId: string): Promise<Vysledek> => {
-  if (!supabase) return NENI_CLOUD
-
-  const { data: relace } = await supabase.auth.getSession()
-  const ja = relace.session?.user?.id
-  if (!ja) return NENI_CLOUD
-
-  const { error } = await supabase
-    .from('friendships')
-    .insert({ requester_id: ja, addressee_id: komuId })
-
-  if (error) {
-    // Jednoznačný index na dvojici hlídá, že mezi dvěma lidmi je vztah
-    // jen jeden. Kolize tedy neznamená chybu, ale "už se to jednou stalo".
-    if (error.code === '23505') return { ok: false, chyba: 'S tímhle člověkem už vztah máš.' }
-    return chyba(error)
-  }
-
-  return { ok: true }
-}
-
+/**
+ * Žádosti o sledování, které čekají na schválení — jen u soukromého
+ * cíle (viz Sledování níž), veřejné sledování se rovnou stane 'prijato'
+ * a sem se vůbec nedostane. Plain čtení `follows` stačí: RLS pustí obě
+ * strany vztahu, appka jen rozliší směr podle toho, kdo je `follower_id`.
+ */
 export const nactiZadosti = async (): Promise<Zadost[]> => {
   if (!supabase) return []
 
@@ -173,47 +158,62 @@ export const nactiZadosti = async (): Promise<Zadost[]> => {
   if (!ja) return []
 
   const { data, error } = await supabase
-    .from('friendships')
-    .select('id, requester_id, addressee_id, created_at')
-    .eq('status', 'pending')
+    .from('follows')
+    .select('follower_id, following_id, created_at')
+    .eq('stav', 'cekajici')
 
   if (error || !data) return []
 
-  const protejskyIds = data.map((r) => (r.requester_id === ja ? r.addressee_id : r.requester_id))
+  const protejskyIds = data.map((r) => (r.follower_id === ja ? r.following_id : r.follower_id))
   const profily = await nactiProfily(protejskyIds)
 
   return data
     .map((r) => {
-      const protejsekId = r.requester_id === ja ? r.addressee_id : r.requester_id
+      const protejsekId = r.follower_id === ja ? r.following_id : r.follower_id
       const profil = profily.get(protejsekId)
       if (!profil) return null
 
       return {
-        id: r.id,
         profil,
-        smer: r.requester_id === ja ? ('odchozi' as const) : ('prichozi' as const),
+        smer: r.follower_id === ja ? ('odchozi' as const) : ('prichozi' as const),
         createdAt: r.created_at,
       }
     })
     .filter((z): z is Zadost => z !== null)
 }
 
-export const prijmoutZadost = async (id: string): Promise<Vysledek> => {
+/** Schválení příchozí žádosti — přes funkci na databázi
+ *  (schvalit_sledovani), ne přímý UPDATE: ten by šel zneužít ke změně
+ *  follower_id/following_id, funkce si oboje ohlídá sama. */
+export const schvalitZadost = async (odKoho: string): Promise<Vysledek> => {
   if (!supabase) return NENI_CLOUD
 
-  const { error } = await supabase
-    .from('friendships')
-    .update({ status: 'accepted', responded_at: new Date().toISOString() })
-    .eq('id', id)
-
+  const { error } = await supabase.rpc('schvalit_sledovani', { sledujici: odKoho })
   return error ? chyba(error) : { ok: true }
 }
 
-/** Odmítnutí i zrušení přátelství je totéž — řádek zmizí. */
-export const zrusitVazbu = async (id: string): Promise<Vysledek> => {
+/**
+ * Odmítnutí příchozí žádosti i zrušení vlastní odchozí — obojí je
+ * "smaž vztah k téhle osobě, ať je v jakémkoli stavu", jen z jiné
+ * strany dvojice. RLS na `follows` to hlídá dvěma politikami zvlášť
+ * (follower ruší vlastní řádek, cíl odebírá/odmítá ten druhý), appka
+ * to řeší jedním dotazem přes `.or()`.
+ */
+export const zrusitVazbu = async (druhaStrana: string): Promise<Vysledek> => {
   if (!supabase) return NENI_CLOUD
 
-  const { error } = await supabase.from('friendships').delete().eq('id', id)
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase
+    .from('follows')
+    .delete()
+    .or(
+      `and(follower_id.eq.${ja},following_id.eq.${druhaStrana}),` +
+        `and(follower_id.eq.${druhaStrana},following_id.eq.${ja})`
+    )
+
   return error ? chyba(error) : { ok: true }
 }
 
@@ -266,6 +266,7 @@ export const nactiVerejnyProfil = async (id: string): Promise<VerejnyProfil | nu
     bio: r.bio?.trim() ?? '',
     frameId: r.frame_id,
     pinnedBadges: r.pinned_badges ?? [],
+    soukromy: r.soukromy,
   }
 }
 
@@ -299,29 +300,18 @@ export const nactiNavrhyPratel = async (): Promise<PratelskyNavrh[]> => {
   )
 }
 
+/** Vzájemné sledování (viz je_muj_pritel na databázi) — přes funkci
+ *  (moji_pratele), ne přímé čtení `follows`: to by appka musela sama
+ *  spárovat dva řádky na dvojici, funkce vrací rovnou hotový seznam. */
 export const nactiPratele = async (): Promise<Pritel[]> => {
   if (!supabase) return []
 
-  const { data: relace } = await supabase.auth.getSession()
-  const ja = relace.session?.user?.id
-  if (!ja) return []
-
-  const { data, error } = await supabase
-    .from('friendships')
-    .select('id, requester_id, addressee_id')
-    .eq('status', 'accepted')
-
+  const { data, error } = await supabase.rpc('moji_pratele')
   if (error || !data) return []
 
-  const ids = data.map((r) => (r.requester_id === ja ? r.addressee_id : r.requester_id))
-  const profily = await nactiProfily(ids)
-
-  return data
-    .map((r) => {
-      const profil = profily.get(r.requester_id === ja ? r.addressee_id : r.requester_id)
-      return profil ? { vazbaId: r.id, profil } : null
-    })
-    .filter((p): p is Pritel => p !== null)
+  return (data as { id: string; display_name: string; avatar_url: string | null }[]).map((r) => ({
+    profil: profilZRadku(r),
+  }))
 }
 
 // ---------- blokování ----------
@@ -354,14 +344,16 @@ export const zablokovat = async (kohoId: string): Promise<Vysledek> => {
 
   if (error && error.code !== '23505') return chyba(error)
 
-  // Blok a přátelství vedle sebe nedávají smysl. Kdyby vazba zůstala,
-  // viděl by zablokovaný dál jméno i profil.
+  // Blok a sledování vedle sebe nedávají smysl. Kdyby vazba zůstala
+  // (v obou směrech — i ta, kterou má nad mnou zablokovaný jako
+  // sledující), viděl by zablokovaný dál jméno i profil přes
+  // je_muj_pritel/pending-žádost výjimku v RLS na profiles.
   await supabase
-    .from('friendships')
+    .from('follows')
     .delete()
     .or(
-      `and(requester_id.eq.${ja},addressee_id.eq.${kohoId}),` +
-        `and(requester_id.eq.${kohoId},addressee_id.eq.${ja})`
+      `and(follower_id.eq.${ja},following_id.eq.${kohoId}),` +
+        `and(follower_id.eq.${kohoId},following_id.eq.${ja})`
     )
 
   return { ok: true }
@@ -1172,7 +1164,8 @@ export const vyriditHlaseni = async (
 // ==========================================
 
 /**
- * Živé žádosti o přátelství.
+ * Živé sledování — nová/schválená/zrušená vazba (přítel, nebo jen
+ * žádost čekající na schválení u soukromého účtu).
  *
  * Bez tohohle se příchozí žádost objevila až po ručním znovuotevření
  * Socialu — druhé zařízení do té doby ukazovalo prázdný seznam a vypadalo
@@ -1185,7 +1178,7 @@ export const sledovatVazby = (zmena: () => void): (() => void) => {
 
   const kanal = klient
     .channel(`moje-vazby:${++poradiKanalu}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'friendships' }, () => zmena())
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'follows' }, () => zmena())
     .subscribe()
 
   return () => {
@@ -1590,26 +1583,37 @@ export const sledovatVsechnyTajneZpravy = (prisla: (z: TajnaZprava) => void): ((
 }
 
 // ==========================================
-// Sledování (follow) — jednosměrné, žádná žádost ani potvrzení druhé
-// strany, na rozdíl od friendships. Seznam sledujících/sledovaných
-// appka nikdy nečte přímo (RLS na `follows` to ani nedovolí pro cizí
-// dvojici) — jen svůj vlastní vztah k jednomu účtu a veřejné počty
-// přes pocet_sledujicich()/pocet_sledovanych().
+// Sledování (follow) — od sjednocení jediný vztahový model appky (viz
+// types.ts). U veřejného cíle appka rovnou vloží 'prijato', u
+// soukromého ho databázový trigger (nastav_stav_sledovani) sám přepíše
+// na 'cekajici' — appka stav sama nikdy neposílá, jen se dozví, co z
+// toho vzniklo. Seznam sledujících/sledovaných appka nikdy nečte přímo
+// (RLS na `follows` to ani nedovolí pro cizí dvojici) — jen svůj
+// vlastní vztah k jednomu účtu a veřejné počty přes
+// pocet_sledujicich()/pocet_sledovanych().
 // ==========================================
 
-export const sledovatUcet = async (cil: string): Promise<Vysledek> => {
+export const sledovatUcet = async (cil: string): Promise<Vysledek & { stav?: 'cekajici' | 'prijato' }> => {
   if (!supabase) return NENI_CLOUD
 
   const { data: relace } = await supabase.auth.getSession()
   const ja = relace.session?.user?.id
   if (!ja) return NENI_CLOUD
 
-  const { error } = await supabase.from('follows').insert({ follower_id: ja, following_id: cil })
+  const { data, error } = await supabase
+    .from('follows')
+    .insert({ follower_id: ja, following_id: cil })
+    .select('stav')
+    .single()
+
   // follows_no_self/unikátní primární klíč — dvojí klepnutí na "Sledovat"
   // narazí na kolizi (23505), ne na skutečnou chybu (stejné "no-op
   // úspěch" jako u pridatReakci/oznacitZhlednuti výš).
-  if (error && (error as { code?: string }).code !== '23505') return chyba(error)
-  return { ok: true }
+  if (error) {
+    if ((error as { code?: string }).code === '23505') return { ok: true }
+    return chyba(error)
+  }
+  return { ok: true, stav: data?.stav as 'cekajici' | 'prijato' | undefined }
 }
 
 export const prestatSledovatUcet = async (cil: string): Promise<Vysledek> => {
@@ -1624,14 +1628,14 @@ export const prestatSledovatUcet = async (cil: string): Promise<Vysledek> => {
 }
 
 /**
- * Vztah k jednomu konkrétnímu účtu — "sleduju ho už?" plus jeho
- * veřejné počty (sledujících/sledovaných), vždycky pro cíl `cil`, ne
- * pro přihlášeného. `sledujiHo` čte přímo z `follows` (RLS pustí
- * vlastní řádek), počty jdou přes dvě SECURITY DEFINER funkce, protože
- * plain SELECT na `follows` cizí dvojice nevidí vůbec.
+ * Vztah k jednomu konkrétnímu účtu — "v jakém jsem k němu stavu?" plus
+ * jeho veřejné počty (sledujících/sledovaných), vždycky pro cíl `cil`,
+ * ne pro přihlášeného. `stavSledovani` čte přímo z `follows` (RLS
+ * pustí vlastní řádek), počty jdou přes dvě SECURITY DEFINER funkce,
+ * protože plain SELECT na `follows` cizí dvojice nevidí vůbec.
  */
 export const nactiVztahSledovani = async (cil: string): Promise<VztahSledovani> => {
-  const prazdny: VztahSledovani = { sledujiHo: false, sledujiciCelkem: 0, sledovaniCelkem: 0 }
+  const prazdny: VztahSledovani = { stavSledovani: 'nesleduje', sledujiciCelkem: 0, sledovaniCelkem: 0 }
   if (!supabase) return prazdny
 
   const { data: relace } = await supabase.auth.getSession()
@@ -1639,16 +1643,43 @@ export const nactiVztahSledovani = async (cil: string): Promise<VztahSledovani> 
   if (!ja) return prazdny
 
   const [vazba, sledujici, sledovani] = await Promise.all([
-    supabase.from('follows').select('follower_id').eq('follower_id', ja).eq('following_id', cil).maybeSingle(),
+    supabase.from('follows').select('stav').eq('follower_id', ja).eq('following_id', cil).maybeSingle(),
     supabase.rpc('pocet_sledujicich', { cil }),
     supabase.rpc('pocet_sledovanych', { cil }),
   ])
 
   return {
-    sledujiHo: !!vazba.data,
+    stavSledovani: (vazba.data?.stav as 'cekajici' | 'prijato' | undefined) ?? 'nesleduje',
     sledujiciCelkem: typeof sledujici.data === 'number' ? sledujici.data : 0,
     sledovaniCelkem: typeof sledovani.data === 'number' ? sledovani.data : 0,
   }
+}
+
+/**
+ * Soukromý/veřejný účet — čte a zapisuje SettingsModule.tsx (řádek
+ * "Soukromý účet"). Plain sloupec na vlastním řádku profiles, žádná
+ * zvláštní funkce nepotřeba (stejné právo jako u jména/motta).
+ */
+export const nactiSoukromy = async (): Promise<boolean> => {
+  if (!supabase) return false
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return false
+
+  const { data } = await supabase.from('profiles').select('soukromy').eq('id', ja).maybeSingle()
+  return data?.soukromy ?? false
+}
+
+export const nastavSoukromy = async (hodnota: boolean): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase.from('profiles').update({ soukromy: hodnota }).eq('id', ja)
+  return error ? chyba(error) : { ok: true }
 }
 
 // ==========================================

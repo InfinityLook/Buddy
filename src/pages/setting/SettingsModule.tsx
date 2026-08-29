@@ -7,6 +7,7 @@ import { jeBiometrieDostupna, zaregistrujBiometrii } from '@/core/utils/biometri
 import { AVATAR_FRAMES } from '@/social/avatarFrames'
 import { useCloudStatus, syncNow } from '@/core/supabase/cloudSync'
 import { APP_VERSION, applyUpdateNow, checkForUpdates, hasNewerVersion } from '@/core/utils/registerSW'
+import * as api from '@/social/api'
 import './SettingsModule.css'
 
 // ==========================================
@@ -50,6 +51,15 @@ export const SettingsModule: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null)
   const [biometrieProbiha, setBiometrieProbiha] = useState(false)
   const [updateChecking, setUpdateChecking] = useState(false)
+  const [soukromy, setSoukromy] = useState(false)
+  const [meniSoukromi, setMeniSoukromi] = useState(false)
+
+  // Soukromí žije na profiles.soukromy v cloudu, ne v lokálním
+  // useProfileData — appka ho proto natáhne zvlášť, stejným způsobem
+  // jako VerejnyProfilDialog.tsx čte cizí profil.
+  useEffect(() => {
+    void api.nactiSoukromy().then(setSoukromy)
+  }, [])
 
   // Když se profil změní jinde (obnova ze zálohy), formulář se srovná
   useEffect(() => {
@@ -411,6 +421,51 @@ export const SettingsModule: React.FC = () => {
         <button className="settings-danger-btn" onClick={handleResetProfile}>
           🗑️ Vrátit profil do výchozího stavu
         </button>
+      </section>
+
+      {/* Soukromí — jediný přepínač veřejný/soukromý účet. U veřejného
+          se sledování stane rovnou (bez potvrzení), u soukromého čeká
+          na schválení a příspěvky vidí jen schválení sledující. Plain
+          sloupec profiles.soukromy (social/api.ts), žádná zvláštní
+          databázová funkce — stejné právo jako na jméno/motto. */}
+      <section className="settings-card">
+        <div className="settings-card-head">
+          <span className="settings-card-icon purple" aria-hidden="true">🔒</span>
+          <div>
+            <h2 className="settings-card-title">Soukromí</h2>
+            <p className="settings-card-sub">Kdo tě může sledovat a vidět tvoje příspěvky</p>
+          </div>
+        </div>
+
+        <div className="settings-toggle-row">
+          <div className="settings-toggle-text">
+            <span className="settings-toggle-title">Soukromý účet</span>
+            <span className="settings-toggle-sub">
+              Nové sledování musí schválit — příspěvky uvidí jen schválení sledující
+            </span>
+          </div>
+          <button
+            className={`settings-switch ${soukromy ? 'on' : ''}`}
+            role="switch"
+            aria-checked={soukromy}
+            aria-label="Soukromý účet"
+            disabled={meniSoukromi}
+            onClick={async () => {
+              setMeniSoukromi(true)
+              const nove = !soukromy
+              const vysledek = await api.nastavSoukromy(nove)
+              if (vysledek.ok) {
+                setSoukromy(nove)
+                showToast(nove ? 'Účet je teď soukromý' : 'Účet je teď veřejný')
+              } else {
+                showToast(vysledek.chyba ?? 'Nepovedlo se to.')
+              }
+              setMeniSoukromi(false)
+            }}
+          >
+            <span className="settings-switch-knob" />
+          </button>
+        </div>
       </section>
 
       {/* Synchronizace a Verze aplikace — přesunuté sem z Profilu spolu se

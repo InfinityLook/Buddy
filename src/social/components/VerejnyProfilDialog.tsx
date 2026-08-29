@@ -26,15 +26,18 @@ interface Props {
 // XP/sérii/roli) tahá přes precti_verejny_profil (viz api.ts) — avatar/
 // jméno appka měla odjinud, tohle je nové.
 //
-// Akce (přidat/napsat/nahlásit/(od)blokovat) jsou přímo tady, ne jen
+// Akce (sledovat/napsat/nahlásit/(od)blokovat) jsou přímo tady, ne jen
 // na řádku v seznamu, odkud se dialog otevřel — funguje i z výsledků
 // hledání, kde žádný řádek s vlastními tlačítky není.
 //
-// Počty/taby/mřížka příspěvků a tlačítko Sledovat/Sledujete jsou stejná
-// sekce appka teď ukazuje i na vlastním profilu appky (pages/profil/
-// components/ProfilSocialniSekce.tsx) — tady navíc s reálným
-// jednosměrným sledováním, protože na cizím profilu (na rozdíl od
-// vlastního) dává smysl.
+// Sledování a přátelství jsou od sjednocení jeden vztahový model (viz
+// types.ts): jedno tlačítko Sledovat/Sledujete/Čeká na schválení, žádné
+// druhé "Přidat mezi přátele" vedle něj. "Napsat" se objeví, až jsou
+// obě strany vzájemně přijaté (stav.pratele) — na soukromém účtu se
+// navíc skryje mřížka příspěvků, dokud sledování cíl neschválí.
+//
+// Počty/taby/mřížka příspěvků jsou stejná sekce appka teď ukazuje i na
+// vlastním profilu appky (pages/profil/components/ProfilSocialniSekce.tsx).
 // ==========================================
 
 export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritChat, onZavrit }) => {
@@ -79,7 +82,6 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
   }, [userId])
 
   const pritel = stav.pratele.some((p) => p.profil.id === userId)
-  const zadostOdeslana = stav.zadosti.some((z) => z.profil.id === userId && z.smer === 'odchozi')
   const jeZablokovany = stav.bloky.some((b) => b.id === userId)
   const jeToJa = stav.mujId === userId
 
@@ -95,11 +97,14 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
 
   // Přepnutí sledování — appka si počty vždycky znovu natáhne z
   // databáze, ne že by si je jen sama o jedno posunula. Server je
-  // stejně jediná pravda a rozdíl je nepostřehnutelný.
+  // stejně jediná pravda a rozdíl je nepostřehnutelný. "Nesleduje" i
+  // "cekajici" oboje vedou k odeslání/zrušení stejným tlačítkem —
+  // klepnutí na "Čeká na schválení" žádost prostě zruší, stejný
+  // "odhlásit vlastní řádek" mechanismus jako běžné odsledování.
   const prepnoutSledovani = async () => {
     if (!vztah || meniSledovani) return
     setMeniSledovani(true)
-    const akce = vztah.sledujiHo ? api.prestatSledovatUcet : api.sledovatUcet
+    const akce = vztah.stavSledovani === 'nesleduje' ? api.sledovatUcet : api.prestatSledovatUcet
     const vysledek = await akce(userId)
     if (vysledek.ok) void api.nactiVztahSledovani(userId).then(setVztah)
     else stav.rekni(vysledek.chyba ?? 'Nepovedlo se to.')
@@ -144,6 +149,11 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
                     {role.icon} {role.title}
                   </span>
                 )}
+                {profil.soukromy && (
+                  <span className="social-profil-role-tag social-profil-role-tag--soukromy">
+                    🔒 Soukromý účet
+                  </span>
+                )}
                 {spolecni !== null && spolecni > 0 && !jeToJa && (
                   <span className="social-profil-spolecni">
                     {spolecni} {spolecni === 1 ? 'společný přítel' : spolecni < 5 ? 'společní přátelé' : 'společných přátel'}
@@ -186,14 +196,20 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
         {!nacita && profil && !jeToJa && (
           <div className="social-dialog-akce social-profil-akce">
             <button
-              className={`social-btn ${vztah?.sledujiHo ? 'social-btn--tlumene' : ''}`}
+              className={`social-btn ${vztah?.stavSledovani !== 'nesleduje' ? 'social-btn--tlumene' : ''}`}
               onClick={prepnoutSledovani}
               disabled={!vztah || meniSledovani}
             >
-              {vztah?.sledujiHo ? 'Sledujete' : 'Sledovat'}
+              {vztah?.stavSledovani === 'prijato'
+                ? 'Sledujete'
+                : vztah?.stavSledovani === 'cekajici'
+                  ? 'Čeká na schválení'
+                  : profil.soukromy
+                    ? 'Požádat o sledování'
+                    : 'Sledovat'}
             </button>
 
-            {pritel ? (
+            {pritel && (
               <button
                 className="social-btn"
                 onClick={async () => {
@@ -208,18 +224,6 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
               >
                 <SocialIcon name="chat" size={14} />
                 Napsat
-              </button>
-            ) : zadostOdeslana ? (
-              <button className="social-btn social-btn--tlumene" disabled>
-                Žádost odeslána
-              </button>
-            ) : (
-              <button
-                className="social-btn"
-                onClick={() => stav.provest(() => api.poslatZadost(userId), 'Žádost odeslána.')}
-              >
-                <SocialIcon name="plus" size={14} />
-                Přidat
               </button>
             )}
 
@@ -281,7 +285,14 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
               </button>
             </div>
 
-            {tab === 'ulozeno' ? (
+            {profil.soukromy && !jeToJa && !pritel ? (
+              // Server (nacti_prispevky) stejně nic nevrátí — appka tu
+              // jen vysvětlí proč, ať "Zatím žádné fotky" nepůsobí, jako
+              // by tam doopravdy nic nebylo.
+              <p className="social-empty-note social-empty-note--stred">
+                🔒 Tenhle účet je soukromý. Sleduj ho, ať uvidíš příspěvky.
+              </p>
+            ) : tab === 'ulozeno' ? (
               <p className="social-empty-note social-empty-note--stred">
                 Ukládání příspěvků bude brzy. ✨
               </p>

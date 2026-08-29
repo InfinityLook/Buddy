@@ -134,7 +134,7 @@ export const SpravaSkupinyDialog: React.FC<Props> = ({ chat, stav, onZavrit, onO
           <>
             <span className="social-card-label">PŘIDAT PŘÍTELE</span>
             {priteleKPridani.map((p) => (
-              <div key={p.vazbaId} className="social-row">
+              <div key={p.profil.id} className="social-row">
                 <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} avatarUrl={p.profil.avatarUrl} />
                 <span className="social-row-name">{p.profil.displayName}</span>
                 <button

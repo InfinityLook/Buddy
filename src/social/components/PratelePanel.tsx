@@ -62,7 +62,7 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
           <p className="social-empty-note">Nikdo takový mezi přáteli není.</p>
         ) : (
           filtrovaniPratele.map((p) => (
-            <div key={p.vazbaId} className="social-row">
+            <div key={p.profil.id} className="social-row">
               <button className="social-row-otevrit" onClick={() => onOtevritProfil(p.profil.id)}>
                 <SocialAvatar
                   id={p.profil.id}

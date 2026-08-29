@@ -101,7 +101,7 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
                 <p className="social-hint">Koho pozveš?</p>
                 {stav.pratele.map((p) => (
                   <button
-                    key={p.vazbaId}
+                    key={p.profil.id}
                     className={`social-row social-row--volba ${
                       vybrani.includes(p.profil.id) ? 'is-vybrany' : ''
                     }`}
