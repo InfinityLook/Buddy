@@ -1,5 +1,5 @@
 import { supabase } from '@/core/supabase/client'
-import { Oznameni } from './types'
+import { Oznameni, AktivitaPrispevku } from './types'
 
 // ==========================================
 // Oznámení od správy — jediné místo, které mluví s tabulkou oznameni.
@@ -47,6 +47,54 @@ export const smazatOznameni = async (id: string): Promise<{ ok: boolean; chyba?:
 
   const { error } = await supabase.from('oznameni').delete().eq('id', id)
   return error ? { ok: false, chyba: error.message } : { ok: true }
+}
+
+// Lajk/komentář na vlastním příspěvku — přes RPC, ne přímým čtením
+// tabulky aktivita_prispevku (viz komentář u nacti_aktivitu_prispevku
+// v migraci): autor lajku/komentáře může být kdokoli přihlášený u
+// veřejného účtu, ne nutně přítel, takže obyčejná profiles RLS by mu
+// jméno neukázala.
+const zRadkuAktivity = (r: {
+  id: string
+  typ: 'lajk' | 'komentar'
+  od_uzivatele_id: string
+  od_display_name: string | null
+  post_id: string | null
+  created_at: string
+}): AktivitaPrispevku => ({
+  id: r.id,
+  typ: r.typ,
+  odId: r.od_uzivatele_id,
+  odJmeno: r.od_display_name ?? 'Uživatel',
+  postId: r.post_id,
+  createdAt: r.created_at,
+})
+
+export const nactiAktivituPrispevku = async (limit = 20): Promise<AktivitaPrispevku[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase.rpc('nacti_aktivitu_prispevku', { p_limit: limit })
+  if (error || !data) return []
+  return data.map(zRadkuAktivity)
+}
+
+let poradiKanaluAktivity = 0
+
+/** Živý odběr nové aktivity (lajk/komentář) k vlastním příspěvkům —
+ *  bez filtru, protože RLS na aktivita_prispevku (self-row) doručí
+ *  stejně jen řádky adresované přihlášenému. */
+export const sledovatAktivituPrispevku = (zmena: () => void): (() => void) => {
+  const klient = supabase
+  if (!klient) return () => {}
+
+  const kanal = klient
+    .channel(`aktivita-prispevku:${++poradiKanaluAktivity}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'aktivita_prispevku' }, () => zmena())
+    .subscribe()
+
+  return () => {
+    void klient.removeChannel(kanal)
+  }
 }
 
 // Kanál musí mít při každém odběru jiné jméno — Supabase vrací pro

@@ -3,7 +3,7 @@ import { ProfilIcon } from './ProfilIcon'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { getXpForNextLevel } from '@/core/utils/gamificationUtils'
-import { nactiOznameni, sledovatOznameni } from '@/core/notifications/api'
+import { nactiOznameni, sledovatOznameni, nactiAktivituPrispevku, sledovatAktivituPrispevku } from '@/core/notifications/api'
 
 export interface NotificationItem {
   id: string
@@ -61,13 +61,48 @@ export const useNotificationItems = (): NotificationItem[] => {
     }
   }, [])
 
+  // Lajk/komentář na vlastním příspěvku — stejný "stáhni + živý odběr"
+  // tvar jako oznameniItems výš, jen jiná tabulka (viz core/notifications/
+  // api.ts). Nedá se odvodit z místního stavu jako badge/streak/úkoly.
+  const [aktivitaItems, setAktivitaItems] = useState<NotificationItem[]>([])
+
+  useEffect(() => {
+    let zive = true
+
+    const obnov = () => {
+      void nactiAktivituPrispevku().then((seznam) => {
+        if (!zive) return
+        setAktivitaItems(
+          seznam.map((a) => ({
+            id: `aktivita-${a.id}`,
+            title:
+              a.typ === 'lajk'
+                ? `❤️ ${a.odJmeno} lajkl/a tvůj příspěvek`
+                : `💬 ${a.odJmeno} okomentoval/a tvůj příspěvek`,
+            time: new Date(a.createdAt).toLocaleDateString('cs-CZ'),
+          }))
+        )
+      })
+    }
+
+    obnov()
+    const zrusit = sledovatAktivituPrispevku(obnov)
+
+    return () => {
+      zive = false
+      zrusit()
+    }
+  }, [])
+
   // Upozornění se skládají ze skutečného stavu aplikace. Id nese i hodnotu,
   // které se hláška týká (streak-9, level-4...), takže přečtená hláška
   // zůstane přečtená, ale při změně stavu se objeví jako nová.
   return useMemo<NotificationItem[]>(() => {
     // Oznámení od správy jdou první — jsou to věci, o kterých má vědět
-    // hned, ne až po vlastním pokroku v appce.
-    const items: NotificationItem[] = [...oznameniItems]
+    // hned, ne až po vlastním pokroku v appce. Aktivita k příspěvkům hned
+    // za nimi — taky adresovaná přímo jemu, ne odvozená z jeho vlastního
+    // postupu jako badge/streak/úkoly níž.
+    const items: NotificationItem[] = [...oznameniItems, ...aktivitaItems]
 
     const lastBadge = badges
       .filter((b) => b.unlockedAt !== null)
@@ -108,7 +143,7 @@ export const useNotificationItems = (): NotificationItem[] => {
     }
 
     return items
-  }, [oznameniItems, badges, streakDays, tasks, level, xp])
+  }, [oznameniItems, aktivitaItems, badges, streakDays, tasks, level, xp])
 }
 
 export const ProfilNotifications: React.FC<ProfilNotificationsProps> = ({
