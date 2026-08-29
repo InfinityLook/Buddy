@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react'
 import QRCode from 'qrcode'
 import { useNavigate } from 'react-router-dom'
 import { useSocial } from '@/social/useSocial'
-import { PratelePanel } from '@/social/components/PratelePanel'
 import { SkenovatKodDialog } from '@/social/components/SkenovatKodDialog'
 import { VerejnyProfilDialog } from '@/social/components/VerejnyProfilDialog'
 import { PridatPrispevekDialog } from './PridatPrispevekDialog'
@@ -16,10 +15,12 @@ import '@/social/SocialModule.css'
 
 // ==========================================
 // Sociální obsah appčina skutečného profilu — počty (příspěvky/
-// sledující/sledovaní), mřížka příspěvků, sdílení vlastního kódu
-// a seznam přátel. Jedno lazy volání useSocial() pro celou tuhle
-// sekci, ne dvě samostatné komponenty, které by si dotaz na Social
-// API zbytečně zdvojily.
+// sledující/sledovaní), mřížka příspěvků a sdílení vlastního kódu.
+// Seznam přátel (PratelePanel.tsx) tu dřív byl taky, ale na žádost
+// byl z profilu odebraný — appka ho pořád nabízí uvnitř Social
+// samotného (chaty/vyhledávání), jen ne tady. Jedno lazy volání
+// useSocial() pro celou tuhle sekci, ne dvě samostatné komponenty,
+// které by si dotaz na Social API zbytečně zdvojily.
 //
 // React.lazy z ProfilModule.tsx — viz komentář tam: appka bez tohohle
 // souboru netáhne Social API (useSocial, api.ts) do svého hlavního
@@ -239,8 +240,6 @@ export const ProfilSocialniSekce: React.FC = () => {
           </div>
         </div>
       </section>
-
-      <PratelePanel stav={stav} onOtevritChat={otevritSocial} onOtevritProfil={setOtevrenyProfil} />
 
       {sken && (
         <SkenovatKodDialog stav={stav} onOtevritProfil={setOtevrenyProfil} onZavrit={() => setSken(false)} />
