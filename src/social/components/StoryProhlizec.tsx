@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SocialAvatar } from './SocialAvatar'
 import { SocialIcon } from './SocialIcon'
+import { PridatDoZvyrazneniDialog } from './PridatDoZvyrazneniDialog'
 import * as api from '../api'
 import { EMOJI_REAKCI, type StorySkupina, type StoryZhlednuti } from '../types'
 
@@ -31,6 +32,8 @@ export const StoryProhlizec: React.FC<Props> = ({ skupina, mujId, onZavrit, onZm
   const [odpoved, setOdpoved] = useState('')
   const [odesilaOdpoved, setOdesilaOdpoved] = useState(false)
   const [odpovedHlaska, setOdpovedHlaska] = useState<string | null>(null)
+  const [zvyraznit, setZvyraznit] = useState(false)
+  const [zvyrazneniHlaska, setZvyrazneniHlaska] = useState<string | null>(null)
   const casovacRef = useRef<number | null>(null)
 
   const story = skupina.stories[index]
@@ -113,6 +116,7 @@ export const StoryProhlizec: React.FC<Props> = ({ skupina, mujId, onZavrit, onZm
   }
 
   return createPortal(
+    <>
     <div className="social-story-prohlizec" role="dialog" aria-modal="true" aria-label="Story">
       <div className="social-story-progres-radek">
         {skupina.stories.map((s, i) => (
@@ -133,6 +137,15 @@ export const StoryProhlizec: React.FC<Props> = ({ skupina, mujId, onZavrit, onZm
         />
         <span className="social-story-autor-jmeno">{skupina.autor.displayName}</span>
         {jeMoje && (
+          <button
+            className="social-story-akce-btn"
+            onClick={() => setZvyraznit(true)}
+            aria-label="Přidat do zvýraznění"
+          >
+            <SocialIcon name="star" size={18} />
+          </button>
+        )}
+        {jeMoje && (
           <button className="social-story-akce-btn" onClick={smazat} aria-label="Smazat story">
             <SocialIcon name="trash" size={18} />
           </button>
@@ -141,6 +154,8 @@ export const StoryProhlizec: React.FC<Props> = ({ skupina, mujId, onZavrit, onZm
           <SocialIcon name="x" size={22} />
         </button>
       </div>
+
+      {zvyrazneniHlaska && <span className="social-story-odpoved-hlaska">{zvyrazneniHlaska}</span>}
 
       <div className="social-story-plocha">
         <button className="social-story-tap social-story-tap--vlevo" onClick={predchozi} aria-label="Předchozí" />
@@ -226,7 +241,22 @@ export const StoryProhlizec: React.FC<Props> = ({ skupina, mujId, onZavrit, onZm
           )}
         </div>
       )}
-    </div>,
+    </div>
+    {zvyraznit && (
+      <PridatDoZvyrazneniDialog
+        mujId={mujId}
+        mediaPath={story.mediaPath}
+        mediaType="image"
+        caption={story.caption}
+        onZavrit={() => setZvyraznit(false)}
+        onHotovo={(hlaska) => {
+          setZvyraznit(false)
+          setZvyrazneniHlaska(hlaska)
+          window.setTimeout(() => setZvyrazneniHlaska(null), 2400)
+        }}
+      />
+    )}
+    </>,
     // Portál do document.body, ne obyčejné vykreslení na místě — appka
     // ho jako první v tomhle modulu vůbec potřebuje. .social-panel má
     // `position: relative` (kvůli vlastnímu z-indexu nad pozadím scény),

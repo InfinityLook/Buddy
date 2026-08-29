@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useSocial } from '@/social/useSocial'
 import { SkenovatKodDialog } from '@/social/components/SkenovatKodDialog'
 import { VerejnyProfilDialog } from '@/social/components/VerejnyProfilDialog'
+import { ZvyrazneniPruh } from '@/social/components/ZvyrazneniPruh'
 import { PridatPrispevekDialog } from './PridatPrispevekDialog'
 import { PrispevekProhlizec } from '@/social/components/PrispevekProhlizec'
 import { SledujiciDialog } from '@/social/components/SledujiciDialog'
@@ -116,6 +117,8 @@ export const ProfilSocialniSekce: React.FC = () => {
             <span>Sledovaní</span>
           </button>
         </div>
+
+        {stav.mujId && <ZvyrazneniPruh userId={stav.mujId} jeMoje />}
 
         <div className="social-prispevky-taby">
           <button

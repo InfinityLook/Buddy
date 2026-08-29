@@ -8,6 +8,7 @@ import { SocialAvatar } from './SocialAvatar'
 import { SocialIcon } from './SocialIcon'
 import { NahlasitDialog } from './NahlasitDialog'
 import { PrispevekProhlizec } from './PrispevekProhlizec'
+import { ZvyrazneniPruh } from './ZvyrazneniPruh'
 import { useOnlineFriends } from '../presence'
 import * as api from '../api'
 import type { Prispevek, VerejnyProfil, VztahSledovani } from '../types'
@@ -268,6 +269,8 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
                 <span>Sledovaní</span>
               </div>
             </div>
+
+            <ZvyrazneniPruh userId={userId} jeMoje={jeToJa} />
 
             <div className="social-prispevky-taby">
               <button

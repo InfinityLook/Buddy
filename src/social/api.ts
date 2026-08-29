@@ -24,6 +24,8 @@ import type {
   VztahSledovani,
   Zadost,
   Zprava,
+  Zvyrazneni,
+  ZvyrazneniPolozka,
 } from './types'
 import { VYCHOZI_POPISEK_MEDIA, VYCHOZI_POPISEK_SDILENI } from './types'
 
@@ -2508,4 +2510,166 @@ export const sledovatStories = (zmena: () => void): (() => void) => {
   return () => {
     void klient.removeChannel(kanal)
   }
+}
+
+// ==========================================
+// Zvýrazněná story ("Highlights") — trvalá sbírka položek na profilu.
+// Přidání KOPÍRUJE media_path/media_type/caption ze samotné story do
+// nové, nezávislé položky (story_highlight_polozky) — stejný bucket
+// (`stories`, privátní), stejný podepsaný odkaz jako u ziskejUrlStory
+// výš, jen appka ho tady vyžaduje o kus dřív (jedna sbírka najednou pro
+// celý pruh na profilu, ne až v okamžiku otevření).
+// ==========================================
+
+/** Zvýraznění jednoho profilu s vyžádanou miniaturou (první položka) —
+ *  appka volá dva samostatné dotazy (zvýraznění, pak jejich položky),
+ *  ne vnořený select: potřebuje jen první položku každého, ne všechny. */
+export const nactiZvyrazneni = async (userId: string): Promise<Zvyrazneni[]> => {
+  if (!supabase) return []
+
+  const { data: hl, error } = await supabase
+    .from('story_highlights')
+    .select('id, nazev, created_at')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+
+  if (error || !hl || hl.length === 0) return []
+
+  const { data: polozky } = await supabase
+    .from('story_highlight_polozky')
+    .select('highlight_id, media_path, position')
+    .in(
+      'highlight_id',
+      hl.map((h) => h.id)
+    )
+    .order('position', { ascending: true })
+
+  const obalky = new Map<string, string>()
+  for (const p of polozky ?? []) {
+    if (!obalky.has(p.highlight_id)) obalky.set(p.highlight_id, p.media_path)
+  }
+
+  return Promise.all(
+    hl.map(async (h) => {
+      const cesta = obalky.get(h.id)
+      const obalkaUrl = cesta ? await ziskejPodepsanouUrl(STORIES_BUCKET, cesta) : null
+      return { id: h.id, nazev: h.nazev, createdAt: h.created_at, obalkaUrl }
+    })
+  )
+}
+
+/** Položky jednoho zvýraznění, v pořadí přidání — appka pro ně
+ *  rovnou vyžádá podepsané odkazy, jednu sbírku má typicky jen pár
+ *  položek, žádná stránkovaná historie jako u zpráv. */
+export const nactiZvyrazneniPolozky = async (highlightId: string): Promise<ZvyrazneniPolozka[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('story_highlight_polozky')
+    .select('id, media_path, media_type, caption, created_at')
+    .eq('highlight_id', highlightId)
+    .order('position', { ascending: true })
+
+  if (error || !data || data.length === 0) return []
+
+  const polozky = await Promise.all(
+    data.map(async (r) => {
+      const mediaUrl = await ziskejPodepsanouUrl(STORIES_BUCKET, r.media_path)
+      if (!mediaUrl) return null
+      return {
+        id: r.id,
+        highlightId,
+        mediaUrl,
+        mediaType: r.media_type as 'image' | 'video',
+        caption: r.caption,
+        createdAt: r.created_at,
+      }
+    })
+  )
+
+  return polozky.filter((p): p is ZvyrazneniPolozka => p !== null)
+}
+
+/**
+ * Založí nové zvýraznění a rovnou do něj přidá první položku (story) —
+ * appka nemá žádnou cestu, jak nabídnout "prázdné" zvýraznění bez
+ * jediné položky, takže obojí dělá v jednom kroku. Když druhé volání
+ * (položka) selže, appka první řádek (zvýraznění) zase smaže, ať
+ * nezůstane viset prázdné zvýraznění, které by v pruhu na profilu
+ * ukazovalo kroužek bez fotky.
+ */
+export const vytvoritZvyrazneniZeStory = async (
+  nazev: string,
+  mediaPath: string,
+  mediaType: 'image' | 'video',
+  caption: string | null
+): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const oreznuty = nazev.trim().slice(0, 30)
+  if (!oreznuty) return { ok: false, chyba: 'Zadej název.' }
+
+  const { data: highlight, error } = await supabase
+    .from('story_highlights')
+    .insert({ user_id: ja, nazev: oreznuty })
+    .select('id')
+    .single()
+  if (error || !highlight) return chyba(error)
+
+  const { error: chybaPolozky } = await supabase
+    .from('story_highlight_polozky')
+    .insert({ highlight_id: highlight.id, media_path: mediaPath, media_type: mediaType, caption })
+  if (chybaPolozky) {
+    await supabase.from('story_highlights').delete().eq('id', highlight.id)
+    return chyba(chybaPolozky)
+  }
+
+  return { ok: true }
+}
+
+/** Přidá další položku do už existujícího zvýraznění — position appka
+ *  spočítá z počtu už tam uložených položek, appka ho neposílá ručně. */
+export const pridatDoZvyrazneni = async (
+  highlightId: string,
+  mediaPath: string,
+  mediaType: 'image' | 'video',
+  caption: string | null
+): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: stavajici } = await supabase
+    .from('story_highlight_polozky')
+    .select('id')
+    .eq('highlight_id', highlightId)
+
+  const { error } = await supabase.from('story_highlight_polozky').insert({
+    highlight_id: highlightId,
+    media_path: mediaPath,
+    media_type: mediaType,
+    caption,
+    position: stavajici?.length ?? 0,
+  })
+  return error ? chyba(error) : { ok: true }
+}
+
+/** Smaže celé zvýraznění (a s ním, přes ON DELETE CASCADE, i všechny
+ *  jeho položky) — RLS dovolí smazat jen vlastní. */
+export const smazatZvyrazneni = async (id: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase.from('story_highlights').delete().eq('id', id)
+  return error ? chyba(error) : { ok: true }
+}
+
+/** Smaže jednu položku ze zvýraznění, ne celou sbírku — appka smazání
+ *  celého zvýraznění (jak zůstává poslední položka) nechává na volajícím
+ *  (viz ZvyrazneniProhlizec.tsx), tahle funkce jen odebírá jednu fotku. */
+export const smazatPolozkuZvyrazneni = async (id: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase.from('story_highlight_polozky').delete().eq('id', id)
+  return error ? chyba(error) : { ok: true }
 }

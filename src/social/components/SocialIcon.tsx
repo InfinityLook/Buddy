@@ -106,6 +106,10 @@ export const SocialIcon: React.FC<SocialIconProps> = ({ name, size = 20, classNa
           <rect x="8" y="8" width="13" height="13" rx="2"/>
         </svg>
       )
+    // Zvýrazněná story ("Highlights") — hvězdička, stejný "přidat
+    // trvale na profil" signál jako u Instagramu.
+    case 'star':
+      return <svg {...common}><path d="M12 3.5 14.6 9l6 .9-4.3 4.2 1 6-5.3-2.8-5.3 2.8 1-6L3.4 9.9l6-.9Z"/></svg>
     default:
       return null
   }

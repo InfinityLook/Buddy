@@ -328,6 +328,39 @@ export interface StoryZhlednuti {
 }
 
 // ==========================================
+// Zvýrazněná story ("Highlights") — trvalá sbírka položek na profilu,
+// na rozdíl od Story (mizí po 24 h) tu zůstávají, dokud majitel položku
+// nebo celé zvýraznění sám nesmaže. Přidání story do zvýraznění KOPÍRUJE
+// media_path/media_type/caption do nové, nezávislé položky
+// (story_highlight_polozky) — samotná story appce zůstává beze změny,
+// dál podléhá stejnému úklidu (smaz_expirovane_stories) jako každá jiná.
+// Viditelnost zvýraznění schválně kopíruje viditelnost PŘÍSPĚVKŮ
+// (smi_videt_prispevky_uzivatele na databázi), ne story (jen vzájemní
+// přátelé) — zvýraznění je součást trvalého profilu, viditelná stejně
+// široko jako příspěvky, přesně jak to má Instagram.
+// ==========================================
+
+export interface Zvyrazneni {
+  id: string
+  nazev: string
+  createdAt: string
+  /** Miniatura — první položka zvýraznění. Appka nikdy nenechá vzniknout
+   *  zvýraznění bez aspoň jedné položky (viz vytvoritZvyrazneniZeStory
+   *  v api.ts), takže null tu znamená jen "podepsaný odkaz se teď
+   *  nepovedlo natáhnout", ne "prázdné". */
+  obalkaUrl: string | null
+}
+
+export interface ZvyrazneniPolozka {
+  id: string
+  highlightId: string
+  mediaUrl: string
+  mediaType: 'image' | 'video'
+  caption: string | null
+  createdAt: string
+}
+
+// ==========================================
 // Sledování (follow) — od sjednocení s přátelstvím jediný vztahový
 // model appky (viz je_muj_pritel() na databázi). U veřejného účtu je
 // sledování okamžité, jako na Instagramu; u soukromého čeká na
