@@ -1550,6 +1550,23 @@
   animation: social-media-pulz 1.4s ease-in-out infinite;
 }
 
+/* Skryté médium v ještě nepřijaté žádosti o zprávu (viz ChatView.tsx) —
+   stejný jantarový tón jako .social-pozadavek-banner, ať appka obojí
+   viditelně spojí jako "tohle patří k té žádosti". */
+.social-bublina-medium-skryte {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 180px;
+  min-height: 60px;
+  padding: 0.6rem 0.7rem;
+  border-radius: calc(var(--radius-md) - 3px);
+  background: rgba(251, 191, 36, 0.1);
+  border: 1px dashed rgba(251, 191, 36, 0.35);
+  color: var(--text-secondary);
+  font-size: 0.68rem;
+}
+
 @keyframes social-media-pulz {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 0.9; }

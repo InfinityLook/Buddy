@@ -679,8 +679,20 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
                     )}
                   </div>
                 )}
+                {/* Médium od druhé strany v ještě nepřijaté žádosti o
+                    zprávu appka schválně nestáhne a nezobrazí — dokud
+                    žádost visí, appka neví, jestli jde o fotku od
+                    kamaráda nebo o obtěžování, a stahovat/renderovat
+                    to rovnou by bylo pozdě na "nechci to vidět".
+                    Vlastní odeslané médium appka sama sobě skrývat
+                    nemá důvod, proto jen !moje. */}
                 {z.mediaPath && z.mediaType && !smazana && (
-                  z.mediaType === 'audio' ? (
+                  chat.pozadavek && !moje ? (
+                    <div className="social-bublina-medium-skryte">
+                      <SocialIcon name="lock" size={16} />
+                      <span>Médium se zobrazí po přijetí žádosti</span>
+                    </div>
+                  ) : z.mediaType === 'audio' ? (
                     <ZpravaHlasovka path={z.mediaPath} />
                   ) : (
                     <ZpravaMedium path={z.mediaPath} typ={z.mediaType} />
