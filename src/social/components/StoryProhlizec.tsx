@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { SocialAvatar } from './SocialAvatar'
 import { SocialIcon } from './SocialIcon'
 import * as api from '../api'
-import type { StorySkupina, StoryZhlednuti } from '../types'
+import { EMOJI_REAKCI, type StorySkupina, type StoryZhlednuti } from '../types'
 
 interface Props {
   skupina: StorySkupina
@@ -28,10 +28,16 @@ export const StoryProhlizec: React.FC<Props> = ({ skupina, mujId, onZavrit, onZm
   const [url, setUrl] = useState<string | null>(null)
   const [zhlednuti, setZhlednuti] = useState<StoryZhlednuti[] | null>(null)
   const [ukazatZhlednuti, setUkazatZhlednuti] = useState(false)
+  const [odpoved, setOdpoved] = useState('')
+  const [odesilaOdpoved, setOdesilaOdpoved] = useState(false)
+  const [odpovedHlaska, setOdpovedHlaska] = useState<string | null>(null)
   const casovacRef = useRef<number | null>(null)
 
   const story = skupina.stories[index]
   const jeMoje = skupina.autor.id === mujId
+  // Psaní odpovědi appka bere jako "pozastaveno" — stejně jako
+  // Instagram nesmí story přeskočit na další, dokud uživatel dopisuje.
+  const pozastaveno = odpoved.trim().length > 0
 
   const dalsi = useCallback(() => {
     setIndex((i) => (i < skupina.stories.length - 1 ? i + 1 : i))
@@ -40,12 +46,35 @@ export const StoryProhlizec: React.FC<Props> = ({ skupina, mujId, onZavrit, onZm
 
   const predchozi = () => setIndex((i) => Math.max(0, i - 1))
 
+  const oznamOdpoved = (text: string) => {
+    setOdpovedHlaska(text)
+    window.setTimeout(() => setOdpovedHlaska(null), 2400)
+  }
+
+  const poslatOdpoved = async (text: string) => {
+    const orezany = text.trim()
+    if (!orezany || odesilaOdpoved) return
+    setOdesilaOdpoved(true)
+    const vysledek = await api.reagovatNaStory(story.id, skupina.autor.id, orezany)
+    setOdesilaOdpoved(false)
+    if (vysledek.ok) {
+      setOdpoved('')
+      oznamOdpoved('Odesláno.')
+    } else {
+      oznamOdpoved(vysledek.chyba ?? 'Nepovedlo se to.')
+    }
+  }
+
   // Podepsaná URL a zaznamenání zhlédnutí — obojí na každou změnu
   // snímku, ne jen jednou při otevření. Vlastní story appka nezhlédnutá
   // neznačí, autor svou vlastní story "vidí" pořád.
   useEffect(() => {
     let platne = true
     setUrl(null)
+    // Rozepsaná odpověď se mezi snímky nepřenáší — jinak by mohla
+    // omylem odejít jako reakce na úplně jinou story, než ke které
+    // byla napsaná.
+    setOdpoved('')
     void api.ziskejUrlStory(story.mediaPath).then((u) => platne && setUrl(u))
     if (!jeMoje) void api.oznacitZhlednuti(story.id).then(() => onZmena())
     return () => {
@@ -56,12 +85,15 @@ export const StoryProhlizec: React.FC<Props> = ({ skupina, mujId, onZavrit, onZm
 
   // Automatický posun — samostatný časovač na každý snímek, ne jeden
   // sdílený, ať klepnutí vlevo/vpravo časovač spolehlivě resetuje.
+  // Dokud appka má rozepsanou odpověď (pozastaveno), časovač se vůbec
+  // nezakládá — psaní by jinak mohlo příští story přeskočit uprostřed věty.
   useEffect(() => {
+    if (pozastaveno) return
     casovacRef.current = window.setTimeout(dalsi, TRVANI_MS)
     return () => {
       if (casovacRef.current) window.clearTimeout(casovacRef.current)
     }
-  }, [dalsi])
+  }, [dalsi, pozastaveno])
 
   // Kdo zhlédl — jen pro vlastní story, RLS by cizí stejně vrátila
   // prázdno, ale netahat dotaz zbytečně dřív, než je potřeba.
@@ -126,6 +158,52 @@ export const StoryProhlizec: React.FC<Props> = ({ skupina, mujId, onZavrit, onZm
         <button className="social-story-zhlednuti-btn" onClick={() => setUkazatZhlednuti(true)}>
           👁 {zhlednuti?.length ?? 0} zhlédnutí
         </button>
+      )}
+
+      {/* Odpověď/reakce — appka mezi nimi vůbec nerozlišuje (viz
+          reagovatNaStory v api.ts), rychlý emoji řádek je jen zkratka
+          pro poslání jednoho znaku bez psaní. Jen na cizí story —
+          appka na vlastní nabízí "kdo zhlédl" výš, ne odpovědní pole. */}
+      {!jeMoje && (
+        <div className="social-story-odpoved-blok">
+          <div className="social-story-emoji-radek">
+            {EMOJI_REAKCI.map((e) => (
+              <button
+                key={e}
+                className="social-story-emoji-btn"
+                disabled={odesilaOdpoved}
+                onClick={() => void poslatOdpoved(e)}
+                aria-label={`Reagovat ${e}`}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+          <form
+            className="social-story-odpoved-formular"
+            onSubmit={(e) => {
+              e.preventDefault()
+              void poslatOdpoved(odpoved)
+            }}
+          >
+            <input
+              className="social-input social-input--full social-story-odpoved-input"
+              placeholder={`Odpověz ${skupina.autor.displayName}…`}
+              value={odpoved}
+              maxLength={4000}
+              onChange={(e) => setOdpoved(e.target.value)}
+            />
+            <button
+              className="social-story-akce-btn"
+              type="submit"
+              disabled={!odpoved.trim() || odesilaOdpoved}
+              aria-label="Odeslat odpověď"
+            >
+              <SocialIcon name="send" size={18} />
+            </button>
+          </form>
+          {odpovedHlaska && <span className="social-story-odpoved-hlaska">{odpovedHlaska}</span>}
+        </div>
       )}
 
       {ukazatZhlednuti && (

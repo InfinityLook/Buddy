@@ -653,6 +653,15 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
               )}
 
               <div className={`social-bublina ${moje ? 'je-moje' : ''} ${smazana ? 'je-smazana' : ''}`}>
+                {/* Story appka mezitím obvykle stihne zmizet (viz
+                    komentář u Zprava.storyId) — appka proto netahá její
+                    náhled, jen ukáže obecný štítek, stejné styly jako
+                    citace zprávy výš. */}
+                {z.storyId && (
+                  <div className="social-bublina-citace">
+                    <span className="social-bublina-citace-text">↩️ Reakce na story</span>
+                  </div>
+                )}
                 {z.replyToId && (
                   <div className="social-bublina-citace">
                     {puvodni && !puvodni.smazanoAt ? (

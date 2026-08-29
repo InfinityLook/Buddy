@@ -1003,6 +1003,51 @@
   cursor: pointer;
 }
 
+/* Odpověď/rychlá reakce na cizí story — pod popiskem, nad safe-area,
+   stejné místo, kde vlastní story místo toho ukazuje "N zhlédnutí". */
+.social-story-odpoved-blok {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0 1rem calc(0.8rem + env(safe-area-inset-bottom));
+}
+
+.social-story-emoji-radek {
+  display: flex;
+  justify-content: space-around;
+}
+
+.social-story-emoji-btn {
+  background: rgba(255, 255, 255, 0.14);
+  border: none;
+  border-radius: var(--radius-pill);
+  width: 2.1rem;
+  height: 2.1rem;
+  font-size: 1.05rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.social-story-odpoved-formular {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.social-story-odpoved-input {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+.social-story-odpoved-hlaska {
+  align-self: center;
+  font-size: 0.72rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
 .social-story-zhlednuti-sheet {
   position: absolute;
   left: 0;

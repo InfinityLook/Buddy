@@ -132,6 +132,12 @@ export interface Zprava {
    *  jednoduchost jako Discord/WhatsApp); ChatView.tsx podle tohohle
    *  pole vedle zprávy zobrazí "(upraveno)". */
   editedAt: string | null
+  /** Id story, na kterou tahle zpráva reaguje/odpovídá — null u běžné
+   *  zprávy. Appka pro tenhle náhled story samotnou znovu netahá (na
+   *  rozdíl od replyToId appka ani nezkouší najít náhled v už
+   *  načtených zprávách — story mezi nimi není), jen ukáže obecný
+   *  štítek; story samotná do té doby stejně obvykle zmizí. */
+  storyId: string | null
 }
 
 /** Text, který api.ts's poslatZpravu uloží do `body`, když uživatel

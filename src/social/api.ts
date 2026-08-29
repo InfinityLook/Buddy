@@ -675,6 +675,7 @@ const zpravaZRadku = (r: {
   media_path?: string | null
   media_type?: string | null
   edited_at?: string | null
+  story_id?: string | null
 }): Zprava => ({
   id: r.id,
   chatId: r.chat_id,
@@ -689,6 +690,7 @@ const zpravaZRadku = (r: {
       ? r.media_type
       : null,
   editedAt: r.edited_at ?? null,
+  storyId: r.story_id ?? null,
 })
 
 // Kolik zpráv se načte na jedno zavolání nactiZpravy — první stránka
@@ -712,7 +714,7 @@ export const nactiZpravy = async (chatId: string, pred?: string): Promise<Zprava
 
   let dotaz = supabase
     .from('messages')
-    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at')
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at, story_id')
     .eq('chat_id', chatId)
     .order('created_at', { ascending: false })
     .limit(ZPRAV_NA_STRANKU)
@@ -739,7 +741,8 @@ export const poslatZpravu = async (
   chatId: string,
   text: string,
   replyToId?: string | null,
-  medium?: { path: string; type: 'image' | 'video' | 'audio' } | null
+  medium?: { path: string; type: 'image' | 'video' | 'audio' } | null,
+  storyId?: string | null
 ): Promise<{ zprava: Zprava | null } & Vysledek> => {
   if (!supabase) return { ...NENI_CLOUD, zprava: null }
 
@@ -767,12 +770,32 @@ export const poslatZpravu = async (
       reply_to_id: replyToId ?? null,
       media_path: medium?.path ?? null,
       media_type: medium?.type ?? null,
+      story_id: storyId ?? null,
     })
-    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at')
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at, story_id')
     .single()
 
   if (error || !data) return { ...chyba(error), zprava: null }
   return { ok: true, zprava: zpravaZRadku(data) }
+}
+
+/**
+ * Odpověď nebo rychlá emoji reakce na story — appka mezi nimi vůbec
+ * nerozlišuje, obojí je stejná DM zpráva s vyplněným story_id, stejné
+ * chování jako u Instagramu (i tam je "reakce na story" ve skutečnosti
+ * odeslaná zpráva, ne uložený stav u story samotné). Story appka smí
+ * vidět jen od vzájemného přítele (stories' vlastní SELECT politika),
+ * takže zaloz_chat tu vždycky najde/založí normální (ne požadavkový)
+ * chat.
+ */
+export const reagovatNaStory = async (storyId: string, autorId: string, text: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const otevreny = await otevritChat(autorId)
+  if (!otevreny.ok || !otevreny.chatId) return { ok: false, chyba: otevreny.chyba ?? 'Chat se nepovedlo otevřít.' }
+
+  const vysledek = await poslatZpravu(otevreny.chatId, text, null, null, storyId)
+  return vysledek.ok ? { ok: true } : { ok: false, chyba: vysledek.chyba }
 }
 
 /**
@@ -803,7 +826,7 @@ export const upravitZpravu = async (
     .from('messages')
     .update({ body: telo, edited_at: new Date().toISOString() })
     .eq('id', id)
-    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at')
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at, story_id')
     .single()
 
   if (error || !data) return { ...chyba(error), zprava: null }
