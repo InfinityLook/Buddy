@@ -1079,7 +1079,8 @@ export const nahlasit = async (
   kohoId: string,
   duvod: DuvodNahlaseni,
   poznamka: string,
-  zpravaId?: string
+  zpravaId?: string,
+  postId?: string
 ): Promise<Vysledek> => {
   if (!supabase) return NENI_CLOUD
 
@@ -1091,6 +1092,7 @@ export const nahlasit = async (
     reporter_id: ja,
     target_user_id: kohoId,
     message_id: zpravaId ?? null,
+    post_id: postId ?? null,
     reason: duvod,
     note: poznamka.trim() || null,
   })
@@ -1132,7 +1134,7 @@ export const nactiHlaseni = async (): Promise<Hlaseni[]> => {
 
   const { data, error } = await supabase
     .from('reports')
-    .select('id, reporter_id, target_user_id, message_id, reason, note, created_at, resolved_at, resolution')
+    .select('id, reporter_id, target_user_id, message_id, post_id, reason, note, created_at, resolved_at, resolution')
     .order('created_at', { ascending: false })
     .limit(100)
 
@@ -1157,6 +1159,27 @@ export const nactiHlaseni = async (): Promise<Hlaseni[]> => {
     }
   }
 
+  // Náhled nahlášených příspěvků — appka na `posts` jinak nemá plain
+  // SELECT vůbec, tady to jde jen díky moderátorské výjimce v RLS
+  // ("vidět nahlášený příspěvek jako moderátor"), stejný princip jako
+  // u zpráv výš.
+  const postIds = data.map((r) => r.post_id).filter((id): id is string => id !== null)
+  const prispevky = new Map<string, { mediaUrl: string; mediaType: 'image' | 'video' }>()
+
+  if (postIds.length > 0) {
+    const { data: radky } = await supabase
+      .from('posts')
+      .select('id, media_path, media_type')
+      .in('id', postIds)
+
+    for (const p of radky ?? []) {
+      prispevky.set(p.id, {
+        mediaUrl: supabase.storage.from('posts').getPublicUrl(p.media_path).data.publicUrl,
+        mediaType: p.media_type as 'image' | 'video',
+      })
+    }
+  }
+
   return data.map((r) => ({
     id: r.id,
     duvod: r.reason as DuvodNahlaseni,
@@ -1166,6 +1189,9 @@ export const nactiHlaseni = async (): Promise<Hlaseni[]> => {
     nahlaseny: profily.get(r.target_user_id) ?? null,
     zprava: r.message_id ? texty.get(r.message_id) ?? '(zpráva už neexistuje)' : null,
     zpravaId: r.message_id,
+    postId: r.post_id,
+    postMediaUrl: r.post_id ? prispevky.get(r.post_id)?.mediaUrl ?? null : null,
+    postMediaType: r.post_id ? prispevky.get(r.post_id)?.mediaType ?? null : null,
     stav: r.resolved_at === null ? 'nevyrizeno' : (r.resolution as StavHlaseni) ?? 'vyreseno',
     vyrizenoAt: r.resolved_at,
   }))
@@ -1186,6 +1212,21 @@ export const vyriditHlaseni = async (
     .update({ resolved_at: new Date().toISOString(), resolved_by: ja, resolution: vysledek })
     .eq('id', id)
 
+  return error ? chyba(error) : { ok: true }
+}
+
+/**
+ * Smaže přímo nahlášený příspěvek — přes funkci na databázi
+ * (moderator_smaz_prispevek), ne plain DELETE: posts.DELETE je jinak
+ * jen pro vlastního autora, funkce navíc trvá na tom, že příspěvek má
+ * aspoň jedno hlášení, a zaloguje smazání do audit_log. Hlášení samo
+ * tím nezmizí (post_id v něm spadne na null), pořád jde vyřídit stejně
+ * jako dřív.
+ */
+export const smazatNahlasenyPrispevek = async (postId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase.rpc('moderator_smaz_prispevek', { p_post_id: postId })
   return error ? chyba(error) : { ok: true }
 }
 

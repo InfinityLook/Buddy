@@ -548,6 +548,16 @@
   min-width: 0;
 }
 
+/* Náhled nahlášeného příspěvku — malý čtverec, jen aby moderátor
+   poznal, o co jde, ne plnohodnotný prohlížeč jako appka má jinde. */
+.admin-report-prispevek-nahled {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 /* Odznak opakovaného nahlášení — stejná barva jako "Zakázat celou
    appku", ať upoutá stejně jako jiná závažná věc v panelu. */
 .admin-report-opakovane {

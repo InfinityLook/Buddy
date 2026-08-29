@@ -63,6 +63,18 @@ export const SocialReportPanel: React.FC = () => {
     if (v.ok) await nacti()
   }
 
+  // Smaže přímo nahlášený příspěvek (natvrdo, viz smazatNahlasenyPrispevek
+  // v api.ts) — na rozdíl od zprávy výš appka nemá jak zprávu "jen
+  // schovat", posts se u vlastníka mažou natvrdo taky, moderátorská
+  // cesta se v tomhle od běžné appky neliší.
+  const smazatNahlasenyPrispevek = async (postId: string) => {
+    if (!window.confirm('Smazat nahlášený příspěvek? Nejde to vrátit zpátky.')) return
+
+    const v = await socialApi.smazatNahlasenyPrispevek(postId)
+    oznam(v.ok ? 'Příspěvek smazán.' : v.chyba ?? 'Nepovedlo se to.')
+    if (v.ok) await nacti()
+  }
+
   const prepnoutBan = async (uzivatelId: string, jmeno: string, zabanovat: boolean) => {
     const v = await adminApi.zabanujZeSocial(uzivatelId, zabanovat)
     oznam(
@@ -149,6 +161,29 @@ export const SocialReportPanel: React.FC = () => {
                       className="admin-icon-btn"
                       aria-label="Smazat nahlášenou zprávu"
                       onClick={() => smazatNahlasenouZpravu(h.zpravaId!)}
+                    >
+                      🗑
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {h.postId && (
+                <div className="admin-report-zprava-radek">
+                  {h.postMediaUrl ? (
+                    h.postMediaType === 'video' ? (
+                      <video src={h.postMediaUrl} className="admin-report-prispevek-nahled" muted />
+                    ) : (
+                      <img src={h.postMediaUrl} alt="" className="admin-report-prispevek-nahled" />
+                    )
+                  ) : (
+                    <p className="admin-report-zprava">Nahlášený příspěvek už neexistuje.</p>
+                  )}
+                  {h.postMediaUrl && (
+                    <button
+                      className="admin-icon-btn"
+                      aria-label="Smazat nahlášený příspěvek"
+                      onClick={() => smazatNahlasenyPrispevek(h.postId!)}
                     >
                       🗑
                     </button>

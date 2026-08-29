@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
+import { NahlasitDialog } from './NahlasitDialog'
 import * as api from '../api'
 import type { Komentar, Prispevek, VztahKPrispevku } from '../types'
+import type { SocialStav } from '../useSocial'
 
 interface Props {
   prispevek: Prispevek
@@ -17,6 +19,10 @@ interface Props {
    *  smazat i bez toho, abych byl majitel příspěvku) a na obarvení
    *  vlastního srdíčka. */
   mujId: string | null
+  /** Jen kvůli NahlasitDialog.tsx (hláška po odeslání, obnovit stav
+   *  po zablokování) — appka nikde jinde v tomhle prohlížeči Social
+   *  stav nepotřebuje. */
+  stav: SocialStav
   onZavrit: () => void
   onSmazano: () => void
 }
@@ -31,12 +37,13 @@ interface Props {
  * celou mřížku najednou, stejný "jen na vyžádání" princip jako
  * VerejnyProfilDialog.tsx's vztah/spolecni.
  */
-export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, onZavrit, onSmazano }) => {
+export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, stav, onZavrit, onSmazano }) => {
   const [vztah, setVztah] = useState<VztahKPrispevku | null>(null)
   const [meniLajk, setMeniLajk] = useState(false)
   const [komentare, setKomentare] = useState<Komentar[]>([])
   const [novyKomentar, setNovyKomentar] = useState('')
   const [odesila, setOdesila] = useState(false)
+  const [nahlasit, setNahlasit] = useState(false)
 
   useEffect(() => {
     let platne = true
@@ -88,9 +95,13 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
     <div className="social-story-prohlizec" role="dialog" aria-modal="true" aria-label="Příspěvek">
       <div className="social-story-prohlizec-hlavicka">
         <span className="social-story-autor-jmeno" />
-        {jeMoje && (
+        {jeMoje ? (
           <button className="social-story-akce-btn" onClick={smazat} aria-label="Smazat příspěvek">
             <SocialIcon name="trash" size={18} />
+          </button>
+        ) : (
+          <button className="social-story-akce-btn" onClick={() => setNahlasit(true)} aria-label="Nahlásit příspěvek">
+            <SocialIcon name="flag" size={18} />
           </button>
         )}
         <button className="social-story-zavrit" onClick={onZavrit} aria-label="Zavřít">
@@ -162,6 +173,15 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
           <SocialIcon name="send" size={16} />
         </button>
       </form>
+
+      {nahlasit && (
+        <NahlasitDialog
+          userId={prispevek.autorId}
+          postId={prispevek.id}
+          stav={stav}
+          onZavrit={() => setNahlasit(false)}
+        />
+      )}
     </div>,
     // Portál do document.body — stejný důvod jako u StoryProhlizec.tsx/
     // pages/profil/components/PridatPrispevekDialog.tsx.

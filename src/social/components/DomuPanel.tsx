@@ -160,6 +160,7 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
           prispevek={otevrenyDetail}
           jeMoje={otevrenyDetail.autorId === stav.mujId}
           mujId={stav.mujId}
+          stav={stav}
           onZavrit={() => setOtevrenyDetail(null)}
           onSmazano={() => {
             setPrispevky((p) => p.filter((x) => x.id !== otevrenyDetail.id))

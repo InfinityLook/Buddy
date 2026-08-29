@@ -240,6 +240,7 @@ export const ProfilSocialniSekce: React.FC = () => {
           prispevek={otevrenyPrispevek}
           jeMoje
           mujId={stav.mujId}
+          stav={stav}
           onZavrit={() => setOtevrenyPrispevek(null)}
           onSmazano={() => {
             setOtevrenyPrispevek(null)

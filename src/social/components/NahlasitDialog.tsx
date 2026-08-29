@@ -6,13 +6,16 @@ import type { SocialStav } from '../useSocial'
 interface Props {
   userId: string
   zpravaId?: string
+  /** Nahlašuje se příspěvek, ne zpráva/profil — obojí ("zpravaId" i
+   *  toto) najednou nikdy nenastane. */
+  postId?: string
   stav: SocialStav
   onZavrit: () => void
 }
 
 // Nahlášení je vedle blokování schválně: blok jen schová, hlášení
 // nechá stopu. Bez něj by o obtěžování nikdo nikdy nevěděl.
-export const NahlasitDialog: React.FC<Props> = ({ userId, zpravaId, stav, onZavrit }) => {
+export const NahlasitDialog: React.FC<Props> = ({ userId, zpravaId, postId, stav, onZavrit }) => {
   const [duvod, setDuvod] = useState<DuvodNahlaseni>('obtezovani')
   const [poznamka, setPoznamka] = useState('')
   const [taky, setTaky] = useState(true)
@@ -21,7 +24,7 @@ export const NahlasitDialog: React.FC<Props> = ({ userId, zpravaId, stav, onZavr
   const odeslat = async () => {
     setOdesila(true)
 
-    const v = await api.nahlasit(userId, duvod, poznamka, zpravaId)
+    const v = await api.nahlasit(userId, duvod, poznamka, zpravaId, postId)
     if (!v.ok) {
       setOdesila(false)
       stav.rekni(v.chyba ?? 'Nahlásit se nepovedlo.')

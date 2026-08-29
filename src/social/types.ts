@@ -218,6 +218,13 @@ export interface Hlaseni {
    *  přímo z hlášení (viz smazatNahlasenouZpravu v SocialReportPanelu),
    *  ne jen si přečíst, o co šlo. */
   zpravaId: string | null
+  /** Id nahlášeného příspěvku, pokud se hlášení týkalo příspěvku (ne
+   *  zprávy) — obojí najednou nikdy nenastane. Náhled appka natáhne
+   *  přes stejnou moderátorskou výjimku v RLS na `posts`, jakou zprávy
+   *  mají odjakživa (viditelné jen když k nim existuje hlášení). */
+  postId: string | null
+  postMediaUrl: string | null
+  postMediaType: 'image' | 'video' | null
   stav: StavHlaseni
   vyrizenoAt: string | null
 }
