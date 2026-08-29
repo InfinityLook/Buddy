@@ -221,7 +221,10 @@ export const zrusitVazbu = async (druhaStrana: string): Promise<Vysledek> => {
 
 // ---------- přátelé ----------
 
-const nactiProfily = async (ids: string[]): Promise<Map<string, SocialProfil>> => {
+/** Dávkové čtení profilů podle id — vyexportováno, ať si ho může vzít
+ *  i api.ts's nactiFeed() (potřebuje jméno/avatar autorů příspěvků),
+ *  ne jen funkce v tomhle souboru. */
+export const nactiProfily = async (ids: string[]): Promise<Map<string, SocialProfil>> => {
   const mapa = new Map<string, SocialProfil>()
   if (!supabase || ids.length === 0) return mapa
 
@@ -1815,6 +1818,32 @@ export const smazatPrispevek = async (id: string): Promise<Vysledek> => {
 
   const { error } = await supabase.from('posts').delete().eq('id', id)
   return error ? chyba(error) : { ok: true }
+}
+
+/**
+ * Feed na Domů — vlastní příspěvky a od všech, koho appka sleduje
+ * (ne jen vzájemných přátel, viz nacti_feed na databázi), nejnovější
+ * první. `kurzor` je `createdAt` posledního už načteného příspěvku —
+ * appka dál stránkuje posouváním kurzoru, ne offsetem, stejný vzor
+ * jako nactiZpravy's `pred`.
+ */
+export const nactiFeed = async (kurzor?: string): Promise<Prispevek[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase.rpc('nacti_feed', { kurzor: kurzor ?? null })
+  if (error || !data) return []
+
+  const klient = supabase
+  return (
+    data as {
+      id: string
+      user_id: string
+      media_path: string
+      media_type: 'image' | 'video'
+      caption: string | null
+      created_at: string
+    }[]
+  ).map((r) => prispevekZRadku(klient, r))
 }
 
 // ==========================================

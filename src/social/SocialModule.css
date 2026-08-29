@@ -1035,6 +1035,176 @@
   font-size: 0.84rem;
 }
 
+/* ---------- feed na Domů (DomuPanel.tsx, FeedPrispevek.tsx) ----------
+   Vlastní layout, ne .social-panel's obyčejný rostoucí sloupec, kterým
+   scrolluje celá .social-page — feed má být TikTokovsky celoobrazovkový,
+   jeden příspěvek přes celou dostupnou výšku, swipe mezi nimi vlastním
+   scroll-snapem. .social-panel--domu se proto sám stane flex:1 uvnitř
+   .social-page's sloupce (story pruh nahoře drží svou přirozenou výšku,
+   feed pod ním vyplní zbytek) a nescrolluje se sám navenek — vnitřní
+   scroll obstará .social-feed. */
+.social-panel--domu {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.social-feed {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scroll-snap-type: y mandatory;
+  border-radius: var(--radius-lg);
+  /* Necháváme scrollbar appce/prohlížeči, ne skrytý — na desktopu (test
+     na širokém viewportu) je to jediný vizuální náznak, že jde scrollovat. */
+}
+
+.social-feed-prazdno {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.social-feed-post {
+  position: relative;
+  height: 100%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: #000;
+  display: flex;
+}
+
+.social-feed-media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Spodní gradientový závoj — stejný trik jako TikTok/IG stories, díky
+   němu je bílý text nad libovolně světlým/tmavým obrázkem pořád
+   čitelný, aniž by appka musela měřit jas fotky. */
+.social-feed-zavoj {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 55%;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.75) 100%);
+  pointer-events: none;
+}
+
+.social-feed-info {
+  position: absolute;
+  left: 0.9rem;
+  right: 4.2rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: #fff;
+}
+
+.social-feed-autor {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: #fff;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.social-feed-autor-jmeno {
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.social-feed-popisek {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  /* Dlouhý popisek nesmí zatlačit autora/akce mimo obrazovku — appka
+     ho radši zkrátí vizuálně (řádky + ellipsis), ne aby rostl bez
+     limitu přes celou výšku příspěvku. */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Svislý sloupec akcí vpravo — srdíčko + komentáře, skleněné kolečko
+   kolem každé ikony jako appka používá všude jinde (.social-icon-btn),
+   ne prostá ikona se stínem jako u TikToku — vlastní, ne okopírovaný
+   vzhled. */
+.social-feed-akce {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+.social-feed-akce-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 0;
+}
+
+.social-feed-akce-kruh {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease;
+}
+
+.social-feed-akce-btn:active .social-feed-akce-kruh {
+  transform: scale(0.9);
+}
+
+.social-feed-akce-btn.je-lajknuto .social-feed-akce-kruh {
+  color: #f43f5e;
+}
+
+.social-feed-akce-pocet {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.social-feed-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.social-feed-nacitam {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+}
+
 /* ---------- můj profil (sdílení) ---------- */
 
 .social-muj-profil-radek {

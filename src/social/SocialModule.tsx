@@ -176,7 +176,7 @@ export const SocialModule: React.FC = () => {
           ) : (
             <>
               {zalozka === 'chaty' && <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />}
-              {zalozka === 'domu' && <DomuPanel stav={stav} />}
+              {zalozka === 'domu' && <DomuPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />}
               {zalozka === 'vyhledavac' && (
                 <VyhledavacPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />
               )}
