@@ -88,6 +88,15 @@ export const SocialIcon: React.FC<SocialIconProps> = ({ name, size = 20, classNa
           <path d="M19.5 12.6 12 20l-7.5-7.4a4.9 4.9 0 0 1 7-6.9l.5.5.5-.5a4.9 4.9 0 0 1 7 6.9Z"/>
         </svg>
       )
+    case 'bookmark':
+      return <svg {...common}><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/></svg>
+    // Uloženo — stejný "vyplněné = aktivní" princip jako u heart-filled.
+    case 'bookmark-filled':
+      return (
+        <svg {...common} fill="currentColor" stroke="none">
+          <path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/>
+        </svg>
+      )
     default:
       return null
   }

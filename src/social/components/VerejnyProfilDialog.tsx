@@ -53,7 +53,7 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
   const [meniSledovani, setMeniSledovani] = useState(false)
   const [prispevky, setPrispevky] = useState<Prispevek[]>([])
   const [nacitaPrispevky, setNacitaPrispevky] = useState(true)
-  const [tab, setTab] = useState<'foto' | 'video' | 'ulozeno'>('foto')
+  const [tab, setTab] = useState<'foto' | 'video'>('foto')
   const [otevrenyPrispevek, setOtevrenyPrispevek] = useState<Prispevek | null>(null)
 
   useEffect(() => {
@@ -282,12 +282,6 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
               >
                 <SocialIcon name="play" size={15} /> Videa
               </button>
-              <button
-                className={`social-prispevky-tab ${tab === 'ulozeno' ? 'is-aktivni' : ''}`}
-                onClick={() => setTab('ulozeno')}
-              >
-                Uloženo
-              </button>
             </div>
 
             {profil.soukromy && !jeToJa && !pritel ? (
@@ -296,10 +290,6 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
               // by tam doopravdy nic nebylo.
               <p className="social-empty-note social-empty-note--stred">
                 🔒 Tenhle účet je soukromý. Sleduj ho, ať uvidíš příspěvky.
-              </p>
-            ) : tab === 'ulozeno' ? (
-              <p className="social-empty-note social-empty-note--stred">
-                Ukládání příspěvků bude brzy. ✨
               </p>
             ) : (
               <div className="social-prispevky-mrizka">

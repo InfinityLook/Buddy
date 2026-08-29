@@ -45,15 +45,31 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
   const [novyKomentar, setNovyKomentar] = useState('')
   const [odesila, setOdesila] = useState(false)
   const [nahlasit, setNahlasit] = useState(false)
+  const [ulozeno, setUlozeno] = useState<boolean | null>(null)
+  const [meniUlozeni, setMeniUlozeni] = useState(false)
 
   useEffect(() => {
     let platne = true
     void api.nactiVztahKPrispevku(prispevek.id).then((v) => platne && setVztah(v))
     void api.nactiKomentare(prispevek.id).then((k) => platne && setKomentare(k))
+    void api.jeUlozenyPrispevek(prispevek.id).then((u) => platne && setUlozeno(u))
     return () => {
       platne = false
     }
   }, [prispevek.id])
+
+  // Uloženo je appka na rozdíl od lajku nikde neukazuje veřejně — jen
+  // tobě samotnému, přepnutí proto server znovu nekontroluje, jestli
+  // je post pořád vidět, ale to samé dělá zvlášť nacti_ulozene_prispevky()
+  // při čtení Uloženého seznamu (viz komentář v api.ts).
+  const prepnoutUlozeni = async () => {
+    if (ulozeno === null || meniUlozeni) return
+    setMeniUlozeni(true)
+    const akce = ulozeno ? api.odebratUlozenyPrispevek : api.ulozitPrispevek
+    const vysledek = await akce(prispevek.id)
+    if (vysledek.ok) setUlozeno(!ulozeno)
+    setMeniUlozeni(false)
+  }
 
   const smazat = async () => {
     if (!window.confirm('Smazat tenhle příspěvek?')) return
@@ -142,6 +158,15 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
         <span className="social-prispevek-lajk-pocet">
           {vztah?.pocetLajku ? `${vztah.pocetLajku} ${vztah.pocetLajku === 1 ? 'lajk' : vztah.pocetLajku < 5 ? 'lajky' : 'lajků'}` : 'Zatím žádný lajk'}
         </span>
+
+        <button
+          className="social-prispevek-ulozit-btn"
+          onClick={prepnoutUlozeni}
+          disabled={ulozeno === null || meniUlozeni}
+          aria-label={ulozeno ? 'Odebrat z uloženého' : 'Uložit příspěvek'}
+        >
+          <SocialIcon name={ulozeno ? 'bookmark-filled' : 'bookmark'} size={20} />
+        </button>
       </div>
 
       <div className="social-prispevek-komentare">

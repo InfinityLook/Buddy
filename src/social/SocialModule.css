@@ -926,6 +926,19 @@
   color: rgba(255, 255, 255, 0.65);
 }
 
+/* Uložit — stejný vzhled jako .social-prispevek-lajk-btn, jen zarovnaný
+   k pravému okraji řádku (Instagramův obvyklý "bookmark vpravo"
+   rozestup od lajku/komentářů vlevo). */
+.social-prispevek-ulozit-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  margin-left: auto;
+}
+
 .social-prispevek-komentare {
   flex-shrink: 1;
   overflow-y: auto;

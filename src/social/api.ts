@@ -1895,6 +1895,74 @@ export const smazatPrispevek = async (id: string): Promise<Vysledek> => {
   return error ? chyba(error) : { ok: true }
 }
 
+// ==========================================
+// Uloženo — appka na rozdíl od lajku nikde neukazuje, kdo si co uložil
+// (ani majiteli příspěvku), stejná zdrženlivost jako Instagram. Uložit
+// jde jen to, co appka smí zrovna teď vidět (viz smim_videt_prispevek
+// v migraci), a nacti_ulozene_prispevky() tu viditelnost znovu ověří
+// při každém čtení — příspěvek od mezitím zablokovaného/zprivátnělého
+// účtu se v Uloženém dál neukáže, i když řádek v saved_posts zůstává.
+// ==========================================
+
+export const ulozitPrispevek = async (postId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase.from('saved_posts').insert({ user_id: ja, post_id: postId })
+  // Primární klíč (user_id, post_id) — dvojí uložení narazí na kolizi
+  // (23505), ne na skutečnou chybu (stejné "no-op úspěch" jako
+  // u pridatLajk výš).
+  if (error && (error as { code?: string }).code !== '23505') return chyba(error)
+  return { ok: true }
+}
+
+export const odebratUlozenyPrispevek = async (postId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase.from('saved_posts').delete().eq('user_id', ja).eq('post_id', postId)
+  return error ? chyba(error) : { ok: true }
+}
+
+/** Jen "uložil jsem si tenhle konkrétní příspěvek?" — plain self-row
+ *  čtení, žádná funkce potřeba (appka se ptá jen na svůj vlastní
+ *  řádek, ne na cizí). */
+export const jeUlozenyPrispevek = async (postId: string): Promise<boolean> => {
+  if (!supabase) return false
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return false
+
+  const { data } = await supabase.from('saved_posts').select('post_id').eq('user_id', ja).eq('post_id', postId).maybeSingle()
+  return !!data
+}
+
+export const nactiUlozenePrispevky = async (): Promise<Prispevek[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase.rpc('nacti_ulozene_prispevky')
+  if (error || !data) return []
+
+  const klient = supabase
+  return (
+    data as {
+      id: string
+      user_id: string
+      media_path: string
+      media_type: 'image' | 'video'
+      caption: string | null
+      created_at: string
+    }[]
+  ).map((r) => prispevekZRadku(klient, r))
+}
+
 /**
  * Feed na Domů — vlastní příspěvky a od všech, koho appka sleduje
  * (ne jen vzájemných přátel, viz nacti_feed na databázi), nejnovější

@@ -43,6 +43,11 @@ export const ProfilSocialniSekce: React.FC = () => {
   const [otevrenSledujiciTab, setOtevrenSledujiciTab] = useState<'sledujici' | 'sledovani' | null>(null)
   const vstupRef = useRef<HTMLInputElement>(null)
 
+  // Uložené příspěvky se natáhnou, až se záložka "Uloženo" doopravdy
+  // otevře poprvé — ne hned s vlastní mřížkou, stejný "jen na vyžádání"
+  // princip jako u vztahu/spolecnich ve VerejnyProfilDialog.tsx.
+  const [ulozene, setUlozene] = useState<Prispevek[] | null>(null)
+
   const nacistPrispevky = () => {
     if (!stav.mujId) return
     void socialApi.nactiPrispevky(stav.mujId).then((p) => {
@@ -126,16 +131,40 @@ export const ProfilSocialniSekce: React.FC = () => {
           </button>
           <button
             className={`social-prispevky-tab ${tab === 'ulozeno' ? 'is-aktivni' : ''}`}
-            onClick={() => setTab('ulozeno')}
+            onClick={() => {
+              setTab('ulozeno')
+              if (ulozene === null) void socialApi.nactiUlozenePrispevky().then(setUlozene)
+            }}
           >
             Uloženo
           </button>
         </div>
 
         {tab === 'ulozeno' ? (
-          <p className="social-empty-note social-empty-note--stred">
-            Ukládání příspěvků bude brzy. ✨
-          </p>
+          <div className="social-prispevky-mrizka">
+            {ulozene === null ? (
+              <p className="social-empty-note social-prispevky-prazdno">Načítám…</p>
+            ) : ulozene.length === 0 ? (
+              <p className="social-empty-note social-prispevky-prazdno">
+                Zatím nic uloženého. Ukládej si příspěvky přes 🔖 v jejich detailu.
+              </p>
+            ) : (
+              ulozene.map((p) => (
+                <button
+                  key={p.id}
+                  className="social-prispevek-dlazdice"
+                  onClick={() => setOtevrenyPrispevek(p)}
+                >
+                  {p.mediaType === 'video' ? (
+                    <video src={p.mediaUrl} muted playsInline />
+                  ) : (
+                    <img src={p.mediaUrl} alt="" />
+                  )}
+                  {p.mediaType === 'video' && <span className="social-prispevek-video-znacka">▶</span>}
+                </button>
+              ))
+            )}
+          </div>
         ) : (
           <div className="social-prispevky-mrizka">
             <button
@@ -251,10 +280,19 @@ export const ProfilSocialniSekce: React.FC = () => {
       {otevrenyPrispevek && (
         <PrispevekProhlizec
           prispevek={otevrenyPrispevek}
-          jeMoje
+          // Dřív natvrdo true — platilo, dokud se tenhle prohlížeč
+          // otevíral jen z vlastní mřížky. "Uloženo" ale může ukazovat
+          // cizí příspěvek, u kterého appka smazání nesmí nabízet.
+          jeMoje={otevrenyPrispevek.autorId === stav.mujId}
           mujId={stav.mujId}
           stav={stav}
-          onZavrit={() => setOtevrenyPrispevek(null)}
+          onZavrit={() => {
+            setOtevrenyPrispevek(null)
+            // Odebrání uloženého se projeví, až se seznam znovu natáhne
+            // — appka ho radši rovnou obnoví, ne že by v Uloženém dál
+            // viselo, co uživatel právě odebral.
+            if (tab === 'ulozeno') void socialApi.nactiUlozenePrispevky().then(setUlozene)
+          }}
           onSmazano={() => {
             setOtevrenyPrispevek(null)
             nacistPrispevky()
