@@ -371,6 +371,10 @@ export interface Prispevek {
    *  vůbec nepočítá — prázdné pole u obyčejného jednosnímkového
    *  příspěvku. */
   dalsiMedia: { mediaUrl: string; mediaType: 'image' | 'video' }[]
+  /** Kdy byl popisek naposledy upravený — null u nezměněného. Stejná
+   *  jednoduchost jako Zprava.editedAt: jen aktuální text, žádná
+   *  historie předchozích verzí. */
+  editedAt: string | null
 }
 
 // ==========================================

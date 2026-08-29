@@ -51,6 +51,32 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
   const [ulozeno, setUlozeno] = useState<boolean | null>(null)
   const [meniUlozeni, setMeniUlozeni] = useState(false)
   const [odpovidamNaKomentar, setOdpovidamNaKomentar] = useState<{ id: string; jmeno: string } | null>(null)
+  // Popisek/editedAt drží appka jako vlastní stav, ne přímo z props —
+  // prispevek přichází jako neměnná hodnota od rodiče (mřížka/feed),
+  // který se po úpravě sám znovu nenačte, dokud se prohlížeč nezavře.
+  const [popisek, setPopisek] = useState(prispevek.caption)
+  const [editovanoAt, setEditovanoAt] = useState(prispevek.editedAt)
+  const [upravujePopisek, setUpravujePopisek] = useState(false)
+  const [novyPopisek, setNovyPopisek] = useState('')
+  const [ukladaPopisek, setUkladaPopisek] = useState(false)
+
+  const zacitUpravovatPopisek = () => {
+    setNovyPopisek(popisek ?? '')
+    setUpravujePopisek(true)
+  }
+
+  const ulozitPopisek = async () => {
+    setUkladaPopisek(true)
+    const vysledek = await api.upravitPopisekPrispevku(prispevek.id, novyPopisek)
+    setUkladaPopisek(false)
+    if (vysledek.ok) {
+      setPopisek(novyPopisek.trim() || null)
+      setEditovanoAt(new Date().toISOString())
+      setUpravujePopisek(false)
+    } else {
+      stav.rekni(vysledek.chyba ?? 'Nepovedlo se to.')
+    }
+  }
 
   useEffect(() => {
     let platne = true
@@ -244,7 +270,39 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
         )}
       </div>
 
-      {prispevek.caption && <p className="social-story-popisek">{prispevek.caption}</p>}
+      {upravujePopisek ? (
+        <div className="social-prispevek-popisek-uprava">
+          <input
+            className="social-input social-input--full"
+            value={novyPopisek}
+            maxLength={200}
+            onChange={(e) => setNovyPopisek(e.target.value)}
+            autoFocus
+          />
+          <button className="social-btn social-btn--small" onClick={ulozitPopisek} disabled={ukladaPopisek}>
+            Uložit
+          </button>
+          <button
+            className="social-btn social-btn--small social-btn--tlumene"
+            onClick={() => setUpravujePopisek(false)}
+            disabled={ukladaPopisek}
+          >
+            Zrušit
+          </button>
+        </div>
+      ) : (
+        (popisek || jeMoje) && (
+          <p className="social-story-popisek">
+            {popisek}
+            {jeMoje && (
+              <button className="social-prispevek-popisek-upravit" onClick={zacitUpravovatPopisek} aria-label="Upravit popisek">
+                <SocialIcon name="pencil" size={13} />
+              </button>
+            )}
+            {editovanoAt && <span className="social-prispevek-popisek-editovano"> (upraveno)</span>}
+          </p>
+        )
+      )}
 
       <div className="social-prispevek-lajk-radek">
         <button

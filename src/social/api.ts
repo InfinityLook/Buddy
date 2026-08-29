@@ -1882,6 +1882,7 @@ const prispevekZRadku = (
     caption: string | null
     created_at: string
     dalsi_media?: { media_path: string; media_type: 'image' | 'video' }[] | null
+    edited_at?: string | null
   }
 ): Prispevek => ({
   id: r.id,
@@ -1895,6 +1896,7 @@ const prispevekZRadku = (
     mediaUrl: klient.storage.from(POSTS_BUCKET).getPublicUrl(m.media_path).data.publicUrl,
     mediaType: m.media_type,
   })),
+  editedAt: r.edited_at ?? null,
 })
 
 // Karusel — Instagram sám povoluje 10, stejné číslo appka přebírá jako
@@ -1990,6 +1992,7 @@ export const nactiPrispevky = async (cil: string): Promise<Prispevek[]> => {
       caption: string | null
       created_at: string
       dalsi_media: { media_path: string; media_type: 'image' | 'video' }[]
+      edited_at: string | null
     }[]
   ).map((r) => prispevekZRadku(klient, r))
 }
@@ -1998,6 +2001,22 @@ export const smazatPrispevek = async (id: string): Promise<Vysledek> => {
   if (!supabase) return NENI_CLOUD
 
   const { error } = await supabase.from('posts').delete().eq('id', id)
+  return error ? chyba(error) : { ok: true }
+}
+
+/** Upraví jen popisek vlastního příspěvku — appka posílá výhradně
+ *  caption/edited_at, nikdy media_path/media_type/user_id, i když
+ *  RLS ("upravit popisek vlastního příspěvku") by po sloupcích
+ *  rozlišit neuměla (Postgres to neumí). Žádná historie předchozích
+ *  verzí, stejná jednoduchost jako u editace zprávy. */
+export const upravitPopisekPrispevku = async (id: string, caption: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase
+    .from('posts')
+    .update({ caption: caption.trim() || null, edited_at: new Date().toISOString() })
+    .eq('id', id)
+
   return error ? chyba(error) : { ok: true }
 }
 
@@ -2066,6 +2085,7 @@ export const nactiUlozenePrispevky = async (): Promise<Prispevek[]> => {
       caption: string | null
       created_at: string
       dalsi_media: { media_path: string; media_type: 'image' | 'video' }[]
+      edited_at: string | null
     }[]
   ).map((r) => prispevekZRadku(klient, r))
 }
@@ -2093,6 +2113,7 @@ export const nactiFeed = async (kurzor?: string): Promise<Prispevek[]> => {
       caption: string | null
       created_at: string
       dalsi_media: { media_path: string; media_type: 'image' | 'video' }[]
+      edited_at: string | null
     }[]
   ).map((r) => prispevekZRadku(klient, r))
 }
