@@ -2246,6 +2246,30 @@
   margin-top: 0.15rem;
 }
 
+/* ---------- dvojklik na obrázek = lajk ----------
+   Velké srdce, co se na chvíli objeví přes médium po dvojkliku/dvojťuku
+   (viz useDoubleTapLike.ts) — sdílené mezi feedem na Domů a
+   PrispevekProhlizec.tsx, oba předávají stejnou třídu. */
+.social-feed-dvojklik-srdce {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.5);
+  color: #fff;
+  filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.4));
+  pointer-events: none;
+  z-index: 5;
+  animation: social-dvojklik-srdce-pop 0.8s ease-out forwards;
+}
+
+@keyframes social-dvojklik-srdce-pop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.4); }
+  15% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  30% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  70% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
 /* ---------- pohyb, klidně a jemně ----------
    Kdo má v systému vypnuté animace, nesmí dostat ani jednu z nich —
    od kruhu v Hubu po tenhle modul appka bere prefers-reduced-motion
@@ -2267,13 +2291,18 @@
   .social-nahravani-tecka,
   .social-media-nacita,
   .social-media-nacita--hlas,
-  .social-story-progres-fill.bezi {
+  .social-story-progres-fill.bezi,
+  .social-feed-dvojklik-srdce {
     animation: none !important;
     transition: none !important;
   }
 
   .social-avatar-pulz { opacity: 0; }
   .social-nahravani-tecka { opacity: 1; }
+  /* Bez animace appka srdce aspoň krátce ukáže staticky (viz
+     window.setTimeout ve useDoubleTapLike.ts, na animaci nezávisí),
+     ne že by zmizelo úplně a dvojklik nedal žádnou zpětnou vazbu. */
+  .social-feed-dvojklik-srdce { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   /* Bez animace appka aspoň ukáže rozehraný snímek jako napůl hotový,
      ne trvale prázdný — automatický posun (StoryProhlizec.tsx's
      window.setTimeout) na tom nezávisí a poběží stejně. */

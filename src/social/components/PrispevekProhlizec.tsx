@@ -4,6 +4,7 @@ import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import { NahlasitDialog } from './NahlasitDialog'
 import * as api from '../api'
+import { useDoubleTapLike } from '../useDoubleTapLike'
 import type { Komentar, Prispevek, VztahKPrispevku } from '../types'
 import type { SocialStav } from '../useSocial'
 
@@ -91,6 +92,11 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
     if (vysledek.ok) setKomentare((k) => k.filter((x) => x.id !== id))
   }
 
+  // Tady na rozdíl od FeedPrispevek.tsx klik na obrázek dnes nic
+  // nedělá — žádný onJedenKlik se nepředává, takže dvojklik-lajk
+  // nezavádí žádné zpoždění jednoho kliknutí.
+  const { zpracovatKliknuti, srdceViditelne } = useDoubleTapLike(prispevek.id, vztah, setVztah)
+
   return createPortal(
     <div className="social-story-prohlizec" role="dialog" aria-modal="true" aria-label="Příspěvek">
       <div className="social-story-prohlizec-hlavicka">
@@ -109,11 +115,16 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
         </button>
       </div>
 
-      <div className="social-story-plocha">
+      <div className="social-story-plocha" onClick={zpracovatKliknuti}>
         {prispevek.mediaType === 'video' ? (
           <video src={prispevek.mediaUrl} className="social-story-obrazek" controls playsInline autoPlay />
         ) : (
           <img src={prispevek.mediaUrl} alt="" className="social-story-obrazek" />
+        )}
+        {srdceViditelne && (
+          <span className="social-feed-dvojklik-srdce" aria-hidden="true">
+            <SocialIcon name="heart-filled" size={90} />
+          </span>
         )}
       </div>
 

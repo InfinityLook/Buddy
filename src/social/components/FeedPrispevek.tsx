@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useRef, useState } from 'react'
 import { SocialAvatar } from './SocialAvatar'
 import { SocialIcon } from './SocialIcon'
 import * as api from '../api'
+import { useDoubleTapLike } from '../useDoubleTapLike'
 import type { Prispevek, SocialProfil, VztahKPrispevku } from '../types'
 
 interface Props {
@@ -70,6 +71,8 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
     setMeniLajk(false)
   }
 
+  const { zpracovatKliknuti, srdceViditelne } = useDoubleTapLike(prispevek.id, vztah, setVztah, onOtevritDetail)
+
   return (
     <article className="social-feed-post" ref={ref} data-post-id={prispevek.id}>
       {prispevek.mediaType === 'video' ? (
@@ -80,15 +83,21 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
           muted
           loop
           playsInline
-          onClick={onOtevritDetail}
+          onClick={zpracovatKliknuti}
         />
       ) : (
         <img
           src={prispevek.mediaUrl}
           alt=""
           className="social-feed-media"
-          onClick={onOtevritDetail}
+          onClick={zpracovatKliknuti}
         />
+      )}
+
+      {srdceViditelne && (
+        <span className="social-feed-dvojklik-srdce" aria-hidden="true">
+          <SocialIcon name="heart-filled" size={90} />
+        </span>
       )}
 
       <div className="social-feed-zavoj" aria-hidden="true" />
