@@ -2,8 +2,17 @@ import React, { useEffect, useRef, useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { NahlasitDialog } from './NahlasitDialog'
 import { SpravaSkupinyDialog } from './SpravaSkupinyDialog'
+import { PrispevekProhlizec } from './PrispevekProhlizec'
 import * as api from '../api'
-import { EMOJI_REAKCI, VYCHOZI_POPISEK_MEDIA, type Chat, type Reakce, type Zprava } from '../types'
+import {
+  EMOJI_REAKCI,
+  VYCHOZI_POPISEK_MEDIA,
+  VYCHOZI_POPISEK_SDILENI,
+  type Chat,
+  type Prispevek,
+  type Reakce,
+  type Zprava,
+} from '../types'
 import type { SocialStav } from '../useSocial'
 import { requestNotificationPermission } from '@/core/utils/notify'
 
@@ -35,6 +44,43 @@ const ZpravaMedium: React.FC<{ path: string; typ: 'image' | 'video' }> = ({ path
     <video className="social-bublina-media" src={url} controls playsInline />
   ) : (
     <img className="social-bublina-media" src={url} alt="" />
+  )
+}
+
+// Sdílený příspěvek v bublině — na rozdíl od ZpravaMedium appka na
+// rozdíl od story reakce skutečně natáhne celý příspěvek (viz komentář
+// u Zprava.sharedPostId), protože sdílení celé je o tom, že si ho
+// příjemce prohlédne. Prázdný výsledek (smim_videt_prispevek appce
+// právě teď řekne "ne") je zobrazený jako "už není dostupný", ne jako
+// chyba — příjemce nemusel příspěvek vidět nikdy, i když ho odesílatel
+// v okamžiku sdílení viděl.
+const ZpravaSdilenyPrispevek: React.FC<{ postId: string; onOtevrit: (p: Prispevek) => void }> = ({
+  postId,
+  onOtevrit,
+}) => {
+  const [prispevek, setPrispevek] = useState<Prispevek | null | undefined>(undefined)
+
+  useEffect(() => {
+    let platne = true
+    setPrispevek(undefined)
+    void api.nactiSdilenyPrispevek(postId).then((p) => platne && setPrispevek(p))
+    return () => {
+      platne = false
+    }
+  }, [postId])
+
+  if (prispevek === undefined) return <div className="social-media-nacita" aria-hidden="true" />
+  if (prispevek === null) return <p className="social-media-chyba">Příspěvek už není dostupný.</p>
+
+  return (
+    <button className="social-bublina-sdileny-prispevek" onClick={() => onOtevrit(prispevek)}>
+      {prispevek.mediaType === 'video' ? (
+        <video src={prispevek.mediaUrl} muted playsInline />
+      ) : (
+        <img src={prispevek.mediaUrl} alt="" />
+      )}
+      <span>Zobrazit příspěvek</span>
+    </button>
   )
 }
 
@@ -141,6 +187,7 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
   // přímo u tlačítka, než zpráva stihne dorazit přes realtime.
   const [odeslano, setOdeslano] = useState(false)
   const [nahlasit, setNahlasit] = useState<{ userId: string; zpravaId?: string } | null>(null)
+  const [otevrenySdilenyPrispevek, setOtevrenySdilenyPrispevek] = useState<Prispevek | null>(null)
   const [spravaOtevrena, setSpravaOtevrena] = useState(false)
   // Nahrávání média blokuje jen tlačítko sponky, ne celý composer —
   // text jde psát dál, i když se zrovna nahrává fotka z minulého klepnutí.
@@ -698,12 +745,27 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
                     <ZpravaMedium path={z.mediaPath} typ={z.mediaType} />
                   )
                 )}
+                {/* Sdílený příspěvek — stejná brána jako u média výš:
+                    dokud žádost visí, náhled od druhé strany appka
+                    nezobrazí. */}
+                {z.sharedPostId && !smazana && (
+                  chat.pozadavek && !moje ? (
+                    <div className="social-bublina-medium-skryte">
+                      <SocialIcon name="lock" size={16} />
+                      <span>Příspěvek se zobrazí po přijetí žádosti</span>
+                    </div>
+                  ) : (
+                    <ZpravaSdilenyPrispevek postId={z.sharedPostId} onOtevrit={setOtevrenySdilenyPrispevek} />
+                  )
+                )}
                 <span className="social-bublina-radek">
-                  {/* Automatický popisek ("📷 Fotka"/"🎥 Video", viz
-                      poslatZpravu v api.ts) se pod médiem znovu nevypisuje
-                      jako by ho někdo napsal — ukáže se jen skutečný,
-                      uživatelem zadaný popisek. */}
-                  {!(z.mediaPath && z.mediaType && z.text === VYCHOZI_POPISEK_MEDIA[z.mediaType]) && (
+                  {/* Automatický popisek ("📷 Fotka"/"🎥 Video"/"📎 Sdílený
+                      příspěvek", viz poslatZpravu v api.ts) se pod
+                      médiem/náhledem znovu nevypisuje jako by ho někdo
+                      napsal — ukáže se jen skutečný, uživatelem zadaný
+                      popisek. */}
+                  {!(z.mediaPath && z.mediaType && z.text === VYCHOZI_POPISEK_MEDIA[z.mediaType]) &&
+                    !(z.sharedPostId && z.text === VYCHOZI_POPISEK_SDILENI) && (
                     <span className="social-bublina-text">{z.text}</span>
                   )}
                   <span className="social-bublina-cas">
@@ -962,6 +1024,17 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
           stav={stav}
           onZavrit={() => setSpravaOtevrena(false)}
           onOtevritProfil={onOtevritProfil}
+        />
+      )}
+
+      {otevrenySdilenyPrispevek && (
+        <PrispevekProhlizec
+          prispevek={otevrenySdilenyPrispevek}
+          jeMoje={otevrenySdilenyPrispevek.autorId === stav.mujId}
+          mujId={stav.mujId}
+          stav={stav}
+          onZavrit={() => setOtevrenySdilenyPrispevek(null)}
+          onSmazano={() => setOtevrenySdilenyPrispevek(null)}
         />
       )}
     </div>

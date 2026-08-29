@@ -1003,6 +1003,18 @@
   margin-left: auto;
 }
 
+/* Poslat do chatu — stejný vzhled, sedí hned vedle Uložit (to už samo
+   drží margin-left: auto, tenhle button se pak jen přidá vedle něj
+   u pravého okraje). */
+.social-prispevek-sdilet-btn {
+  background: none;
+  border: none;
+  padding: 0.25rem;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+}
+
 .social-prispevek-komentare {
   flex-shrink: 1;
   overflow-y: auto;
@@ -1625,6 +1637,39 @@
 }
 
 /* ---------- foto/video zpráva (ChatView.tsx's ZpravaMedium) ---------- */
+
+/* Sdílený příspěvek — vlastní karta, ne jen .social-bublina-media,
+   protože kromě obrázku potřebuje i tappovací nápis "Zobrazit
+   příspěvek". Stejná lekce s explicitním rozměrem (ne jen max-*) jako
+   u .social-bublina-media samotné, tady na img/video uvnitř. */
+.social-bublina-sdileny-prispevek {
+  display: flex;
+  flex-direction: column;
+  width: 200px;
+  max-width: 100%;
+  border-radius: calc(var(--radius-md) - 3px);
+  overflow: hidden;
+  background: none;
+  border: 1px solid var(--border-subtle);
+  padding: 0;
+  cursor: pointer;
+}
+
+.social-bublina-sdileny-prispevek img,
+.social-bublina-sdileny-prispevek video {
+  display: block;
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.social-bublina-sdileny-prispevek span {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: left;
+}
 
 .social-bublina-media {
   display: block;

@@ -25,7 +25,7 @@ import type {
   Zadost,
   Zprava,
 } from './types'
-import { VYCHOZI_POPISEK_MEDIA } from './types'
+import { VYCHOZI_POPISEK_MEDIA, VYCHOZI_POPISEK_SDILENI } from './types'
 
 // ==========================================
 // Jediné místo, kde Social mluví se Supabase.
@@ -676,6 +676,7 @@ const zpravaZRadku = (r: {
   media_type?: string | null
   edited_at?: string | null
   story_id?: string | null
+  shared_post_id?: string | null
 }): Zprava => ({
   id: r.id,
   chatId: r.chat_id,
@@ -691,6 +692,7 @@ const zpravaZRadku = (r: {
       : null,
   editedAt: r.edited_at ?? null,
   storyId: r.story_id ?? null,
+  sharedPostId: r.shared_post_id ?? null,
 })
 
 // Kolik zpráv se načte na jedno zavolání nactiZpravy — první stránka
@@ -714,7 +716,7 @@ export const nactiZpravy = async (chatId: string, pred?: string): Promise<Zprava
 
   let dotaz = supabase
     .from('messages')
-    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at, story_id')
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at, story_id, shared_post_id')
     .eq('chat_id', chatId)
     .order('created_at', { ascending: false })
     .limit(ZPRAV_NA_STRANKU)
@@ -742,24 +744,26 @@ export const poslatZpravu = async (
   text: string,
   replyToId?: string | null,
   medium?: { path: string; type: 'image' | 'video' | 'audio' } | null,
-  storyId?: string | null
+  storyId?: string | null,
+  sharedPostId?: string | null
 ): Promise<{ zprava: Zprava | null } & Vysledek> => {
   if (!supabase) return { ...NENI_CLOUD, zprava: null }
 
   const orezany = text.trim()
-  // Prázdný text jde poslat jedině s médiem — pak je to popisek, ne
-  // celá zpráva. Bez média platí stará podmínka beze změny.
-  if (!medium && !orezany) return { ok: false, chyba: 'Prázdnou zprávu poslat nejde.', zprava: null }
+  // Prázdný text jde poslat jedině s médiem nebo sdíleným příspěvkem —
+  // pak je to popisek, ne celá zpráva. Bez obojího platí stará
+  // podmínka beze změny.
+  if (!medium && !sharedPostId && !orezany) return { ok: false, chyba: 'Prázdnou zprávu poslat nejde.', zprava: null }
   if (orezany.length > 4000) return { ok: false, chyba: 'Zpráva je moc dlouhá.', zprava: null }
 
   const { data: relace } = await supabase.auth.getSession()
   const ja = relace.session?.user?.id
   if (!ja) return { ...NENI_CLOUD, zprava: null }
 
-  // messages.body má CHECK length(body) >= 1 — médium bez popisku
-  // dostane čitelnou náhradu, ne prázdný řetězec, který by sloupec
-  // stejně odmítl.
-  const telo = orezany || (medium ? VYCHOZI_POPISEK_MEDIA[medium.type] : '')
+  // messages.body má CHECK length(body) >= 1 — médium (i sdílený
+  // příspěvek) bez popisku dostane čitelnou náhradu, ne prázdný
+  // řetězec, který by sloupec stejně odmítl.
+  const telo = orezany || (medium ? VYCHOZI_POPISEK_MEDIA[medium.type] : sharedPostId ? VYCHOZI_POPISEK_SDILENI : '')
 
   const { data, error } = await supabase
     .from('messages')
@@ -771,8 +775,9 @@ export const poslatZpravu = async (
       media_path: medium?.path ?? null,
       media_type: medium?.type ?? null,
       story_id: storyId ?? null,
+      shared_post_id: sharedPostId ?? null,
     })
-    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at, story_id')
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at, story_id, shared_post_id')
     .single()
 
   if (error || !data) return { ...chyba(error), zprava: null }
@@ -796,6 +801,43 @@ export const reagovatNaStory = async (storyId: string, autorId: string, text: st
 
   const vysledek = await poslatZpravu(otevreny.chatId, text, null, null, storyId)
   return vysledek.ok ? { ok: true } : { ok: false, chyba: vysledek.chyba }
+}
+
+/**
+ * Sdílet příspěvek do chatu — otevře/založí chat s příjemcem (přes
+ * otevritChat, stejné jako u Napsat/story-odpovědi) a pošle zprávu
+ * s vyplněným shared_post_id. Na rozdíl od story appka náhled
+ * skutečně ukazuje (viz nactiSdilenyPrispevek níž) — sdílení celé je
+ * o tom, aby si příjemce příspěvek prohlédl.
+ */
+export const sdiletPrispevekDoChatu = async (
+  postId: string,
+  prijemceId: string,
+  text = ''
+): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const otevreny = await otevritChat(prijemceId)
+  if (!otevreny.ok || !otevreny.chatId) return { ok: false, chyba: otevreny.chyba ?? 'Chat se nepovedlo otevřít.' }
+
+  const vysledek = await poslatZpravu(otevreny.chatId, text, null, null, null, postId)
+  return vysledek.ok ? { ok: true } : { ok: false, chyba: vysledek.chyba }
+}
+
+/**
+ * Náhled sdíleného příspěvku v bublině — přes nacti_jeden_prispevek(),
+ * která smim_videt_prispevek() ověří znovu při každém čtení. Příjemce
+ * nemusí (soukromý účet, blokace) vůbec smět vidět příspěvky autora,
+ * i když ho odesílatel v okamžiku sdílení viděl — appka pak ukáže
+ * "Příspěvek už není dostupný" místo náhledu.
+ */
+export const nactiSdilenyPrispevek = async (postId: string): Promise<Prispevek | null> => {
+  if (!supabase) return null
+
+  const { data, error } = await supabase.rpc('nacti_jeden_prispevek', { p_post_id: postId })
+  if (error || !data || data.length === 0) return null
+
+  return prispevekZRadku(supabase, data[0])
 }
 
 /**
@@ -826,7 +868,7 @@ export const upravitZpravu = async (
     .from('messages')
     .update({ body: telo, edited_at: new Date().toISOString() })
     .eq('id', id)
-    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at, story_id')
+    .select('id, chat_id, sender_id, body, created_at, deleted_at, reply_to_id, media_path, media_type, edited_at, story_id, shared_post_id')
     .single()
 
   if (error || !data) return { ...chyba(error), zprava: null }

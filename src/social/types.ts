@@ -138,6 +138,11 @@ export interface Zprava {
    *  načtených zprávách — story mezi nimi není), jen ukáže obecný
    *  štítek; story samotná do té doby stejně obvykle zmizí. */
   storyId: string | null
+  /** Id sdíleného příspěvku — null u běžné zprávy. Na rozdíl od storyId
+   *  appka tady náhled skutečně natáhne (nacti_jeden_prispevek), protože
+   *  o zobrazení příspěvku sdílení celé je — vždycky znovu ověřeno na
+   *  serveru, jestli ho příjemce zrovna smí vidět. */
+  sharedPostId: string | null
 }
 
 /** Text, který api.ts's poslatZpravu uloží do `body`, když uživatel
@@ -149,6 +154,11 @@ export const VYCHOZI_POPISEK_MEDIA: Record<'image' | 'video' | 'audio', string> 
   video: '🎥 Video',
   audio: '🎤 Hlasovka',
 }
+
+/** Text, který dostane zpráva se sdíleným příspěvkem, když k ní nikdo
+ *  nic nedopsal — messages.body má CHECK length(body) >= 1, stejný
+ *  důvod jako u VYCHOZI_POPISEK_MEDIA výš. */
+export const VYCHOZI_POPISEK_SDILENI = '📎 Sdílený příspěvek'
 
 /**
  * Krátká emoji reakce na zprávu — vlastní tabulka `message_reactions`,

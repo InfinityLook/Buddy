@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import { NahlasitDialog } from './NahlasitDialog'
+import { SdiletPrispevekDialog } from './SdiletPrispevekDialog'
 import * as api from '../api'
 import { useDoubleTapLike } from '../useDoubleTapLike'
 import type { Komentar, Prispevek, VztahKPrispevku } from '../types'
@@ -20,9 +21,10 @@ interface Props {
    *  smazat i bez toho, abych byl majitel příspěvku) a na obarvení
    *  vlastního srdíčka. */
   mujId: string | null
-  /** Jen kvůli NahlasitDialog.tsx (hláška po odeslání, obnovit stav
-   *  po zablokování) — appka nikde jinde v tomhle prohlížeči Social
-   *  stav nepotřebuje. */
+  /** NahlasitDialog.tsx (hláška po odeslání, obnovit stav po
+   *  zablokování) a SdiletPrispevekDialog.tsx (seznam přátel, hláška
+   *  po odeslání) — appka nikde jinde v tomhle prohlížeči Social stav
+   *  nepotřebuje. */
   stav: SocialStav
   onZavrit: () => void
   onSmazano: () => void
@@ -45,6 +47,7 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
   const [novyKomentar, setNovyKomentar] = useState('')
   const [odesila, setOdesila] = useState(false)
   const [nahlasit, setNahlasit] = useState(false)
+  const [sdilet, setSdilet] = useState(false)
   const [ulozeno, setUlozeno] = useState<boolean | null>(null)
   const [meniUlozeni, setMeniUlozeni] = useState(false)
   const [odpovidamNaKomentar, setOdpovidamNaKomentar] = useState<{ id: string; jmeno: string } | null>(null)
@@ -264,6 +267,10 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
         >
           <SocialIcon name={ulozeno ? 'bookmark-filled' : 'bookmark'} size={20} />
         </button>
+
+        <button className="social-prispevek-sdilet-btn" onClick={() => setSdilet(true)} aria-label="Poslat příspěvek">
+          <SocialIcon name="share" size={20} />
+        </button>
       </div>
 
       <div className="social-prispevek-komentare">
@@ -317,6 +324,8 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
           onZavrit={() => setNahlasit(false)}
         />
       )}
+
+      {sdilet && <SdiletPrispevekDialog postId={prispevek.id} stav={stav} onZavrit={() => setSdilet(false)} />}
     </div>,
     // Portál do document.body — stejný důvod jako u StoryProhlizec.tsx/
     // pages/profil/components/PridatPrispevekDialog.tsx.
