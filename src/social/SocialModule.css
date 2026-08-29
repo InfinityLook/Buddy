@@ -2077,6 +2077,34 @@
   color: var(--text-secondary);
 }
 
+/* Počet sledujících/sledovaných je teď tlačítko (SledujiciDialog.tsx),
+   dřív jen <div> — reset na vzhled beze změny. */
+.social-staty-cislo--klikatelne {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+/* ---------- vlastní seznam sledujících/sledovaných ---------- */
+.social-dialog--sledujici {
+  max-height: min(70vh, 520px);
+}
+
+.social-sledujici-taby {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.social-sledujici-seznam {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 .social-prispevky-taby {
   display: flex;
   border-top: 1px solid var(--border-subtle);

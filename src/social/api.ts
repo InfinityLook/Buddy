@@ -1736,6 +1736,40 @@ export const nactiVztahSledovani = async (cil: string): Promise<VztahSledovani> 
 }
 
 /**
+ * Vlastní seznam sledujících/sledovaných — na rozdíl od nactiVztahSledovani
+ * (počty pro libovolný cíl) tohle vrací appka jen pro sebe, přes
+ * moji_sledujici()/moje_sledovani() (viz komentář v migraci): appka
+ * schválně nikdy neukazuje cizí follow-seznam, jen veřejné počty.
+ */
+export const nactiMojeSledujici = async (): Promise<SocialProfil[]> => {
+  if (!supabase) return []
+  const { data, error } = await supabase.rpc('moji_sledujici')
+  if (error || !data) return []
+  return data.map(profilZRadku)
+}
+
+export const nactiMojeSledovane = async (): Promise<SocialProfil[]> => {
+  if (!supabase) return []
+  const { data, error } = await supabase.rpc('moje_sledovani')
+  if (error || !data) return []
+  return data.map(profilZRadku)
+}
+
+/** Odebrání sledujícího — existující plain DELETE politika
+ *  ("following_id = auth.uid()") to dovoluje bez zvláštní funkce, viz
+ *  komentář u Sledování výš. */
+export const odebratSledujiciho = async (followerId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase.from('follows').delete().eq('follower_id', followerId).eq('following_id', ja)
+  return error ? chyba(error) : { ok: true }
+}
+
+/**
  * Soukromý/veřejný účet — čte a zapisuje SettingsModule.tsx (řádek
  * "Soukromý účet"). Plain sloupec na vlastním řádku profiles, žádná
  * zvláštní funkce nepotřeba (stejné právo jako u jména/motta).

@@ -7,6 +7,7 @@ import { SkenovatKodDialog } from '@/social/components/SkenovatKodDialog'
 import { VerejnyProfilDialog } from '@/social/components/VerejnyProfilDialog'
 import { PridatPrispevekDialog } from './PridatPrispevekDialog'
 import { PrispevekProhlizec } from '@/social/components/PrispevekProhlizec'
+import { SledujiciDialog } from '@/social/components/SledujiciDialog'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import * as socialApi from '@/social/api'
 import { profilOdkaz } from '@/social/shareLink'
@@ -39,6 +40,7 @@ export const ProfilSocialniSekce: React.FC = () => {
   const [tab, setTab] = useState<'foto' | 'video' | 'ulozeno'>('foto')
   const [novySoubor, setNovySoubor] = useState<File | null>(null)
   const [otevrenyPrispevek, setOtevrenyPrispevek] = useState<Prispevek | null>(null)
+  const [otevrenSledujiciTab, setOtevrenSledujiciTab] = useState<'sledujici' | 'sledovani' | null>(null)
   const vstupRef = useRef<HTMLInputElement>(null)
 
   const nacistPrispevky = () => {
@@ -99,14 +101,14 @@ export const ProfilSocialniSekce: React.FC = () => {
             <strong>{prispevky.length}</strong>
             <span>Příspěvky</span>
           </div>
-          <div className="social-staty-cislo">
+          <button className="social-staty-cislo social-staty-cislo--klikatelne" onClick={() => setOtevrenSledujiciTab('sledujici')}>
             <strong>{vztah?.sledujiciCelkem ?? 0}</strong>
             <span>Sledující</span>
-          </div>
-          <div className="social-staty-cislo">
+          </button>
+          <button className="social-staty-cislo social-staty-cislo--klikatelne" onClick={() => setOtevrenSledujiciTab('sledovani')}>
             <strong>{vztah?.sledovaniCelkem ?? 0}</strong>
             <span>Sledovaní</span>
-          </div>
+          </button>
         </div>
 
         <div className="social-prispevky-taby">
@@ -232,6 +234,17 @@ export const ProfilSocialniSekce: React.FC = () => {
             setNovySoubor(null)
             nacistPrispevky()
           }}
+        />
+      )}
+
+      {otevrenSledujiciTab && (
+        <SledujiciDialog
+          pocatecniTab={otevrenSledujiciTab}
+          onOtevritProfil={(id) => {
+            setOtevrenSledujiciTab(null)
+            setOtevrenyProfil(id)
+          }}
+          onZavrit={() => setOtevrenSledujiciTab(null)}
         />
       )}
 
