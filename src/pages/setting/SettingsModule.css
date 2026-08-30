@@ -193,6 +193,37 @@
   color: var(--text-secondary);
 }
 
+/* Nedávná přihlášení — malý seznam pod přepínačem, dává mu vidět
+   skutečnou historii, ne jen samotný spínač. */
+.settings-zarizeni {
+  padding: 0.5rem 0 0.2rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.settings-zarizeni-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.settings-zarizeni-radek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+}
+
+.settings-zarizeni-cas {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 0.66rem;
+}
+
 .settings-switch {
   flex-shrink: 0;
   width: 44px;

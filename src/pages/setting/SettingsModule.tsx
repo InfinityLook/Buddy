@@ -4,6 +4,7 @@ import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { useHasPermission } from '@/core/role'
 import { useThemeStore, VSECHNY_VZHLEDY } from '@/core/theme'
 import { jeBiometrieDostupna, zaregistrujBiometrii } from '@/core/utils/biometrics'
+import { nactiZarizeni, type PrihlaseneZarizeni } from '@/core/security/loginDevices'
 import { AVATAR_FRAMES } from '@/social/avatarFrames'
 import { useCloudStatus, syncNow } from '@/core/supabase/cloudSync'
 import { APP_VERSION, applyUpdateNow, checkForUpdates, hasNewerVersion } from '@/core/utils/registerSW'
@@ -55,6 +56,7 @@ export const SettingsModule: React.FC = () => {
   const [meniSoukromi, setMeniSoukromi] = useState(false)
   const [skrytOnline, setSkrytOnline] = useState(false)
   const [meniSkrytOnline, setMeniSkrytOnline] = useState(false)
+  const [zarizeni, setZarizeni] = useState<PrihlaseneZarizeni[]>([])
 
   // Soukromí i skrytí online stavu žijí na profiles v cloudu, ne
   // v lokálním useProfileData — appka je proto natáhne zvlášť, stejným
@@ -62,6 +64,10 @@ export const SettingsModule: React.FC = () => {
   useEffect(() => {
     void api.nactiSoukromy().then(setSoukromy)
     void api.nactiSkrytOnline().then(setSkrytOnline)
+    // login_devices se plní z App.tsx's startLoginNotify() při startu —
+    // tenhle dotaz jen čte, co tam už je, ať přepínač níž má vedle sebe
+    // vidět skutečnou historii, ne jen prázdný přepínač.
+    void nactiZarizeni().then(setZarizeni)
   }, [])
 
   // Když se profil změní jinde (obnova ze zálohy), formulář se srovná
@@ -420,6 +426,29 @@ export const SettingsModule: React.FC = () => {
             <span className="settings-switch-knob" />
           </button>
         </div>
+
+        {/* Nedávná přihlášení — dává přepínači výš vidět obsah, ne jen
+            samotný spínač. core/security/loginDevices.ts's login_devices,
+            nahlašuje se sama appka při startu (startLoginNotify), tenhle
+            seznam tu jen čte, co tam už je. */}
+        {zarizeni.length > 0 && (
+          <div className="settings-zarizeni">
+            <span className="settings-zarizeni-label">NEDÁVNÁ PŘIHLÁŠENÍ</span>
+            {zarizeni.map((z) => (
+              <div key={z.deviceId} className="settings-zarizeni-radek">
+                <span>{z.popis}</span>
+                <span className="settings-zarizeni-cas">
+                  {new Date(z.posledniAt).toLocaleString('cs-CZ', {
+                    day: 'numeric',
+                    month: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
 
         <button className="settings-danger-btn" onClick={handleResetProfile}>
           🗑️ Vrátit profil do výchozího stavu

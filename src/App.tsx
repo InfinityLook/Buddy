@@ -30,6 +30,7 @@ import { setupRoleDevTools, startRoleSync, useHasPermission } from '@/core/role'
 import { useAppliedTheme } from '@/core/theme'
 import { startInbox } from '@/social/inbox'
 import { startPresence } from '@/social/presence'
+import { startLoginNotify } from '@/core/security/loginNotify'
 import { setupStudyPlannerReminders } from '@/miniapps/study-planner/useStudyPlanner'
 
 export default function App() {
@@ -114,6 +115,9 @@ export default function App() {
     // přáteli (social/presence.ts) — appka musí vědět, že je uživatel
     // aktivní, i když je zrovna v Hubu, ne jen v Socialu.
     startPresence()
+    // "Upozornění na přihlášení" — dřív kosmetický přepínač, teď
+    // nahlásí tohle zařízení a naslouchá novým (core/security/).
+    startLoginNotify()
     // Přidělení role z konzole. Jen ve vývoji — v produkčním buildu se
     // celý blok vyhodí, viz core/role/devTools.ts.
     setupRoleDevTools()
