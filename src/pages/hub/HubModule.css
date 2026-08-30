@@ -54,11 +54,16 @@
     calc(1.25rem + env(safe-area-inset-bottom)) 1rem;
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 0.85rem;
 }
 
 /* ------------------------------------------
    HEADER
+   Dřív tu byl textový odznak úrovně a tlačítko odhlášení — úroveň má
+   teď vlastní kartu níž (.hub-level-card), odhlášení se přesunulo do
+   Nastavení. Hlavička zůstala jen logo + tři kulaté akce (hledat/
+   zvonek/avatar), stejný "lehká hlavička, obsah pod ní nese váhu"
+   princip jako Social's vlastní horní lišta.
    ------------------------------------------ */
 .hub-header {
   display: flex;
@@ -68,7 +73,7 @@
   background: rgba(10, 14, 28, 0.72);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  padding: 0.7rem 0.85rem;
+  padding: 0.6rem 0.7rem;
   backdrop-filter: blur(14px);
 }
 
@@ -94,88 +99,205 @@
   color: transparent;
 }
 
-.hub-header-right {
+.hub-header-actions {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
   gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.hub-icon-btn {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.hub-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+/* Tečka na zvonku — jen naznačí, že něco čeká, žádné číslo (appka tu
+   neduplikuje přesný výpočet, viz komentář u tlačítka v Hub.tsx). */
+.hub-icon-dot {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-magenta);
+  border: 1.5px solid var(--bg-base);
+}
+
+.hub-avatar-btn {
+  position: relative;
+  background: none;
+  border: none;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  padding: 0;
+  cursor: pointer;
+  border-radius: 50%;
+}
+
+.hub-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1.5px solid var(--border-strong);
+  display: block;
+}
+
+/* "Jsi tu" tečka — appčin vlastní avatar v hlavičce vždycky znamená
+   "appka je otevřená právě teď", takže je to jistota, ne živý stav
+   z presence.ts jako u cizích avatarů v Socialu. */
+.hub-avatar-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--accent-green);
+  border: 2px solid var(--bg-base);
+}
+
+/* ------------------------------------------
+   ÚROVEŇ
+   Vlastní karta, dřív jen řádek textu v hlavičce — šestiúhelníkový
+   odznak s číslem vlevo, XP + progress uprostřed, série vpravo, ať je
+   čitelná na jeden pohled, ne jeden dlouhý řádek textu.
+   ------------------------------------------ */
+.hub-level-card {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  background: rgba(10, 14, 28, 0.68);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 0.85rem 1rem;
+  backdrop-filter: blur(14px);
+}
+
+/* Šestiúhelník přes clip-path — dvě vrstvy (barevný přechod, tmavá
+   výplň o pár px menší) dají dojem svítícího rámečku, stejný trik jako
+   dřív u .hub-level-badge, jen v jiném tvaru. */
+.hub-level-hex {
+  position: relative;
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, var(--accent-violet) 0%, var(--accent-cyan) 100%);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.hub-level-hex::before {
+  content: '';
+  position: absolute;
+  inset: 2.5px;
+  background: var(--bg-panel);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.hub-level-hex-num {
+  position: relative;
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.hub-level-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
   flex: 1;
   min-width: 0;
 }
 
-/* Barevný svítící rámeček kolem odznaku s úrovní */
-.hub-level-badge {
-  padding: 2px;
-  border-radius: var(--radius-md);
-  background: linear-gradient(115deg, #f59e0b 0%, #35c4f0 45%, #8a5cf6 75%, #ec4899 100%);
-  box-shadow: 0 0 18px rgba(53, 196, 240, 0.35);
-  min-width: 0;
-}
-
-.hub-level-badge-inner {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  background: rgba(8, 12, 24, 0.94);
-  border-radius: calc(var(--radius-md) - 2px);
-  padding: 0.45rem 0.7rem;
-}
-
-.hub-level-line {
-  font-size: 0.7rem;
+.hub-level-title {
+  font-size: 0.85rem;
   font-weight: 800;
-  line-height: 1.3;
+  letter-spacing: 0.02em;
+}
+
+.hub-level-xp {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
 }
 
 .hub-level-progress {
   display: block;
-  height: 3px;
+  height: 5px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
+  margin-top: 0.1rem;
 }
 
 .hub-level-progress-fill {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-violet));
+  background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
 }
 
-.hub-logout-btn {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.45);
-  color: var(--accent-red);
-  border-radius: var(--radius-md);
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
+.hub-streak {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  cursor: pointer;
-  box-shadow: 0 0 16px rgba(239, 68, 68, 0.25);
-  transition: transform 0.2s ease, background 0.2s ease;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+  gap: 0.05rem;
 }
 
-.hub-logout-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
-  transform: translateY(-1px);
+.hub-streak-flame {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.hub-streak-num {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--accent-orange);
+  line-height: 1.1;
+}
+
+.hub-streak-label {
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 /* ------------------------------------------
    DENNÍ VÝZVA
    ------------------------------------------ */
-.hub-banner {
+.hub-challenge-card {
+  position: relative;
   width: 100%;
   background: rgba(10, 14, 28, 0.68);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 0.8rem 1rem;
+  border-radius: var(--radius-lg);
+  padding: 0.85rem 1rem;
   display: flex;
   align-items: center;
-  gap: 0.85rem;
+  gap: 0.8rem;
   font-family: inherit;
   color: var(--text-primary);
   text-align: left;
@@ -184,21 +306,72 @@
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
-.hub-banner:hover {
-  border-color: rgba(245, 158, 11, 0.45);
+.hub-challenge-card:hover {
+  border-color: rgba(245, 158, 11, 0.4);
   transform: translateY(-1px);
 }
 
-.hub-banner-tag {
-  color: var(--accent-orange);
-  font-weight: 800;
-  font-size: 0.72rem;
-  letter-spacing: 0.03em;
+.hub-challenge-icon {
   flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  border-radius: var(--radius-md);
+  background: rgba(138, 92, 246, 0.16);
+  border: 1px solid rgba(138, 92, 246, 0.35);
 }
 
-.hub-banner-text {
-  font-size: 0.82rem;
+.hub-challenge-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.hub-challenge-tag {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--accent-magenta);
+}
+
+.hub-challenge-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+
+.hub-challenge-sub {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.hub-challenge-pill {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--accent-green);
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: var(--radius-pill);
+  padding: 0.35rem 0.6rem;
+}
+
+/* Malá šipka v pravém horním rohu — appka celou kartu bere jako
+   klikatelnou, tohle je jen vizuální nápověda "vede to dál". */
+.hub-challenge-corner {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.65rem;
+  color: var(--text-muted);
+  transform: rotate(-45deg);
 }
 
 /* ------------------------------------------
@@ -217,13 +390,14 @@
 }
 
 .hub-btn-card {
+  position: relative;
   background: rgba(12, 18, 36, 0.62);
   border: 1px solid rgba(99, 132, 241, 0.3);
   border-radius: var(--radius-md);
   padding: 0.8rem 0.85rem;
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.65rem;
   font-family: inherit;
   color: var(--text-primary);
   text-align: left;
@@ -238,19 +412,39 @@
   transform: translateY(-2px);
 }
 
-/* Zvýrazněná karta (Rewards) */
-.hub-btn-card--accent {
-  border-color: rgba(168, 85, 247, 0.45);
-}
-
-.hub-btn-card--accent:hover {
-  border-color: rgba(168, 85, 247, 0.75);
-}
-
+/* Barevný odznak ikony — appka schválně nechává emoji jako ikonu
+   (appka je používá napříč celým rozhraním, ne jen tady), jen ho
+   zasadí do barevného zaobleného čtverce, ať karty rozliší na první
+   pohled i bez čtení textu. */
 .hub-card-icon {
-  font-size: 1.65rem;
-  line-height: 1;
   flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  border-radius: var(--radius-md);
+}
+
+.hub-card-icon--blue {
+  background: rgba(53, 196, 240, 0.16);
+  border: 1px solid rgba(53, 196, 240, 0.35);
+}
+
+.hub-card-icon--magenta {
+  background: rgba(236, 72, 153, 0.16);
+  border: 1px solid rgba(236, 72, 153, 0.35);
+}
+
+.hub-card-icon--purple {
+  background: rgba(138, 92, 246, 0.16);
+  border: 1px solid rgba(138, 92, 246, 0.35);
+}
+
+.hub-card-icon--cyan {
+  background: rgba(53, 196, 240, 0.16);
+  border: 1px solid rgba(53, 196, 240, 0.35);
 }
 
 .hub-card-text {
@@ -258,13 +452,14 @@
   flex-direction: column;
   gap: 0.15rem;
   min-width: 0;
+  flex: 1;
 }
 
 .hub-card-title {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.98rem;
+  font-size: 0.92rem;
   font-weight: 800;
   letter-spacing: -0.01em;
   /* Na úzkém telefonu se název i s odznakem na jeden řádek nevejde
@@ -273,46 +468,132 @@
 }
 
 .hub-card-sub {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--text-secondary);
 }
 
-.hub-badge-new {
-  background: var(--accent-magenta);
-  color: #fff;
-  font-size: 0.55rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  padding: 0.12rem 0.35rem;
+/* Malý progress bar pod textem karty Rewards — appka ho nekreslí jako
+   samostatný prvek s vlastním odsazením, jen o kousek menší verzi
+   .hub-level-progress ve stejné kartě. */
+.hub-card-progress {
+  display: block;
+  height: 3px;
   border-radius: var(--radius-pill);
-  /* Odznak se nesmí zmáčknout ani zlomit — radši se zalomí celý pod název */
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  margin-top: 0.25rem;
+}
+
+.hub-card-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-violet), var(--accent-magenta));
+}
+
+/* Šipka vpravo — arrow-left otočená o 180°, stejný trik jako
+   .social-nastaveni-sipka v Socialu, ne nová ikona navíc. */
+.hub-card-arrow {
   flex-shrink: 0;
-  white-space: nowrap;
+  color: var(--text-muted);
+  transform: rotate(180deg);
 }
 
 /* Čtvercové karty (Apps, Play, Library) */
 .hub-btn-square {
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  gap: 0.3rem;
-  padding: 1rem 0.5rem;
+  align-items: stretch;
+  justify-content: flex-end;
+  text-align: left;
+  gap: 0.2rem;
+  padding: 0.7rem;
+  /* Vpravo víc místa než na ostatních stranách — kulaté tlačítko se
+     šipkou (.hub-square-arrow) je position: absolute a nezabírá si
+     v layoutu žádné místo samo, takže bez týhle rezervy se mu titulek
+     s odznakem BRZY (Library) dostal do cesty a schoval se za něj. */
+  padding-right: 2.3rem;
+  min-height: 132px;
   border-color: rgba(138, 92, 246, 0.32);
+  overflow: hidden;
 }
 
 .hub-btn-square:hover {
   border-color: rgba(138, 92, 246, 0.65);
 }
 
-.hub-btn-square .hub-card-icon {
-  font-size: 2rem;
-  margin-bottom: 0.15rem;
+.hub-btn-square .hub-card-title {
+  font-size: 0.85rem;
 }
 
-.hub-btn-square .hub-card-title {
+.hub-btn-square .hub-card-sub {
+  font-size: 0.62rem;
+}
+
+/* Náhled uvnitř dlaždice — appka jich má tři různé podoby, jedna na
+   dlaždici. Apps dostane mřížku pár barevných ikonek, Play fotku
+   z herního hubu (znovupoužitá, ne nový obrázek navíc), Library
+   jednu velkou ikonu. */
+.hub-square-preview {
+  flex: 1;
+  min-height: 0;
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.4rem;
+}
+
+.hub-square-preview--apps {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.hub-square-preview--apps span {
+  display: flex;
+  align-items: center;
   justify-content: center;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.06);
   font-size: 0.95rem;
+}
+
+.hub-square-preview--play {
+  background-image:
+    linear-gradient(180deg, rgba(6, 10, 22, 0) 40%, rgba(6, 10, 22, 0.75) 100%),
+    url('/backgrounds/mapa-sveta.jpg');
+  background-size: cover;
+  background-position: center;
+}
+
+.hub-square-preview--library {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.9rem;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+/* Kulaté tlačítko se šipkou v rohu dlaždice — vizuální nápověda "vede
+   to dál", stejná arrow-left/180° šipka jako u .hub-card-arrow výš.
+   Celá dlaždice zůstává klikatelná, tohle jen kreslí to samé gesto,
+   jaké appka jinde dělá textem/šipkou v řádku. */
+.hub-square-arrow {
+  position: absolute;
+  right: 0.6rem;
+  bottom: 0.6rem;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-on-accent);
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.hub-square-arrow svg {
+  transform: rotate(180deg);
 }
 
 /* ------------------------------------------
@@ -328,6 +609,7 @@
 
 .hub-orb-section {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex: 1 1 auto;
@@ -341,10 +623,6 @@
 /* Velikost řídí VÝŠKA, šířku dopočítá poměr stran.
    Strop je taky na výšce, ne na šířce: max-width by šířku uřízl nezávisle
    na výšce a z kruhu by byla elipsa (198x210 na běžném telefonu).
-   Omezení podle šířky obrazovky je proto schované v max-height jako vw. */
-/* Velikost řídí VÝŠKA, šířku dopočítá poměr stran.
-   Strop je taky na výšce, ne na šířce: max-width by šířku uřízl nezávisle
-   na výšce a z kruhu by byla elipsa (198x210 na běžném telefonu).
    Omezení podle šířky obrazovky je proto schované v max-height jako vw.
 
    `perspective` dělá z nakloněných prstenců níž skutečné elipsy se
@@ -354,7 +632,7 @@
   position: relative;
   height: 100%;
   aspect-ratio: 1;
-  max-height: min(210px, 52vw);
+  max-height: min(190px, 48vw);
   /* Na krátké obrazovce by sekce spadla na nulu a kruh by zmizel úplně.
      Tohle je nejmenší velikost, u které ještě něco znamená; stránka se
      případně doroluje a přilepená lišta zůstane na svém místě. */
@@ -601,6 +879,38 @@
   filter: blur(2px);
 }
 
+/* Podstavec pod koulí — plochá zářící elipsa, čistě CSS (žádný obrázek
+   navíc), a jméno appky s podtitulem pod ní. Appka je dřív nechávala
+   koule mluvit samu za sebe; bez popisku ale nebylo na první pohled
+   jasné, co/kdo to je. */
+.hub-orb-podstavec {
+  width: min(58%, 150px);
+  height: 14px;
+  margin-top: -8px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(53, 196, 240, 0.4) 0%, transparent 72%);
+  filter: blur(2px);
+}
+
+.hub-orb-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  margin-top: 0.3rem;
+  text-align: center;
+}
+
+.hub-orb-jmeno {
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.hub-orb-popis {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
 /* Kdo má vypnuté animace, uvidí kruh v klidu. Pulzování přes celou
    obrazovku je pro část lidí nepříjemné až nesnesitelné. Prstence
    zůstanou nakloněné, aby o hloubku nepřišel ani takový pohled. */
@@ -621,19 +931,19 @@
 }
 
 /* ------------------------------------------
-   SPODNÍ LIŠTA
+   SPODNÍ NAVIGACE
+   Pět položek (Home/Social/Buddy/Chat/Settings), prostřední Buddy je
+   vyvýšené kolečko bez popisku, zbytek má ikonu + text pod ní — stejný
+   "Instagram/TikTok" vzor, jaký appka už používá v Socialu
+   (.social-bottom-nav), teď i tady.
    ------------------------------------------ */
-/* Lišta se přilepí ke spodnímu okraji viditelné části.
-   Na telefonu se systémovými gesty ubere pruh dole kus výšky, kterou
-   env(safe-area-inset-bottom) na Androidu často hlásí jako nulovou —
-   obsah se pak vykreslí pod něj a lišta zmizí za okrajem. Takhle
-   zůstane na dosah, ať se stane cokoli. */
-.hub-bottom-bar {
+.hub-bottom-nav {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 0.7rem;
+  align-items: flex-end;
+  justify-content: space-between;
   margin-top: auto;
-  padding-top: 0.35rem;
+  padding-top: 0.5rem;
   padding-bottom: 0.15rem;
   position: sticky;
   bottom: 0;
@@ -646,61 +956,83 @@
    pozadí z toho udělá čitelný spodní pruh a zároveň naznačí, že nad ním
    obsah pokračuje. Sahá až k okrajům kontejneru, proto záporné odsazení
    o jeho vnitřní okraj. */
-.hub-bottom-bar::before {
+.hub-bottom-nav::before {
   content: '';
   position: absolute;
-  inset: -0.7rem -1rem calc(-1.25rem - env(safe-area-inset-bottom)) -1rem;
+  inset: -0.9rem -1rem calc(-1.25rem - env(safe-area-inset-bottom)) -1rem;
   background: linear-gradient(180deg, rgba(6, 10, 22, 0) 0%, rgba(6, 10, 22, 0.88) 42%);
   pointer-events: none;
   z-index: -1;
 }
 
-.hub-action-btn-icon {
-  background: rgba(12, 18, 36, 0.72);
-  border: 1px solid rgba(99, 132, 241, 0.3);
-  border-radius: var(--radius-md);
-  width: 52px;
-  height: 52px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-primary);
-  font-size: 1.25rem;
-  cursor: pointer;
-  backdrop-filter: blur(14px);
-  transition: transform 0.2s ease, background 0.2s ease;
-}
-
-.hub-action-btn-icon:hover {
-  background: rgba(20, 28, 54, 0.9);
-  transform: translateY(-2px);
-}
-
-/* Stejné primární CTA jako login-submit / profil-sheet-save-btn */
-.hub-talk-btn {
+.hub-nav-item {
   flex: 1;
-  height: 52px;
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  background: none;
   border: none;
-  border-radius: var(--radius-md);
-  color: var(--text-on-accent);
+  padding: 0.3rem 0.2rem;
+  color: var(--text-muted);
   font-family: inherit;
-  font-weight: 800;
-  font-size: 0.9rem;
-  letter-spacing: 0.02em;
+  font-size: 0.6rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.hub-nav-item--active {
+  color: var(--accent-cyan);
+}
+
+.hub-nav-icon-wrap {
+  position: relative;
+  display: flex;
+}
+
+.hub-nav-dot {
+  position: absolute;
+  top: -2px;
+  right: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-magenta);
+  border: 1.5px solid var(--bg-base);
+}
+
+/* Prostřední kolečko — vyvýšené nad ostatní, žádný popisek pod sebou
+   (stejná role jako "shutter" tlačítko uprostřed lišty v appkách typu
+   TikTok/Snapchat). Funkčně je to přesně to, co dřív dělal malý mikrofon
+   v rohu lišty — otevře hlasového Buddyho — jen vizuálně povýšené na
+   hlavní akci lišty, protože appka jinak Buddyho orb výš na stránce
+   nabízí jen dokud ho uživatel nepřescrolluje pryč. */
+.hub-nav-orb {
+  position: relative;
+  flex-shrink: 0;
+  width: 54px;
+  height: 54px;
+  margin-bottom: 14px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  cursor: pointer;
-  box-shadow: var(--shadow-glow-cyan);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  gap: 7px;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(190, 240, 255, 0.5) 0%, rgba(66, 190, 240, 0.3) 30%, transparent 60%),
+    radial-gradient(circle at 50% 50%, rgba(16, 42, 88, 0.95) 0%, rgba(46, 150, 210, 0.65) 100%);
+  box-shadow: 0 0 0 4px var(--bg-base), 0 0 22px rgba(53, 196, 240, 0.55);
 }
 
-.hub-talk-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(53, 196, 240, 0.5);
+.hub-nav-orb-oko {
+  width: 5px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: #bdf3ff;
+  box-shadow: 0 0 6px rgba(53, 196, 240, 0.8);
 }
 
 /* ------------------------------------------
@@ -793,19 +1125,16 @@
    ------------------------------------------ */
 @media (max-height: 740px) {
   .hub-container {
-    gap: 0.65rem;
+    gap: 0.6rem;
   }
 
   .hub-orb {
-    max-height: min(165px, 46vw);
+    max-height: min(150px, 42vw);
   }
 
   .hub-btn-square {
-    padding: 0.75rem 0.4rem;
-  }
-
-  .hub-btn-square .hub-card-icon {
-    font-size: 1.7rem;
+    min-height: 110px;
+    padding: 0.55rem;
   }
 }
 
@@ -814,9 +1143,7 @@
    Zůstávají v rozhraní, ale na první pohled je vidět,
    že ještě nefungují — jinak na ně uživatel kliká dokola.
    ========================================== */
-.hub-btn-card--soon,
-.hub-action-btn-icon--soon,
-.hub-talk-btn--soon {
+.hub-btn-card--soon {
   opacity: 0.55;
 }
 
@@ -925,7 +1252,6 @@
   border-color: rgba(239, 68, 68, 0.45);
 }
 
-
 /* ------------------------------------------
    NÍZKÉ DISPLEJE
    Na krátké obrazovce se musí ustoupit, jinak spodní lišta skončí
@@ -933,34 +1259,18 @@
    ------------------------------------------ */
 @media (max-height: 780px) {
   .hub-container {
-    gap: 0.6rem;
+    gap: 0.55rem;
   }
 
   .hub-orb {
-    max-height: min(30vh, 46vw);
+    max-height: min(26vh, 42vw);
   }
 
   .hub-orb-section {
     margin: 0;
   }
-}
 
-/* Počet čekajících zpráv na tlačítku Social. Sedí na jeho pravém okraji,
-   proto absolutní umístění a záporný posun o půl své šířky. */
-.hub-talk-btn { position: relative; }
-
-.hub-talk-badge {
-  position: absolute;
-  top: -6px;
-  right: 10px;
-  min-width: 20px;
-  padding: 0.1rem 0.35rem;
-  border-radius: var(--radius-pill);
-  background: var(--accent-magenta);
-  color: #fff;
-  font-size: 0.6rem;
-  font-weight: 800;
-  line-height: 1.4;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  .hub-orb-podstavec {
+    display: none;
+  }
 }

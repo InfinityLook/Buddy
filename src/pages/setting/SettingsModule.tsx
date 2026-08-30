@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { signOut } from '@/core/supabase/auth'
+import { useAuthStore } from '@/core/store/useAuthStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { useHasPermission } from '@/core/role'
 import { useThemeStore, VSECHNY_VZHLEDY } from '@/core/theme'
@@ -29,6 +31,7 @@ const CLOUD_LABELS: Record<string, string> = {
 
 export const SettingsModule: React.FC = () => {
   const navigate = useNavigate()
+  const { logout } = useAuthStore()
   const { profile, updateProfile, updateSecurity, resetProfile } = useProfileData()
   const smiAdmin = useHasPermission('admin.panel')
   const smiModerovat = useHasPermission('moderation.content')
@@ -109,6 +112,20 @@ export const SettingsModule: React.FC = () => {
       resetProfile()
       showToast('Profil byl vrácen do výchozího stavu')
     }
+  }
+
+  // Odhlášení musí ukončit i relaci v Supabase, ne jen místní příznak —
+  // jinak by relace zůstala v prohlížeči a po obnovení stránky by se
+  // appka tvářila, že je uživatel pořád přihlášený (stejná dvojice
+  // volání jako App.tsx's odhlasit()). Tohle tlačítko sem přibylo, když
+  // Hub's redesign odstranil jediné dosavadní místo appky s odhlášením
+  // (svůj vlastní header) — appka bez tohohle by neměla žádnou cestu
+  // ven z účtu vůbec.
+  const handleLogout = () => {
+    if (!window.confirm('Opravdu se chceš odhlásit?')) return
+    void signOut()
+    logout()
+    navigate('/')
   }
 
   const vybratVzhled = (id: (typeof VSECHNY_VZHLEDY)[number]['id'], vip: boolean, nazev: string) => {
@@ -615,6 +632,12 @@ export const SettingsModule: React.FC = () => {
           </button>
         </section>
       )}
+
+      <section className="settings-card">
+        <button className="settings-danger-btn" onClick={handleLogout}>
+          🚪 Odhlásit se
+        </button>
+      </section>
 
       {toast && <div className="settings-toast">{toast}</div>}
     </div>

@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useInbox } from '@/social/inbox'
+import { SocialIcon } from '@/social/components/SocialIcon'
 import { useBuddyVoice } from '@/buddy/useBuddyVoice'
 import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
+import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
-import { getLevelProgress } from '@/core/utils/gamificationUtils'
+import { getLevelProgress, getXpForNextLevel } from '@/core/utils/gamificationUtils'
 import { sklonujUkoly } from '@/core/utils/text'
 import { importDataFromJson, restoreFullBackup } from '@/core/utils/backup'
 import {
@@ -29,7 +31,6 @@ import {
 import './HubModule.css'
 
 interface HubModuleProps {
-  onLogout?: () => void
   onOpenApps?: () => void
   onOpenProfile?: () => void
   onOpenSettings?: () => void
@@ -47,7 +48,6 @@ const predmetVeDruhemPade = (predmet: string) => {
 }
 
 export const HubModule: React.FC<HubModuleProps> = ({
-  onLogout,
   onOpenApps,
   onOpenProfile,
   onOpenSettings,
@@ -55,6 +55,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
 }) => {
   const navigate = useNavigate()
   const neprectene = useInbox((stav) => stav.neprectene)
+  const { profile } = useProfileData()
 
   // Načtení gamifikačních dat ze storu
   const { level, xp, streakDays, badges, recordActivity } = useGamificationStore()
@@ -111,11 +112,14 @@ export const HubModule: React.FC<HubModuleProps> = ({
     toastTimer.current = window.setTimeout(() => setToast(null), 2600)
   }
 
-  // Denní výzva se skládá z reálných nesplněných úkolů (předmět s jejich nejvyšším počtem)
+  // Denní výzva — reálné nesplněné úkoly z Planeru (předmět s jejich
+  // nejvyšším počtem). Rozdělené na title/subtitle kvůli dvouřádkové
+  // kartě v novém rozvržení (viz redesign níž), stejná logika/data jako
+  // dřív, jen jinak poskládaná pro zobrazení.
   const dailyChallenge = useMemo(() => {
     const pending = tasks.filter((task) => !task.completed)
     if (pending.length === 0) {
-      return 'Máš hotovo! Dnes tě nečekají žádné úkoly. 🎉'
+      return { done: true, title: 'Máš hotovo!', subtitle: 'Dnes tě nečekají žádné úkoly. 🎉' }
     }
 
     const bySubject = pending.reduce<Record<string, number>>((acc, task) => {
@@ -124,12 +128,17 @@ export const HubModule: React.FC<HubModuleProps> = ({
     }, {})
 
     const [subject, count] = Object.entries(bySubject).sort((a, b) => b[1] - a[1])[0]
-    const sloveso = count === 1 ? 'čeká' : 'čekají'
-    return `Dnes tě ${sloveso} ${count} ${sklonujUkoly(count)} z ${predmetVeDruhemPade(subject)}`
+    const sloveso = count === 1 ? 'Čeká' : 'Čekají'
+    return {
+      done: false,
+      title: `${count} ${sklonujUkoly(count)}`,
+      subtitle: `${sloveso} z ${predmetVeDruhemPade(subject)}`,
+    }
   }, [tasks])
 
   const unlockedBadges = badges.filter((badge) => badge.unlockedAt !== null).length
   const progressPercent = getLevelProgress(xp)
+  const xpDoDalsi = getXpForNextLevel(level)
 
   const handleAppsClick = () => {
     if (onOpenApps) {
@@ -256,83 +265,139 @@ export const HubModule: React.FC<HubModuleProps> = ({
       <div className="hub-bg-overlay" aria-hidden="true" />
 
       <div className="hub-container">
-        {/* Header */}
+        {/* Header — dřív tu byl textový odznak úrovně a tlačítko odhlášení,
+            teď jen logo a tři akce (hledat/zvonek/avatar), ať hlavička
+            zůstane lehká a úroveň dostane vlastní, čitelnější kartu níž.
+            Odhlášení se přesunulo do Nastavení (settings-danger-btn tam),
+            appka bez toho neměla jinou cestu ven z účtu, ne že by šlo
+            jen o kosmetiku. */}
         <header className="hub-header">
           <div className="hub-logo">
             <span className="hub-logo-mark">✦</span>
             <span className="hub-logo-text">Buddy</span>
           </div>
 
-          <div className="hub-header-right">
-            {/* Dynamický badge s úrovní, XP a streakem */}
-            <div className="hub-level-badge">
-              <div className="hub-level-badge-inner">
-                <span className="hub-level-line">
-                  ⭐ ÚROVEŇ {level} ({xp} XP)
-                  {streakDays > 0 && <> | 🔥 {streakDays} d</>}
-                </span>
-                <span className="hub-level-progress" aria-hidden="true">
-                  <span className="hub-level-progress-fill" style={{ width: `${progressPercent}%` }} />
-                </span>
-              </div>
-            </div>
-
+          <div className="hub-header-actions">
             <button
-              className="hub-logout-btn"
-              aria-label="Odhlásit se"
-              onClick={onLogout}
+              className="hub-icon-btn"
+              aria-label="Hledat"
+              onClick={() => navigate('/social?zalozka=vyhledavac')}
             >
-              ➔
+              <SocialIcon name="search" size={19} />
+            </button>
+
+            <button className="hub-icon-btn" aria-label="Oznámení" onClick={handleProfileClick}>
+              <SocialIcon name="bell" size={19} />
+              {/* Zvonek jen naznačí, že něco čeká — appka tu neduplikuje
+                  přesný výpočet zvonku z Profilu (ProfilNotifications.tsx),
+                  jen počet nepřečtených zpráv, co Hub už má jinak v paměti
+                  (useInbox). Skutečný přehled je hned za tímhle tlačítkem. */}
+              {neprectene > 0 && <span className="hub-icon-dot" aria-hidden="true" />}
+            </button>
+
+            <button className="hub-avatar-btn" aria-label="Profil" onClick={handleProfileClick}>
+              <img src={profile.avatar} alt="" className="hub-avatar-img" />
+              <span className="hub-avatar-dot" aria-hidden="true" />
             </button>
           </div>
         </header>
 
-        {/* Denní výzva — reálné úkoly z Planeru */}
-        <button className="hub-banner" onClick={handleChallengeClick}>
-          <span className="hub-banner-tag">DENNÍ VÝZVA</span>
-          <span className="hub-banner-text">{dailyChallenge}</span>
+        {/* Úroveň — vlastní karta, dřív jen řádek textu v hlavičce.
+            Šestiúhelníkový odznak s číslem úrovně (dvě číslice, jako
+            appka vždycky formátovala) a řada s ohněm/dny série vpravo,
+            ať je celá karta čitelná na jeden pohled, ne jen jeden dlouhý
+            řádek. */}
+        <section className="hub-level-card">
+          <span className="hub-level-hex" aria-hidden="true">
+            <span className="hub-level-hex-num">{String(level).padStart(2, '0')}</span>
+          </span>
+
+          <div className="hub-level-info">
+            <span className="hub-level-title">LEVEL {level}</span>
+            <span className="hub-level-xp">
+              {xp} / {xpDoDalsi} XP
+            </span>
+            <span className="hub-level-progress" aria-hidden="true">
+              <span className="hub-level-progress-fill" style={{ width: `${progressPercent}%` }} />
+            </span>
+          </div>
+
+          <div className="hub-streak">
+            <span className="hub-streak-flame" aria-hidden="true">🔥</span>
+            <span className="hub-streak-num">{streakDays}</span>
+            <span className="hub-streak-label">DAYS STREAK</span>
+          </div>
+        </section>
+
+        {/* Denní výzva — reálné úkoly z Planeru, teď jako karta s vlastní
+            ikonou a odznakem stavu vpravo místo jednořádkového banneru. */}
+        <button className="hub-challenge-card" onClick={handleChallengeClick}>
+          <span className="hub-challenge-icon" aria-hidden="true">🎯</span>
+
+          <span className="hub-challenge-body">
+            <span className="hub-challenge-tag">DAILY CHALLENGE</span>
+            <span className="hub-challenge-title">{dailyChallenge.title}</span>
+            <span className="hub-challenge-sub">{dailyChallenge.subtitle}</span>
+          </span>
+
+          {dailyChallenge.done && (
+            <span className="hub-challenge-pill">
+              <SocialIcon name="check" size={13} /> COMPLETED
+            </span>
+          )}
+
+          <span className="hub-challenge-corner" aria-hidden="true">
+            <SocialIcon name="send" size={13} />
+          </span>
         </button>
 
-        {/* Horní mřížka (Profil, Shop, Rewards, Cloud) */}
+        {/* Horní mřížka (Profil, Shop, Rewards, Cloud) — barevný odznak
+            ikony vlevo, šipka vpravo, stejný "dlaždice vede dál" jazyk
+            jako Social's vlastní seznamy (.social-nastaveni-sipka). */}
         <div className="hub-grid-top">
           <button className="hub-btn-card" onClick={handleProfileClick}>
-            <span className="hub-card-icon">👤</span>
+            <span className="hub-card-icon hub-card-icon--blue">👤</span>
             <span className="hub-card-text">
               <span className="hub-card-title">Profil</span>
               <span className="hub-card-sub">Tvůj účet</span>
             </span>
+            <SocialIcon name="arrow-left" size={14} className="hub-card-arrow" />
           </button>
 
           <button className="hub-btn-card" onClick={() => navigate('/obchod')}>
-            <span className="hub-card-icon">🛍️</span>
+            <span className="hub-card-icon hub-card-icon--magenta">🛍️</span>
             <span className="hub-card-text">
               <span className="hub-card-title">Shop</span>
-              <span className="hub-card-sub">
-                {/* Dokud nejsou platby, ať dlaždice neslibuje nákup */}
-                Kredity, VIP a doplňky
-              </span>
+              {/* Dokud nejsou platby, ať dlaždice neslibuje nákup */}
+              <span className="hub-card-sub">Kredity, VIP a doplňky</span>
             </span>
+            <SocialIcon name="arrow-left" size={14} className="hub-card-arrow" />
           </button>
 
-          <button className="hub-btn-card hub-btn-card--accent" onClick={handleRewardsClick}>
-            <span className="hub-card-icon">🎁</span>
+          <button className="hub-btn-card" onClick={handleRewardsClick}>
+            <span className="hub-card-icon hub-card-icon--purple">🎁</span>
             <span className="hub-card-text">
-              <span className="hub-card-title">
-                Rewards
-                <span className="hub-badge-new">NEW</span>
-              </span>
+              <span className="hub-card-title">Rewards</span>
               <span className="hub-card-sub">
-                {unlockedBadges > 0 ? `Odemčeno ${unlockedBadges} z ${badges.length}` : 'Odměny a bonusy'}
+                {unlockedBadges} z {badges.length} odemčeno
+              </span>
+              <span className="hub-card-progress" aria-hidden="true">
+                <span
+                  className="hub-card-progress-fill"
+                  style={{ width: `${badges.length > 0 ? (unlockedBadges / badges.length) * 100 : 0}%` }}
+                />
               </span>
             </span>
+            <SocialIcon name="arrow-left" size={14} className="hub-card-arrow" />
           </button>
 
           <button className="hub-btn-card" onClick={() => setCloudOpen(true)}>
-            <span className="hub-card-icon">☁️</span>
+            <span className="hub-card-icon hub-card-icon--cyan">☁️</span>
             <span className="hub-card-text">
               <span className="hub-card-title">Cloud</span>
               <span className="hub-card-sub">Uložená data</span>
             </span>
+            <SocialIcon name="arrow-left" size={14} className="hub-card-arrow" />
           </button>
         </div>
 
@@ -371,67 +436,97 @@ export const HubModule: React.FC<HubModuleProps> = ({
             </span>
             <span className="hub-orb-obezna hub-orb-obezna--pred" />
           </div>
+
+          {/* Podstavec + jméno pod koulí — dřív koule stála sama,
+              bez popisku nebylo na první pohled jasné, co/kdo to je. */}
+          <div className="hub-orb-podstavec" aria-hidden="true" />
+          <div className="hub-orb-label">
+            <span className="hub-orb-jmeno">Buddy</span>
+            <span className="hub-orb-popis">Tvůj AI parťák</span>
+          </div>
         </section>
 
         {buddyOtevreny && <BuddyOverlay voice={buddyVoice} onZavrit={zavritBuddyho} />}
 
-        {/* Spodní mřížka (Apps, Play, Library) */}
+        {/* Spodní mřížka (Apps, Play, Library) — kulaté tlačítko se
+            šipkou v pravém dolním rohu každé dlaždice, celá dlaždice
+            zůstává klikatelná jako dřív, šipka je jen vizuální nápověda. */}
         <div className="hub-grid-squares">
           <button className="hub-btn-card hub-btn-square" onClick={handleAppsClick}>
-            <span className="hub-card-icon">🎛️</span>
+            <span className="hub-square-preview hub-square-preview--apps" aria-hidden="true">
+              <span>💬</span>
+              <span>📊</span>
+              <span>📝</span>
+              <span>⚡</span>
+            </span>
             <span className="hub-card-title">Apps</span>
             <span className="hub-card-sub">Tvé aplikace</span>
+            <span className="hub-square-arrow" aria-hidden="true">
+              <SocialIcon name="arrow-left" size={14} />
+            </span>
           </button>
 
-          <button className="hub-btn-card hub-btn-square" onClick={() => navigate('/hra')}>
-            <span className="hub-card-icon">🎮</span>
+          <button className="hub-btn-card hub-btn-square hub-btn-square--play" onClick={() => navigate('/hra')}>
+            <span className="hub-square-preview hub-square-preview--play" aria-hidden="true" />
             <span className="hub-card-title">Play</span>
             <span className="hub-card-sub">Buddyheim</span>
+            <span className="hub-square-arrow" aria-hidden="true">
+              <SocialIcon name="arrow-left" size={14} />
+            </span>
           </button>
 
           <button
             className="hub-btn-card hub-btn-square hub-btn-card--soon"
             onClick={() => showToast('Library se připravuje — materiály na ni teprve čekají.')}
           >
-            <span className="hub-card-icon">📚</span>
+            <span className="hub-square-preview hub-square-preview--library" aria-hidden="true">📚</span>
             <span className="hub-card-title">
               Library
               <span className="hub-badge-soon">BRZY</span>
             </span>
             <span className="hub-card-sub">Učení a materiály</span>
+            <span className="hub-square-arrow" aria-hidden="true">
+              <SocialIcon name="arrow-left" size={14} />
+            </span>
           </button>
         </div>
 
-        {/* Spodní lišta.
-            Hlasový režim se přesunul z prostředního tlačítka sem k ikoně —
-            prostřední místo zabral Social. Zvuky Buddyho se přestěhovaly
-            mezi ostatní přepínače do Nastavení. */}
-        <div className="hub-bottom-bar">
-          <button
-            className="hub-action-btn-icon"
-            aria-label="Hlasový režim"
-            onClick={onTalk ?? otevritBuddyho}
-          >
-            🎙️
+        {/* Spodní navigace — pět položek s ikonou a popiskem, prostřední
+            (Buddy) je vyvýšené kolečko, ne text jako zbytek. Dřív tu byl
+            mikrofon + Social tlačítko + nastavení; hlasový režim teď
+            vede přes tohle prostřední kolečko (stejná funkce, jen
+            vizuálně povýšená), "Chat" míří rovnou na záložku Chaty
+            v Socialu (?zalozka=chaty, viz SocialModule.tsx), "Social" na
+            jeho domovskou obrazovku. */}
+        <nav className="hub-bottom-nav">
+          <button className="hub-nav-item hub-nav-item--active" aria-current="page">
+            <SocialIcon name="home" size={20} />
+            <span>Home</span>
           </button>
 
-          <button className="hub-talk-btn" onClick={() => navigate('/social')}>
-            👥 SOCIAL
-            {/* Číslo čekajících zpráv. Bez něj se o nové zprávě uživatel
-                nedozvěděl, dokud Social sám neotevřel. */}
-            {neprectene > 0 && (
-              <span className="hub-talk-badge">{neprectene > 99 ? '99+' : neprectene}</span>
-            )}
+          <button className="hub-nav-item" onClick={() => navigate('/social')}>
+            <SocialIcon name="users" size={20} />
+            <span>Social</span>
           </button>
 
-          <button
-            className="hub-action-btn-icon"
-            aria-label="Nastavení"
-            onClick={onOpenSettings ?? (() => navigate('/nastaveni'))}
-          >
-            ⚙️
+          <button className="hub-nav-orb" aria-label="Promluvit s Buddym" onClick={onTalk ?? otevritBuddyho}>
+            <span className="hub-nav-orb-oko" />
+            <span className="hub-nav-orb-oko" />
           </button>
-        </div>
+
+          <button className="hub-nav-item" onClick={() => navigate('/social?zalozka=chaty')}>
+            <span className="hub-nav-icon-wrap">
+              <SocialIcon name="chat" size={20} />
+              {neprectene > 0 && <span className="hub-nav-dot" aria-hidden="true" />}
+            </span>
+            <span>Chat</span>
+          </button>
+
+          <button className="hub-nav-item" onClick={onOpenSettings ?? (() => navigate('/nastaveni'))}>
+            <SocialIcon name="settings" size={20} />
+            <span>Settings</span>
+          </button>
+        </nav>
       </div>
 
       {/* Panel pro zálohování a obnovu dat */}

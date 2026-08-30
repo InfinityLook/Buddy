@@ -23,7 +23,7 @@ import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
 import { setupErrorReporting } from '@/core/utils/errorReporting'
 import { startCloudSync } from '@/core/supabase/cloudSync'
-import { signOut, startAuthWatch, useAccount } from '@/core/supabase/auth'
+import { startAuthWatch, useAccount } from '@/core/supabase/auth'
 import { isSupabaseConfigured } from '@/core/supabase/client'
 import { useAuthStore } from '@/core/store/useAuthStore'
 import { setupRoleDevTools, startRoleSync, useHasPermission } from '@/core/role'
@@ -34,7 +34,7 @@ import { startLoginNotify } from '@/core/security/loginNotify'
 import { setupStudyPlannerReminders } from '@/miniapps/study-planner/useStudyPlanner'
 
 export default function App() {
-  const { isAuthed, login, logout } = useAuthStore()
+  const { isAuthed, login } = useAuthStore()
   const stavUctu = useAccount((s) => s.status)
   const { profile, updateSecurity } = useProfileData()
 
@@ -84,14 +84,6 @@ export default function App() {
   // uživateli s platným účtem by na okamžik probliknul a vypadalo by to
   // jako odhlášení.
   const cekaSeNaOdpoved = isSupabaseConfigured && stavUctu === 'loading'
-
-  // Odhlášení musí ukončit i relaci v Supabase. Kdyby se smazal jen
-  // místní příznak, relace by v prohlížeči zůstala a uživatel by se
-  // po obnovení stránky ocitl zase přihlášený.
-  const odhlasit = () => {
-    void signOut()
-    logout()
-  }
 
   // Registrace PWA aktualizací při načtení aplikace
   useEffect(() => {
@@ -167,7 +159,7 @@ export default function App() {
             path="/hub"
             element={
               dovnitr ? (
-                <Hub onLogout={odhlasit} />
+                <Hub />
               ) : (
                 <Navigate to="/" replace />
               )

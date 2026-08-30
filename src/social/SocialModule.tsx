@@ -59,7 +59,16 @@ export const SocialModule: React.FC = () => {
   const stav = useSocial()
   const tajnyStav = useTajnyChat()
 
-  const [zalozka, setZalozka] = useState<Zalozka>('domu')
+  // Výchozí záložka jde přebít parametrem v URL (?zalozka=chaty) — stejný
+  // vzor jako AppModule.tsx's ?kategorie=, jen tady si tak appka od
+  // Hubu vyžádá rovnou Chaty místo domovské obrazovky Social's vlastní
+  // "Chat" tlačítko dole. Čte se jen jednou při mountu (useState's
+  // inicializátor), ne živě — jinak by přepsání "zalozka" v adrese za
+  // běhu appku uprostřed používání přehodilo na jinou záložku.
+  const [zalozka, setZalozka] = useState<Zalozka>(() => {
+    const z = searchParams.get('zalozka')
+    return z === 'chaty' || z === 'vyhledavac' || z === 'nastaveni' ? z : 'domu'
+  })
   const [otevrenyChat, setOtevrenyChat] = useState<string | null>(null)
   const [otevrenyTajnyChat, setOtevrenyTajnyChat] = useState<string | null>(null)
   // Dialog s profilem se otevírá nad čímkoli jiným (seznam, chat) —
