@@ -356,7 +356,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
             jako Social's vlastní seznamy (.social-nastaveni-sipka). */}
         <div className="hub-grid-top">
           <button className="hub-btn-card" onClick={handleProfileClick}>
-            <span className="hub-card-icon hub-card-icon--blue">👤</span>
+            <span className="hub-card-icon hub-card-icon--blue">
+              <SocialIcon name="user" size={24} />
+            </span>
             <span className="hub-card-text">
               <span className="hub-card-title">Profil</span>
               <span className="hub-card-sub">Tvůj účet</span>
@@ -365,7 +367,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </button>
 
           <button className="hub-btn-card" onClick={() => navigate('/obchod')}>
-            <span className="hub-card-icon hub-card-icon--magenta">🛍️</span>
+            <span className="hub-card-icon hub-card-icon--magenta">
+              <SocialIcon name="bag" size={24} />
+            </span>
             <span className="hub-card-text">
               <span className="hub-card-title">Shop</span>
               {/* Dokud nejsou platby, ať dlaždice neslibuje nákup */}
@@ -375,7 +379,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </button>
 
           <button className="hub-btn-card" onClick={handleRewardsClick}>
-            <span className="hub-card-icon hub-card-icon--purple">🎁</span>
+            <span className="hub-card-icon hub-card-icon--purple">
+              <SocialIcon name="gift" size={24} />
+            </span>
             <span className="hub-card-text">
               <span className="hub-card-title">Rewards</span>
               <span className="hub-card-sub">
@@ -392,7 +398,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </button>
 
           <button className="hub-btn-card" onClick={() => setCloudOpen(true)}>
-            <span className="hub-card-icon hub-card-icon--cyan">☁️</span>
+            <span className="hub-card-icon hub-card-icon--cyan">
+              <SocialIcon name="cloud" size={24} />
+            </span>
             <span className="hub-card-text">
               <span className="hub-card-title">Cloud</span>
               <span className="hub-card-sub">Uložená data</span>
@@ -429,9 +437,20 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <span className="hub-orb-vlna" />
             <span className="hub-orb-vlna hub-orb-vlna--druha" />
             <span className="hub-orb-obezna hub-orb-obezna--zad" />
+            {/* "Ušní" boule po stranách — spolu s očima/úsměvem dole dělají
+                z koule přátelskou robotí tvář, ne jen abstraktní kouli. */}
+            <span className="hub-orb-ucho hub-orb-ucho--leve" aria-hidden="true" />
+            <span className="hub-orb-ucho hub-orb-ucho--prave" aria-hidden="true" />
             <span className="hub-orb-prstenec" />
             <span className="hub-orb-jadro">
               <span className="hub-orb-plazma" />
+              {/* Tvář — stejný pár "očí" jako u malé koule v dolní liště
+                  (hub-nav-orb-oko), jen větší a s úsměvem navíc. */}
+              <svg className="hub-orb-tvar" viewBox="0 0 100 100" aria-hidden="true">
+                <ellipse className="hub-orb-oko" cx="34" cy="42" rx="7" ry="11" />
+                <ellipse className="hub-orb-oko" cx="66" cy="42" rx="7" ry="11" />
+                <path className="hub-orb-usmev" d="M39 63 Q50 72 61 63" />
+              </svg>
               <span className="hub-orb-lesk" />
             </span>
             <span className="hub-orb-obezna hub-orb-obezna--pred" />
@@ -453,24 +472,30 @@ export const HubModule: React.FC<HubModuleProps> = ({
             zůstává klikatelná jako dřív, šipka je jen vizuální nápověda. */}
         <div className="hub-grid-squares">
           <button className="hub-btn-card hub-btn-square" onClick={handleAppsClick}>
+            <span className="hub-square-head">
+              <SocialIcon name="grid" size={17} className="hub-square-icon hub-square-icon--cyan" />
+              <span className="hub-card-title">Apps</span>
+            </span>
             <span className="hub-square-preview hub-square-preview--apps" aria-hidden="true">
               <span>💬</span>
               <span>📊</span>
               <span>📝</span>
               <span>⚡</span>
             </span>
-            <span className="hub-card-title">Apps</span>
             <span className="hub-card-sub">Tvé aplikace</span>
-            <span className="hub-square-arrow" aria-hidden="true">
+            <span className="hub-square-arrow hub-square-arrow--cyan" aria-hidden="true">
               <SocialIcon name="arrow-left" size={14} />
             </span>
           </button>
 
           <button className="hub-btn-card hub-btn-square hub-btn-square--play" onClick={() => navigate('/hra')}>
+            <span className="hub-square-head">
+              <SocialIcon name="gamepad" size={17} className="hub-square-icon hub-square-icon--purple" />
+              <span className="hub-card-title">Play</span>
+            </span>
             <span className="hub-square-preview hub-square-preview--play" aria-hidden="true" />
-            <span className="hub-card-title">Play</span>
             <span className="hub-card-sub">Buddyheim</span>
-            <span className="hub-square-arrow" aria-hidden="true">
+            <span className="hub-square-arrow hub-square-arrow--purple" aria-hidden="true">
               <SocialIcon name="arrow-left" size={14} />
             </span>
           </button>
@@ -479,13 +504,16 @@ export const HubModule: React.FC<HubModuleProps> = ({
             className="hub-btn-card hub-btn-square hub-btn-card--soon"
             onClick={() => showToast('Library se připravuje — materiály na ni teprve čekají.')}
           >
-            <span className="hub-square-preview hub-square-preview--library" aria-hidden="true">📚</span>
-            <span className="hub-card-title">
-              Library
-              <span className="hub-badge-soon">BRZY</span>
+            <span className="hub-square-head">
+              <SocialIcon name="book" size={17} className="hub-square-icon hub-square-icon--blue" />
+              <span className="hub-card-title">
+                Library
+                <span className="hub-badge-soon">BRZY</span>
+              </span>
             </span>
+            <span className="hub-square-preview hub-square-preview--library" aria-hidden="true">📚</span>
             <span className="hub-card-sub">Učení a materiály</span>
-            <span className="hub-square-arrow" aria-hidden="true">
+            <span className="hub-square-arrow hub-square-arrow--blue" aria-hidden="true">
               <SocialIcon name="arrow-left" size={14} />
             </span>
           </button>

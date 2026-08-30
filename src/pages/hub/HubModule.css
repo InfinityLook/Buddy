@@ -412,10 +412,10 @@
   transform: translateY(-2px);
 }
 
-/* Barevný odznak ikony — appka schválně nechává emoji jako ikonu
-   (appka je používá napříč celým rozhraním, ne jen tady), jen ho
-   zasadí do barevného zaobleného čtverce, ať karty rozliší na první
-   pohled i bez čtení textu. */
+/* Ikona karty — obrys, žádný barevný podklad. Dřív tu bylo emoji
+   v barevném zaobleném čtverci; skutečná ikona (SocialIcon) v barvě
+   dlaždice čte stejně jasně a bez rámečku působí lehčeji, blíž
+   referenčnímu návrhu. */
 .hub-card-icon {
   flex-shrink: 0;
   width: 42px;
@@ -423,28 +423,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.35rem;
-  border-radius: var(--radius-md);
 }
 
 .hub-card-icon--blue {
-  background: rgba(53, 196, 240, 0.16);
-  border: 1px solid rgba(53, 196, 240, 0.35);
+  color: var(--accent-cyan);
 }
 
 .hub-card-icon--magenta {
-  background: rgba(236, 72, 153, 0.16);
-  border: 1px solid rgba(236, 72, 153, 0.35);
+  color: var(--accent-magenta);
 }
 
 .hub-card-icon--purple {
-  background: rgba(138, 92, 246, 0.16);
-  border: 1px solid rgba(138, 92, 246, 0.35);
+  color: var(--accent-violet);
 }
 
 .hub-card-icon--cyan {
-  background: rgba(53, 196, 240, 0.16);
-  border: 1px solid rgba(53, 196, 240, 0.35);
+  color: var(--accent-cyan);
 }
 
 .hub-card-text {
@@ -499,19 +493,18 @@
   transform: rotate(180deg);
 }
 
-/* Čtvercové karty (Apps, Play, Library) */
+/* Čtvercové karty (Apps, Play, Library) — hlavička (ikona + titulek)
+   nahoře, náhled pod ní vyplňuje zbytek karty, popisek úplně dole.
+   Dřív šel náhled první a titulek se tiskl až na jeho spodní okraj;
+   tenhle pořadí sedí referenčnímu návrhu líp — hlavička nikdy
+   nekoliduje s kulatým tlačítkem, protože to sedí až dole. */
 .hub-btn-square {
   flex-direction: column;
   align-items: stretch;
-  justify-content: flex-end;
+  justify-content: flex-start;
   text-align: left;
   gap: 0.2rem;
-  padding: 0.7rem;
-  /* Vpravo víc místa než na ostatních stranách — kulaté tlačítko se
-     šipkou (.hub-square-arrow) je position: absolute a nezabírá si
-     v layoutu žádné místo samo, takže bez týhle rezervy se mu titulek
-     s odznakem BRZY (Library) dostal do cesty a schoval se za něj. */
-  padding-right: 2.3rem;
+  padding: 0.65rem;
   min-height: 132px;
   border-color: rgba(138, 92, 246, 0.32);
   overflow: hidden;
@@ -521,12 +514,31 @@
   border-color: rgba(138, 92, 246, 0.65);
 }
 
+.hub-square-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.hub-square-icon {
+  flex-shrink: 0;
+}
+
+.hub-square-icon--cyan { color: var(--accent-cyan); }
+.hub-square-icon--purple { color: var(--accent-violet); }
+.hub-square-icon--blue { color: var(--accent-cyan); }
+
 .hub-btn-square .hub-card-title {
   font-size: 0.85rem;
 }
 
 .hub-btn-square .hub-card-sub {
   font-size: 0.62rem;
+  /* Kulaté tlačítko se šipkou (.hub-square-arrow) sedí dole vpravo
+     a v layoutu si samo nezabírá místo (position: absolute) — bez
+     týhle rezervy by se pod něj delší popisek (Library) zalomil. */
+  padding-right: 1.7rem;
 }
 
 /* Náhled uvnitř dlaždice — appka jich má tři různé podoby, jedna na
@@ -576,20 +588,35 @@
 /* Kulaté tlačítko se šipkou v rohu dlaždice — vizuální nápověda "vede
    to dál", stejná arrow-left/180° šipka jako u .hub-card-arrow výš.
    Celá dlaždice zůstává klikatelná, tohle jen kreslí to samé gesto,
-   jaké appka jinde dělá textem/šipkou v řádku. */
+   jaké appka jinde dělá textem/šipkou v řádku. Obrysový prstenec, ne
+   plná barevná skvrna — barva se mění podle dlaždice (viz varianty
+   níž), stejná paleta jako .hub-square-icon nad ním. */
 .hub-square-arrow {
   position: absolute;
-  right: 0.6rem;
-  bottom: 0.6rem;
-  width: 26px;
-  height: 26px;
+  right: 0.55rem;
+  bottom: 0.55rem;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-on-accent);
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  background: rgba(8, 12, 26, 0.78);
+  border: 1.5px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  box-shadow: 0 0 12px rgba(53, 196, 240, 0.4);
+  backdrop-filter: blur(6px);
+}
+
+.hub-square-arrow--purple {
+  border-color: var(--accent-violet);
+  color: var(--accent-violet);
+  box-shadow: 0 0 12px rgba(138, 92, 246, 0.4);
+}
+
+.hub-square-arrow--blue {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
 }
 
 .hub-square-arrow svg {
@@ -613,10 +640,21 @@
   align-items: center;
   justify-content: center;
   flex: 1 1 auto;
-  /* Sekce se smí zmenšit pod velikost obsahu — bez toho by vytlačila
-     spodní lištu z obrazovky, stejná past jako u maskota. Kruh si sám
-     hlídá, aby úplně nezmizel (min-height níž). */
-  min-height: 0;
+  /* Sekce smí zmenšit kouli až na jejích 96px (viz .hub-orb min-height
+     níž), ale ne dál — `min-height: 0` tu dřív dovolovalo zmenšit CELOU
+     sekci pod součet toho, co koule + podstavec + popisek doopravdy
+     potřebují. Na krátkém displeji (reálný telefon, víc systémového UI
+     než výchozí testovací viewport) si pak `.hub-orb`'s vlastní
+     min-height 96px vynutilo víc místa, než sekce měla, a přebytek
+     (overflow je tu ve výchozím `visible`) se vykreslil přes sousední
+     karty místo do nich — koule přes Rewards/Cloud nahoře, popisek
+     "Buddy"/"Tvůj AI parťák" zmizel pod řadou Apps/Play/Library, přesně
+     bug nahlášený z reálného zařízení. Číslo níž je skutečné minimum
+     (96px koule + ~6px podstavec + ~40px dvouřádkový popisek): když se
+     ani tohle nevejde, `.hub-container`'s vlastní `overflow-y: auto`
+     přebere štafetu a appka se čestně doroluje, ne přeloží obsah přes
+     sebe. */
+  min-height: 150px;
   margin: 0.15rem 0;
 }
 
@@ -879,6 +917,47 @@
   filter: blur(2px);
 }
 
+/* Tvář — oči + úsměv nad jádrem, stejný pár "očí" jako u malé koule
+   v dolní liště (.hub-nav-orb-oko), jen kreslené jako SVG (přesnější
+   tvar úsměvu než CSS trik) a společně s .hub-orb-ucho níž dělá
+   z koule přátelskou robotí tvář, ne jen abstraktní svítící kouli. */
+.hub-orb-tvar {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.hub-orb-oko {
+  fill: #bdf3ff;
+  filter: drop-shadow(0 0 6px rgba(53, 196, 240, 0.85));
+}
+
+.hub-orb-usmev {
+  fill: none;
+  stroke: #bdf3ff;
+  stroke-width: 4;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 4px rgba(53, 196, 240, 0.7));
+}
+
+/* "Ušní" boule po stranách prstence — malé svítící elipsy, ne obrázek
+   navíc. Umístěné na .hub-orb (ne na .hub-orb-jadro), ať zůstanou
+   u vnějšího okraje bez ohledu na to, jak je jádro zmenšené inset. */
+.hub-orb-ucho {
+  position: absolute;
+  top: 50%;
+  width: 13%;
+  height: 32%;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(53, 196, 240, 0.55), rgba(138, 92, 246, 0.45));
+  box-shadow: 0 0 12px rgba(53, 196, 240, 0.4);
+}
+
+.hub-orb-ucho--leve { left: -3%; }
+.hub-orb-ucho--prave { right: -3%; }
+
 /* Podstavec pod koulí — plochá zářící elipsa, čistě CSS (žádný obrázek
    navíc), a jméno appky s podtitulem pod ní. Appka je dřív nechávala
    koule mluvit samu za sebe; bez popisku ale nebylo na první pohled
@@ -890,6 +969,12 @@
   border-radius: 50%;
   background: radial-gradient(ellipse at center, rgba(53, 196, 240, 0.4) 0%, transparent 72%);
   filter: blur(2px);
+  /* Nesmí se zmenšit pod svou (drobnou) velikost, i když .hub-orb-section
+     nemá dost místa pro plnou výšku koule nahoře — jinak by se spolu
+     s popiskem níž zatlačil pod dlaždice Apps/Play/Library a appka by
+     ho tam vykreslila přes ně (position přebité pořadím v dokumentu),
+     přesně bug nahlášený na reálném telefonu s kratší výškou displeje. */
+  flex-shrink: 0;
 }
 
 .hub-orb-label {
@@ -899,6 +984,7 @@
   gap: 0.1rem;
   margin-top: 0.3rem;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .hub-orb-jmeno {
