@@ -214,13 +214,22 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
                 nesleduju, ale kdo mě neblokoval, zaloz_chat na databázi
                 jen vznikne jako žádost o zprávu místo rovnou otevřeného
                 chatu (viz otevritChat v api.ts), místo aby appka psaní
-                dopředu odmítla. Blokovaná dvojice ho stejně nezaloží. */}
+                dopředu odmítla. Blokovaná dvojice ho stejně nezaloží.
+
+                stav.obnovit() PŘED onOtevritChat je nutné, ne kosmetika:
+                SocialModule.tsx hledá otevřený chat přes
+                stav.chaty.find(...), a nově založený/nalezený chat v tom
+                poli ještě není — bez obnovení appka nastaví otevrenyChat
+                na id, které se nikde nenajde, "chat" vyjde null a appka
+                tiše spadne zpátky na výchozí záložku (Domů), místo aby
+                otevřela rozhovor. */}
             {!jeZablokovany && (
               <button
                 className="social-btn"
                 onClick={async () => {
                   const v = await api.otevritChat(userId)
                   if (v.ok && v.chatId) {
+                    await stav.obnovit()
                     onZavrit()
                     onOtevritChat(v.chatId)
                   } else {

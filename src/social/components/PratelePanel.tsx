@@ -78,8 +78,16 @@ export const PratelePanel: React.FC<Props> = ({ stav, onOtevritChat, onOtevritPr
                 aria-label={`Napsat ${p.profil.displayName}`}
                 onClick={async () => {
                   const v = await api.otevritChat(p.profil.id)
-                  if (v.ok && v.chatId) onOtevritChat(v.chatId)
-                  else stav.rekni(v.chyba ?? 'Chat se nepovedlo otevřít.')
+                  if (v.ok && v.chatId) {
+                    // stav.obnovit() nutné před onOtevritChat — appka
+                    // hledá otevřený chat v stav.chaty, nově založený/
+                    // nalezený chat v něm ještě není (viz stejná oprava
+                    // ve VerejnyProfilDialog.tsx).
+                    await stav.obnovit()
+                    onOtevritChat(v.chatId)
+                  } else {
+                    stav.rekni(v.chyba ?? 'Chat se nepovedlo otevřít.')
+                  }
                 }}
               >
                 <SocialIcon name="chat" size={16} />
