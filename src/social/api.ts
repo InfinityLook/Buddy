@@ -2173,6 +2173,36 @@ export const nactiFeed = async (kurzor?: string): Promise<Prispevek[]> => {
   ).map((r) => prispevekZRadku(klient, r))
 }
 
+/**
+ * Hledání příspěvků podle hashtagu — appka do `post_hashtags` nikdy
+ * nesahá přímo (žádná RLS politika na tabulce, jen tenhle
+ * SECURITY DEFINER dotaz), a je jedno, jestli `#` na začátku dotazu
+ * uživatel napsal, nebo ne (hledej_podle_hashtagu si ho sama ořízne).
+ * Stejná viditelnost jako u nacti_prispevky/nacti_feed — soukromý účet
+ * schová hashtag stejně, jako schovává celou mřížku.
+ */
+export const hledejPodleHashtagu = async (dotaz: string): Promise<Prispevek[]> => {
+  if (!supabase) return []
+  if (dotaz.replace(/^#/, '').trim().length < 2) return []
+
+  const { data, error } = await supabase.rpc('hledej_podle_hashtagu', { dotaz })
+  if (error || !data) return []
+
+  const klient = supabase
+  return (
+    data as {
+      id: string
+      user_id: string
+      media_path: string
+      media_type: 'image' | 'video'
+      caption: string | null
+      created_at: string
+      dalsi_media: { media_path: string; media_type: 'image' | 'video' }[]
+      edited_at: string | null
+    }[]
+  ).map((r) => prispevekZRadku(klient, r))
+}
+
 // ==========================================
 // Lajky a komentáře — viz types.ts's VztahKPrispevku/Komentar. Plain
 // tabulky (`post_likes`/`post_comments`), ne řízené funkce jako u

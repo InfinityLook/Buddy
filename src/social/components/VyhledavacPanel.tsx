@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
+import { PrispevekProhlizec } from './PrispevekProhlizec'
 import * as api from '../api'
 import type { SocialStav } from '../useSocial'
-import type { PratelskyNavrh, SocialProfil } from '../types'
+import type { PratelskyNavrh, Prispevek, SocialProfil } from '../types'
 
 interface Props {
   stav: SocialStav
@@ -26,6 +27,16 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
   const [hledano, setHledano] = useState(false)
   const [navrhy, setNavrhy] = useState<PratelskyNavrh[]>([])
 
+  // Dotaz začínající "#" hledá příspěvky podle hashtagu, ne lidi podle
+  // jména — appka to pozná ze samotného znaku, žádný přepínač navíc.
+  // hledanoHashtag je zamrzlý na chvíli odeslání, ne živě odvozený z
+  // dotaz — jinak by přepsání textu po odeslání (ještě než uživatel
+  // klikne znovu) přehodilo, jaké výsledky se vlastně ukazují.
+  const [hashtagVysledky, setHashtagVysledky] = useState<Prispevek[]>([])
+  const [hledanoHashtag, setHledanoHashtag] = useState(false)
+  const [otevrenyPrispevek, setOtevrenyPrispevek] = useState<Prispevek | null>(null)
+  const jeHashtag = dotaz.trim().startsWith('#')
+
   const prichozi = stav.zadosti.filter((z) => z.smer === 'prichozi')
   const odchozi = stav.zadosti.filter((z) => z.smer === 'odchozi')
 
@@ -40,13 +51,26 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
     }
   }, [stav.pratele, stav.zadosti])
 
-  const hledatLidi = async (e: React.FormEvent) => {
+  const hledat = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (dotaz.trim().length < 2) return
+    const orezany = dotaz.trim()
 
+    if (jeHashtag) {
+      if (orezany.replace(/^#/, '').length < 2) return
+      setHleda(true)
+      const vysledek = await api.hledejPodleHashtagu(orezany)
+      setHashtagVysledky(vysledek)
+      setHledanoHashtag(true)
+      setHledano(true)
+      setHleda(false)
+      return
+    }
+
+    if (orezany.length < 2) return
     setHleda(true)
-    const vysledek = await api.hledejPodleJmena(dotaz)
+    const vysledek = await api.hledejPodleJmena(orezany)
     setVysledky(vysledek)
+    setHledanoHashtag(false)
     setHledano(true)
     setHleda(false)
   }
@@ -77,13 +101,15 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
 
   return (
     <div className="social-panel">
-      {/* Najít lidi podle jména */}
+      {/* Najít lidi podle jména, nebo příspěvky podle #hashtagu — appka
+          pozná, co uživatel chce, ze samotného "#" na začátku, žádný
+          přepínač navíc. */}
       <section className="social-card">
-        <span className="social-card-label">NAJÍT LIDI</span>
-        <form className="social-add-row" onSubmit={hledatLidi}>
+        <span className="social-card-label">NAJÍT LIDI NEBO #HASHTAG</span>
+        <form className="social-add-row" onSubmit={hledat}>
           <input
             className="social-input"
-            placeholder="Jméno…"
+            placeholder="Jméno nebo #hashtag…"
             value={dotaz}
             maxLength={40}
             onChange={(e) => {
@@ -91,27 +117,57 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
               setHledano(false)
             }}
           />
-          <button className="social-btn" type="submit" disabled={hleda || dotaz.trim().length < 2}>
+          <button
+            className="social-btn"
+            type="submit"
+            disabled={hleda || dotaz.trim().replace(/^#/, '').length < 2}
+          >
             {hleda ? '…' : 'Hledat'}
           </button>
         </form>
 
-        {hledano && vysledky.length === 0 && (
+        {hledano && hledanoHashtag && hashtagVysledky.length === 0 && (
+          <p className="social-empty-note">Žádné příspěvky s tímhle hashtagem jsme nenašli.</p>
+        )}
+
+        {hledano && hledanoHashtag && hashtagVysledky.length > 0 && (
+          <div className="social-prispevky-mrizka">
+            {hashtagVysledky.map((p) => (
+              <button key={p.id} className="social-prispevek-dlazdice" onClick={() => setOtevrenyPrispevek(p)}>
+                {p.mediaType === 'video' ? (
+                  <video src={p.mediaUrl} muted playsInline />
+                ) : (
+                  <img src={p.mediaUrl} alt="" />
+                )}
+                {p.dalsiMedia.length > 0 ? (
+                  <span className="social-prispevek-karusel-znacka">
+                    <SocialIcon name="layers" size={13} />
+                  </span>
+                ) : (
+                  p.mediaType === 'video' && <span className="social-prispevek-video-znacka">▶</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {hledano && !hledanoHashtag && vysledky.length === 0 && (
           <p className="social-empty-note">Nikoho takového jsme nenašli.</p>
         )}
 
-        {vysledky.map((profil) => (
-          <div key={profil.id} className="social-row">
-            <button className="social-row-otevrit" onClick={() => onOtevritProfil(profil.id)}>
-              <SocialAvatar id={profil.id} jmeno={profil.displayName} avatarUrl={profil.avatarUrl} />
-              <span className="social-row-name">{profil.displayName}</span>
-            </button>
-            <button className="social-btn social-btn--small" onClick={() => sledovat(profil)}>
-              <SocialIcon name="plus" size={14} />
-              Sledovat
-            </button>
-          </div>
-        ))}
+        {!hledanoHashtag &&
+          vysledky.map((profil) => (
+            <div key={profil.id} className="social-row">
+              <button className="social-row-otevrit" onClick={() => onOtevritProfil(profil.id)}>
+                <SocialAvatar id={profil.id} jmeno={profil.displayName} avatarUrl={profil.avatarUrl} />
+                <span className="social-row-name">{profil.displayName}</span>
+              </button>
+              <button className="social-btn social-btn--small" onClick={() => sledovat(profil)}>
+                <SocialIcon name="plus" size={14} />
+                Sledovat
+              </button>
+            </div>
+          ))}
       </section>
 
       {/* Návrhy podle společných přátel — navrhy_pratel() na databázi
@@ -193,8 +249,22 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
 
       {prichozi.length === 0 && odchozi.length === 0 && navrhy.length === 0 && !hledano && (
         <p className="social-empty-note social-empty-note--stred">
-          Napiš jméno a najdi lidi, se kterými se chceš spojit.
+          Napiš jméno a najdi lidi, se kterými se chceš spojit — nebo #hashtag a najdi jejich příspěvky.
         </p>
+      )}
+
+      {otevrenyPrispevek && (
+        <PrispevekProhlizec
+          prispevek={otevrenyPrispevek}
+          jeMoje={otevrenyPrispevek.autorId === stav.mujId}
+          mujId={stav.mujId}
+          stav={stav}
+          onZavrit={() => setOtevrenyPrispevek(null)}
+          onSmazano={() => {
+            setOtevrenyPrispevek(null)
+            setHashtagVysledky((v) => v.filter((p) => p.id !== otevrenyPrispevek.id))
+          }}
+        />
       )}
     </div>
   )
