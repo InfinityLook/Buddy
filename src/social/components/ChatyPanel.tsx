@@ -1,15 +1,21 @@
 import React, { useMemo, useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
+import { TajnyChatPanel } from './TajnyChatPanel'
 import * as api from '../api'
 import { useOnlineFriends } from '../presence'
 import { normalizeText } from '@/core/utils/text'
 import type { SocialStav } from '../useSocial'
+import type { TajnyChatStav } from '../useTajnyChat'
 
 interface Props {
   stav: SocialStav
+  tajnyStav: TajnyChatStav
   onOtevritChat: (chatId: string) => void
+  onOtevritTajnyChat: (chatId: string) => void
 }
+
+type Volba = 'chat' | 'skupina' | 'tajne'
 
 const casKratce = (iso: string | null): string => {
   if (!iso) return ''
@@ -31,10 +37,23 @@ const casKratce = (iso: string | null): string => {
     : kdy.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })
 }
 
-export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
-  const [zakladaSkupinu, setZakladaSkupinu] = useState(false)
+/**
+ * Chaty — seznam rozhovorů a "+ Nový" nad ním. Dřív tu bylo natvrdo jen
+ * založení skupiny; teď je to rozcestník na tři různé začátky
+ * konverzace (Chat/Skupina/Tajný chat), stejný mentální model jako
+ * "nová zpráva" tužka v Messengeru/Instagramu — appka totiž dřív
+ * neměla žádnou přímou cestu, jak založit 1:1 chat odsud, jen z cizího
+ * profilu ("Napsat"). Tajný chat sem přibyl z Nastavení — založit/
+ * otevřít ho je akce, ne nastavení, a patří vedle ostatních "začni
+ * konverzaci" voleb, ne pod ozubené kolo (viz i NastaveniPanel.tsx's
+ * vlastní komentář k tomu, proč tam předtím byl).
+ */
+export const ChatyPanel: React.FC<Props> = ({ stav, tajnyStav, onOtevritChat, onOtevritTajnyChat }) => {
+  const [menu, setMenu] = useState(false)
+  const [volba, setVolba] = useState<Volba | null>(null)
   const [nazev, setNazev] = useState('')
   const [vybrani, setVybrani] = useState<string[]>([])
+  const [zakladaChat, setZakladaChat] = useState(false)
   const [hledatChaty, setHledatChaty] = useState('')
   const online = useOnlineFriends()
 
@@ -57,16 +76,21 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
     )
   }, [bezneChaty, hledatChaty])
 
+  const zavritMenu = () => {
+    setMenu(false)
+    setVolba(null)
+    setNazev('')
+    setVybrani([])
+  }
+
   const prepnout = (id: string) =>
     setVybrani((v) => (v.includes(id) ? v.filter((x) => x !== id) : [...v, id]))
 
-  const zalozit = async () => {
+  const zalozitSkupinu = async () => {
     const v = await api.zalozitChat(vybrani, true, nazev.trim() || 'Skupina')
 
     if (v.ok && v.chatId) {
-      setZakladaSkupinu(false)
-      setNazev('')
-      setVybrani([])
+      zavritMenu()
       await stav.obnovit()
       onOtevritChat(v.chatId)
     } else {
@@ -74,21 +98,100 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
     }
   }
 
+  const zacitChat = async (prijemceId: string) => {
+    if (zakladaChat) return
+    setZakladaChat(true)
+    const v = await api.otevritChat(prijemceId)
+    setZakladaChat(false)
+
+    if (v.ok && v.chatId) {
+      zavritMenu()
+      await stav.obnovit()
+      onOtevritChat(v.chatId)
+    } else {
+      stav.rekni(v.chyba ?? 'Chat se nepovedlo otevřít.')
+    }
+  }
+
+  // Tajný chat je celý vlastní panel (založení + tři seznamy podle
+  // stavu pozvánky), ne formulář, co by se vešel do jedné karty jako
+  // Chat/Skupina výš — appka proto místo vnořeného formuláře přepne
+  // celý obsah záložky, stejný "menu → sekce s vlastním tlačítkem
+  // zpět" vzor jako NastaveniPanel.tsx.
+  if (volba === 'tajne') {
+    return (
+      <div className="social-panel">
+        <button className="social-back-btn" onClick={zavritMenu}>
+          ← Zpět do chatů
+        </button>
+        <TajnyChatPanel tajnyStav={tajnyStav} rekni={stav.rekni} onOtevrit={onOtevritTajnyChat} />
+      </div>
+    )
+  }
+
   return (
     <div className="social-panel">
       <section className="social-card">
         <div className="social-card-head">
-          <span className="social-card-label">SKUPINA</span>
+          <span className="social-card-label">NOVÁ KONVERZACE</span>
           <button
             className="social-btn social-btn--small"
-            onClick={() => setZakladaSkupinu((z) => !z)}
+            onClick={() => (menu ? zavritMenu() : setMenu(true))}
           >
-            <SocialIcon name={zakladaSkupinu ? 'x' : 'plus'} size={14} />
-            {zakladaSkupinu ? 'Zrušit' : 'Založit'}
+            <SocialIcon name={menu ? 'x' : 'plus'} size={14} />
+            {menu ? 'Zrušit' : 'Nový'}
+            {!menu && tajnyStav.cekajiciNaMe > 0 && (
+              <span className="social-odznak">{tajnyStav.cekajiciNaMe}</span>
+            )}
           </button>
         </div>
 
-        {zakladaSkupinu && (
+        {menu && volba === null && (
+          <div className="social-nova-volba-radek">
+            <button className="social-nova-volba" onClick={() => setVolba('chat')}>
+              <SocialIcon name="chat" size={18} />
+              Chat
+            </button>
+            <button className="social-nova-volba" onClick={() => setVolba('skupina')}>
+              <SocialIcon name="users" size={18} />
+              Skupina
+            </button>
+            {tajnyStav.smim && (
+              <button className="social-nova-volba" onClick={() => setVolba('tajne')}>
+                <SocialIcon name="lock" size={18} />
+                Tajný chat
+                {tajnyStav.cekajiciNaMe > 0 && (
+                  <span className="social-odznak">{tajnyStav.cekajiciNaMe}</span>
+                )}
+              </button>
+            )}
+          </div>
+        )}
+
+        {menu && volba === 'chat' && (
+          <>
+            {stav.pratele.length === 0 ? (
+              <p className="social-empty-note">Nejdřív si přidej někoho mezi přátele.</p>
+            ) : (
+              <>
+                <p className="social-hint">Komu napíšeš?</p>
+                {stav.pratele.map((p) => (
+                  <button
+                    key={p.profil.id}
+                    className="social-row social-row--volba"
+                    disabled={zakladaChat}
+                    onClick={() => zacitChat(p.profil.id)}
+                  >
+                    <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} avatarUrl={p.profil.avatarUrl} />
+                    <span className="social-row-name">{p.profil.displayName}</span>
+                  </button>
+                ))}
+              </>
+            )}
+          </>
+        )}
+
+        {menu && volba === 'skupina' && (
           <>
             <input
               className="social-input social-input--full"
@@ -123,7 +226,7 @@ export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
                 <button
                   className="social-btn social-btn--full"
                   disabled={vybrani.length === 0}
-                  onClick={zalozit}
+                  onClick={zalozitSkupinu}
                 >
                   Založit skupinu ({vybrani.length})
                 </button>

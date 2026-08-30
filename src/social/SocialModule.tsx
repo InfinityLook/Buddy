@@ -175,18 +175,19 @@ export const SocialModule: React.FC = () => {
             <p className="social-empty-note social-empty-note--stred">Načítám…</p>
           ) : (
             <>
-              {zalozka === 'chaty' && <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />}
+              {zalozka === 'chaty' && (
+                <ChatyPanel
+                  stav={stav}
+                  tajnyStav={tajnyStav}
+                  onOtevritChat={setOtevrenyChat}
+                  onOtevritTajnyChat={setOtevrenyTajnyChat}
+                />
+              )}
               {zalozka === 'domu' && <DomuPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />}
               {zalozka === 'vyhledavac' && (
                 <VyhledavacPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />
               )}
-              {zalozka === 'nastaveni' && (
-                <NastaveniPanel
-                  stav={stav}
-                  tajnyStav={tajnyStav}
-                  onOtevritTajnyChat={setOtevrenyTajnyChat}
-                />
-              )}
+              {zalozka === 'nastaveni' && <NastaveniPanel stav={stav} />}
             </>
           )}
 
@@ -209,14 +210,17 @@ export const SocialModule: React.FC = () => {
             </button>
 
             {ZALOZKY.map((z) => {
+              // Tajný chat teď žije pod "+ Nový" v Chatech (ChatyPanel.tsx),
+              // ne v Nastavení — čekající pozvánka se proto pro rychlý
+              // pohled zvenčí sčítá do stejného odznaku jako nepřečtené
+              // zprávy, ne že by zůstala neviditelná, dokud uživatel
+              // Chaty sám neotevře.
               const odznak =
                 z.id === 'vyhledavac'
                   ? cekaZadosti
                   : z.id === 'chaty'
-                    ? neprectene
-                    : z.id === 'nastaveni'
-                      ? tajnyStav.cekajiciNaMe
-                      : 0
+                    ? neprectene + tajnyStav.cekajiciNaMe
+                    : 0
 
               return (
                 <button

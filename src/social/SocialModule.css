@@ -186,6 +186,42 @@
   font-weight: 700;
 }
 
+/* "+ Nový" v Chatech (ChatyPanel.tsx) — rozcestník na Chat/Skupinu/
+   Tajný chat, tři stejně velké dlaždice vedle sebe, ne seznam řádků
+   jako .social-nastaveni-radek (tady se vybírá jednou, ne prochází
+   menu opakovaně). */
+.social-nova-volba-radek {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.social-nova-volba {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem 0.4rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-panel-raised);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.social-nova-volba:active { transform: scale(0.97); }
+
+.social-nova-volba .social-odznak {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+}
+
 .social-hint {
   margin: 0;
   font-size: 0.65rem;
