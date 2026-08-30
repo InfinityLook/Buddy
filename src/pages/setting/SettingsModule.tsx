@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from '@/core/supabase/auth'
 import { useAuthStore } from '@/core/store/useAuthStore'
@@ -10,6 +10,24 @@ import { nactiZarizeni, type PrihlaseneZarizeni } from '@/core/security/loginDev
 import { AVATAR_FRAMES } from '@/social/avatarFrames'
 import { useCloudStatus, syncNow } from '@/core/supabase/cloudSync'
 import { APP_VERSION, applyUpdateNow, checkForUpdates, hasNewerVersion } from '@/core/utils/registerSW'
+import { importDataFromJson, restoreFullBackup } from '@/core/utils/backup'
+import {
+  exportFullBackupWithFiles,
+  importZipBackup,
+  jeZipZaloha,
+  restoreFilesFromZip,
+} from '@/core/utils/fileBackup'
+import {
+  SNAPSHOT_SOURCE_LABEL,
+  SnapshotInfo,
+  autoSnapshotIfDue,
+  deleteSnapshot,
+  formatSnapshotDate,
+  formatSnapshotSize,
+  getSnapshot,
+  listSnapshots,
+  saveSnapshot,
+} from '@/core/utils/backupHistory'
 import * as api from '@/social/api'
 import './SettingsModule.css'
 
@@ -60,6 +78,10 @@ export const SettingsModule: React.FC = () => {
   const [skrytOnline, setSkrytOnline] = useState(false)
   const [meniSkrytOnline, setMeniSkrytOnline] = useState(false)
   const [zarizeni, setZarizeni] = useState<PrihlaseneZarizeni[]>([])
+  // Zálohování dat — přesunuto sem z Hubu (bylo to čtvrté tlačítko ve
+  // 2×2 mřížce, viz Hub.tsx), stejný stav/logika, jen jiná stránka.
+  const [snapshots, setSnapshots] = useState<SnapshotInfo[]>([])
+  const zalohaFileRef = useRef<HTMLInputElement>(null)
 
   // Soukromí i skrytí online stavu žijí na profiles v cloudu, ne
   // v lokálním useProfileData — appka je proto natáhne zvlášť, stejným
@@ -71,6 +93,9 @@ export const SettingsModule: React.FC = () => {
     // tenhle dotaz jen čte, co tam už je, ať přepínač níž má vedle sebe
     // vidět skutečnou historii, ne jen prázdný přepínač.
     void nactiZarizeni().then(setZarizeni)
+    // Appka si sama drží posledních pár záloh, ať se má uživatel kam
+    // vrátit, i když si soubor nikdy nestáhl.
+    void autoSnapshotIfDue().then(() => listSnapshots().then(setSnapshots))
   }, [])
 
   // Když se profil změní jinde (obnova ze zálohy), formulář se srovná
@@ -163,6 +188,91 @@ export const SettingsModule: React.FC = () => {
       showToast('Kontrolu se nepodařilo dokončit')
     } finally {
       setUpdateChecking(false)
+    }
+  }
+
+  const handleExportBackup = async () => {
+    const ok = await exportFullBackupWithFiles()
+    if (ok) {
+      // Zálohu v aplikaci si necháme jen s metadaty (viz backupHistory.ts) —
+      // obsah souborů leží ve stejné IndexedDB, kterou tenhle snímek
+      // nepřepisuje, takže se vrácením v rámci JEDNOHO zařízení neztratí.
+      // Chybět můžou až po přenosu na jiné zařízení, na to je zip výš.
+      await saveSnapshot('manual')
+      setSnapshots(await listSnapshots())
+    }
+    showToast(ok ? 'Záloha všech dat (i souborů) byla stažena.' : 'Zálohu se nepodařilo vytvořit.')
+  }
+
+  // Společný závěr obnovy — story jsou v paměti už zrehydratované,
+  // nových hodnot v úložišti by si samy nevšimly.
+  const finishRestore = (message: string) => {
+    showToast(message)
+    window.setTimeout(() => window.location.reload(), 1200)
+  }
+
+  const handleRestoreSnapshot = async (info: SnapshotInfo) => {
+    const snapshot = await getSnapshot(info.id)
+    if (!snapshot) {
+      showToast('Tuhle zálohu se nepodařilo načíst.')
+      return
+    }
+
+    // Než přepíšeme současný stav, uložíme si ho — obnova jde takhle vzít zpět
+    await saveSnapshot('before-restore')
+
+    const result = restoreFullBackup(snapshot.payload)
+    if (!result.success) {
+      showToast(result.error ?? 'Zálohu se nepodařilo obnovit.')
+      return
+    }
+
+    finishRestore(`Obnoveno ze zálohy z ${formatSnapshotDate(info.createdAt)}. Načítám znovu…`)
+  }
+
+  const handleDeleteSnapshot = async (id: string) => {
+    await deleteSnapshot(id)
+    setSnapshots(await listSnapshots())
+  }
+
+  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      // .zip = nová záloha i s obsahem souborů, .json = starší
+      // metadata-only formát — obojí musí jít nahrát dál.
+      const zipova = jeZipZaloha(file)
+      const { envelope: data, soubory } = zipova
+        ? await importZipBackup(file)
+        : { envelope: await importDataFromJson<unknown>(file), soubory: new Map<string, Blob>() }
+
+      // Současný stav si schováme, ať jde obnova vzít zpět
+      await saveSnapshot('before-restore')
+
+      const result = restoreFullBackup(data)
+
+      if (!result.success) {
+        showToast(result.error ?? 'Soubor není platná záloha.')
+        return
+      }
+
+      // Nahraný soubor si necháme i v historii, ať se dá vybrat znovu
+      if (!result.legacy) await saveSnapshot('file', data as never)
+
+      const obnovenoSouboru = soubory.size > 0 ? await restoreFilesFromZip(soubory, data) : 0
+
+      finishRestore(
+        result.legacy
+          ? 'Obnoveno ze starší zálohy (jen seznam aplikací). Načítám znovu…'
+          : `Obnoveno (${result.restored.length} částí${
+              obnovenoSouboru > 0 ? `, ${obnovenoSouboru} souborů` : ''
+            }). Načítám znovu…`
+      )
+    } catch {
+      showToast('Soubor není platná záloha.')
+    } finally {
+      event.target.value = ''
     }
   }
 
@@ -548,6 +658,77 @@ export const SettingsModule: React.FC = () => {
             <span className="settings-switch-knob" />
           </button>
         </div>
+      </section>
+
+      {/* Zálohování dat — přesunuté sem z Hubu (bylo tam čtvrté tlačítko
+          ve 2×2 mřížce, teď má mřížka jen Rewards a Shop, viz Hub.tsx).
+          Stejná logika (export do .zip i s obsahem souborů, obnova ze
+          souboru, historie posledních snímků), jen jako plnohodnotná
+          karta na téhle stránce místo sheetu nad Hubem — appka se sem
+          vrací mnohem méně impulzivně než na Hub, takže tomu jedna
+          volba mezi ostatními kartami sedí líp než čtvrtá dlaždice tam. */}
+      <section className="settings-card">
+        <div className="settings-card-head">
+          <span className="settings-card-icon blue" aria-hidden="true">☁️</span>
+          <div>
+            <h2 className="settings-card-title">Zálohování dat</h2>
+            <p className="settings-card-sub">
+              Data máš uložená přímo v zařízení. Zazálohuj je do souboru (i s
+              obsahem souborů ze Správce souborů) nebo obnov z dřívější
+              zálohy. XP, úroveň a odznaky obnova nemění.
+            </p>
+          </div>
+        </div>
+
+        <button className="settings-save-btn" onClick={() => { void handleExportBackup() }}>
+          ⬇️ Stáhnout zálohu
+        </button>
+
+        <button className="settings-save-btn" onClick={() => zalohaFileRef.current?.click()}>
+          ⬆️ Obnovit ze souboru
+        </button>
+
+        {/* Zálohy uložené v aplikaci — uživatel si vybere, kterou vrátit */}
+        <div className="settings-zaloha-section">
+          <span className="settings-zaloha-head">Zálohy v aplikaci</span>
+
+          {snapshots.length === 0 ? (
+            <p className="settings-zaloha-empty">
+              Zatím tu žádná není. Aplikace si jednu uloží sama, jakmile s ní chvíli pobudeš.
+            </p>
+          ) : (
+            <ul className="settings-zaloha-list">
+              {snapshots.map((snapshot) => (
+                <li key={snapshot.id} className="settings-zaloha-item">
+                  <button
+                    className="settings-zaloha-restore"
+                    onClick={() => { void handleRestoreSnapshot(snapshot) }}
+                  >
+                    <span className="settings-zaloha-date">{formatSnapshotDate(snapshot.createdAt)}</span>
+                    <span className="settings-zaloha-meta">
+                      {SNAPSHOT_SOURCE_LABEL[snapshot.source]} · {formatSnapshotSize(snapshot.sizeBytes)}
+                    </span>
+                  </button>
+                  <button
+                    className="settings-zaloha-delete"
+                    aria-label={`Smazat zálohu z ${formatSnapshotDate(snapshot.createdAt)}`}
+                    onClick={() => { void handleDeleteSnapshot(snapshot.id) }}
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        <input
+          ref={zalohaFileRef}
+          type="file"
+          accept=".zip,.json,application/zip,application/json"
+          hidden
+          onChange={handleImportFile}
+        />
       </section>
 
       {/* Synchronizace a Verze aplikace — přesunuté sem z Profilu spolu se

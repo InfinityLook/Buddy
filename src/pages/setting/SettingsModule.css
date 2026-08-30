@@ -440,3 +440,99 @@
   color: #ff9d9d;
   word-break: break-word;
 }
+
+/* ---------- zálohování dat ---------- */
+/* Přesunuto sem z Hubu (bylo to čtvrté tlačítko ve 2×2 mřížce, viz
+   Hub.tsx) — samotné akce (export/import) mají .settings-save-btn
+   jako každá jiná karta, tady je jen seznam uložených snímků navíc,
+   stejný "malý seznam pod kartou" tvar jako .settings-zarizeni výš,
+   jen přejmenovaný podle toho, co doopravdy vypisuje. */
+.settings-zaloha-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-zaloha-head {
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.settings-zaloha-empty {
+  margin: 0;
+  font-size: 0.68rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.settings-zaloha-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  /* Pět položek se vejde, víc už se scrolluje uvnitř karty */
+  max-height: 190px;
+  overflow-y: auto;
+}
+
+.settings-zaloha-item {
+  display: flex;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+.settings-zaloha-restore {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.6rem;
+  color: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.15s ease;
+}
+
+.settings-zaloha-restore:active {
+  transform: scale(0.985);
+  border-color: var(--border-strong);
+}
+
+.settings-zaloha-date {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.settings-zaloha-meta {
+  font-size: 0.58rem;
+  color: var(--text-secondary);
+}
+
+.settings-zaloha-delete {
+  flex-shrink: 0;
+  width: 34px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.settings-zaloha-delete:active {
+  color: var(--accent-red);
+  border-color: rgba(239, 68, 68, 0.45);
+}

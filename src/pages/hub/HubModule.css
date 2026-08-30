@@ -437,10 +437,6 @@
   color: var(--accent-violet);
 }
 
-.hub-card-icon--cyan {
-  color: var(--accent-cyan);
-}
-
 .hub-card-text {
   display: flex;
   flex-direction: column;
@@ -1122,70 +1118,6 @@
 }
 
 /* ------------------------------------------
-   PANEL ULOŽENÝCH DAT (Cloud)
-   ------------------------------------------ */
-.hub-sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  background: rgba(3, 6, 14, 0.72);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-}
-
-.hub-sheet {
-  width: 100%;
-  max-width: 340px;
-  background: var(--bg-panel);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-lg);
-  padding: 1.25rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  box-shadow: var(--shadow-card);
-}
-
-.hub-sheet-title {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 800;
-}
-
-.hub-sheet-desc {
-  margin: 0 0 0.35rem;
-  font-size: 0.78rem;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-.hub-sheet-btn {
-  width: 100%;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: 0.85rem;
-  font-weight: 700;
-  padding: 0.75rem 1rem;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.hub-sheet-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.hub-sheet-btn--ghost {
-  background: transparent;
-  color: var(--text-secondary);
-}
-
-/* ------------------------------------------
    TOAST
    ------------------------------------------ */
 .hub-toast {
@@ -1244,98 +1176,6 @@
   margin-left: 0.3rem;
   flex-shrink: 0;
   white-space: nowrap;
-}
-
-/* ==========================================
-   Zálohy uložené v aplikaci (panel Cloud)
-   ========================================== */
-.hub-snapshot-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  margin-top: 0.25rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--border-subtle);
-}
-
-.hub-snapshot-head {
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-}
-
-.hub-snapshot-empty {
-  margin: 0;
-  font-size: 0.68rem;
-  line-height: 1.4;
-  color: var(--text-secondary);
-}
-
-.hub-snapshot-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  /* Pět položek se vejde, víc už se scrolluje uvnitř panelu */
-  max-height: 190px;
-  overflow-y: auto;
-}
-
-.hub-snapshot-item {
-  display: flex;
-  align-items: stretch;
-  gap: 0.3rem;
-}
-
-.hub-snapshot-restore {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.1rem;
-  text-align: left;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 0.45rem 0.6rem;
-  color: inherit;
-  cursor: pointer;
-  transition: border-color 0.2s ease, transform 0.15s ease;
-}
-
-.hub-snapshot-restore:active {
-  transform: scale(0.985);
-  border-color: var(--border-strong);
-}
-
-.hub-snapshot-date {
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.hub-snapshot-meta {
-  font-size: 0.58rem;
-  color: var(--text-secondary);
-}
-
-.hub-snapshot-delete {
-  flex-shrink: 0;
-  width: 34px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-
-.hub-snapshot-delete:active {
-  color: var(--accent-red);
-  border-color: rgba(239, 68, 68, 0.45);
 }
 
 /* ------------------------------------------

@@ -10,24 +10,6 @@ import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { getLevelProgress, getXpForNextLevel } from '@/core/utils/gamificationUtils'
 import { sklonujUkoly } from '@/core/utils/text'
-import { importDataFromJson, restoreFullBackup } from '@/core/utils/backup'
-import {
-  exportFullBackupWithFiles,
-  importZipBackup,
-  jeZipZaloha,
-  restoreFilesFromZip,
-} from '@/core/utils/fileBackup'
-import {
-  SNAPSHOT_SOURCE_LABEL,
-  SnapshotInfo,
-  autoSnapshotIfDue,
-  deleteSnapshot,
-  formatSnapshotDate,
-  formatSnapshotSize,
-  getSnapshot,
-  listSnapshots,
-  saveSnapshot,
-} from '@/core/utils/backupHistory'
 import './HubModule.css'
 
 interface HubModuleProps {
@@ -67,9 +49,6 @@ export const HubModule: React.FC<HubModuleProps> = ({
   const { tasks } = useStudyPlanner()
 
   const [toast, setToast] = useState<string | null>(null)
-  const [cloudOpen, setCloudOpen] = useState(false)
-  const [snapshots, setSnapshots] = useState<SnapshotInfo[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const toastTimer = useRef<number | null>(null)
 
   // Hlasový Buddy. Hook žije tady, ne v BuddyOverlay — koule uprostřed
@@ -92,12 +71,6 @@ export const HubModule: React.FC<HubModuleProps> = ({
   useEffect(() => {
     recordActivity()
   }, [recordActivity])
-
-  // Aplikace si sama drží posledních pár záloh, ať se má uživatel kam
-  // vrátit, i když si soubor nikdy nestáhl.
-  useEffect(() => {
-    void autoSnapshotIfDue().then(() => listSnapshots().then(setSnapshots))
-  }, [])
 
   // Úklid časovače toastu při odmountování
   useEffect(() => {
@@ -168,94 +141,6 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // Rewards otevře samostatný modul s odměnami (úroveň, série, odznaky)
   const handleRewardsClick = () => {
     navigate('/odmeny')
-  }
-
-  const handleExportBackup = async () => {
-    const ok = await exportFullBackupWithFiles()
-    if (ok) {
-      // Zálohu v aplikaci si necháme jen s metadaty (viz backupHistory.ts) —
-      // obsah souborů leží ve stejné IndexedDB, kterou tenhle snímek
-      // nepřepisuje, takže se vrácením v rámci JEDNOHO zařízení neztratí.
-      // Chybět můžou až po přenosu na jiné zařízení, na to je zip výš.
-      await saveSnapshot('manual')
-      setSnapshots(await listSnapshots())
-    }
-    setCloudOpen(false)
-    showToast(ok ? 'Záloha všech dat (i souborů) byla stažena.' : 'Zálohu se nepodařilo vytvořit.')
-  }
-
-  // Společný závěr obnovy — story jsou v paměti už zrehydratované,
-  // nových hodnot v úložišti by si samy nevšimly.
-  const finishRestore = (message: string) => {
-    showToast(message)
-    window.setTimeout(() => window.location.reload(), 1200)
-  }
-
-  const handleRestoreSnapshot = async (info: SnapshotInfo) => {
-    const snapshot = await getSnapshot(info.id)
-    if (!snapshot) {
-      showToast('Tuhle zálohu se nepodařilo načíst.')
-      return
-    }
-
-    // Než přepíšeme současný stav, uložíme si ho — obnova jde takhle vzít zpět
-    await saveSnapshot('before-restore')
-
-    const result = restoreFullBackup(snapshot.payload)
-    if (!result.success) {
-      showToast(result.error ?? 'Zálohu se nepodařilo obnovit.')
-      return
-    }
-
-    setCloudOpen(false)
-    finishRestore(`Obnoveno ze zálohy z ${formatSnapshotDate(info.createdAt)}. Načítám znovu…`)
-  }
-
-  const handleDeleteSnapshot = async (id: string) => {
-    await deleteSnapshot(id)
-    setSnapshots(await listSnapshots())
-  }
-
-  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    try {
-      // .zip = nová záloha i s obsahem souborů, .json = starší
-      // metadata-only formát — obojí musí jít nahrát dál.
-      const zipova = jeZipZaloha(file)
-      const { envelope: data, soubory } = zipova
-        ? await importZipBackup(file)
-        : { envelope: await importDataFromJson<unknown>(file), soubory: new Map<string, Blob>() }
-
-      // Současný stav si schováme, ať jde obnova vzít zpět
-      await saveSnapshot('before-restore')
-
-      const result = restoreFullBackup(data)
-
-      if (!result.success) {
-        showToast(result.error ?? 'Soubor není platná záloha.')
-        return
-      }
-
-      // Nahraný soubor si necháme i v historii, ať se dá vybrat znovu
-      if (!result.legacy) await saveSnapshot('file', data as never)
-
-      const obnovenoSouboru = soubory.size > 0 ? await restoreFilesFromZip(soubory, data) : 0
-
-      finishRestore(
-        result.legacy
-          ? 'Obnoveno ze starší zálohy (jen seznam aplikací). Načítám znovu…'
-          : `Obnoveno (${result.restored.length} částí${
-              obnovenoSouboru > 0 ? `, ${obnovenoSouboru} souborů` : ''
-            }). Načítám znovu…`
-      )
-    } catch {
-      showToast('Soubor není platná záloha.')
-    } finally {
-      event.target.value = ''
-      setCloudOpen(false)
-    }
   }
 
   return (
@@ -351,33 +236,16 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </span>
         </button>
 
-        {/* Horní mřížka (Profil, Shop, Rewards, Cloud) — barevný odznak
-            ikony vlevo, šipka vpravo, stejný "dlaždice vede dál" jazyk
-            jako Social's vlastní seznamy (.social-nastaveni-sipka). */}
+        {/* Horní mřížka — jen Rewards a Shop teď, vedle sebe. Profil má
+            svou vlastní cestu už v hlavičce (kolečko s avatarem), druhé
+            tlačítko na to samé bylo zbytečné; Cloud (zálohování dat) se
+            přesunul do Nastavení, viz settings-zaloha-* v
+            SettingsModule.tsx — appka se tam stejně vrací mnohem méně
+            impulzivně než sem, sedí to tam líp jako jedna z voleb mezi
+            ostatními, ne jako čtvrtá dlaždice tady. Barevný odznak ikony
+            vlevo, šipka vpravo, stejný "dlaždice vede dál" jazyk jako
+            Social's vlastní seznamy (.social-nastaveni-sipka). */}
         <div className="hub-grid-top">
-          <button className="hub-btn-card" onClick={handleProfileClick}>
-            <span className="hub-card-icon hub-card-icon--blue">
-              <SocialIcon name="user" size={24} />
-            </span>
-            <span className="hub-card-text">
-              <span className="hub-card-title">Profil</span>
-              <span className="hub-card-sub">Tvůj účet</span>
-            </span>
-            <SocialIcon name="arrow-left" size={14} className="hub-card-arrow" />
-          </button>
-
-          <button className="hub-btn-card" onClick={() => navigate('/obchod')}>
-            <span className="hub-card-icon hub-card-icon--magenta">
-              <SocialIcon name="bag" size={24} />
-            </span>
-            <span className="hub-card-text">
-              <span className="hub-card-title">Shop</span>
-              {/* Dokud nejsou platby, ať dlaždice neslibuje nákup */}
-              <span className="hub-card-sub">Kredity, VIP a doplňky</span>
-            </span>
-            <SocialIcon name="arrow-left" size={14} className="hub-card-arrow" />
-          </button>
-
           <button className="hub-btn-card" onClick={handleRewardsClick}>
             <span className="hub-card-icon hub-card-icon--purple">
               <SocialIcon name="gift" size={24} />
@@ -397,13 +265,14 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <SocialIcon name="arrow-left" size={14} className="hub-card-arrow" />
           </button>
 
-          <button className="hub-btn-card" onClick={() => setCloudOpen(true)}>
-            <span className="hub-card-icon hub-card-icon--cyan">
-              <SocialIcon name="cloud" size={24} />
+          <button className="hub-btn-card" onClick={() => navigate('/obchod')}>
+            <span className="hub-card-icon hub-card-icon--magenta">
+              <SocialIcon name="bag" size={24} />
             </span>
             <span className="hub-card-text">
-              <span className="hub-card-title">Cloud</span>
-              <span className="hub-card-sub">Uložená data</span>
+              <span className="hub-card-title">Shop</span>
+              {/* Dokud nejsou platby, ať dlaždice neslibuje nákup */}
+              <span className="hub-card-sub">Kredity, VIP a doplňky</span>
             </span>
             <SocialIcon name="arrow-left" size={14} className="hub-card-arrow" />
           </button>
@@ -556,80 +425,6 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </button>
         </nav>
       </div>
-
-      {/* Panel pro zálohování a obnovu dat */}
-      {cloudOpen && (
-        <div className="hub-sheet-backdrop" onClick={() => setCloudOpen(false)}>
-          <div
-            className="hub-sheet"
-            role="dialog"
-            aria-label="Uložená data"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="hub-sheet-title">☁️ Uložená data</h3>
-            <p className="hub-sheet-desc">
-              Data máš uložená přímo v zařízení. Můžeš si je zazálohovat do souboru
-              (i s obsahem souborů ze Správce souborů) nebo obnovit z dřívější
-              zálohy. XP, úroveň a odznaky obnova nemění — ty ti zůstanou tak,
-              jak sis je vysloužil.
-            </p>
-
-            <button className="hub-sheet-btn" onClick={() => { void handleExportBackup() }}>
-              ⬇️ Stáhnout zálohu
-            </button>
-
-            <button className="hub-sheet-btn" onClick={() => fileInputRef.current?.click()}>
-              ⬆️ Obnovit ze souboru
-            </button>
-
-            {/* Zálohy uložené v aplikaci — uživatel si vybere, kterou vrátit */}
-            <div className="hub-snapshot-section">
-              <span className="hub-snapshot-head">Zálohy v aplikaci</span>
-
-              {snapshots.length === 0 ? (
-                <p className="hub-snapshot-empty">
-                  Zatím tu žádná není. Aplikace si jednu uloží sama, jakmile s ní chvíli pobudeš.
-                </p>
-              ) : (
-                <ul className="hub-snapshot-list">
-                  {snapshots.map((snapshot) => (
-                    <li key={snapshot.id} className="hub-snapshot-item">
-                      <button
-                        className="hub-snapshot-restore"
-                        onClick={() => { void handleRestoreSnapshot(snapshot) }}
-                      >
-                        <span className="hub-snapshot-date">{formatSnapshotDate(snapshot.createdAt)}</span>
-                        <span className="hub-snapshot-meta">
-                          {SNAPSHOT_SOURCE_LABEL[snapshot.source]} · {formatSnapshotSize(snapshot.sizeBytes)}
-                        </span>
-                      </button>
-                      <button
-                        className="hub-snapshot-delete"
-                        aria-label={`Smazat zálohu z ${formatSnapshotDate(snapshot.createdAt)}`}
-                        onClick={() => { void handleDeleteSnapshot(snapshot.id) }}
-                      >
-                        ✕
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-
-            <button className="hub-sheet-btn hub-sheet-btn--ghost" onClick={() => setCloudOpen(false)}>
-              Zavřít
-            </button>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".zip,.json,application/zip,application/json"
-              hidden
-              onChange={handleImportFile}
-            />
-          </div>
-        </div>
-      )}
 
       {toast && <div className="hub-toast">{toast}</div>}
     </div>
