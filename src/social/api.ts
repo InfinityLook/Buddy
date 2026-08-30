@@ -1297,6 +1297,24 @@ export const smazatNahlasenyPrispevek = async (postId: string): Promise<Vysledek
   return error ? chyba(error) : { ok: true }
 }
 
+/**
+ * Smaže jen profilovou fotku nahlášenou jako "Nevhodná profilová fotka" —
+ * přes funkci na databázi (moderator_smaz_avatar), stejný tvar jako
+ * smazatNahlasenyPrispevek výš: plain UPDATE by profiles.avatar_url
+ * dovolilo přepsat jen vlastníkovi, funkce navíc trvá na tom, že účet má
+ * aspoň jedno hlášení s tímhle důvodem, a zaloguje smazání do audit_log.
+ * Fyzický soubor ve Storage appka nemaže (stejný přijatý "osiřelý,
+ * nedosažitelný blob" kompromis jako u smazané story/příspěvku), jen
+ * nastaví avatar_url na null, což appka všude čte, takže fotka zmizí
+ * odevšad okamžitě.
+ */
+export const smazatNahlasenouFotku = async (userId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase.rpc('moderator_smaz_avatar', { cil: userId })
+  return error ? chyba(error) : { ok: true }
+}
+
 // ==========================================
 // Živé doručování napříč všemi chaty
 //

@@ -75,6 +75,17 @@ export const SocialReportPanel: React.FC = () => {
     if (v.ok) await nacti()
   }
 
+  // Smaže jen profilovou fotku — dřív jediné dostupné nástroje u
+  // nevhodne_foto hlášení byly ban ze Socialu/z celé appky, žádný
+  // "smaž jen tu fotku", i když samotné hlášení přesně tohle jmenuje.
+  const smazatNahlasenouFotku = async (userId: string, jmeno: string) => {
+    if (!window.confirm(`Smazat profilovou fotku uživatele ${jmeno}? Nejde to vrátit zpátky.`)) return
+
+    const v = await socialApi.smazatNahlasenouFotku(userId)
+    oznam(v.ok ? 'Fotka smazána.' : v.chyba ?? 'Nepovedlo se to.')
+    if (v.ok) await nacti()
+  }
+
   const prepnoutBan = async (uzivatelId: string, jmeno: string, zabanovat: boolean) => {
     const v = await adminApi.zabanujZeSocial(uzivatelId, zabanovat)
     oznam(
@@ -188,6 +199,17 @@ export const SocialReportPanel: React.FC = () => {
                       🗑
                     </button>
                   )}
+                </div>
+              )}
+
+              {h.nahlaseny && h.duvod === 'nevhodne_foto' && (
+                <div className="admin-report-akce">
+                  <button
+                    className="admin-btn admin-btn--ne"
+                    onClick={() => smazatNahlasenouFotku(h.nahlaseny!.id, h.nahlaseny!.displayName)}
+                  >
+                    🖼 Smazat profilovou fotku
+                  </button>
                 </div>
               )}
 
