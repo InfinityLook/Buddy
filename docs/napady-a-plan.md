@@ -32,10 +32,12 @@ Zdarma, žádný polyfill potřeba (Chrome/Edge/Safari/Firefox mají podporu),
 Ověřeno přímo v appce a v Supabase (`get_advisors`, `npm audit`,
 `has_function_privilege`), ne jen teoreticky.
 
-**Aktualizace 1. 9. 2026 — pět položek z "co bych udělal jako první" byly
-skutečně provedeny, tři hotové doopravdy, dva potřebují ruční krok
-v Supabase dashboardu (žádný dostupný nástroj v týhle session na ně
-nesahá — nejde o Postgres SQL, ale o projektová Auth nastavení).**
+**Aktualizace 1. 9. 2026 — čtyři z pěti položek z "co bych udělal jako
+první" jsou hotové** (hlavičky, Dependabot, revoke anon EXECUTE přes SQL,
+vypnutí anonymních přihlášení ručně v dashboardu — to poslední navíc
+samo smazalo dalších 35 "Anonymous Access Policies" nálezů, viz níž).
+**Leaked password protection zůstává vědomě odložená** na výslovné
+přání, ne kvůli chybějícímu nástroji.
 
 ### ✅ HOTOVO — PWA hlavičky v `vercel.json`
 CSP, Permissions-Policy (`camera=(self), microphone=(self)`, zbytek
@@ -93,33 +95,40 @@ denied for function ...`, zatímco jako `authenticated` proběhnou beze
 změny. Výsledek: `select count(*) ... has_function_privilege('anon', ...)`
 přes celé `public` schéma je teď **0**.
 
-### 🔲 ZBÝVÁ — dva ruční přepínače v Supabase dashboardu
+### ✅ HOTOVO (ručně v dashboardu) — vypnuté "Allow anonymous sign-ins"
 Žádný nástroj dostupný v týhle session (`mcp__Supabase__*`) nesahá na
 projektová Auth nastavení (jen na Postgres SQL/migrace/edge functions/
-branch) — tohle jde jen přes Supabase dashboard, ne odsud:
-- **Authentication → Sign In / Providers → "Allow anonymous sign-ins"** —
-  vypnout. Appka (od zavedení povinného přihlášení) už nikdy nevolá
-  `signInAnonymously()`, takže zapnuté zbytečně rozšiřuje plochu, co
-  může kdokoli s veřejným anon klíčem zkusit.
-- **Authentication → Policies → Password Security → "Leaked password
-  protection"** — zapnout. `get_advisors` (security) tohle právě teď
-  živě hlásí jako `WARN` (`auth_leaked_password_protection`).
-- **MFA (TOTP)** appka nikde nenabízí, 0 zaregistrovaných faktorů
-  v produkci — pořád nezačaté, dávalo by smysl aspoň jako volitelná
-  věc pro admin/moderátorské účty.
+branch) — tohle šlo jen přes Supabase dashboard (`Authentication` →
+`Sign In / Providers` → **Anonymous Sign-Ins**), ne odsud. Appka (od
+zavedení povinného přihlášení) už nikdy nevolá `signInAnonymously()`,
+takže zapnuté zbytečně rozšiřovalo plochu, co může kdokoli s veřejným
+anon klíčem zkusit.
 
-### 🆕 Nový nález (dosud neřešeno) — "Anonymous Access Policies", 35×
-`get_advisors` (security) hlásí **35** `WARN` nálezů tohohle typu napříč
-tabulkami (`activity_counters`, `chats`, `blocks`, `audit_log` a další) —
-RLS politiky, co nemají výslovné `TO authenticated`, takže se textově
-vztahují i na `anon` (i když jejich `USING`/`WITH CHECK` s `auth.uid()`
-u anonymního volajícího stejně vždycky vyhodnotí jako nesplněné — funkčně
-to dnes není díra, stejná "chybí druhá vrstva obrany" logika jako
-u funkcí výš). Přidat `TO authenticated` ke třem desítkám existujících
-politik je ale skutečná, plošná práce napříč celým schématem — nespadá
-do "zdarma a bez rizika, udělej hned" kategorie, na rozdíl od jednoho
-`revoke` na 29 funkcí. Vlastní budoucí položka s vlastním ověřením
-(politika po politice, ne hromadně naslepo).
+**Vedlejší efekt, ověřený živě přes `get_advisors`, ne jen odhadnutý**:
+vypnutím tohohle jednoho přepínače zmizelo najednou i všech **35**
+"Anonymous Access Policies" nálezů (`auth_allow_anonymous_sign_ins`)
+napříč tabulkami (`activity_counters`, `chats`, `blocks`, `audit_log`
+a dalšími), co byly dřív zapsané v týhle sekci jako samostatný "nový
+nález" — **byla to špatná interpretace**. Ten lint není nezávislé
+zjištění o chybějícím `TO authenticated` v RLS politikách, jak jsem to
+tu popsal poprvé — sám název (`auth_allow_anonymous_sign_ins`) říká, že
+je to jen průvodní příznak zapnutého anonymního přihlášení: dokud bylo
+zapnuté, Supabase u každé politiky bez `TO authenticated` upozorňovala,
+že se textově vztahuje i na (teoreticky existující) anonymní účty.
+Jakmile anonymní přihlášení zmizelo jako možnost, zmizelo i těch 35
+varování s ním — žádná plošná přepisovací práce přes tři desítky
+politik nebyla potřeba, jen ten jeden přepínač.
+
+### ⏸️ Odloženo na žádost — "Leaked password protection"
+`get_advisors` (security) tohle pořád hlásí jako `WARN`
+(`auth_leaked_password_protection`, `Authentication` → `Sign In /
+Providers` → `Email` → **Password Security**) — vědomě zatím
+nedoděláno, na výslovné přání nechat to prozatím být.
+
+### 🔲 ZBÝVÁ — MFA (TOTP)
+Appka nikde nenabízí, 0 zaregistrovaných faktorů v produkci — pořád
+nezačaté, dávalo by smysl aspoň jako volitelná věc pro admin/
+moderátorské účty (mají v appce reálnou moc).
 
 ### Zálohy — riziko do budoucna, ne akutní dnes
 Appčina sociální data (chaty, přátelství, příspěvky) žijí **jen
