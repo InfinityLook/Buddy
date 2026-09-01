@@ -6,7 +6,7 @@ a otevřených otázek k budoucí práci, ať se nemusí znovu vymýšlet toté�
 Až se něco odsud doopravdy postaví a ověří, přesune se popis do CLAUDE.md
 a odsud může (ale nemusí) zmizet.
 
-Datum poslední aktualizace: 2026-08-30.
+Datum poslední aktualizace: 2026-09-01.
 
 ## Cíl appky
 
@@ -30,52 +30,96 @@ Zdarma, žádný polyfill potřeba (Chrome/Edge/Safari/Firefox mají podporu),
 ## 2. Systémová/bezpečnostní vylepšení — zjištěno živě z produkce
 
 Ověřeno přímo v appce a v Supabase (`get_advisors`, `npm audit`,
-`has_function_privilege`), ne jen teoreticky:
+`has_function_privilege`), ne jen teoreticky.
 
-### PWA hlavičky — dnes v `vercel.json` úplně chybí, zdarma na doplnění
-- **CSP (Content-Security-Policy)** — appka nenačítá žádné externí CDN
-  (self-hosted mediapipe), takže by šla postavit poměrně přísně.
-- **Permissions-Policy** — appka žádá kameru/mikrofon (Form Check, QR
-  sken, hlasovky), stálo by za to explicitně omezit na appku samotnou.
-- **X-Frame-Options / frame-ancestors** — appka má biometrický zámek
-  a citlivý sociální obsah, neměla by jít vložit do cizího iframe.
-- **Strict-Transport-Security, X-Content-Type-Options: nosniff**
-- **Referrer-Policy** — konkrétní důvod: appka má `/social?kod=...`
-  deep-link s přátelským kódem v URL, bez týhle hlavičky může kód
-  uniknout v Refereru.
+**Aktualizace 1. 9. 2026 — pět položek z "co bych udělal jako první" byly
+skutečně provedeny, tři hotové doopravdy, dva potřebují ruční krok
+v Supabase dashboardu (žádný dostupný nástroj v týhle session na ně
+nesahá — nejde o Postgres SQL, ale o projektová Auth nastavení).**
 
-### Dependency security — CI dnes nic neskenuje
-- `npm audit` právě teď (30. 8. 2026) hlásí **2 moderate zranitelnosti**:
-  react-router (open redirect + arbitrary constructor injection) a
-  valibot. Oprava react-routeru je `npm audit fix` bez breaking change,
-  valibot potřebuje `--force` (breaking).
-- **Dependabot** je na GitHubu zdarma i pro soukromé repo —
-  `.github/dependabot.yml`, žádná cena.
-- `npm audit --omit=dev` jako krok v CI, taky zdarma.
+### ✅ HOTOVO — PWA hlavičky v `vercel.json`
+CSP, Permissions-Policy (`camera=(self), microphone=(self)`, zbytek
+zamčený), X-Frame-Options: DENY + `frame-ancestors 'none'`, HSTS,
+X-Content-Type-Options: nosniff, Referrer-Policy: strict-origin-when-cross-origin.
+Ověřeno, že appka nenačítá žádný externí CDN/font (grep přes `src/` —
+jen self-hosted mediapipe, žádné externí `<script>`/`@font-face`), takže
+CSP mohla jít na `default-src 'self'` + explicitní `https://*.supabase.co`
+pro `connect-src`/`img-src`/`media-src` (Storage, Realtime `wss://`) a
+`'wasm-unsafe-eval'` v `script-src` kvůli Form Check's WASM. `style-src`
+má `'unsafe-inline'` — appka používá inline `style={{...}}` napříč (barvy
+avatarů, conic-gradienty), refaktor na nonce/hash by byl samostatná práce.
 
-### Supabase Auth — dva reálné přepínače, zdarma
-- **"Leaked password protection" je dnes VYPNUTÁ** — Supabase to má
-  zdarma (kontrola proti HaveIBeenPwned), jeden přepínač v dashboardu.
-- **"Allow anonymous sign-ins" je pořád ZAPNUTÉ** na úrovni projektu,
-  i když appka (od zavedení povinného přihlášení) už nikdy nevolá
-  `signInAnonymously()`. Nechat to zapnuté zbytečně rozšiřuje plochu,
-  co může kdokoli s veřejným anon klíčem zkusit. Vypnutí je zdarma
-  a sedí přesně na to, jak appka doopravdy funguje.
+### ✅ HOTOVO — Dependabot
+`.github/dependabot.yml` — npm (týdně, seskupené minor/patch aktualizace,
+limit 5 otevřených PR) + github-actions (týdně). Bezpečnostní záplaty
+(i major) Dependabot otevírá vždycky, mimo `open-pull-requests-limit`.
+
+### ⚠️ Korekce — dependency security, `npm audit`
+Původní odhad "oprava react-routeru je `npm audit fix` bez breaking
+change" se **ukázal jako mylný, ověřeno skutečným spuštěním**:
+`npm audit fix` bez `--force` opravdu udělal neškodný patch bump
+(react-router-dom 6.30.4 → 6.30.6, pořád v rámci `^6.26.2` z
+`package.json`), ale `npm audit --omit=dev` i po něm pořád hlásí react-router
+i valibot jako zranitelné — CVE u react-routeru je opravené až v **7.18.3**,
+což je major skok (6→7), ne patch. Skutečná oprava obou (react-router i
+valibot) vyžaduje `--force` a je to reálná breaking-change práce
+(retest routingu/`dovnitr` gate, `tests/e2e/auth.spec.ts`, celý build) —
+ne "zdarma a bez rizika", takže to tahle session záměrně NEudělala a
+nechává jako vlastní budoucí položku s vlastním testovacím průchodem.
+Krok `npm audit --omit=dev` v CI záměrně taky (zatím) nepřidán — hned
+by appce zbarvil CI do červena kvůli těmhle dvěma už známým, odloženým
+nálezům; přidat ho má smysl až spolu s jejich opravou, ne dřív.
+
+### ✅ HOTOVO — revoke `EXECUTE` pro `anon` u starších funkcí
+Skutečný živý dotaz (`has_function_privilege`), ne odhad z paměti —
+napočítal **29** `SECURITY DEFINER`/triggerových funkcí v `public`
+schématu, ke kterým měl `anon` přístup (`admin_nastav_roli`,
+`zabanuj_ze_social`, `nacti_audit_log`, `vyridit_tiket`, `zaloz_chat`
+a další — stejná třída chyby, jakou CLAUDE.md dokumentuje jako
+opakovaně chycenou u novějších funkcí, jen u těchhle starších se
+`revoke` nikdy neudělal).
+
+**Druhá vrstva korekce našla i skutečnou mezeru v prvním pokusu**: prostý
+`revoke execute ... from anon` zavřel jen **7 z 29** — zbylých 22 mělo
+`EXECUTE` grantnutý implicitně přes `PUBLIC` (Postgresův výchozí grant
+při `CREATE FUNCTION`), který `anon` jako každá role dědí bez ohledu na
+to, jestli má svůj vlastní `anon`-specifický revoke. Až druhá migrace
+(`revoke ... from public`) zavřela zbytek — ověřeno `proacl` u pár funkcí
+napřed, aby revoke z `PUBLIC` nesundal i `authenticated` (má vlastní,
+samostatný grant, takže ne). **Ověřeno přímo jako živý `anon`/`authenticated`
+role** (`set local role ...`), ne jen počtem: `jsem_admin()` i
+`hledej_podle_jmena()` teď jako `anon` spadnou na `42501 permission
+denied for function ...`, zatímco jako `authenticated` proběhnou beze
+změny. Výsledek: `select count(*) ... has_function_privilege('anon', ...)`
+přes celé `public` schéma je teď **0**.
+
+### 🔲 ZBÝVÁ — dva ruční přepínače v Supabase dashboardu
+Žádný nástroj dostupný v týhle session (`mcp__Supabase__*`) nesahá na
+projektová Auth nastavení (jen na Postgres SQL/migrace/edge functions/
+branch) — tohle jde jen přes Supabase dashboard, ne odsud:
+- **Authentication → Sign In / Providers → "Allow anonymous sign-ins"** —
+  vypnout. Appka (od zavedení povinného přihlášení) už nikdy nevolá
+  `signInAnonymously()`, takže zapnuté zbytečně rozšiřuje plochu, co
+  může kdokoli s veřejným anon klíčem zkusit.
+- **Authentication → Policies → Password Security → "Leaked password
+  protection"** — zapnout. `get_advisors` (security) tohle právě teď
+  živě hlásí jako `WARN` (`auth_leaked_password_protection`).
 - **MFA (TOTP)** appka nikde nenabízí, 0 zaregistrovaných faktorů
-  v produkci. Zdarma u Supabase. Dávalo by smysl aspoň jako volitelná
-  věc pro admin/moderátorské účty (mají v appce reálnou moc).
+  v produkci — pořád nezačaté, dávalo by smysl aspoň jako volitelná
+  věc pro admin/moderátorské účty.
 
-### Supabase RLS — reálný nález, ale ověřeno že dnes není zneužitelný
-Advisor našel **28 funkcí** s `EXECUTE` grantem pro `anon`, co by ho
-neměly mít (`admin_nastav_roli`, `zabanuj_ze_social`, `nacti_audit_log`,
-`vyridit_tiket` a další) — stejná třída chyby, jakou CLAUDE.md
-dokumentuje jako opakovaně chycenou u novějších funkcí, jen u těchhle
-starších se `revoke ... from anon` nikdy neudělal. **Otestováno přímo
-jako `anon` proti produkci** — `admin_nastav_roli`/`zabanuj_ze_social`/
-`nacti_audit_log` správně odmítly ("Přístup jen pro administrátory."),
-protože `jsem_admin()` bezpečně vyhodnotí `auth.uid() is null` jako
-false. Takže dnes to není díra, jen chybějící druhá vrstva obrany —
-levné dodělat (jen SQL revoke příkazy), nulové riziko rozbití.
+### 🆕 Nový nález (dosud neřešeno) — "Anonymous Access Policies", 35×
+`get_advisors` (security) hlásí **35** `WARN` nálezů tohohle typu napříč
+tabulkami (`activity_counters`, `chats`, `blocks`, `audit_log` a další) —
+RLS politiky, co nemají výslovné `TO authenticated`, takže se textově
+vztahují i na `anon` (i když jejich `USING`/`WITH CHECK` s `auth.uid()`
+u anonymního volajícího stejně vždycky vyhodnotí jako nesplněné — funkčně
+to dnes není díra, stejná "chybí druhá vrstva obrany" logika jako
+u funkcí výš). Přidat `TO authenticated` ke třem desítkám existujících
+politik je ale skutečná, plošná práce napříč celým schématem — nespadá
+do "zdarma a bez rizika, udělej hned" kategorie, na rozdíl od jednoho
+`revoke` na 29 funkcí. Vlastní budoucí položka s vlastním ověřením
+(politika po politice, ne hromadně naslepo).
 
 ### Zálohy — riziko do budoucna, ne akutní dnes
 Appčina sociální data (chaty, přátelství, příspěvky) žijí **jen
@@ -84,10 +128,6 @@ appky s vlastním exportem zálohy). Free tier Supabase nemá plnohodnotné
 průběžné zálohování (PITR je placená věc). Zdarma řešení existuje
 (pravidelný `pg_dump` přes GitHub Action), ale je to práce navíc, ne
 přepínač. Bude to bolet víc, čím víc appka poroste — sledovat.
-
-**Co bych udělal jako první, protože je to zdarma a bez rizika:**
-hlavičky ve `vercel.json`, Dependabot, vypnutí anonymních přihlášení,
-zapnutí leaked-password ochrany, revoke anon grantů u těch 28 funkcí.
 
 ## 3. Volná webová API — projitá s verdiktem
 

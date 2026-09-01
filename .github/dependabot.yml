@@ -1,0 +1,28 @@
+# Dependabot — hlídá npm balíčky a samotné GitHub Actions kroky proti
+# nově nahlášeným zranitelnostem. Zdarma i pro soukromé repo, žádná
+# infrastruktura navíc — GitHub to sám spouští na pozadí a otevírá PR.
+#
+# Jen "version-update" chování (aktuální verze, žádné major-bump PR
+# spamy každý týden) — appka nemá kapacitu recenzovat major upgrady
+# automaticky, ale bezpečnostní záplaty (i major) Dependabot otevírá
+# vždy, bez ohledu na "open-pull-requests-limit" u verzí, protože jde
+# o samostatnou "security update" kategorii mimo tenhle soubor.
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 5
+    # Vedlejší verze/patche v jednom PR namísto jednoho PR na balíček —
+    # méně šumu v seznamu PR, review pořád zvládne jeden diff přečíst.
+    groups:
+      minor-a-patch-zavislosti:
+        update-types: ['minor', 'patch']
+
+  # I samotné kroky v CI (actions/checkout@v4 apod.) mají svoje CVE —
+  # stejný důvod hlídat je jako npm balíčky.
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
