@@ -1,4 +1,5 @@
 import { supabase } from '@/core/supabase/client'
+import type { PostavaId } from './combat/postavy'
 import type { PripojenoPayload, PripojitPayload, VstupPayload } from './types'
 
 // ==========================================
@@ -67,6 +68,7 @@ export const pripojSeJakoOvladac = (
   kod: string,
   mujHracId: string,
   jmeno: string,
+  postavaId: PostavaId,
   handlery: OvladacHandlery
 ) => {
   const klient = supabase
@@ -83,7 +85,7 @@ export const pripojSeJakoOvladac = (
         void kanal.send({
           type: 'broadcast',
           event: 'pripojit',
-          payload: { hracId: mujHracId, jmeno } satisfies PripojitPayload,
+          payload: { hracId: mujHracId, jmeno, postavaId } satisfies PripojitPayload,
         })
       }
     })

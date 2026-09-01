@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { pripojSeJakoOvladac } from '../network'
+import type { PostavaId } from '../combat/postavy'
 import type { PripojenoPayload, Smer, Tlacitko } from '../types'
+import { VyberPostavy } from './VyberPostavy'
 import '../FightingModule.css'
 
 interface Props {
@@ -15,26 +17,33 @@ const IKONA_TLACITKA: Record<Tlacitko, string> = { udar: '👊', kop: '🦵', bl
 const PORADI_SMERU: Smer[] = ['nahoru', 'vlevo', 'vpravo', 'dolu']
 const PORADI_TLACITEK: Tlacitko[] = ['udar', 'kop', 'blok', 'specialni']
 
+type StavSpojeni = 'zadavani' | 'vyberPostavy' | 'pripojovani' | 'pripojeno'
+
 // ==========================================
-// Telefon strana Fáze 0 — zadání kódu místnosti, pak d-pad + čtyři
-// akční tlačítka (stejné rozložení jako referenční obrázek). Vstupy
-// se posílají na pointerdown/pointerup, ne na klik — hra potřebuje
-// vědět, jak dlouho je tlačítko drženo, ne jen že bylo stisknuto.
+// Telefon strana — zadání kódu místnosti, pak (Fáze 3, lokálně, bez
+// sítě) výběr postavy, pak teprve skutečné síťové připojení, a nakonec
+// d-pad + čtyři akční tlačítka. Výběr postavy je schválně zařazený
+// PŘED "pripojovani" — viz VyberPostavy.tsx a types.ts's
+// PripojitPayload — takže se pošle rovnou s prvním broadcastem, žádný
+// druhý krok navíc na síti. Vstupy tlačítek se posílají na
+// pointerdown/pointerup, ne na klik — hra potřebuje vědět, jak dlouho
+// je tlačítko drženo, ne jen že bylo stisknuto.
 // ==========================================
 
 export const Ovladac: React.FC<Props> = ({ onZpet }) => {
   const { profile } = useProfileData()
   const [kodVstup, setKodVstup] = useState('')
-  const [pripojenoKod, setPripojenoKod] = useState<string | null>(null)
+  const [kod, setKod] = useState<string | null>(null)
+  const [postavaId, setPostavaId] = useState<PostavaId | null>(null)
   const [slot, setSlot] = useState<1 | 2 | null>(null)
-  const [stavSpojeni, setStavSpojeni] = useState<'zadavani' | 'pripojovani' | 'pripojeno'>('zadavani')
+  const [stavSpojeni, setStavSpojeni] = useState<StavSpojeni>('zadavani')
   const hracIdRef = useRef(vygenerujHracId())
   const spravaRef = useRef<ReturnType<typeof pripojSeJakoOvladac> | null>(null)
 
   useEffect(() => {
-    if (!pripojenoKod) return
+    if (stavSpojeni !== 'pripojovani' || !kod || !postavaId) return
 
-    const sprava = pripojSeJakoOvladac(pripojenoKod, hracIdRef.current, profile.name || 'Hráč', {
+    const sprava = pripojSeJakoOvladac(kod, hracIdRef.current, profile.name || 'Hráč', postavaId, {
       pripojeno: (p: PripojenoPayload) => {
         setSlot(p.slot)
         setStavSpojeni('pripojeno')
@@ -44,7 +53,7 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
     return () => sprava.zrusit()
     // profile.name se čte jen v okamžiku připojení, ne živě po celou dobu hry —
     // proto v poli závislostí schválně chybí.
-  }, [pripojenoKod])
+  }, [stavSpojeni, kod, postavaId])
 
   const posliSmer = (smer: Smer | null) => {
     spravaRef.current?.poslatVstup({ hracId: hracIdRef.current, typ: 'smer', smer })
@@ -54,7 +63,7 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
     spravaRef.current?.poslatVstup({ hracId: hracIdRef.current, typ: 'tlacitko', tlacitko, stisknuto })
   }
 
-  if (stavSpojeni !== 'pripojeno') {
+  if (stavSpojeni === 'zadavani') {
     return (
       <div className="souboj-page">
         <header className="souboj-top-bar">
@@ -69,8 +78,8 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
           onSubmit={(e) => {
             e.preventDefault()
             if (kodVstup.trim().length < 4) return
-            setStavSpojeni('pripojovani')
-            setPripojenoKod(kodVstup.trim().toUpperCase())
+            setKod(kodVstup.trim().toUpperCase())
+            setStavSpojeni('vyberPostavy')
           }}
         >
           <label className="souboj-kod-label">
@@ -86,9 +95,43 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
             />
           </label>
           <button className="souboj-kod-submit" type="submit" disabled={kodVstup.trim().length < 4}>
-            {stavSpojeni === 'pripojovani' ? 'Připojuji…' : 'Připojit'}
+            Pokračovat
           </button>
         </form>
+      </div>
+    )
+  }
+
+  if (stavSpojeni === 'vyberPostavy') {
+    return (
+      <div className="souboj-page">
+        <header className="souboj-top-bar">
+          <button className="souboj-back-btn" onClick={() => setStavSpojeni('zadavani')}>
+            ← Zpět
+          </button>
+          <h1 className="souboj-title">Připojit se</h1>
+        </header>
+
+        <VyberPostavy
+          onVybrano={(id) => {
+            setPostavaId(id)
+            setStavSpojeni('pripojovani')
+          }}
+        />
+      </div>
+    )
+  }
+
+  if (stavSpojeni === 'pripojovani') {
+    return (
+      <div className="souboj-page">
+        <header className="souboj-top-bar">
+          <button className="souboj-back-btn" onClick={onZpet}>
+            ← Zpět
+          </button>
+          <h1 className="souboj-title">Připojit se</h1>
+        </header>
+        <p className="souboj-sub">Připojuji…</p>
       </div>
     )
   }
