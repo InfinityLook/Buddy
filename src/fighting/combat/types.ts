@@ -1,0 +1,70 @@
+import type { Smer } from '../types'
+
+// ==========================================
+// Fáze 1 — jádro soubojového enginu jako čisté funkce, žádný React,
+// žádný store, žádná síť (stejný "engine.ts drží celý systém jako
+// čisté funkce/konstanty" vzor jako game/leveling.ts). Vstupem je
+// aktuální stav + čerstvý vstup obou hráčů + uplynulý čas, výstupem
+// je nový stav — engine.ts umí posunout souboj o jeden krok dopředu
+// bez ohledu na to, odkud vstup přišel (skutečný ovladač přes síť je
+// až Fáze 3, sem se dostane jen jako HracVstup).
+// ==========================================
+
+/** Tři útočné akce z referenčního obrázku — "blok" je držený stav,
+ *  ne jednorázová akce, proto tu není. */
+export type UtocnaAkce = 'udar' | 'kop' | 'specialni'
+
+export interface AkceData {
+  /** Poškození při zásahu — pevné číslo, ne rozsah, aby byl engine
+   *  deterministický a šlo ho testovat bez mockování Math.random(). */
+  poskozeni: number
+  /** Dosah v logických jednotkách arény (viz ARENA_SIRKA v engine.ts). */
+  dosah: number
+  /** Jak dlouho akce zaměstná útočníka (startup+recovery v jednom) —
+   *  po tuhle dobu ignoruje další vstupy. */
+  trvaniMs: number
+  /** Kolik many akce stojí — 0 u úderu/kopu, speciální ji vyžaduje. */
+  cenaMany: number
+}
+
+/** Živý stav jednoho bojovníka během souboje. */
+export interface BojovnikStav {
+  hp: number
+  maxHp: number
+  mana: number
+  maxMana: number
+  /** Pozice na ose 0..ARENA_SIRKA. */
+  pozice: number
+  /** Drží se blok právě teď (jen informativní — o snížení poškození
+   *  rozhoduje engine v okamžiku zásahu). */
+  blokuje: boolean
+  /** Kolik ms zbývá z hitstunu po přijatém (neblokovaném) zásahu —
+   *  po tu dobu bojovník ignoruje vstupy. */
+  zranitelnostKonci: number
+  /** Kolik ms zbývá z probíhající akce (startup+recovery) — po tu
+   *  dobu bojovník taky ignoruje vstupy, ať útok trefil, nebo ne. */
+  utokKonci: number
+  posledniAkce: UtocnaAkce | null
+}
+
+/** Vstup jednoho hráče pro jeden krok simulace. `akce` je jednorázová
+ *  událost (hrana stisku), ne držený stav — kdo engine volá, sám
+ *  rozhoduje, kdy z "drženo" udělat "právě zmáčknuto". `smer` a `blok`
+ *  naopak jsou držený stav, přesně jak je posílá ovladač. */
+export interface HracVstup {
+  /** Jen vlevo/vpravo se v Fázi 1 skutečně hýbe; nahoru/dolu (skok/
+   *  podřep) jsou z d-padu vyhrazené na později a engine je ignoruje. */
+  smer: Smer | null
+  blok: boolean
+  akce: UtocnaAkce | null
+}
+
+/** Stav celého souboje (jednoho kola) — dva bojovníci, uplynulý čas
+ *  a výsledek. Skóre/rundy/restart mezi koly je až věc obrazovky
+ *  (Fáze 3), engine sám umí simulovat jen jedno kolo od začátku do KO. */
+export interface SoubojStav {
+  hraci: [BojovnikStav, BojovnikStav]
+  cas: number
+  vitez: 0 | 1 | null
+  stavKola: 'probiha' | 'konec'
+}
