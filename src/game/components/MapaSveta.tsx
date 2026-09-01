@@ -101,8 +101,8 @@ export const MapaSveta: React.FC<Props> = ({
   return (
     <div className="mapa-sveta">
       <div className="mapa-top-bar">
-        <button className="game-back-btn" onClick={() => navigate('/hub')}>
-          ← Zpět do Hubu
+        <button className="game-back-btn" onClick={() => navigate('/hra')}>
+          ← Zpět do her
         </button>
         <button
           className="mapa-postava-znacka"

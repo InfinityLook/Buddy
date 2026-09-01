@@ -41,8 +41,8 @@ export const VyberPostavy: React.FC<Props> = ({ postavy, mozneVytvoritDalsi, onZ
   return (
     <div className="vyber-postavy">
       <div className="vp-top-bar">
-        <button className="game-back-btn" onClick={() => navigate('/hub')}>
-          ← Zpět do Hubu
+        <button className="game-back-btn" onClick={() => navigate('/hra')}>
+          ← Zpět do her
         </button>
         <h1 className="vp-title">Za koho hraješ?</h1>
         <p className="vp-hint">Posuň karty stranou a vyber si postavu z party — příště můžeš klidně vzít jinou.</p>

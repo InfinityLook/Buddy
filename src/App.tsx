@@ -3,6 +3,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import Login from './pages/login/Login.tsx'
 import Hub from './pages/hub/Hub.tsx'
 import AppModule from '@/pages/app/AppModule.tsx'
+import GamesHubModule from '@/pages/games/GamesHubModule.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
 import SettingsModule from '@/pages/setting/SettingsModule.tsx'
@@ -216,9 +217,18 @@ export default function App() {
             }
           />
 
-          {/* Route pro herní hub (3D město) */}
+          {/* Route pro rozcestník her — Play v Hubu vede sem, ne rovnou
+              do konkrétní hry. Buddyheim (RPG) běží beze změny na své
+              vlastní podadrese, jen už není to jediné, co "Play"
+              nabízí. */}
           <Route
             path="/hra"
+            element={dovnitr ? <GamesHubModule /> : <Navigate to="/" replace />}
+          />
+
+          {/* Route pro Buddyheim (RPG, 3D průzkum) */}
+          <Route
+            path="/hra/buddyheim"
             element={
               dovnitr ? (
                 <Suspense fallback={<div className="app-suspense-fallback">Načítám město…</div>}>
