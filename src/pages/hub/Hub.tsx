@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
 import { useInbox } from '@/social/inbox'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import { useBuddyVoice } from '@/buddy/useBuddyVoice'
@@ -36,6 +37,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
   onTalk,
 }) => {
   const navigate = useNavigate()
+  // Jen tahle tři volání (Hub -> Social/Chat) — viz jeho vlastní komentář
+  // a global.css's ::view-transition-*(root) pro proč jen dopředu.
+  const prejit = useModulovyPrechod()
   const neprectene = useInbox((stav) => stav.neprectene)
   const { profile } = useProfileData()
 
@@ -166,7 +170,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <button
               className="hub-icon-btn"
               aria-label="Hledat"
-              onClick={() => navigate('/social?zalozka=vyhledavac')}
+              onClick={() => prejit('/social?zalozka=vyhledavac')}
             >
               <SocialIcon name="search" size={19} />
             </button>
@@ -401,7 +405,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <span>Home</span>
           </button>
 
-          <button className="hub-nav-item" onClick={() => navigate('/social')}>
+          <button className="hub-nav-item" onClick={() => prejit('/social')}>
             <SocialIcon name="users" size={20} />
             <span>Social</span>
           </button>
@@ -411,7 +415,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <span className="hub-nav-orb-oko" />
           </button>
 
-          <button className="hub-nav-item" onClick={() => navigate('/social?zalozka=chaty')}>
+          <button className="hub-nav-item" onClick={() => prejit('/social?zalozka=chaty')}>
             <span className="hub-nav-icon-wrap">
               <SocialIcon name="chat" size={20} />
               {neprectene > 0 && <span className="hub-nav-dot" aria-hidden="true" />}

@@ -116,3 +116,44 @@ a {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ==========================================
+   Modulový přechod ("Posun") — core/navigation/useModulovyPrechod.ts
+   volá document.startViewTransition(), prohlížeč vyfotí starou a novou
+   stránku a vloží je jako ::view-transition-old(root)/-new(root) do
+   vlastního overlay stromu mimo běžné DOM — proto tahle pravidla nejde
+   zasáhnout obyčejným "*, *::before, *::after" blokem výš, a proto
+   useModulovyPrechod.ts hlídá prefers-reduced-motion sám v JS dřív, než
+   se startViewTransition() vůbec zavolá (viz jeho komentář).
+
+   Zatím jen jeden směr (Hub → Social/Chat, Fáze 2 plánu) — nová
+   obrazovka najede zprava naplno, stará jen částečně ucouvne a ztmavne.
+   Cesta zpět zatím animaci nemá (viz komentář u volajících v Hub.tsx) —
+   směrová verze (dopředu/zpět) je práce až pro sdílenou navigaci
+   z pozdější fáze, ne pro tenhle jednosměrný krok. */
+::view-transition-old(root) {
+  animation: buddy-prechod-stara 420ms cubic-bezier(0.32, 0.08, 0.24, 1) both;
+}
+::view-transition-new(root) {
+  animation: buddy-prechod-nova 420ms cubic-bezier(0.32, 0.08, 0.24, 1) both;
+}
+
+@keyframes buddy-prechod-stara {
+  from {
+    transform: translateX(0);
+    filter: brightness(1);
+  }
+  to {
+    transform: translateX(-26%);
+    filter: brightness(0.55);
+  }
+}
+
+@keyframes buddy-prechod-nova {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
