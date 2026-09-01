@@ -119,6 +119,16 @@
 .games-card-nahled--prazdny {
   background-image: none;
   display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 30% 25%, rgba(53, 196, 240, 0.25) 0%, transparent 55%),
+    var(--bg-panel-raised);
+}
+
+.games-card-emoji {
+  font-size: 2.6rem;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
 }
 
 .games-card-body {

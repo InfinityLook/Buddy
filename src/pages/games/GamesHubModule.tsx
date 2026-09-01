@@ -17,7 +17,13 @@ interface Hra {
   nazev: string
   popis: string
   cesta: string | null
-  nahled: string
+  /** Obrázkový náhled (URL) — když žádný není (Souboj zatím nemá
+   *  žádnou skutečnou grafiku, viz `src/fighting/` v CLAUDE.md),
+   *  `emoji` kreslí náhled misto toho, stejné "neházet tam cizí
+   *  obrázek jen aby tam něco bylo" pravidlo jako postavy Souboje
+   *  samotné. */
+  nahled: string | null
+  emoji?: string
   barva: 'violet' | 'cyan'
 }
 
@@ -29,6 +35,15 @@ const HRY: Hra[] = [
     cesta: '/hra/buddyheim',
     nahled: '/backgrounds/mapa-sveta.jpg',
     barva: 'violet',
+  },
+  {
+    id: 'souboj',
+    nazev: 'Souboj',
+    popis: 'Bojovka pro dva — telefon jako ovladač, hraje se na TV',
+    cesta: '/hra/souboj',
+    nahled: null,
+    emoji: '🥊',
+    barva: 'cyan',
   },
 ]
 
@@ -52,31 +67,23 @@ export const GamesHubModule: React.FC = () => {
             className={`games-card games-card--${hra.barva}`}
             onClick={() => hra.cesta && navigate(hra.cesta)}
           >
-            <span
-              className="games-card-nahled"
-              style={{ backgroundImage: `url('${hra.nahled}')` }}
-              aria-hidden="true"
-            />
+            {hra.nahled ? (
+              <span
+                className="games-card-nahled"
+                style={{ backgroundImage: `url('${hra.nahled}')` }}
+                aria-hidden="true"
+              />
+            ) : (
+              <span className="games-card-nahled games-card-nahled--prazdny" aria-hidden="true">
+                <span className="games-card-emoji">{hra.emoji}</span>
+              </span>
+            )}
             <span className="games-card-body">
               <span className="games-card-nazev">{hra.nazev}</span>
               <span className="games-card-popis">{hra.popis}</span>
             </span>
           </button>
         ))}
-
-        {/* Druhá hra — zatím jen rezervované místo, ať mřížka rovnou
-            ukazuje "tady jich bude víc", ne jednu osamocenou dlaždici.
-            Obsah/název přibude, jakmile bude jasné, co to vlastně bude. */}
-        <div className="games-card games-card--soon" aria-hidden="true">
-          <span className="games-card-nahled games-card-nahled--prazdny" />
-          <span className="games-card-body">
-            <span className="games-card-nazev">
-              Další hra
-              <span className="games-badge-soon">BRZY</span>
-            </span>
-            <span className="games-card-popis">Připravujeme</span>
-          </span>
-        </div>
       </div>
     </div>
   )
