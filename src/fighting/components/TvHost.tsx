@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react'
 import { hostujMistnost, vygenerujKodMistnosti } from '../network'
 import { ARENA_SIRKA, krokSouboje, vytvorSoubojStav } from '../combat/engine'
 import { sestavVstup } from '../combat/loop'
+import { nahodnaPostava, pripravAkciAi } from '../combat/ai'
 import type { PostavaId } from '../combat/postavy'
-import type { SoubojStav } from '../combat/types'
+import type { HracVstup, SoubojStav } from '../combat/types'
 import type { PripojitPayload, Smer, Tlacitko, VstupPayload } from '../types'
 import { Bojiste } from './Bojiste'
 // Vlastní import, ne spoléhání na to, že FightingModule.tsx ho už
@@ -55,15 +56,24 @@ const IKONA_TLACITKA: Record<Tlacitko, string> = {
   specialni: '✨',
 }
 
+// Fáze 5 — sólo režim: počítačový soupeř je jen druhý slot s tímhle
+// pevným hracId, nikdy se nesplete se skutečným ovladačem (ten dostává
+// náhodně vygenerované id, viz Ovladac.tsx's vygenerujHracId). Kdekoli
+// tikBojovnika čte vstup pro tenhle slot, jde přes pripravAkciAi
+// (combat/ai.ts) místo přes živě držený stav tlačítek z broadcastu.
+const AI_HRAC_ID = 'pocitac-ai'
+
 // ==========================================
 // TV strana — vygeneruje kód místnosti, přiděluje připojující se
-// ovladače na sloty 1/2 a čeká, dokud oba nemají zvolenou postavu.
-// Jakmile jsou oba připraveni, spustí se skutečný zápas (Fáze 1/2
-// enginu, viz combat/engine.ts) přes requestAnimationFrame smyčku —
-// sestavVstup (combat/loop.ts) dělá hranovou detekci mezi tikem teď a
-// tikem předtím z živě drženého stavu tlačítek, krokSouboje je jediné
-// místo, co soubojová pravidla skutečně vyhodnocuje. Bojiste.tsx je
-// čistě prezentační, dostane hotový SoubojStav jako props.
+// ovladače na sloty 1/2 a čeká, dokud oba nemají zvolenou postavu (buď
+// druhý skutečný ovladač, nebo — Fáze 5 — počítačový soupeř zvolený
+// tlačítkem "Hrát proti počítači"). Jakmile jsou oba připraveni, spustí
+// se skutečný zápas (Fáze 1/2 enginu, viz combat/engine.ts) přes
+// requestAnimationFrame smyčku — sestavVstup (combat/loop.ts) dělá
+// hranovou detekci mezi tikem teď a tikem předtím z živě drženého
+// stavu tlačítek, krokSouboje je jediné místo, co soubojová pravidla
+// skutečně vyhodnocuje. Bojiste.tsx je čistě prezentační, dostane
+// hotový SoubojStav jako props.
 // ==========================================
 
 export const TvHost: React.FC<Props> = ({ onZpet }) => {
@@ -149,8 +159,17 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
       const a1 = aktualni[1]
       if (a0 && a1 && soubojStavRef.current) {
         const vstup0 = sestavVstup(a0.smer, vstupPredchoziRef.current[0], a0.tlacitka)
-        const vstup1 = sestavVstup(a1.smer, vstupPredchoziRef.current[1], a1.tlacitka)
-        vstupPredchoziRef.current = [{ ...a0.tlacitka }, { ...a1.tlacitka }]
+        vstupPredchoziRef.current[0] = { ...a0.tlacitka }
+
+        // Počítačový soupeř nemá žádný broadcastovaný stav tlačítek k
+        // hranové detekci — pripravAkciAi se rozhoduje znovu z čerstvého
+        // SoubojStav na každý tik (viz combat/ai.ts), žádný ekvivalent
+        // vstupPredchoziRef pro tenhle slot proto nepotřebuje.
+        const vstup1: HracVstup =
+          a1.hracId === AI_HRAC_ID
+            ? pripravAkciAi(soubojStavRef.current.hraci[1], soubojStavRef.current.hraci[0])
+            : sestavVstup(a1.smer, vstupPredchoziRef.current[1], a1.tlacitka)
+        if (a1.hracId !== AI_HRAC_ID) vstupPredchoziRef.current[1] = { ...a1.tlacitka }
 
         soubojStavRef.current = krokSouboje(soubojStavRef.current, [vstup0, vstup1], deltaMs)
         setSoubojStav(soubojStavRef.current)
@@ -162,6 +181,25 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
     idPozadavku = requestAnimationFrame(tik)
     return () => cancelAnimationFrame(idPozadavku)
   }, [pripraveno])
+
+  // Fáze 5 — sólo režim: doplní slot 2 počítačovým soupeřem s náhodně
+  // zvolenou postavou, ať to na začátku není vždy stejný souboj. Jde o
+  // plain setHraci, žádné potvrdPripojeni — na síť se tu vůbec nesahá,
+  // AI slot nikdy neprošel žádným broadcastem.
+  const hratProtiPocitaci = () => {
+    setHraci((soucasni) => {
+      if (soucasni[1]) return soucasni // slot 2 už je obsazený (skutečný hráč)
+      const dalsi = [...soucasni]
+      dalsi[1] = {
+        hracId: AI_HRAC_ID,
+        jmeno: 'Počítač',
+        postavaId: nahodnaPostava(),
+        smer: null,
+        tlacitka: { ...PRAZDNA_TLACITKA },
+      }
+      return dalsi
+    })
+  }
 
   const novyZapas = () => {
     const h0 = hraciRef.current[0]
@@ -239,6 +277,12 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
               </div>
             ))}
           </div>
+
+          {hraci[0] && !hraci[1] && (
+            <button type="button" className="souboj-solo-btn" onClick={hratProtiPocitaci}>
+              🤖 Hrát proti počítači
+            </button>
+          )}
         </>
       )}
     </div>

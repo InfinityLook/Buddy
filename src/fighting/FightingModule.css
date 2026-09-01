@@ -609,3 +609,25 @@
   cursor: pointer;
   width: 100%;
 }
+
+/* Fáze 5 — sólo režim proti počítači, nabízené jen dokud druhý slot
+   čeká na skutečný ovladač. Odlišný odstín (cyan) od Nového zápasu
+   (magenta/violet) — jiná kategorie akce, ne varianta téhož tlačítka. */
+.souboj-solo-btn {
+  margin-top: 1rem;
+  width: 100%;
+  background: transparent;
+  color: var(--accent-cyan);
+  border: 2px solid rgba(53, 196, 240, 0.4);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0;
+  font-size: 0.85rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.souboj-solo-btn:hover {
+  border-color: var(--accent-cyan);
+  background: rgba(53, 196, 240, 0.08);
+}
