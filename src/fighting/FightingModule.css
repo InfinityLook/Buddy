@@ -1,0 +1,384 @@
+/* ==========================================
+   SOUBOJ — Fáze 0 (síťové párování telefon-ovladač <-> TV).
+   Menu/host/kód obrazovky sdílí appky vlastní "glass karty na tmavém
+   pozadí" jazyk (viz .games-page/.reward-page); samotný ovladač
+   (.souboj-ovladac) je zvlášť — plnoobrazovkový fyzický gamepad, ne
+   karta, viz níž.
+   ========================================== */
+
+.souboj-page {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background:
+    radial-gradient(circle at 18% 10%, rgba(236, 72, 153, 0.16) 0%, transparent 42%),
+    radial-gradient(circle at 85% 78%, rgba(53, 196, 240, 0.16) 0%, transparent 42%),
+    var(--bg-base);
+  color: var(--text-primary);
+  padding: calc(0.9rem + env(safe-area-inset-top)) 1rem calc(1.25rem + env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.souboj-top-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 1.1rem;
+}
+
+.souboj-back-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0;
+  margin-bottom: 0.2rem;
+  cursor: pointer;
+}
+
+.souboj-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.souboj-sub {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.souboj-bez-cloudu {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+/* ---------- Menu: Hostovat na TV / Připojit se ---------- */
+.souboj-vyber {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.souboj-volba {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  text-align: left;
+  background: var(--bg-glass);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.souboj-volba:hover {
+  border-color: rgba(236, 72, 153, 0.5);
+  transform: translateY(-1px);
+}
+
+.souboj-volba-ikona {
+  flex-shrink: 0;
+  font-size: 1.7rem;
+}
+
+.souboj-volba-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.souboj-volba-nazev {
+  font-size: 0.98rem;
+  font-weight: 800;
+}
+
+.souboj-volba-popis {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+/* ---------- TV: kód místnosti + hráčské panely ---------- */
+.souboj-kod-karta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.4rem 1rem;
+  margin-bottom: 1.2rem;
+}
+
+.souboj-kod-popis {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.03em;
+}
+
+.souboj-kod {
+  font-size: 2.6rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  color: var(--accent-magenta);
+  font-variant-numeric: tabular-nums;
+}
+
+.souboj-hraci-mrizka {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.souboj-hrac-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 220px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1rem 0.75rem;
+}
+
+.souboj-hrac-panel--1 { border-color: rgba(239, 68, 68, 0.35); }
+.souboj-hrac-panel--2 { border-color: rgba(53, 196, 240, 0.35); }
+
+.souboj-hrac-nadpis {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.souboj-hrac-cekani {
+  margin-top: 1.5rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.souboj-hrac-jmeno {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.souboj-smer-indikator {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+}
+
+.souboj-smer-tecka {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(53, 196, 240, 0.7);
+  transition: transform 0.08s linear;
+}
+
+.souboj-tlacitka-radek {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.souboj-tlacitko-svetlo {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  opacity: 0.45;
+  transition: opacity 0.08s linear, box-shadow 0.08s linear;
+}
+
+.souboj-tlacitko-svetlo.je-aktivni { opacity: 1; }
+.souboj-tlacitko-svetlo--udar.je-aktivni { box-shadow: 0 0 12px rgba(239, 68, 68, 0.8); border-color: var(--accent-red); }
+.souboj-tlacitko-svetlo--kop.je-aktivni { box-shadow: 0 0 12px rgba(59, 130, 246, 0.8); border-color: #3b82f6; }
+.souboj-tlacitko-svetlo--blok.je-aktivni { box-shadow: 0 0 12px rgba(16, 185, 129, 0.8); border-color: var(--accent-green); }
+.souboj-tlacitko-svetlo--specialni.je-aktivni { box-shadow: 0 0 12px rgba(245, 158, 11, 0.8); border-color: var(--accent-orange); }
+
+/* ---------- Ovladač: zadání kódu ---------- */
+.souboj-kod-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.souboj-kod-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.souboj-kod-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: 0.9rem;
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: 0.25em;
+  text-align: center;
+  text-transform: uppercase;
+  outline: none;
+}
+
+.souboj-kod-input:focus {
+  border-color: var(--accent-magenta);
+}
+
+.souboj-kod-submit {
+  background: linear-gradient(90deg, var(--accent-magenta), var(--accent-violet));
+  color: var(--text-on-accent);
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.souboj-kod-submit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- Ovladač: skutečný gamepad ----------
+   Plnoobrazovkový, ne appky obvyklá karta na 480px — telefon je tu
+   fyzický ovladač, ne obrazovka appky, a musí zabrat celý displej,
+   ať jsou tlačítka co největší. touch-action/user-select vypnuté,
+   jinak by dlouhé držení tlačítka spustilo výběr textu nebo
+   posouvání stránky místo herního vstupu. */
+.souboj-ovladac {
+  height: 100vh;
+  height: 100dvh;
+  width: 100%;
+  box-sizing: border-box;
+  padding: calc(0.75rem + env(safe-area-inset-top)) 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: radial-gradient(circle at 50% 0%, rgba(138, 92, 246, 0.14) 0%, transparent 55%), var(--bg-base);
+  display: flex;
+  flex-direction: column;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.souboj-ovladac-stav {
+  align-self: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  padding: 0.35rem 0.9rem;
+  border-radius: var(--radius-pill);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+}
+
+.souboj-ovladac-stav--1 { color: var(--accent-red); border-color: rgba(239, 68, 68, 0.4); }
+.souboj-ovladac-stav--2 { color: var(--accent-cyan); border-color: rgba(53, 196, 240, 0.4); }
+
+.souboj-ovladac-spodek {
+  margin-top: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* D-pad — kříž ze čtyř trojúhelníkových tlačítek přes 3×3 mřížku,
+   prostřední buňka zůstává prázdná (jen vizuální střed kříže). */
+.souboj-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 58px);
+  grid-template-rows: repeat(3, 58px);
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.souboj-dpad-smer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.souboj-dpad-smer:active {
+  background: rgba(138, 92, 246, 0.4);
+}
+
+.souboj-dpad-smer--nahoru { grid-column: 2; grid-row: 1; }
+.souboj-dpad-smer--vlevo { grid-column: 1; grid-row: 2; }
+.souboj-dpad-smer--vpravo { grid-column: 3; grid-row: 2; }
+.souboj-dpad-smer--dolu { grid-column: 2; grid-row: 3; }
+
+/* Čtyři akční tlačítka — 2×2 mřížka, stejné barvy jako TV strana
+   ukazuje jako "světla" (souboj-tlacitko-svetlo výš), ať je hned
+   jasné, které tlačítko na ovladači odpovídá kterému na TV. */
+.souboj-tlacitka {
+  display: grid;
+  grid-template-columns: repeat(2, 62px);
+  grid-template-rows: repeat(2, 62px);
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.souboj-akcni-tlacitko {
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.souboj-akcni-tlacitko:active {
+  transform: scale(0.92);
+}
+
+.souboj-akcni-tlacitko--udar { background: radial-gradient(circle at 35% 30%, #fca5a5, var(--accent-red)); }
+.souboj-akcni-tlacitko--kop { background: radial-gradient(circle at 35% 30%, #93c5fd, #3b82f6); }
+.souboj-akcni-tlacitko--blok { background: radial-gradient(circle at 35% 30%, #6ee7b7, var(--accent-green)); }
+.souboj-akcni-tlacitko--specialni { background: radial-gradient(circle at 35% 30%, #fde68a, var(--accent-orange)); }

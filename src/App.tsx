@@ -17,6 +17,10 @@ const GameModule = lazy(() => import('@/game/GameModule'))
 // na Three.js jako Game hub, a otevírá se mnohem častěji než /hra —
 // proto musí jet líně stejně tak, jinak by ho zatížila každá návštěva.
 const SocialModule = lazy(() => import('@/social/SocialModule'))
+// Souboj (druhá hra, zatím jen síťové párování ve Fázi 0) — poroste
+// o herní vykreslování stejně jako Buddyheim, líný import od začátku
+// místo přechodu na něj až dodatečně.
+const FightingModule = lazy(() => import('@/fighting/FightingModule'))
 import { BootGate } from '@/components/BootGate'
 import { BiometricLock } from '@/components/BiometricLock'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
@@ -233,6 +237,23 @@ export default function App() {
               dovnitr ? (
                 <Suspense fallback={<div className="app-suspense-fallback">Načítám město…</div>}>
                   <GameModule />
+                </Suspense>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* Route pro Souboj (druhá hra, zatím jen Fáze 0 — síťové
+              párování telefon-ovladač <-> TV, viz src/fighting/). Ještě
+              se nenabízí z rozcestníku her jako skutečná karta, jde na
+              ni jen přímý odkaz. */}
+          <Route
+            path="/hra/souboj"
+            element={
+              dovnitr ? (
+                <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
+                  <FightingModule />
                 </Suspense>
               ) : (
                 <Navigate to="/" replace />
