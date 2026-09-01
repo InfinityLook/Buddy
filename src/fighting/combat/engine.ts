@@ -1,4 +1,5 @@
 import type { AkceData, BojovnikStav, HracVstup, SoubojStav, UtocnaAkce } from './types'
+import { POSTAVY, VYCHOZI_POSTAVA, type PostavaId } from './postavy'
 
 // ==========================================
 // Fáze 1 — čistý soubojový engine, žádné vedlejší efekty, žádné
@@ -27,22 +28,48 @@ export const AKCE_DATA: Record<UtocnaAkce, AkceData> = {
   specialni: { poskozeni: 22, dosah: 140, trvaniMs: 600, cenaMany: 40 },
 }
 
-export const vytvorBojovnika = (pozice: number): BojovnikStav => ({
-  hp: MAX_HP,
-  maxHp: MAX_HP,
-  // Mana se začíná od nuly — speciální schopnost se musí nejdřív
-  // vybojovat, ne že by šla hned na první tah.
-  mana: 0,
-  maxMana: MAX_MANA,
-  pozice,
-  blokuje: false,
-  zranitelnostKonci: 0,
-  utokKonci: 0,
-  posledniAkce: null,
-})
+export const vytvorBojovnika = (pozice: number, postavaId: PostavaId = VYCHOZI_POSTAVA): BojovnikStav => {
+  const postava = POSTAVY[postavaId]
+  return {
+    hp: MAX_HP * postava.maxHpNasobic,
+    maxHp: MAX_HP * postava.maxHpNasobic,
+    // Mana se začíná od nuly — speciální schopnost se musí nejdřív
+    // vybojovat, ne že by šla hned na první tah.
+    mana: 0,
+    maxMana: MAX_MANA,
+    pozice,
+    postavaId,
+    blokuje: false,
+    zranitelnostKonci: 0,
+    utokKonci: 0,
+    posledniAkce: null,
+  }
+}
 
-export const vytvorSoubojStav = (pozice0: number, pozice1: number): SoubojStav => ({
-  hraci: [vytvorBojovnika(pozice0), vytvorBojovnika(pozice1)],
+/** Fáze 2 — základní čísla akce (AKCE_DATA výše) upravená podle
+ *  násobičů konkrétní postavy. Jediné místo, kde se obecný vzorec
+ *  akce ("kop dá 10 a stojí 400ms") spojuje s osobním stylem postavy
+ *  ("Volt je o 30 % rychlejší") v jedno konkrétní číslo — tikBojovnika
+ *  i vyhodnotZasahPokudZahajen volají výhradně tohle, nikdy AKCE_DATA
+ *  přímo. */
+export const efektivniAkceData = (postavaId: PostavaId, akce: UtocnaAkce): AkceData => {
+  const zaklad = AKCE_DATA[akce]
+  const postava = POSTAVY[postavaId]
+  return {
+    poskozeni: zaklad.poskozeni * postava.poskozeniNasobic,
+    dosah: zaklad.dosah * postava.dosahNasobic,
+    trvaniMs: zaklad.trvaniMs / postava.rychlostNasobic,
+    cenaMany: zaklad.cenaMany * postava.cenaManyNasobic,
+  }
+}
+
+export const vytvorSoubojStav = (
+  pozice0: number,
+  pozice1: number,
+  postava0: PostavaId = VYCHOZI_POSTAVA,
+  postava1: PostavaId = VYCHOZI_POSTAVA
+): SoubojStav => ({
+  hraci: [vytvorBojovnika(pozice0, postava0), vytvorBojovnika(pozice1, postava1)],
   cas: 0,
   vitez: null,
   stavKola: 'probiha',
@@ -76,9 +103,10 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number): Vysle
     }
   }
 
+  const rychlostPostavy = POSTAVY[b.postavaId].rychlostNasobic
   let pozice = b.pozice
-  if (vstup.smer === 'vlevo') pozice = Math.max(0, pozice - (RYCHLOST_POHYBU * deltaMs) / 1000)
-  if (vstup.smer === 'vpravo') pozice = Math.min(ARENA_SIRKA, pozice + (RYCHLOST_POHYBU * deltaMs) / 1000)
+  if (vstup.smer === 'vlevo') pozice = Math.max(0, pozice - (RYCHLOST_POHYBU * rychlostPostavy * deltaMs) / 1000)
+  if (vstup.smer === 'vpravo') pozice = Math.min(ARENA_SIRKA, pozice + (RYCHLOST_POHYBU * rychlostPostavy * deltaMs) / 1000)
 
   // Zmáčknutá akce přebije blok — jednodušší pravidlo než "blok
   // pohltí útočné tlačítko", a nezavádí to stav, kdy vstup nic neudělá.
@@ -88,7 +116,7 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number): Vysle
   let zahajenaAkce: UtocnaAkce | null = null
   let manaPoUtoku = mana
   if (!blokuje && vstup.akce) {
-    const data = AKCE_DATA[vstup.akce]
+    const data = efektivniAkceData(b.postavaId, vstup.akce)
     const maNaTo = vstup.akce !== 'specialni' || mana >= data.cenaMany
     if (maNaTo) {
       novyUtokKonci = data.trvaniMs
@@ -127,12 +155,15 @@ const vyhodnotZasahPokudZahajen = (
 
   const utocnik = hraci[utocnikIdx]
   const cil = hraci[cilIdx]
-  const data = AKCE_DATA[akce]
+  const data = efektivniAkceData(utocnik.postavaId, akce)
   const vzdalenost = Math.abs(utocnik.pozice - cil.pozice)
   if (vzdalenost > data.dosah) return hraci // netrefil se, mimo dosah
 
+  // Obrana je vlastnost CÍLE, ne útočníka — vyhodnocuje se tady, po
+  // dosahu (útočníkova věc), před blokem (situační, ne osobní).
   const zasahBlokovan = cil.blokuje
-  const poskozeni = zasahBlokovan ? data.poskozeni * (1 - BLOK_REDUKCE) : data.poskozeni
+  const zakladniPoskozeni = data.poskozeni * POSTAVY[cil.postavaId].obranaNasobic
+  const poskozeni = zasahBlokovan ? zakladniPoskozeni * (1 - BLOK_REDUKCE) : zakladniPoskozeni
 
   const novyCil: BojovnikStav = {
     ...cil,

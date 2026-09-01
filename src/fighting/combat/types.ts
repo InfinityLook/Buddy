@@ -1,4 +1,5 @@
 import type { Smer } from '../types'
+import type { PostavaId } from './postavy'
 
 // ==========================================
 // Fáze 1 — jádro soubojového enginu jako čisté funkce, žádný React,
@@ -35,6 +36,9 @@ export interface BojovnikStav {
   maxMana: number
   /** Pozice na ose 0..ARENA_SIRKA. */
   pozice: number
+  /** Která postava (Fáze 2) — určuje efektivní čísla akcí, viz
+   *  engine.ts's efektivniAkceData(). */
+  postavaId: PostavaId
   /** Drží se blok právě teď (jen informativní — o snížení poškození
    *  rozhoduje engine v okamžiku zásahu). */
   blokuje: boolean
