@@ -16,15 +16,21 @@ const POLOZKY: { id: Sekce; popis: string; ikona: string }[] = [
 ]
 
 // ==========================================
-// Nastavení Social — vlastní menu jen pro tuhle část appky (Blokovaní,
-// Hlášení), ne appkové /nastaveni. Stejný vzor jako AdminModule.tsx:
-// menu řádků, klepnutí otevře sekci na celou obrazovku s vlastním
-// tlačítkem zpět, ne rovnou vykreslený obsah všech sekcí najednou.
+// Menu Blokovaní/Hlášení — stejný vzor jako AdminModule.tsx: menu
+// řádků, klepnutí otevře sekci na celou obrazovku s vlastním tlačítkem
+// zpět, ne rovnou vykreslený obsah všech sekcí najednou.
 //
-// Tajný chat tu dřív byl (přesunut sem z bývalé páté podmíněné položky
-// spodní navigace), ale založit/otevřít ho je akce, ne nastavení —
-// přestěhoval se pod "+ Nový" v ChatyPanel.tsx, vedle Chatu a Skupiny,
-// kam patří logičtěji.
+// Dřív žilo jako Social's vlastní čtvrtá záložka "Nastavení" ve
+// SocialModule.tsx; teď je jediný volající appčino skutečné /nastaveni
+// (SettingsModule.tsx, přes lazy SocialniNastaveniSekce.tsx — viz jeho
+// komentář, proč lazy) — appka tak má jen jedno "Nastavení", ne dvě
+// různá pod stejným jménem. Komponenta sama se stěhováním nezměnila,
+// jen kdo ji volá.
+//
+// Tajný chat tu dřív byl taky (přesunut sem z bývalé páté podmíněné
+// položky spodní navigace), ale založit/otevřít ho je akce, ne
+// nastavení — přestěhoval se pod "+ Nový" v ChatyPanel.tsx, vedle
+// Chatu a Skupiny, kam patří logičtěji.
 // ==========================================
 
 export const NastaveniPanel: React.FC<Props> = ({ stav }) => {

@@ -96,6 +96,16 @@
   color: var(--text-secondary);
 }
 
+/* Zástupný text, než se stáhne lazy sekce (viz SettingsModule.tsx's
+   SocialniNastaveniSekce) — stejný tvar jako .profil-lazy-fallback. */
+.settings-lazy-fallback {
+  margin: 0;
+  padding: 0.9rem;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
 /* Formulář osobních údajů */
 .settings-form {
   display: flex;

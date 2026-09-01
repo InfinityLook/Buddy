@@ -5,7 +5,6 @@ import { DomuPanel } from './components/DomuPanel'
 import { ChatyPanel } from './components/ChatyPanel'
 import { ChatView } from './components/ChatView'
 import { VyhledavacPanel } from './components/VyhledavacPanel'
-import { NastaveniPanel } from './components/NastaveniPanel'
 import { TajnyChatView } from './components/TajnyChatView'
 import { VerejnyProfilDialog } from './components/VerejnyProfilDialog'
 import { useSocial } from './useSocial'
@@ -27,15 +26,17 @@ import './SocialModule.css'
 // chaty i posílat žádosti komukoli bez skutečného účtu.
 // ==========================================
 
-type Zalozka = 'chaty' | 'domu' | 'vyhledavac' | 'nastaveni'
+type Zalozka = 'chaty' | 'domu' | 'vyhledavac'
 
-// Fáze 2 rozvržení: čtyři pevné položky pro úplně každého, ne pět/šest
-// podle role. Hledání nových lidí (dřív karta nad seznamem přátel
-// v Profilu) má vlastní záložku Vyhledávač — stejný mentální model,
-// jaký zná Instagram/TikTok. Blokovaní, Hlášení a (komu to oprávnění
-// dovolí) Tajný chat se přesunuly do Nastavení jako menu, přesně jako
-// AdminModule.tsx — spodní lišta se tak VIP/moderátorům/adminům
-// neroztahuje o další ikonu navíc, viz NastaveniPanel.tsx.
+// Tři pevné položky pro úplně každého, ne čtyři/pět/šest podle role.
+// Hledání nových lidí (dřív karta nad seznamem přátel v Profilu) má
+// vlastní záložku Vyhledávač — stejný mentální model, jaký zná
+// Instagram/TikTok. Blokovaní a Hlášení, dřív vlastní čtvrtá záložka
+// "Nastavení" (menu dvou řádků, NastaveniPanel.tsx), se přestěhovaly
+// do appčina skutečného /nastaveni jako karta "Sociální nastavení"
+// (SettingsModule.tsx, lazy SocialniNastaveniSekce.tsx) — appka má tak
+// jen jedno "Nastavení", ne dvě různá pod stejným jménem na dvou
+// místech. Tajný chat mezitím žije pod "+ Nový" v ChatyPanel.tsx.
 //
 // "Profil" mezitím přestala být záložka Social — appka má jen jeden
 // skutečný profil (pages/profil/ProfilModule.tsx) a mít jeho kopii i
@@ -50,7 +51,6 @@ const ZALOZKY: { id: Zalozka; popis: string; ikona: string }[] = [
   { id: 'chaty', popis: 'Chaty', ikona: 'chat' },
   { id: 'domu', popis: 'Domů', ikona: 'home' },
   { id: 'vyhledavac', popis: 'Vyhledávač', ikona: 'search' },
-  { id: 'nastaveni', popis: 'Nastavení', ikona: 'settings' },
 ]
 
 export const SocialModule: React.FC = () => {
@@ -67,7 +67,7 @@ export const SocialModule: React.FC = () => {
   // běhu appku uprostřed používání přehodilo na jinou záložku.
   const [zalozka, setZalozka] = useState<Zalozka>(() => {
     const z = searchParams.get('zalozka')
-    return z === 'chaty' || z === 'vyhledavac' || z === 'nastaveni' ? z : 'domu'
+    return z === 'chaty' || z === 'vyhledavac' ? z : 'domu'
   })
   const [otevrenyChat, setOtevrenyChat] = useState<string | null>(null)
   const [otevrenyTajnyChat, setOtevrenyTajnyChat] = useState<string | null>(null)
@@ -196,7 +196,6 @@ export const SocialModule: React.FC = () => {
               {zalozka === 'vyhledavac' && (
                 <VyhledavacPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />
               )}
-              {zalozka === 'nastaveni' && <NastaveniPanel stav={stav} />}
             </>
           )}
 

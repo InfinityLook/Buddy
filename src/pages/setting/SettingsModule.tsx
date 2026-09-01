@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from '@/core/supabase/auth'
 import { useAuthStore } from '@/core/store/useAuthStore'
@@ -30,6 +30,13 @@ import {
 } from '@/core/utils/backupHistory'
 import * as api from '@/social/api'
 import './SettingsModule.css'
+
+// Lazy — viz komentář nahoře v SocialniNastaveniSekce.tsx: tenhle soubor
+// (SettingsModule.tsx) se na rozdíl od SocialModule.tsx/GameModule.tsx
+// nenačítá přes React.lazy, takže by top-level import zatáhl celý
+// useSocial() do appčina hlavního balíčku i pro uživatele, co Social
+// nikdy neotevřou.
+const SocialniNastaveniSekce = lazy(() => import('./components/SocialniNastaveniSekce'))
 
 // ==========================================
 // Nastavení aplikace. Zatím obsahuje osobní údaje a zabezpečení, ale je
@@ -658,6 +665,26 @@ export const SettingsModule: React.FC = () => {
             <span className="settings-switch-knob" />
           </button>
         </div>
+      </section>
+
+      {/* Sociální nastavení — Blokovaní a Hlášení, přesunuté sem ze
+          Social's vlastní spodní lišty (SocialModule.tsx), kde měly
+          pátou položku "Nastavení" jen pro tohle dvouřádkové menu.
+          Karta dává NastaveniPanel.tsx svůj vlastní hlavičkový rámeček,
+          stejně jako Administrace/Podpora níž — obsah pod hlavičkou je
+          beze změny přesně ten, co dřív žil v Socialu. */}
+      <section className="settings-card">
+        <div className="settings-card-head">
+          <span className="settings-card-icon purple" aria-hidden="true">🚫</span>
+          <div>
+            <h2 className="settings-card-title">Sociální nastavení</h2>
+            <p className="settings-card-sub">Blokovaní lidé a nahlášený obsah</p>
+          </div>
+        </div>
+
+        <Suspense fallback={<p className="settings-lazy-fallback">Načítám…</p>}>
+          <SocialniNastaveniSekce />
+        </Suspense>
       </section>
 
       {/* Zálohování dat — přesunuté sem z Hubu (bylo tam čtvrté tlačítko
