@@ -40,6 +40,12 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
   const [vseNacteno, setVseNacteno] = useState(false)
   const [aktivniId, setAktivniId] = useState<string | null>(null)
   const [otevrenyDetail, setOtevrenyDetail] = useState<Prispevek | null>(null)
+  // Zvuk videí — appka drží jednu preferenci pro celý feed, ne per-post
+  // stav (zapneš si zvuk jednou, zůstane zapnutý i pro další video, dokud
+  // ho sám nevypneš) — stejná chuť, jakou má TikTok/IG, ne že by si
+  // appka pamatovala volbu jen pro rozehraný příspěvek. Výchozí ztlumeno
+  // (autoplay se zvukem by byl nevyžádaný hluk hned při otevření Domů).
+  const [zvukZapnuty, setZvukZapnuty] = useState(false)
 
   const feedRef = useRef<HTMLDivElement>(null)
   const postElementy = useRef<Map<string, HTMLElement>>(new Map())
@@ -140,6 +146,8 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
               autor={autori.get(p.autorId) ?? null}
               aktivni={aktivniId === p.id}
               online={online.has(p.autorId)}
+              zvukZapnuty={zvukZapnuty}
+              onPrepnoutZvuk={() => setZvukZapnuty((z) => !z)}
               onOtevritProfil={() => onOtevritProfil(p.autorId)}
               onOtevritDetail={() => setOtevrenyDetail(p)}
               // Ref appka drží mimo React stav (postElementy.current), ne

@@ -904,6 +904,62 @@
   font-size: 0.8rem;
 }
 
+/* ---------- Reel: natáčení (NahratReelDialog.tsx) ----------
+   Sdílí stejnou skořápku jako story: nahrání výš (.social-story-dialog
+   a spol.) — vlastní jsou jen kamerový náhled a značka nahrávání. */
+
+.social-reel-kamera-obal {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.social-reel-kamera {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  object-fit: cover;
+  /* Zrcadlené jako selfie — appka natáčí přední kamerou, uživatel
+     čeká zrcadlový obraz, ne převrácené písmo za sebou. */
+  transform: scaleX(-1);
+}
+
+.social-reel-nahravani-znacka {
+  position: absolute;
+  top: 0.8rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.social-reel-chyba {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.social-reel-nahled-akce {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.social-reel-nahled-akce .social-btn {
+  flex: 1;
+}
+
 /* ---------- story: prohlížeč ---------- */
 
 .social-story-prohlizec {

@@ -14,6 +14,10 @@ interface Props {
    *  spotřebovávalo) zvuk/výkon i video, které uživatel vůbec nevidí. */
   aktivni: boolean
   online: boolean
+  /** Jedna společná preference pro celý feed (viz DomuPanel.tsx), ne
+   *  vlastní stav tady — appka si zvuk pamatuje mezi příspěvky. */
+  zvukZapnuty: boolean
+  onPrepnoutZvuk: () => void
   onOtevritProfil: () => void
   onOtevritDetail: () => void
 }
@@ -33,7 +37,7 @@ interface Props {
 // video autoplay i dotažení další stránky), ne kvůli imperativnímu
 // volání metod na komponentě samotné.
 export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispevek(
-  { prispevek, autor, aktivni, online, onOtevritProfil, onOtevritDetail },
+  { prispevek, autor, aktivni, online, zvukZapnuty, onPrepnoutZvuk, onOtevritProfil, onOtevritDetail },
   ref
 ) {
   const [vztah, setVztah] = useState<VztahKPrispevku | null>(null)
@@ -80,7 +84,7 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
           ref={videoRef}
           src={prispevek.mediaUrl}
           className="social-feed-video"
-          muted
+          muted={!zvukZapnuty}
           loop
           playsInline
           onClick={zpracovatKliknuti}
@@ -144,6 +148,18 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
             <SocialIcon name="chat" size={19} />
           </span>
         </button>
+
+        {prispevek.mediaType === 'video' && (
+          <button
+            className="social-feed-akce-btn"
+            onClick={onPrepnoutZvuk}
+            aria-label={zvukZapnuty ? 'Ztlumit' : 'Zapnout zvuk'}
+          >
+            <span className="social-feed-akce-kruh">
+              <SocialIcon name={zvukZapnuty ? 'volume' : 'volume-off'} size={19} />
+            </span>
+          </button>
+        )}
       </div>
     </article>
   )

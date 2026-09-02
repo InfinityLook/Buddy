@@ -1945,6 +1945,49 @@ export const nastavSkrytOnline = async (hodnota: boolean): Promise<Vysledek> => 
 const POSTS_BUCKET = 'posts'
 const MAX_POST_VIDEO_BYTES = 25 * 1024 * 1024
 
+// Sociál nav rework Fáze 3a — video jako první-třídní obsah ("Reels"),
+// bez nové tabulky/sloupce: appka jen navíc omezí DÉLKU videa u
+// jakéhokoli video příspěvku (nahraného i natočeného přímo v appce,
+// viz NahratReelDialog.tsx), krátká forma je tak vlastnost, ne
+// samostatný typ obsahu. Stejné číslo appka používá i jako strop na
+// automatické zastavení nahrávání v NahratReelDialog.tsx.
+export const MAX_REEL_TRVANI_S = 60
+
+/**
+ * Změří délku videa čistě na klientovi, dřív než se cokoli nahraje —
+ * neviditelný <video> element mimo DOM, appka čeká na loadedmetadata
+ * (real prohlížeč umí přečíst délku z hlavičky souboru bez stažení
+ * celého videa). Nejde o vynucenou hranici (na to appka nemá server,
+ * co by video přetranskódoval/ořízl), jen stejný "nejlepší odhad na
+ * klientovi" jako velikostní strop pár řádků výš — když se délku
+ * nepovede zjistit (neobvyklý kodek, pomalý telefon), appka radši
+ * nechá nahrát dál (vrátí null), než aby blokovala něco, co nedokázala
+ * změřit.
+ */
+const ziskejDelkuVidea = (file: File): Promise<number | null> =>
+  new Promise((resolve) => {
+    const video = document.createElement('video')
+    video.preload = 'metadata'
+    const url = URL.createObjectURL(file)
+    let hotovo = false
+
+    const uklidit = (vysledek: number | null) => {
+      if (hotovo) return
+      hotovo = true
+      URL.revokeObjectURL(url)
+      resolve(vysledek)
+    }
+
+    video.onloadedmetadata = () => uklidit(video.duration || null)
+    video.onerror = () => uklidit(null)
+    // Prohlížeč, který metadata nikdy nedoručí (vzácný kodek), appku
+    // nesmí nechat viset navěky — 4 s je dost i na pomalejší telefon,
+    // podobná záchranná časovka jako promluv()'s v useBuddyVoice.ts.
+    window.setTimeout(() => uklidit(null), 4000)
+
+    video.src = url
+  })
+
 const prispevekZRadku = (
   klient: NonNullable<typeof supabase>,
   r: {
@@ -1985,6 +2028,12 @@ const nahratMediumPrispevku = async (
   const jeVideo = file.type.startsWith('video/')
   if (!jeObrazek && !jeVideo) throw new Error('Příspěvek může být jen fotka nebo video.')
   if (jeVideo && file.size > MAX_POST_VIDEO_BYTES) throw new Error('Video je moc velké.')
+  if (jeVideo) {
+    const delka = await ziskejDelkuVidea(file)
+    if (delka !== null && delka > MAX_REEL_TRVANI_S) {
+      throw new Error(`Video může být nejvýš ${MAX_REEL_TRVANI_S} s dlouhé.`)
+    }
+  }
 
   const blob: Blob = jeObrazek ? await fileToResizedBlob(file, 1600, 0.85) : file
   const pripona = jeObrazek ? 'jpg' : file.name.split('.').pop() || 'mp4'

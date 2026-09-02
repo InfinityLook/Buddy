@@ -129,6 +129,17 @@ export const SocialIcon: React.FC<SocialIconProps> = ({ name, size = 20, classNa
     // Kniha (Library dlaždice v Hubu).
     case 'book':
       return <svg {...common}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+    // Videokamera — vstupní bod "Nahrát Reel" (NahratReelDialog.tsx),
+    // odlišná od 'play' (přehrávání) i 'attach' (výběr existujícího
+    // souboru): tahle konkrétně znamená "natočit nové video kamerou".
+    case 'video':
+      return <svg {...common}><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-3.5v11L16 14"/></svg>
+    // Zvuk zapnutý/vypnutý — přepínač ztlumení videa ve feedu
+    // (FeedPrispevek.tsx). 'volume' bez přeškrtnutí = hraje se zvuk.
+    case 'volume':
+      return <svg {...common}><path d="M11 5 6 9H3v6h3l5 4Z"/><path d="M16 8a5 5 0 0 1 0 8"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>
+    case 'volume-off':
+      return <svg {...common}><path d="M11 5 6 9H3v6h3l5 4Z"/><path d="m17 9 5 6"/><path d="m22 9-5 6"/></svg>
     default:
       return null
   }

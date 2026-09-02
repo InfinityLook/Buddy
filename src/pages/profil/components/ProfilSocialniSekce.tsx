@@ -6,6 +6,7 @@ import { SkenovatKodDialog } from '@/social/components/SkenovatKodDialog'
 import { VerejnyProfilDialog } from '@/social/components/VerejnyProfilDialog'
 import { ZvyrazneniPruh } from '@/social/components/ZvyrazneniPruh'
 import { PridatPrispevekDialog } from './PridatPrispevekDialog'
+import { NahratReelDialog, PODPORUJE_NAHRAVANI_REELU } from '@/social/components/NahratReelDialog'
 import { PrispevekProhlizec } from '@/social/components/PrispevekProhlizec'
 import { SledujiciDialog } from '@/social/components/SledujiciDialog'
 import { SocialIcon } from '@/social/components/SocialIcon'
@@ -41,6 +42,7 @@ export const ProfilSocialniSekce: React.FC = () => {
   const [vztah, setVztah] = useState<VztahSledovani | null>(null)
   const [tab, setTab] = useState<'foto' | 'video' | 'ulozeno'>('foto')
   const [noveSoubory, setNoveSoubory] = useState<File[] | null>(null)
+  const [natacimReel, setNatacimReel] = useState(false)
   const [otevrenyPrispevek, setOtevrenyPrispevek] = useState<Prispevek | null>(null)
   const [otevrenSledujiciTab, setOtevrenSledujiciTab] = useState<'sledujici' | 'sledovani' | null>(null)
   const vstupRef = useRef<HTMLInputElement>(null)
@@ -184,6 +186,18 @@ export const ProfilSocialniSekce: React.FC = () => {
             >
               <SocialIcon name="plus" size={22} />
             </button>
+            {/* Natočit rovnou v appce, ne jen vybrat existující soubor —
+                druhá dlaždice vedle "+", feature-detekovaná stejně jako
+                mikrofon v ChatView.tsx (viz NahratReelDialog.tsx). */}
+            {PODPORUJE_NAHRAVANI_REELU && (
+              <button
+                className="social-prispevek-pridat"
+                onClick={() => setNatacimReel(true)}
+                aria-label="Nahrát Reel"
+              >
+                <SocialIcon name="video" size={22} />
+              </button>
+            )}
             <input
               ref={vstupRef}
               type="file"
@@ -277,6 +291,16 @@ export const ProfilSocialniSekce: React.FC = () => {
           onHotovo={() => {
             setNoveSoubory(null)
             nacistPrispevky()
+          }}
+        />
+      )}
+
+      {natacimReel && (
+        <NahratReelDialog
+          onZavrit={() => setNatacimReel(false)}
+          onNatoceno={(soubor) => {
+            setNatacimReel(false)
+            setNoveSoubory([soubor])
           }}
         />
       )}
