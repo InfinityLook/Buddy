@@ -13,9 +13,11 @@ interface Props {
  * na profilu, kde má Instagram Highlights (pod bio/statistikami, nad
  * záložkami s mřížkou). Appka tu nenabízí "vytvořit nové": zvýraznění
  * vzniká jen z otevřené vlastní story (viz PridatDoZvyrazneniDialog.tsx
- * ze StoryProhlizec.tsx), takže prázdný pruh appka radši úplně skryje
- * (stejné "nic se nevykreslí, dokud appka neví, jestli něco je" jako
- * u StoriesBar.tsx), ne že by tu byla dlaždice bez skutečné funkce.
+ * z FeedStory.tsx — Fáze 3b sjednocení, viz CLAUDE.md, story dřív žila
+ * ve vlastním StoryProhlizec.tsx, teď rovnou ve feedu na Domů), takže
+ * prázdný pruh appka radši úplně skryje ("nic se nevykreslí, dokud
+ * appka neví, jestli něco je"), ne že by tu byla dlaždice bez skutečné
+ * funkce.
  */
 export const ZvyrazneniPruh: React.FC<Props> = ({ userId, jeMoje }) => {
   const [zvyrazneni, setZvyrazneni] = useState<Zvyrazneni[] | null>(null)

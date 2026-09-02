@@ -659,111 +659,12 @@
   text-align: center;
 }
 
-/* ---------- stories ---------- */
-
-.social-stories-pruh {
-  padding: 0.85rem 0.75rem;
-}
-
-.social-stories-radek {
-  display: flex;
-  gap: 0.85rem;
-  overflow-x: auto;
-  scroll-snap-type: x proximity;
-  padding-bottom: 0.15rem;
-}
-
-.social-story-tile {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
-  flex-shrink: 0;
-  width: 62px;
-  background: none;
-  border: none;
-  padding: 0;
-  scroll-snap-align: start;
-  cursor: pointer;
-}
-
-.social-story-tile--vlastni {
-  position: relative;
-}
-
-.social-story-tile-avatar-btn {
-  display: flex;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-}
-
-.social-story-tile-avatar-btn:disabled {
-  cursor: default;
-}
-
-/* Barevný prstenec kolem prstence, který si SocialAvatar kreslí sám
-   (avatarColor.ts) — dva prstence nevadí, ten vnější tady nese jiný
-   význam (nezhlédnuto/zhlédnuto), ne barvu podle id. Mezera mezi nimi
-   (social-story-krouzek-mezera) je vlastní pozadí appky, stejný "prstenec
-   potřebuje podkladovou barvu, ne jen masku" trik, jaký CLAUDE.md už
-   popisuje u SocialAvatar.tsx samotného. */
-.social-story-krouzek {
-  display: inline-flex;
-  padding: 2.5px;
-  border-radius: 999px;
-  background: conic-gradient(
-    from 180deg,
-    var(--accent-magenta),
-    var(--accent-cyan),
-    var(--accent-violet),
-    var(--accent-magenta)
-  );
-}
-
-.social-story-krouzek--zhlednuto {
-  background: var(--border-strong);
-}
-
-.social-story-krouzek--prazdny {
-  background: var(--bg-panel-raised);
-  border: 1.5px dashed var(--border-strong);
-  padding: 2px;
-}
-
-.social-story-krouzek-mezera {
-  display: inline-flex;
-  padding: 2px;
-  border-radius: 999px;
-  background: var(--bg-base);
-}
-
-.social-story-plus-btn {
-  position: absolute;
-  left: 38px;
-  top: 34px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--accent-cyan);
-  color: var(--bg-base);
-  border: 2px solid var(--bg-panel);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-  cursor: pointer;
-}
-
-.social-story-tile-jmeno {
-  font-size: 0.68rem;
-  color: var(--text-secondary);
-  max-width: 62px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
+/* Stories dřív měly tady vlastní vodorovný pruh koleček (StoriesBar.tsx) —
+   Fáze 3b sjednocení (viz CLAUDE.md) ho zrušila úplně, story teď
+   vplouvá přímo do svislého feedu jako FeedStory.tsx (viz sekci "feed
+   na Domů" níž). Prstenec kolem avatara zůstal — pořád ho kreslí
+   SocialAvatar.tsx samotný (avatarColor.ts), jen bez druhého,
+   vnějšího "nezhlédnuto" prstence, který patřil jen tomuhle pruhu. */
 
 /* ---------- zvýrazněná story (highlights) ---------- */
 
@@ -996,17 +897,19 @@
   width: 100%;
 }
 
-.social-story-progres-fill.bezi {
-  animation: social-story-plni 5s linear forwards;
-}
-
-@keyframes social-story-plni {
-  from {
-    width: 0%;
-  }
-  to {
-    width: 100%;
-  }
+/* Uvnitř feedu (FeedStory.tsx) je ukazatel plovoucí přes horní okraj
+   média, ne obyčejný řádek na začátku sloupce jako u .social-story-
+   prohlizec/ZvyrazneniProhlizec.tsx níž — .social-feed-post je vlastní
+   flex řádek, kde by neabsolutní dítě jen soupeřilo o místo s obrázkem
+   místo aby se přes něj překrylo. Appka už tu nemá "bezi"/časovanou
+   animaci vůbec — story ve feedu posouvá dál stejné swipe gesto jako
+   cokoli jiného, žádný vlastní časovač (viz FeedStory.tsx's komentář). */
+.social-feed-post .social-story-progres-radek {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
 }
 
 .social-story-prohlizec-hlavicka {
@@ -1406,6 +1309,33 @@
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Tlačítko "Přidat story" — dřív jedna dlaždice v celém vodorovném
+   pruhu koleček (StoriesBar.tsx), teď jediný řádek nad feedem místo
+   celého pruhu (Fáze 3b sjednocení, viz CLAUDE.md's Social nav rework):
+   appka pořád potřebuje odněkud story přidat, i když pruh cizích
+   avatarů zmizel a story teď vplouvá rovnou do feedu (FeedStory.tsx). */
+.social-domu-horni-lista {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0.15rem 0.5rem;
+  flex-shrink: 0;
+}
+
+.social-domu-pridat-story-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 0.35rem 0.7rem;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  cursor: pointer;
 }
 
 .social-feed {
@@ -1495,6 +1425,21 @@
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* FeedStory.tsx (Fáze 3b) zdědí zhlédnutí/odpovědní blok ze starého
+   celoobrazovkového StoryProhlizec.tsx, kde měly tyhle třídy vlastní
+   flex-column skořápku přes celou šířku obrazovky — uvnitř .social-feed-info
+   (užší levý sloupec, jak ho FeedPrispevek.tsx už používá) stačí
+   doladit zarovnání/odsazení, ne vzhled od základu předělávat. */
+.social-feed-info .social-story-zhlednuti-btn,
+.social-feed-info .social-story-odpoved-hlaska {
+  align-self: flex-start;
+  margin-bottom: 0;
+}
+
+.social-feed-info .social-story-odpoved-blok {
+  padding: 0;
 }
 
 /* Svislý sloupec akcí vpravo — srdíčko + komentáře, skleněné kolečko
@@ -2760,7 +2705,6 @@
   .social-nahravani-tecka,
   .social-media-nacita,
   .social-media-nacita--hlas,
-  .social-story-progres-fill.bezi,
   .social-feed-dvojklik-srdce {
     animation: none !important;
     transition: none !important;
@@ -2772,8 +2716,4 @@
      window.setTimeout ve useDoubleTapLike.ts, na animaci nezávisí),
      ne že by zmizelo úplně a dvojklik nedal žádnou zpětnou vazbu. */
   .social-feed-dvojklik-srdce { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  /* Bez animace appka aspoň ukáže rozehraný snímek jako napůl hotový,
-     ne trvale prázdný — automatický posun (StoryProhlizec.tsx's
-     window.setTimeout) na tom nezávisí a poběží stejně. */
-  .social-story-progres-fill.bezi { width: 50%; }
 }

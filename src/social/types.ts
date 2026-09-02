@@ -320,8 +320,8 @@ export interface StorySkupina {
   vsechnyZhlednute: boolean
 }
 
-/** Kdo si moji story přečetl — StoryProhlizec.tsx to ukáže autorovi
- *  pod otevřenou story, ne cizímu divákovi. */
+/** Kdo si moji story přečetl — FeedStory.tsx to ukáže autorovi pod
+ *  jeho vlastní story ve feedu, ne cizímu divákovi. */
 export interface StoryZhlednuti {
   viewer: SocialProfil
   zhlednutoAt: string

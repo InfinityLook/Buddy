@@ -6,11 +6,11 @@ import type { StorySkupina } from './types'
 // ==========================================
 // Stav stories — vlastní hook, ne součást useSocial.ts.
 //
-// Stories se vykreslují jen v jednom pruhu na jedné obrazovce
-// (StoriesBar.tsx uvnitř MujProfilPanel.tsx), ne kdekoli, kde je po
-// ruce useSocial() — stejný "vlastní hook, ne zátěž pro hlavní stav"
-// důvod jako u useTajnyChat.ts, jen tady na to (na rozdíl od tajného
-// chatu) nemá vliv žádné oprávnění — Stories smí každý.
+// Stories se vykreslují jen na jedné obrazovce (DomuPanel.tsx, přes
+// FeedStory.tsx — Fáze 3b sjednocení, viz CLAUDE.md), ne kdekoli, kde
+// je po ruce useSocial() — stejný "vlastní hook, ne zátěž pro hlavní
+// stav" důvod jako u useTajnyChat.ts, jen tady na to (na rozdíl od
+// tajného chatu) nemá vliv žádné oprávnění — Stories smí každý.
 // ==========================================
 
 export const useStories = () => {

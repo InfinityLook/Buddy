@@ -1,10 +1,12 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { useProfileData } from '@/pages/profil/hooks/useProfileData'
-import { StoriesBar } from './StoriesBar'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FeedPrispevek } from './FeedPrispevek'
+import { FeedStory } from './FeedStory'
 import { PrispevekProhlizec } from './PrispevekProhlizec'
+import { PridatStoryDialog } from './PridatStoryDialog'
+import { SocialIcon } from './SocialIcon'
 import * as api from '../api'
 import { useOnlineFriends } from '../presence'
+import { useStories } from '../useStories'
 import type { Prispevek, SocialProfil } from '../types'
 import type { SocialStav } from '../useSocial'
 
@@ -19,23 +21,29 @@ interface Props {
 const NACIST_DALSI_OD_KONCE = 2
 
 // ==========================================
-// Domů — prostřední záložka spodní navigace. Story pruh nahoře
-// (StoriesBar.tsx, dřív v MujProfilPanel.tsx) + pod ním celoobrazovkový
-// feed příspěvků od všech, koho appka sleduje (viz nacti_feed na
-// databázi), ve stylu TikToku: jeden příspěvek přes celou dostupnou
-// výšku, svisle mezi nimi swipe/scroll-snap, ne mřížka ani obyčejný
-// rostoucí seznam karet. Vlastní scroll (viz .social-panel--domu
-// v SocialModule.css) — celá .social-page se tu schválně nescrolluje,
-// jen samotný feed.
+// Domů — prostřední záložka spodní navigace, celoobrazovkový feed ve
+// stylu TikToku: jedna položka přes celou dostupnou výšku, svisle mezi
+// nimi swipe/scroll-snap.
+//
+// Fáze 3b sjednocení (Social nav rework, viz CLAUDE.md) — Stories dřív
+// žily ve vlastním vodorovném pruhu koleček nad feedem (StoriesBar.tsx)
+// s odděleným celoobrazovkovým prohlížečem (StoryProhlizec.tsx, vlastní
+// časovaný automatický posun). Appka teď obojí sloučila do jednoho
+// nepřerušeného svislého scrollu: nezhlédnuté story se vloží jako
+// FeedStory.tsx položky hned na začátek (vlastní skupina napřed, pak
+// přátelé), pokračuje se rovnou příspěvky (FeedPrispevek.tsx) — jeden
+// swipe zážitek, ne dvě appky slepené k sobě. Jediné, co po pruhu
+// koleček zbylo, je malé tlačítko "+ Story" nad feedem (appka pořád
+// potřebuje odněkud vlastní story přidat).
 // ==========================================
 
 export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
-  const { profile } = useProfileData()
   const online = useOnlineFriends()
+  const { skupiny: storySkupiny, nacita: nacitaStories, obnovit: obnovitStories } = useStories()
 
   const [prispevky, setPrispevky] = useState<Prispevek[]>([])
   const [autori, setAutori] = useState<Map<string, SocialProfil>>(new Map())
-  const [nacita, setNacita] = useState(true)
+  const [nacitaPrispevky, setNacitaPrispevky] = useState(true)
   const [dotahujeDalsi, setDotahujeDalsi] = useState(false)
   const [vseNacteno, setVseNacteno] = useState(false)
   const [aktivniId, setAktivniId] = useState<string | null>(null)
@@ -46,6 +54,8 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
   // appka pamatovala volbu jen pro rozehraný příspěvek. Výchozí ztlumeno
   // (autoplay se zvukem by byl nevyžádaný hluk hned při otevření Domů).
   const [zvukZapnuty, setZvukZapnuty] = useState(false)
+  const [novaStory, setNovaStory] = useState<File | null>(null)
+  const vstupStoryRef = useRef<HTMLInputElement>(null)
 
   const feedRef = useRef<HTMLDivElement>(null)
   const postElementy = useRef<Map<string, HTMLElement>>(new Map())
@@ -62,12 +72,12 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
   useEffect(() => {
     let platne = true
     void (async () => {
-      setNacita(true)
+      setNacitaPrispevky(true)
       const prvni = await api.nactiFeed()
       if (!platne) return
       setPrispevky(prvni)
       setVseNacteno(prvni.length === 0)
-      setNacita(false)
+      setNacitaPrispevky(false)
       void doplnitAutory(prvni.map((p) => p.autorId))
     })()
     return () => {
@@ -92,13 +102,34 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
     setDotahujeDalsi(false)
   }, [prispevky, dotahujeDalsi, vseNacteno, doplnitAutory])
 
-  // Který příspěvek je zrovna "na obrazovce" (řídí video autoplay) —
-  // a zároveň spouštěč dotažení další stránky, jakmile se uživatel
-  // přiblíží ke konci už načteného. Jeden pozorovatel pro obojí, žádný
-  // druhý jen na "blízko konce".
+  // Story položky feedu — každá story jednotlivého autora rozbalená na
+  // svou vlastní feedovou "stránku" (viz FeedStory.tsx), v pořadí, v
+  // jakém je vrátil nactiStories() (vlastní skupina už tam je první,
+  // appka to tu znovu netřídí). Appka to počítá znovu při každém
+  // vykreslení, ne jako vlastní stav — storySkupiny se mění dost zřídka
+  // na to, aby to vadilo.
+  const storyPolozky = useMemo(
+    () =>
+      stav.mujId
+        ? storySkupiny.flatMap((skupina) =>
+            skupina.stories.map((story, indexVeSkupine) => ({ skupina, story, indexVeSkupine }))
+          )
+        : [],
+    [storySkupiny, stav.mujId]
+  )
+
+  const nacita = nacitaPrispevky || nacitaStories
+  const jePrazdno = !nacita && prispevky.length === 0 && storyPolozky.length === 0
+
+  // Který příspěvek/story je zrovna "na obrazovce" (řídí video autoplay
+  // i zaznamenání zhlédnutí story) — a zároveň spouštěč dotažení další
+  // stránky příspěvků, jakmile se uživatel přiblíží ke konci už
+  // načteného. Jeden pozorovatel pro obojí, žádný druhý jen na "blízko
+  // konce" — a jeden pro story i příspěvky dohromady, appka je teď
+  // vykresluje do stejného scroll-snap kontejneru.
   useEffect(() => {
     const kontejner = feedRef.current
-    if (!kontejner || prispevky.length === 0) return
+    if (!kontejner || (prispevky.length === 0 && storyPolozky.length === 0)) return
 
     const pozorovatel = new IntersectionObserver(
       (zaznamy) => {
@@ -119,19 +150,37 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
 
     for (const el of postElementy.current.values()) pozorovatel.observe(el)
     return () => pozorovatel.disconnect()
-  }, [prispevky, nacistDalsiStranku])
+  }, [prispevky, storyPolozky, nacistDalsiStranku])
 
   return (
     <div className="social-panel social-panel--domu">
       {stav.mujId && (
-        <StoriesBar mujId={stav.mujId} mojeJmeno={profile.name} mujAvatar={profile.avatar} />
+        <div className="social-domu-horni-lista">
+          <button
+            className="social-domu-pridat-story-btn"
+            onClick={() => vstupStoryRef.current?.click()}
+          >
+            <SocialIcon name="plus" size={14} /> Story
+          </button>
+          <input
+            ref={vstupStoryRef}
+            type="file"
+            accept="image/*"
+            className="social-soubor-input"
+            onChange={(e) => {
+              const soubor = e.target.files?.[0]
+              e.target.value = ''
+              if (soubor) setNovaStory(soubor)
+            }}
+          />
+        </div>
       )}
 
       {nacita ? (
         <div className="social-feed-prazdno">
           <p className="social-feed-nacitam">Načítám…</p>
         </div>
-      ) : prispevky.length === 0 ? (
+      ) : jePrazdno ? (
         <div className="social-feed-prazdno">
           <p className="social-empty-note social-empty-note--stred">
             Sleduj někoho, ať tu něco uvidíš. ✨
@@ -139,6 +188,25 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
         </div>
       ) : (
         <div className="social-feed" ref={feedRef}>
+          {storyPolozky.map(({ skupina, story, indexVeSkupine }) => {
+            const klic = `story:${story.id}`
+            return (
+              <FeedStory
+                key={klic}
+                skupina={skupina}
+                story={story}
+                indexVeSkupine={indexVeSkupine}
+                mujId={stav.mujId ?? ''}
+                aktivni={aktivniId === klic}
+                onSmazano={() => void obnovitStories()}
+                ref={(el) => {
+                  if (el) postElementy.current.set(klic, el)
+                  else postElementy.current.delete(klic)
+                }}
+              />
+            )
+          })}
+
           {prispevky.map((p) => (
             <FeedPrispevek
               key={p.id}
@@ -161,6 +229,17 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
             />
           ))}
         </div>
+      )}
+
+      {novaStory && (
+        <PridatStoryDialog
+          soubor={novaStory}
+          onZavrit={() => setNovaStory(null)}
+          onHotovo={() => {
+            setNovaStory(null)
+            void obnovitStories()
+          }}
+        />
       )}
 
       {otevrenyDetail && (
