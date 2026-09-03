@@ -9,6 +9,7 @@ import { useProfileData } from './hooks/useProfileData'
 import { useActiveRole } from '@/core/role'
 import { ProfilNotifications } from './components/ProfilNotifications'
 import { ProfilToast } from './components/ProfilToast'
+import { AppBottomNav } from '@/components/AppBottomNav'
 import './ProfilModule.css'
 
 // Lazy — viz komentář nahoře v ProfilSocialniSekce.tsx: tenhle soubor
@@ -189,6 +190,10 @@ export const ProfilModule: React.FC = () => {
       <Suspense fallback={<p className="profil-lazy-fallback">Načítám…</p>}>
         <ProfilSocialniSekce />
       </Suspense>
+
+      {/* Fáze 4 Social nav reworku (viz CLAUDE.md) — stejná sdílená
+          lišta jako na Hubu/Apps/Nastavení. */}
+      <AppBottomNav />
 
       <ProfilNotifications
         open={notifOpen}

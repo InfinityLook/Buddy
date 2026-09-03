@@ -6,6 +6,7 @@ import { AppCard } from './components/AppCard'
 import { AppBanner } from './components/AppBanner'
 import { AppIcon } from './components/AppIcon'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { AppBottomNav } from '@/components/AppBottomNav'
 import { MINI_APP_REGISTRY } from '@/features/miniapps/registry'
 import { useAppStore, AppItem } from '@/core/store/useAppStore'
 import { normalizeText } from '@/core/utils/text'
@@ -230,6 +231,10 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
         onOpen={(id) => setActiveAppId(id)}
         favoriteCount={favoriteCount}
       />
+
+      {/* Fáze 4 Social nav reworku (viz CLAUDE.md) — appka teď navigaci
+          mezi hlavními obrazovkami nabízí i tady, ne jen na Hubu. */}
+      <AppBottomNav />
 
       <ProfilNotifications
         open={notifOpen}

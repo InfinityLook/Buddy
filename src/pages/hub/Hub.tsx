@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
 import { useInbox } from '@/social/inbox'
 import { SocialIcon } from '@/social/components/SocialIcon'
+import { AppBottomNav } from '@/components/AppBottomNav'
 import { useBuddyVoice } from '@/buddy/useBuddyVoice'
 import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
@@ -16,7 +17,6 @@ import './HubModule.css'
 interface HubModuleProps {
   onOpenApps?: () => void
   onOpenProfile?: () => void
-  onOpenSettings?: () => void
   onTalk?: () => void
 }
 
@@ -33,7 +33,6 @@ const predmetVeDruhemPade = (predmet: string) => {
 export const HubModule: React.FC<HubModuleProps> = ({
   onOpenApps,
   onOpenProfile,
-  onOpenSettings,
   onTalk,
 }) => {
   const navigate = useNavigate()
@@ -392,42 +391,13 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </button>
         </div>
 
-        {/* Spodní navigace — pět položek s ikonou a popiskem, prostřední
-            (Buddy) je vyvýšené kolečko, ne text jako zbytek. Dřív tu byl
-            mikrofon + Social tlačítko + nastavení; hlasový režim teď
-            vede přes tohle prostřední kolečko (stejná funkce, jen
-            vizuálně povýšená), "Chat" míří rovnou na záložku Chaty
-            v Socialu (?zalozka=chaty, viz SocialModule.tsx), "Social" na
-            jeho domovskou obrazovku. */}
-        <nav className="hub-bottom-nav">
-          <button className="hub-nav-item hub-nav-item--active" aria-current="page">
-            <SocialIcon name="home" size={20} />
-            <span>Home</span>
-          </button>
-
-          <button className="hub-nav-item" onClick={() => prejit('/social')}>
-            <SocialIcon name="users" size={20} />
-            <span>Social</span>
-          </button>
-
-          <button className="hub-nav-orb" aria-label="Promluvit s Buddym" onClick={onTalk ?? otevritBuddyho}>
-            <span className="hub-nav-orb-oko" />
-            <span className="hub-nav-orb-oko" />
-          </button>
-
-          <button className="hub-nav-item" onClick={() => prejit('/social?zalozka=chaty')}>
-            <span className="hub-nav-icon-wrap">
-              <SocialIcon name="chat" size={20} />
-              {neprectene > 0 && <span className="hub-nav-dot" aria-hidden="true" />}
-            </span>
-            <span>Chat</span>
-          </button>
-
-          <button className="hub-nav-item" onClick={onOpenSettings ?? (() => navigate('/nastaveni'))}>
-            <SocialIcon name="settings" size={20} />
-            <span>Settings</span>
-          </button>
-        </nav>
+        {/* Spodní navigace — Fáze 4 Social nav reworku vytáhla tenhle
+            blok do sdílené komponenty (src/components/AppBottomNav.tsx),
+            appka ji teď vykresluje i mimo Hub (Apps/Profil/Nastavení).
+            Vlastní useBuddyVoice/otevritBuddyho jde dovnitř přes onTalk,
+            ať se prostřední kolečko drží stejné instance jako velká
+            koule nad lištou (viz komponenty vlastní komentář). */}
+        <AppBottomNav onTalk={onTalk ?? otevritBuddyho} />
       </div>
 
       {toast && <div className="hub-toast">{toast}</div>}

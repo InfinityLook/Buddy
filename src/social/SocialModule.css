@@ -81,7 +81,8 @@
 /* ---------- spodní navigace ---------- */
 /* Instagram/TikTok vzor: ikony dole na pevno přilepené k okraji, ne
    záložky nahoře nad obsahem. Stejný sticky+gradientový podklad jako
-   Hub's .hub-bottom-bar (HubModule.css) — dvě různé lišty pro totéž by
+   sdílené appčiny .app-bottom-nav (components/AppBottomNav.css) — dvě
+   různé lišty pro totéž by
    appka nemusela mít. flex:1 tu na rozdíl od staré horní řady nevadí:
    samotná ikona s jednoslovným popiskem pod sebou se nemá kam zalomit
    ani na pěti/šesti položkách v řadě, takže vodorovný scroll (řešení

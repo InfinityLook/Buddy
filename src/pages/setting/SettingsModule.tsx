@@ -29,6 +29,7 @@ import {
   saveSnapshot,
 } from '@/core/utils/backupHistory'
 import * as api from '@/social/api'
+import { AppBottomNav } from '@/components/AppBottomNav'
 import './SettingsModule.css'
 
 // Lazy — viz komentář nahoře v SocialniNastaveniSekce.tsx: tenhle soubor
@@ -846,6 +847,10 @@ export const SettingsModule: React.FC = () => {
           🚪 Odhlásit se
         </button>
       </section>
+
+      {/* Fáze 4 Social nav reworku (viz CLAUDE.md) — stejná sdílená
+          lišta jako na Hubu/Apps/Profilu. */}
+      <AppBottomNav />
 
       {toast && <div className="settings-toast">{toast}</div>}
     </div>
