@@ -1320,9 +1320,39 @@
    avatarů zmizel a story teď vplouvá rovnou do feedu (FeedStory.tsx). */
 .social-domu-horni-lista {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   padding: 0 0.15rem 0.5rem;
   flex-shrink: 0;
+}
+
+/* Nejnovější / Pro tebe — Fáze 3c Social nav rework (viz CLAUDE.md).
+   Stejný pilulkový přepínač jako všude jinde v appce (Souboj postavy,
+   TajnyChatPanel's záložky), jen o dvou položkách. */
+.social-domu-rezim-prepinac {
+  display: flex;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 0.15rem;
+  gap: 0.15rem;
+}
+
+.social-domu-rezim-btn {
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-pill);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.social-domu-rezim-btn.is-aktivni {
+  background: var(--accent-cyan);
+  color: var(--bg-base);
+  font-weight: 600;
 }
 
 .social-domu-pridat-story-btn {

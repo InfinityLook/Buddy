@@ -20,6 +20,15 @@ interface Props {
 // viditelnou prodlevu), stránku dotáhne o kousek dřív.
 const NACIST_DALSI_OD_KONCE = 2
 
+// Fáze 3c Social nav rework — "Nejnovější" je beze změny nactiFeed()
+// (jen sledovaní, chronologicky), "Pro tebe" je nový nactiDoporucenyFeed()
+// (i objevování cizích veřejných příspěvků, algoritmické skóre). Volba
+// je záměrně jen stav relace, ne persistovaná preference — appka se
+// stejnou zdrženlivostí jako u zvukZapnuty výš nechává appku vždycky
+// začít na "Nejnovější", ne že by si pamatovala poslední volbu napříč
+// otevřeními.
+type RezimFeedu = 'nejnovejsi' | 'proTebe'
+
 // ==========================================
 // Domů — prostřední záložka spodní navigace, celoobrazovkový feed ve
 // stylu TikToku: jedna položka přes celou dostupnou výšku, svisle mezi
@@ -57,6 +66,12 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
   const [novaStory, setNovaStory] = useState<File | null>(null)
   const vstupStoryRef = useRef<HTMLInputElement>(null)
 
+  const [rezim, setRezim] = useState<RezimFeedu>('nejnovejsi')
+  // Kurzor pro "Pro tebe" (skóre, id) — appka ho drží mimo React stav,
+  // protože se mění při každé dotažené stránce a nikdy neřídí
+  // vykreslení samo o sobě, jen další volání nactiDoporucenyFeed().
+  const doporucenyKurzor = useRef<{ skore: number; id: string } | null>(null)
+
   const feedRef = useRef<HTMLDivElement>(null)
   const postElementy = useRef<Map<string, HTMLElement>>(new Map())
 
@@ -71,9 +86,18 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
 
   useEffect(() => {
     let platne = true
+    doporucenyKurzor.current = null
     void (async () => {
       setNacitaPrispevky(true)
-      const prvni = await api.nactiFeed()
+      const prvni =
+        rezim === 'proTebe'
+          ? await (async () => {
+              const { prispevky: p, posledniSkore, posledniId } = await api.nactiDoporucenyFeed()
+              doporucenyKurzor.current =
+                posledniSkore !== null && posledniId ? { skore: posledniSkore, id: posledniId } : null
+              return p
+            })()
+          : await api.nactiFeed()
       if (!platne) return
       setPrispevky(prvni)
       setVseNacteno(prvni.length === 0)
@@ -84,23 +108,40 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
       platne = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [rezim])
 
   const nacistDalsiStranku = useCallback(async () => {
     if (dotahujeDalsi || vseNacteno) return
-    const posledni = prispevky[prispevky.length - 1]
-    if (!posledni) return
 
     setDotahujeDalsi(true)
-    const dalsi = await api.nactiFeed(posledni.createdAt)
-    if (dalsi.length === 0) {
-      setVseNacteno(true)
+    if (rezim === 'proTebe') {
+      const kurzor = doporucenyKurzor.current
+      const { prispevky: dalsi, posledniSkore, posledniId } = await api.nactiDoporucenyFeed(
+        kurzor?.skore,
+        kurzor?.id
+      )
+      if (dalsi.length === 0) {
+        setVseNacteno(true)
+      } else {
+        doporucenyKurzor.current =
+          posledniSkore !== null && posledniId ? { skore: posledniSkore, id: posledniId } : null
+        setPrispevky((p) => [...p, ...dalsi])
+        void doplnitAutory(dalsi.map((p) => p.autorId))
+      }
     } else {
-      setPrispevky((p) => [...p, ...dalsi])
-      void doplnitAutory(dalsi.map((p) => p.autorId))
+      const posledni = prispevky[prispevky.length - 1]
+      if (posledni) {
+        const dalsi = await api.nactiFeed(posledni.createdAt)
+        if (dalsi.length === 0) {
+          setVseNacteno(true)
+        } else {
+          setPrispevky((p) => [...p, ...dalsi])
+          void doplnitAutory(dalsi.map((p) => p.autorId))
+        }
+      }
     }
     setDotahujeDalsi(false)
-  }, [prispevky, dotahujeDalsi, vseNacteno, doplnitAutory])
+  }, [prispevky, dotahujeDalsi, vseNacteno, doplnitAutory, rezim])
 
   // Story položky feedu — každá story jednotlivého autora rozbalená na
   // svou vlastní feedovou "stránku" (viz FeedStory.tsx), v pořadí, v
@@ -156,6 +197,20 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
     <div className="social-panel social-panel--domu">
       {stav.mujId && (
         <div className="social-domu-horni-lista">
+          <div className="social-domu-rezim-prepinac">
+            <button
+              className={`social-domu-rezim-btn ${rezim === 'nejnovejsi' ? 'is-aktivni' : ''}`}
+              onClick={() => setRezim('nejnovejsi')}
+            >
+              Nejnovější
+            </button>
+            <button
+              className={`social-domu-rezim-btn ${rezim === 'proTebe' ? 'is-aktivni' : ''}`}
+              onClick={() => setRezim('proTebe')}
+            >
+              Pro tebe
+            </button>
+          </div>
           <button
             className="social-domu-pridat-story-btn"
             onClick={() => vstupStoryRef.current?.click()}

@@ -2241,6 +2241,48 @@ export const nactiFeed = async (kurzor?: string): Promise<Prispevek[]> => {
 }
 
 /**
+ * "Pro tebe" — algoritmicky řazený feed (Fáze 3c Social nav rework),
+ * na rozdíl od nactiFeed() zahrnuje i veřejné příspěvky od nesledovaných
+ * účtů (objevování), viditelnost ale hlídá stejná smi_videt_prispevky_
+ * uzivatele jako všude jinde. Skóre není monotónní s časem, takže appka
+ * stránkuje dvojicí (poslední skóre, poslední id) — kurzor na jedno
+ * pole (jako u nactiFeed's created_at) by tu nefungoval.
+ */
+export const nactiDoporucenyFeed = async (
+  kurzorSkore?: number,
+  kurzorId?: string
+): Promise<{ prispevky: Prispevek[]; posledniSkore: number | null; posledniId: string | null }> => {
+  const prazdno = { prispevky: [], posledniSkore: null, posledniId: null }
+  if (!supabase) return prazdno
+
+  const { data, error } = await supabase.rpc('nacti_doporuceny_feed', {
+    kurzor_skore: kurzorSkore ?? null,
+    kurzor_id: kurzorId ?? null,
+  })
+  if (error || !data) return prazdno
+
+  const klient = supabase
+  const radky = data as {
+    id: string
+    user_id: string
+    media_path: string
+    media_type: 'image' | 'video'
+    caption: string | null
+    created_at: string
+    dalsi_media: { media_path: string; media_type: 'image' | 'video' }[]
+    edited_at: string | null
+    skore: number
+  }[]
+
+  const posledni = radky[radky.length - 1]
+  return {
+    prispevky: radky.map((r) => prispevekZRadku(klient, r)),
+    posledniSkore: posledni ? posledni.skore : null,
+    posledniId: posledni ? posledni.id : null,
+  }
+}
+
+/**
  * Hledání příspěvků podle hashtagu — appka do `post_hashtags` nikdy
  * nesahá přímo (žádná RLS politika na tabulce, jen tenhle
  * SECURITY DEFINER dotaz), a je jedno, jestli `#` na začátku dotazu
