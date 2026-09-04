@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
+import type { Arena } from './areny'
 
 // ==========================================
 // Souboj, třetí kolo vizuálních vylepšení (viz CLAUDE.md) — skutečná
@@ -50,6 +51,10 @@ const worldX = (pozice: number, arenaSirka: number): number => (pozice / arenaSi
 
 interface UseSoubojSceneOptions {
   arenaSirka: number
+  /** Vylepšení — výběr scény (areny.ts), vybraná na TV před startem
+   *  zápasu. Barvy oblohy/mlhy/země a co se rozseje za pěšinou
+   *  všechno jde odsud, žádný z nich enginu ani síti nic neříká. */
+  arena: Arena
 }
 
 interface UseSoubojSceneResult {
@@ -67,7 +72,7 @@ interface UseSoubojSceneResult {
   registrujSprite: (kamera: 0 | 1, bojovnik: 0 | 1) => (el: HTMLDivElement | null) => void
 }
 
-export const useSoubojScene = ({ arenaSirka }: UseSoubojSceneOptions): UseSoubojSceneResult => {
+export const useSoubojScene = ({ arenaSirka, arena }: UseSoubojSceneOptions): UseSoubojSceneResult => {
   const containerRef = useRef<HTMLDivElement>(null)
   const [selhalo, setSelhalo] = useState(false)
   const poziceRef = useRef<[number, number]>([arenaSirka * 0.25, arenaSirka * 0.75])
@@ -107,72 +112,78 @@ export const useSoubojScene = ({ arenaSirka }: UseSoubojSceneOptions): UseSouboj
     container.insertBefore(renderer.domElement, container.firstChild)
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color('#16241a')
-    scene.fog = new THREE.Fog('#16241a', 16, 42)
+    scene.background = new THREE.Color(arena.barvaOblohy)
+    scene.fog = new THREE.Fog(arena.barvaMlhy, arena.mlhaBlizko, arena.mlhaDaleko)
 
     scene.add(new THREE.AmbientLight(0xffffff, 0.6))
     const slunce = new THREE.DirectionalLight(0xffe7c2, 1.05)
     slunce.position.set(8, 14, 6)
     scene.add(slunce)
 
-    // --- tráva + hlinitá "pěšina" podél osy souboje (Z=0) ---
+    // --- země + hlinitá "pěšina" podél osy souboje (Z=0) ---
     const zem = new THREE.Mesh(
       new THREE.PlaneGeometry(120, 120),
-      new THREE.MeshStandardMaterial({ color: '#3a6b34', roughness: 1 })
+      new THREE.MeshStandardMaterial({ color: arena.barvaZeme, roughness: 1 })
     )
     zem.rotation.x = -Math.PI / 2
     scene.add(zem)
 
     const pesina = new THREE.Mesh(
       new THREE.PlaneGeometry(SVET_SIRKA + 8, 3.2),
-      new THREE.MeshStandardMaterial({ color: '#6b5a3f', roughness: 1 })
+      new THREE.MeshStandardMaterial({ color: arena.barvaPesiny, roughness: 1 })
     )
     pesina.rotation.x = -Math.PI / 2
     pesina.position.y = 0.01
     scene.add(pesina)
 
-    // --- voda vzadu, za stromy — jen atmosféra, mimo dosah obou kamer ---
-    const voda = new THREE.Mesh(
-      new THREE.PlaneGeometry(120, 14),
-      new THREE.MeshStandardMaterial({ color: '#1e6091', roughness: 0.35, transparent: true, opacity: 0.88 })
-    )
-    voda.rotation.x = -Math.PI / 2
-    voda.position.set(0, 0.02, -26)
-    scene.add(voda)
+    // --- voda vzadu, za stromy — jen atmosféra, mimo dosah obou kamer,
+    // jen když aréna vodu vůbec má (poušť/noc ji nemá). ---
+    if (arena.barvaVody) {
+      const voda = new THREE.Mesh(
+        new THREE.PlaneGeometry(120, 14),
+        new THREE.MeshStandardMaterial({ color: arena.barvaVody, roughness: 0.35, transparent: true, opacity: 0.88 })
+      )
+      voda.rotation.x = -Math.PI / 2
+      voda.position.set(0, 0.02, -26)
+      scene.add(voda)
+    }
 
     // --- stromy/kameny — stejná primitiva jako RPG's usePlayerWorld.ts
     // (žádný stažený model, appka na 3D postavy/scenérii nemá
     // pipeline), rozeseté v pásu ZA pěšinou, ať kamerám nic neblokuje
-    // výhled na souboj samotný. ---
+    // výhled na souboj samotný. Co přesně se rozseje (les/jen kameny/
+    // nic) i jakou barvou určuje vybraná aréna, viz areny.ts. ---
     const dekorace = new THREE.Group()
-    for (let i = 0; i < 26; i++) {
-      const x = (Math.random() - 0.5) * (SVET_SIRKA + 16)
-      const z = -4 - Math.random() * 18
-      const jeStrom = Math.random() > 0.35
-      const skupina = new THREE.Group()
-      if (jeStrom) {
-        const kmen = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.12, 0.18, 1.4, 6),
-          new THREE.MeshStandardMaterial({ color: '#3d2a1a', roughness: 1 })
-        )
-        kmen.position.y = 0.7
-        const koruna = new THREE.Mesh(
-          new THREE.ConeGeometry(0.9, 1.8, 7),
-          new THREE.MeshStandardMaterial({ color: '#2f5d34', roughness: 0.9 })
-        )
-        koruna.position.y = 2.1
-        skupina.add(kmen, koruna)
-      } else {
-        const kamen = new THREE.Mesh(
-          new THREE.DodecahedronGeometry(0.3 + Math.random() * 0.3),
-          new THREE.MeshStandardMaterial({ color: '#5a5248', roughness: 1 })
-        )
-        kamen.position.y = 0.3
-        kamen.rotation.set(Math.random(), Math.random(), Math.random())
-        skupina.add(kamen)
+    if (arena.dekorace !== 'zadne') {
+      for (let i = 0; i < 26; i++) {
+        const x = (Math.random() - 0.5) * (SVET_SIRKA + 16)
+        const z = -4 - Math.random() * 18
+        const jeStrom = arena.dekorace === 'les' && Math.random() > 0.35
+        const skupina = new THREE.Group()
+        if (jeStrom) {
+          const kmen = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.12, 0.18, 1.4, 6),
+            new THREE.MeshStandardMaterial({ color: arena.barvaKmene, roughness: 1 })
+          )
+          kmen.position.y = 0.7
+          const koruna = new THREE.Mesh(
+            new THREE.ConeGeometry(0.9, 1.8, 7),
+            new THREE.MeshStandardMaterial({ color: arena.barvaKoruny, roughness: 0.9 })
+          )
+          koruna.position.y = 2.1
+          skupina.add(kmen, koruna)
+        } else {
+          const kamen = new THREE.Mesh(
+            new THREE.DodecahedronGeometry(0.3 + Math.random() * 0.3),
+            new THREE.MeshStandardMaterial({ color: arena.barvaKamene, roughness: 1 })
+          )
+          kamen.position.y = 0.3
+          kamen.rotation.set(Math.random(), Math.random(), Math.random())
+          skupina.add(kamen)
+        }
+        skupina.position.set(x, 0, z)
+        dekorace.add(skupina)
       }
-      skupina.position.set(x, 0, z)
-      dekorace.add(skupina)
     }
     scene.add(dekorace)
 
@@ -282,10 +293,12 @@ export const useSoubojScene = ({ arenaSirka }: UseSoubojSceneOptions): UseSouboj
       renderer.dispose()
       renderer.domElement.remove()
       // arenaSirka je v praxi konstanta z engine.ts (ARENA_SIRKA) —
-      // v poli závislostí jen pro úplnost.
+      // v poli závislostí jen pro úplnost. `arena` se vybírá na TV
+      // předem, ne uprostřed zápasu, ale patří do závislostí správně
+      // — kdyby se přece jen změnila, scéna se má vážně přestavět.
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }
-  }, [arenaSirka])
+  }, [arenaSirka, arena])
 
   return { containerRef, selhalo, aktualizujPozice, registrujSprite }
 }

@@ -3,6 +3,7 @@ import { ARENA_SIRKA } from '../combat/engine'
 import { POSTAVY } from '../combat/postavy'
 import { vizualniStavBojovnika } from '../combat/loop'
 import { useSoubojScene } from '../arena/useSoubojScene'
+import { ARENY, VYCHOZI_ARENA, type Arena, type ArenaId } from '../arena/areny'
 import { PostavaGrafika } from './PostavaGrafika'
 import { Jiskry } from './Jiskry'
 import type { SoubojStav } from '../combat/types'
@@ -10,6 +11,10 @@ import type { SoubojStav } from '../combat/types'
 interface Props {
   stav: SoubojStav
   zasazen: [boolean, boolean]
+  /** Vylepšení — kterou scénu (areny.ts) TV vybrala na čekací
+   *  obrazovce před startem zápasu. Chybí-li (starší volání), padne
+   *  appka na výchozí louku, ne na chybu. */
+  arenaId?: ArenaId
   /** Zavolá se přesně jednou, pokud se WebGL scénu nepodaří vytvořit
    *  (useSoubojScene.ts's `selhalo`) — Bojiste.tsx na to reaguje
    *  přepnutím na SoubojArena2D, ať zápas zůstává hratelný i na
@@ -29,8 +34,12 @@ interface Props {
 // poloviny obrazovky ukazují OBA bojovníky, jen z jiného úhlu.
 // ==========================================
 
-export const SoubojArena3D: React.FC<Props> = ({ stav, zasazen, onSelhalo }) => {
-  const { containerRef, selhalo, aktualizujPozice, registrujSprite } = useSoubojScene({ arenaSirka: ARENA_SIRKA })
+export const SoubojArena3D: React.FC<Props> = ({ stav, zasazen, arenaId, onSelhalo }) => {
+  const arena: Arena = ARENY[arenaId ?? VYCHOZI_ARENA]
+  const { containerRef, selhalo, aktualizujPozice, registrujSprite } = useSoubojScene({
+    arenaSirka: ARENA_SIRKA,
+    arena,
+  })
 
   useEffect(() => {
     aktualizujPozice(stav.hraci[0].pozice, stav.hraci[1].pozice)

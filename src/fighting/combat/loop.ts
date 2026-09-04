@@ -1,4 +1,5 @@
-import type { AkceData, BojovnikStav, HracVstup, UtocnaAkce } from './types'
+import { CAS_LIMIT_MS } from './engine'
+import type { AkceData, BojovnikStav, HracVstup, SoubojStav, UtocnaAkce } from './types'
 import type { Smer, Tlacitko } from '../types'
 
 // ==========================================
@@ -71,3 +72,9 @@ export const vizualniStavBojovnika = (b: BojovnikStav): VizualniStavBojovnika =>
  *  ukazuje, jestli má hráč zrovna na speciál, aniž by musela znát
  *  postavu enginu naslepo (viz FightingModule pro použití). */
 export const maNaSpecial = (b: BojovnikStav, dataSpecialu: AkceData): boolean => b.mana >= dataSpecialu.cenaMany
+
+/** Vylepšení — kolik celých sekund do konce časového limitu kola
+ *  zbývá (viz engine.ts's CAS_LIMIT_MS), pro TV countdown v
+ *  Bojiste.tsx. Nikdy záporně, ani chvíli po vypršení, kdy `stav.cas`
+ *  mezitím ještě o kousek přeteče limit než krokSouboje kolo ukončí. */
+export const zbyvaSekund = (stav: SoubojStav): number => Math.max(0, Math.ceil((CAS_LIMIT_MS - stav.cas) / 1000))

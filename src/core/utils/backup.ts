@@ -60,6 +60,7 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-quest-storage', storage: 'secure', label: 'Herní questy' },
   { key: 'schoolbuddy-inventar-storage', storage: 'secure', label: 'Herní batoh' },
   { key: 'schoolbuddy-vybaveni-storage', storage: 'secure', label: 'Herní vybavení' },
+  { key: 'schoolbuddy-souboj-statistiky-storage', storage: 'secure', label: 'Statistiky Souboje' },
   { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
   // Na rozdíl od role/kreditů níž je restorable: true bezpečné i pro
   // VIP vzhled — resolveActiveThemeId (core/theme/themes.ts) ověřuje

@@ -139,6 +139,35 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Vylepšení — výběr arény/scény na TV's čekací obrazovce (viz
+   arena/areny.ts, TvHost.tsx). Vodorovný řádek malých pilulek, stejný
+   idiom jako sdílené řádky výběru jinde v appce (souboj-skore-pruh's
+   sourozenecké rozvržení) — jen tři položky, žádný scroll-snap netřeba. */
+.souboj-arena-vyber {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+}
+
+.souboj-arena-volba {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+}
+
+.souboj-arena-volba.is-vybrana {
+  color: var(--text-primary);
+  border-color: var(--accent-cyan);
+  background: rgba(53, 196, 240, 0.14);
+}
+
 .souboj-hraci-mrizka {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -277,6 +306,61 @@
   opacity: 0.5;
   cursor: default;
 }
+
+/* Vylepšení — statistiky (useSoubojStatistikyStore.ts). Odkaz pod
+   formulářem s kódem, ne samostatná trasa/route — appka na tuhle
+   obrazovku umí přijít jen odsud, plain boolean stačí (viz
+   Ovladac.tsx's zobrazStatistiky). */
+.souboj-statistiky-btn {
+  margin-top: 1rem;
+  width: 100%;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.souboj-statistiky-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.souboj-statistiky-radek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.8rem 1rem;
+}
+
+.souboj-statistiky-jmeno {
+  font-weight: 800;
+  font-size: 0.95rem;
+}
+
+.souboj-statistiky-prazdno {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.souboj-statistiky-cisla {
+  display: flex;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.souboj-stat--vyhra { color: var(--accent-green); }
+.souboj-stat--prohra { color: var(--accent-red); }
+.souboj-stat--remiza { color: var(--text-muted); }
 
 /* ---------- Ovladač: skutečný gamepad ----------
    Plnoobrazovkový, ne appky obvyklá karta na 480px — telefon je tu
@@ -1036,6 +1120,34 @@
   font-size: 1.1rem;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
+}
+
+/* Vylepšení — odpočet do konce kola (engine.ts's CAS_LIMIT_MS).
+   Vlastní centrovaný "pill" mezi hlavičkami a arénou — schválně malý
+   a nenápadný většinu kola, zčervená a zpomalí čtenářovu pozornost
+   jen posledních 10 s (souboj-casovac--dochazi), stejné "upozorni jen
+   když už na tom záleží" chování jako mana pruhu plné animace. */
+.souboj-casovac {
+  align-self: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  padding: 0.3rem 0.75rem;
+  border-radius: var(--radius-pill);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.souboj-casovac--dochazi {
+  color: var(--accent-red);
+  border-color: rgba(239, 68, 68, 0.5);
+  animation: souboj-casovac-pulz 0.8s ease-in-out infinite;
+}
+
+@keyframes souboj-casovac-pulz {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
 }
 
 /* Fáze 5 — sólo režim proti počítači, nabízené jen dokud druhý slot

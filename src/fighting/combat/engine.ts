@@ -21,6 +21,11 @@ export const BLOK_REDUKCE = 0.75
 export const MANA_ZA_ZASAH = 15
 /** Pasivní regenerace many, ať se děje cokoliv. */
 export const MANA_REGEN_ZA_S = 4
+/** Vylepšení — časový limit kola (ms). Bez tohohle mohlo kolo trvat
+ *  věčně, když oba jen uhýbají/blokují a nikdo neriskuje útok — po
+ *  vypršení rozhodne víc HP, shoda je remíza, stejně čestně jako
+ *  simultánní KO výš. */
+export const CAS_LIMIT_MS = 60000
 
 export const AKCE_DATA: Record<UtocnaAkce, AkceData> = {
   udar: { poskozeni: 6, dosah: 90, trvaniMs: 250, cenaMany: 0 },
@@ -274,12 +279,21 @@ export const krokSouboje = (stav: SoubojStav, vstupy: [HracVstup, HracVstup], de
   let stavKola: 'probiha' | 'konec' = 'probiha'
   const konec0 = hraci[0].hp <= 0
   const konec1 = hraci[1].hp <= 0
+  const novyCas = stav.cas + deltaMs
   if (konec0 || konec1) {
     stavKola = 'konec'
     // Současné KO obou stran je vzácné (jen při stejném tiku), ale
     // engine ho musí umět vrátit jako remízu, ne si vybrat vítěze.
     vitez = konec0 && konec1 ? null : konec0 ? 1 : 0
+  } else if (novyCas >= CAS_LIMIT_MS) {
+    // Vylepšení — čas vypršel a nikdo nedostal KO. Rozhodne víc HP,
+    // přesná shoda je remíza — stejná dvouhodnotová logika jako KO
+    // výš, jen založená na HP místo na "kdo je na nule".
+    stavKola = 'konec'
+    if (hraci[0].hp > hraci[1].hp) vitez = 0
+    else if (hraci[1].hp > hraci[0].hp) vitez = 1
+    else vitez = null
   }
 
-  return { hraci, cas: stav.cas + deltaMs, vitez, stavKola }
+  return { hraci, cas: novyCas, vitez, stavKola }
 }

@@ -7,8 +7,9 @@ import {
   poziceProcenta,
   sestavVstup,
   vizualniStavBojovnika,
+  zbyvaSekund,
 } from '@/fighting/combat/loop'
-import { AKCE_DATA, ARENA_SIRKA, vytvorBojovnika } from '@/fighting/combat/engine'
+import { AKCE_DATA, ARENA_SIRKA, CAS_LIMIT_MS, vytvorBojovnika, vytvorSoubojStav } from '@/fighting/combat/engine'
 import type { Tlacitko } from '@/fighting/types'
 
 const PRAZDNA: Record<Tlacitko, boolean> = { udar: false, kop: false, blok: false, specialni: false }
@@ -111,5 +112,22 @@ describe('maNaSpecial', () => {
   it('true, když mana stačí přesně na cenu', () => {
     const b = { ...vytvorBojovnika(0), mana: AKCE_DATA.specialni.cenaMany }
     expect(maNaSpecial(b, AKCE_DATA.specialni)).toBe(true)
+  })
+})
+
+describe('vylepšení — zbyvaSekund', () => {
+  it('na začátku kola vrátí celý limit v sekundách', () => {
+    const stav = vytvorSoubojStav(0, 80)
+    expect(zbyvaSekund(stav)).toBe(CAS_LIMIT_MS / 1000)
+  })
+
+  it('klesá s uplynulým časem', () => {
+    const stav = { ...vytvorSoubojStav(0, 80), cas: CAS_LIMIT_MS - 5000 }
+    expect(zbyvaSekund(stav)).toBe(5)
+  })
+
+  it('nikdy nejde do záporu, i po vypršení limitu', () => {
+    const stav = { ...vytvorSoubojStav(0, 80), cas: CAS_LIMIT_MS + 9000 }
+    expect(zbyvaSekund(stav)).toBe(0)
   })
 })

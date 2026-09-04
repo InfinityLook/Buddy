@@ -1,14 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { POSTAVY } from '../combat/postavy'
-import { hpProcenta, manaProcenta } from '../combat/loop'
+import { hpProcenta, manaProcenta, zbyvaSekund } from '../combat/loop'
 import { zahrajRemizu, zahrajSpecial, zahrajVyhra, zahrajZasah } from '../sound'
 import { SoubojArena3D } from './SoubojArena3D'
 import { SoubojArena2D } from './SoubojArena2D'
 import type { SoubojStav, UtocnaAkce } from '../combat/types'
+import type { ArenaId } from '../arena/areny'
 
 interface Props {
   stav: SoubojStav
   jmena: [string, string]
+  /** Vylepšení — kterou scénu TV vybrala (viz arena/areny.ts).
+   *  Ovlivňuje jen SoubojArena3D, 2D záloha zůstává beze změny. */
+  arenaId?: ArenaId
 }
 
 const ZABLESK_MS = 350
@@ -35,9 +39,16 @@ const ZABLESK_MS = 350
 // variantou (SoubojArena2D.tsx, beze změny oproti stavu před touhle
 // fází) a drží společnou hlavičku (HP/mana pruhy), kterou obě arény
 // sdílí beze změny.
+//
+// Čtvrté kolo vylepšení přidalo časový countdown (zbyvaSekund,
+// combat/loop.ts — čistě odvozené ze stav.cas a enginu vlastního
+// CAS_LIMIT_MS, žádný nový stav navíc) a arenaId prop pro výběr
+// scény (arena/areny.ts), vybranou na TV ještě před startem zápasu —
+// Bojiste ji jen provlíká dál do SoubojArena3D, samo neví, co která
+// scéna znamená.
 // ==========================================
 
-export const Bojiste: React.FC<Props> = ({ stav, jmena }) => {
+export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId }) => {
   const predchoziHp = useRef<[number, number]>([stav.hraci[0].hp, stav.hraci[1].hp])
   const [zasazen, setZasazen] = useState<[boolean, boolean]>([false, false])
   const [arena3dSelhala, setArena3dSelhala] = useState(false)
@@ -122,10 +133,19 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena }) => {
         })}
       </div>
 
+      {stav.stavKola === 'probiha' && (
+        <span
+          className={`souboj-casovac ${zbyvaSekund(stav) <= 10 ? 'souboj-casovac--dochazi' : ''}`}
+          aria-label="Zbývající čas kola"
+        >
+          ⏱️ {zbyvaSekund(stav)}s
+        </span>
+      )}
+
       {arena3dSelhala ? (
         <SoubojArena2D stav={stav} zasazen={zasazen} />
       ) : (
-        <SoubojArena3D stav={stav} zasazen={zasazen} onSelhalo={() => setArena3dSelhala(true)} />
+        <SoubojArena3D stav={stav} zasazen={zasazen} arenaId={arenaId} onSelhalo={() => setArena3dSelhala(true)} />
       )}
 
       {stav.stavKola === 'konec' && (

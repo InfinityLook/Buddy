@@ -7,6 +7,7 @@ import type { PostavaId } from '../combat/postavy'
 import type { HracVstup, SoubojStav } from '../combat/types'
 import type { PripojitPayload, Smer, Tlacitko, VstupPayload } from '../types'
 import { Bojiste } from './Bojiste'
+import { SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
 // Vlastní import, ne spoléhání na to, že FightingModule.tsx ho už
 // natáhl — appka jednou přišla o styl přesně tímhle předpokladem
 // (viz GameModule.css/TvorbaPostavy.tsx v CLAUDE.md), CSS import je
@@ -84,6 +85,11 @@ const AI_HRAC_ID = 'pocitac-ai'
 // stavu tlačítek, krokSouboje je jediné místo, co soubojová pravidla
 // skutečně vyhodnocuje. Bojiste.tsx je čistě prezentační, dostane
 // hotový SoubojStav jako props.
+//
+// Čtvrté kolo vylepšení přidalo výběr arény/scény (arena/areny.ts) na
+// stejnou čekací obrazovku — čistě lokální TV stav, žádný nový
+// broadcast, žádná úprava network.ts/types.ts (viz areny.ts's vlastní
+// komentář, proč to nepatří na síť vůbec).
 // ==========================================
 
 export const TvHost: React.FC<Props> = ({ onZpet }) => {
@@ -96,6 +102,11 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
   // jen pohání vykreslení.
   const [skore, setSkore] = useState<[number, number]>([0, 0])
   const skoreRef = useRef<[number, number]>([0, 0])
+  // Vylepšení — výběr scény (arena/areny.ts). Čistě TV-strany volba,
+  // vybíraná na čekací obrazovce, dokud zápas ještě neběží — nikdy se
+  // neposílá na síť (viz areny.ts's vlastní komentář), takže druhý
+  // hráč o ní ani nemusí vědět, jen ji uvidí na TV.
+  const [arenaId, setArenaId] = useState<ArenaId>(VYCHOZI_ARENA)
 
   // Zrcadlo aktuálního `hraci` stavu do refu — herní smyčka běží ve
   // vlastním requestAnimationFrame cyklu a potřebuje na každém tiku
@@ -298,7 +309,11 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
             <span className="souboj-skore-jmeno souboj-skore-jmeno--2">{hraci[1]?.jmeno ?? 'Hráč 2'}</span>
           </div>
 
-          <Bojiste stav={soubojStav} jmena={[hraci[0]?.jmeno ?? 'Hráč 1', hraci[1]?.jmeno ?? 'Hráč 2']} />
+          <Bojiste
+            stav={soubojStav}
+            jmena={[hraci[0]?.jmeno ?? 'Hráč 1', hraci[1]?.jmeno ?? 'Hráč 2']}
+            arenaId={arenaId}
+          />
 
           {soubojStav.stavKola === 'konec' &&
             (zapasSkoncil ? (
@@ -316,6 +331,19 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
           <div className="souboj-kod-karta">
             <span className="souboj-kod-popis">Kód místnosti — zadej na telefonu</span>
             <span className="souboj-kod">{kod}</span>
+          </div>
+
+          <div className="souboj-arena-vyber" aria-label="Výběr scény">
+            {SEZNAM_AREN.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                className={`souboj-arena-volba ${a.id === arenaId ? 'is-vybrana' : ''}`}
+                onClick={() => setArenaId(a.id)}
+              >
+                <span aria-hidden="true">{a.ikona}</span> {a.nazev}
+              </button>
+            ))}
           </div>
 
           <div className="souboj-hraci-mrizka">

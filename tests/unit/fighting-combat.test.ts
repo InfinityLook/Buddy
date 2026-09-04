@@ -3,6 +3,7 @@ import {
   AKCE_DATA,
   ARENA_SIRKA,
   BLOK_REDUKCE,
+  CAS_LIMIT_MS,
   HITSTUN_MS,
   MAX_HP,
   krokSouboje,
@@ -113,5 +114,37 @@ describe('konec kola (KO)', () => {
 
     const dalsi = krokSouboje(stav, [{ ...stat, smer: 'vpravo' }, stat], 1000)
     expect(dalsi).toBe(stav) // po konci kola je stav zamrzlý, žádný přepočet
+  })
+})
+
+describe('vylepšení — časový limit kola (CAS_LIMIT_MS)', () => {
+  it('kolo pokračuje, dokud čas nedosáhl limitu', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [stat, stat], CAS_LIMIT_MS - 100)
+    expect(stav.stavKola).toBe('probiha')
+    expect(stav.vitez).toBeNull()
+  })
+
+  it('po vypršení vyhraje bojovník s víc HP, nikdo nedostal KO', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav.hraci[1] = { ...stav.hraci[1], hp: 40 } // hráč 0 má plné HP, hráč 1 míň
+    stav = krokSouboje(stav, [stat, stat], CAS_LIMIT_MS)
+    expect(stav.stavKola).toBe('konec')
+    expect(stav.vitez).toBe(0)
+  })
+
+  it('přesná shoda HP při vypršení je remíza', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [stat, stat], CAS_LIMIT_MS) // oba mají plné HP
+    expect(stav.stavKola).toBe('konec')
+    expect(stav.vitez).toBeNull()
+  })
+
+  it('skutečný KO má přednost i přesně na hranici časového limitu', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav.hraci[1] = { ...stav.hraci[1], hp: 5 }
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], CAS_LIMIT_MS) // kop dá 10, KO i limit ve stejném tiku
+    expect(stav.stavKola).toBe('konec')
+    expect(stav.vitez).toBe(0) // KO logika (kdo je na nule), ne HP-porovnání
   })
 })

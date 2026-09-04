@@ -5,6 +5,8 @@ import { useWalletStore } from '@/core/store/useWalletStore'
 import { VirtualniJoystick } from '@/game/components/VirtualniJoystick'
 import { pripojSeJakoOvladac } from '../network'
 import { zavibrujProhru, zavibrujRemizu, zavibrujTlacitko, zavibrujVyhru } from '../haptika'
+import { useSoubojStatistikyStore } from '../useSoubojStatistikyStore'
+import { VSECHNY_POSTAVY } from '../combat/postavy'
 import type { PostavaId } from '../combat/postavy'
 import type { KonecZapasuPayload, PripojenoPayload, Smer, Tlacitko } from '../types'
 import { VyberPostavy } from './VyberPostavy'
@@ -56,6 +58,12 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
   const [slot, setSlot] = useState<1 | 2 | null>(null)
   const [stavSpojeni, setStavSpojeni] = useState<StavSpojeni>('zadavani')
   const [vysledekZapasu, setVysledekZapasu] = useState<string | null>(null)
+  // Vylepšení — statistiky (viz useSoubojStatistikyStore.ts). Vlastní
+  // boolean místo dalšího StavSpojeni kroku, protože appka na tuhle
+  // obrazovku umí přijít jen z 'zadavani' a nikdy neovlivňuje síťové
+  // připojení samotné.
+  const [zobrazStatistiky, setZobrazStatistiky] = useState(false)
+  const vysledky = useSoubojStatistikyStore((s) => s.vysledky)
   const hracIdRef = useRef(vygenerujHracId())
   const spravaRef = useRef<ReturnType<typeof pripojSeJakoOvladac> | null>(null)
   // Handler konecZapasu se registruje jednou při připojení (viz efekt níž),
@@ -77,15 +85,18 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
         const muj = slotRef.current
         if (p.vitezSlot === null) {
           useGamificationStore.getState().addXp(XP_UCAST)
+          if (postavaId) useSoubojStatistikyStore.getState().zaznamenejVysledek(postavaId, 'remiza')
           setVysledekZapasu(`Remíza — +${XP_UCAST} XP`)
           zavibrujRemizu()
         } else if (p.vitezSlot === muj) {
           useGamificationStore.getState().recordAction('souboj', XP_VYHRA)
           useWalletStore.getState().credit(KREDITY_VYHRA)
+          if (postavaId) useSoubojStatistikyStore.getState().zaznamenejVysledek(postavaId, 'vyhra')
           setVysledekZapasu(`Vyhrál jsi! +${XP_VYHRA} XP, +${KREDITY_VYHRA} kreditů`)
           zavibrujVyhru()
         } else {
           useGamificationStore.getState().addXp(XP_UCAST)
+          if (postavaId) useSoubojStatistikyStore.getState().zaznamenejVysledek(postavaId, 'prohra')
           setVysledekZapasu(`Prohrál jsi — +${XP_UCAST} XP`)
           zavibrujProhru()
         }
@@ -143,6 +154,42 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
     orientaceSZamkem.lock?.('landscape').catch(() => {})
   }, [stavSpojeni])
 
+  if (zobrazStatistiky) {
+    return (
+      <div className="souboj-page">
+        <header className="souboj-top-bar">
+          <button className="souboj-back-btn" onClick={() => setZobrazStatistiky(false)}>
+            ← Zpět
+          </button>
+          <h1 className="souboj-title">Statistiky</h1>
+        </header>
+
+        <div className="souboj-statistiky-seznam">
+          {VSECHNY_POSTAVY.map((p) => {
+            const z = vysledky[p.id] ?? { vyhry: 0, prohry: 0, remizy: 0 }
+            const celkem = z.vyhry + z.prohry + z.remizy
+            return (
+              <div key={p.id} className="souboj-statistiky-radek">
+                <span className="souboj-statistiky-jmeno">
+                  {p.ikona} {p.jmeno}
+                </span>
+                {celkem === 0 ? (
+                  <span className="souboj-statistiky-prazdno">Zatím žádný zápas</span>
+                ) : (
+                  <span className="souboj-statistiky-cisla">
+                    <span className="souboj-stat souboj-stat--vyhra">{z.vyhry} V</span>
+                    <span className="souboj-stat souboj-stat--prohra">{z.prohry} P</span>
+                    <span className="souboj-stat souboj-stat--remiza">{z.remizy} R</span>
+                  </span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+    )
+  }
+
   if (stavSpojeni === 'zadavani') {
     return (
       <div className="souboj-page">
@@ -178,6 +225,10 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
             Pokračovat
           </button>
         </form>
+
+        <button type="button" className="souboj-statistiky-btn" onClick={() => setZobrazStatistiky(true)}>
+          📊 Statistiky
+        </button>
       </div>
     )
   }
