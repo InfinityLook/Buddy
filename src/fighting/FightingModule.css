@@ -1003,6 +1003,41 @@
   width: 100%;
 }
 
+/* Vylepšení — "Další kolo" (zápas na víc kol, TvHost.tsx's
+   VITEZSTVI_NA_ZAPAS ještě nedosažené žádnou stranou) je jiná
+   kategorie akce než "Nový zápas" (celý zápas skutečně skončil) —
+   cyan místo magenta/violet, stejné odlišení barvou jako
+   .souboj-solo-btn vedle .souboj-novy-zapas-btn výš. */
+.souboj-novy-zapas-btn--kolo {
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-violet));
+}
+
+/* Vylepšení — běžící skóre zápasu na víc kol, nad arénou po celou
+   dobu, dokud soubojStav existuje (i mezi jednotlivými koly). Stejné
+   jméno-vs-jméno-uprostřed-číslo rozvržení jako .souboj-hraci-mrizka
+   níž, jen v jednom řádku, ne v mřížce. */
+.souboj-skore-pruh {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  font-weight: 800;
+}
+
+.souboj-skore-jmeno {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+
+.souboj-skore-jmeno--1 { color: var(--accent-red); }
+.souboj-skore-jmeno--2 { color: var(--accent-cyan); }
+
+.souboj-skore-cislo {
+  font-size: 1.1rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
 /* Fáze 5 — sólo režim proti počítači, nabízené jen dokud druhý slot
    čeká na skutečný ovladač. Odlišný odstín (cyan) od Nového zápasu
    (magenta/violet) — jiná kategorie akce, ne varianta téhož tlačítka. */

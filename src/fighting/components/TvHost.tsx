@@ -56,6 +56,16 @@ const IKONA_TLACITKA: Record<Tlacitko, string> = {
   specialni: '✨',
 }
 
+// Vylepšení — zápas na víc kol. Engine sám umí simulovat jen JEDNO
+// kolo od začátku do KO (viz engine.ts's vlastní komentář: "Skóre/
+// rundy/restart mezi koly je až věc obrazovky"), takže víckolový zápas
+// je záměrně čistě TV-strany stav, ne enginu — kdo první vyhraje
+// VITEZSTVI_NA_ZAPAS kol, vyhrává celý zápas ("na dvě vítězství ze
+// tří" pro výchozí hodnotu 2). Remízové kolo (vitez === null — oba
+// bojovníci dojdou na 0 HP ve stejném tiku) nikomu skóre nepřidá a
+// zápas kvůli němu neskončí, jen se odehraje další kolo.
+const VITEZSTVI_NA_ZAPAS = 2
+
 // Fáze 5 — sólo režim: počítačový soupeř je jen druhý slot s tímhle
 // pevným hracId, nikdy se nesplete se skutečným ovladačem (ten dostává
 // náhodně vygenerované id, viz Ovladac.tsx's vygenerujHracId). Kdekoli
@@ -80,6 +90,12 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
   const [kod] = useState(() => vygenerujKodMistnosti())
   const [hraci, setHraci] = useState<(HracStav | null)[]>([null, null])
   const [soubojStav, setSoubojStav] = useState<SoubojStav | null>(null)
+  // Kolik kol každý slot v PROBÍHAJÍCÍM zápase vyhrál — viz
+  // VITEZSTVI_NA_ZAPAS výš. `skoreRef` je zrcadlo pro čtení uvnitř
+  // herní smyčky (stejný důvod jako hraciRef/soubojStavRef), `skore`
+  // jen pohání vykreslení.
+  const [skore, setSkore] = useState<[number, number]>([0, 0])
+  const skoreRef = useRef<[number, number]>([0, 0])
 
   // Zrcadlo aktuálního `hraci` stavu do refu — herní smyčka běží ve
   // vlastním requestAnimationFrame cyklu a potřebuje na každém tiku
@@ -151,6 +167,8 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
     const novyStav = vytvorSoubojStav(POZICE_START[0], POZICE_START[1], h0.postavaId, h1.postavaId)
     soubojStavRef.current = novyStav
     vstupPredchoziRef.current = [{ ...PRAZDNA_TLACITKA }, { ...PRAZDNA_TLACITKA }]
+    skoreRef.current = [0, 0]
+    setSkore([0, 0])
     setSoubojStav(novyStav)
 
     let idPozadavku: number
@@ -181,14 +199,34 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
         soubojStavRef.current = krokSouboje(soubojStavRef.current, [vstup0, vstup1], deltaMs)
         setSoubojStav(soubojStavRef.current)
 
-        // Vylepšení — oznámí se přesně na PŘECHODU 'probiha' → 'konec',
-        // ne na každém dalším tiku, co soubojStavRef zůstává zamrzlé
-        // na stejné referenci (viz engine.ts's krokSouboje komentář) —
-        // jinak by appka posílala tu samou zprávu 60× za sekundu,
-        // dokud někdo nezmáčkne "Nový zápas".
+        // Přesně na PŘECHODU 'probiha' → 'konec', ne na každém dalším
+        // tiku, co soubojStavRef zůstává zamrzlé na stejné referenci
+        // (viz engine.ts's krokSouboje komentář) — jinak by appka
+        // připočítala stejné kolo do skóre 60× za sekundu.
         if (stavPredTikem === 'probiha' && soubojStavRef.current.stavKola === 'konec') {
-          const vitez = soubojStavRef.current.vitez
-          spravaRef.current?.oznamKonecZapasu({ vitezSlot: vitez === null ? null : ((vitez + 1) as 1 | 2) })
+          const vitezKola = soubojStavRef.current.vitez
+          if (vitezKola !== null) {
+            const dalsiSkore: [number, number] = [...skoreRef.current]
+            dalsiSkore[vitezKola] += 1
+            skoreRef.current = dalsiSkore
+            setSkore(dalsiSkore)
+          }
+
+          // Vylepšení — oznamKonecZapasu (a tím i XP/kredity na
+          // ovladačích, viz Ovladac.tsx) se posílá až jednou CELÝ
+          // zápas doopravdy skončí (někdo dosáhl VITEZSTVI_NA_ZAPAS),
+          // ne na konci každého jednotlivého kola — vyhrát první kolo
+          // z třech by jinak vyplatilo XP za zápas, který ještě běží.
+          const zapasHotovy = skoreRef.current[0] >= VITEZSTVI_NA_ZAPAS || skoreRef.current[1] >= VITEZSTVI_NA_ZAPAS
+          if (zapasHotovy) {
+            const vitezZapasu: 1 | 2 | null =
+              skoreRef.current[0] === skoreRef.current[1]
+                ? null
+                : skoreRef.current[0] > skoreRef.current[1]
+                  ? 1
+                  : 2
+            spravaRef.current?.oznamKonecZapasu({ vitezSlot: vitezZapasu })
+          }
         }
       }
 
@@ -218,7 +256,10 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
     })
   }
 
-  const novyZapas = () => {
+  // Společný krok obou tlačítek níž — vytvoří čerstvé kolo od začátku.
+  // Rozdíl je jen v tom, jestli se skóre resetuje (nový zápas) nebo ne
+  // (další kolo v rámci stejného, ještě neskončeného zápasu).
+  const zacniKolo = () => {
     const h0 = hraciRef.current[0]
     const h1 = hraciRef.current[1]
     if (!h0 || !h1) return
@@ -227,6 +268,16 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
     vstupPredchoziRef.current = [{ ...PRAZDNA_TLACITKA }, { ...PRAZDNA_TLACITKA }]
     setSoubojStav(cerstvyStav)
   }
+
+  const novyZapas = () => {
+    skoreRef.current = [0, 0]
+    setSkore([0, 0])
+    zacniKolo()
+  }
+
+  const dalsiKolo = () => zacniKolo()
+
+  const zapasSkoncil = skore[0] >= VITEZSTVI_NA_ZAPAS || skore[1] >= VITEZSTVI_NA_ZAPAS
 
   return (
     <div className="souboj-page souboj-page--tv">
@@ -239,12 +290,26 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
 
       {soubojStav ? (
         <>
+          <div className="souboj-skore-pruh" aria-label="Skóre zápasu">
+            <span className="souboj-skore-jmeno souboj-skore-jmeno--1">{hraci[0]?.jmeno ?? 'Hráč 1'}</span>
+            <span className="souboj-skore-cislo">
+              {skore[0]} : {skore[1]}
+            </span>
+            <span className="souboj-skore-jmeno souboj-skore-jmeno--2">{hraci[1]?.jmeno ?? 'Hráč 2'}</span>
+          </div>
+
           <Bojiste stav={soubojStav} jmena={[hraci[0]?.jmeno ?? 'Hráč 1', hraci[1]?.jmeno ?? 'Hráč 2']} />
-          {soubojStav.stavKola === 'konec' && (
-            <button type="button" className="souboj-novy-zapas-btn" onClick={novyZapas}>
-              Nový zápas
-            </button>
-          )}
+
+          {soubojStav.stavKola === 'konec' &&
+            (zapasSkoncil ? (
+              <button type="button" className="souboj-novy-zapas-btn" onClick={novyZapas}>
+                Nový zápas
+              </button>
+            ) : (
+              <button type="button" className="souboj-novy-zapas-btn souboj-novy-zapas-btn--kolo" onClick={dalsiKolo}>
+                Další kolo ({skore[0]} : {skore[1]})
+              </button>
+            ))}
         </>
       ) : (
         <>
