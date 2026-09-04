@@ -313,6 +313,28 @@
 .souboj-ovladac-stav--1 { color: var(--accent-red); border-color: rgba(239, 68, 68, 0.4); }
 .souboj-ovladac-stav--2 { color: var(--accent-cyan); border-color: rgba(53, 196, 240, 0.4); }
 
+/* Vylepšení — XP/kredity za zápas (viz Ovladac.tsx's konecZapasu handler
+   a network.ts's KonecZapasuPayload). Přechodný pruh přes celou šířku,
+   sám se schová přes setTimeout v komponentě — appka tu drží jen jak
+   vypadá, ne kdy zmizí. */
+.souboj-ovladac-vysledek {
+  align-self: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-align: center;
+  padding: 0.6rem 1.1rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-glass);
+  border: 1px solid var(--accent-cyan);
+  color: var(--text-primary);
+  animation: souboj-vysledek-objev 0.25s ease-out;
+}
+
+@keyframes souboj-vysledek-objev {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* Vylepšení (viz CLAUDE.md) — ovladač se otočil na šířku a d-pad
    nahradil analogový joystick (VirtualniJoystick.tsx, znovupoužitý
    beze změny z RPG's 3D průzkumu — reportuje x/z -1..1, appka si z
@@ -797,6 +819,25 @@
    stranu, žádný druhý sadu obrázků netřeba). */
 .souboj-bojovnik--2 .souboj-postava-svg {
   transform: scaleX(-1);
+}
+
+/* Vylepšení — viditelný odznak Bulwarkova štítu (BojovnikStav's
+   stitAktivni, viz engine.ts). Bez tohohle nemá diváku na TV odkud
+   vědět, že další zásah bude zdarma — sama absorpce se projeví až
+   zpětně (žádné poškození, žádný hitstun). Zůstává, dokud engine
+   stitAktivni nespotřebuje skutečným zásahem, ne na časovač. */
+.souboj-stit-znacka {
+  position: absolute;
+  top: -6px;
+  right: -4px;
+  font-size: 1.15rem;
+  filter: drop-shadow(0 0 5px rgba(74, 222, 128, 0.85));
+  animation: souboj-stit-pulz 1.1s ease-in-out infinite;
+}
+
+@keyframes souboj-stit-pulz {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
 }
 
 /* Klidový stav — jemné pohupování dechu, stejná animace jako na

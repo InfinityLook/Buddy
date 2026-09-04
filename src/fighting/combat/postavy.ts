@@ -10,6 +10,23 @@
 
 export type PostavaId = 'pyra' | 'bulwark' | 'volt' | 'onyx'
 
+// Vylepšení — speciál (specialni akce) už neznamená pro všechny čtyři
+// postavy jen "silnější úder s jinými čísly" (viz efektivniAkceData v
+// engine.ts, dřív jediné místo, co speciál vůbec odlišovalo). Každá
+// postava teď má vlastní EFEKT, stejná myšlenka jako Buddyheimova
+// specialniSchopnost (game/combat) — jen čtyři tvary místo tamních
+// tří, protože tady žádný nepotřebuje sebepoškození jako Drakonův:
+//  - 'poskozeni'      — čistý bonus poškození navrch (Pyra), žádný
+//                        vedlejší efekt, jen tvrdší úder
+//  - 'stit'            — Bulwark zásahem navíc získá štít, co pohltí
+//                        úplně celý JEDEN další zásah (viz
+//                        BojovnikStav.stitAktivni v types.ts)
+//  - 'dvojity-zasah'   — Volt zasáhne dvakrát v jedné akci (engine.ts
+//                        vyhodnotí dosah/zásah dvakrát po sobě)
+//  - 'vysati'          — Onyx vyléčí sám sebe o část způsobeného
+//                        poškození (upíří zásah)
+export type TypSpecialu = 'poskozeni' | 'stit' | 'dvojity-zasah' | 'vysati'
+
 export interface Postava {
   id: PostavaId
   jmeno: string
@@ -32,6 +49,15 @@ export interface Postava {
   /** Jméno speciálního útoku ve hře — čistě popisné, engine sám na
    *  jméno nekouká, jen na čísla výše. */
   nazevSpecialu: string
+  /** Vylepšení — jaký EFEKT speciál navíc má (viz TypSpecialu výš). */
+  specialEfekt: TypSpecialu
+  /** Síla efektu speciálu — jednotka závisí na specialEfekt:
+   *  'poskozeni' = dodatečný násobič poškození TOHOHLE útoku navrch
+   *  (nad rámec poskozeniNasobic, který platí na všechno); 'vysati' =
+   *  podíl způsobeného poškození vrácený útočníkovi jako HP.
+   *  'stit'/'dvojity-zasah' tohle číslo nepoužívají (efekt je binární,
+   *  ne odstupňovaný). */
+  specialniSila: number
 }
 
 // Onyx má všechny násobiče přesně 1.0 kromě dosahu (jeho vlastní
@@ -53,6 +79,8 @@ export const POSTAVY: Record<PostavaId, Postava> = {
     dosahNasobic: 1.2,
     cenaManyNasobic: 1.0,
     nazevSpecialu: 'Stínový zásah',
+    specialEfekt: 'vysati',
+    specialniSila: 0.5,
   },
   pyra: {
     id: 'pyra',
@@ -66,6 +94,8 @@ export const POSTAVY: Record<PostavaId, Postava> = {
     dosahNasobic: 1.0,
     cenaManyNasobic: 1.0,
     nazevSpecialu: 'Plamenný výpad',
+    specialEfekt: 'poskozeni',
+    specialniSila: 1.5,
   },
   bulwark: {
     id: 'bulwark',
@@ -79,6 +109,8 @@ export const POSTAVY: Record<PostavaId, Postava> = {
     dosahNasobic: 1.1,
     cenaManyNasobic: 1.15,
     nazevSpecialu: 'Drtivý úder štítem',
+    specialEfekt: 'stit',
+    specialniSila: 0,
   },
   volt: {
     id: 'volt',
@@ -92,6 +124,8 @@ export const POSTAVY: Record<PostavaId, Postava> = {
     dosahNasobic: 0.9,
     cenaManyNasobic: 0.75,
     nazevSpecialu: 'Bleskový výboj',
+    specialEfekt: 'dvojity-zasah',
+    specialniSila: 0,
   },
 }
 

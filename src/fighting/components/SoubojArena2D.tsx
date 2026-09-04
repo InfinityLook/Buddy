@@ -37,6 +37,7 @@ export const SoubojArena2D: React.FC<Props> = ({ stav, zasazen }) => {
           >
             <PostavaGrafika postavaId={postava.id} size={58} />
             {zasazen[i] && <Jiskry />}
+            {b.stitAktivni && <span className="souboj-stit-znacka">🛡️</span>}
           </div>
         )
       })}

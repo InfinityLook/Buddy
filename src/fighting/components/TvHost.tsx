@@ -93,6 +93,11 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
     { ...PRAZDNA_TLACITKA },
     { ...PRAZDNA_TLACITKA },
   ])
+  // Zrcadlo správy sítě (hostujMistnost's návratová hodnota) do refu —
+  // otevírá se v tomhle efektu, ale oznamKonecZapasu se volá z JINÉHO
+  // efektu (herní smyčka níž), stejný důvod jako hraciRef vedle: druhý
+  // efekt potřebuje na každém tiku vidět tu nejčerstvější referenci.
+  const spravaRef = useRef<ReturnType<typeof hostujMistnost> | null>(null)
 
   useEffect(() => {
     const sprava = hostujMistnost(kod, {
@@ -127,6 +132,7 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
       },
     })
 
+    spravaRef.current = sprava
     return () => sprava.zrusit()
   }, [kod])
 
@@ -171,8 +177,19 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
             : sestavVstup(a1.smer, vstupPredchoziRef.current[1], a1.tlacitka)
         if (a1.hracId !== AI_HRAC_ID) vstupPredchoziRef.current[1] = { ...a1.tlacitka }
 
+        const stavPredTikem = soubojStavRef.current.stavKola
         soubojStavRef.current = krokSouboje(soubojStavRef.current, [vstup0, vstup1], deltaMs)
         setSoubojStav(soubojStavRef.current)
+
+        // Vylepšení — oznámí se přesně na PŘECHODU 'probiha' → 'konec',
+        // ne na každém dalším tiku, co soubojStavRef zůstává zamrzlé
+        // na stejné referenci (viz engine.ts's krokSouboje komentář) —
+        // jinak by appka posílala tu samou zprávu 60× za sekundu,
+        // dokud někdo nezmáčkne "Nový zápas".
+        if (stavPredTikem === 'probiha' && soubojStavRef.current.stavKola === 'konec') {
+          const vitez = soubojStavRef.current.vitez
+          spravaRef.current?.oznamKonecZapasu({ vitezSlot: vitez === null ? null : ((vitez + 1) as 1 | 2) })
+        }
       }
 
       idPozadavku = requestAnimationFrame(tik)

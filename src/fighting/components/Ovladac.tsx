@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
+import { useGamificationStore } from '@/core/store/useGamificationStore'
+import { useWalletStore } from '@/core/store/useWalletStore'
 import { VirtualniJoystick } from '@/game/components/VirtualniJoystick'
 import { pripojSeJakoOvladac } from '../network'
 import type { PostavaId } from '../combat/postavy'
-import type { PripojenoPayload, Smer, Tlacitko } from '../types'
+import type { KonecZapasuPayload, PripojenoPayload, Smer, Tlacitko } from '../types'
 import { VyberPostavy } from './VyberPostavy'
 import '../FightingModule.css'
 
@@ -20,6 +22,16 @@ const PORADI_TLACITEK: Tlacitko[] = ['udar', 'kop', 'blok', 'specialni']
  *  "vlevo"/"vpravo" — malé chvění palce kolem středu tak nespustí
  *  falešný pohyb. */
 const PRAH_JOYSTICKU = 0.3
+
+/** Vylepšení — XP/kredity za odehraný zápas. Výhra jde přes
+ *  recordAction (bumpne counters.souboj + zkontroluje ring_mistr
+ *  odznak), prohra/remíza jen přes bare addXp — účastnický drobeček,
+ *  co záměrně NENÍ počítaný k odznaku (ten má znamenat "vyhraj 5
+ *  zápasů", ne "odehraj 5 zápasů", stejné rozlišení jako Buddyheimův
+ *  arena_champion). */
+const XP_VYHRA = 25
+const KREDITY_VYHRA = 15
+const XP_UCAST = 8
 
 type StavSpojeni = 'zadavani' | 'vyberPostavy' | 'pripojovani' | 'pripojeno'
 
@@ -42,16 +54,38 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
   const [postavaId, setPostavaId] = useState<PostavaId | null>(null)
   const [slot, setSlot] = useState<1 | 2 | null>(null)
   const [stavSpojeni, setStavSpojeni] = useState<StavSpojeni>('zadavani')
+  const [vysledekZapasu, setVysledekZapasu] = useState<string | null>(null)
   const hracIdRef = useRef(vygenerujHracId())
   const spravaRef = useRef<ReturnType<typeof pripojSeJakoOvladac> | null>(null)
+  // Handler konecZapasu se registruje jednou při připojení (viz efekt níž),
+  // ale samotný slot přijde asynchronně až přes pripojeno — čtení `slot`
+  // přímo by v uzávěru handleru zůstalo navždy null. Ref drží aktuální
+  // hodnotu bez závislosti na běhu efektu.
+  const slotRef = useRef<1 | 2 | null>(null)
 
   useEffect(() => {
     if (stavSpojeni !== 'pripojovani' || !kod || !postavaId) return
 
     const sprava = pripojSeJakoOvladac(kod, hracIdRef.current, profile.name || 'Hráč', postavaId, {
       pripojeno: (p: PripojenoPayload) => {
+        slotRef.current = p.slot
         setSlot(p.slot)
         setStavSpojeni('pripojeno')
+      },
+      konecZapasu: (p: KonecZapasuPayload) => {
+        const muj = slotRef.current
+        if (p.vitezSlot === null) {
+          useGamificationStore.getState().addXp(XP_UCAST)
+          setVysledekZapasu(`Remíza — +${XP_UCAST} XP`)
+        } else if (p.vitezSlot === muj) {
+          useGamificationStore.getState().recordAction('souboj', XP_VYHRA)
+          useWalletStore.getState().credit(KREDITY_VYHRA)
+          setVysledekZapasu(`Vyhrál jsi! +${XP_VYHRA} XP, +${KREDITY_VYHRA} kreditů`)
+        } else {
+          useGamificationStore.getState().addXp(XP_UCAST)
+          setVysledekZapasu(`Prohrál jsi — +${XP_UCAST} XP`)
+        }
+        window.setTimeout(() => setVysledekZapasu(null), 4000)
       },
     })
     spravaRef.current = sprava
@@ -182,6 +216,8 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
       </div>
 
       <span className={`souboj-ovladac-stav souboj-ovladac-stav--${slot}`}>Jsi Hráč {slot}</span>
+
+      {vysledekZapasu && <div className="souboj-ovladac-vysledek">{vysledekZapasu}</div>}
 
       <VirtualniJoystick onZmena={(x) => zpracujJoystick(x)} />
 

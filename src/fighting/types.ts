@@ -31,3 +31,15 @@ export interface PripojenoPayload {
 export type VstupPayload =
   | { hracId: string; typ: 'smer'; smer: Smer | null }
   | { hracId: string; typ: 'tlacitko'; tlacitko: Tlacitko; stisknuto: boolean }
+
+/** Vylepšení — TV rozešle jednou při přechodu kola do stavu 'konec'
+ *  (viz TvHost.tsx), ať si každý telefon může sám připsat XP/kredity
+ *  za VLASTNÍ výsledek. Gamifikace je čistě per-zařízení stav
+ *  (secureStorage v prohlížeči), TV k ní nemá a nepotřebuje mít
+ *  žádný přístup — proto se posílá jen výsledek (kdo vyhrál), ne
+ *  žádost "připiš XP", každý telefon si to vyhodnotí sám podle
+ *  vlastního slotu. */
+export interface KonecZapasuPayload {
+  /** 1/2 = vítězný slot, null = remíza. */
+  vitezSlot: 1 | 2 | null
+}

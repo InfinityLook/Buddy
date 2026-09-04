@@ -1,5 +1,5 @@
 import type { AkceData, BojovnikStav, HracVstup, SoubojStav, UtocnaAkce } from './types'
-import { POSTAVY, VYCHOZI_POSTAVA, type PostavaId } from './postavy'
+import { POSTAVY, VYCHOZI_POSTAVA, type PostavaId, type TypSpecialu } from './postavy'
 
 // ==========================================
 // Fáze 1 — čistý soubojový engine, žádné vedlejší efekty, žádné
@@ -43,6 +43,7 @@ export const vytvorBojovnika = (pozice: number, postavaId: PostavaId = VYCHOZI_P
     zranitelnostKonci: 0,
     utokKonci: 0,
     posledniAkce: null,
+    stitAktivni: false,
   }
 }
 
@@ -51,12 +52,16 @@ export const vytvorBojovnika = (pozice: number, postavaId: PostavaId = VYCHOZI_P
  *  akce ("kop dá 10 a stojí 400ms") spojuje s osobním stylem postavy
  *  ("Volt je o 30 % rychlejší") v jedno konkrétní číslo — tikBojovnika
  *  i vyhodnotZasahPokudZahajen volají výhradně tohle, nikdy AKCE_DATA
- *  přímo. */
+ *  přímo. Vylepšení přidalo jediný další řádek: postava s efektem
+ *  speciálu 'poskozeni' (viz postavy.ts's TypSpecialu) dostává navíc
+ *  specialniSila násobič, ale JEN na specialni akci — udar/kop se
+ *  tím nemění, na rozdíl od poskozeniNasobic, který platí na všechno. */
 export const efektivniAkceData = (postavaId: PostavaId, akce: UtocnaAkce): AkceData => {
   const zaklad = AKCE_DATA[akce]
   const postava = POSTAVY[postavaId]
+  const bonusSpecialu = akce === 'specialni' && postava.specialEfekt === 'poskozeni' ? postava.specialniSila : 1
   return {
-    poskozeni: zaklad.poskozeni * postava.poskozeniNasobic,
+    poskozeni: zaklad.poskozeni * postava.poskozeniNasobic * bonusSpecialu,
     dosah: zaklad.dosah * postava.dosahNasobic,
     trvaniMs: zaklad.trvaniMs / postava.rychlostNasobic,
     cenaMany: zaklad.cenaMany * postava.cenaManyNasobic,
@@ -115,13 +120,20 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number): Vysle
   let novyUtokKonci = 0
   let zahajenaAkce: UtocnaAkce | null = null
   let manaPoUtoku = mana
+  let stitAktivni = b.stitAktivni
   if (!blokuje && vstup.akce) {
     const data = efektivniAkceData(b.postavaId, vstup.akce)
     const maNaTo = vstup.akce !== 'specialni' || mana >= data.cenaMany
     if (maNaTo) {
       novyUtokKonci = data.trvaniMs
       zahajenaAkce = vstup.akce
-      if (vstup.akce === 'specialni') manaPoUtoku = mana - data.cenaMany
+      if (vstup.akce === 'specialni') {
+        manaPoUtoku = mana - data.cenaMany
+        // Vylepšení — 'stit' efekt (Bulwark) se aktivuje ZAHÁJENÍM
+        // speciálu, ne jeho zásahem — štít chrání i když soupeř
+        // zrovna není v dosahu.
+        if (POSTAVY[b.postavaId].specialEfekt === 'stit') stitAktivni = true
+      }
     }
     // Bez many speciální prostě nevyjde — žádný cooldown, žádný trest,
     // jen promarněný stisk (stejná "no-op, ne chyba" shovívavost jako
@@ -137,33 +149,46 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number): Vysle
       utokKonci: novyUtokKonci,
       mana: manaPoUtoku,
       posledniAkce: zahajenaAkce ?? b.posledniAkce,
+      stitAktivni,
     },
     zahajenaAkce,
   }
 }
 
-/** Pokud útočník tenhle tik zahájil akci, vyhodnotí dosah a zásah —
- *  volá se zvlášť pro každého hráče v pevném pořadí (0 pak 1), aby
- *  výsledek byl deterministický i při simultánním zásahu obou stran. */
-const vyhodnotZasahPokudZahajen = (
+interface VysledekJednohoZasahu {
+  hraci: [BojovnikStav, BojovnikStav]
+  /** Kolik poškození SKUTEČNĚ prošlo (po štítu i bloku) — 'vysati'
+   *  léčí útočníka podle tohohle čísla, ne podle zamýšleného základu. */
+  poskozeniDorucene: number
+}
+
+/** Jeden zásah proti jednomu cíli — vytažené z vyhodnotZasahPokudZahajen,
+ *  aby ho 'dvojity-zasah' (Volt) mohl zavolat dvakrát po sobě ve
+ *  stejném tiku, s výsledkem prvního volání jako vstupem druhého
+ *  (spotřebovaný štít z prvního zásahu se tak správně projeví i na
+ *  druhém). Obrana (postavova, ne štít/blok) je vlastnost CÍLE, počítá
+ *  se z `poskozeniZaklad`, které si volající už spočítal jednou předem
+ *  — netřeba počítat dvakrát pro dva zásahy stejné akce. */
+const aplikujJedenZasah = (
   hraci: [BojovnikStav, BojovnikStav],
   utocnikIdx: 0 | 1,
   cilIdx: 0 | 1,
-  akce: UtocnaAkce | null
-): [BojovnikStav, BojovnikStav] => {
-  if (!akce) return hraci
-
+  poskozeniZaklad: number
+): VysledekJednohoZasahu => {
   const utocnik = hraci[utocnikIdx]
   const cil = hraci[cilIdx]
-  const data = efektivniAkceData(utocnik.postavaId, akce)
-  const vzdalenost = Math.abs(utocnik.pozice - cil.pozice)
-  if (vzdalenost > data.dosah) return hraci // netrefil se, mimo dosah
 
-  // Obrana je vlastnost CÍLE, ne útočníka — vyhodnocuje se tady, po
-  // dosahu (útočníkova věc), před blokem (situační, ne osobní).
+  // 'stit' efekt (Bulwark) — pohltí tenhle zásah úplně a spotřebuje
+  // se, přednost před obyčejným blokem (souběh obou by byl vzácný a
+  // engine ho stejně vyhodnotí jako "žádné poškození", tak jako tak).
+  if (cil.stitAktivni) {
+    const dalsi = [...hraci] as [BojovnikStav, BojovnikStav]
+    dalsi[cilIdx] = { ...cil, stitAktivni: false }
+    return { hraci: dalsi, poskozeniDorucene: 0 }
+  }
+
   const zasahBlokovan = cil.blokuje
-  const zakladniPoskozeni = data.poskozeni * POSTAVY[cil.postavaId].obranaNasobic
-  const poskozeni = zasahBlokovan ? zakladniPoskozeni * (1 - BLOK_REDUKCE) : zakladniPoskozeni
+  const poskozeni = zasahBlokovan ? poskozeniZaklad * (1 - BLOK_REDUKCE) : poskozeniZaklad
 
   const novyCil: BojovnikStav = {
     ...cil,
@@ -179,6 +204,56 @@ const vyhodnotZasahPokudZahajen = (
   const dalsi = [...hraci] as [BojovnikStav, BojovnikStav]
   dalsi[utocnikIdx] = novyUtocnik
   dalsi[cilIdx] = novyCil
+  return { hraci: dalsi, poskozeniDorucene: poskozeni }
+}
+
+/** Pokud útočník tenhle tik zahájil akci, vyhodnotí dosah a zásah —
+ *  volá se zvlášť pro každého hráče v pevném pořadí (0 pak 1), aby
+ *  výsledek byl deterministický i při simultánním zásahu obou stran.
+ *  Vylepšení přidalo dva další efekty speciálu vedle 'poskozeni'
+ *  (ten je celý už v efektivniAkceData — viz komentář tam): 'dvojity-
+ *  zasah' (Volt) zavolá aplikujJedenZasah dvakrát, 'vysati' (Onyx)
+ *  vyléčí útočníka podle skutečně způsobeného poškození. 'stit'
+ *  (Bulwark) se řeší jinde — v tikBojovnika při zahájení akce a v
+ *  aplikujJedenZasah při dopadu na cíl, tady se vůbec nezmiňuje. */
+const vyhodnotZasahPokudZahajen = (
+  hraci: [BojovnikStav, BojovnikStav],
+  utocnikIdx: 0 | 1,
+  cilIdx: 0 | 1,
+  akce: UtocnaAkce | null
+): [BojovnikStav, BojovnikStav] => {
+  if (!akce) return hraci
+
+  const utocnik = hraci[utocnikIdx]
+  const cil = hraci[cilIdx]
+  const data = efektivniAkceData(utocnik.postavaId, akce)
+  const vzdalenost = Math.abs(utocnik.pozice - cil.pozice)
+  if (vzdalenost > data.dosah) return hraci // netrefil se, mimo dosah
+
+  const postavaUtocnika = POSTAVY[utocnik.postavaId]
+  const jeSpecialSTemhleTypem = (typ: TypSpecialu) => akce === 'specialni' && postavaUtocnika.specialEfekt === typ
+
+  // Obrana je vlastnost CÍLE, ne útočníka — počítá se tady, jednou,
+  // společně pro oba případné zásahy dvojitého úderu.
+  const poskozeniZaklad = data.poskozeni * POSTAVY[cil.postavaId].obranaNasobic
+
+  let vysledek = aplikujJedenZasah(hraci, utocnikIdx, cilIdx, poskozeniZaklad)
+  let poskozeniCelkem = vysledek.poskozeniDorucene
+
+  if (jeSpecialSTemhleTypem('dvojity-zasah')) {
+    vysledek = aplikujJedenZasah(vysledek.hraci, utocnikIdx, cilIdx, poskozeniZaklad)
+    poskozeniCelkem += vysledek.poskozeniDorucene
+  }
+
+  let dalsi = vysledek.hraci
+
+  if (jeSpecialSTemhleTypem('vysati') && poskozeniCelkem > 0) {
+    const u = dalsi[utocnikIdx]
+    const sHojenim = [...dalsi] as [BojovnikStav, BojovnikStav]
+    sHojenim[utocnikIdx] = { ...u, hp: Math.min(u.maxHp, u.hp + poskozeniCelkem * postavaUtocnika.specialniSila) }
+    dalsi = sHojenim
+  }
+
   return dalsi
 }
 

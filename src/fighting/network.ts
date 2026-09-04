@@ -1,6 +1,6 @@
 import { supabase } from '@/core/supabase/client'
 import type { PostavaId } from './combat/postavy'
-import type { PripojenoPayload, PripojitPayload, VstupPayload } from './types'
+import type { KonecZapasuPayload, PripojenoPayload, PripojitPayload, VstupPayload } from './types'
 
 // ==========================================
 // Párování telefon-ovladač <-> TV — čistě živý Supabase Realtime
@@ -42,7 +42,7 @@ interface HostHandlery {
  *  jeho slot (1/2), aby ovladač věděl, za koho hraje. */
 export const hostujMistnost = (kod: string, handlery: HostHandlery) => {
   const klient = supabase
-  if (!klient) return { potvrdPripojeni: () => {}, zrusit: () => {} }
+  if (!klient) return { potvrdPripojeni: () => {}, oznamKonecZapasu: () => {}, zrusit: () => {} }
 
   const kanal = klient
     .channel(`${nazevKanalu(kod)}:${++poradiKanalu}`)
@@ -53,12 +53,15 @@ export const hostujMistnost = (kod: string, handlery: HostHandlery) => {
   return {
     potvrdPripojeni: (p: PripojenoPayload) =>
       void kanal.send({ type: 'broadcast', event: 'pripojeno', payload: p }),
+    oznamKonecZapasu: (p: KonecZapasuPayload) =>
+      void kanal.send({ type: 'broadcast', event: 'konecZapasu', payload: p }),
     zrusit: () => void klient.removeChannel(kanal),
   }
 }
 
 interface OvladacHandlery {
   pripojeno: (p: PripojenoPayload) => void
+  konecZapasu: (p: KonecZapasuPayload) => void
 }
 
 /** Telefon strana — připojí se do místnosti pod kódem a hned po
@@ -80,6 +83,7 @@ export const pripojSeJakoOvladac = (
       const p = payload as PripojenoPayload
       if (p.hracId === mujHracId) handlery.pripojeno(p)
     })
+    .on('broadcast', { event: 'konecZapasu' }, ({ payload }) => handlery.konecZapasu(payload as KonecZapasuPayload))
     .subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         void kanal.send({

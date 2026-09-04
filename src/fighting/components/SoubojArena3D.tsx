@@ -60,6 +60,7 @@ export const SoubojArena3D: React.FC<Props> = ({ stav, zasazen, onSelhalo }) => 
               <div className={`souboj-bojovnik souboj-bojovnik--${i + 1} souboj-bojovnik--${vizStav}`}>
                 <PostavaGrafika postavaId={postava.id} size={54} />
                 {zasazen[i] && <Jiskry />}
+                {b.stitAktivni && <span className="souboj-stit-znacka">🛡️</span>}
               </div>
             </div>
           )

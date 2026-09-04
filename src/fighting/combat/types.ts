@@ -49,6 +49,15 @@ export interface BojovnikStav {
    *  dobu bojovník taky ignoruje vstupy, ať útok trefil, nebo ne. */
   utokKonci: number
   posledniAkce: UtocnaAkce | null
+  /** Vylepšení — Bulwarkův speciál ("stit" typ, viz postavy.ts's
+   *  TypSpecialu) nastaví tohle na true, když se speciál zahájí, a
+   *  engine ho spotřebuje (zpátky na false) na PRVNÍM dalším
+   *  neblokovaném zásahu, který by jinak dopadl — ten zásah pak dá
+   *  nulové poškození a žádný hitstun, bez ohledu na to, jestli
+   *  bojovník zrovna drží blok. Přežívá i přes útoky samotného
+   *  bojovníka mezitím (na rozdíl od utokKonci/zranitelnostKonci se
+   *  nuluje jen skutečným spotřebováním, ne časem). */
+  stitAktivni: boolean
 }
 
 /** Vstup jednoho hráče pro jeden krok simulace. `akce` je jednorázová

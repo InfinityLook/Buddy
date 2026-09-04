@@ -22,6 +22,7 @@ export type ActivityKind =
   | 'task'
   | 'goal'
   | 'pomodoro'
+  | 'souboj'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -64,9 +65,14 @@ export const DEFAULT_BADGES: Badge[] = [
   { id: 'task_planner', title: 'Plánovač', description: 'Splň 10 úkolů ve Studijním plánovači.', icon: '📋', unlockedAt: null },
   { id: 'goal_getter', title: 'Cílevědomý', description: 'Splň 5 cílů v Goal Trackeru.', icon: '🎯', unlockedAt: null },
   { id: 'focus_master', title: 'Mistr soustředění', description: 'Dokonči 10 soustředění v Pomodoru.', icon: '⏳', unlockedAt: null },
+  { id: 'ring_mistr', title: 'Mistr ringu', description: 'Vyhraj 5 zápasů v Souboji.', icon: '🥊', unlockedAt: null },
 ]
 
-// Odznaky, které se odemykají počtem opakování dané činnosti
+// Odznaky, které se odemykají počtem opakování dané činnosti. 'souboj'
+// dostal vlastní kind, ne sdílení s Buddyheimovým 'battle' — jsou to
+// dvě různé hry (RPG karetní souboj vs. Souboj samotný), stejná
+// "dvě různé věci se dvěma různými účely, ne jeden sdílený počítadlo"
+// zásada jako u Pomodora's completedSessions vs. counters.pomodoro.
 const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: number }>> = {
   flashcard: { badgeId: 'card_creator', needed: 10 },
   note: { badgeId: 'note_taker', needed: 10 },
@@ -79,6 +85,7 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   task: { badgeId: 'task_planner', needed: 10 },
   goal: { badgeId: 'goal_getter', needed: 5 },
   pomodoro: { badgeId: 'focus_master', needed: 10 },
+  souboj: { badgeId: 'ring_mistr', needed: 5 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není
