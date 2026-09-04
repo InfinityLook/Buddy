@@ -505,6 +505,7 @@
 
 .souboj-hp-bar,
 .souboj-mana-bar {
+  position: relative;
   width: 100%;
   height: 10px;
   border-radius: var(--radius-pill);
@@ -517,16 +518,62 @@
   height: 6px;
 }
 
+/* Jemný horní lesk přes oba pruhy — čistě dekorativní vrstva nad
+   výplní, dává pruhu trochu objemu místo ploché barvy. */
+.souboj-hp-bar::after,
+.souboj-mana-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.22), transparent 55%);
+  pointer-events: none;
+}
+
+/* "Duch" pruh — Vylepšení (viz Bojiste.tsx's komentář u vykreslení):
+   dostává stejné procento jako .souboj-hp-bar-vypln, ale s pomalejším
+   a zpožděným CSS přechodem, takže po zásahu je vidět tmavě červený
+   "stín" dohánějící novou (nižší) hodnotu — klasický efekt bojových
+   her, tady čistě deklarativně, bez jediného řádku JS navíc. */
+.souboj-hp-bar-duch {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #7f1d1d, #b91c1c);
+  transition: width 0.6s ease-out 0.15s;
+}
+
 .souboj-hp-bar-vypln {
+  position: absolute;
+  inset: 0;
   height: 100%;
   background: linear-gradient(90deg, var(--accent-red), #fca5a5);
   transition: width 0.12s linear;
 }
 
 .souboj-mana-bar-vypln {
+  position: absolute;
+  inset: 0;
   height: 100%;
   background: linear-gradient(90deg, #3b82f6, var(--accent-cyan));
   transition: width 0.12s linear;
+}
+
+/* Plná mana — jemný pulzující odlesk, ať je "teď je na speciál" vidět
+   na první pohled i bez čtení procent. Váže se na skutečnou hodnotu
+   (mana >= maxMana), ne na odhad ceny konkrétního speciálu — poctivé
+   "je úplně plná", ne přibližné "asi už stačí". */
+.souboj-mana-bar--plna {
+  animation: souboj-mana-pulz 1.1s ease-in-out infinite;
+}
+
+@keyframes souboj-mana-pulz {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(53, 196, 240, 0.55);
+  }
+  50% {
+    box-shadow: 0 0 10px 2px rgba(53, 196, 240, 0.55);
+  }
 }
 
 /* Fáze 6 — krátký záblesk kolem HP pruhu v okamžiku zásahu (viz
@@ -549,17 +596,38 @@
 
 /* Fáze 6 — aréna dostala skutečnou "podlahu" s vinětou místo ploché
    karty (viz CLAUDE.md), ať bojovníci vypadají, že na něčem stojí, ne
-   že se vznáší nad glass pozadím appky. */
+   že se vznáší nad glass pozadím appky. Vylepšení přidalo dvě barevná
+   "reflektorová" světla z horních rohů — červené nad hráčem 1, cyan
+   nad hráčem 2, stejné barvy jako jejich vlastní odznaky jinde v
+   appce (`.souboj-hrac-panel--1`/`--2`) — ať aréna sama napovídá, kdo
+   stojí na které straně, ještě než padne první úder. */
 .souboj-arena {
   position: relative;
   height: 220px;
   border-radius: var(--radius-lg);
   background:
-    radial-gradient(ellipse at 50% 15%, rgba(138, 92, 246, 0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 45% at 12% 0%, rgba(239, 68, 68, 0.16) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 45% at 88% 0%, rgba(53, 196, 240, 0.16) 0%, transparent 65%),
+    radial-gradient(ellipse at 50% 15%, rgba(138, 92, 246, 0.14) 0%, transparent 60%),
     var(--bg-glass);
   border: 1px solid var(--border-subtle);
   box-shadow: inset 0 0 46px rgba(0, 0, 0, 0.45);
   overflow: hidden;
+}
+
+/* Jemná svislá dělicí čára uprostřed — čistě dekorativní náznak, že
+   aréna má dvě strany, ne funkční hranice (bojovníci ji volně
+   překračují). */
+.souboj-arena::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 8%;
+  bottom: 38%;
+  width: 1px;
+  margin-left: -0.5px;
+  background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.12), transparent);
+  pointer-events: none;
 }
 
 .souboj-arena-podlaha {
@@ -568,7 +636,9 @@
   right: 0;
   bottom: 0;
   height: 38%;
-  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.4));
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 34px),
+    linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.42));
   pointer-events: none;
 }
 
@@ -702,6 +772,44 @@
   100% {
     transform: rotate(82deg) translateY(8px);
     opacity: 0.45;
+  }
+}
+
+/* Jiskry při zásahu (viz Bojiste.tsx) — šest čárek vystřelujících do
+   pevných úhlů kolem bojovníka a mizících, jednorázově, po dobu
+   stejného "zasazen" okna jako HP pruhu záblesk. `.souboj-bojovnik`
+   je `position: absolute`, takže je zároveň containing blockem pro
+   tenhle vnořený absolutní obal — žádný další wrapper netřeba. */
+.souboj-impact {
+  position: absolute;
+  left: 50%;
+  bottom: 46%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.souboj-impact-jiskra {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 13px;
+  margin-left: -1.5px;
+  background: linear-gradient(180deg, #fff8, transparent);
+  border-radius: 2px;
+  transform: rotate(var(--uhel)) translateY(-2px);
+  animation: souboj-jiskra-let 0.35s ease-out forwards;
+}
+
+@keyframes souboj-jiskra-let {
+  0% {
+    transform: rotate(var(--uhel)) translateY(-2px);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(var(--uhel)) translateY(-26px);
+    opacity: 0;
   }
 }
 

@@ -12,6 +12,10 @@ interface Props {
 
 const ZABLESK_MS = 350
 
+/** Šest pevných úhlů pro jiskry z jednoho zásahu — viz komentář u
+ *  vykreslení níž. */
+const UHLY_JISKER = [0, 60, 120, 180, 240, 300]
+
 // ==========================================
 // Fáze 3 — čistě prezentační komponenta: dostane hotový SoubojStav a
 // jména obou hráčů jako props, nic sama nepočítá (veškerá matematika
@@ -61,9 +65,16 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena }) => {
                 {postava.ikona} {jmena[i]}
               </span>
               <div className={`souboj-hp-bar ${zasazen[i] ? 'souboj-hp-bar--zasazen' : ''}`}>
+                {/* "Duch" pruh vzadu — stejná šířka jako výplň vpředu, jen
+                    pomalejší CSS přechod (viz FightingModule.css) — čistě
+                    deklarativní verze klasického "afterimage" HP pruhu z
+                    bojových her, bez jediného řádku JS navíc: obě děti
+                    dostávají stejné číslo z props, jen s jinou rychlostí
+                    přechodu, takže duch viditelně dohání teprve po zásahu. */}
+                <div className="souboj-hp-bar-duch" style={{ width: `${hpProcenta(b)}%` }} />
                 <div className="souboj-hp-bar-vypln" style={{ width: `${hpProcenta(b)}%` }} />
               </div>
-              <div className="souboj-mana-bar">
+              <div className={`souboj-mana-bar ${b.mana >= b.maxMana ? 'souboj-mana-bar--plna' : ''}`}>
                 <div className="souboj-mana-bar-vypln" style={{ width: `${manaProcenta(b)}%` }} />
               </div>
             </div>
@@ -84,6 +95,18 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena }) => {
               style={{ left: `${poziceProcenta(b, ARENA_SIRKA)}%` }}
             >
               <PostavaGrafika postavaId={postava.id} size={58} />
+              {/* Jiskry při zásahu — stejný "zasazen" stav jako záblesk HP
+                  pruhu výš, znovupoužitý tady pro krátký, jednorázový
+                  výbuch šesti čárek do stran (viz FightingModule.css). Šest
+                  pevných úhlů, ne trigonometrie v CSS — širší podpora
+                  prohlížečů a žádný výpočet navíc. */}
+              {zasazen[i] && (
+                <div className="souboj-impact" aria-hidden="true">
+                  {UHLY_JISKER.map((uhel) => (
+                    <span key={uhel} className="souboj-impact-jiskra" style={{ '--uhel': `${uhel}deg` } as React.CSSProperties} />
+                  ))}
+                </div>
+              )}
             </div>
           )
         })}
