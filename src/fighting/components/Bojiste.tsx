@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { POSTAVY } from '../combat/postavy'
 import { hpProcenta, manaProcenta } from '../combat/loop'
+import { zahrajRemizu, zahrajSpecial, zahrajVyhra, zahrajZasah } from '../sound'
 import { SoubojArena3D } from './SoubojArena3D'
 import { SoubojArena2D } from './SoubojArena2D'
-import type { SoubojStav } from '../combat/types'
+import type { SoubojStav, UtocnaAkce } from '../combat/types'
 
 interface Props {
   stav: SoubojStav
@@ -40,22 +41,57 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena }) => {
   const predchoziHp = useRef<[number, number]>([stav.hraci[0].hp, stav.hraci[1].hp])
   const [zasazen, setZasazen] = useState<[boolean, boolean]>([false, false])
   const [arena3dSelhala, setArena3dSelhala] = useState(false)
+  // Vylepšení — zvuk (viz sound.ts). Poslední ZAHÁJENÁ akce každého
+  // bojovníka, ať appka pozná přechod NA 'specialni' (whoosh), ne jen
+  // že postava speciál pořád ještě drží z dřívějška — posledniAkce je
+  // v enginu záměrně "lepivé" (viz engine.ts's komentář), nemění se
+  // zpátky na null, jen na další zahájenou akci.
+  const predchoziAkce = useRef<[UtocnaAkce | null, UtocnaAkce | null]>([
+    stav.hraci[0].posledniAkce,
+    stav.hraci[1].posledniAkce,
+  ])
+  // Ať appka nespustí fanfáru/tón na KAŽDÉM snímku, co soubojStav
+  // zůstává zamrzlé na stejné hodnotě stavKola 'konec' (viz engine.ts's
+  // krokSouboje) — jen na skutečném PŘECHODU, stejná disciplína jako
+  // TvHost.tsx's vlastní stavPredTikem porovnání pro oznamKonecZapasu.
+  const konecOznamen = useRef(false)
 
   useEffect(() => {
-    const nove: [boolean, boolean] = [false, false]
-    let zmena = false
+    const noveZasazen: [boolean, boolean] = [false, false]
+    let zasah = false
     ;([0, 1] as const).forEach((i) => {
       if (stav.hraci[i].hp < predchoziHp.current[i]) {
-        nove[i] = true
-        zmena = true
+        noveZasazen[i] = true
+        zasah = true
       }
       predchoziHp.current[i] = stav.hraci[i].hp
+
+      if (stav.hraci[i].posledniAkce === 'specialni' && predchoziAkce.current[i] !== 'specialni') {
+        zahrajSpecial()
+      }
+      predchoziAkce.current[i] = stav.hraci[i].posledniAkce
     })
-    if (!zmena) return
-    setZasazen(nove)
+    if (zasah) zahrajZasah()
+    if (!zasah) return
+    setZasazen(noveZasazen)
     const id = window.setTimeout(() => setZasazen([false, false]), ZABLESK_MS)
     return () => window.clearTimeout(id)
   }, [stav.hraci])
+
+  useEffect(() => {
+    if (stav.stavKola !== 'konec') {
+      konecOznamen.current = false
+      return
+    }
+    if (konecOznamen.current) return
+    konecOznamen.current = true
+    // Bojiste je sdílená TV obrazovka, ne ničí "vlastní" — appka tu
+    // proto nerozlišuje výhra/prohra podle slotu (to dělá až telefon,
+    // viz Ovladac.tsx's konecZapasu handler a haptika.ts), jen jestli
+    // kolo mělo vítěze, nebo skončilo remízou.
+    if (stav.vitez === null) zahrajRemizu()
+    else zahrajVyhra()
+  }, [stav.stavKola, stav.vitez])
 
   return (
     <div className="souboj-bojiste">

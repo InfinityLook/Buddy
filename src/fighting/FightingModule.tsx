@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { isSupabaseConfigured } from '@/core/supabase/client'
 import { TvHost } from './components/TvHost'
 import { Ovladac } from './components/Ovladac'
+import { odemkniZvuk } from './sound'
 import './FightingModule.css'
 
 // ==========================================
@@ -55,7 +56,20 @@ export const FightingModule: React.FC = () => {
       </header>
 
       <div className="souboj-vyber">
-        <button className="souboj-volba" onClick={() => setRole('tv')}>
+        <button
+          className="souboj-volba"
+          onClick={() => {
+            // Vylepšení — zvuk (sound.ts) potřebuje AudioContext
+            // odemčený uvnitř SKUTEČNÉHO gesta uživatele, jinak by ho
+            // prohlížeč odmítl. Tohle je nejzazší bod, kde appka ještě
+            // ví, že se chystá TV režim (a tedy bude chtít hrát zvuk) —
+            // TvHost.tsx sám žádné vlastní kliknutí "spustit zápas"
+            // nemá, zápas začíná automaticky, jakmile se připojí druhý
+            // hráč.
+            odemkniZvuk()
+            setRole('tv')
+          }}
+        >
           <span className="souboj-volba-ikona" aria-hidden="true">📺</span>
           <span className="souboj-volba-text">
             <span className="souboj-volba-nazev">Hostovat na TV</span>

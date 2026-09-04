@@ -4,6 +4,7 @@ import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useWalletStore } from '@/core/store/useWalletStore'
 import { VirtualniJoystick } from '@/game/components/VirtualniJoystick'
 import { pripojSeJakoOvladac } from '../network'
+import { zavibrujProhru, zavibrujRemizu, zavibrujTlacitko, zavibrujVyhru } from '../haptika'
 import type { PostavaId } from '../combat/postavy'
 import type { KonecZapasuPayload, PripojenoPayload, Smer, Tlacitko } from '../types'
 import { VyberPostavy } from './VyberPostavy'
@@ -77,13 +78,16 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
         if (p.vitezSlot === null) {
           useGamificationStore.getState().addXp(XP_UCAST)
           setVysledekZapasu(`Remíza — +${XP_UCAST} XP`)
+          zavibrujRemizu()
         } else if (p.vitezSlot === muj) {
           useGamificationStore.getState().recordAction('souboj', XP_VYHRA)
           useWalletStore.getState().credit(KREDITY_VYHRA)
           setVysledekZapasu(`Vyhrál jsi! +${XP_VYHRA} XP, +${KREDITY_VYHRA} kreditů`)
+          zavibrujVyhru()
         } else {
           useGamificationStore.getState().addXp(XP_UCAST)
           setVysledekZapasu(`Prohrál jsi — +${XP_UCAST} XP`)
+          zavibrujProhru()
         }
         window.setTimeout(() => setVysledekZapasu(null), 4000)
       },
@@ -99,6 +103,10 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
   }
 
   const posliTlacitko = (tlacitko: Tlacitko, stisknuto: boolean) => {
+    // Krátké vibrační cvaknutí jen na STISK, ne na puštění — appka na
+    // fyzickém ovladači nemá žádnou hmatovou zpětnou vazbu jinak, tohle
+    // je jediné potvrzení, že se dotyk vůbec zaregistroval.
+    if (stisknuto) zavibrujTlacitko()
     spravaRef.current?.poslatVstup({ hracId: hracIdRef.current, typ: 'tlacitko', tlacitko, stisknuto })
   }
 
