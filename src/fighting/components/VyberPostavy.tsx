@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { VSECHNY_POSTAVY } from '../combat/postavy'
 import type { PostavaId } from '../combat/postavy'
+import { PostavaGrafika } from './PostavaGrafika'
 import '../FightingModule.css'
 
 interface Props {
@@ -34,9 +35,7 @@ export const VyberPostavy: React.FC<Props> = ({ onVybrano }) => {
             }`}
             onClick={() => setVybrana(postava.id)}
           >
-            <span className="souboj-postava-ikona" aria-hidden="true">
-              {postava.ikona}
-            </span>
+            <PostavaGrafika postavaId={postava.id} size={64} animovana className="souboj-postava-obrazek" />
             <span className="souboj-postava-jmeno">{postava.jmeno}</span>
             <span className="souboj-postava-podtitul">{postava.podtitul}</span>
             <span className="souboj-postava-special">✨ {postava.nazevSpecialu}</span>

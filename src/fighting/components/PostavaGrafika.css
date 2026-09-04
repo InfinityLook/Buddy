@@ -1,0 +1,24 @@
+/* ==========================================
+   PostavaGrafika.tsx — viz komentář tam. Vlastní malý soubor, ne
+   sdílené FightingModule.css, protože jde o jedinou, dobře ohraničenou
+   komponentu (stejné zdůvodnění jako u ostatních miniaplikací appky —
+   "Look at src/miniapps/pomodoro/ as the reference shape").
+   ========================================== */
+.souboj-postava-svg {
+  display: block;
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.4));
+}
+
+.souboj-postava-svg--animovana {
+  animation: souboj-postava-dychani 3s ease-in-out infinite;
+}
+
+@keyframes souboj-postava-dychani {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}

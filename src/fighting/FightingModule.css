@@ -431,8 +431,8 @@
   box-shadow: 0 0 16px rgba(236, 72, 153, 0.35);
 }
 
-.souboj-postava-ikona {
-  font-size: 2rem;
+.souboj-postava-obrazek {
+  margin-bottom: 0.1rem;
 }
 
 .souboj-postava-jmeno {
@@ -529,53 +529,180 @@
   transition: width 0.12s linear;
 }
 
+/* Fáze 6 — krátký záblesk kolem HP pruhu v okamžiku zásahu (viz
+   Bojiste.tsx's jediný vlastní stav, "zasazen"). Číslo samo se mění
+   okamžitě (šířka výplně výš), tohle jen navíc upozorní OKO, že se
+   něco stalo — bez toho splyne pokles o pár procent s běžným plynulým
+   ubýváním a hráč u TV ho snadno přehlédne. */
+.souboj-hp-bar--zasazen {
+  animation: souboj-hp-zablesk 0.35s ease-out;
+}
+
+@keyframes souboj-hp-zablesk {
+  0% {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.85);
+  }
+  100% {
+    box-shadow: 0 0 14px 5px rgba(239, 68, 68, 0);
+  }
+}
+
+/* Fáze 6 — aréna dostala skutečnou "podlahu" s vinětou místo ploché
+   karty (viz CLAUDE.md), ať bojovníci vypadají, že na něčem stojí, ne
+   že se vznáší nad glass pozadím appky. */
 .souboj-arena {
   position: relative;
   height: 220px;
   border-radius: var(--radius-lg);
   background:
-    linear-gradient(180deg, rgba(138, 92, 246, 0.1) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 15%, rgba(138, 92, 246, 0.18) 0%, transparent 60%),
     var(--bg-glass);
   border: 1px solid var(--border-subtle);
+  box-shadow: inset 0 0 46px rgba(0, 0, 0, 0.45);
   overflow: hidden;
 }
 
+.souboj-arena-podlaha {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 38%;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.4));
+  pointer-events: none;
+}
+
+/* Bojovník v aréně — od Fáze 6 skutečná SVG postavička (PostavaGrafika,
+   viz komponenta), ne kruhový odznak s emoji uprostřed. Proto obal
+   ztratil border/pozadí kruhu; vizuální zpětná vazba na stav (útok/
+   hitstun/blok/ko) teď jede přes animaci celého obalu + drop-shadow
+   na samotné SVG, ne přes barvu okraje kruhu, který už neexistuje. */
 .souboj-bojovnik {
   position: absolute;
-  bottom: 12px;
-  width: 56px;
-  height: 56px;
-  margin-left: -28px;
+  bottom: 14px;
+  width: 62px;
+  height: 84px;
+  margin-left: -31px;
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+  transition: left 0.05s linear;
+}
+
+/* Kontaktní stín pod nohama — bez něj postavička v ploché aréně
+   opticky "plave", stejný trik jako u RPG's world mapy. */
+.souboj-bojovnik::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  width: 42px;
+  height: 9px;
+  margin-left: -21px;
   border-radius: 50%;
-  background: var(--bg-glass);
-  border: 2px solid var(--border-strong);
-  font-size: 1.7rem;
-  transition: left 0.05s linear, box-shadow 0.12s ease, border-color 0.12s ease;
+  background: rgba(0, 0, 0, 0.42);
+  filter: blur(2px);
+  z-index: -1;
 }
 
-.souboj-bojovnik--1 { border-color: rgba(239, 68, 68, 0.5); }
-.souboj-bojovnik--2 { border-color: rgba(53, 196, 240, 0.5); }
-
-.souboj-bojovnik--hitstun {
-  border-color: #facc15;
-  box-shadow: 0 0 16px rgba(250, 204, 21, 0.6);
+/* Hráč 2 čelí doleva, k soupeři — jednoduché horizontální zrcadlení
+   SVG (asymetrické doplňky jako Onyxův meč se jen otočí na druhou
+   stranu, žádný druhý sadu obrázků netřeba). */
+.souboj-bojovnik--2 .souboj-postava-svg {
+  transform: scaleX(-1);
 }
 
-.souboj-bojovnik--blok {
-  border-color: var(--accent-green);
-  box-shadow: 0 0 14px rgba(16, 185, 129, 0.5);
+/* Klidový stav — jemné pohupování dechu, stejná animace jako na
+   výběru postavy (PostavaGrafika.css), jen spuštěná na obalu, ne na
+   SVG samotném, ať se nebije s dalšími stavy níž, které taky sahají
+   na transform celého obalu. */
+.souboj-bojovnik--idle {
+  animation: souboj-bojovnik-dychani 2.4s ease-in-out infinite;
+}
+
+@keyframes souboj-bojovnik-dychani {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Výpad při útoku — směr záleží na tom, kdo útočí (hráč 1 čelí
+   doprava k soupeři, hráč 2 doleva), proto vlastní proměnná na
+   každé straně místo dvou skoro identických keyframes. */
+.souboj-bojovnik--1 {
+  --smer-vypadu: 1;
+}
+.souboj-bojovnik--2 {
+  --smer-vypadu: -1;
 }
 
 .souboj-bojovnik--utok {
-  box-shadow: 0 0 14px rgba(236, 72, 153, 0.5);
+  animation: souboj-bojovnik-vypad 0.22s ease-out;
 }
 
+@keyframes souboj-bojovnik-vypad {
+  0% {
+    transform: translateX(0);
+  }
+  45% {
+    transform: translateX(calc(var(--smer-vypadu) * 14px));
+  }
+  100% {
+    transform: translateX(calc(var(--smer-vypadu) * 3px));
+  }
+}
+
+/* Zásah (hitstun) — otřes + prudký záblesk, ať je na první pohled
+   jasné, kdo právě dostal ránu, i bez čtení HP pruhu. */
+.souboj-bojovnik--hitstun {
+  animation: souboj-bojovnik-otres 0.3s ease-in-out;
+}
+
+.souboj-bojovnik--hitstun .souboj-postava-svg {
+  filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.95)) brightness(1.5);
+}
+
+@keyframes souboj-bojovnik-otres {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0);
+  }
+  25% {
+    transform: translateX(-6px) rotate(-4deg);
+  }
+  75% {
+    transform: translateX(6px) rotate(4deg);
+  }
+}
+
+/* Blok — klidný, ne otřesený; jen zelený odlesk na postavičce jako
+   náznak štítu, bez pohybu obalu (bránící se bojovník přece nelítá). */
+.souboj-bojovnik--blok .souboj-postava-svg {
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.9));
+}
+
+/* KO — pád dozadu s doznívajícím otočením, dohrané jednou (forwards),
+   ne dokola jako klidový stav — engine po KO stav zamrzne (viz
+   engine.ts's komentář o stejné referenci objektu), takže tahle
+   třída zůstává aplikovaná po zbytek kola beze změny a animace se
+   znovu nespustí. */
 .souboj-bojovnik--ko {
-  opacity: 0.35;
-  transform: rotate(90deg);
+  animation: souboj-bojovnik-ko 0.5s ease-out forwards;
+}
+
+@keyframes souboj-bojovnik-ko {
+  0% {
+    transform: rotate(0) translateY(0);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(82deg) translateY(8px);
+    opacity: 0.45;
+  }
 }
 
 .souboj-konec-kola {
