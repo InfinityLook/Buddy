@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
+import { VirtualniJoystick } from '@/game/components/VirtualniJoystick'
 import { pripojSeJakoOvladac } from '../network'
 import type { PostavaId } from '../combat/postavy'
 import type { PripojenoPayload, Smer, Tlacitko } from '../types'
@@ -12,22 +13,26 @@ interface Props {
 
 const vygenerujHracId = () => `hrac-${Math.random().toString(36).slice(2, 10)}`
 
-const SIPKA: Record<Smer, string> = { nahoru: '▲', dolu: '▼', vlevo: '◀', vpravo: '▶' }
 const IKONA_TLACITKA: Record<Tlacitko, string> = { udar: '👊', kop: '🦵', blok: '🛡️', specialni: '✨' }
-const PORADI_SMERU: Smer[] = ['nahoru', 'vlevo', 'vpravo', 'dolu']
 const PORADI_TLACITEK: Tlacitko[] = ['udar', 'kop', 'blok', 'specialni']
+
+/** Kolik má joystick vychýlit ze středu, než ho appka bere jako
+ *  "vlevo"/"vpravo" — malé chvění palce kolem středu tak nespustí
+ *  falešný pohyb. */
+const PRAH_JOYSTICKU = 0.3
 
 type StavSpojeni = 'zadavani' | 'vyberPostavy' | 'pripojovani' | 'pripojeno'
 
 // ==========================================
 // Telefon strana — zadání kódu místnosti, pak (Fáze 3, lokálně, bez
 // sítě) výběr postavy, pak teprve skutečné síťové připojení, a nakonec
-// d-pad + čtyři akční tlačítka. Výběr postavy je schválně zařazený
-// PŘED "pripojovani" — viz VyberPostavy.tsx a types.ts's
-// PripojitPayload — takže se pošle rovnou s prvním broadcastem, žádný
-// druhý krok navíc na síti. Vstupy tlačítek se posílají na
-// pointerdown/pointerup, ne na klik — hra potřebuje vědět, jak dlouho
-// je tlačítko drženo, ne jen že bylo stisknuto.
+// joystick + čtyři akční tlačítka na šířku (viz CLAUDE.md — appka
+// dřív měla d-pad na výšku, vylepšení ho nahradilo). Výběr postavy je
+// schválně zařazený PŘED "pripojovani" — viz VyberPostavy.tsx a
+// types.ts's PripojitPayload — takže se pošle rovnou s prvním
+// broadcastem, žádný druhý krok navíc na síti. Vstupy tlačítek se
+// posílají na pointerdown/pointerup, ne na klik — hra potřebuje
+// vědět, jak dlouho je tlačítko drženo, ne jen že bylo stisknuto.
 // ==========================================
 
 export const Ovladac: React.FC<Props> = ({ onZpet }) => {
@@ -62,6 +67,39 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
   const posliTlacitko = (tlacitko: Tlacitko, stisknuto: boolean) => {
     spravaRef.current?.poslatVstup({ hracId: hracIdRef.current, typ: 'tlacitko', tlacitko, stisknuto })
   }
+
+  // Joystick hlásí spojitou výchylku (-1..1), engine ale pořád zná jen
+  // diskrétní "vlevo"/"vpravo" (viz engine.ts's tikBojovnika) — appka
+  // to tady jednou převede přes práh, ne že by se HracVstup/Smer měnily
+  // kvůli novému fyzickému ovladači. `posledniSmer` posílá vstup po
+  // síti jen při skutečné ZMĚNĚ, ne na každý pohyb palce o pixel —
+  // joystick hlásí polohu mnohem častěji, než kolikrát se skutečně
+  // mění, co appka chce poslat.
+  const posledniSmerRef = useRef<Smer | null>(null)
+  const zpracujJoystick = (x: number) => {
+    const smer: Smer | null = x < -PRAH_JOYSTICKU ? 'vlevo' : x > PRAH_JOYSTICKU ? 'vpravo' : null
+    if (smer === posledniSmerRef.current) return
+    posledniSmerRef.current = smer
+    posliSmer(smer)
+  }
+
+  // Nejlepší možný pokus otočit obrazovku natvrdo — Screen Orientation
+  // lock ale mimo fullscreen (appka fullscreen záměrně nevynucuje,
+  // vyžaduje by to vlastní gesto uživatele navíc) a na iOS Safari
+  // vůbec nefunguje, takže appka na něm NESTAVÍ: skutečná záruka je
+  // CSS výzva "Otoč telefon" (FightingModule.css), tohle je jen bonus
+  // tam, kde to náhodou vyjde.
+  useEffect(() => {
+    if (stavSpojeni !== 'pripojeno') return
+    // `lock` chybí v TS DOM typech (experimentální, vendor-specific
+    // podpora) — stejný důvod jako speechTypes.d.ts/barcodeTypes.d.ts
+    // jinde v appce, tady stačí místní cast, ne celý ambientní soubor
+    // pro jedinou metodu jednoho volání.
+    const orientaceSZamkem = screen.orientation as ScreenOrientation & {
+      lock?: (orientace: string) => Promise<void>
+    }
+    orientaceSZamkem.lock?.('landscape').catch(() => {})
+  }, [stavSpojeni])
 
   if (stavSpojeni === 'zadavani') {
     return (
@@ -138,44 +176,31 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
 
   return (
     <div className="souboj-ovladac">
+      <div className="souboj-ovladac-otoc" aria-hidden="true">
+        <span className="souboj-ovladac-otoc-ikona">🔄</span>
+        <p>Otoč telefon na šířku</p>
+      </div>
+
       <span className={`souboj-ovladac-stav souboj-ovladac-stav--${slot}`}>Jsi Hráč {slot}</span>
 
-      <div className="souboj-ovladac-spodek">
-        <div className="souboj-dpad">
-          {PORADI_SMERU.map((smer) => (
-            <button
-              key={smer}
-              type="button"
-              className={`souboj-dpad-smer souboj-dpad-smer--${smer}`}
-              onPointerDown={(e) => {
-                e.currentTarget.setPointerCapture(e.pointerId)
-                posliSmer(smer)
-              }}
-              onPointerUp={() => posliSmer(null)}
-              onPointerCancel={() => posliSmer(null)}
-            >
-              {SIPKA[smer]}
-            </button>
-          ))}
-        </div>
+      <VirtualniJoystick onZmena={(x) => zpracujJoystick(x)} />
 
-        <div className="souboj-tlacitka">
-          {PORADI_TLACITEK.map((tlacitko) => (
-            <button
-              key={tlacitko}
-              type="button"
-              className={`souboj-akcni-tlacitko souboj-akcni-tlacitko--${tlacitko}`}
-              onPointerDown={(e) => {
-                e.currentTarget.setPointerCapture(e.pointerId)
-                posliTlacitko(tlacitko, true)
-              }}
-              onPointerUp={() => posliTlacitko(tlacitko, false)}
-              onPointerCancel={() => posliTlacitko(tlacitko, false)}
-            >
-              {IKONA_TLACITKA[tlacitko]}
-            </button>
-          ))}
-        </div>
+      <div className="souboj-tlacitka">
+        {PORADI_TLACITEK.map((tlacitko) => (
+          <button
+            key={tlacitko}
+            type="button"
+            className={`souboj-akcni-tlacitko souboj-akcni-tlacitko--${tlacitko}`}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId)
+              posliTlacitko(tlacitko, true)
+            }}
+            onPointerUp={() => posliTlacitko(tlacitko, false)}
+            onPointerCancel={() => posliTlacitko(tlacitko, false)}
+          >
+            {IKONA_TLACITKA[tlacitko]}
+          </button>
+        ))}
       </div>
     </div>
   )

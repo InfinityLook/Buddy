@@ -313,54 +313,79 @@
 .souboj-ovladac-stav--1 { color: var(--accent-red); border-color: rgba(239, 68, 68, 0.4); }
 .souboj-ovladac-stav--2 { color: var(--accent-cyan); border-color: rgba(53, 196, 240, 0.4); }
 
-.souboj-ovladac-spodek {
-  margin-top: auto;
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-/* D-pad — kříž ze čtyř trojúhelníkových tlačítek přes 3×3 mřížku,
-   prostřední buňka zůstává prázdná (jen vizuální střed kříže). */
-.souboj-dpad {
-  display: grid;
-  grid-template-columns: repeat(3, 58px);
-  grid-template-rows: repeat(3, 58px);
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.souboj-dpad-smer {
-  display: flex;
+/* Vylepšení (viz CLAUDE.md) — ovladač se otočil na šířku a d-pad
+   nahradil analogový joystick (VirtualniJoystick.tsx, znovupoužitý
+   beze změny z RPG's 3D průzkumu — reportuje x/z -1..1, appka si z
+   toho v Ovladac.tsx odvozuje diskrétní Smer přes práh, engine sám o
+   joysticku neví nic, pořád jen "vlevo"/"vpravo"). Joystick je
+   `position: fixed` sám o sobě (viz jeho vlastní CSS), takže tu
+   nepotřebuje žádný obal — a stejně tak tlačítka, ať obě skupiny
+   ovládání sedí symetricky v rozích bez ohledu na zbytek layoutu. */
+.souboj-ovladac-otoc {
+  display: none;
+  flex: 1;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
-  color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
+  gap: 0.6rem;
+  text-align: center;
+  color: var(--text-secondary);
 }
 
-.souboj-dpad-smer:active {
-  background: rgba(138, 92, 246, 0.4);
+.souboj-ovladac-otoc-ikona {
+  font-size: 2.4rem;
 }
 
-.souboj-dpad-smer--nahoru { grid-column: 2; grid-row: 1; }
-.souboj-dpad-smer--vlevo { grid-column: 1; grid-row: 2; }
-.souboj-dpad-smer--vpravo { grid-column: 3; grid-row: 2; }
-.souboj-dpad-smer--dolu { grid-column: 2; grid-row: 3; }
+@keyframes souboj-otoc-houpani {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-90deg);
+  }
+}
 
 /* Čtyři akční tlačítka — 2×2 mřížka, stejné barvy jako TV strana
    ukazuje jako "světla" (souboj-tlacitko-svetlo výš), ať je hned
-   jasné, které tlačítko na ovladači odpovídá kterému na TV. */
+   jasné, které tlačítko na ovladači odpovídá kterému na TV. Fixní
+   vpravo dole, symetricky s joystickem vlevo dole (viz komentář
+   výš) — obě skupiny mimo běžný tok stránky, appka je nemusí řešit
+   jako flex sourozence. */
 .souboj-tlacitka {
+  position: fixed;
+  right: 1.1rem;
+  bottom: calc(1.6rem + env(safe-area-inset-bottom));
+  z-index: 20;
   display: grid;
   grid-template-columns: repeat(2, 62px);
   grid-template-rows: repeat(2, 62px);
   gap: 10px;
-  flex-shrink: 0;
+}
+
+/* Telefon na šířku je jediný podporovaný režim ovladače — appka o
+   otočení na šířku jen POŽÁDÁ (viz Ovladac.tsx's best-effort
+   screen.orientation.lock, nespolehlivé mimo fullscreen a nefunkční
+   na iOS Safari vůbec), skutečnou zárukou je tenhle CSS prompt: v
+   portrétu appka schová joystick i tlačítka a ukáže jen vyzvu otočit
+   telefon, ať se hráč nikdy nesnaží hrát s polovinou ovladače mimo
+   dosah palce. Schválně AŽ ZA základními pravidly `.souboj-tlacitka`/
+   `.souboj-ovladac-otoc` výš — při shodné specificitě vyhrává v CSS
+   pořadí ve zdroji, takže dřívější umístění tohohle bloku PŘED
+   `.souboj-tlacitka`'s vlastním `display: grid` ho v portrétu tiše
+   přebíjelo (chyba, kterou odhalil teprve skutečný test chování, ne
+   jen existence pravidla — viz CLAUDE.md). */
+@media (orientation: portrait) {
+  .souboj-ovladac-otoc {
+    display: flex;
+  }
+  .souboj-ovladac-otoc-ikona {
+    animation: souboj-otoc-houpani 1.6s ease-in-out infinite;
+  }
+  .explorace-joystick,
+  .souboj-tlacitka {
+    display: none;
+  }
 }
 
 .souboj-akcni-tlacitko {
@@ -640,6 +665,98 @@
     repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 34px),
     linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.42));
   pointer-events: none;
+}
+
+/* Třetí kolo vylepšení — skutečná 3D aréna (SoubojArena3D.tsx,
+   useSoubojScene.ts), potvrzeno přes AskUserQuestion: rozdělená
+   obrazovka (hráč 1 nahoře, hráč 2 dole), tráva/stromy/voda, vlastní
+   kamera pro každého. `.souboj-arena--3d` doplňuje základní
+   `.souboj-arena` (border-radius/overflow/vinětu si nechává), jen
+   přebíjí to, co plátno samo obstará (barevné pozadí, výška — nižší
+   220px z 2D verze by pro dvě poloviny obrazovky bylo těsné) a ruší
+   2D-only svislou dělicí čáru (`::before`) ve prospěch vlastní,
+   vodorovné (viz `.souboj-arena-3d-delic` níž). */
+.souboj-arena--3d {
+  height: 320px;
+  background: #0e1710;
+}
+
+.souboj-arena--3d::before {
+  display: none;
+}
+
+.souboj-arena--3d canvas {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.souboj-arena-3d-delic {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 2px;
+  margin-top: -1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.souboj-arena-3d-stitek {
+  position: absolute;
+  left: 0.6rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 0.2rem 0.55rem;
+  border-radius: var(--radius-pill);
+  background: rgba(10, 14, 10, 0.55);
+  backdrop-filter: blur(4px);
+  color: var(--text-secondary);
+  z-index: 2;
+  pointer-events: none;
+}
+
+.souboj-arena-3d-stitek--1 {
+  top: 0.5rem;
+}
+
+.souboj-arena-3d-stitek--2 {
+  bottom: 0.5rem;
+}
+
+/* Jeden sprite = jeden bojovník v JEDNÉ z obou kamer (appka jich
+   rendruje čtyři — 2 bojovníci × 2 kamery, viz SoubojArena3D.tsx).
+   left/top/opacity sem každý snímek zapisuje přímo useSoubojScene.ts
+   (mimo React, viz jeho komentář) — CSS tu jen dává rozumnou výchozí
+   hodnotu, než doběhne první snímek smyčky, a kotví sprite na střed
+   svého promítnutého bodu. Bez transition na left/top schválně: hook
+   je stejně přepisuje 60× za sekundu, CSS přechod by se s tím jen
+   rval, ne pomáhal. */
+.souboj-3d-sprite {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+/* `.souboj-bojovnik` uvnitř 3D spritu si nechává svůj stavový vzhled
+   (idle/útok/hitstun/blok/ko animace, kontaktní stín) beze změny —
+   jen přestává být SÁM absolutně pozicovaný přes left/bottom, protože
+   tuhle práci teď dělá obalový `.souboj-3d-sprite` výš. `position:
+   relative` (ne `static`) schválně: `::after` stín a `.souboj-impact`
+   jiskry uvnitř pořád potřebují positioning kontext, na který se
+   ukotví. */
+.souboj-arena--3d .souboj-bojovnik {
+  position: relative;
+  bottom: auto;
+  margin-left: 0;
+  transition: none;
 }
 
 /* Bojovník v aréně — od Fáze 6 skutečná SVG postavička (PostavaGrafika,

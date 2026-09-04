@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { ARENA_SIRKA } from '../combat/engine'
 import { POSTAVY } from '../combat/postavy'
-import { hpProcenta, manaProcenta, poziceProcenta, vizualniStavBojovnika } from '../combat/loop'
-import { PostavaGrafika } from './PostavaGrafika'
+import { hpProcenta, manaProcenta } from '../combat/loop'
+import { SoubojArena3D } from './SoubojArena3D'
+import { SoubojArena2D } from './SoubojArena2D'
 import type { SoubojStav } from '../combat/types'
 
 interface Props {
@@ -12,30 +12,34 @@ interface Props {
 
 const ZABLESK_MS = 350
 
-/** Šest pevných úhlů pro jiskry z jednoho zásahu — viz komentář u
- *  vykreslení níž. */
-const UHLY_JISKER = [0, 60, 120, 180, 240, 300]
-
 // ==========================================
 // Fáze 3 — čistě prezentační komponenta: dostane hotový SoubojStav a
 // jména obou hráčů jako props, nic sama nepočítá (veškerá matematika
-// je v combat/loop.ts) a nesahá na requestAnimationFrame ani na síť —
-// to dělá výhradně TvHost.tsx. Stejná hranice "engine neví, odkud
-// vstup přišel" (viz engine.ts) platí i tady na vykreslovací straně:
-// Bojiste neví, odkud SoubojStav přišel, ani jak se aktualizuje.
+// je v combat/loop.ts) a nesahá na síť — to dělá výhradně TvHost.tsx.
+// Stejná hranice "engine neví, odkud vstup přišel" (viz engine.ts)
+// platí i tady na vykreslovací straně: Bojiste neví, odkud SoubojStav
+// přišel, ani jak se aktualizuje.
 //
 // Fáze 6 přidala jediný vlastní stav, jaký kdy tahle komponenta mívá
-// — "právě zasažen" pro krátký záblesk HP pruhu (souboj-hp-zablesk),
-// odvozený porovnáním hp mezi dvěma po sobě jdoucími snímky. Pořád to
-// není herní logika, jen vizuální reakce na to, co číslo v props
-// právě udělalo — kdyby TvHost tenhle stav místo toho posílal jako
-// prop, komponenta by musela mít dvojí zdroj pravdy (svoje "zasažen"
-// i cizí "hp"), zatímco takhle stačí jedno malé useEffect uvnitř.
+// — "právě zasažen" pro krátký záblesk HP pruhu (souboj-hp-zablesk) a
+// jiskry v aréně, odvozené porovnáním hp mezi dvěma po sobě jdoucími
+// snímky. Pořád to není herní logika, jen vizuální reakce na to, co
+// číslo v props právě udělalo.
+//
+// Třetí kolo vylepšení (skutečná 3D aréna, viz CLAUDE.md) přidalo
+// druhý vlastní stav — jestli se 3D scéna (SoubojArena3D.tsx) vůbec
+// podařilo spustit. Bojiste samo pořád nesahá na requestAnimationFrame
+// ani na Three.js přímo — tu práci teď dělá SoubojArena3D/
+// useSoubojScene.ts, Bojiste jen rozhoduje MEZI 3D a 2D záložní
+// variantou (SoubojArena2D.tsx, beze změny oproti stavu před touhle
+// fází) a drží společnou hlavičku (HP/mana pruhy), kterou obě arény
+// sdílí beze změny.
 // ==========================================
 
 export const Bojiste: React.FC<Props> = ({ stav, jmena }) => {
   const predchoziHp = useRef<[number, number]>([stav.hraci[0].hp, stav.hraci[1].hp])
   const [zasazen, setZasazen] = useState<[boolean, boolean]>([false, false])
+  const [arena3dSelhala, setArena3dSelhala] = useState(false)
 
   useEffect(() => {
     const nove: [boolean, boolean] = [false, false]
@@ -82,35 +86,11 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena }) => {
         })}
       </div>
 
-      <div className="souboj-arena">
-        <div className="souboj-arena-podlaha" aria-hidden="true" />
-        {([0, 1] as const).map((i) => {
-          const b = stav.hraci[i]
-          const postava = POSTAVY[b.postavaId]
-          const vizualniStav = vizualniStavBojovnika(b)
-          return (
-            <div
-              key={i}
-              className={`souboj-bojovnik souboj-bojovnik--${i + 1} souboj-bojovnik--${vizualniStav}`}
-              style={{ left: `${poziceProcenta(b, ARENA_SIRKA)}%` }}
-            >
-              <PostavaGrafika postavaId={postava.id} size={58} />
-              {/* Jiskry při zásahu — stejný "zasazen" stav jako záblesk HP
-                  pruhu výš, znovupoužitý tady pro krátký, jednorázový
-                  výbuch šesti čárek do stran (viz FightingModule.css). Šest
-                  pevných úhlů, ne trigonometrie v CSS — širší podpora
-                  prohlížečů a žádný výpočet navíc. */}
-              {zasazen[i] && (
-                <div className="souboj-impact" aria-hidden="true">
-                  {UHLY_JISKER.map((uhel) => (
-                    <span key={uhel} className="souboj-impact-jiskra" style={{ '--uhel': `${uhel}deg` } as React.CSSProperties} />
-                  ))}
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
+      {arena3dSelhala ? (
+        <SoubojArena2D stav={stav} zasazen={zasazen} />
+      ) : (
+        <SoubojArena3D stav={stav} zasazen={zasazen} onSelhalo={() => setArena3dSelhala(true)} />
+      )}
 
       {stav.stavKola === 'konec' && (
         <div className="souboj-konec-kola">
