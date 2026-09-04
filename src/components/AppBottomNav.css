@@ -102,3 +102,46 @@
   background: #bdf3ff;
   box-shadow: 0 0 6px rgba(53, 196, 240, 0.8);
 }
+
+/* Šipky pro přechod mezi Hub/Apps/Profil/Nastavení bez dotyku (Fáze 5
+   Social nav reworku, viz CLAUDE.md) — na dotykovém zařízení appka
+   místo nich nabízí vodorovný swipe (useModulovySwipe.ts), takže tu
+   tlačítka jen zabírala místo a duplikovala stejnou akci. Skryté
+   defaultně, zobrazené jen s jemným ukazatelem (myš). */
+.modul-sipka {
+  display: none;
+}
+
+@media (pointer: fine) {
+  .modul-sipka {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--border-strong);
+    background: rgba(14, 19, 36, 0.7);
+    color: var(--text-secondary);
+    cursor: pointer;
+    z-index: 5;
+    backdrop-filter: blur(6px);
+  }
+
+  .modul-sipka:hover {
+    color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+  }
+
+  .modul-sipka--vlevo {
+    left: 0.6rem;
+  }
+
+  .modul-sipka--vpravo {
+    right: 0.6rem;
+    transform: translateY(-50%) rotate(180deg);
+  }
+}

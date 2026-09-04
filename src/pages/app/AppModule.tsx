@@ -7,6 +7,7 @@ import { AppBanner } from './components/AppBanner'
 import { AppIcon } from './components/AppIcon'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { useModulovySwipe } from '@/core/navigation/useModulovySwipe'
 import { MINI_APP_REGISTRY } from '@/features/miniapps/registry'
 import { useAppStore, AppItem } from '@/core/store/useAppStore'
 import { normalizeText } from '@/core/utils/text'
@@ -27,6 +28,10 @@ interface AppModuleProps {
 
 export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   const navigate = useNavigate()
+  // Fáze 5 Social nav reworku — vodorovný swipe mezi Hub/Apps/Profil/
+  // Nastavení, jen na gridu (fullscreen zobrazení miniaplikace níž
+  // swipe handlery nedostává, stejná hranice jako u AppBottomNav).
+  const swipe = useModulovySwipe()
 
   // Načtení globálního stavu ze Zustand storu
   const {
@@ -170,7 +175,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   }
 
   return (
-    <div className="app-container">
+    <div className="app-container" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
       <AppHeader
         onBack={handleBack}
         onOpenNotifications={() => setNotifOpen(true)}

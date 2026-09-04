@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
+import { sousedniStranky } from '@/core/navigation/moduloveStranky'
 import { useInbox } from '@/social/inbox'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import { useBuddyVoice } from '@/buddy/useBuddyVoice'
@@ -61,8 +62,36 @@ export const AppBottomNav: React.FC<Props> = ({ onTalk }) => {
 
   const jeAktivni = (cesta: string) => location.pathname === cesta
 
+  // Fáze 5 Social nav reworku — šipky doplňují touch swipe (viz
+  // useModulovySwipe.ts) pro myš/klávesnici bez dotykové obrazovky;
+  // appka je schovává přes @media (pointer: fine) v CSS, ne JS
+  // detekcí zařízení, stejný vzor jako VirtualniJoystick.tsx (jen
+  // obráceně — tady se skrývají NA dotykovém zařízení, joystick se
+  // schovává BEZ něj). Nezobrazí se na konci seznamu (Hub nemá
+  // "předchozí", Nastavení nemá "další").
+  const { predchozi, dalsi } = sousedniStranky(location.pathname)
+
   return (
     <>
+      {predchozi && (
+        <button
+          className="modul-sipka modul-sipka--vlevo"
+          aria-label={`Přejít na ${predchozi.popis}`}
+          onClick={() => navigate(predchozi.cesta)}
+        >
+          <SocialIcon name="arrow-left" size={18} />
+        </button>
+      )}
+      {dalsi && (
+        <button
+          className="modul-sipka modul-sipka--vpravo"
+          aria-label={`Přejít na ${dalsi.popis}`}
+          onClick={() => navigate(dalsi.cesta)}
+        >
+          <SocialIcon name="arrow-left" size={18} />
+        </button>
+      )}
+
       <nav className="app-bottom-nav">
         <button
           className={`app-nav-item ${jeAktivni('/hub') ? 'app-nav-item--active' : ''}`}

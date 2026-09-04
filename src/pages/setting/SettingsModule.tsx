@@ -30,6 +30,7 @@ import {
 } from '@/core/utils/backupHistory'
 import * as api from '@/social/api'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { useModulovySwipe } from '@/core/navigation/useModulovySwipe'
 import './SettingsModule.css'
 
 // Lazy — viz komentář nahoře v SocialniNastaveniSekce.tsx: tenhle soubor
@@ -57,6 +58,9 @@ const CLOUD_LABELS: Record<string, string> = {
 
 export const SettingsModule: React.FC = () => {
   const navigate = useNavigate()
+  // Fáze 5 Social nav reworku — vodorovný swipe mezi Hub/Apps/Profil/
+  // Nastavení.
+  const swipe = useModulovySwipe()
   const { logout } = useAuthStore()
   const { profile, updateProfile, updateSecurity, resetProfile } = useProfileData()
   const smiAdmin = useHasPermission('admin.panel')
@@ -285,7 +289,7 @@ export const SettingsModule: React.FC = () => {
   }
 
   return (
-    <div className="settings-page">
+    <div className="settings-page" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
       <div className="settings-top-bar">
         <button className="settings-back-btn" onClick={() => navigate('/profil')}>
           ← Zpět na profil

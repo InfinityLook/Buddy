@@ -4,6 +4,7 @@ import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
 import { useInbox } from '@/social/inbox'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { useModulovySwipe } from '@/core/navigation/useModulovySwipe'
 import { useBuddyVoice } from '@/buddy/useBuddyVoice'
 import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
@@ -40,6 +41,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // a global.css's ::view-transition-*(root) pro proč jen dopředu.
   const prejit = useModulovyPrechod()
   const neprectene = useInbox((stav) => stav.neprectene)
+  // Fáze 5 Social nav reworku — vodorovný swipe mezi Hub/Apps/Profil/
+  // Nastavení, viz useModulovySwipe.ts's vlastní komentář.
+  const swipe = useModulovySwipe()
   const { profile } = useProfileData()
 
   // Načtení gamifikačních dat ze storu
@@ -152,7 +156,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
       <div className="hub-bg" aria-hidden="true" />
       <div className="hub-bg-overlay" aria-hidden="true" />
 
-      <div className="hub-container">
+      <div className="hub-container" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
         {/* Header — dřív tu byl textový odznak úrovně a tlačítko odhlášení,
             teď jen logo a tři akce (hledat/zvonek/avatar), ať hlavička
             zůstane lehká a úroveň dostane vlastní, čitelnější kartu níž.
