@@ -26,6 +26,10 @@ export interface AkceData {
   trvaniMs: number
   /** Kolik many akce stojí — 0 u úderu/kopu, speciální ji vyžaduje. */
   cenaMany: number
+  /** Vylepšení — jak moc zásah odstrčí cíl podél osy arény (logické
+   *  jednotky, stejná škála jako pozice/ARENA_SIRKA). Na blokovaný
+   *  zásah se stejně jako poškození zeslabí přes BLOK_REDUKCE. */
+  knockback: number
 }
 
 /** Živý stav jednoho bojovníka během souboje. */
@@ -58,6 +62,16 @@ export interface BojovnikStav {
    *  bojovníka mezitím (na rozdíl od utokKonci/zranitelnostKonci se
    *  nuluje jen skutečným spotřebováním, ne časem). */
   stitAktivni: boolean
+  /** Vylepšení — kombo. Kolik neblokovaných zásahů za sebou tenhle
+   *  bojovník JAKO ÚTOČNÍK právě navázal — čte se, jen pokud
+   *  komboKonci > 0 (viz engine.ts's aplikujJedenZasah), jinak je
+   *  série promlčená a appka ji bere jako 0 bez ohledu na starou
+   *  hodnotu tady. */
+  komboPocet: number
+  /** Kolik ms zbývá, než se rozjetá série promlčí — počítá se dolů
+   *  každý tik stejně jako zranitelnostKonci/utokKonci, prodlužuje se
+   *  na KOMBO_OKNO_MS zpátky každým dalším neblokovaným zásahem. */
+  komboKonci: number
 }
 
 /** Vstup jednoho hráče pro jeden krok simulace. `akce` je jednorázová

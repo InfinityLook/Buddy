@@ -26,11 +26,23 @@ export const MANA_REGEN_ZA_S = 4
  *  vypršení rozhodne víc HP, shoda je remíza, stejně čestně jako
  *  simultánní KO výš. */
 export const CAS_LIMIT_MS = 60000
+/** Vylepšení — kombo. Jak dlouho od posledního neblokovaného zásahu
+ *  ještě appka bere sérii jako "rozjetou" — dost na jeden rychlý úder
+ *  navíc, ne tak dlouho, aby kombo přežilo skutečnou pauzu v akci. */
+export const KOMBO_OKNO_MS = 1200
+/** O kolik procent navíc dá KAŽDÝ další úder v sérii, oproti tomu
+ *  prvnímu (0 % bonus) — lineární škálování, ne exponenciální, ať
+ *  dlouhé kombo nezačne dávat absurdní čísla. */
+export const KOMBO_BONUS_ZA_UDER = 0.08
+/** Strop, po kterém se bonus za další údery v sérii dál nezvyšuje —
+ *  bez tohohle by nekonečná série teoreticky mohla dát nekonečné
+ *  poškození za jeden zásah. */
+export const KOMBO_MAX_STUPNU = 5
 
 export const AKCE_DATA: Record<UtocnaAkce, AkceData> = {
-  udar: { poskozeni: 6, dosah: 90, trvaniMs: 250, cenaMany: 0 },
-  kop: { poskozeni: 10, dosah: 110, trvaniMs: 400, cenaMany: 0 },
-  specialni: { poskozeni: 22, dosah: 140, trvaniMs: 600, cenaMany: 40 },
+  udar: { poskozeni: 6, dosah: 90, trvaniMs: 250, cenaMany: 0, knockback: 18 },
+  kop: { poskozeni: 10, dosah: 110, trvaniMs: 400, cenaMany: 0, knockback: 32 },
+  specialni: { poskozeni: 22, dosah: 140, trvaniMs: 600, cenaMany: 40, knockback: 55 },
 }
 
 export const vytvorBojovnika = (pozice: number, postavaId: PostavaId = VYCHOZI_POSTAVA): BojovnikStav => {
@@ -49,6 +61,8 @@ export const vytvorBojovnika = (pozice: number, postavaId: PostavaId = VYCHOZI_P
     utokKonci: 0,
     posledniAkce: null,
     stitAktivni: false,
+    komboPocet: 0,
+    komboKonci: 0,
   }
 }
 
@@ -60,7 +74,11 @@ export const vytvorBojovnika = (pozice: number, postavaId: PostavaId = VYCHOZI_P
  *  přímo. Vylepšení přidalo jediný další řádek: postava s efektem
  *  speciálu 'poskozeni' (viz postavy.ts's TypSpecialu) dostává navíc
  *  specialniSila násobič, ale JEN na specialni akci — udar/kop se
- *  tím nemění, na rozdíl od poskozeniNasobic, který platí na všechno. */
+ *  tím nemění, na rozdíl od poskozeniNasobic, který platí na všechno.
+ *  Vylepšení — knockback se schválně žádným charakterovým násobičem
+ *  neškáluje (na rozdíl od poskození/dosahu/trvání/many) — kolik kdo
+ *  odstrčí je vlastnost AKCE, ne postavy, appka nechtěla přidávat
+ *  další rozměr vyvažování, co nikdo nežádal. */
 export const efektivniAkceData = (postavaId: PostavaId, akce: UtocnaAkce): AkceData => {
   const zaklad = AKCE_DATA[akce]
   const postava = POSTAVY[postavaId]
@@ -70,6 +88,7 @@ export const efektivniAkceData = (postavaId: PostavaId, akce: UtocnaAkce): AkceD
     dosah: zaklad.dosah * postava.dosahNasobic,
     trvaniMs: zaklad.trvaniMs / postava.rychlostNasobic,
     cenaMany: zaklad.cenaMany * postava.cenaManyNasobic,
+    knockback: zaklad.knockback,
   }
 }
 
@@ -101,6 +120,10 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number): Vysle
   const zranitelnostKonci = Math.max(0, b.zranitelnostKonci - deltaMs)
   const utokKonci = Math.max(0, b.utokKonci - deltaMs)
   const mana = Math.min(b.maxMana, b.mana + (MANA_REGEN_ZA_S * deltaMs) / 1000)
+  // Vylepšení — kombo okno běží dolů úplně nezávisle na busy/hitstunu
+  // (na rozdíl od blokKonci by nemělo smysl kombo "pozastavit" — čas
+  // se počítá reálně, ne jen v tazích, kdy bojovník zrovna může jednat).
+  const komboKonci = Math.max(0, b.komboKonci - deltaMs)
 
   // Uprostřed hitstunu nebo vlastního útoku (i z minulého tiku) bojovník
   // ignoruje veškerý nový vstup — mana ale běží dál, regenerace není
@@ -108,7 +131,7 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number): Vysle
   const busy = zranitelnostKonci > 0 || utokKonci > 0
   if (busy) {
     return {
-      dalsi: { ...b, zranitelnostKonci, utokKonci, mana, blokuje: false },
+      dalsi: { ...b, zranitelnostKonci, utokKonci, mana, komboKonci, blokuje: false },
       zahajenaAkce: null,
     }
   }
@@ -155,6 +178,7 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number): Vysle
       mana: manaPoUtoku,
       posledniAkce: zahajenaAkce ?? b.posledniAkce,
       stitAktivni,
+      komboKonci,
     },
     zahajenaAkce,
   }
@@ -171,14 +195,26 @@ interface VysledekJednohoZasahu {
  *  aby ho 'dvojity-zasah' (Volt) mohl zavolat dvakrát po sobě ve
  *  stejném tiku, s výsledkem prvního volání jako vstupem druhého
  *  (spotřebovaný štít z prvního zásahu se tak správně projeví i na
- *  druhém). Obrana (postavova, ne štít/blok) je vlastnost CÍLE, počítá
- *  se z `poskozeniZaklad`, které si volající už spočítal jednou předem
- *  — netřeba počítat dvakrát pro dva zásahy stejné akce. */
+ *  druhém, a druhý zásah dvojitého úderu už vidí kombo navýšené prvním).
+ *  Obrana (postavova, ne štít/blok) je vlastnost CÍLE, počítá se z
+ *  `poskozeniZaklad`, které si volající už spočítal jednou předem —
+ *  netřeba počítat dvakrát pro dva zásahy stejné akce.
+ *
+ *  Vylepšení přidalo dvě věci sem, ne do vyhodnotZasahPokudZahajen —
+ *  obě se totiž musí přepočítat mezi voláními 'dvojity-zasah', ne jen
+ *  jednou předem: kombo bonus (čte ÚTOČNÍKŮV aktuální komboKonci/
+ *  komboPocet, PŘED tímhle zásahem, takže druhý úder Voltova
+ *  dvojitého úderu dostane bonus z prvního) a odražení (čte AKTUÁLNÍ
+ *  pozici cíle, ne tu ze začátku tiku, takže druhý úder odstrčí cíl
+ *  dál od místa, kam ho už odstrčil první). Blokovaný zásah kombo
+ *  NEROZJÍždí ani neprodlužuje — počítá se jen doopravdy neblokovaný
+ *  spoj, stejná restrikce jako u odražení, jen bez zeslabení, žádné. */
 const aplikujJedenZasah = (
   hraci: [BojovnikStav, BojovnikStav],
   utocnikIdx: 0 | 1,
   cilIdx: 0 | 1,
-  poskozeniZaklad: number
+  poskozeniZaklad: number,
+  knockback: number
 ): VysledekJednohoZasahu => {
   const utocnik = hraci[utocnikIdx]
   const cil = hraci[cilIdx]
@@ -186,6 +222,8 @@ const aplikujJedenZasah = (
   // 'stit' efekt (Bulwark) — pohltí tenhle zásah úplně a spotřebuje
   // se, přednost před obyčejným blokem (souběh obou by byl vzácný a
   // engine ho stejně vyhodnotí jako "žádné poškození", tak jako tak).
+  // Ani odražení, ani kombo se na plně pohlcený zásah nepočítá —
+  // stejná logika jako 0 skutečně doručeného poškození.
   if (cil.stitAktivni) {
     const dalsi = [...hraci] as [BojovnikStav, BojovnikStav]
     dalsi[cilIdx] = { ...cil, stitAktivni: false }
@@ -193,17 +231,26 @@ const aplikujJedenZasah = (
   }
 
   const zasahBlokovan = cil.blokuje
-  const poskozeni = zasahBlokovan ? poskozeniZaklad * (1 - BLOK_REDUKCE) : poskozeniZaklad
+  const stupenKomba = utocnik.komboKonci > 0 ? Math.min(utocnik.komboPocet, KOMBO_MAX_STUPNU) : 0
+  const bonusKomba = zasahBlokovan ? 1 : 1 + stupenKomba * KOMBO_BONUS_ZA_UDER
+  const poskozeni = (zasahBlokovan ? poskozeniZaklad * (1 - BLOK_REDUKCE) : poskozeniZaklad) * bonusKomba
+
+  const smerOdrazeni = utocnik.pozice <= cil.pozice ? 1 : -1
+  const silaOdrazeni = zasahBlokovan ? knockback * (1 - BLOK_REDUKCE) : knockback
+  const novaPozice = Math.max(0, Math.min(ARENA_SIRKA, cil.pozice + smerOdrazeni * silaOdrazeni))
 
   const novyCil: BojovnikStav = {
     ...cil,
     hp: Math.max(0, cil.hp - poskozeni),
+    pozice: novaPozice,
     // Blokovaný zásah hitstun neuděluje — obránce může jednat hned dál.
     zranitelnostKonci: zasahBlokovan ? cil.zranitelnostKonci : HITSTUN_MS,
   }
   const novyUtocnik: BojovnikStav = {
     ...utocnik,
     mana: Math.min(utocnik.maxMana, utocnik.mana + MANA_ZA_ZASAH),
+    komboPocet: zasahBlokovan ? utocnik.komboPocet : stupenKomba + 1,
+    komboKonci: zasahBlokovan ? utocnik.komboKonci : KOMBO_OKNO_MS,
   }
 
   const dalsi = [...hraci] as [BojovnikStav, BojovnikStav]
@@ -220,7 +267,11 @@ const aplikujJedenZasah = (
  *  zasah' (Volt) zavolá aplikujJedenZasah dvakrát, 'vysati' (Onyx)
  *  vyléčí útočníka podle skutečně způsobeného poškození. 'stit'
  *  (Bulwark) se řeší jinde — v tikBojovnika při zahájení akce a v
- *  aplikujJedenZasah při dopadu na cíl, tady se vůbec nezmiňuje. */
+ *  aplikujJedenZasah při dopadu na cíl, tady se vůbec nezmiňuje.
+ *  Druhé kolo vylepšení přidalo kombo bonus a odražení, oboje uvnitř
+ *  aplikujJedenZasah samotné (viz její vlastní komentář, proč tam a
+ *  ne tady) — tahle funkce jen předává data.knockback, nic dalšího
+ *  o žádném z obou mechanismů vědět nemusí. */
 const vyhodnotZasahPokudZahajen = (
   hraci: [BojovnikStav, BojovnikStav],
   utocnikIdx: 0 | 1,
@@ -242,11 +293,11 @@ const vyhodnotZasahPokudZahajen = (
   // společně pro oba případné zásahy dvojitého úderu.
   const poskozeniZaklad = data.poskozeni * POSTAVY[cil.postavaId].obranaNasobic
 
-  let vysledek = aplikujJedenZasah(hraci, utocnikIdx, cilIdx, poskozeniZaklad)
+  let vysledek = aplikujJedenZasah(hraci, utocnikIdx, cilIdx, poskozeniZaklad, data.knockback)
   let poskozeniCelkem = vysledek.poskozeniDorucene
 
   if (jeSpecialSTemhleTypem('dvojity-zasah')) {
-    vysledek = aplikujJedenZasah(vysledek.hraci, utocnikIdx, cilIdx, poskozeniZaklad)
+    vysledek = aplikujJedenZasah(vysledek.hraci, utocnikIdx, cilIdx, poskozeniZaklad, data.knockback)
     poskozeniCelkem += vysledek.poskozeniDorucene
   }
 

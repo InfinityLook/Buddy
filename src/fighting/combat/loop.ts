@@ -78,3 +78,11 @@ export const maNaSpecial = (b: BojovnikStav, dataSpecialu: AkceData): boolean =>
  *  Bojiste.tsx. Nikdy záporně, ani chvíli po vypršení, kdy `stav.cas`
  *  mezitím ještě o kousek přeteče limit než krokSouboje kolo ukončí. */
 export const zbyvaSekund = (stav: SoubojStav): number => Math.max(0, Math.ceil((CAS_LIMIT_MS - stav.cas) / 1000))
+
+/** Druhé kolo vylepšení — kolik zásahů má bojovníkovo aktuálně
+ *  ROZJETÉ kombo (0, pokud žádné neběží — promlčené komboKonci se
+ *  bere jako "nic", ne jako stará hodnota komboPocet, stejná
+ *  "engine.ts's aplikujJedenZasah čte to samé" logika, jen na
+ *  vykreslovací straně). Pro Bojiste.tsx's odznak "×N", zobrazí se
+ *  jen od druhého zásahu v sérii (jeden zásah ještě není "kombo"). */
+export const komboAktivni = (b: BojovnikStav): number => (b.komboKonci > 0 ? b.komboPocet : 0)

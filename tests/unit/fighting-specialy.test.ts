@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { AKCE_DATA, BLOK_REDUKCE, MANA_ZA_ZASAH, MAX_HP, efektivniAkceData, krokSouboje, vytvorSoubojStav } from '@/fighting/combat/engine'
+import {
+  AKCE_DATA,
+  BLOK_REDUKCE,
+  KOMBO_BONUS_ZA_UDER,
+  MANA_ZA_ZASAH,
+  MAX_HP,
+  efektivniAkceData,
+  krokSouboje,
+  vytvorSoubojStav,
+} from '@/fighting/combat/engine'
 import { POSTAVY } from '@/fighting/combat/postavy'
 import type { HracVstup } from '@/fighting/combat/types'
 
@@ -70,16 +79,20 @@ describe('Bulwarkův speciál — štít (stit)', () => {
 })
 
 describe('Voltův speciál — dvojitý zásah (dvojity-zasah)', () => {
-  it('landne-li speciál, dá přesně dvojnásobek jednoho zásahu a dvojnásobek many za zásah', () => {
+  it('landne-li speciál, druhý zásah dostane kombo bonus z prvního (Druhé kolo vylepšení), mana je čistý dvojnásobek', () => {
     let stav = vytvorSoubojStav(0, 80, 'volt', 'onyx')
     stav.hraci[0] = { ...stav.hraci[0], mana: 100 }
     const manaPredUtokem = 100 - AKCE_DATA.specialni.cenaMany * POSTAVY.volt.cenaManyNasobic
 
     stav = krokSouboje(stav, [plnaMana, stat], 0)
 
+    // Oba zásahy sdílejí stejný poskozeniZaklad, ale druhý už vidí
+    // útočníkovo kombo navýšené prvním (viz engine.ts's
+    // aplikujJedenZasah) — 1. zásah bez bonusu, 2. s +KOMBO_BONUS_ZA_UDER.
     const jedenZasah = efektivniAkceData('volt', 'specialni').poskozeni * POSTAVY.onyx.obranaNasobic
-    expect(MAX_HP - stav.hraci[1].hp).toBeCloseTo(jedenZasah * 2)
+    expect(MAX_HP - stav.hraci[1].hp).toBeCloseTo(jedenZasah * (2 + KOMBO_BONUS_ZA_UDER))
     expect(stav.hraci[0].mana).toBeCloseTo(manaPredUtokem + MANA_ZA_ZASAH * 2)
+    expect(stav.hraci[0].komboPocet).toBe(2)
   })
 
   it('štít cíle pohltí jen první z obou zásahů, druhý projde normálně', () => {

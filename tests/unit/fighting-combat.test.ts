@@ -5,6 +5,7 @@ import {
   BLOK_REDUKCE,
   CAS_LIMIT_MS,
   HITSTUN_MS,
+  KOMBO_OKNO_MS,
   MAX_HP,
   krokSouboje,
   vytvorBojovnika,
@@ -146,5 +147,87 @@ describe('vylepšení — časový limit kola (CAS_LIMIT_MS)', () => {
     stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], CAS_LIMIT_MS) // kop dá 10, KO i limit ve stejném tiku
     expect(stav.stavKola).toBe('konec')
     expect(stav.vitez).toBe(0) // KO logika (kdo je na nule), ne HP-porovnání
+  })
+})
+
+describe('vylepšení — odražení (knockback)', () => {
+  it('neblokovaný zásah odstrčí cíl pryč od útočníka, směrem od něj', () => {
+    let stav = vytvorSoubojStav(0, 80) // útočník vlevo, cíl vpravo
+    const pozicePred = stav.hraci[1].pozice
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], 0)
+    expect(stav.hraci[1].pozice).toBeGreaterThan(pozicePred) // odstrčen dál doprava
+  })
+
+  it('odstrčení funguje i opačným směrem, když je útočník vpravo', () => {
+    let stav = vytvorSoubojStav(780, 700) // útočník vpravo (index 0), cíl vlevo od něj, ale s prostorem k okraji
+    const pozicePred = stav.hraci[1].pozice
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], 0)
+    expect(stav.hraci[1].pozice).toBeLessThan(pozicePred) // odstrčen dál doleva
+  })
+
+  it('blokovaný zásah odstrčí méně než neblokovaný', () => {
+    let stavNeblok = vytvorSoubojStav(0, 80)
+    stavNeblok = krokSouboje(stavNeblok, [{ ...stat, akce: 'kop' }, stat], 0)
+    const posunNeblok = stavNeblok.hraci[1].pozice - 80
+
+    let stavBlok = vytvorSoubojStav(0, 80)
+    stavBlok = krokSouboje(stavBlok, [{ ...stat, akce: 'kop' }, { ...stat, blok: true }], 0)
+    const posunBlok = stavBlok.hraci[1].pozice - 80
+
+    expect(posunBlok).toBeGreaterThan(0) // pořád nějaké odstrčení, ne nulové
+    expect(posunBlok).toBeLessThan(posunNeblok)
+  })
+
+  it('respektuje hranice arény — cíl na kraji se dál neodstrčí, než kam aréna sahá', () => {
+    let stav = vytvorSoubojStav(0, ARENA_SIRKA) // cíl už úplně u pravého okraje
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], 0)
+    expect(stav.hraci[1].pozice).toBe(ARENA_SIRKA)
+  })
+
+  it('plně pohlcený zásah štítem (Bulwark) neodstrčí cíl vůbec', () => {
+    let stav = vytvorSoubojStav(0, 80, 'onyx', 'bulwark')
+    stav.hraci[1] = { ...stav.hraci[1], stitAktivni: true }
+    const pozicePred = stav.hraci[1].pozice
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], 0)
+    expect(stav.hraci[1].pozice).toBe(pozicePred)
+  })
+})
+
+describe('vylepšení — kombo (komboPocet/komboKonci)', () => {
+  it('druhý neblokovaný zásah v rychlém sledu dá víc poškození než první (kombo bonus)', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 0) // 1. zásah
+    const dmg1 = MAX_HP - stav.hraci[1].hp
+    expect(stav.hraci[0].komboPocet).toBe(1)
+
+    stav = krokSouboje(stav, [stat, stat], AKCE_DATA.udar.trvaniMs) // ať doběhne zotavení z úderu
+    const hpPred2 = stav.hraci[1].hp
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 0) // 2. zásah, pořád v okně
+    const dmg2 = hpPred2 - stav.hraci[1].hp
+
+    expect(dmg2).toBeGreaterThan(dmg1)
+    expect(stav.hraci[0].komboPocet).toBe(2)
+  })
+
+  it('kombo se promlčí, pokud další zásah nepřijde do KOMBO_OKNO_MS', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 0)
+    const dmg1 = MAX_HP - stav.hraci[1].hp
+
+    stav = krokSouboje(stav, [stat, stat], KOMBO_OKNO_MS) // celé okno uplyne bez dalšího zásahu
+    expect(stav.hraci[0].komboKonci).toBe(0)
+
+    const hpPred2 = stav.hraci[1].hp
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 0)
+    const dmg2 = hpPred2 - stav.hraci[1].hp
+
+    expect(dmg2).toBeCloseTo(dmg1) // žádný bonus, série byla promlčená
+  })
+
+  it('blokovaný zásah kombo nerozjede ani neprodlouží', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, { ...stat, blok: true }], 0)
+    expect(stav.hraci[0].komboKonci).toBe(0)
+    expect(stav.hraci[0].komboPocet).toBe(0)
   })
 })

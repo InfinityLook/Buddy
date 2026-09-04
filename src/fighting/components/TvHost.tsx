@@ -74,6 +74,15 @@ const VITEZSTVI_NA_ZAPAS = 2
 // (combat/ai.ts) místo přes živě držený stav tlačítek z broadcastu.
 const AI_HRAC_ID = 'pocitac-ai'
 
+// Druhé kolo vizuální "šťávy" — hit-stop. Krátké zamrznutí SIMULACE
+// (ne jen vizuálu) na doopravdy dopadlý zásah, stejný trik jako
+// bojovky ve videohrách odjakživa používají, ať úder působí těžčeji.
+// Schválně žádná nová herní logika v enginu — appka jen na pár
+// snímků PŘESTANE volat krokSouboje (viz tik() níž), takže se nic
+// nepohne ani nepřepočítá, dokud okno neuplyne; combat/engine.ts o
+// tom neví vůbec nic.
+const HIT_STOP_MS = 90
+
 // ==========================================
 // TV strana — vygeneruje kód místnosti, přiděluje připojující se
 // ovladače na sloty 1/2 a čeká, dokud oba nemají zvolenou postavu (buď
@@ -90,6 +99,12 @@ const AI_HRAC_ID = 'pocitac-ai'
 // stejnou čekací obrazovku — čistě lokální TV stav, žádný nový
 // broadcast, žádná úprava network.ts/types.ts (viz areny.ts's vlastní
 // komentář, proč to nepatří na síť vůbec).
+//
+// Páté kolo vylepšení přidalo hit-stop (HIT_STOP_MS výš) — jediná
+// vizuální "šťáva", co musí žít tady, ne v Bojiste.tsx, protože musí
+// skutečně pozastavit SIMULACI (nevolat krokSouboje), ne jen
+// vykreslení nad ní. Screen shake a KO zoom (druhá polovina stejného
+// kola) jsou naopak čistě prezentační, ty zůstávají v Bojiste.tsx.
 // ==========================================
 
 export const TvHost: React.FC<Props> = ({ onZpet }) => {
@@ -102,6 +117,9 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
   // jen pohání vykreslení.
   const [skore, setSkore] = useState<[number, number]>([0, 0])
   const skoreRef = useRef<[number, number]>([0, 0])
+  // Vylepšení — hit-stop (viz HIT_STOP_MS výš). Ref, ne state — mění
+  // se na každém tiku herní smyčky, žádný re-render potřebovat nemá.
+  const hitStopMsRef = useRef(0)
   // Vylepšení — výběr scény (arena/areny.ts). Čistě TV-strany volba,
   // vybíraná na čekací obrazovce, dokud zápas ještě neběží — nikdy se
   // neposílá na síť (viz areny.ts's vlastní komentář), takže druhý
@@ -189,6 +207,16 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
       const deltaMs = cas - posledniCas
       posledniCas = cas
 
+      // Vylepšení — dokud hit-stop běží, appka VŮBEC nevolá krokSouboje
+      // (simulace stojí, dokud okno neuplyne) — jen odečítá čas a
+      // požaduje další snímek. Vykreslení mezitím zůstává na stejné,
+      // zamrzlé referenci SoubojStav, žádný setSoubojStav navíc netřeba.
+      if (hitStopMsRef.current > 0) {
+        hitStopMsRef.current = Math.max(0, hitStopMsRef.current - deltaMs)
+        idPozadavku = requestAnimationFrame(tik)
+        return
+      }
+
       const aktualni = hraciRef.current
       const a0 = aktualni[0]
       const a1 = aktualni[1]
@@ -207,8 +235,19 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
         if (a1.hracId !== AI_HRAC_ID) vstupPredchoziRef.current[1] = { ...a1.tlacitka }
 
         const stavPredTikem = soubojStavRef.current.stavKola
+        const hpPredTikem: [number, number] = [soubojStavRef.current.hraci[0].hp, soubojStavRef.current.hraci[1].hp]
         soubojStavRef.current = krokSouboje(soubojStavRef.current, [vstup0, vstup1], deltaMs)
         setSoubojStav(soubojStavRef.current)
+
+        // Skutečně dopadlý zásah (HP kleslo oproti hodnotě PŘED tímhle
+        // tikem) natáhne hit-stop — zamrznutí se projeví od úplně
+        // příštího požadovaného snímku, prakticky okamžitě.
+        if (
+          soubojStavRef.current.hraci[0].hp < hpPredTikem[0] ||
+          soubojStavRef.current.hraci[1].hp < hpPredTikem[1]
+        ) {
+          hitStopMsRef.current = HIT_STOP_MS
+        }
 
         // Přesně na PŘECHODU 'probiha' → 'konec', ne na každém dalším
         // tiku, co soubojStavRef zůstává zamrzlé na stejné referenci

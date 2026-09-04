@@ -634,6 +634,18 @@
   font-weight: 800;
 }
 
+/* Vylepšení — kombo odznak (combat/loop.ts's komboAktivni). Malý
+   inline štítek hned vedle jména, ne samostatný řádek — appka ho
+   ukazuje jen od druhého zásahu v sérii (jeden zásah ještě "kombo"
+   není), takže většinu kola tu nic není. */
+.souboj-kombo-znacka {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: var(--accent-orange);
+}
+
 .souboj-hp-bar,
 .souboj-mana-bar {
   position: relative;
@@ -723,6 +735,32 @@
   100% {
     box-shadow: 0 0 14px 5px rgba(239, 68, 68, 0);
   }
+}
+
+/* Páté kolo vylepšení — screen shake a KO zoom, oba na obalu KOLEM
+   arény (`.souboj-arena` samo si nechává svůj overflow: hidden a
+   border-radius nedotčené) — transform na wrapperu nechá 3D scénu i
+   2D záložní variantu úplně beze změny uvnitř, appka jen posouvá/
+   zvětšuje celý rámeček. Hit-stop (skutečné zamrznutí simulace, ne
+   jen vizuálu) žije v TvHost.tsx, ne tady — viz jeho vlastní komentář. */
+.souboj-arena-obal {
+  transition: transform 0.35s ease-out;
+}
+
+.souboj-arena-obal--otres {
+  animation: souboj-arena-otres 0.35s ease-out;
+}
+
+@keyframes souboj-arena-otres {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-6px, 3px); }
+  40% { transform: translate(5px, -3px); }
+  60% { transform: translate(-4px, 2px); }
+  80% { transform: translate(3px, -2px); }
+}
+
+.souboj-arena-obal--zoom {
+  transform: scale(1.06);
 }
 
 /* Fáze 6 — aréna dostala skutečnou "podlahu" s vinětou místo ploché

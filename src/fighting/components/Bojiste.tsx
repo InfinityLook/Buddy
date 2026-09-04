@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { POSTAVY } from '../combat/postavy'
-import { hpProcenta, manaProcenta, zbyvaSekund } from '../combat/loop'
+import { hpProcenta, komboAktivni, manaProcenta, zbyvaSekund } from '../combat/loop'
 import { zahrajRemizu, zahrajSpecial, zahrajVyhra, zahrajZasah } from '../sound'
 import { SoubojArena3D } from './SoubojArena3D'
 import { SoubojArena2D } from './SoubojArena2D'
@@ -46,11 +46,23 @@ const ZABLESK_MS = 350
 // scény (arena/areny.ts), vybranou na TV ještě před startem zápasu —
 // Bojiste ji jen provlíká dál do SoubojArena3D, samo neví, co která
 // scéna znamená.
+//
+// Páté kolo vylepšení přidalo screen shake a KO zoom (hit-stop, ta
+// třetí část stejné "šťávy", žije v TvHost.tsx — viz jeho vlastní
+// komentář, proč to musí být tam) — obojí čistě CSS třídy na obalu
+// arény, odvozené ze stejného `zasah`/`stav.stavKola`, co appka už
+// stejně počítala. Kombo odznak (komboAktivni, combat/loop.ts) je
+// stejná "čti hotové číslo z props" disciplína jako HP/mana pruhy.
 // ==========================================
 
 export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId }) => {
   const predchoziHp = useRef<[number, number]>([stav.hraci[0].hp, stav.hraci[1].hp])
   const [zasazen, setZasazen] = useState<[boolean, boolean]>([false, false])
+  // Vylepšení — screen shake. Jeden boolean pro celou arénu (na
+  // rozdíl od zasazen, co je per-bojovník), nastavovaný ve STEJNÉM
+  // efektu a se STEJNÝM časovačem jako zasazen — je to reakce na tu
+  // samou "hp kleslo" událost, jen na jiném vizuálním místě.
+  const [otres, setOtres] = useState(false)
   const [arena3dSelhala, setArena3dSelhala] = useState(false)
   // Vylepšení — zvuk (viz sound.ts). Poslední ZAHÁJENÁ akce každého
   // bojovníka, ať appka pozná přechod NA 'specialni' (whoosh), ne jen
@@ -85,7 +97,11 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId }) => {
     if (zasah) zahrajZasah()
     if (!zasah) return
     setZasazen(noveZasazen)
-    const id = window.setTimeout(() => setZasazen([false, false]), ZABLESK_MS)
+    setOtres(true)
+    const id = window.setTimeout(() => {
+      setZasazen([false, false])
+      setOtres(false)
+    }, ZABLESK_MS)
     return () => window.clearTimeout(id)
   }, [stav.hraci])
 
@@ -114,6 +130,7 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId }) => {
             <div key={i} className={`souboj-bojovnik-hlavicka souboj-bojovnik-hlavicka--${i + 1}`}>
               <span className="souboj-bojovnik-jmeno">
                 {postava.ikona} {jmena[i]}
+                {komboAktivni(b) >= 2 && <span className="souboj-kombo-znacka">🔥×{komboAktivni(b)}</span>}
               </span>
               <div className={`souboj-hp-bar ${zasazen[i] ? 'souboj-hp-bar--zasazen' : ''}`}>
                 {/* "Duch" pruh vzadu — stejná šířka jako výplň vpředu, jen
@@ -142,11 +159,17 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId }) => {
         </span>
       )}
 
-      {arena3dSelhala ? (
-        <SoubojArena2D stav={stav} zasazen={zasazen} />
-      ) : (
-        <SoubojArena3D stav={stav} zasazen={zasazen} arenaId={arenaId} onSelhalo={() => setArena3dSelhala(true)} />
-      )}
+      <div
+        className={`souboj-arena-obal ${otres ? 'souboj-arena-obal--otres' : ''} ${
+          stav.stavKola === 'konec' && stav.vitez !== null ? 'souboj-arena-obal--zoom' : ''
+        }`}
+      >
+        {arena3dSelhala ? (
+          <SoubojArena2D stav={stav} zasazen={zasazen} />
+        ) : (
+          <SoubojArena3D stav={stav} zasazen={zasazen} arenaId={arenaId} onSelhalo={() => setArena3dSelhala(true)} />
+        )}
+      </div>
 
       {stav.stavKola === 'konec' && (
         <div className="souboj-konec-kola">
