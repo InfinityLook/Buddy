@@ -9,6 +9,7 @@ import AppModule from '@/pages/app/AppModule.tsx'
 import SchoolRoomModule from '@/flagships/school-room/SchoolRoomModule.tsx'
 import FitnessRoomModule from '@/flagships/fitness-room/FitnessRoomModule.tsx'
 import EconomyRoomModule from '@/flagships/economy-room/EconomyRoomModule.tsx'
+import GrowthRoomModule from '@/flagships/growth-room/GrowthRoomModule.tsx'
 import GamesHubModule from '@/pages/games/GamesHubModule.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
@@ -228,6 +229,19 @@ export default function App() {
             element={
               dovnitr ? (
                 <EconomyRoomModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* Route pro Growth Room (čtvrtá vlajková appka) — stejný
+              důvod jako School Room/Fitness Room/Economy Room výš. */}
+          <Route
+            path="/growth"
+            element={
+              dovnitr ? (
+                <GrowthRoomModule />
               ) : (
                 <Navigate to="/" replace />
               )

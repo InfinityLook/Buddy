@@ -84,7 +84,10 @@ const DEFAULT_APPS: AppItem[] = [
   { id: 'pomodoro', title: 'Pomodoro', category: 'Produktivita', icon: 'pomodoro', color: 'orange', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'math-solver', title: 'Math Solver', category: 'Nástroje', icon: 'math-solver', color: 'green', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'quick-notes', title: 'Quick Notes', category: 'Produktivita', icon: 'quick-notes', color: 'pink', active: true, favorite: true, jenVeVlajkoveAppce: true },
-  { id: 'goal-tracker', title: 'Goal Tracker', category: 'Produktivita', icon: 'goal-tracker', color: 'purple', active: true, favorite: false },
+  // Přesunutý do Growth Roomu (viz src/flagships/growth-room/) —
+  // stejné jenVeVlajkoveAppce zacházení jako výš, poslední appka
+  // v hlavní mřížce, co ještě nikam nepatřila.
+  { id: 'goal-tracker', title: 'Goal Tracker', category: 'Produktivita', icon: 'goal-tracker', color: 'purple', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'mind-map', title: 'Mind Map', category: 'Vzdělávání', icon: 'mind-map', color: 'cyan', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'file-manager', title: 'File Manager', category: 'Nástroje', icon: 'file-manager', color: 'orange', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'exam-prep', title: 'Maturitní centrum', category: 'Vzdělávání', icon: 'exam-prep', color: 'pink', active: true, favorite: true, jenVeVlajkoveAppce: true },
@@ -108,6 +111,7 @@ const DEFAULT_APPS: AppItem[] = [
   { id: 'school-room', title: 'School Room', category: 'Vzdělávání', icon: 'layers', color: 'cyan', active: true, favorite: false, route: '/skola' },
   { id: 'fitness-room', title: 'Fitness Room', category: 'Nástroje', icon: 'dumbbell', color: 'purple', active: true, favorite: false, route: '/fitness' },
   { id: 'economy-room', title: 'Economy Room', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false, route: '/economy' },
+  { id: 'growth-room', title: 'Growth Room', category: 'Produktivita', icon: 'goal-tracker', color: 'pink', active: true, favorite: false, route: '/growth' },
 ]
 
 // Katalog dlaždic patří kódu, uživateli jen jeho příznaky (oblíbené,

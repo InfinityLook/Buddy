@@ -1,0 +1,222 @@
+/* Growth Room — vlastní tělo appky (viz GrowthRoomModule.tsx). Sdílí
+   s FlagshipShell.css jen .fs-barva--* (plné barevné čtverce ikon —
+   .gro-stat-ikona níž) a .fs-velka-karta/.fs-panel-hlavicka's obecný
+   tvar karty (.gro-panel je vlastní, ale schválně identický vzhled,
+   stejně jako FitnessRoomModule.css/EconomyRoomModule.css vedle). */
+
+.gro-panel {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.gro-panel-hlavicka {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.gro-panel-hlavicka h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.gro-panel-hlavicka p {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.gro-historie-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.gro-historie-btn:hover {
+  border-color: var(--accent-magenta);
+  color: var(--accent-magenta);
+}
+
+.gro-zobrazit-vse {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.gro-prazdno {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+/* ------------------------------------------
+   MOJE CÍLE
+   ------------------------------------------ */
+.gro-cile-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.gro-cil-radek {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.gro-cil-text {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.gro-cil-nazev {
+  font-size: 0.85rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gro-cil-hodnota {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.gro-cil-lista,
+.gro-xp-lista {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.gro-cil-vypln {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-magenta), #f472b6);
+  transition: width 0.3s ease;
+}
+
+/* ------------------------------------------
+   ÚROVEŇ & ODZNAKY
+   ------------------------------------------ */
+.gro-staty {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.gro-stat-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.gro-stat-ikona {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gro-stat-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.gro-stat-nazev {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.gro-stat-hodnota {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.gro-stat-vedlejsi {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.gro-xp-lista {
+  margin-left: 44px; /* zarovnané pod hodnotou XP, ne pod celou ikonou */
+}
+
+.gro-xp-vypln {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent-violet), var(--accent-magenta));
+  transition: width 0.3s ease;
+}
+
+/* ------------------------------------------
+   BAREVNÉ VARIANTY ČISTÉHO TEXTU/IKONY (bez pozadí) — stejný důvod jako
+   Fitness Roomova/Economy Roomova .fit-text--*/.eco-text--*: .fs-barva--*
+   vždycky nese vyplněný gradient čtverec, tady jde jen o zabarvení
+   ikony samotné.
+   ------------------------------------------ */
+.gro-text--pink { color: var(--accent-magenta); }
+.gro-text--purple { color: var(--accent-violet); }
+
+/* ------------------------------------------
+   RYCHLÉ AKCE
+   ------------------------------------------ */
+.gro-akce-mrizka {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+}
+
+.gro-akce-dlazdice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 0.4rem;
+  text-align: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.gro-akce-nazev {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
