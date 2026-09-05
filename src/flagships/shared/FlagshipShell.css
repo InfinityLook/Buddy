@@ -178,6 +178,7 @@
 .fs-barva--orange { background: linear-gradient(135deg, #d97706, #fbbf24); color: #fff; }
 .fs-barva--green { background: linear-gradient(135deg, #059669, #34d399); color: #fff; }
 .fs-barva--pink { background: linear-gradient(135deg, #db2777, #f472b6); color: #fff; }
+.fs-barva--gold { background: linear-gradient(135deg, #a16207, #eab308); color: #fff; }
 
 /* Barva bez pozadí (jen text/ikona) — použitá u šipky velké karty. */
 .fs-velka-karta-sipka.fs-barva--cyan,

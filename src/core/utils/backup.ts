@@ -70,6 +70,11 @@ export const BACKUP_STORES: BackupStore[] = [
   // Manager's soubory, přes fileBackup.ts's generický listStoredFileIds(),
   // ne přes tenhle záznam.
   { key: 'schoolbuddy-music-studio-storage', storage: 'secure', label: 'Music Room' },
+  // Writer's Room — tři oddělené appky, tři oddělené klíče (na rozdíl
+  // od Music Studia, které drží beaty/nahrávky/skladby v jednom).
+  { key: 'schoolbuddy-book-writer-storage', storage: 'secure', label: 'Kniha' },
+  { key: 'schoolbuddy-screenplay-writer-storage', storage: 'secure', label: 'Scénář' },
+  { key: 'schoolbuddy-comic-writer-storage', storage: 'secure', label: 'Komiks' },
   { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
   // Na rozdíl od role/kreditů níž je restorable: true bezpečné i pro
   // VIP vzhled — resolveActiveThemeId (core/theme/themes.ts) ověřuje

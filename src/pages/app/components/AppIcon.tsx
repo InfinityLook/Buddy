@@ -117,6 +117,14 @@ export const AppIcon: React.FC<AppIconProps> = ({ name, size = 20, className }) 
     // ještě žádná hudební ikona nebyla, appka na hudbu do teď nic neměla.
     case 'music':
       return <svg {...common}><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    // Writer's Room/Kniha/Scénář/Komiks (viz WriterRoomModule.tsx) —
+    // appka do teď neměla ani knihu, ani klapku, ani bublinu komiksu.
+    case 'book':
+      return <svg {...common}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    case 'clapperboard':
+      return <svg {...common}><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.4-2.5l13.9-3.5c1.1-.3 2.2.3 2.5 1.4Z"/><path d="m6.2 5.3 3.1 5.3"/><path d="m12.4 3.4 3.1 5.3"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
+    case 'comic':
+      return <svg {...common}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
     default:
       return null
   }

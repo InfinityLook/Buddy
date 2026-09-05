@@ -52,4 +52,13 @@ export const MINI_APP_REGISTRY: Record<string, LazyExoticComponent<React.Compone
   'music-studio': lazy(() =>
     import('../../miniapps/music-studio/MusicStudio').then((m) => ({ default: m.MusicStudio }))
   ),
+  'book-writer': lazy(() =>
+    import('../../miniapps/book-writer/BookWriter').then((m) => ({ default: m.BookWriter }))
+  ),
+  'screenplay-writer': lazy(() =>
+    import('../../miniapps/screenplay-writer/ScreenplayWriter').then((m) => ({ default: m.ScreenplayWriter }))
+  ),
+  'comic-writer': lazy(() =>
+    import('../../miniapps/comic-writer/ComicWriter').then((m) => ({ default: m.ComicWriter }))
+  ),
 }

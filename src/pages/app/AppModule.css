@@ -587,6 +587,8 @@
 .app-card-icon-wrap.orange { background: linear-gradient(135deg, #d97706, #fbbf24); color: #fff; }
 .app-card-icon-wrap.green { background: linear-gradient(135deg, #059669, #34d399); color: #fff; }
 .app-card-icon-wrap.pink { background: linear-gradient(135deg, #db2777, #f472b6); color: #fff; }
+/* Writer's Room — šestá barva, viz useAppStore.ts's AppColor komentář. */
+.app-card-icon-wrap.gold { background: linear-gradient(135deg, #a16207, #eab308); color: #fff; }
 
 .app-card-text {
   display: flex;

@@ -1,0 +1,347 @@
+.sw-app {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 480px;
+  margin: 0 auto;
+  color: var(--text-primary);
+}
+
+.sw-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.sw-header h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.sw-zpet-btn {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.sw-header-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sw-header-text strong {
+  font-size: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sw-header-text span {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.sw-nova-radek {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sw-nova-radek input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sw-app input[type='text'],
+.sw-app select,
+.sw-app textarea {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.sw-app input:focus,
+.sw-app select:focus,
+.sw-app textarea:focus {
+  outline: none;
+  border-color: var(--accent-orange);
+}
+
+.sw-ulozit-btn {
+  flex-shrink: 0;
+  background: var(--accent-orange);
+  border: none;
+  color: #2b1a02;
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sw-zrusit-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 0.55rem 0.9rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sw-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sw-prazdno {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+.sw-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.75rem;
+}
+
+.sw-radek-otevrit {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  background: none;
+  border: none;
+  text-align: left;
+  color: var(--text-primary);
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.sw-radek-otevrit strong {
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sw-radek-otevrit span {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.sw-icon-btn {
+  flex-shrink: 0;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sw-icon-btn.danger:hover {
+  color: var(--accent-red);
+  border-color: var(--accent-red);
+}
+
+.sw-chip-row {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+}
+
+.sw-chip {
+  flex-shrink: 0;
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.sw-chip.active {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: var(--accent-orange);
+}
+
+.sw-plus-chip {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed var(--border-strong);
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.sw-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  padding: 0.9rem;
+}
+
+.sw-form-radek {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sw-form-radek select {
+  flex-shrink: 0;
+  width: 90px;
+}
+
+.sw-form-radek input {
+  flex: 1;
+  min-width: 0;
+}
+
+.sw-form textarea {
+  resize: vertical;
+}
+
+.sw-form-akce {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* ==== scénář jako "papír" — schválně jiná (světlá, monospace)
+   plocha než zbytek appky, stejný jazyk jako skutečný scénáristický
+   software. ==== */
+.sw-script-page {
+  background: #f4f1ea;
+  color: #17181c;
+  border-radius: 12px;
+  padding: 1.1rem 1rem;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.78rem;
+  line-height: 1.7;
+}
+
+.sw-sc-heading {
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.7rem;
+}
+
+.sw-sc-prazdno {
+  color: #5c5f6b;
+  font-style: italic;
+  margin: 0;
+}
+
+.sw-sc-prvek {
+  position: relative;
+  padding-right: 1.6rem;
+  margin-bottom: 0.7rem;
+}
+
+.sw-sc-action {
+  margin: 0;
+  color: #3a3d47;
+}
+
+.sw-sc-character {
+  text-align: center;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.15rem;
+}
+
+.sw-sc-paren {
+  text-align: center;
+  font-style: italic;
+  color: #5c5f6b;
+  font-size: 0.7rem;
+  margin-bottom: 0.15rem;
+}
+
+.sw-sc-dialogue {
+  width: 68%;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.sw-sc-smazat {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: none;
+  border: none;
+  color: #8b8e99;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.2rem;
+}
+
+.sw-toolbar {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.sw-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 0.55rem 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.sw-smazat-scenu {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-decoration: underline;
+  cursor: pointer;
+  align-self: center;
+}
+
+.sw-smazat-scenu:hover {
+  color: var(--accent-red);
+}

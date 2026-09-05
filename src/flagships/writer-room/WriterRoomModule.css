@@ -1,0 +1,155 @@
+/* Writer's Room — vlastní tělo appky (viz WriterRoomModule.tsx). Sdílí
+   s FlagshipShell.css jen .fs-velka-karta/.fs-panel-hlavicka's obecný
+   tvar karty (.wr-panel je vlastní, ale schválně identický vzhled,
+   stejně jako MusicRoomModule.css/GrowthRoomModule.css vedle). */
+
+.wr-panel {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.wr-panel-hlavicka {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.wr-panel-hlavicka h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.wr-zobrazit-vse {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.wr-prazdno {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+/* ------------------------------------------
+   MOJE TVORBA
+   ------------------------------------------ */
+.wr-staty-mrizka {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.wr-stat-dlazdice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.4rem;
+}
+
+.wr-stat-cislo {
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.wr-stat-popis {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------
+   NÁHLEDY KNIHA / SCÉNÁŘ / KOMIKS
+   ------------------------------------------ */
+.wr-preview-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.wr-preview-ikona {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(234, 179, 8, 0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+}
+
+.wr-preview-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.wr-preview-text strong {
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wr-preview-text span {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------
+   BAREVNÉ VARIANTY ČISTÉHO TEXTU/IKONY (bez pozadí)
+   ------------------------------------------ */
+.wr-text--gold {
+  color: #eab308;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+/* ------------------------------------------
+   RYCHLÉ AKCE
+   ------------------------------------------ */
+.wr-akce-mrizka {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.wr-akce-dlazdice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 0.4rem;
+  text-align: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.wr-akce-nazev {
+  font-size: 0.72rem;
+  font-weight: 700;
+}

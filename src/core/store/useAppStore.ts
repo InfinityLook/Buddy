@@ -3,7 +3,13 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { validateAppsData } from '@/core/utils/validation'
 
-export type AppColor = 'purple' | 'cyan' | 'orange' | 'green' | 'pink'
+// 'gold' přibylo pro Writer's Room — všech pět předchozích barev už
+// nese jiná vlajková appka (School=cyan, Fitness=purple, Economy=green,
+// Growth=pink, Music=orange), takže šestá appka potřebovala vlastní
+// odstín, ne recyklovat cizí. Sdílené velké karty (Soubory/Apps) zůstávají
+// u cyan/purple jako u každé jiné room — nová barva se týká jen dlaždice
+// v /apps a jejího vlastního přehledu.
+export type AppColor = 'purple' | 'cyan' | 'orange' | 'green' | 'pink' | 'gold'
 
 // Jak se dlaždice řadí v přehledu. Volba je perzistentní, ať si ji
 // uživatel nemusí nastavovat po každém spuštění aplikace.
@@ -108,6 +114,14 @@ const DEFAULT_APPS: AppItem[] = [
   // Kalendáře výš nejde o žádnou předchozí verzi jinde v appce. Rovnou
   // jenVeVlajkoveAppce: true, nikdy se v hlavní mřížce neobjevila.
   { id: 'music-studio', title: 'Music Studio', category: 'Kreativita', icon: 'music', color: 'orange', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  // Nové appky Writer's Roomu (viz src/flagships/writer-room/) — appka
+  // do teď neměla žádné strukturované psaní (knihu/scénář/komiks), jen
+  // obecné Quick Notes a Textový editor, které se nikam nepřesouvají.
+  // Tři oddělené appky, ne tři záložky jedné — stejné jenVeVlajkoveAppce
+  // zacházení jako Music Studio, žádná z nich se v /apps nikdy neukázala.
+  { id: 'book-writer', title: 'Kniha', category: 'Kreativita', icon: 'book', color: 'gold', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  { id: 'screenplay-writer', title: 'Scénář', category: 'Kreativita', icon: 'clapperboard', color: 'gold', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  { id: 'comic-writer', title: 'Komiks', category: 'Kreativita', icon: 'comic', color: 'gold', active: true, favorite: false, jenVeVlajkoveAppce: true },
   // Vlajkové appky — viz AppItem.route výš a FlagshipShell.tsx. Zůstávají
   // active: true, protože tohle JSOU ty dlaždice, přes které se do
   // School Roomu/Fitness Roomu chodí; schovat by je šlo úplně stejně
@@ -118,6 +132,7 @@ const DEFAULT_APPS: AppItem[] = [
   { id: 'economy-room', title: 'Economy Room', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false, route: '/economy' },
   { id: 'growth-room', title: 'Growth Room', category: 'Produktivita', icon: 'goal-tracker', color: 'pink', active: true, favorite: false, route: '/growth' },
   { id: 'music-room', title: 'Music Room', category: 'Kreativita', icon: 'music', color: 'orange', active: true, favorite: false, route: '/music' },
+  { id: 'writer-room', title: "Writer's Room", category: 'Kreativita', icon: 'book', color: 'gold', active: true, favorite: false, route: '/spisovatel' },
 ]
 
 // Katalog dlaždic patří kódu, uživateli jen jeho příznaky (oblíbené,

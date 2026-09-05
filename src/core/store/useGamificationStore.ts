@@ -25,6 +25,9 @@ export type ActivityKind =
   | 'souboj'
   | 'kalendar'
   | 'music'
+  | 'book'
+  | 'screenplay'
+  | 'comic'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -70,6 +73,14 @@ export const DEFAULT_BADGES: Badge[] = [
   { id: 'ring_mistr', title: 'Mistr ringu', description: 'Vyhraj 5 zápasů v Souboji.', icon: '🥊', unlockedAt: null },
   { id: 'planovac_udalosti', title: 'Plánovač událostí', description: 'Přidej 10 událostí do Kalendáře.', icon: '🗓️', unlockedAt: null },
   { id: 'sound_mage', title: 'Zvukový mág', description: 'Vytvoř 10 beatů, nahrávek nebo skladeb v Music Roomu.', icon: '🎵', unlockedAt: null },
+  // Writer's Room — na rozdíl od Music Roomu tři samostatné odznaky,
+  // ne jeden sdílený: appky jsou tři oddělené, ne tři záložky jedné
+  // appky, takže i odznak sleduje každou zvlášť. 'writer'/'Spisovatel'
+  // už existovalo pro Textový editor (viz COUNT_BADGES's document níž),
+  // takže tyhle tři musely dostat vlastní jména, ne tenhle už obsazený.
+  { id: 'romanopisec', title: 'Romanopisec', description: 'Napiš 10 kapitol v Knize.', icon: '📖', unlockedAt: null },
+  { id: 'scenarista', title: 'Scenárista', description: 'Napiš 10 scén ve Scénáři.', icon: '🎬', unlockedAt: null },
+  { id: 'komiksovy_kreslir', title: 'Komiksový tvůrce', description: 'Vytvoř 10 panelů v Komiksu.', icon: '💥', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti. 'souboj'
@@ -96,6 +107,11 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   // uživatel v appce vůbec něco vytvořil, ne tři samostatné odznaky
   // za tři různé, menší prahy.
   music: { badgeId: 'sound_mage', needed: 10 },
+  // Writer's Room — tři oddělené appky (Kniha/Scénář/Komiks), tři
+  // oddělené počítadla, na rozdíl od Music Roomova jednoho sdíleného.
+  book: { badgeId: 'romanopisec', needed: 10 },
+  screenplay: { badgeId: 'scenarista', needed: 10 },
+  comic: { badgeId: 'komiksovy_kreslir', needed: 10 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není
