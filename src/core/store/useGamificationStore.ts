@@ -24,6 +24,7 @@ export type ActivityKind =
   | 'pomodoro'
   | 'souboj'
   | 'kalendar'
+  | 'music'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -68,6 +69,7 @@ export const DEFAULT_BADGES: Badge[] = [
   { id: 'focus_master', title: 'Mistr soustředění', description: 'Dokonči 10 soustředění v Pomodoru.', icon: '⏳', unlockedAt: null },
   { id: 'ring_mistr', title: 'Mistr ringu', description: 'Vyhraj 5 zápasů v Souboji.', icon: '🥊', unlockedAt: null },
   { id: 'planovac_udalosti', title: 'Plánovač událostí', description: 'Přidej 10 událostí do Kalendáře.', icon: '🗓️', unlockedAt: null },
+  { id: 'sound_mage', title: 'Zvukový mág', description: 'Vytvoř 10 beatů, nahrávek nebo skladeb v Music Roomu.', icon: '🎵', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti. 'souboj'
@@ -89,6 +91,11 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   pomodoro: { badgeId: 'focus_master', needed: 10 },
   souboj: { badgeId: 'ring_mistr', needed: 5 },
   kalendar: { badgeId: 'planovac_udalosti', needed: 10 },
+  // Jeden počítadlo pro všechny tři tvůrčí akce Music Roomu (uložený
+  // beat, hotová nahrávka, sestavená skladba) — sčítá se, kolikrát
+  // uživatel v appce vůbec něco vytvořil, ne tři samostatné odznaky
+  // za tři různé, menší prahy.
+  music: { badgeId: 'sound_mage', needed: 10 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není

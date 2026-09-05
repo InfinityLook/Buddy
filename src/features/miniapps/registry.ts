@@ -49,4 +49,7 @@ export const MINI_APP_REGISTRY: Record<string, LazyExoticComponent<React.Compone
   'kalendar': lazy(() =>
     import('../../miniapps/kalendar/Kalendar').then((m) => ({ default: m.Kalendar }))
   ),
+  'music-studio': lazy(() =>
+    import('../../miniapps/music-studio/MusicStudio').then((m) => ({ default: m.MusicStudio }))
+  ),
 }

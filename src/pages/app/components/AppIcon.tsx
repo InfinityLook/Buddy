@@ -113,6 +113,10 @@ export const AppIcon: React.FC<AppIconProps> = ({ name, size = 20, className }) 
     // 'plus' už existoval pro "Příjem", ale opačná ikona chyběla úplně.
     case 'minus':
       return <svg {...common}><line x1="5" x2="19" y1="12" y2="12"/></svg>
+    // Music Room/Music Studio (viz MusicRoomModule.tsx) — do téhle sady
+    // ještě žádná hudební ikona nebyla, appka na hudbu do teď nic neměla.
+    case 'music':
+      return <svg {...common}><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
     default:
       return null
   }

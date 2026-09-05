@@ -1,0 +1,241 @@
+/* Music Room — vlastní tělo appky (viz MusicRoomModule.tsx). Sdílí
+   s FlagshipShell.css jen .fs-velka-karta/.fs-panel-hlavicka's obecný
+   tvar karty (.mur-panel je vlastní, ale schválně identický vzhled,
+   stejně jako GrowthRoomModule.css/EconomyRoomModule.css vedle). */
+
+.mur-panel {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.mur-panel-hlavicka {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.mur-panel-hlavicka h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.mur-zobrazit-vse {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.mur-prazdno {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 0.5rem 0;
+}
+
+/* ------------------------------------------
+   MOJE TVORBA
+   ------------------------------------------ */
+.mur-staty-mrizka {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.mur-stat-dlazdice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.4rem;
+}
+
+.mur-stat-cislo {
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.mur-stat-popis {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------
+   BEAT MAKER (náhled)
+   ------------------------------------------ */
+.mur-beat-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.mur-play-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mur-beat-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mur-beat-text strong {
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mur-beat-text span {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.mur-mini-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.mur-mini-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.mur-mini-label {
+  flex-shrink: 0;
+  width: 14px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+}
+
+.mur-mini-kroky {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 0.2rem;
+}
+
+.mur-mini-krok {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  display: block;
+}
+
+.mur-mini-krok.on-kick { background: var(--accent-cyan); }
+.mur-mini-krok.on-snare { background: var(--accent-magenta); }
+.mur-mini-krok.on-hihat { background: var(--accent-violet); }
+
+.mur-mini-krok.playhead {
+  box-shadow: 0 0 0 1px #fff inset;
+}
+
+/* ------------------------------------------
+   NAHRÁVÁNÍ (náhled) — sdílí .mur-radek/.mur-icon-btn styl s Beat
+   Makerovým seznamem beatů (Music Studio's vlastní .ms-radek/.ms-icon-btn
+   je jiná appka, tenhle náhled má vlastní kopii).
+   ------------------------------------------ */
+.mur-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mur-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.7rem;
+}
+
+.mur-icon-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mur-radek-nazev {
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ------------------------------------------
+   BAREVNÉ VARIANTY ČISTÉHO TEXTU/IKONY (bez pozadí) — stejný důvod jako
+   Growth Roomovy .gro-text--*.
+   ------------------------------------------ */
+.mur-text--orange { color: var(--accent-orange); }
+.mur-text--magenta { color: var(--accent-magenta); font-size: 1.35rem; line-height: 1; }
+.mur-text--cyan { color: var(--accent-cyan); }
+
+/* ------------------------------------------
+   RYCHLÉ AKCE
+   ------------------------------------------ */
+.mur-akce-mrizka {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.mur-akce-dlazdice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 0.4rem;
+  text-align: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.mur-akce-nazev {
+  font-size: 0.72rem;
+  font-weight: 700;
+}

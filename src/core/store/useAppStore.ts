@@ -103,6 +103,11 @@ const DEFAULT_APPS: AppItem[] = [
   // Nová, School Roomu vlastní (appka do teď neměla vůbec) — stejné
   // zacházení jako s přesunutými výš.
   { id: 'kalendar', title: 'Kalendář', category: 'Produktivita', icon: 'calendar', color: 'cyan', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  // Nová, Music Roomu vlastní (viz src/flagships/music-room/) — appka
+  // do teď neměla žádnou tvorbu hudby vůbec, takže na rozdíl od
+  // Kalendáře výš nejde o žádnou předchozí verzi jinde v appce. Rovnou
+  // jenVeVlajkoveAppce: true, nikdy se v hlavní mřížce neobjevila.
+  { id: 'music-studio', title: 'Music Studio', category: 'Kreativita', icon: 'music', color: 'orange', active: true, favorite: false, jenVeVlajkoveAppce: true },
   // Vlajkové appky — viz AppItem.route výš a FlagshipShell.tsx. Zůstávají
   // active: true, protože tohle JSOU ty dlaždice, přes které se do
   // School Roomu/Fitness Roomu chodí; schovat by je šlo úplně stejně
@@ -112,6 +117,7 @@ const DEFAULT_APPS: AppItem[] = [
   { id: 'fitness-room', title: 'Fitness Room', category: 'Nástroje', icon: 'dumbbell', color: 'purple', active: true, favorite: false, route: '/fitness' },
   { id: 'economy-room', title: 'Economy Room', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false, route: '/economy' },
   { id: 'growth-room', title: 'Growth Room', category: 'Produktivita', icon: 'goal-tracker', color: 'pink', active: true, favorite: false, route: '/growth' },
+  { id: 'music-room', title: 'Music Room', category: 'Kreativita', icon: 'music', color: 'orange', active: true, favorite: false, route: '/music' },
 ]
 
 // Katalog dlaždic patří kódu, uživateli jen jeho příznaky (oblíbené,

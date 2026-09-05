@@ -65,6 +65,11 @@ export const BACKUP_STORES: BackupStore[] = [
   // Které widgety má kdo připnuté nahoře v které vlajkové appce (School
   // Room a případné budoucí) — viz src/flagships/shared/useFlagshipWidgets.ts.
   { key: 'schoolbuddy-flagship-widgets-storage', storage: 'secure', label: 'Widgety vlajkových appek' },
+  // Metadata beatů/nahrávek/skladeb (viz src/miniapps/music-studio/) —
+  // skutečné zvukové Bloby nahrávek jdou do zálohy stejně jako File
+  // Manager's soubory, přes fileBackup.ts's generický listStoredFileIds(),
+  // ne přes tenhle záznam.
+  { key: 'schoolbuddy-music-studio-storage', storage: 'secure', label: 'Music Room' },
   { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
   // Na rozdíl od role/kreditů níž je restorable: true bezpečné i pro
   // VIP vzhled — resolveActiveThemeId (core/theme/themes.ts) ověřuje

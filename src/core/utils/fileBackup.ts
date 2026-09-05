@@ -81,15 +81,24 @@ export const importZipBackup = async (file: File): Promise<NactenaZipZaloha> => 
 /**
  * Zapíše obnovené blob soubory zpátky do IndexedDB — až po
  * restoreFullBackup(envelope), protože mime bere z právě obnovených
- * metadat File Manageru (FileItem.mime), ne z toho, co si pamatuje zip
- * (JSZip typ blobu při balení nezachovává, jen bajty).
+ * metadat File Manageru (FileItem.mime) a Music Studia (Recording.mime),
+ * ne z toho, co si pamatuje zip (JSZip typ blobu při balení
+ * nezachovává, jen bajty). Oba zdroje sdílí to samé IndexedDB úložiště
+ * (core/utils/fileStorage.ts) s odděleným prostorem id, takže mime
+ * mapa je jen sjednocení obou — druhý zdroj přidaný ve chvíli, kdy
+ * Music Room potřeboval přesně tu samou schopnost, co File Manager
+ * už měl.
  */
 export const restoreFilesFromZip = async (soubory: Map<string, Blob>, envelope: unknown): Promise<number> => {
-  const fmRaw = (envelope as { data?: Record<string, unknown> } | null)?.data?.[
-    'schoolbuddy-file-manager-storage'
-  ]
+  const data = (envelope as { data?: Record<string, unknown> } | null)?.data
+  const fmRaw = data?.['schoolbuddy-file-manager-storage']
   const files = (fmRaw as { state?: { files?: { id: string; mime: string }[] } } | undefined)?.state?.files ?? []
-  const mimeById = new Map(files.map((f) => [f.id, f.mime]))
+
+  const msRaw = data?.['schoolbuddy-music-studio-storage']
+  const recordings =
+    (msRaw as { state?: { recordings?: { id: string; mime: string }[] } } | undefined)?.state?.recordings ?? []
+
+  const mimeById = new Map([...files, ...recordings].map((f) => [f.id, f.mime]))
 
   let obnoveno = 0
   await Promise.all(
