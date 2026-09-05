@@ -4,21 +4,24 @@ import { AppIcon } from './AppIcon'
 interface AppHeaderProps {
   onBack?: () => void
   onOpenNotifications: () => void
-  onOpenSettings: () => void
+  onOpenProfile: () => void
   // Počet nepřečtených upozornění — 0 znamená, že se puntík nekreslí
   unreadCount: number
+  // Data URI z useProfileData — appka ho má vždy (DEFAULT_AVATAR jako
+  // výchozí), viz core komentář v AppModule.tsx.
+  avatarSrc: string
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   onBack,
   onOpenNotifications,
-  onOpenSettings,
+  onOpenProfile,
   unreadCount,
+  avatarSrc,
 }) => (
   <header className="app-header">
-    <button className="app-back-btn" onClick={onBack}>
+    <button className="app-back-btn" aria-label="Zpět" onClick={onBack}>
       <AppIcon name="arrow-left" size={18} />
-      <span>Zpět</span>
     </button>
 
     <div className="app-header-center">
@@ -41,8 +44,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         {unreadCount > 0 && <span className="app-icon-badge">{unreadCount}</span>}
       </button>
 
-      <button className="app-icon-btn" aria-label="Nastavení" onClick={onOpenSettings}>
-        <AppIcon name="settings" size={20} />
+      {/* Nahrazuje dřívější tlačítko Nastavení natvrdo v hlavičce —
+          Nastavení je teď vždycky na dosah v AppBottomNav, takže tenhle
+          slot může místo ikony ozubeného kola nést skutečnou avatarovou
+          zkratku na vlastní profil, stejně jako referenční vzhled. */}
+      <button className="app-avatar-btn" aria-label="Otevřít profil" onClick={onOpenProfile}>
+        <img className="app-avatar-img" src={avatarSrc} alt="" aria-hidden="true" />
+        <span className="app-avatar-dot" aria-hidden="true" />
       </button>
     </div>
   </header>

@@ -54,19 +54,29 @@
   padding-top: env(safe-area-inset-top);
 }
 
+/* Ikonové tlačítko zpět — referenční vzhled nemá vedle šipky žádný
+   popisek, jen kruh stejné velikosti jako zvonek/avatar na druhé
+   straně hlavičky (.app-icon-btn), ať je hlavička vizuálně vyvážená. */
 .app-back-btn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid var(--app-card-border);
   color: var(--app-text-main);
-  padding: 0.55rem 0.9rem;
-  border-radius: 30px;
-  font-size: 0.85rem;
-  font-weight: 600;
+  padding: 0;
+  border-radius: 50%;
   cursor: pointer;
   backdrop-filter: blur(8px);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.app-back-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--border-strong);
 }
 
 .app-header-center {
@@ -139,6 +149,48 @@
   text-align: center;
   border: 2px solid var(--app-bg);
   box-sizing: content-box;
+}
+
+/* Avatarová zkratka na vlastní profil — nahradila ozubené kolo
+   Nastavení v hlavičce (viz AppHeader.tsx). Tečka je natvrdo zelená
+   (dekorativní "jsem tu" signál, ne skutečný online stav — appka tu
+   nemá k dispozici Social's presence data a nestojí to za tažení jeho
+   API do tohohle eagerně načítaného modulu jen kvůli jedné tečce). */
+.app-avatar-btn {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  padding: 0;
+  background: transparent;
+  border: 2px solid rgba(53, 196, 240, 0.5);
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.app-avatar-btn:hover {
+  border-color: var(--app-cyan);
+}
+
+.app-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.app-avatar-dot {
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--app-green);
+  border: 2px solid var(--app-bg);
+  box-shadow: 0 0 5px var(--app-green);
 }
 
 /* ------------------------------------------
@@ -368,6 +420,14 @@
   font-size: 0.75rem;
   color: var(--app-text-muted);
   font-weight: 600;
+}
+
+/* Drží skryté-chip a přepínač mřížka/seznam pohromadě na pravé
+   straně řádku s počtem výsledků (viz AppToolbar.tsx). */
+.app-toolbar-meta-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
 .app-hidden-chip {
@@ -842,30 +902,23 @@
   }
 
   .app-toolbar-top {
-    flex-wrap: wrap;
     gap: 0.5rem;
   }
 
-  .app-search-box {
-    flex: 1 1 100%;
-  }
-
-  /* Na úzkém displeji si "Třídit" a přepínač zobrazení rozdělí řádek
-     napůl, ať tlačítka nejsou zbytečně natěsnaná. */
-  .app-sort-wrap {
-    flex: 1;
-  }
-
+  /* Horní řádek má teď jen vyhledávání + "Filtrovat" (přepínač
+     mřížka/seznam se přesunul do řádku s počtem výsledků, viz
+     AppToolbar.tsx) — vejdou se vedle sebe i na úzkém displeji s
+     popiskem viditelným celý, žádné zalomení na dva řádky není
+     potřeba, referenční vzhled ho takhle na mobilu ukazuje taky. */
   .app-filter-btn {
-    width: 100%;
-    justify-content: center;
+    padding: 0.6rem 0.8rem;
   }
 
   .app-sort-menu {
-    left: 0;
-    right: auto;
-    min-width: 0;
-    width: 100%;
+    left: auto;
+    right: 0;
+    min-width: 200px;
+    width: auto;
   }
 
   /* Nabídka u dlaždice je ukotvená k pravému okraji karty a rozbaluje se

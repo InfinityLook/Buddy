@@ -179,8 +179,9 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
       <AppHeader
         onBack={handleBack}
         onOpenNotifications={() => setNotifOpen(true)}
-        onOpenSettings={() => navigate('/nastaveni')}
+        onOpenProfile={() => navigate('/profil')}
         unreadCount={unreadCount}
+        avatarSrc={profile.avatar}
       />
 
       <AppToolbar

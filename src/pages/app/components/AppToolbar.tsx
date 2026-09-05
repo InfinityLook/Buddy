@@ -90,6 +90,12 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
         </div>
 
         <div className="app-sort-wrap" ref={sortRef}>
+          {/* Tlačítko se pořád jmenuje "Filtrovat" (referenční vzhled),
+              i když otvírá řazení, ne novou filtrovací nabídku navíc —
+              skutečné filtrování appka už nabízí přes vyhledávání a
+              kategorie o řádek níž, tohle je zkratka na to samé, co
+              dřív "Třídit". Nabídka samotná se hned po otevření
+              popíše jako "Seřadit podle", takže nic nemate. */}
           <button
             className={`app-filter-btn ${sortOpen ? 'is-open' : ''}`}
             onClick={() => setSortOpen((open) => !open)}
@@ -97,7 +103,7 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
             aria-expanded={sortOpen}
           >
             <AppIcon name="filter" size={16} />
-            <span>Třídit</span>
+            <span>Filtrovat</span>
           </button>
 
           {sortOpen && (
@@ -120,25 +126,6 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
               ))}
             </div>
           )}
-        </div>
-
-        <div className="app-view-toggle">
-          <button
-            className={`app-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
-            onClick={() => setViewMode('grid')}
-            aria-label="Mřížka"
-            aria-pressed={viewMode === 'grid'}
-          >
-            <AppIcon name="grid" size={18} />
-          </button>
-          <button
-            className={`app-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
-            onClick={() => setViewMode('list')}
-            aria-label="Seznam"
-            aria-pressed={viewMode === 'list'}
-          >
-            <AppIcon name="list" size={18} />
-          </button>
         </div>
       </div>
 
@@ -176,15 +163,39 @@ export const AppToolbar: React.FC<AppToolbarProps> = ({
             : `Zobrazeno ${resultCount} z ${totalCount}`}
         </span>
 
-        {hiddenCount > 0 && (
-          <button
-            className={`app-hidden-chip ${showHidden ? 'is-on' : ''}`}
-            onClick={toggleShowHidden}
-          >
-            <AppIcon name={showHidden ? 'eye-off' : 'eye'} size={14} />
-            {showHidden ? 'Schovat skryté' : `Zobrazit skryté (${hiddenCount})`}
-          </button>
-        )}
+        <div className="app-toolbar-meta-actions">
+          {hiddenCount > 0 && (
+            <button
+              className={`app-hidden-chip ${showHidden ? 'is-on' : ''}`}
+              onClick={toggleShowHidden}
+            >
+              <AppIcon name={showHidden ? 'eye-off' : 'eye'} size={14} />
+              {showHidden ? 'Schovat skryté' : `Zobrazit skryté (${hiddenCount})`}
+            </button>
+          )}
+
+          {/* Přepínač mřížka/seznam sem přesunutý z horního řádku —
+              referenční vzhled ho drží vedle počtu výsledků, ne vedle
+              vyhledávání. */}
+          <div className="app-view-toggle">
+            <button
+              className={`app-toggle-btn ${viewMode === 'grid' ? 'active' : ''}`}
+              onClick={() => setViewMode('grid')}
+              aria-label="Mřížka"
+              aria-pressed={viewMode === 'grid'}
+            >
+              <AppIcon name="grid" size={18} />
+            </button>
+            <button
+              className={`app-toggle-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+              aria-label="Seznam"
+              aria-pressed={viewMode === 'list'}
+            >
+              <AppIcon name="list" size={18} />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
