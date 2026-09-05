@@ -3,10 +3,11 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import Login from './pages/login/Login.tsx'
 import Hub from './pages/hub/Hub.tsx'
 import AppModule from '@/pages/app/AppModule.tsx'
-// První "vlajková appka" (viz CLAUDE.md, src/flagships/) — eager stejně
-// jako AppModule/ProfilModule, nic v ní netáhne Three.js ani jinou
-// těžkou závislost, co by ospravedlnila React.lazy.
+// Vlajkové appky (viz CLAUDE.md, src/flagships/) — eager stejně jako
+// AppModule/ProfilModule, nic v nich netáhne Three.js ani jinou těžkou
+// závislost, co by ospravedlnila React.lazy.
 import SchoolRoomModule from '@/flagships/school-room/SchoolRoomModule.tsx'
+import FitnessRoomModule from '@/flagships/fitness-room/FitnessRoomModule.tsx'
 import GamesHubModule from '@/pages/games/GamesHubModule.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
@@ -200,6 +201,19 @@ export default function App() {
             element={
               dovnitr ? (
                 <SchoolRoomModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* Route pro Fitness Room (druhá vlajková appka) — stejný
+              důvod jako School Room výš. */}
+          <Route
+            path="/fitness"
+            element={
+              dovnitr ? (
+                <FitnessRoomModule />
               ) : (
                 <Navigate to="/" replace />
               )

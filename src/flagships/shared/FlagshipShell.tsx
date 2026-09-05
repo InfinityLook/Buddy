@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { AppBottomNav } from '@/components/AppBottomNav'
@@ -7,9 +7,7 @@ import {
   useNotificationItems,
 } from '@/pages/profil/components/ProfilNotifications'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
-import { useFlagshipSloty, useFlagshipWidgetsStore } from './useFlagshipWidgets'
-import { WidgetPickerSheet } from './WidgetPickerSheet'
-import type { FlagshipDlazdice, FlagshipVelkaKarta } from './types'
+import type { FlagshipVelkaKarta } from './types'
 // Sdílený s Profilem/Aplikacemi stejně jako AppModule.tsx dělá u svého
 // vlastního importu — jinak by panel notifikací zůstal bez vzhledu.
 import '@/pages/profil/ProfilModule.css'
@@ -17,22 +15,17 @@ import '@/pages/app/AppModule.css'
 import './FlagshipShell.css'
 
 interface Props {
-  /** Krátké, stabilní id appky — klíč do useFlagshipWidgets (a jednou
-   *  třeba i do dalších per-appku uložených dat). Nikdy se nemění, i
-   *  kdyby se změnil `nazev` zobrazený uživateli. */
-  id: string
   nazev: string
   popisHlavicky: string
   ikonaHlavicky: string
-  dlazdice: FlagshipDlazdice[]
+  /** Vlastní tělo obrazovky — School Room sem vloží <MujWidgetPanel>,
+   *  Fitness Room svůj vlastní přehled/cíle/rychlý trénink. Shell sám
+   *  o obsahu nic neví — jediné, co je opravdu společné napříč každou
+   *  vlajkovou appkou, je hlavička, dvě velké karty dole, spodní lišta
+   *  a panel notifikací. Viz komentář níž, proč se to takhle rozdělilo
+   *  až u druhé appky, ne hned u první. */
+  children: React.ReactNode
   velkeKarty: FlagshipVelkaKarta[]
-  /** Widgety navíc, co jdou připnout do slotů "Můj widget" (viz níž),
-   *  ale nekreslí se v pevné mřížce dlaždic — School Roomovy "Nástroje"
-   *  (Maturitní centrum, Flashcards, Math Solver, Textový editor, Mind
-   *  Map) mají vlastní rozbalovací seznam pod velkou kartou
-   *  (NastrojeSheet.tsx v SchoolRoomModule.tsx), ne místo v šestici
-   *  nahoře, ale pořád mají jít připnout stejně jako kterákoli z ní. */
-  dalsiMoznostiProSloty?: FlagshipDlazdice[]
   /** Panel upozornění drží stav appka volající shell, ne shell sám —
    *  jedna z dlaždic (School Room's "Upozornění") totiž potřebuje
    *  spustit úplně tu samou akci jako zvonek v hlavičce, a to jde jen
@@ -46,13 +39,18 @@ interface Props {
 
 // ==========================================
 // Sdílený "plášť" vlajkové appky — hlavička (zpět/titulek/zvonek/
-// avatar), karta "Můj widget" (tři vlastní sloty + pevná mřížka
-// dlaždic) a dvě velké karty dole, plus AppBottomNav. School Room je
-// první appka, co ho používá, ale je stavěný tak, aby ho příští
-// podobná appka ("Work Room" a další) jen naplnila vlastními
-// dlaždicemi/kartami — žádný kód navíc, jen data (viz School Room's
-// vlastní AskUserQuestion rozhodnutí v CLAUDE.md, proč se stavělo
-// rovnou takhle, ne jako jednorázová obrazovka).
+// avatar), vlastní tělo appky (children) a dvě velké karty dole, plus
+// AppBottomNav a panel notifikací. School Room byl první, kdo ho
+// používal, a napoprvé v sobě celý shell nesl i "Můj widget" panel
+// natvrdo — Fitness Room (druhá vlajková appka) přišel s úplně jiným
+// tělem (přehled/cíle/rychlý trénink, žádné sloty ani pevná mřížka
+// dlaždic), takže shell se rozdělil na tohle, co je doopravdy společné
+// VŠEM vlajkovým appkám, a MujWidgetPanel.tsx, co je vlastní jen
+// School Roomu (a čemukoli dalšímu, co bude tenhle konkrétní widgetový
+// vzorec chtít taky). Obecnost se tak nebuduje dopředu na základě
+// dohadu, ale až ve chvíli, kdy druhý skutečný případ ukáže, co je
+// doopravdy sdílené — přesně proto první verze shellu widgety nesla
+// natvrdo a teprve teď se to rozpojilo.
 //
 // Hlavička/notifikace/avatar jsou schválně vlastní kopie stejné logiky
 // jako AppHeader.tsx (viz src/pages/app/), ne import odsud rovnou —
@@ -65,13 +63,11 @@ interface Props {
 // ==========================================
 
 export const FlagshipShell: React.FC<Props> = ({
-  id,
   nazev,
   popisHlavicky,
   ikonaHlavicky,
-  dlazdice,
+  children,
   velkeKarty,
-  dalsiMoznostiProSloty,
   notifOpen,
   onOpenNotifications,
   onCloseNotifications,
@@ -80,18 +76,6 @@ export const FlagshipShell: React.FC<Props> = ({
   const { profile, markNotificationRead } = useProfileData()
   const notifications = useNotificationItems()
   const unreadCount = notifications.filter((item) => !profile.readNotifications.includes(item.id)).length
-
-  const [otevrenySlot, setOtevrenySlot] = useState<number | null>(null)
-
-  const sloty = useFlagshipSloty(id)
-  const nastavSlot = useFlagshipWidgetsStore((s) => s.nastavSlot)
-
-  // Sloty smí ukazovat i widget, co v pevné mřížce vůbec nemá dlaždici
-  // (viz dalsiMoznostiProSloty výš) — hledá se proto vždycky v obou
-  // polích dohromady, ne jen v dlazdice.
-  const vsechnyMoznostiProSloty = [...dlazdice, ...(dalsiMoznostiProSloty ?? [])]
-  const najitDlazdici = (widgetId: string | null) =>
-    widgetId ? vsechnyMoznostiProSloty.find((d) => d.id === widgetId) : undefined
 
   return (
     <div className="app-container fs-page">
@@ -125,74 +109,7 @@ export const FlagshipShell: React.FC<Props> = ({
         </div>
       </header>
 
-      <div className="fs-panel">
-        <div className="fs-panel-hlavicka">
-          <div>
-            <h2>Můj widget</h2>
-            <p>Přizpůsob si svůj prostor</p>
-          </div>
-          {/* Zkratka na první prázdný slot — když jsou plné všechny tři,
-              otevře aspoň první, ať tlačítko nikdy nezůstane bez akce. */}
-          <button
-            className="fs-plus-btn"
-            aria-label="Přidat widget"
-            onClick={() => {
-              const prvniPrazdny = sloty.findIndex((s) => s === null)
-              setOtevrenySlot(prvniPrazdny !== -1 ? prvniPrazdny : 0)
-            }}
-          >
-            <AppIcon name="plus" size={20} />
-          </button>
-        </div>
-
-        <div className="fs-sloty">
-          {sloty.map((widgetId, i) => {
-            const d = najitDlazdici(widgetId)
-            return (
-              <button
-                key={i}
-                className={`fs-slot ${d ? 'fs-slot--vyplneny' : ''}`}
-                onClick={() => (d ? d.onClick() : setOtevrenySlot(i))}
-              >
-                {d ? (
-                  <>
-                    <span
-                      className="fs-slot-odebrat"
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`Odebrat ${d.nazev} ze slotu`}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        nastavSlot(id, i, null)
-                      }}
-                    >
-                      <AppIcon name="x" size={12} />
-                    </span>
-                    <span className={`fs-slot-ikona fs-barva--${d.barva}`}>
-                      <AppIcon name={d.ikona} size={22} />
-                    </span>
-                    <span className="fs-slot-nazev">{d.nazev}</span>
-                  </>
-                ) : (
-                  <AppIcon name="plus" size={26} />
-                )}
-              </button>
-            )
-          })}
-        </div>
-
-        <div className="fs-dlazdice-mrizka">
-          {dlazdice.map((d) => (
-            <button key={d.id} className="fs-dlazdice" onClick={d.onClick}>
-              <span className={`fs-dlazdice-ikona fs-barva--${d.barva}`}>
-                <AppIcon name={d.ikona} size={24} />
-              </span>
-              <span className="fs-dlazdice-nazev">{d.nazev}</span>
-              <span className="fs-dlazdice-popis">{d.popis}</span>
-            </button>
-          ))}
-        </div>
-      </div>
+      {children}
 
       <div className="fs-velke-karty">
         {velkeKarty.map((k) => (
@@ -217,22 +134,6 @@ export const FlagshipShell: React.FC<Props> = ({
         onMarkRead={markNotificationRead}
         onClose={onCloseNotifications}
       />
-
-      {otevrenySlot !== null && (
-        <WidgetPickerSheet
-          moznosti={vsechnyMoznostiProSloty}
-          aktualniId={sloty[otevrenySlot]}
-          onVybrat={(widgetId) => {
-            nastavSlot(id, otevrenySlot, widgetId)
-            setOtevrenySlot(null)
-          }}
-          onOdebrat={() => {
-            nastavSlot(id, otevrenySlot, null)
-            setOtevrenySlot(null)
-          }}
-          onZavrit={() => setOtevrenySlot(null)}
-        />
-      )}
     </div>
   )
 }

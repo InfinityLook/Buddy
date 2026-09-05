@@ -90,15 +90,20 @@ const DEFAULT_APPS: AppItem[] = [
   { id: 'exam-prep', title: 'Maturitní centrum', category: 'Vzdělávání', icon: 'exam-prep', color: 'pink', active: true, favorite: true, jenVeVlajkoveAppce: true },
   { id: 'document-editor', title: 'Textový editor', category: 'Produktivita', icon: 'document-editor', color: 'green', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'finance', title: 'Finance', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false },
-  { id: 'form-check', title: 'Form Check', category: 'Nástroje', icon: 'form-check', color: 'orange', active: true, favorite: false },
+  // Přesunutý do Fitness Roomu (viz src/flagships/fitness-room/) —
+  // stejné jenVeVlajkoveAppce zacházení jako výš, jen druhá vlajková
+  // appka, ne School Room.
+  { id: 'form-check', title: 'Form Check', category: 'Nástroje', icon: 'form-check', color: 'orange', active: true, favorite: false, jenVeVlajkoveAppce: true },
   // Nová, School Roomu vlastní (appka do teď neměla vůbec) — stejné
   // zacházení jako s přesunutými výš.
   { id: 'kalendar', title: 'Kalendář', category: 'Produktivita', icon: 'calendar', color: 'cyan', active: true, favorite: false, jenVeVlajkoveAppce: true },
-  // Vlajková appka — viz AppItem.route výš a FlagshipShell.tsx. Zůstává
-  // active: true, protože tohle JE ta dlaždice, přes kterou se do
-  // School Roomu chodí; schovat by ji šlo úplně stejně jako kteroukoli
-  // jinou (toggleAppVisible), appka jí v tom nijak nebrání.
+  // Vlajkové appky — viz AppItem.route výš a FlagshipShell.tsx. Zůstávají
+  // active: true, protože tohle JSOU ty dlaždice, přes které se do
+  // School Roomu/Fitness Roomu chodí; schovat by je šlo úplně stejně
+  // jako kteroukoli jinou (toggleAppVisible), appka jim v tom nijak
+  // nebrání.
   { id: 'school-room', title: 'School Room', category: 'Vzdělávání', icon: 'layers', color: 'cyan', active: true, favorite: false, route: '/skola' },
+  { id: 'fitness-room', title: 'Fitness Room', category: 'Nástroje', icon: 'dumbbell', color: 'purple', active: true, favorite: false, route: '/fitness' },
 ]
 
 // Katalog dlaždic patří kódu, uživateli jen jeho příznaky (oblíbené,

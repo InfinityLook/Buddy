@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/core/store/useAppStore'
 import { FlagshipShell } from '../shared/FlagshipShell'
-import { NastrojeSheet } from './NastrojeSheet'
+import { MujWidgetPanel } from '../shared/MujWidgetPanel'
+import { NastrojeSheet } from '../shared/NastrojeSheet'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 
 // ==========================================
@@ -203,19 +204,20 @@ export const SchoolRoomModule: React.FC = () => {
   return (
     <>
       <FlagshipShell
-        id="school-room"
         nazev="School Room"
         popisHlavicky="Škola na jednom místě"
         ikonaHlavicky="layers"
-        dlazdice={dlazdice}
         velkeKarty={velkeKarty}
-        dalsiMoznostiProSloty={dalsiMoznostiProSloty}
         notifOpen={notifOpen}
         onOpenNotifications={() => setNotifOpen(true)}
         onCloseNotifications={() => setNotifOpen(false)}
-      />
+      >
+        <MujWidgetPanel id="school-room" dlazdice={dlazdice} dalsiMoznostiProSloty={dalsiMoznostiProSloty} />
+      </FlagshipShell>
 
-      {nastrojeOtevrene && <NastrojeSheet nastroje={nastroje} onZavrit={() => setNastrojeOtevrene(false)} />}
+      {nastrojeOtevrene && (
+        <NastrojeSheet nadpis="Nástroje" nastroje={nastroje} onZavrit={() => setNastrojeOtevrene(false)} />
+      )}
     </>
   )
 }

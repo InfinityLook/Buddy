@@ -1,0 +1,319 @@
+/* Fitness Room — vlastní tělo appky (viz FitnessRoomModule.tsx). Sdílí
+   s FlagshipShell.css jen .fs-barva--* (plné barevné čtverce ikon —
+   .fit-stat-ikona níž) a .fs-velka-karta/.fs-panel-hlavicka's obecný
+   tvar karty (.fit-panel je vlastní, ale schválně identický vzhled). */
+
+.fit-panel {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.fit-panel-hlavicka {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.fit-panel-hlavicka h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.fit-panel-hlavicka p {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.fit-historie-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.fit-historie-btn:hover {
+  border-color: var(--accent-violet);
+  color: var(--accent-violet);
+}
+
+/* ------------------------------------------
+   MOJE PŘEHLED
+   ------------------------------------------ */
+.fit-prehled-telo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.fit-postava {
+  flex-shrink: 0;
+  width: 96px;
+  height: 128px;
+  border-radius: var(--radius-md);
+  background: radial-gradient(circle at 50% 40%, rgba(138, 92, 246, 0.28), transparent 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fit-postava-emoji {
+  font-size: 3.2rem;
+  filter: drop-shadow(0 0 14px rgba(138, 92, 246, 0.5));
+}
+
+.fit-staty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+.fit-stat-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.fit-stat-ikona {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fit-stat-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fit-stat-nazev {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.fit-stat-hodnota {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.fit-stat-hodnota small {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* Appka tenhle údaj doopravdy nesleduje — jiný, tlumenější styl než
+   skutečné číslo, ať to nevypadá jako naměřená nula. */
+.fit-stat-radek--nesledujeme .fit-stat-ikona {
+  opacity: 0.5;
+}
+
+.fit-stat-hodnota-nesledujeme {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.fit-stat-delta {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  text-align: right;
+}
+
+/* ------------------------------------------
+   DNEŠNÍ CÍL
+   ------------------------------------------ */
+.fit-cile-pocet {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.fit-krouzky {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.fit-krouzek-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  text-align: center;
+}
+
+/* Kruh z conic-gradientu — stejný "vnější prstenec, vnitřní kruh
+   vystřižený pozadím" trik jako SocialAvatar's vlastní prstenec, tady
+   bez masky, jen jednodušší dvouvrstvý kruh (appka je malá, jednu
+   vrstvu navíc nepotřebuje). */
+.fit-krouzek {
+  --fit-progres: 0%;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: conic-gradient(var(--fit-ring-barva, var(--accent-cyan)) var(--fit-progres), rgba(255, 255, 255, 0.08) 0);
+}
+
+.fit-krouzek::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--bg-panel-raised);
+}
+
+.fit-krouzek svg {
+  position: relative;
+  z-index: 1;
+  color: var(--fit-ring-barva, var(--accent-cyan));
+}
+
+.fit-barva-krouzek--orange { --fit-ring-barva: var(--accent-orange); }
+.fit-barva-krouzek--purple { --fit-ring-barva: var(--accent-violet); }
+
+.fit-krouzek--brzy {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.fit-krouzek--brzy::before {
+  inset: 5px;
+}
+
+.fit-krouzek--brzy svg {
+  color: var(--text-secondary);
+}
+
+.fit-krouzek-nazev {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.fit-krouzek-hodnota {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.fit-krouzek-wrap--brzy {
+  opacity: 0.6;
+}
+
+/* ------------------------------------------
+   BAREVNÉ VARIANTY ČISTÉHO TEXTU/IKONY (bez pozadí) — na rozdíl od
+   FlagshipShell.css's .fs-barva--*, co vždycky nese vyplněný gradient
+   čtverec/kruh. Tady jde jen o zabarvení, žádná plocha okolo.
+   ------------------------------------------ */
+.fit-text--orange { color: var(--accent-orange); }
+.fit-text--purple { color: var(--accent-violet); }
+.fit-text--green { color: var(--accent-green); }
+.fit-text--cyan { color: var(--accent-cyan); }
+
+/* ------------------------------------------
+   RYCHLÝ TRÉNINK
+   ------------------------------------------ */
+.fit-zobrazit-vse {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+}
+
+.fit-treninky-mrizka {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.6rem;
+}
+
+.fit-trenink-dlazdice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 0.4rem;
+  text-align: center;
+  cursor: pointer;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.fit-trenink-dlazdice--brzy {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.fit-trenink-nazev {
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.fit-trenink-popis {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+}
+
+.fit-trenink-brzy {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  font-size: 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: var(--accent-orange);
+  background: rgba(217, 119, 6, 0.15);
+  padding: 0.1rem 0.3rem;
+  border-radius: 6px;
+}
+
+@media (max-width: 680px) {
+  .fit-krouzky,
+  .fit-treninky-mrizka {
+    gap: 0.4rem;
+  }
+
+  .fit-postava {
+    width: 76px;
+    height: 108px;
+  }
+
+  .fit-postava-emoji {
+    font-size: 2.6rem;
+  }
+}

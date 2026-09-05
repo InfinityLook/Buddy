@@ -96,6 +96,15 @@ export const AppIcon: React.FC<AppIconProps> = ({ name, size = 20, className }) 
       return <svg {...common}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
     case 'bar-chart':
       return <svg {...common}><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
+    // Fitness Room (viz FitnessRoomModule.tsx) — kalorie/trénink/kroky/spánek.
+    case 'flame':
+      return <svg {...common}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+    case 'dumbbell':
+      return <svg {...common}><rect x="2" y="9" width="3" height="6" rx="1"/><rect x="19" y="9" width="3" height="6" rx="1"/><line x1="5" x2="19" y1="12" y2="12"/><rect x="6" y="7" width="2" height="10" rx="1"/><rect x="16" y="7" width="2" height="10" rx="1"/></svg>
+    case 'moon':
+      return <svg {...common}><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+    case 'footprints':
+      return <svg {...common}><path d="M4 16v-2.38c0-1.12 1.03-2.12 1-3.62-.03-1.5-1.5-2-1.5-3.5S4.5 4 6 4s1.5 1.5 1.5 3c0 1.5-.5 2-.5 3.5s1 2.5 1 4V16"/><path d="M16 20v-2.38c0-1.12 1.03-2.12 1-3.62-.03-1.5-1.5-2-1.5-3.5S16.5 8 18 8s1.5 1.5 1.5 3c0 1.5-.5 2-.5 3.5s1 2.5 1 4V20"/></svg>
     // Hlavička School Roomu (a dalších vlajkových appek) — vrstvy jako
     // "hodně věcí naskládaných na jednom místě".
     case 'layers':
