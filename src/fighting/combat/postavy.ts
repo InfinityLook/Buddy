@@ -64,6 +64,12 @@ export interface Postava {
    *  'stit'/'dvojity-zasah' tohle číslo nepoužívají (efekt je binární,
    *  ne odstupňovaný). */
   specialniSila: number
+  /** Deváté kolo vylepšení — jedna krátká předzápasová hláška, čistě
+   *  kosmetická (jen text, engine.ts na ni nikde nekouká) — zobrazí se
+   *  na úvodní "VS" obrazovce (viz TvHost.tsx/LocalniZapas.tsx's
+   *  introAktivni) pod jménem postavy, ať intro necítí jako holé jméno
+   *  + obrázek, ale jako skutečný okamžik před bojem. */
+  hlaska: string
 }
 
 // Onyx má všechny násobiče přesně 1.0 kromě dosahu (jeho vlastní
@@ -87,6 +93,7 @@ export const POSTAVY: Record<PostavaId, Postava> = {
     nazevSpecialu: 'Stínový zásah',
     specialEfekt: 'vysati',
     specialniSila: 0.5,
+    hlaska: 'Stín tě už našel.',
   },
   pyra: {
     id: 'pyra',
@@ -102,6 +109,7 @@ export const POSTAVY: Record<PostavaId, Postava> = {
     nazevSpecialu: 'Plamenný výpad',
     specialEfekt: 'poskozeni',
     specialniSila: 1.5,
+    hlaska: 'Shoříš dřív, než se nadechneš.',
   },
   bulwark: {
     id: 'bulwark',
@@ -117,6 +125,7 @@ export const POSTAVY: Record<PostavaId, Postava> = {
     nazevSpecialu: 'Drtivý úder štítem',
     specialEfekt: 'stit',
     specialniSila: 0,
+    hlaska: 'O mě se rozbije všechno.',
   },
   volt: {
     id: 'volt',
@@ -132,6 +141,7 @@ export const POSTAVY: Record<PostavaId, Postava> = {
     nazevSpecialu: 'Bleskový výboj',
     specialEfekt: 'dvojity-zasah',
     specialniSila: 0,
+    hlaska: 'Neuvidíš mě přicházet.',
   },
 }
 

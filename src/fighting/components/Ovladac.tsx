@@ -6,7 +6,7 @@ import { VirtualniJoystick } from '@/game/components/VirtualniJoystick'
 import { pripojSeJakoOvladac } from '../network'
 import { zavibrujProhru, zavibrujRemizu, zavibrujTlacitko, zavibrujVyhru } from '../haptika'
 import { useSoubojStatistikyStore } from '../useSoubojStatistikyStore'
-import { VSECHNY_POSTAVY } from '../combat/postavy'
+import { POSTAVY, VSECHNY_POSTAVY } from '../combat/postavy'
 import type { PostavaId } from '../combat/postavy'
 import { RYCHLE_EMOTE } from '../types'
 import type { KonecZapasuPayload, PripojenoPayload, Smer, Tlacitko } from '../types'
@@ -65,6 +65,10 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
   // připojení samotné.
   const [zobrazStatistiky, setZobrazStatistiky] = useState(false)
   const vysledky = useSoubojStatistikyStore((s) => s.vysledky)
+  // Deváté kolo vylepšení — historie posledních zápasů (viz
+  // useSoubojStatistikyStore.ts's vlastní komentář, proč bez soupeřovy
+  // postavy — appka ji vůbec nezná).
+  const historie = useSoubojStatistikyStore((s) => s.historie)
   const hracIdRef = useRef(vygenerujHracId())
   const spravaRef = useRef<ReturnType<typeof pripojSeJakoOvladac> | null>(null)
   // Handler konecZapasu se registruje jednou při připojení (viz efekt níž),
@@ -194,6 +198,29 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
             )
           })}
         </div>
+
+        {/* Deváté kolo vylepšení — historie posledních zápasů, pod
+            přehledem podle postavy, nejnovější první. */}
+        <p className="souboj-historie-nadpis">Poslední zápasy</p>
+        {historie.length === 0 ? (
+          <p className="souboj-statistiky-prazdno souboj-historie-prazdno">Zatím žádný odehraný zápas</p>
+        ) : (
+          <div className="souboj-historie-seznam">
+            {historie.map((z, i) => (
+              <div key={i} className={`souboj-historie-radek souboj-historie-radek--${z.vysledek}`}>
+                <span className="souboj-historie-postava">
+                  {POSTAVY[z.postavaId].ikona} {POSTAVY[z.postavaId].jmeno}
+                </span>
+                <span className="souboj-historie-vysledek">
+                  {z.vysledek === 'vyhra' ? 'Výhra' : z.vysledek === 'prohra' ? 'Prohra' : 'Remíza'}
+                </span>
+                <span className="souboj-historie-cas">
+                  {new Date(z.kdy).toLocaleString('cs-CZ', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     )
   }

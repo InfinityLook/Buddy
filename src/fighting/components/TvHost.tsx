@@ -4,17 +4,20 @@ import { ARENA_SIRKA, krokSouboje, vytvorSoubojStav } from '../combat/engine'
 import {
   aktualizujStatistikyZapasu,
   HIT_STOP_MS,
+  INTRO_MS,
+  KO_HIT_STOP_MS,
   prazdneStatistikyZapasu,
   sestavVstup,
   type StatistikyZapasu,
 } from '../combat/loop'
 import { nahodnaPostava, pripravAkciAi } from '../combat/ai'
+import { POSTAVY } from '../combat/postavy'
 import type { PostavaId } from '../combat/postavy'
 import type { HracVstup, SoubojMoznosti, SoubojStav } from '../combat/types'
 import type { EmotePayload, PripojitPayload, Smer, Tlacitko, VstupPayload } from '../types'
 import { Bojiste } from './Bojiste'
 import { PostavaGrafika } from './PostavaGrafika'
-import { ARENY, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
+import { ARENY, nahodnaArena, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
 // Vlastní import, ne spoléhání na to, že FightingModule.tsx ho už
 // natáhl — appka jednou přišla o styl přesně tímhle předpokladem
 // (viz GameModule.css/TvorbaPostavy.tsx v CLAUDE.md), CSS import je
@@ -96,14 +99,6 @@ const HANDICAP_MANA_NASOBIC = 1.75
 // (combat/ai.ts) místo přes živě držený stav tlačítek z broadcastu.
 const AI_HRAC_ID = 'pocitac-ai'
 
-// Sedmé kolo vylepšení — úvodní "VS" obrazovka mezi tím, co jsou oba
-// sloty připravené (pripraveno === true), a tím, co skutečně začne
-// běžet zápas — appka to schválně NEDĚLÁ jako vrstvu NAD už běžícím
-// zápasem, ale jako skutečné zpoždění startu (viz efekt níž), ať se
-// hráčům nezačne odpočítávat čas kola nebo přehrávat zvuk zásahu dřív,
-// než vůbec uvidí, proti komu hrají.
-const INTRO_MS = 2200
-
 // ==========================================
 // TV strana — vygeneruje kód místnosti, přiděluje připojující se
 // ovladače na sloty 1/2 a čeká, dokud oba nemají zvolenou postavu (buď
@@ -127,7 +122,7 @@ const INTRO_MS = 2200
 // vykreslení nad ní. Screen shake a KO zoom (druhá polovina stejného
 // kola) jsou naopak čistě prezentační, ty zůstávají v Bojiste.tsx.
 //
-// Sedmé kolo vylepšení přidalo úvodní "VS" obrazovku (INTRO_MS výš) —
+// Sedmé kolo vylepšení přidalo úvodní "VS" obrazovku (combat/loop.ts's INTRO_MS) —
 // zápas se teď doopravdy NEZAČNE hrát, dokud tahle obrazovka
 // doběhne (viz introAktivni v obou navazujících efektech), ne že by
 // se zápas rozjel na pozadí a intro nad ním jen chvíli viselo jako
@@ -143,6 +138,16 @@ const INTRO_MS = 2200
 // zápasu (statistikyRef) appka sčítá přes CELÝ zápas na každém tiku
 // herní smyčky, ne až na jeho konci, ať nemusí znovu procházet
 // historii kol, co už dávno skončila.
+//
+// Deváté kolo vylepšení přidalo předzápasovou hlášku postavy na "VS"
+// obrazovku (Postava.hlaska, combat/postavy.ts), tlačítko "Náhodná
+// aréna" vedle ruční volby (arena/areny.ts's nahodnaArena), delší
+// hit-stop na skutečný knokaut (KO_HIT_STOP_MS — sladěno s Bojiste.tsx's
+// "zpomaleným" odhalením vítězného textu) a řádek "nejtěsnější moment"
+// v přehledu zápasu (statistikyRef.current.nejtesnejsiRozdilHp,
+// combat/loop.ts). Hlasový komentátor (komentator.ts) a bonusový
+// předmět v aréně žádnou vlastní TV-stranu logiku nepotřebují — obojí
+// je čistě v enginu/Bojiste.tsx, tady se to jinak vůbec nezmiňuje.
 // ==========================================
 
 export const TvHost: React.FC<Props> = ({ onZpet }) => {
@@ -163,7 +168,7 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
   // neposílá na síť (viz areny.ts's vlastní komentář), takže druhý
   // hráč o ní ani nemusí vědět, jen ji uvidí na TV.
   const [arenaId, setArenaId] = useState<ArenaId>(VYCHOZI_ARENA)
-  // Sedmé kolo vylepšení — úvodní "VS" obrazovka (viz INTRO_MS výš).
+  // Sedmé kolo vylepšení — úvodní "VS" obrazovka (viz combat/loop.ts's INTRO_MS).
   const [introAktivni, setIntroAktivni] = useState(false)
   // Osmé kolo vylepšení — volby zápasu, zvolené na čekací obrazovce
   // stejně jako aréna výš, a odtud dál po celý zápas neměnné (appka
@@ -361,12 +366,20 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
 
         // Skutečně dopadlý zásah (HP kleslo oproti hodnotě PŘED tímhle
         // tikem) natáhne hit-stop — zamrznutí se projeví od úplně
-        // příštího požadovaného snímku, prakticky okamžitě.
-        if (
+        // příštího požadovaného snímku, prakticky okamžitě. Deváté
+        // kolo vylepšení — pokud tenhle konkrétní zásah někoho SRAZIL
+        // NA 0 HP (skutečný knokaut, ne jen obyčejný zásah), appka
+        // natáhne delší KO_HIT_STOP_MS místo obyčejného HIT_STOP_MS,
+        // sladěno s Bojiste.tsx's vlastním "zpomaleným" odhalením
+        // vítězného textu.
+        const hpKleslo =
           soubojStavRef.current.hraci[0].hp < hpPredTikem[0] ||
           soubojStavRef.current.hraci[1].hp < hpPredTikem[1]
-        ) {
-          hitStopMsRef.current = HIT_STOP_MS
+        if (hpKleslo) {
+          const koTetoRundy =
+            (soubojStavRef.current.hraci[0].hp <= 0 && hpPredTikem[0] > 0) ||
+            (soubojStavRef.current.hraci[1].hp <= 0 && hpPredTikem[1] > 0)
+          hitStopMsRef.current = koTetoRundy ? KO_HIT_STOP_MS : HIT_STOP_MS
         }
 
         // Přesně na PŘECHODU 'probiha' → 'konec', ne na každém dalším
@@ -474,11 +487,14 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
           <div className="souboj-intro-bojovnik souboj-intro-bojovnik--1">
             <PostavaGrafika postavaId={hraci[0]?.postavaId ?? 'onyx'} size={96} />
             <span className="souboj-intro-jmeno">{hraci[0]?.jmeno ?? 'Hráč 1'}</span>
+            {/* Deváté kolo vylepšení — hláška postavy (Postava.hlaska). */}
+            <span className="souboj-intro-hlaska">„{POSTAVY[hraci[0]?.postavaId ?? 'onyx'].hlaska}“</span>
           </div>
           <span className="souboj-intro-vs">VS</span>
           <div className="souboj-intro-bojovnik souboj-intro-bojovnik--2">
             <PostavaGrafika postavaId={hraci[1]?.postavaId ?? 'onyx'} size={96} />
             <span className="souboj-intro-jmeno">{hraci[1]?.jmeno ?? 'Hráč 2'}</span>
+            <span className="souboj-intro-hlaska">„{POSTAVY[hraci[1]?.postavaId ?? 'onyx'].hlaska}“</span>
           </div>
         </div>
       ) : soubojStav ? (
@@ -520,6 +536,17 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
                   {statistikyRef.current.perfektniBloky[0]} : {statistikyRef.current.perfektniBloky[1]}
                 </span>
               </span>
+              {/* Deváté kolo vylepšení — "nejlepší moment zápasu" (viz
+                  combat/loop.ts's nejtesnejsiRozdilHp). null jen tehdy,
+                  když appka ani jedno kolo nestihla dopočítat, prakticky
+                  nedosažitelné tady (zapasSkoncil je vždy až PO aspoň
+                  jednom skončeném kole) — appka to přesto ošetřuje. */}
+              {statistikyRef.current.nejtesnejsiRozdilHp !== null && (
+                <span className="souboj-recap-radek">
+                  <span>🏆 Nejtěsnější moment</span>
+                  <span>rozdíl {Math.round(statistikyRef.current.nejtesnejsiRozdilHp)} HP</span>
+                </span>
+              )}
             </div>
           )}
 
@@ -553,6 +580,16 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
                 {a.nebezpeciOkraje ? ' ⚠️' : ''}
               </button>
             ))}
+            {/* Deváté kolo vylepšení — "překvapte mě" zkratka, stejný
+                injektovatelný nahodnaArena jako combat/ai.ts's
+                nahodnaPostava, jen pro arénu. */}
+            <button
+              type="button"
+              className="souboj-arena-volba souboj-arena-volba--nahodna"
+              onClick={() => setArenaId(nahodnaArena())}
+            >
+              🎲 Náhodná
+            </button>
           </div>
 
           {/* Osmé kolo vylepšení — volby zápasu. Trénink schovává délku

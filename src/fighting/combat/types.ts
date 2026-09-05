@@ -138,4 +138,12 @@ export interface SoubojStav {
    *  Slouží jen k odvození toho, jak dlouho už náhlá smrt běží (pro
    *  narůstající násobič poškození, viz engine.ts). */
   suddenDeathOd: number | null
+  /** Deváté kolo vylepšení — jeden bonusový předmět za kolo, spadlý
+   *  doprostřed arény (viz engine.ts's PICKUP_*). Pozice/typ se
+   *  losují jednou při vytvorSoubojStav() a dál se nemění — jen
+   *  `pickupSebran` se přepne na true, jakmile ho někdo sebere. Žádné
+   *  respawnování v rámci jednoho kola, ani v tréninku. */
+  pickupPozice: number
+  pickupTyp: 'mana' | 'stit'
+  pickupSebran: boolean
 }

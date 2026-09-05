@@ -96,3 +96,12 @@ export const ARENY: Record<ArenaId, Arena> = {
 export const VYCHOZI_ARENA: ArenaId = 'louka'
 
 export const SEZNAM_AREN: Arena[] = Object.values(ARENY)
+
+/** Deváté kolo vylepšení — "překvapte mě" tlačítko vedle ruční volby
+ *  arény (TvHost.tsx/LocalniZapas.tsx's čekací obrazovka). Stejný
+ *  injektovatelný `nahodne` vzor jako combat/ai.ts's nahodnaPostava —
+ *  čistě pro determinismus testů, výběr arény samotné totiž není nic,
+ *  co by muselo zůstat synchronní mezi dvěma zařízeními (viz Arena
+ *  vlastní komentář nahoře, proč se nikdy neposílá po síti). */
+export const nahodnaArena = (nahodne: () => number = Math.random): ArenaId =>
+  SEZNAM_AREN[Math.min(SEZNAM_AREN.length - 1, Math.floor(nahodne() * SEZNAM_AREN.length))].id

@@ -3,18 +3,22 @@ import { ARENA_SIRKA, krokSouboje, vytvorSoubojStav } from '../combat/engine'
 import {
   aktualizujStatistikyZapasu,
   HIT_STOP_MS,
+  INTRO_MS,
+  KO_HIT_STOP_MS,
   prazdneStatistikyZapasu,
   sestavVstup,
   type StatistikyZapasu,
 } from '../combat/loop'
 import { useSoubojStatistikyStore } from '../useSoubojStatistikyStore'
 import { zavibrujTlacitko } from '../haptika'
+import { POSTAVY } from '../combat/postavy'
 import type { PostavaId } from '../combat/postavy'
 import type { SoubojMoznosti, SoubojStav } from '../combat/types'
 import { RYCHLE_EMOTE } from '../types'
 import type { Smer, Tlacitko } from '../types'
-import { ARENY, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
+import { ARENY, nahodnaArena, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
 import { Bojiste } from './Bojiste'
+import { PostavaGrafika } from './PostavaGrafika'
 import { VyberPostavy } from './VyberPostavy'
 import '../FightingModule.css'
 
@@ -44,6 +48,21 @@ const HANDICAP_MANA_NASOBIC = 1.75
 const EMOTE_TRVANI_MS = 2500
 
 type Krok = 'vyberP1' | 'vyberP2' | 'priprava' | 'hra'
+
+/** Deváté kolo vylepšení — rychlá odveta. Modulová proměnná (ne
+ *  component-level stav) — musí přežít i úplné opuštění téhle
+ *  obrazovky (onZpet unmountuje celou komponentu, viz FightingModule.tsx),
+ *  ať appka nabídne "hrát znovu se stejnými bojovníky" i po návratu do
+ *  menu her a zpátky, ne jen v rámci jednoho zápasu. */
+interface PosledniNastaveniLokalu {
+  postava0: PostavaId
+  postava1: PostavaId
+  arenaId: ArenaId
+  treninkovyRezim: boolean
+  pocetNaVyhru: number
+  handicapPro: 0 | 1 | null
+}
+let posledniNastaveniLokalu: PosledniNastaveniLokalu | null = null
 
 // ==========================================
 // Vylepšení — lokální režim, obě strany na JEDNOM zařízení, žádná síť
@@ -110,6 +129,12 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
 
   const soubojStavRef = useRef<SoubojStav | null>(null)
   const hitStopMsRef = useRef(0)
+  // Deváté kolo vylepšení — úvodní "VS" obrazovka, stejná INTRO_MS
+  // konstanta a stejné "zápas se doopravdy NEZAČNE hrát, dokud tahle
+  // obrazovka doběhne" chování jako TvHost.tsx (viz jeho vlastní
+  // komentář) — appka to tu dřív vůbec neměla, protože LocalniZapas
+  // vznikl až PO téhle fázi na TV straně.
+  const [introAktivni, setIntroAktivni] = useState(false)
 
   // Dva nezávislé páry refů, jeden za hráče — stejný tvar, jaký by
   // jinak dorazil přes broadcast (viz TvHost.tsx), jen naplňovaný
@@ -132,8 +157,28 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
     hazardOkraju: ARENY[arenaId].nebezpeciOkraje,
   })
 
+  // Deváté kolo vylepšení — jakmile appka vstoupí do kroku 'hra',
+  // nejdřív na INTRO_MS ukáže "VS" obrazovku (viz JSX níž) a teprve
+  // POTOM (efekt pod tímhle, závislý i na introAktivni) vytvoří
+  // SoubojStav a spustí herní smyčku — stejné dvoufázové spouštění
+  // jako TvHost.tsx's vlastní introAktivni efekt.
   useEffect(() => {
-    if (krok !== 'hra' || !postava0 || !postava1) return
+    if (krok !== 'hra') {
+      setIntroAktivni(false)
+      return
+    }
+    setIntroAktivni(true)
+    const id = window.setTimeout(() => setIntroAktivni(false), INTRO_MS)
+    return () => window.clearTimeout(id)
+  }, [krok])
+
+  useEffect(() => {
+    if (krok !== 'hra' || introAktivni || !postava0 || !postava1) return
+    // Deváté kolo vylepšení — rychlá odveta si tady zapamatuje
+    // aktuální volby, ať je "🔁 Rychlá odveta" na úvodní obrazovce má
+    // po příštím otevření komponenty k dispozici (viz posledniNastaveniLokalu
+    // výš, proč modulová proměnná, ne stav).
+    posledniNastaveniLokalu = { postava0, postava1, arenaId, treninkovyRezim, pocetNaVyhru, handicapPro }
     const novyStav = vytvorSoubojStav(POZICE_START[0], POZICE_START[1], postava0, postava1, sestavMoznosti())
     soubojStavRef.current = novyStav
     setSoubojStav(novyStav)
@@ -177,11 +222,17 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
           statistikyRef.current
         )
 
-        if (
+        // Deváté kolo vylepšení — delší hit-stop na skutečný knokaut,
+        // stejná logika jako TvHost.tsx's vlastní tik (viz jeho
+        // komentář).
+        const hpKleslo =
           soubojStavRef.current.hraci[0].hp < hpPredTikem[0] ||
           soubojStavRef.current.hraci[1].hp < hpPredTikem[1]
-        ) {
-          hitStopMsRef.current = HIT_STOP_MS
+        if (hpKleslo) {
+          const koTetoRundy =
+            (soubojStavRef.current.hraci[0].hp <= 0 && hpPredTikem[0] > 0) ||
+            (soubojStavRef.current.hraci[1].hp <= 0 && hpPredTikem[1] > 0)
+          hitStopMsRef.current = koTetoRundy ? KO_HIT_STOP_MS : HIT_STOP_MS
         }
 
         // Osmé kolo vylepšení — zápas na víc kol, stejný přechodový
@@ -224,7 +275,7 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
 
     idPozadavku = requestAnimationFrame(tik)
     return () => cancelAnimationFrame(idPozadavku)
-  }, [krok, postava0, postava1])
+  }, [krok, introAktivni, postava0, postava1])
 
   // Společný krok obou tlačítek níž — vytvoří čerstvé kolo od začátku,
   // beze změny skóre (stejný "zacniKolo"/"dalsiKolo"/"novyZapas" tvar
@@ -276,6 +327,33 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
           </button>
           <h1 className="souboj-title">{krok === 'vyberP1' ? 'Hráč 1 (levá strana)' : 'Hráč 2 (pravá strana)'}</h1>
         </header>
+
+        {/* Deváté kolo vylepšení — rychlá odveta, jen na úplně první
+            obrazovce a jen když má appka z čeho vycházet (viz
+            posledniNastaveniLokalu výš) — jedno tlačítko rovnou skočí
+            do 'hra' se stejnými bojovníky/arénou/volbami jako minule,
+            žádné dva výběry postavy ani znovu 'priprava' navíc. */}
+        {krok === 'vyberP1' && posledniNastaveniLokalu && (
+          <button
+            type="button"
+            className="souboj-postava-nahodna"
+            onClick={() => {
+              const n = posledniNastaveniLokalu
+              if (!n) return
+              setPostava0(n.postava0)
+              setPostava1(n.postava1)
+              setArenaId(n.arenaId)
+              setTreninkovyRezim(n.treninkovyRezim)
+              setPocetNaVyhru(n.pocetNaVyhru)
+              setHandicapPro(n.handicapPro)
+              setKrok('hra')
+            }}
+          >
+            🔁 Rychlá odveta ({POSTAVY[posledniNastaveniLokalu.postava0].jmeno} vs.{' '}
+            {POSTAVY[posledniNastaveniLokalu.postava1].jmeno})
+          </button>
+        )}
+
         <VyberPostavy
           onVybrano={(id) => {
             if (krok === 'vyberP1') {
@@ -313,6 +391,13 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
               {a.nebezpeciOkraje ? ' ⚠️' : ''}
             </button>
           ))}
+          <button
+            type="button"
+            className="souboj-arena-volba souboj-arena-volba--nahodna"
+            onClick={() => setArenaId(nahodnaArena())}
+          >
+            🎲 Náhodná
+          </button>
         </div>
 
         <button
@@ -382,7 +467,22 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
         <h1 className="souboj-title">Lokální zápas</h1>
       </header>
 
-      {soubojStav && (
+      {introAktivni ? (
+        <div className="souboj-intro" aria-label="Zápas začíná">
+          <div className="souboj-intro-bojovnik souboj-intro-bojovnik--1">
+            <PostavaGrafika postavaId={postava0 ?? 'onyx'} size={96} />
+            <span className="souboj-intro-jmeno">Hráč 1</span>
+            <span className="souboj-intro-hlaska">„{POSTAVY[postava0 ?? 'onyx'].hlaska}“</span>
+          </div>
+          <span className="souboj-intro-vs">VS</span>
+          <div className="souboj-intro-bojovnik souboj-intro-bojovnik--2">
+            <PostavaGrafika postavaId={postava1 ?? 'onyx'} size={96} />
+            <span className="souboj-intro-jmeno">Hráč 2</span>
+            <span className="souboj-intro-hlaska">„{POSTAVY[postava1 ?? 'onyx'].hlaska}“</span>
+          </div>
+        </div>
+      ) : (
+        soubojStav && (
         <>
           {!treninkovyRezim && (
             <div className="souboj-skore-pruh" aria-label="Skóre zápasu">
@@ -417,6 +517,12 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
                   {statistikyRef.current.perfektniBloky[0]} : {statistikyRef.current.perfektniBloky[1]}
                 </span>
               </span>
+              {statistikyRef.current.nejtesnejsiRozdilHp !== null && (
+                <span className="souboj-recap-radek">
+                  <span>🏆 Nejtěsnější moment</span>
+                  <span>rozdíl {Math.round(statistikyRef.current.nejtesnejsiRozdilHp)} HP</span>
+                </span>
+              )}
             </div>
           )}
 
@@ -431,6 +537,7 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
               </button>
             ))}
         </>
+        )
       )}
 
       {/* Dva samostatné ovládací klastry na téže obrazovce — levý pro

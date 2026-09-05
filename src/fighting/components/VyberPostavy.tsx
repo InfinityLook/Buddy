@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { VSECHNY_POSTAVY } from '../combat/postavy'
 import type { PostavaId, VariantaPostavy } from '../combat/postavy'
+import { nahodnaPostava } from '../combat/ai'
 import { jeZlataOdemcena, ZAPASU_PRO_ODEMKNUTI_ZLATE, pocetOdehranychZapasu } from '../kosmetika'
 import { PostavaGrafika } from './PostavaGrafika'
 import '../FightingModule.css'
@@ -25,6 +26,12 @@ interface Props {
 // hlavního výběrového tlačítka karty, ne jeho potomek — <button>
 // uvnitř <button> je neplatné HTML, stejné pravidlo, jaké appka
 // dodržuje i jinde (PostavaKarta v RPG, sociální řádky).
+//
+// Deváté kolo vylepšení přidalo "Překvapte mě" — rovnou zavolá
+// onVybrano(nahodnaPostava()) (combat/ai.ts, stejná funkce, jakou už
+// používá počítačový soupeř ve Fázi 5), žádné dvoukrokové "vyber pak
+// potvrď" navíc, přesně proto, že jde o rychlou zkratku, ne o další
+// rozhodování.
 // ==========================================
 
 export const VyberPostavy: React.FC<Props> = ({ onVybrano }) => {
@@ -95,6 +102,10 @@ export const VyberPostavy: React.FC<Props> = ({ onVybrano }) => {
         onClick={() => vybrana && onVybrano(vybrana)}
       >
         Pokračovat
+      </button>
+
+      <button type="button" className="souboj-postava-nahodna" onClick={() => onVybrano(nahodnaPostava())}>
+        🎲 Překvapte mě
       </button>
     </div>
   )

@@ -30,6 +30,26 @@ const PORADI_AKCI: UtocnaAkce[] = ['udar', 'kop', 'specialni']
  *  souboru do core/utils, jen v menším měřítku. */
 export const HIT_STOP_MS = 90
 
+/** Deváté kolo vylepšení — "zpomalený" knokaut. Appka nemá žádný
+ *  skutečný replay/rewind (SoubojStav si historii kol nepamatuje,
+ *  jen ten aktuální snímek) — místo toho jde o POCTIVĚ pojmenovanou
+ *  dramatickou pauzu: na tik, který skutečně srazí poraženého na 0
+ *  HP (ne na obyčejný zásah, ani na rozhodnutí časovým limitem/náhlou
+ *  smrtí), appka natáhne hit-stop na tenhle násobně delší čas místo
+ *  obyčejného HIT_STOP_MS — a Bojiste.tsx k tomu navíc zpozdí, kdy se
+ *  objeví "Knokaut!"/vítězný pruh (viz jeho vlastní komentář), ať ta
+ *  déle trvající pauza doopravdy PŮSOBÍ jako zpomalený závěr, ne jen
+ *  jako o kousek delší cuknutí. */
+export const KO_HIT_STOP_MS = 480
+
+/** Deváté kolo vylepšení — úvodní "VS" obrazovka, sdílená konstanta pro
+ *  TvHost.tsx (kde vznikla) i LocalniZapas.tsx (kde teď taky běží,
+ *  ať oba režimy dávají hráčům stejnou chvíli vidět, proti komu hrají,
+ *  než začne odpočítávat čas/hit-stop/zvuk). Stejné "promuj do
+ *  sdíleného modulu, jakmile ho potřebuje druhý vlastník smyčky"
+ *  pravidlo jako HIT_STOP_MS výš. */
+export const INTRO_MS = 2200
+
 /** Najde tlačítko, které přešlo z "nedrženo" na "drženo" právě mezi
  *  dvěma po sobě jdoucími stavy tlačítek z ovladače — edge detekce,
  *  ne "je drženo". Engine (Fáze 1) chce vědět jen o čerstvém stisku,
@@ -127,12 +147,20 @@ export interface StatistikyZapasu {
   nejdelsiKombo: [number, number]
   zasahy: [number, number]
   perfektniBloky: [number, number]
+  /** Deváté kolo vylepšení — "nejlepší moment zápasu". Nejmenší rozdíl
+   *  HP, na jaký kdy KTERÉKOLI kolo tohohle zápasu doopravdy skončilo
+   *  (stavKola přešlo do 'konec') — null, dokud žádné kolo neskončilo.
+   *  Na rozdíl od trojice výš tohle NENÍ per-hráč, je to vlastnost
+   *  KOLA jako celku (jak těsný byl výsledek), proto jedno číslo, ne
+   *  dvojice. */
+  nejtesnejsiRozdilHp: number | null
 }
 
 export const prazdneStatistikyZapasu = (): StatistikyZapasu => ({
   nejdelsiKombo: [0, 0],
   zasahy: [0, 0],
   perfektniBloky: [0, 0],
+  nejtesnejsiRozdilHp: null,
 })
 
 /** Porovná dva po sobě jdoucí SoubojStav (jeden tik od sebe) a vrátí
@@ -154,6 +182,7 @@ export const aktualizujStatistikyZapasu = (
     nejdelsiKombo: [...akumulator.nejdelsiKombo],
     zasahy: [...akumulator.zasahy],
     perfektniBloky: [...akumulator.perfektniBloky],
+    nejtesnejsiRozdilHp: akumulator.nejtesnejsiRozdilHp,
   }
 
   ;([0, 1] as const).forEach((i) => {
@@ -162,6 +191,17 @@ export const aktualizujStatistikyZapasu = (
     if (novy.hraci[druhy].hp < predchozi.hraci[druhy].hp) dalsi.zasahy[i] += 1
     if (jeParry(novy.hraci[i]) && !jeParry(predchozi.hraci[i])) dalsi.perfektniBloky[i] += 1
   })
+
+  // "Nejlepší moment" — jak těsný byl výsledek KTERÉHOKOLI kola, ne
+  // jen posledního. Počítá se přesně na přechodu 'probiha' → 'konec',
+  // stejná "chyť hranu, ne držený stav" disciplína jako zbytek téhle
+  // funkce (perfektní bloky výš).
+  if (predchozi.stavKola === 'probiha' && novy.stavKola === 'konec') {
+    const rozdil = Math.abs(novy.hraci[0].hp - novy.hraci[1].hp)
+    if (dalsi.nejtesnejsiRozdilHp === null || rozdil < dalsi.nejtesnejsiRozdilHp) {
+      dalsi.nejtesnejsiRozdilHp = rozdil
+    }
+  }
 
   return dalsi
 }

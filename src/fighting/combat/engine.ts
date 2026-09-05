@@ -80,6 +80,13 @@ export const SUDDEN_DEATH_NASOBIC_STROP = 3
  *  mají zapnutý (viz arena/areny.ts's Arena.nebezpeciOkraje). */
 export const HAZARD_OKRAJE_PRAH = 24
 export const HAZARD_OKRAJE_POSKOZENI = 8
+/** Deváté kolo vylepšení — bonusový předmět v aréně. Objeví se až po
+ *  PICKUP_DOSTUPNY_OD_MS (ať round nezačíná automatickou odměnou dřív,
+ *  než se vůbec něco odehraje) a sebere ho, kdo se k němu dostane
+ *  první — PICKUP_DOSAH je stejná škála jako HAZARD_OKRAJE_PRAH výš
+ *  (logické jednotky arény, ne procenta). */
+export const PICKUP_DOSTUPNY_OD_MS = 10000
+export const PICKUP_DOSAH = 30
 
 /** Osmé kolo vylepšení — výchozí volby zápasu, pro `vytvorSoubojStav`
  *  volané bez pátého argumentu (testy Fáze 1–7 na to spoléhají) a pro
@@ -146,12 +153,17 @@ export const efektivniAkceData = (postavaId: PostavaId, akce: UtocnaAkce): AkceD
   }
 }
 
+/** Deváté kolo vylepšení — `nahodne` injektovatelné jen kvůli
+ *  testovatelnosti (stejný důvod jako combat/ai.ts's nahodnaPostava),
+ *  ne kvůli replay/sync požadavku — pickup se losuje jednou tady, na
+ *  TV, která je jediná strana, co engine doopravdy simuluje. */
 export const vytvorSoubojStav = (
   pozice0: number,
   pozice1: number,
   postava0: PostavaId = VYCHOZI_POSTAVA,
   postava1: PostavaId = VYCHOZI_POSTAVA,
-  moznosti: SoubojMoznosti = VYCHOZI_MOZNOSTI
+  moznosti: SoubojMoznosti = VYCHOZI_MOZNOSTI,
+  nahodne: () => number = Math.random
 ): SoubojStav => ({
   hraci: [vytvorBojovnika(pozice0, postava0), vytvorBojovnika(pozice1, postava1)],
   cas: 0,
@@ -160,6 +172,12 @@ export const vytvorSoubojStav = (
   moznosti,
   suddenDeath: false,
   suddenDeathOd: null,
+  // Pickup se schválně losuje jen do prostřední poloviny arény, ne
+  // až ke krajům — ať je vždycky doopravdy dosažitelný pro obě strany
+  // z jejich startovní pozice.
+  pickupPozice: ARENA_SIRKA * 0.25 + nahodne() * ARENA_SIRKA * 0.5,
+  pickupTyp: nahodne() < 0.5 ? 'mana' : 'stit',
+  pickupSebran: false,
 })
 
 interface VysledekTiku {
@@ -482,6 +500,24 @@ export const krokSouboje = (stav: SoubojStav, vstupy: [HracVstup, HracVstup], de
 
   const novyCas = stav.cas + deltaMs
 
+  // Deváté kolo vylepšení — sebrání pickupu, počítané PŘED tréninkovou
+  // větví níž (tréninkové kolo taky pickup umí sebrat, jen se pak
+  // nikdy neresetuje, protože v tréninku žádné nové kolo nezačíná).
+  // Pevné pořadí 0 pak 1, stejný "kdo se stihne dřív" determinismus
+  // jako zbytek enginu.
+  let pickupSebran = stav.pickupSebran
+  if (!pickupSebran && novyCas >= PICKUP_DOSTUPNY_OD_MS) {
+    for (const idx of [0, 1] as const) {
+      if (pickupSebran) break
+      if (Math.abs(hraci[idx].pozice - stav.pickupPozice) > PICKUP_DOSAH) continue
+      const b = hraci[idx]
+      const posilneny: BojovnikStav =
+        stav.pickupTyp === 'mana' ? { ...b, mana: b.maxMana } : { ...b, stitAktivni: true }
+      hraci = idx === 0 ? [posilneny, hraci[1]] : [hraci[0], posilneny]
+      pickupSebran = true
+    }
+  }
+
   if (moznosti.treninkovyRezim) {
     // Trénink — HP se nesmí propadnout na 0 (drženo aspoň na 1, ať
     // pruh pořád ukazuje skutečné poškození) a časový limit/náhlá smrt
@@ -491,7 +527,7 @@ export const krokSouboje = (stav: SoubojStav, vstupy: [HracVstup, HracVstup], de
       { ...hraci[0], hp: Math.max(1, hraci[0].hp) },
       { ...hraci[1], hp: Math.max(1, hraci[1].hp) },
     ]
-    return { ...stav, hraci, cas: novyCas, vitez: null, stavKola: 'probiha' }
+    return { ...stav, hraci, cas: novyCas, vitez: null, stavKola: 'probiha', pickupSebran }
   }
 
   let vitez: 0 | 1 | null = null
@@ -529,5 +565,16 @@ export const krokSouboje = (stav: SoubojStav, vstupy: [HracVstup, HracVstup], de
     }
   }
 
-  return { hraci, cas: novyCas, vitez, stavKola, moznosti, suddenDeath, suddenDeathOd }
+  return {
+    hraci,
+    cas: novyCas,
+    vitez,
+    stavKola,
+    moznosti,
+    suddenDeath,
+    suddenDeathOd,
+    pickupPozice: stav.pickupPozice,
+    pickupTyp: stav.pickupTyp,
+    pickupSebran,
+  }
 }

@@ -16,6 +16,7 @@ import {
   SUDDEN_DEATH_NASOBIC_ZACATEK,
   HAZARD_OKRAJE_PRAH,
   HAZARD_OKRAJE_POSKOZENI,
+  PICKUP_DOSTUPNY_OD_MS,
   VYCHOZI_MOZNOSTI,
   krokSouboje,
   vytvorBojovnika,
@@ -445,5 +446,43 @@ describe('vylepšení — comeback', () => {
     const dmg = MAX_HP - stav.hraci[1].hp
     const ocekavane = AKCE_DATA.udar.poskozeni * (1 + 2 * KOMBO_BONUS_ZA_UDER) * COMEBACK_NASOBIC
     expect(dmg).toBeCloseTo(ocekavane)
+  })
+})
+
+describe('vylepšení — pickup v aréně', () => {
+  it('pickup (mana) doplní manu bojovníkovi, co se k němu dostane první, po zpřístupnění', () => {
+    const nahodne = () => 0 // pozice = 200 (ARENA_SIRKA*0.25), typ 'mana' (0 < 0.5)
+    let stav = vytvorSoubojStav(200, 700, undefined, undefined, VYCHOZI_MOZNOSTI, nahodne)
+    expect(stav.pickupTyp).toBe('mana')
+    expect(stav.pickupSebran).toBe(false)
+    stav = krokSouboje(stav, [stat, stat], PICKUP_DOSTUPNY_OD_MS)
+    expect(stav.pickupSebran).toBe(true)
+    expect(stav.hraci[0].mana).toBe(stav.hraci[0].maxMana)
+    // Hráč 1 je daleko od pickupu — jeho mana je jen z pasivní regenerace
+    // za uplynulý čas (MANA_REGEN_ZA_S), ne z pickupu.
+    expect(stav.hraci[1].mana).toBeLessThan(stav.hraci[1].maxMana)
+  })
+
+  it('pickup se nesebere před PICKUP_DOSTUPNY_OD_MS, i když je bojovník v dosahu', () => {
+    const nahodne = () => 0
+    let stav = vytvorSoubojStav(200, 700, undefined, undefined, VYCHOZI_MOZNOSTI, nahodne)
+    stav = krokSouboje(stav, [stat, stat], PICKUP_DOSTUPNY_OD_MS - 100)
+    expect(stav.pickupSebran).toBe(false)
+  })
+
+  it('pickup (štít) dá stitAktivni, ne manu', () => {
+    const nahodne = () => 0.9 // pozice = 560, typ 'stit' (0.9 >= 0.5)
+    let stav = vytvorSoubojStav(560, 10, undefined, undefined, VYCHOZI_MOZNOSTI, nahodne)
+    expect(stav.pickupTyp).toBe('stit')
+    stav = krokSouboje(stav, [stat, stat], PICKUP_DOSTUPNY_OD_MS)
+    expect(stav.pickupSebran).toBe(true)
+    expect(stav.hraci[0].stitAktivni).toBe(true)
+  })
+
+  it('mimo dosah pickupu ho nikdo nesebere', () => {
+    const nahodne = () => 0 // pozice 200
+    let stav = vytvorSoubojStav(0, ARENA_SIRKA, undefined, undefined, VYCHOZI_MOZNOSTI, nahodne)
+    stav = krokSouboje(stav, [stat, stat], PICKUP_DOSTUPNY_OD_MS)
+    expect(stav.pickupSebran).toBe(false)
   })
 })

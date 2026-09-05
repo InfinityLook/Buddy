@@ -171,6 +171,14 @@
   background: rgba(53, 196, 240, 0.14);
 }
 
+/* Deváté kolo vylepšení — "Náhodná" aréna, stejná pilulka jako
+   souboj-arena-volba, jen s přerušovaným okrajem — stejný "je to
+   bonusová zkratka, ne obyčejná volba" jazyk jako souboj-postava-nahodna
+   jinde v souboru. */
+.souboj-arena-volba--nahodna {
+  border-style: dashed;
+}
+
 /* Osmé kolo vylepšení — nadpisek nad každým řádkem voleb zápasu
    (trénink/délka/handicap), stejné místo, jen menší a tišší než
    samotné pilulky pod ním. */
@@ -269,6 +277,17 @@
   font-weight: 800;
   font-size: 0.95rem;
   color: var(--text-primary);
+}
+
+/* Deváté kolo vylepšení — předzápasová hláška postavy (Postava.hlaska),
+   malá kurzíva pod jménem — appka ji drží krátkou a tichou, ať
+   nezabírá víc pozornosti než jméno/portrét nad ní. */
+.souboj-intro-hlaska {
+  max-width: 130px;
+  font-size: 0.68rem;
+  font-style: italic;
+  color: var(--text-secondary);
+  text-align: center;
 }
 
 .souboj-intro-vs {
@@ -482,6 +501,67 @@
 .souboj-stat--vyhra { color: var(--accent-green); }
 .souboj-stat--prohra { color: var(--accent-red); }
 .souboj-stat--remiza { color: var(--text-muted); }
+
+/* Deváté kolo vylepšení — historie posledních zápasů, pod přehledem
+   podle postavy na stejné obrazovce (Ovladac.tsx's zobrazStatistiky) —
+   stejný řádkový idiom jako souboj-statistiky-radek výš, jen o jeden
+   sloupec navíc (čas) a barevný levý okraj podle výsledku. */
+.souboj-historie-nadpis {
+  margin: 1.1rem 0 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.souboj-historie-prazdno {
+  text-align: center;
+}
+
+.souboj-historie-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.souboj-historie-radek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.76rem;
+}
+
+.souboj-historie-radek--vyhra { border-left-color: var(--accent-green); }
+.souboj-historie-radek--prohra { border-left-color: var(--accent-red); }
+.souboj-historie-radek--remiza { border-left-color: var(--text-muted); }
+
+.souboj-historie-postava {
+  font-weight: 700;
+  flex: 1;
+}
+
+.souboj-historie-vysledek {
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.souboj-historie-radek--vyhra .souboj-historie-vysledek { color: var(--accent-green); }
+.souboj-historie-radek--prohra .souboj-historie-vysledek { color: var(--accent-red); }
+.souboj-historie-radek--remiza .souboj-historie-vysledek { color: var(--text-muted); }
+
+.souboj-historie-cas {
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
 
 /* ---------- Ovladač: skutečný gamepad ----------
    Plnoobrazovkový, ne appky obvyklá karta na 480px — telefon je tu
@@ -841,6 +921,22 @@
   cursor: default;
 }
 
+/* Deváté kolo vylepšení — "Překvapte mě", vedle Pokračovat, stejná
+   tichá/rámečková varianta jako souboj-statistiky-btn jinde v appce —
+   je to bonusová zkratka, ne hlavní akce téhle obrazovky. */
+.souboj-postava-nahodna {
+  margin-top: 0.5rem;
+  width: 100%;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 /* ---------- TV: herní vykreslení ----------
    Na rozdíl od .souboj-page (telefon, max 480px), TV obrazovka smí
    být širší — aréna má prostor, aby pohyb bojovníků byl vidět. */
@@ -1034,7 +1130,10 @@
    zvětšuje celý rámeček. Hit-stop (skutečné zamrznutí simulace, ne
    jen vizuálu) žije v TvHost.tsx, ne tady — viz jeho vlastní komentář. */
 .souboj-arena-obal {
-  transition: transform 0.35s ease-out;
+  position: relative;
+  transition:
+    transform 0.35s ease-out,
+    filter 0.35s ease-out;
 }
 
 .souboj-arena-obal--otres {
@@ -1051,6 +1150,45 @@
 
 .souboj-arena-obal--zoom {
   transform: scale(1.06);
+}
+
+/* Deváté kolo vylepšení — "zpomalený" knokaut (Bojiste.tsx's
+   koZpomaleni, viz jeho vlastní komentář — POCTIVĚ pojmenovaná
+   dramatická pauza, ne skutečný replay). Šedne a jemně roste, dokud
+   appka čeká na KO_BANNER_ZPOZDENI_MS, než odhalí vítězný text —
+   transition na .souboj-arena-obal výš (0.35s) dělá i tenhle přechod
+   plynulý, žádná nová transition deklarace navíc netřeba. */
+.souboj-arena-obal--ko-zpomaleni {
+  filter: grayscale(0.5) saturate(1.4) brightness(0.85);
+  transform: scale(1.02);
+}
+
+/* Deváté kolo vylepšení — bonusový předmět v aréně (viz Bojiste.tsx's
+   pickupViditelny). Malý plovoucí odznak nad podlahou arény, jemně
+   nadskakuje, ať je vidět, že jde sebrat, ne že je to jen statická
+   dekorace jako stromy/kameny v pozadí. */
+.souboj-pickup-znacka {
+  position: absolute;
+  bottom: 22%;
+  transform: translateX(-50%);
+  font-size: 1.6rem;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
+  animation: souboj-pickup-nadskok 1s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.souboj-pickup-znacka--stit {
+  filter: drop-shadow(0 0 8px rgba(250, 204, 21, 0.6));
+}
+
+@keyframes souboj-pickup-nadskok {
+  0%,
+  100% {
+    transform: translate(-50%, 0);
+  }
+  50% {
+    transform: translate(-50%, -8px);
+  }
 }
 
 /* Fáze 6 — aréna dostala skutečnou "podlahu" s vinětou místo ploché

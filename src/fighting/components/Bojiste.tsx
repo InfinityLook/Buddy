@@ -1,7 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { POSTAVY } from '../combat/postavy'
+import { ARENA_SIRKA, PICKUP_DOSTUPNY_OD_MS } from '../combat/engine'
 import { hpProcenta, jeComeback, jeParry, komboAktivni, manaProcenta, zbyvaSekund } from '../combat/loop'
 import { zahrajParry, zahrajRemizu, zahrajSpecial, zahrajVyhra, zahrajZasah } from '../sound'
+import {
+  oznamKnokaut,
+  oznamPerfektniBlok,
+  oznamRemizu,
+  oznamVitezstvi,
+  oznamZacatekKola,
+} from '../komentator'
 import { SoubojArena3D } from './SoubojArena3D'
 import { SoubojArena2D } from './SoubojArena2D'
 import type { SoubojStav, UtocnaAkce } from '../combat/types'
@@ -22,6 +30,14 @@ interface Props {
 }
 
 const ZABLESK_MS = 350
+
+/** Deváté kolo vylepšení — "zpomalený" knokaut. O kolik appka schválně
+ *  zpozdí odhalení vítězného pruhu/textu na SKUTEČNÝ knokaut (hp <= 0),
+ *  ne na rozhodnutí časovým limitem/náhlou smrtí — sladěno s
+ *  combat/loop.ts's KO_HIT_STOP_MS, ať vizuální pauza (tenhle časovač)
+ *  a skutečné zamrznutí simulace (hit-stop v TvHost.tsx/LocalniZapas.tsx)
+ *  působí jako JEDNA delší dramatická chvíle, ne dvě nesouvisející. */
+const KO_BANNER_ZPOZDENI_MS = 550
 
 // ==========================================
 // Fáze 3 — čistě prezentační komponenta: dostane hotový SoubojStav a
@@ -59,6 +75,17 @@ const ZABLESK_MS = 350
 // arény, odvozené ze stejného `zasah`/`stav.stavKola`, co appka už
 // stejně počítala. Kombo odznak (komboAktivni, combat/loop.ts) je
 // stejná "čti hotové číslo z props" disciplína jako HP/mana pruhy.
+//
+// Deváté kolo vylepšení přidalo hlasového komentátora (komentator.ts,
+// stejné přechodové hlídání jako zvuk — appka spouští hlášku PŘESNĚ
+// na hraně, ne na každém snímku zamrzlého stavu), "zpomalený" knokaut
+// (KO_BANNER_ZPOZDENI_MS výš — appka poctivě NEPŘEHRÁVÁ žádný skutečný
+// replay, jen zpozdí odhalení vítězného textu, ať sladěná pauza s
+// combat/loop.ts's KO_HIT_STOP_MS působí dramaticky) a bonusový
+// předmět v aréně (stav.pickupPozice/pickupTyp/pickupSebran,
+// combat/engine.ts) — čistě odvozený odznak nad arénou, žádná vlastní
+// logika, appka jen čte hotová pole z props stejně jako všechno
+// ostatní v týhle komponentě.
 // ==========================================
 
 export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
@@ -89,6 +116,18 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
   // krokSouboje) — jen na skutečném PŘECHODU, stejná disciplína jako
   // TvHost.tsx's vlastní stavPredTikem porovnání pro oznamKonecZapasu.
   const konecOznamen = useRef(false)
+  // Deváté kolo vylepšení — komentátor na začátku kola ("Boj!") a
+  // "zpomalený" knokaut. `zacatekOznamenRef` sleduje stejný přechod
+  // jako konecOznamen výš, jen obráceně (konec → probiha, ne probiha
+  // → konec) — appka ho resetuje pokaždé, když kolo skončí, ať se
+  // "Boj!" spustí znovu, jakmile začne další.
+  const zacatekOznamenRef = useRef(false)
+  // Kdy se smí ukázat vítězný pruh/text (souboj-konec-kola) — appka ho
+  // schválně NEUKAZUJE hned na přechodu do 'konec', ale až po
+  // KO_BANNER_ZPOZDENI_MS, sladěno s TvHost.tsx/LocalniZapas.tsx's
+  // delším hit-stopem na skutečný knokaut (viz KO_HIT_STOP_MS).
+  const [bannerViditelny, setBannerViditelny] = useState(false)
+  const [koZpomaleni, setKoZpomaleni] = useState(false)
 
   useEffect(() => {
     const noveZasazen: [boolean, boolean] = [false, false]
@@ -106,7 +145,10 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
       predchoziAkce.current[i] = stav.hraci[i].posledniAkce
 
       const jeParryTeto = jeParry(stav.hraci[i])
-      if (jeParryTeto && !predchoziParry.current[i]) zahrajParry()
+      if (jeParryTeto && !predchoziParry.current[i]) {
+        zahrajParry()
+        oznamPerfektniBlok()
+      }
       predchoziParry.current[i] = jeParryTeto
     })
     if (zasah) zahrajZasah()
@@ -123,6 +165,8 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
   useEffect(() => {
     if (stav.stavKola !== 'konec') {
       konecOznamen.current = false
+      setBannerViditelny(false)
+      setKoZpomaleni(false)
       return
     }
     if (konecOznamen.current) return
@@ -131,9 +175,53 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
     // proto nerozlišuje výhra/prohra podle slotu (to dělá až telefon,
     // viz Ovladac.tsx's konecZapasu handler a haptika.ts), jen jestli
     // kolo mělo vítěze, nebo skončilo remízou.
-    if (stav.vitez === null) zahrajRemizu()
-    else zahrajVyhra()
+    if (stav.vitez === null) {
+      zahrajRemizu()
+      oznamRemizu()
+      setBannerViditelny(true)
+      return
+    }
+    zahrajVyhra()
+    // Deváté kolo vylepšení — skutečný knokaut (poražený má hp <= 0)
+    // dostane jinou hlášku ("Knokaut!") a delší, "zpomalenou" pauzu
+    // před odhalením vítězného textu, než rozhodnutí časovým limitem/
+    // náhlou smrtí (tam nikdo formálně "nevypadl", jen měl víc HP).
+    const porazeny = stav.vitez === 0 ? 1 : 0
+    const jeSkutecnyKo = stav.hraci[porazeny].hp <= 0
+    if (jeSkutecnyKo) {
+      oznamKnokaut()
+      setKoZpomaleni(true)
+      const id = window.setTimeout(() => {
+        setKoZpomaleni(false)
+        setBannerViditelny(true)
+      }, KO_BANNER_ZPOZDENI_MS)
+      return () => window.clearTimeout(id)
+    }
+    oznamVitezstvi(jmena[stav.vitez])
+    setBannerViditelny(true)
   }, [stav.stavKola, stav.vitez])
+
+  // Deváté kolo vylepšení — "Boj!" na začátku každého kola (viz
+  // zacatekOznamenRef výš), včetně toho úplně prvního po mountu.
+  useEffect(() => {
+    if (stav.stavKola === 'konec') {
+      zacatekOznamenRef.current = false
+      return
+    }
+    if (zacatekOznamenRef.current) return
+    zacatekOznamenRef.current = true
+    oznamZacatekKola()
+  }, [stav.stavKola])
+
+  // Deváté kolo vylepšení — bonusový předmět v aréně, čistě odvozeno z
+  // props (žádný vlastní stav) — appka ho ukazuje, jen jakmile je
+  // sebratelný (PICKUP_DOSTUPNY_OD_MS uplynulo) a ještě ho nikdo
+  // nesebral. Procento na ose arény, stejná přepočtová logika jako
+  // combat/loop.ts's poziceProcenta pro bojovníky.
+  const pickupViditelny = !stav.pickupSebran && stav.cas >= PICKUP_DOSTUPNY_OD_MS && stav.stavKola === 'probiha'
+  const pickupProcenta = (stav.pickupPozice / ARENA_SIRKA) * 100
+  const pickupIkona = stav.pickupTyp === 'mana' ? '🔷' : '🌟'
+  const pickupPopisek = stav.pickupTyp === 'mana' ? 'Plná mana' : 'Štít'
 
   return (
     <div className="souboj-bojiste">
@@ -201,17 +289,31 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
 
       <div
         className={`souboj-arena-obal ${otres ? 'souboj-arena-obal--otres' : ''} ${
-          stav.stavKola === 'konec' && stav.vitez !== null ? 'souboj-arena-obal--zoom' : ''
-        }`}
+          bannerViditelny && stav.vitez !== null ? 'souboj-arena-obal--zoom' : ''
+        } ${koZpomaleni ? 'souboj-arena-obal--ko-zpomaleni' : ''}`}
       >
         {arena3dSelhala ? (
           <SoubojArena2D stav={stav} zasazen={zasazen} />
         ) : (
           <SoubojArena3D stav={stav} zasazen={zasazen} arenaId={arenaId} onSelhalo={() => setArena3dSelhala(true)} />
         )}
+
+        {/* Deváté kolo vylepšení — bonusový předmět, vykreslen NAD
+            arénou (jednoduchý absolutně umístěný odznak, ne skutečný
+            3D/2D objekt uvnitř SoubojArena3D/2D — nemá vliv na
+            vykreslení bojovníků, jen na to, kde se dá sebrat). */}
+        {pickupViditelny && (
+          <span
+            className={`souboj-pickup-znacka souboj-pickup-znacka--${stav.pickupTyp}`}
+            style={{ left: `${pickupProcenta}%` }}
+            aria-label={`Bonusový předmět: ${pickupPopisek}`}
+          >
+            {pickupIkona}
+          </span>
+        )}
       </div>
 
-      {stav.stavKola === 'konec' && (
+      {stav.stavKola === 'konec' && bannerViditelny && (
         <div className="souboj-konec-kola">
           <span className="souboj-konec-text">{stav.vitez === null ? 'Remíza!' : `${jmena[stav.vitez]} vyhrává!`}</span>
         </div>
