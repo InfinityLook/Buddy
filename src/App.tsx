@@ -8,6 +8,7 @@ import AppModule from '@/pages/app/AppModule.tsx'
 // závislost, co by ospravedlnila React.lazy.
 import SchoolRoomModule from '@/flagships/school-room/SchoolRoomModule.tsx'
 import FitnessRoomModule from '@/flagships/fitness-room/FitnessRoomModule.tsx'
+import EconomyRoomModule from '@/flagships/economy-room/EconomyRoomModule.tsx'
 import GamesHubModule from '@/pages/games/GamesHubModule.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
@@ -214,6 +215,19 @@ export default function App() {
             element={
               dovnitr ? (
                 <FitnessRoomModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* Route pro Economy Room (třetí vlajková appka) — stejný
+              důvod jako School Room/Fitness Room výš. */}
+          <Route
+            path="/economy"
+            element={
+              dovnitr ? (
+                <EconomyRoomModule />
               ) : (
                 <Navigate to="/" replace />
               )

@@ -89,7 +89,10 @@ const DEFAULT_APPS: AppItem[] = [
   { id: 'file-manager', title: 'File Manager', category: 'Nástroje', icon: 'file-manager', color: 'orange', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'exam-prep', title: 'Maturitní centrum', category: 'Vzdělávání', icon: 'exam-prep', color: 'pink', active: true, favorite: true, jenVeVlajkoveAppce: true },
   { id: 'document-editor', title: 'Textový editor', category: 'Produktivita', icon: 'document-editor', color: 'green', active: true, favorite: false, jenVeVlajkoveAppce: true },
-  { id: 'finance', title: 'Finance', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false },
+  // Přesunuté do Economy Roomu (viz src/flagships/economy-room/) —
+  // stejné jenVeVlajkoveAppce zacházení jako School Roomovy/Fitness
+  // Roomovy appky výš, jen třetí vlajková appka.
+  { id: 'finance', title: 'Finance', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false, jenVeVlajkoveAppce: true },
   // Přesunutý do Fitness Roomu (viz src/flagships/fitness-room/) —
   // stejné jenVeVlajkoveAppce zacházení jako výš, jen druhá vlajková
   // appka, ne School Room.
@@ -104,6 +107,7 @@ const DEFAULT_APPS: AppItem[] = [
   // nebrání.
   { id: 'school-room', title: 'School Room', category: 'Vzdělávání', icon: 'layers', color: 'cyan', active: true, favorite: false, route: '/skola' },
   { id: 'fitness-room', title: 'Fitness Room', category: 'Nástroje', icon: 'dumbbell', color: 'purple', active: true, favorite: false, route: '/fitness' },
+  { id: 'economy-room', title: 'Economy Room', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false, route: '/economy' },
 ]
 
 // Katalog dlaždic patří kódu, uživateli jen jeho příznaky (oblíbené,

@@ -109,6 +109,10 @@ export const AppIcon: React.FC<AppIconProps> = ({ name, size = 20, className }) 
     // "hodně věcí naskládaných na jednom místě".
     case 'layers':
       return <svg {...common}><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
+    // "Výdaj" dlaždice v Economy Roomu (viz EconomyRoomModule.tsx) —
+    // 'plus' už existoval pro "Příjem", ale opačná ikona chyběla úplně.
+    case 'minus':
+      return <svg {...common}><line x1="5" x2="19" y1="12" y2="12"/></svg>
     default:
       return null
   }

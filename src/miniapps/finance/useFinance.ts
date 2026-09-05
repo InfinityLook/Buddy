@@ -188,6 +188,14 @@ export const useFinance = () => {
   }, [transactions])
 
   return {
+    // Surové transakce navíc k odvozeným hodnotám výš — Finance sama je
+    // nikdy nepotřebovala (počítala si vlastní odvozeniny), ale Economy
+    // Room (src/flagships/economy-room/economyStats.ts) potřebuje i
+    // minulý měsíc, což žádná z výš uvedených hodnot nenese. Stejné
+    // "appka exportuje surová data, jakmile je potřebuje druhý volající"
+    // zdůvodnění jako dnesniMesic/minulyMesic/patriDoObdobi/
+    // rozdelPodleKategorie o pár řádků výš.
+    transactions,
     seznam,
     pocetCelkem: transactions.length,
     typFiltr,
