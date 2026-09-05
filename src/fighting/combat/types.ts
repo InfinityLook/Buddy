@@ -96,12 +96,46 @@ export interface HracVstup {
   akce: UtocnaAkce | null
 }
 
+/** Osmé kolo vylepšení — volby zápasu, zvolené na obrazovce PŘED tím,
+ *  než jsou oba sloty připravené (stejné místo jako výběr arény,
+ *  viz arena/areny.ts's vlastní komentář, proč tenhle druh volby
+ *  nepatří na síť) — a odsud dál po celý zápas neměnné. */
+export interface SoubojMoznosti {
+  /** Trénink — kolo nikdy neskončí (HP nikdy nespadne na 0, časový
+   *  limit se vůbec nepočítá), viz engine.ts's krokSouboje. */
+  treninkovyRezim: boolean
+  /** Násobič regenerace many pro hráče 0/1 — handicap pro slabšího
+   *  hráče znamená rychlejší nabíjení speciálu, ne změnu poškození
+   *  (to by zasahovalo přímo do soubojové matematiky, tohle jen do
+   *  tempa). 1 = žádný handicap. */
+  handicapManaRegen: [number, number]
+  /** Jestli aktuální aréna trestá odražení až ke kraji — vlastnost
+   *  ZVOLENÉ arény (arena/areny.ts's Arena.nebezpeciOkraje), appka ji
+   *  jen kopíruje sem v okamžiku vytvorSoubojStav(), engine sám o
+   *  arénách nic neví. */
+  hazardOkraju: boolean
+}
+
 /** Stav celého souboje (jednoho kola) — dva bojovníci, uplynulý čas
  *  a výsledek. Skóre/rundy/restart mezi koly je až věc obrazovky
- *  (Fáze 3), engine sám umí simulovat jen jedno kolo od začátku do KO. */
+ *  (Fáze 3), engine sám umí simulovat jen jedno kolo od začátku do KO.
+ *  Osmé kolo vylepšení přidalo `moznosti` (výš) a `suddenDeath`/
+ *  `suddenDeathOd` — druhá dvojice se PODOBÁ vitez/stavKola, ale je to
+ *  vnitřní stav enginu (kdy náhlá smrt začala), ne výsledek pro
+ *  obrazovku, proto zůstává na SoubojStav, ne v samostatném typu. */
 export interface SoubojStav {
   hraci: [BojovnikStav, BojovnikStav]
   cas: number
   vitez: 0 | 1 | null
   stavKola: 'probiha' | 'konec'
+  moznosti: SoubojMoznosti
+  /** Jestli právě běží náhlá smrt (viz engine.ts's SUDDEN_DEATH_*) —
+   *  nastartuje se přesnou shodou HP při vypršení časového limitu
+   *  místo remízy, a od tohohle okamžiku dá KAŽDÝ další zásah násobně
+   *  víc poškození, dokud se HP nerozejdou. */
+  suddenDeath: boolean
+  /** Hodnota `cas`, kdy suddenDeath začala — null, dokud nezačala.
+   *  Slouží jen k odvození toho, jak dlouho už náhlá smrt běží (pro
+   *  narůstající násobič poškození, viz engine.ts). */
+  suddenDeathOd: number | null
 }

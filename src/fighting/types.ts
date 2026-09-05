@@ -43,3 +43,18 @@ export interface KonecZapasuPayload {
   /** 1/2 = vítězný slot, null = remíza. */
   vitezSlot: 1 | 2 | null
 }
+
+/** Osmé kolo vylepšení — rychlý emote/škádlení z ovladače na TV. Jde
+ *  jen JEDNÍM směrem (telefon → TV), stejně jako `vstup` — appka
+ *  nepotřebuje emote posílat zpátky druhému telefonu, TV je jediná
+ *  obrazovka, co ho má zobrazit (viz Bojiste.tsx). Čistě kosmetické,
+ *  žádný vliv na engine/skóre. */
+export interface EmotePayload {
+  hracId: string
+  emote: string
+}
+
+/** Pevná sada emotů, ne libovolný vstup — stejné "pevná sada, ne
+ *  libovolný text" omezení, jaké appka už používá pro reakce na
+ *  zprávy (social/types.ts's EMOJI_REAKCI) a ikony skupin. */
+export const RYCHLE_EMOTE: string[] = ['👍', '😂', '😤']

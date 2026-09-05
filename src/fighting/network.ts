@@ -1,6 +1,6 @@
 import { supabase } from '@/core/supabase/client'
 import type { PostavaId } from './combat/postavy'
-import type { KonecZapasuPayload, PripojenoPayload, PripojitPayload, VstupPayload } from './types'
+import type { EmotePayload, KonecZapasuPayload, PripojenoPayload, PripojitPayload, VstupPayload } from './types'
 
 // ==========================================
 // Párování telefon-ovladač <-> TV — čistě živý Supabase Realtime
@@ -35,6 +35,10 @@ const nazevKanalu = (kod: string) => `souboj-mistnost-${kod.toUpperCase()}`
 interface HostHandlery {
   pripojilSe: (p: PripojitPayload) => void
   prisalVstup: (p: VstupPayload) => void
+  /** Osmé kolo vylepšení — nepovinné, ať appka nemusí měnit každé
+   *  dřívější volání hostujMistnost() jen kvůli novému, čistě
+   *  kosmetickému kanálu. */
+  prisalEmote?: (p: EmotePayload) => void
 }
 
 /** TV strana — otevře místnost pod daným kódem a naslouchá připojením
@@ -48,6 +52,7 @@ export const hostujMistnost = (kod: string, handlery: HostHandlery) => {
     .channel(`${nazevKanalu(kod)}:${++poradiKanalu}`)
     .on('broadcast', { event: 'pripojit' }, ({ payload }) => handlery.pripojilSe(payload as PripojitPayload))
     .on('broadcast', { event: 'vstup' }, ({ payload }) => handlery.prisalVstup(payload as VstupPayload))
+    .on('broadcast', { event: 'emote' }, ({ payload }) => handlery.prisalEmote?.(payload as EmotePayload))
     .subscribe()
 
   return {
@@ -75,7 +80,7 @@ export const pripojSeJakoOvladac = (
   handlery: OvladacHandlery
 ) => {
   const klient = supabase
-  if (!klient) return { poslatVstup: () => {}, zrusit: () => {} }
+  if (!klient) return { poslatVstup: () => {}, poslatEmote: () => {}, zrusit: () => {} }
 
   const kanal = klient
     .channel(`${nazevKanalu(kod)}:${++poradiKanalu}`)
@@ -96,6 +101,12 @@ export const pripojSeJakoOvladac = (
 
   return {
     poslatVstup: (payload: VstupPayload) => void kanal.send({ type: 'broadcast', event: 'vstup', payload }),
+    poslatEmote: (emote: string) =>
+      void kanal.send({
+        type: 'broadcast',
+        event: 'emote',
+        payload: { hracId: mujHracId, emote } satisfies EmotePayload,
+      }),
     zrusit: () => void klient.removeChannel(kanal),
   }
 }

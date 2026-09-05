@@ -1,4 +1,4 @@
-import type { AkceData, BojovnikStav, HracVstup, SoubojStav, UtocnaAkce } from './types'
+import type { AkceData, BojovnikStav, HracVstup, SoubojMoznosti, SoubojStav, UtocnaAkce } from './types'
 import { POSTAVY, VYCHOZI_POSTAVA, type PostavaId, type TypSpecialu } from './postavy'
 
 // ==========================================
@@ -63,6 +63,33 @@ export const COMEBACK_PRAH = 0.3
  *  protože comeback je o snaze útočníka samotného, ne o konkrétní
  *  výměně. */
 export const COMEBACK_NASOBIC = 1.2
+/** Osmé kolo vylepšení — náhlá smrt. Násobič poškození HNED na
+ *  začátku náhlé smrti (silnější než obyčejný zásah, ale ne ještě
+ *  extrémní), NARUST_ZA_S ho dál zvyšuje za každou vteřinu, co náhlá
+ *  smrt běží (skutečné "eskalující" poškození, ne jen jednorázový
+ *  skok), a STROP ho shora omezuje — bez stropu by teoreticky
+ *  nekonečně dlouhá náhlá smrt mohla dát nekonečné poškození za jeden
+ *  zásah, stejná obava jako KOMBO_MAX_STUPNU výš. */
+export const SUDDEN_DEATH_NASOBIC_ZACATEK = 1.5
+export const SUDDEN_DEATH_NASOBIC_NARUST_ZA_S = 0.15
+export const SUDDEN_DEATH_NASOBIC_STROP = 3
+/** Osmé kolo vylepšení — environmentální hazard. Jak blízko kraji
+ *  arény (logické jednotky, stejná škála jako ARENA_SIRKA/pozice) musí
+ *  odražení cíl doopravdy dostat, aby se počítalo jako "u okraje" —
+ *  a kolik PEVNÉHO poškození navíc to dá, jen v arénách, co hazard
+ *  mají zapnutý (viz arena/areny.ts's Arena.nebezpeciOkraje). */
+export const HAZARD_OKRAJE_PRAH = 24
+export const HAZARD_OKRAJE_POSKOZENI = 8
+
+/** Osmé kolo vylepšení — výchozí volby zápasu, pro `vytvorSoubojStav`
+ *  volané bez pátého argumentu (testy Fáze 1–7 na to spoléhají) a pro
+ *  starý stav bez `moznosti` po hydrataci — žádný handicap, žádný
+ *  trénink, žádný hazard, přesně chování před touhle fází. */
+export const VYCHOZI_MOZNOSTI: SoubojMoznosti = {
+  treninkovyRezim: false,
+  handicapManaRegen: [1, 1],
+  hazardOkraju: false,
+}
 
 export const AKCE_DATA: Record<UtocnaAkce, AkceData> = {
   udar: { poskozeni: 6, dosah: 90, trvaniMs: 250, cenaMany: 0, knockback: 18 },
@@ -123,12 +150,16 @@ export const vytvorSoubojStav = (
   pozice0: number,
   pozice1: number,
   postava0: PostavaId = VYCHOZI_POSTAVA,
-  postava1: PostavaId = VYCHOZI_POSTAVA
+  postava1: PostavaId = VYCHOZI_POSTAVA,
+  moznosti: SoubojMoznosti = VYCHOZI_MOZNOSTI
 ): SoubojStav => ({
   hraci: [vytvorBojovnika(pozice0, postava0), vytvorBojovnika(pozice1, postava1)],
   cas: 0,
   vitez: null,
   stavKola: 'probiha',
+  moznosti,
+  suddenDeath: false,
+  suddenDeathOd: null,
 })
 
 interface VysledekTiku {
@@ -143,10 +174,14 @@ interface VysledekTiku {
  *  zahájení útoku. Samotné vyhodnocení zásahu (dosah, poškození) dělá
  *  krokSouboje až poté, co jsou pohnutí obou hráčů hotová, aby se
  *  dosah počítal z pozic na konci tiku, ne na jeho začátku. */
-const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number): VysledekTiku => {
+const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number, regenNasobic: number = 1): VysledekTiku => {
   const zranitelnostKonci = Math.max(0, b.zranitelnostKonci - deltaMs)
   const utokKonci = Math.max(0, b.utokKonci - deltaMs)
-  const mana = Math.min(b.maxMana, b.mana + (MANA_REGEN_ZA_S * deltaMs) / 1000)
+  // Osmé kolo vylepšení — handicap (SoubojMoznosti.handicapManaRegen)
+  // násobí jen tohle číslo, ne poškození/rychlost/cokoli jiného —
+  // slabší hráč tak dobíjí speciál rychleji, ale pořád hraje se
+  // stejnými čísly akcí jako soupeř, žádná druhá osa vyvažování navíc.
+  const mana = Math.min(b.maxMana, b.mana + (MANA_REGEN_ZA_S * regenNasobic * deltaMs) / 1000)
   // Vylepšení — kombo okno běží dolů úplně nezávisle na busy/hitstunu
   // (na rozdíl od blokKonci by nemělo smysl kombo "pozastavit" — čas
   // se počítá reálně, ne jen v tazích, kdy bojovník zrovna může jednat).
@@ -251,13 +286,24 @@ interface VysledekJednohoZasahu {
  *  pozici cíle, ne tu ze začátku tiku, takže druhý úder odstrčí cíl
  *  dál od místa, kam ho už odstrčil první). Blokovaný zásah kombo
  *  NEROZJÍždí ani neprodlužuje — počítá se jen doopravdy neblokovaný
- *  spoj, stejná restrikce jako u odražení, jen bez zeslabení, žádné. */
+ *  spoj, stejná restrikce jako u odražení, jen bez zeslabení, žádné.
+ *
+ *  Osmé kolo vylepšení přidalo dva další parametry, oba se počítají
+ *  stejně jednou předem ve vyhodnotZasahPokudZahajen a platí na oba
+ *  případné zásahy Voltova dvojitého úderu stejně: `bonusSuddenDeath`
+ *  (násobič poškození, 1 mimo náhlou smrt) a `hazardOkraju` (jestli
+ *  zvolená aréna trestá odražení až ke kraji). Hazard se na rozdíl od
+ *  komba/comebacku/sudden death NEnásobí do `poskozeni` — je to pevné
+ *  číslo navrch (HAZARD_OKRAJE_POSKOZENI), počítané z toho, kam
+ *  odražení cíl doopravdy dostalo, ne z toho, kolik dal útočník. */
 const aplikujJedenZasah = (
   hraci: [BojovnikStav, BojovnikStav],
   utocnikIdx: 0 | 1,
   cilIdx: 0 | 1,
   poskozeniZaklad: number,
-  knockback: number
+  knockback: number,
+  bonusSuddenDeath: number,
+  hazardOkraju: boolean
 ): VysledekJednohoZasahu => {
   const utocnik = hraci[utocnikIdx]
   const cil = hraci[cilIdx]
@@ -299,15 +345,25 @@ const aplikujJedenZasah = (
   // samotného obrátit zápas, ne o téhle konkrétní výměně.
   const bonusComeback = utocnik.hp > 0 && utocnik.hp / utocnik.maxHp <= COMEBACK_PRAH ? COMEBACK_NASOBIC : 1
   const poskozeni =
-    (zasahBlokovan ? poskozeniZaklad * (1 - BLOK_REDUKCE) : poskozeniZaklad) * bonusKomba * bonusComeback
+    (zasahBlokovan ? poskozeniZaklad * (1 - BLOK_REDUKCE) : poskozeniZaklad) *
+    bonusKomba *
+    bonusComeback *
+    bonusSuddenDeath
 
   const smerOdrazeni = utocnik.pozice <= cil.pozice ? 1 : -1
   const silaOdrazeni = zasahBlokovan ? knockback * (1 - BLOK_REDUKCE) : knockback
   const novaPozice = Math.max(0, Math.min(ARENA_SIRKA, cil.pozice + smerOdrazeni * silaOdrazeni))
 
+  // Osmé kolo vylepšení — hazard okraje arény. Pevné číslo navrch,
+  // NErostoucí s žádným násobičem výš — je to o TOM, KAM odražení cíl
+  // dostalo, ne o síle samotného zásahu.
+  const dostalOdrazenKOkraji =
+    hazardOkraju && (novaPozice <= HAZARD_OKRAJE_PRAH || novaPozice >= ARENA_SIRKA - HAZARD_OKRAJE_PRAH)
+  const poskozeniCelkove = poskozeni + (dostalOdrazenKOkraji ? HAZARD_OKRAJE_POSKOZENI : 0)
+
   const novyCil: BojovnikStav = {
     ...cil,
-    hp: Math.max(0, cil.hp - poskozeni),
+    hp: Math.max(0, cil.hp - poskozeniCelkove),
     pozice: novaPozice,
     // Blokovaný zásah hitstun neuděluje — obránce může jednat hned dál.
     zranitelnostKonci: zasahBlokovan ? cil.zranitelnostKonci : HITSTUN_MS,
@@ -322,7 +378,7 @@ const aplikujJedenZasah = (
   const dalsi = [...hraci] as [BojovnikStav, BojovnikStav]
   dalsi[utocnikIdx] = novyUtocnik
   dalsi[cilIdx] = novyCil
-  return { hraci: dalsi, poskozeniDorucene: poskozeni }
+  return { hraci: dalsi, poskozeniDorucene: poskozeniCelkove }
 }
 
 /** Pokud útočník tenhle tik zahájil akci, vyhodnotí dosah a zásah —
@@ -337,12 +393,17 @@ const aplikujJedenZasah = (
  *  Druhé kolo vylepšení přidalo kombo bonus a odražení, oboje uvnitř
  *  aplikujJedenZasah samotné (viz její vlastní komentář, proč tam a
  *  ne tady) — tahle funkce jen předává data.knockback, nic dalšího
- *  o žádném z obou mechanismů vědět nemusí. */
+ *  o žádném z obou mechanismů vědět nemusí. Osmé kolo vylepšení
+ *  přidalo `bonusSuddenDeath`/`hazardOkraju` — oba se jen přeposílají
+ *  do aplikujJedenZasah (viz její vlastní komentář), tahle funkce
+ *  sama žádnou logiku náhlé smrti ani hazardu nepočítá. */
 const vyhodnotZasahPokudZahajen = (
   hraci: [BojovnikStav, BojovnikStav],
   utocnikIdx: 0 | 1,
   cilIdx: 0 | 1,
-  akce: UtocnaAkce | null
+  akce: UtocnaAkce | null,
+  bonusSuddenDeath: number,
+  hazardOkraju: boolean
 ): [BojovnikStav, BojovnikStav] => {
   if (!akce) return hraci
 
@@ -359,11 +420,19 @@ const vyhodnotZasahPokudZahajen = (
   // společně pro oba případné zásahy dvojitého úderu.
   const poskozeniZaklad = data.poskozeni * POSTAVY[cil.postavaId].obranaNasobic
 
-  let vysledek = aplikujJedenZasah(hraci, utocnikIdx, cilIdx, poskozeniZaklad, data.knockback)
+  let vysledek = aplikujJedenZasah(hraci, utocnikIdx, cilIdx, poskozeniZaklad, data.knockback, bonusSuddenDeath, hazardOkraju)
   let poskozeniCelkem = vysledek.poskozeniDorucene
 
   if (jeSpecialSTemhleTypem('dvojity-zasah')) {
-    vysledek = aplikujJedenZasah(vysledek.hraci, utocnikIdx, cilIdx, poskozeniZaklad, data.knockback)
+    vysledek = aplikujJedenZasah(
+      vysledek.hraci,
+      utocnikIdx,
+      cilIdx,
+      poskozeniZaklad,
+      data.knockback,
+      bonusSuddenDeath,
+      hazardOkraju
+    )
     poskozeniCelkem += vysledek.poskozeniDorucene
   }
 
@@ -381,36 +450,84 @@ const vyhodnotZasahPokudZahajen = (
 
 /** Posune celý souboj o jeden krok. Jednou skončené kolo (stavKola
  *  === 'konec') vrací beze změny a se stejnou referencí — restart je
- *  věcí volajícího (nová vytvorSoubojStav()), ne enginu samotného. */
+ *  věcí volajícího (nová vytvorSoubojStav()), ne enginu samotného.
+ *
+ *  Osmé kolo vylepšení přidalo tři věci sem: `moznosti.handicapManaRegen`
+ *  se předává do tikBojovnika, `moznosti.hazardOkraju`/náhlá smrt se
+ *  předávají do vyhodnotZasahPokudZahajen, a `moznosti.treninkovyRezim`
+ *  úplně obchází zbytek funkce (žádné KO, žádný časový limit, žádná
+ *  náhlá smrt) — kolo v tréninku prostě nikdy nekončí. */
 export const krokSouboje = (stav: SoubojStav, vstupy: [HracVstup, HracVstup], deltaMs: number): SoubojStav => {
   if (stav.stavKola === 'konec') return stav
+  const moznosti = stav.moznosti ?? VYCHOZI_MOZNOSTI
 
-  const t0 = tikBojovnika(stav.hraci[0], vstupy[0], deltaMs)
-  const t1 = tikBojovnika(stav.hraci[1], vstupy[1], deltaMs)
+  const t0 = tikBojovnika(stav.hraci[0], vstupy[0], deltaMs, moznosti.handicapManaRegen[0])
+  const t1 = tikBojovnika(stav.hraci[1], vstupy[1], deltaMs, moznosti.handicapManaRegen[1])
+
+  // Násobič se počítá z PŘEDCHOZÍHO stavu (stejný "čti hodnoty spočtené
+  // před tímhle tikem" princip jako komboKonci/comeback výš) — roste
+  // podle toho, jak dlouho už `stav.suddenDeath` platí, capnuté na
+  // SUDDEN_DEATH_NASOBIC_STROP.
+  const bonusSuddenDeath = stav.suddenDeath
+    ? Math.min(
+        SUDDEN_DEATH_NASOBIC_STROP,
+        SUDDEN_DEATH_NASOBIC_ZACATEK +
+          (SUDDEN_DEATH_NASOBIC_NARUST_ZA_S * (stav.cas - (stav.suddenDeathOd ?? stav.cas))) / 1000
+      )
+    : 1
 
   let hraci: [BojovnikStav, BojovnikStav] = [t0.dalsi, t1.dalsi]
-  hraci = vyhodnotZasahPokudZahajen(hraci, 0, 1, t0.zahajenaAkce)
-  hraci = vyhodnotZasahPokudZahajen(hraci, 1, 0, t1.zahajenaAkce)
+  hraci = vyhodnotZasahPokudZahajen(hraci, 0, 1, t0.zahajenaAkce, bonusSuddenDeath, moznosti.hazardOkraju)
+  hraci = vyhodnotZasahPokudZahajen(hraci, 1, 0, t1.zahajenaAkce, bonusSuddenDeath, moznosti.hazardOkraju)
+
+  const novyCas = stav.cas + deltaMs
+
+  if (moznosti.treninkovyRezim) {
+    // Trénink — HP se nesmí propadnout na 0 (drženo aspoň na 1, ať
+    // pruh pořád ukazuje skutečné poškození) a časový limit/náhlá smrt
+    // se vůbec nepočítají. Kolo tak nikdy nedojde do stavKola 'konec',
+    // opustit ho jde jen tlačítkem Zpět na obrazovce nad enginem.
+    hraci = [
+      { ...hraci[0], hp: Math.max(1, hraci[0].hp) },
+      { ...hraci[1], hp: Math.max(1, hraci[1].hp) },
+    ]
+    return { ...stav, hraci, cas: novyCas, vitez: null, stavKola: 'probiha' }
+  }
 
   let vitez: 0 | 1 | null = null
   let stavKola: 'probiha' | 'konec' = 'probiha'
+  let suddenDeath = stav.suddenDeath
+  let suddenDeathOd = stav.suddenDeathOd
   const konec0 = hraci[0].hp <= 0
   const konec1 = hraci[1].hp <= 0
-  const novyCas = stav.cas + deltaMs
+
   if (konec0 || konec1) {
     stavKola = 'konec'
     // Současné KO obou stran je vzácné (jen při stejném tiku), ale
-    // engine ho musí umět vrátit jako remízu, ne si vybrat vítěze.
+    // engine ho musí umět vrátit jako remízu, ne si vybrat vítěze —
+    // platí i uprostřed náhlé smrti, KO má vždycky přednost.
     vitez = konec0 && konec1 ? null : konec0 ? 1 : 0
+  } else if (suddenDeath) {
+    // Náhlá smrt už běží — jakmile se HP jakkoli rozejdou (i jen
+    // blokovaným zásahem, ten pořád část poškození propustí), rozhodne
+    // se hned, žádný další časový práh se nečeká.
+    if (hraci[0].hp !== hraci[1].hp) {
+      stavKola = 'konec'
+      vitez = hraci[0].hp > hraci[1].hp ? 0 : 1
+    }
   } else if (novyCas >= CAS_LIMIT_MS) {
-    // Vylepšení — čas vypršel a nikdo nedostal KO. Rozhodne víc HP,
-    // přesná shoda je remíza — stejná dvouhodnotová logika jako KO
-    // výš, jen založená na HP místo na "kdo je na nule".
-    stavKola = 'konec'
-    if (hraci[0].hp > hraci[1].hp) vitez = 0
-    else if (hraci[1].hp > hraci[0].hp) vitez = 1
-    else vitez = null
+    if (hraci[0].hp === hraci[1].hp) {
+      // Vylepšení — přesná shoda při vypršení limitu už neznamená
+      // remízu, ale náhlou smrt: zápas pokračuje, ale od teď dá každý
+      // další zásah násobně víc poškození (viz SUDDEN_DEATH_* výš) —
+      // dřív nebo později se tak stejně rozhodne.
+      suddenDeath = true
+      suddenDeathOd = novyCas
+    } else {
+      stavKola = 'konec'
+      vitez = hraci[0].hp > hraci[1].hp ? 0 : 1
+    }
   }
 
-  return { hraci, cas: novyCas, vitez, stavKola }
+  return { hraci, cas: novyCas, vitez, stavKola, moznosti, suddenDeath, suddenDeathOd }
 }

@@ -1,14 +1,20 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { hostujMistnost, vygenerujKodMistnosti } from '../network'
 import { ARENA_SIRKA, krokSouboje, vytvorSoubojStav } from '../combat/engine'
-import { HIT_STOP_MS, sestavVstup } from '../combat/loop'
+import {
+  aktualizujStatistikyZapasu,
+  HIT_STOP_MS,
+  prazdneStatistikyZapasu,
+  sestavVstup,
+  type StatistikyZapasu,
+} from '../combat/loop'
 import { nahodnaPostava, pripravAkciAi } from '../combat/ai'
 import type { PostavaId } from '../combat/postavy'
-import type { HracVstup, SoubojStav } from '../combat/types'
-import type { PripojitPayload, Smer, Tlacitko, VstupPayload } from '../types'
+import type { HracVstup, SoubojMoznosti, SoubojStav } from '../combat/types'
+import type { EmotePayload, PripojitPayload, Smer, Tlacitko, VstupPayload } from '../types'
 import { Bojiste } from './Bojiste'
 import { PostavaGrafika } from './PostavaGrafika'
-import { SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
+import { ARENY, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
 // Vlastní import, ne spoléhání na to, že FightingModule.tsx ho už
 // natáhl — appka jednou přišla o styl přesně tímhle předpokladem
 // (viz GameModule.css/TvorbaPostavy.tsx v CLAUDE.md), CSS import je
@@ -62,11 +68,26 @@ const IKONA_TLACITKA: Record<Tlacitko, string> = {
 // kolo od začátku do KO (viz engine.ts's vlastní komentář: "Skóre/
 // rundy/restart mezi koly je až věc obrazovky"), takže víckolový zápas
 // je záměrně čistě TV-strany stav, ne enginu — kdo první vyhraje
-// VITEZSTVI_NA_ZAPAS kol, vyhrává celý zápas ("na dvě vítězství ze
-// tří" pro výchozí hodnotu 2). Remízové kolo (vitez === null — oba
-// bojovníci dojdou na 0 HP ve stejném tiku) nikomu skóre nepřidá a
-// zápas kvůli němu neskončí, jen se odehraje další kolo.
-const VITEZSTVI_NA_ZAPAS = 2
+// zvolený počet kol, vyhrává celý zápas. Remízové kolo (vitez ===
+// null — oba bojovníci dojdou na 0 HP ve stejném tiku) nikomu skóre
+// nepřidá a zápas kvůli němu neskončí, jen se odehraje další kolo.
+//
+// Osmé kolo vylepšení nahradilo pevnou konstantu volitelnou délkou
+// zápasu (viz `pocetNaVyhru` stav níž) — "Bo1"/"Bo3"/"Bo5" v UI
+// odpovídají 1/2/3 potřebným vítězstvím, stejné číslo appka dřív měla
+// napevno (2 = "na dvě vítězství ze tří").
+const MOZNOSTI_DELKY_ZAPASU: { popisek: string; hodnota: number }[] = [
+  { popisek: 'Na 1 kolo', hodnota: 1 },
+  { popisek: 'Bo3', hodnota: 2 },
+  { popisek: 'Bo5', hodnota: 3 },
+]
+const VYCHOZI_POCET_NA_VYHRU = 2
+
+// Osmé kolo vylepšení — handicap pro nevyrovnané hráče. Jen rychlejší
+// nabíjení many (viz engine.ts's SoubojMoznosti.handicapManaRegen),
+// žádná změna poškození/HP — zvýhodněný hráč dřív dosáhne na speciál,
+// pořád ale hraje se stejnými čísly akcí jako soupeř.
+const HANDICAP_MANA_NASOBIC = 1.75
 
 // Fáze 5 — sólo režim: počítačový soupeř je jen druhý slot s tímhle
 // pevným hracId, nikdy se nesplete se skutečným ovladačem (ten dostává
@@ -113,6 +134,15 @@ const INTRO_MS = 2200
 // vrstva. Parry a comeback (viz combat/engine.ts) žádnou vlastní
 // TV-stranu logiku nepotřebují — obojí je čistě v enginu a v
 // Bojiste.tsx, tady se to jinak vůbec nezmiňuje.
+//
+// Osmé kolo vylepšení přidalo volby zápasu na stejnou čekací
+// obrazovku jako výběr arény (trénink/délka zápasu/handicap, viz
+// sestavMoznosti výš, MOZNOSTI_DELKY_ZAPASU/HANDICAP_MANA_NASOBIC) a
+// příjem rychlého emotu z ovladače (network.ts's prisalEmote,
+// zobrazený přes Bojiste.tsx's `emotes` prop) — přehled posledního
+// zápasu (statistikyRef) appka sčítá přes CELÝ zápas na každém tiku
+// herní smyčky, ne až na jeho konci, ať nemusí znovu procházet
+// historii kol, co už dávno skončila.
 // ==========================================
 
 export const TvHost: React.FC<Props> = ({ onZpet }) => {
@@ -135,6 +165,23 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
   const [arenaId, setArenaId] = useState<ArenaId>(VYCHOZI_ARENA)
   // Sedmé kolo vylepšení — úvodní "VS" obrazovka (viz INTRO_MS výš).
   const [introAktivni, setIntroAktivni] = useState(false)
+  // Osmé kolo vylepšení — volby zápasu, zvolené na čekací obrazovce
+  // stejně jako aréna výš, a odtud dál po celý zápas neměnné (appka
+  // vůbec nenabízí UI na jejich změnu, jakmile `pripraveno` platí).
+  const [treninkovyRezim, setTreninkovyRezim] = useState(false)
+  const [pocetNaVyhru, setPocetNaVyhru] = useState(VYCHOZI_POCET_NA_VYHRU)
+  const [handicapPro, setHandicapPro] = useState<0 | 1 | null>(null)
+  // Osmé kolo vylepšení — přehled posledního zápasu (combat/loop.ts's
+  // StatistikyZapasu). Ref, ne state — aktualizuje se na KAŽDÉM tiku
+  // herní smyčky (stejný důvod jako skoreRef/hraciRef), appka ho čte
+  // přímo při vykreslení, až je potřeba ho ukázat (zapasSkoncil níž).
+  const statistikyRef = useRef<StatistikyZapasu>(prazdneStatistikyZapasu())
+  // Osmé kolo vylepšení — rychlý emote z ovladače (types.ts's
+  // RYCHLE_EMOTE). `emotyTimeoutRef` drží id časovače na zmizení, ať
+  // appka nezapomene zrušit ten předchozí, když stejný hráč pošle
+  // druhý emote dřív, než ten první stihl doznít.
+  const [emoty, setEmoty] = useState<[string | null, string | null]>([null, null])
+  const emotyTimeoutRef = useRef<[number | null, number | null]>([null, null])
 
   // Zrcadlo aktuálního `hraci` stavu do refu — herní smyčka běží ve
   // vlastním requestAnimationFrame cyklu a potřebuje na každém tiku
@@ -185,6 +232,27 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
           })
         )
       },
+      // Osmé kolo vylepšení — rychlý emote. `hraciRef` (ne `hraci` ze
+      // stavu) ať appka najde slot i uprostřed handleru, co běží mimo
+      // React render cyklus, stejný důvod jako zbytek téhle komponenty.
+      prisalEmote: (p: EmotePayload) => {
+        const idx = hraciRef.current.findIndex((h) => h?.hracId === p.hracId)
+        if (idx === -1) return
+        setEmoty((soucasne) => {
+          const dalsi: [string | null, string | null] = [...soucasne]
+          dalsi[idx] = p.emote
+          return dalsi
+        })
+        const predchoziId = emotyTimeoutRef.current[idx]
+        if (predchoziId !== null) window.clearTimeout(predchoziId)
+        emotyTimeoutRef.current[idx] = window.setTimeout(() => {
+          setEmoty((soucasne) => {
+            const dalsi: [string | null, string | null] = [...soucasne]
+            dalsi[idx] = null
+            return dalsi
+          })
+        }, 2500)
+      },
     })
 
     spravaRef.current = sprava
@@ -196,6 +264,21 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
   // `pripraveno`, ne přímo na `hraci` (ten se mění na každý stisk
   // tlačítka a nová reference by smyčku pořád restartovala).
   const pripraveno = !!(hraci[0]?.postavaId && hraci[1]?.postavaId)
+
+  // Osmé kolo vylepšení — poskládá SoubojMoznosti z aktuálně zvolených
+  // voleb zápasu (čekací obrazovka, viz JSX níž) — appka je čte znovu
+  // při KAŽDÉM novém kole/zápasu (zacniKolo/tenhle efekt), ne jednou
+  // napevno, ale UI na jejich změnu appka schválně přestává nabízet,
+  // jakmile `pripraveno` platí, takže se v praxi nikdy nemění uprostřed
+  // zápasu.
+  const sestavMoznosti = (): SoubojMoznosti => ({
+    treninkovyRezim,
+    handicapManaRegen: [
+      handicapPro === 0 ? HANDICAP_MANA_NASOBIC : 1,
+      handicapPro === 1 ? HANDICAP_MANA_NASOBIC : 1,
+    ],
+    hazardOkraju: ARENY[arenaId].nebezpeciOkraje,
+  })
 
   // Sedmé kolo vylepšení — jakmile jsou oba sloty připravené, appka
   // nejdřív na INTRO_MS ukáže "VS" obrazovku a TEPRVE PAK (druhý efekt
@@ -218,11 +301,12 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
     const h1 = hraciRef.current[1]
     if (!h0 || !h1) return
 
-    const novyStav = vytvorSoubojStav(POZICE_START[0], POZICE_START[1], h0.postavaId, h1.postavaId)
+    const novyStav = vytvorSoubojStav(POZICE_START[0], POZICE_START[1], h0.postavaId, h1.postavaId, sestavMoznosti())
     soubojStavRef.current = novyStav
     vstupPredchoziRef.current = [{ ...PRAZDNA_TLACITKA }, { ...PRAZDNA_TLACITKA }]
     skoreRef.current = [0, 0]
     setSkore([0, 0])
+    statistikyRef.current = prazdneStatistikyZapasu()
     setSoubojStav(novyStav)
 
     let idPozadavku: number
@@ -260,9 +344,20 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
         if (a1.hracId !== AI_HRAC_ID) vstupPredchoziRef.current[1] = { ...a1.tlacitka }
 
         const stavPredTikem = soubojStavRef.current.stavKola
+        const soubojStavPredTikem = soubojStavRef.current
         const hpPredTikem: [number, number] = [soubojStavRef.current.hraci[0].hp, soubojStavRef.current.hraci[1].hp]
         soubojStavRef.current = krokSouboje(soubojStavRef.current, [vstup0, vstup1], deltaMs)
         setSoubojStav(soubojStavRef.current)
+
+        // Osmé kolo vylepšení — přehled zápasu (viz statistikyRef výš)
+        // se aktualizuje na KAŽDÉM tiku, ne jen na konci zápasu — jinak
+        // by appka musela znovu procházet celou historii kol, aby
+        // věděla, jaké bylo nejdelší kombo v kole, co už dávno skončilo.
+        statistikyRef.current = aktualizujStatistikyZapasu(
+          soubojStavPredTikem,
+          soubojStavRef.current,
+          statistikyRef.current
+        )
 
         // Skutečně dopadlý zásah (HP kleslo oproti hodnotě PŘED tímhle
         // tikem) natáhne hit-stop — zamrznutí se projeví od úplně
@@ -289,10 +384,11 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
 
           // Vylepšení — oznamKonecZapasu (a tím i XP/kredity na
           // ovladačích, viz Ovladac.tsx) se posílá až jednou CELÝ
-          // zápas doopravdy skončí (někdo dosáhl VITEZSTVI_NA_ZAPAS),
-          // ne na konci každého jednotlivého kola — vyhrát první kolo
-          // z třech by jinak vyplatilo XP za zápas, který ještě běží.
-          const zapasHotovy = skoreRef.current[0] >= VITEZSTVI_NA_ZAPAS || skoreRef.current[1] >= VITEZSTVI_NA_ZAPAS
+          // zápas doopravdy skončí (někdo dosáhl zvolené délky zápasu,
+          // viz pocetNaVyhru), ne na konci každého jednotlivého kola —
+          // vyhrát první kolo z třech by jinak vyplatilo XP za zápas,
+          // co ještě běží.
+          const zapasHotovy = skoreRef.current[0] >= pocetNaVyhru || skoreRef.current[1] >= pocetNaVyhru
           if (zapasHotovy) {
             const vitezZapasu: 1 | 2 | null =
               skoreRef.current[0] === skoreRef.current[1]
@@ -338,7 +434,13 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
     const h0 = hraciRef.current[0]
     const h1 = hraciRef.current[1]
     if (!h0 || !h1) return
-    const cerstvyStav = vytvorSoubojStav(POZICE_START[0], POZICE_START[1], h0.postavaId, h1.postavaId)
+    const cerstvyStav = vytvorSoubojStav(
+      POZICE_START[0],
+      POZICE_START[1],
+      h0.postavaId,
+      h1.postavaId,
+      sestavMoznosti()
+    )
     soubojStavRef.current = cerstvyStav
     vstupPredchoziRef.current = [{ ...PRAZDNA_TLACITKA }, { ...PRAZDNA_TLACITKA }]
     setSoubojStav(cerstvyStav)
@@ -347,12 +449,16 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
   const novyZapas = () => {
     skoreRef.current = [0, 0]
     setSkore([0, 0])
+    // Nový zápas = čerstvý přehled statistik (viz statistikyRef výš) —
+    // na rozdíl od dalšíKolo, kde appka přehled schválně nechává
+    // sčítat přes celý zápas, ne resetovat po každém kole.
+    statistikyRef.current = prazdneStatistikyZapasu()
     zacniKolo()
   }
 
   const dalsiKolo = () => zacniKolo()
 
-  const zapasSkoncil = skore[0] >= VITEZSTVI_NA_ZAPAS || skore[1] >= VITEZSTVI_NA_ZAPAS
+  const zapasSkoncil = skore[0] >= pocetNaVyhru || skore[1] >= pocetNaVyhru
 
   return (
     <div className="souboj-page souboj-page--tv">
@@ -389,7 +495,33 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
             stav={soubojStav}
             jmena={[hraci[0]?.jmeno ?? 'Hráč 1', hraci[1]?.jmeno ?? 'Hráč 2']}
             arenaId={arenaId}
+            emotes={emoty}
           />
+
+          {soubojStav.stavKola === 'konec' && zapasSkoncil && (
+            <div className="souboj-recap" aria-label="Přehled zápasu">
+              <span className="souboj-recap-nadpis">Přehled zápasu</span>
+              <span className="souboj-recap-radek">
+                <span>🔥 Nejdelší kombo</span>
+                <span>
+                  {hraci[0]?.jmeno ?? 'Hráč 1'} ×{statistikyRef.current.nejdelsiKombo[0]} · {hraci[1]?.jmeno ?? 'Hráč 2'} ×
+                  {statistikyRef.current.nejdelsiKombo[1]}
+                </span>
+              </span>
+              <span className="souboj-recap-radek">
+                <span>👊 Doručené zásahy</span>
+                <span>
+                  {statistikyRef.current.zasahy[0]} : {statistikyRef.current.zasahy[1]}
+                </span>
+              </span>
+              <span className="souboj-recap-radek">
+                <span>✋ Perfektní bloky</span>
+                <span>
+                  {statistikyRef.current.perfektniBloky[0]} : {statistikyRef.current.perfektniBloky[1]}
+                </span>
+              </span>
+            </div>
+          )}
 
           {soubojStav.stavKola === 'konec' &&
             (zapasSkoncil ? (
@@ -418,9 +550,67 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
                 onClick={() => setArenaId(a.id)}
               >
                 <span aria-hidden="true">{a.ikona}</span> {a.nazev}
+                {a.nebezpeciOkraje ? ' ⚠️' : ''}
               </button>
             ))}
           </div>
+
+          {/* Osmé kolo vylepšení — volby zápasu. Trénink schovává délku
+              zápasu i handicap (kolo v tréninku nikdy neskončí, obojí
+              by bylo bezpředmětné), stejná viditelnost, jakou appka
+              přiznává i výběru arény výš. */}
+          <button
+            type="button"
+            className={`souboj-nastaveni-volba souboj-nastaveni-trenink-btn ${
+              treninkovyRezim ? 'is-vybrana' : ''
+            }`}
+            onClick={() => setTreninkovyRezim((v) => !v)}
+          >
+            🎯 Trénink (bez limitu a KO)
+          </button>
+
+          {!treninkovyRezim && (
+            <>
+              <span className="souboj-nastaveni-nadpis">Délka zápasu</span>
+              <div className="souboj-nastaveni-vyber" aria-label="Délka zápasu">
+                {MOZNOSTI_DELKY_ZAPASU.map((m) => (
+                  <button
+                    key={m.hodnota}
+                    type="button"
+                    className={`souboj-nastaveni-volba ${pocetNaVyhru === m.hodnota ? 'is-vybrana' : ''}`}
+                    onClick={() => setPocetNaVyhru(m.hodnota)}
+                  >
+                    {m.popisek}
+                  </button>
+                ))}
+              </div>
+
+              <span className="souboj-nastaveni-nadpis">Handicap (rychlejší mana)</span>
+              <div className="souboj-nastaveni-vyber" aria-label="Handicap">
+                <button
+                  type="button"
+                  className={`souboj-nastaveni-volba ${handicapPro === null ? 'is-vybrana' : ''}`}
+                  onClick={() => setHandicapPro(null)}
+                >
+                  Bez handicapu
+                </button>
+                <button
+                  type="button"
+                  className={`souboj-nastaveni-volba ${handicapPro === 0 ? 'is-vybrana' : ''}`}
+                  onClick={() => setHandicapPro(0)}
+                >
+                  Hráč 1
+                </button>
+                <button
+                  type="button"
+                  className={`souboj-nastaveni-volba ${handicapPro === 1 ? 'is-vybrana' : ''}`}
+                  onClick={() => setHandicapPro(1)}
+                >
+                  Hráč 2
+                </button>
+              </div>
+            </>
+          )}
 
           <div className="souboj-hraci-mrizka">
             {hraci.map((hrac, i) => (

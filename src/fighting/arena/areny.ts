@@ -30,6 +30,13 @@ export interface Arena {
   barvaKmene: string
   barvaKoruny: string
   barvaKamene: string
+  /** Osmé kolo vylepšení — environmentální hazard. Jen kaňon (pousty)
+   *  ho má zapnutý — kraje s propastí dávají skutečný mechanický
+   *  smysl, na rozdíl od louky/noční arény, kde by "kraj" byl jen
+   *  vizuální fikce s ničím pod ním. Čte engine.ts's krokSouboje přes
+   *  combat/types.ts's SoubojMoznosti.hazardOkraju, appka ho sem
+   *  kopíruje jen v okamžiku, kdy se zápas vytváří. */
+  nebezpeciOkraje: boolean
 }
 
 export const ARENY: Record<ArenaId, Arena> = {
@@ -48,6 +55,7 @@ export const ARENY: Record<ArenaId, Arena> = {
     barvaKmene: '#3d2a1a',
     barvaKoruny: '#2f5d34',
     barvaKamene: '#5a5248',
+    nebezpeciOkraje: false,
   },
   pousty: {
     id: 'pousty',
@@ -64,6 +72,7 @@ export const ARENY: Record<ArenaId, Arena> = {
     barvaKmene: '#3d2a1a',
     barvaKoruny: '#2f5d34',
     barvaKamene: '#8a6b45',
+    nebezpeciOkraje: true,
   },
   noc: {
     id: 'noc',
@@ -80,6 +89,7 @@ export const ARENY: Record<ArenaId, Arena> = {
     barvaKmene: '#20182c',
     barvaKoruny: '#2a2140',
     barvaKamene: '#2c3348',
+    nebezpeciOkraje: false,
   },
 }
 

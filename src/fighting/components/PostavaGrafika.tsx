@@ -1,5 +1,5 @@
 import React from 'react'
-import type { PostavaId } from '../combat/postavy'
+import type { PostavaId, VariantaPostavy } from '../combat/postavy'
 import './PostavaGrafika.css'
 
 interface Props {
@@ -11,6 +11,9 @@ interface Props {
    *  obalovém <div> a dvě animace na sobě by se rvaly o transform. */
   animovana?: boolean
   className?: string
+  /** Osmé kolo vylepšení — odemykatelná varianta barvy (kosmetika.ts).
+   *  Výchozí 'vychozi' = beze změny oproti kterékoli dřívější fázi. */
+  varianta?: VariantaPostavy
 }
 
 interface PaletaPostavy {
@@ -83,10 +86,28 @@ const PALETY: Record<PostavaId, PaletaPostavy> = {
   },
 }
 
-export const PostavaGrafika: React.FC<Props> = ({ postavaId, size = 72, animovana = false, className }) => {
-  const p = PALETY[postavaId]
-  const gradAuraId = `souboj-aura-${postavaId}`
-  const gradTeloId = `souboj-telo-${postavaId}`
+/** Osmé kolo vylepšení — jedna sdílená "prestižní" černo-zlatá paleta
+ *  pro všechny čtyři postavy (viz kosmetika.ts's vlastní komentář, proč
+ *  jedna sdílená místo čtyř bespoke). Postavu pořád pozná podle
+ *  přívěsku/siluety (kreslí se dál podle postavaId níž), jen přebarvenou. */
+const PALETA_ZLATA: PaletaPostavy = {
+  telo: '#1c1917',
+  teloSvetle: '#78716c',
+  teloTmave: '#0c0a09',
+  akcent: '#fbbf24',
+  aura: 'rgba(251, 191, 36, 0.6)',
+}
+
+export const PostavaGrafika: React.FC<Props> = ({
+  postavaId,
+  size = 72,
+  animovana = false,
+  className,
+  varianta = 'vychozi',
+}) => {
+  const p = varianta === 'zlata' ? PALETA_ZLATA : PALETY[postavaId]
+  const gradAuraId = `souboj-aura-${postavaId}-${varianta}`
+  const gradTeloId = `souboj-telo-${postavaId}-${varianta}`
 
   return (
     <svg

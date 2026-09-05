@@ -1,15 +1,18 @@
 import { describe, expect, it } from 'vitest'
 import {
+  aktualizujStatistikyZapasu,
   detekujAkci,
   hpProcenta,
   manaProcenta,
   maNaSpecial,
   poziceProcenta,
+  prazdneStatistikyZapasu,
   sestavVstup,
   vizualniStavBojovnika,
   zbyvaSekund,
 } from '@/fighting/combat/loop'
-import { AKCE_DATA, ARENA_SIRKA, CAS_LIMIT_MS, vytvorBojovnika, vytvorSoubojStav } from '@/fighting/combat/engine'
+import { AKCE_DATA, ARENA_SIRKA, CAS_LIMIT_MS, krokSouboje, vytvorBojovnika, vytvorSoubojStav } from '@/fighting/combat/engine'
+import type { HracVstup } from '@/fighting/combat/types'
 import type { Tlacitko } from '@/fighting/types'
 
 const PRAZDNA: Record<Tlacitko, boolean> = { udar: false, kop: false, blok: false, specialni: false }
@@ -129,5 +132,53 @@ describe('vylepšení — zbyvaSekund', () => {
   it('nikdy nejde do záporu, i po vypršení limitu', () => {
     const stav = { ...vytvorSoubojStav(0, 80), cas: CAS_LIMIT_MS + 9000 }
     expect(zbyvaSekund(stav)).toBe(0)
+  })
+})
+
+describe('osmé kolo vylepšení — přehled zápasu (aktualizujStatistikyZapasu)', () => {
+  const stat: HracVstup = { smer: null, blok: false, akce: null }
+
+  it('predchozi === null vrátí akumulátor beze změny (první tik po startu)', () => {
+    const stav = vytvorSoubojStav(0, 80)
+    const akumulator = prazdneStatistikyZapasu()
+    expect(aktualizujStatistikyZapasu(null, stav, akumulator)).toBe(akumulator)
+  })
+
+  it('napočítá doručený zásah tomu, kdo zasáhl, ne tomu, kdo dostal', () => {
+    const predchozi = vytvorSoubojStav(0, 80)
+    const novy = krokSouboje(predchozi, [{ ...stat, akce: 'kop' }, stat], 50)
+    const stat0 = aktualizujStatistikyZapasu(predchozi, novy, prazdneStatistikyZapasu())
+    expect(stat0.zasahy).toEqual([1, 0])
+  })
+
+  it('sleduje nejvyšší dosažené kombo, ne jen to poslední', () => {
+    let predchozi = vytvorSoubojStav(0, 80)
+    let akumulator = prazdneStatistikyZapasu()
+    let novy = krokSouboje(predchozi, [{ ...stat, akce: 'udar' }, stat], 50)
+    akumulator = aktualizujStatistikyZapasu(predchozi, novy, akumulator)
+    predchozi = novy
+    // Dost dlouhý krok, aby útočník stihl doznít z prvního úderu
+    // (AKCE_DATA.udar's trvaniMs), ale pořád uvnitř KOMBO_OKNO_MS.
+    novy = krokSouboje(predchozi, [{ ...stat, akce: 'udar' }, stat], 260)
+    akumulator = aktualizujStatistikyZapasu(predchozi, novy, akumulator)
+    expect(akumulator.nejdelsiKombo[0]).toBeGreaterThanOrEqual(2)
+  })
+
+  it('napočítá perfektní blok tomu, kdo ho provedl', () => {
+    const predchozi = vytvorSoubojStav(0, 80)
+    // Hráč 1 zvedne blok přesně ve stejném tiku, kdy hráč 0 útočí —
+    // perfektní blok (viz combat/engine.ts's PARRY_OKNO_MS).
+    const novy = krokSouboje(predchozi, [{ ...stat, akce: 'kop' }, { ...stat, blok: true }], 50)
+    const akumulator = aktualizujStatistikyZapasu(predchozi, novy, prazdneStatistikyZapasu())
+    expect(akumulator.perfektniBloky).toEqual([0, 1])
+  })
+
+  it('nemutuje předaný akumulátor, vrací nový objekt', () => {
+    const predchozi = vytvorSoubojStav(0, 80)
+    const novy = krokSouboje(predchozi, [{ ...stat, akce: 'kop' }, stat], 50)
+    const puvodni = prazdneStatistikyZapasu()
+    const dalsi = aktualizujStatistikyZapasu(predchozi, novy, puvodni)
+    expect(puvodni.zasahy).toEqual([0, 0])
+    expect(dalsi).not.toBe(puvodni)
   })
 })

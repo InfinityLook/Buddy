@@ -13,11 +13,15 @@ import {
   PARRY_OKNO_MS,
   PARRY_TREST_MS,
   PARRY_ZABLESK_MS,
+  SUDDEN_DEATH_NASOBIC_ZACATEK,
+  HAZARD_OKRAJE_PRAH,
+  HAZARD_OKRAJE_POSKOZENI,
+  VYCHOZI_MOZNOSTI,
   krokSouboje,
   vytvorBojovnika,
   vytvorSoubojStav,
 } from '@/fighting/combat/engine'
-import type { HracVstup } from '@/fighting/combat/types'
+import type { HracVstup, SoubojMoznosti } from '@/fighting/combat/types'
 
 const stat: HracVstup = { smer: null, blok: false, akce: null }
 
@@ -153,11 +157,14 @@ describe('vylepšení — časový limit kola (CAS_LIMIT_MS)', () => {
     expect(stav.vitez).toBe(0)
   })
 
-  it('přesná shoda HP při vypršení je remíza', () => {
+  // Osmé kolo vylepšení — přesná shoda HP při vypršení limitu už
+  // neznamená remízu, ale start náhlé smrti (viz vlastní describe níž).
+  it('přesná shoda HP při vypršení spustí náhlou smrt, kolo nekončí', () => {
     let stav = vytvorSoubojStav(0, 80)
     stav = krokSouboje(stav, [stat, stat], CAS_LIMIT_MS) // oba mají plné HP
-    expect(stav.stavKola).toBe('konec')
-    expect(stav.vitez).toBeNull()
+    expect(stav.stavKola).toBe('probiha')
+    expect(stav.suddenDeath).toBe(true)
+    expect(stav.suddenDeathOd).toBe(CAS_LIMIT_MS)
   })
 
   it('skutečný KO má přednost i přesně na hranici časového limitu', () => {
@@ -166,6 +173,86 @@ describe('vylepšení — časový limit kola (CAS_LIMIT_MS)', () => {
     stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], CAS_LIMIT_MS) // kop dá 10, KO i limit ve stejném tiku
     expect(stav.stavKola).toBe('konec')
     expect(stav.vitez).toBe(0) // KO logika (kdo je na nule), ne HP-porovnání
+  })
+})
+
+describe('vylepšení — náhlá smrt (suddenDeath)', () => {
+  it('jakmile HP jakkoli rozejdou, rozhodne se hned i mimo časový limit', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [stat, stat], CAS_LIMIT_MS) // spustí náhlou smrt
+    expect(stav.suddenDeath).toBe(true)
+    // Neblokovaný kop hráče 0 rozhodne hned na dalším tiku.
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], 50)
+    expect(stav.stavKola).toBe('konec')
+    expect(stav.vitez).toBe(0)
+  })
+
+  it('poškození v náhlé smrti je násobené (aspoň SUDDEN_DEATH_NASOBIC_ZACATEK)', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [stat, stat], CAS_LIMIT_MS)
+    const hpPred = stav.hraci[1].hp
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 50)
+    const poskozeni = hpPred - stav.hraci[1].hp
+    // Obyčejný úder (AKCE_DATA.udar) dá 6 — v náhlé smrti musí dát
+    // aspoň 6 × SUDDEN_DEATH_NASOBIC_ZACATEK.
+    expect(poskozeni).toBeGreaterThanOrEqual(6 * SUDDEN_DEATH_NASOBIC_ZACATEK - 0.01)
+  })
+
+  it('dokud HP zůstávají shodná, kolo dál pokračuje (žádné vynucené rozhodnutí)', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [stat, stat], CAS_LIMIT_MS)
+    stav = krokSouboje(stav, [stat, stat], 500) // nikdo neútočí
+    expect(stav.stavKola).toBe('probiha')
+    expect(stav.suddenDeath).toBe(true)
+  })
+})
+
+describe('vylepšení — volby zápasu (SoubojMoznosti)', () => {
+  it('trénink nikdy neukončí kolo a HP nikdy nespadne pod 1', () => {
+    const moznosti: SoubojMoznosti = { ...VYCHOZI_MOZNOSTI, treninkovyRezim: true }
+    let stav = vytvorSoubojStav(0, 80, undefined, undefined, moznosti)
+    // Spousta silných útoků + dlouhý čas, co by jinak dávno KO'lo i
+    // vyčerpalo časový limit několikrát.
+    for (let i = 0; i < 50; i++) {
+      stav = krokSouboje(
+        stav,
+        [
+          { smer: null, blok: false, akce: 'specialni' },
+          { smer: null, blok: false, akce: 'specialni' },
+        ],
+        2000
+      )
+    }
+    expect(stav.stavKola).toBe('probiha')
+    expect(stav.hraci[0].hp).toBeGreaterThanOrEqual(1)
+    expect(stav.hraci[1].hp).toBeGreaterThanOrEqual(1)
+  })
+
+  it('handicap (handicapManaRegen) zrychlí nabíjení many jen zvýhodněnému hráči', () => {
+    const moznosti: SoubojMoznosti = { ...VYCHOZI_MOZNOSTI, handicapManaRegen: [2, 1] }
+    let stav = vytvorSoubojStav(0, 80, undefined, undefined, moznosti)
+    stav = krokSouboje(stav, [stat, stat], 1000)
+    expect(stav.hraci[0].mana).toBeGreaterThan(stav.hraci[1].mana)
+  })
+
+  it('hazard okraje dá dodatečné poškození, jen když odražení skončí u kraje arény', () => {
+    const moznosti: SoubojMoznosti = { ...VYCHOZI_MOZNOSTI, hazardOkraju: true }
+    // Cíl už stojí těsně u pravého kraje (HAZARD_OKRAJE_PRAH) — kop ho
+    // odstrčí ještě blíž, resp. na hranu, takže hazard sepne.
+    let stav = vytvorSoubojStav(ARENA_SIRKA - HAZARD_OKRAJE_PRAH - 5, ARENA_SIRKA - 2, undefined, undefined, moznosti)
+    const hpPred = stav.hraci[1].hp
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], 50)
+    const poskozeni = hpPred - stav.hraci[1].hp
+    // AKCE_DATA.kop dá 10 — s hazardem navíc HAZARD_OKRAJE_POSKOZENI (8).
+    expect(poskozeni).toBeCloseTo(10 + HAZARD_OKRAJE_POSKOZENI, 5)
+  })
+
+  it('bez hazardu stejné odražení ke kraji žádné dodatečné poškození nedá', () => {
+    let stav = vytvorSoubojStav(ARENA_SIRKA - HAZARD_OKRAJE_PRAH - 5, ARENA_SIRKA - 2)
+    const hpPred = stav.hraci[1].hp
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], 50)
+    const poskozeni = hpPred - stav.hraci[1].hp
+    expect(poskozeni).toBeCloseTo(10, 5)
   })
 })
 

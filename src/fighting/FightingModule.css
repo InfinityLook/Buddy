@@ -143,7 +143,8 @@
    arena/areny.ts, TvHost.tsx). Vodorovný řádek malých pilulek, stejný
    idiom jako sdílené řádky výběru jinde v appce (souboj-skore-pruh's
    sourozenecké rozvržení) — jen tři položky, žádný scroll-snap netřeba. */
-.souboj-arena-vyber {
+.souboj-arena-vyber,
+.souboj-nastaveni-vyber {
   display: flex;
   gap: 0.5rem;
   justify-content: center;
@@ -151,7 +152,8 @@
   margin-bottom: 0.9rem;
 }
 
-.souboj-arena-volba {
+.souboj-arena-volba,
+.souboj-nastaveni-volba {
   background: var(--bg-glass);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-pill);
@@ -162,10 +164,54 @@
   cursor: pointer;
 }
 
-.souboj-arena-volba.is-vybrana {
+.souboj-arena-volba.is-vybrana,
+.souboj-nastaveni-volba.is-vybrana {
   color: var(--text-primary);
   border-color: var(--accent-cyan);
   background: rgba(53, 196, 240, 0.14);
+}
+
+/* Osmé kolo vylepšení — nadpisek nad každým řádkem voleb zápasu
+   (trénink/délka/handicap), stejné místo, jen menší a tišší než
+   samotné pilulky pod ním. */
+.souboj-nastaveni-trenink-btn {
+  display: block;
+  margin: 0 auto 0.9rem;
+}
+
+.souboj-nastaveni-nadpis {
+  display: block;
+  text-align: center;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
+}
+
+/* Osmé kolo vylepšení — přehled posledního zápasu (combat/loop.ts's
+   StatistikyZapasu), zobrazený nad tlačítkem Nový zápas, jakmile
+   appka zná vítěze CELÉHO zápasu (ne jen jednoho kola). */
+.souboj-recap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 0.7rem 0.9rem;
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+}
+
+.souboj-recap-nadpis {
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.1rem;
+}
+
+.souboj-recap-radek {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-secondary);
 }
 
 /* Sedmé kolo vylepšení — úvodní "VS" obrazovka (TvHost.tsx's
@@ -494,6 +540,29 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Osmé kolo vylepšení — rychlý emote (types.ts's RYCHLE_EMOTE), malý
+   vodorovný řádek nad joystickem — appka ho posílá na TV (Ovladac.tsx's
+   posliEmote), TV vlastní zobrazení viz Bojiste.tsx's emote bublina. */
+.souboj-emote-radek {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.souboj-emote-btn {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 0.4rem 0.65rem;
+  cursor: pointer;
+}
+
+.souboj-emote-btn:active {
+  transform: scale(0.9);
+}
+
 /* Vylepšení (viz CLAUDE.md) — ovladač se otočil na šířku a d-pad
    nahradil analogový joystick (VirtualniJoystick.tsx, znovupoužitý
    beze změny z RPG's 3D průzkumu — reportuje x/z -1..1, appka si z
@@ -649,6 +718,15 @@
   font-size: 1.15rem;
 }
 
+/* Osmé kolo vylepšení — emote řádek uvnitř lokálního klastru je
+   menší než ovladačova vlastní verze (souboj-emote-btn) — tady sdílí
+   místo se směrovými i akčními tlačítky na půlce obrazovky, na
+   ovladači má celou šířku pro sebe. */
+.souboj-lokal-emote-radek .souboj-emote-btn {
+  font-size: 1rem;
+  padding: 0.25rem 0.4rem;
+}
+
 /* ==========================================
    Fáze 3 — výběr postavy (ovladač, lokálně) + herní vykreslení (TV).
    ========================================== */
@@ -672,12 +750,24 @@
   gap: 0.75rem;
 }
 
+/* Osmé kolo vylepšení — obal karty + tlačítko varianty (viz
+   kosmetika.ts) jsou teď SOUROZENCI uvnitř jednoho grid políčka, ne
+   jedno jediné tlačítko jako dřív — <button> uvnitř <button> by bylo
+   neplatné HTML. */
+.souboj-postava-karta-obal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
 .souboj-postava-karta {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   gap: 0.3rem;
+  width: 100%;
+  box-sizing: border-box;
   background: var(--bg-glass);
   border: 2px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -716,6 +806,23 @@
   margin-top: 0.15rem;
   font-size: 0.66rem;
   color: var(--text-muted);
+}
+
+.souboj-postava-varianta-btn {
+  background: var(--bg-glass);
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  border-radius: var(--radius-md);
+  padding: 0.3rem 0.5rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.souboj-postava-varianta-zamek {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  text-align: center;
 }
 
 .souboj-postava-potvrdit {
@@ -1508,6 +1615,43 @@
 @keyframes souboj-casovac-pulz {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.08); }
+}
+
+/* Osmé kolo vylepšení — trénink/náhlá smrt nahrazují stejný "pill" na
+   stejném místě, ne dva nové vzhledy vedle sebe (viz Bojiste.tsx —
+   tenhle prvek se vždycky renderuje jen JEDEN ze tří najednou). */
+.souboj-casovac--trenink {
+  color: var(--accent-cyan);
+  border-color: rgba(34, 211, 238, 0.5);
+}
+
+.souboj-casovac--sudden {
+  color: var(--accent-red);
+  border-color: rgba(239, 68, 68, 0.6);
+  animation: souboj-casovac-pulz 0.6s ease-in-out infinite;
+}
+
+/* Osmé kolo vylepšení — rychlý emote (types.ts's RYCHLE_EMOTE). Malá
+   plovoucí bublina hned pod jménem, sama zmizí po pár vteřinách
+   (vlastník obrazovky si hlídá časovač, viz Bojiste.tsx's Props) —
+   appka jen animuje krátký pop-in/pop-out při KAŽDÉM přemountování. */
+.souboj-emote-bublina {
+  display: block;
+  font-size: 1.4rem;
+  line-height: 1;
+  margin-top: 0.2rem;
+  animation: souboj-emote-pop 0.3s ease-out;
+}
+
+@keyframes souboj-emote-pop {
+  0% {
+    transform: scale(0.4) translateY(6px);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
 }
 
 /* Fáze 5 — sólo režim proti počítači, nabízené jen dokud druhý slot

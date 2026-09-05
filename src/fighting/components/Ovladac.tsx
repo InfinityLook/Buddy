@@ -8,6 +8,7 @@ import { zavibrujProhru, zavibrujRemizu, zavibrujTlacitko, zavibrujVyhru } from 
 import { useSoubojStatistikyStore } from '../useSoubojStatistikyStore'
 import { VSECHNY_POSTAVY } from '../combat/postavy'
 import type { PostavaId } from '../combat/postavy'
+import { RYCHLE_EMOTE } from '../types'
 import type { KonecZapasuPayload, PripojenoPayload, Smer, Tlacitko } from '../types'
 import { VyberPostavy } from './VyberPostavy'
 import '../FightingModule.css'
@@ -111,6 +112,13 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
 
   const posliSmer = (smer: Smer | null) => {
     spravaRef.current?.poslatVstup({ hracId: hracIdRef.current, typ: 'smer', smer })
+  }
+
+  // Osmé kolo vylepšení — rychlý emote (types.ts's RYCHLE_EMOTE), jen
+  // směrem telefon → TV (viz network.ts's vlastní komentář u
+  // poslatEmote), čistě kosmetické, žádný vliv na skóre/engine.
+  const posliEmote = (emote: string) => {
+    spravaRef.current?.poslatEmote(emote)
   }
 
   const posliTlacitko = (tlacitko: Tlacitko, stisknuto: boolean) => {
@@ -277,6 +285,14 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
       <span className={`souboj-ovladac-stav souboj-ovladac-stav--${slot}`}>Jsi Hráč {slot}</span>
 
       {vysledekZapasu && <div className="souboj-ovladac-vysledek">{vysledekZapasu}</div>}
+
+      <div className="souboj-emote-radek" aria-label="Rychlý emote">
+        {RYCHLE_EMOTE.map((emote) => (
+          <button key={emote} type="button" className="souboj-emote-btn" onClick={() => posliEmote(emote)}>
+            {emote}
+          </button>
+        ))}
+      </div>
 
       <VirtualniJoystick onZmena={(x) => zpracujJoystick(x)} />
 

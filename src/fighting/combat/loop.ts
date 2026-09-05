@@ -113,3 +113,55 @@ export const jeParry = (b: BojovnikStav): boolean => b.parryZablesk > 0
  *  vylučuje KO'd bojovníka (0 HP by jinak taky prošlo prahem, ale
  *  "comeback" u někoho, kdo už prohrál, nedává smysl zobrazovat). */
 export const jeComeback = (b: BojovnikStav): boolean => b.hp > 0 && b.hp / b.maxHp <= COMEBACK_PRAH
+
+/** Osmé kolo vylepšení — přehled posledního zápasu. Nejdelší dosažené
+ *  kombo, počet skutečně doručených zásahů a počet perfektních bloků,
+ *  za hráče 0/1, sečtené přes CELÝ zápas (všechna kola, ne jen to
+ *  poslední) — proto je to vlastní akumulátor mimo SoubojStav samotné,
+ *  ne odvozené z jednoho snímku jako zbytek téhle sekce. Vlastník
+ *  herní smyčky (TvHost.tsx/LocalniZapas.tsx) drží tenhle objekt v
+ *  refu a volá aktualizujStatistikyZapasu po každém tiku — čistá
+ *  funkce, žádný vlastní stav, testovatelná stejnou disciplínou jako
+ *  zbytek souboru. */
+export interface StatistikyZapasu {
+  nejdelsiKombo: [number, number]
+  zasahy: [number, number]
+  perfektniBloky: [number, number]
+}
+
+export const prazdneStatistikyZapasu = (): StatistikyZapasu => ({
+  nejdelsiKombo: [0, 0],
+  zasahy: [0, 0],
+  perfektniBloky: [0, 0],
+})
+
+/** Porovná dva po sobě jdoucí SoubojStav (jeden tik od sebe) a vrátí
+ *  NOVÝ akumulátor s promítnutým rozdílem — `predchozi === null` (úplně
+ *  první volání po startu zápasu) se bere jako "nic se ještě nestalo",
+ *  ne že by první tik omylem započítal zásah proti výchozímu stavu.
+ *  Zásah se hráči i PŘIPOČÍTÁVÁ podle toho, čí HP na druhé straně
+ *  kleslo — stejná "HP kleslo = někdo ho zasáhl" logika, jakou uvnitř
+ *  Bojiste.tsx už používá zvuk/otres, jen sečtená přes celý zápas
+ *  místo jednoho přechodového záblesku. */
+export const aktualizujStatistikyZapasu = (
+  predchozi: SoubojStav | null,
+  novy: SoubojStav,
+  akumulator: StatistikyZapasu
+): StatistikyZapasu => {
+  if (!predchozi) return akumulator
+
+  const dalsi: StatistikyZapasu = {
+    nejdelsiKombo: [...akumulator.nejdelsiKombo],
+    zasahy: [...akumulator.zasahy],
+    perfektniBloky: [...akumulator.perfektniBloky],
+  }
+
+  ;([0, 1] as const).forEach((i) => {
+    const druhy = i === 0 ? 1 : 0
+    dalsi.nejdelsiKombo[i] = Math.max(dalsi.nejdelsiKombo[i], komboAktivni(novy.hraci[i]))
+    if (novy.hraci[druhy].hp < predchozi.hraci[druhy].hp) dalsi.zasahy[i] += 1
+    if (jeParry(novy.hraci[i]) && !jeParry(predchozi.hraci[i])) dalsi.perfektniBloky[i] += 1
+  })
+
+  return dalsi
+}

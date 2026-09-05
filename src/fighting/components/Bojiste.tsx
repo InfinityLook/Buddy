@@ -13,6 +13,12 @@ interface Props {
   /** Vylepšení — kterou scénu TV vybrala (viz arena/areny.ts).
    *  Ovlivňuje jen SoubojArena3D, 2D záloha zůstává beze změny. */
   arenaId?: ArenaId
+  /** Osmé kolo vylepšení — rychlý emote za hráče 0/1 (types.ts's
+   *  RYCHLE_EMOTE), null = nic k zobrazení. Vlastník obrazovky
+   *  (TvHost.tsx přes network.ts, LocalniZapas.tsx čistě lokálně) si
+   *  sám hlídá časovač, po kterém emote zase zmizí — Bojiste jen
+   *  vykresluje, co dostane, stejná disciplína jako zbytek komponenty. */
+  emotes?: [string | null, string | null]
 }
 
 const ZABLESK_MS = 350
@@ -55,7 +61,7 @@ const ZABLESK_MS = 350
 // stejná "čti hotové číslo z props" disciplína jako HP/mana pruhy.
 // ==========================================
 
-export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId }) => {
+export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
   const predchoziHp = useRef<[number, number]>([stav.hraci[0].hp, stav.hraci[1].hp])
   const [zasazen, setZasazen] = useState<[boolean, boolean]>([false, false])
   // Vylepšení — screen shake. Jeden boolean pro celou arénu (na
@@ -147,6 +153,12 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId }) => {
                 {komboAktivni(b) >= 2 && <span className="souboj-kombo-znacka">🔥×{komboAktivni(b)}</span>}
                 {jeParry(b) && <span className="souboj-parry-znacka">✋ PARRY!</span>}
               </span>
+              {/* Osmé kolo vylepšení — rychlý emote (viz Props výš). */}
+              {emotes?.[i] && (
+                <span className="souboj-emote-bublina" aria-hidden="true">
+                  {emotes[i]}
+                </span>
+              )}
               <div className={`souboj-hp-bar ${zasazen[i] ? 'souboj-hp-bar--zasazen' : ''}`}>
                 {/* "Duch" pruh vzadu — stejná šířka jako výplň vpředu, jen
                     pomalejší CSS přechod (viz FightingModule.css) — čistě
@@ -165,14 +177,27 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId }) => {
         })}
       </div>
 
-      {stav.stavKola === 'probiha' && (
-        <span
-          className={`souboj-casovac ${zbyvaSekund(stav) <= 10 ? 'souboj-casovac--dochazi' : ''}`}
-          aria-label="Zbývající čas kola"
-        >
-          ⏱️ {zbyvaSekund(stav)}s
-        </span>
-      )}
+      {/* Osmé kolo vylepšení — trénink nemá časový limit vůbec (žádný
+          countdown dává smysl ukazovat) a náhlá smrt nahrazuje countdown
+          vlastním odznakem, dokud běží — obojí čte stav.moznosti/
+          stav.suddenDeath, žádnou vlastní logiku Bojiste nepočítá. */}
+      {stav.stavKola === 'probiha' &&
+        (stav.moznosti.treninkovyRezim ? (
+          <span className="souboj-casovac souboj-casovac--trenink" aria-label="Trénink bez časového limitu">
+            🎯 TRÉNINK
+          </span>
+        ) : stav.suddenDeath ? (
+          <span className="souboj-casovac souboj-casovac--sudden" aria-label="Náhlá smrt">
+            ⚔️ NÁHLÁ SMRT
+          </span>
+        ) : (
+          <span
+            className={`souboj-casovac ${zbyvaSekund(stav) <= 10 ? 'souboj-casovac--dochazi' : ''}`}
+            aria-label="Zbývající čas kola"
+          >
+            ⏱️ {zbyvaSekund(stav)}s
+          </span>
+        ))}
 
       <div
         className={`souboj-arena-obal ${otres ? 'souboj-arena-obal--otres' : ''} ${

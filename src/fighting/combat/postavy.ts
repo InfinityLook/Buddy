@@ -10,6 +10,12 @@
 
 export type PostavaId = 'pyra' | 'bulwark' | 'volt' | 'onyx'
 
+/** Osmé kolo vylepšení — odemykatelná kosmetická varianta barvy
+ *  postavy (viz kosmetika.ts pro podmínku odemčení, PostavaGrafika.tsx
+ *  pro samotnou paletu). Čistě vizuální, engine tenhle typ nikde
+ *  nepoužívá — na rozdíl od PostavaId neovlivňuje ŽÁDNÉ číslo souboje. */
+export type VariantaPostavy = 'vychozi' | 'zlata'
+
 // Vylepšení — speciál (specialni akce) už neznamená pro všechny čtyři
 // postavy jen "silnější úder s jinými čísly" (viz efektivniAkceData v
 // engine.ts, dřív jediné místo, co speciál vůbec odlišovalo). Každá
