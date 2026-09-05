@@ -98,7 +98,7 @@ const PALETA_ZLATA: PaletaPostavy = {
   aura: 'rgba(251, 191, 36, 0.6)',
 }
 
-export const PostavaGrafika: React.FC<Props> = ({
+const PostavaGrafikaImpl: React.FC<Props> = ({
   postavaId,
   size = 72,
   animovana = false,
@@ -184,3 +184,13 @@ export const PostavaGrafika: React.FC<Props> = ({
     </svg>
   )
 }
+
+/** Výkonová kontrola náročnosti Souboje — obě arény (SoubojArena2D/3D)
+ *  vykreslují tohle SVG (2 gradienty, ~14 tvarů) z rodiče, co volá
+ *  setSoubojStav na KAŽDÝ herní tik (60×/s), i když se postavaId/size/
+ *  varianta bojovníka mezi tiky nikdy nemění — 2D aréna to bez
+ *  memoizace přestavovala 2×/tik, 3D (dvě kamery × dva bojovníky) 4×/
+ *  tik, čistě zbytečně. React.memo se shallow porovnáním primitiv ve
+ *  Props stačí, ať appka tuhle práci dělá jen při skutečné změně
+ *  (výběr postavy/varianty), ne 60× za vteřinu bez důvodu. */
+export const PostavaGrafika = React.memo(PostavaGrafikaImpl)
