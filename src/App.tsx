@@ -10,9 +10,13 @@ import SettingsModule from '@/pages/setting/SettingsModule.tsx'
 import ShopModule from '@/pages/shop/ShopModule.tsx'
 import AdminModule from '@/pages/admin/AdminModule.tsx'
 import SupportModule from '@/pages/support/SupportModule.tsx'
-// Herní hub si s sebou nese Three.js, takže se načítá až při vstupu —
-// zbytek aplikace tím nezůstane těžší.
-const GameModule = lazy(() => import('@/game/GameModule'))
+// Buddyheim (RPG, src/game/) je dočasně vyřazený z nabídky her na
+// žádost — appka nejdřív dodělá a vyladí Souboj (hru pro dva), RPG
+// zůstává beze změny v kódu, jen dočasně nedosažitelný (viz route
+// /hra/buddyheim níž a GamesHubModule.tsx's HRY). Vrátit ho zpátky
+// znamená jen odkomentovat tenhle import a přehodit element routy
+// zpátky na <GameModule />, žádný jiný soubor se nemusí měnit.
+// const GameModule = lazy(() => import('@/game/GameModule'))
 // Social má od verze s ambientní 3D scénou v pozadí stejnou závislost
 // na Three.js jako Game hub, a otevírá se mnohem častěji než /hra —
 // proto musí jet líně stejně tak, jinak by ho zatížila každá návštěva.
@@ -230,19 +234,14 @@ export default function App() {
             element={dovnitr ? <GamesHubModule /> : <Navigate to="/" replace />}
           />
 
-          {/* Route pro Buddyheim (RPG, 3D průzkum) */}
-          <Route
-            path="/hra/buddyheim"
-            element={
-              dovnitr ? (
-                <Suspense fallback={<div className="app-suspense-fallback">Načítám město…</div>}>
-                  <GameModule />
-                </Suspense>
-              ) : (
-                <Navigate to="/" replace />
-              )
-            }
-          />
+          {/* Route pro Buddyheim (RPG, 3D průzkum) — dočasně vyřazený
+              z nabídky her (viz komentář u lazy importu GameModule
+              výš a GamesHubModule.tsx's HRY): appka teď dokončuje
+              a lepí Souboj, RPG se vrátí, až se na to dostane. Přímý
+              odkaz proto vede zpátky na rozcestník her místo do hry
+              samotné, ať appka nenechá rozpracovanou/odloženou funkci
+              dosažitelnou jen díky uhodnuté URL. */}
+          <Route path="/hra/buddyheim" element={<Navigate to="/hra" replace />} />
 
           {/* Route pro Souboj (druhá hra, zatím jen Fáze 0 — síťové
               párování telefon-ovladač <-> TV, viz src/fighting/). Ještě

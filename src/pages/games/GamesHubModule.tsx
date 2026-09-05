@@ -7,9 +7,14 @@ import './GamesHubModule.css'
 //
 // Dřív "Play" vedlo rovnou do Buddyheimu (RPG, src/game/), jako by to
 // byla jediná hra, co appka kdy bude mít. Teď je Play tahle stránka —
-// mřížka her, Buddyheim je první dlaždice, ne rovnou cíl. Sama nic
-// z RPG nezná ani neimportuje (žádná Three.js váha navíc tady), jen
-// odkazuje na /hra/buddyheim, kde běží úplně beze změny.
+// mřížka her.
+//
+// Buddyheim je na žádost dočasně vyřazený z týhle mřížky, ne smazaný —
+// appka se nejdřív soustředí na dotažení Souboje (hry pro dva) do
+// 100 %, RPG (25 vedlejších questů, viz CLAUDE.md) počká na později.
+// Vrátit dlaždici zpátky je jedna položka v HRY níž + odkomentovat
+// lazy import GameModule a routu /hra/buddyheim v App.tsx — nic
+// v src/game/ samotném se kvůli tomuhle nemění.
 // ==========================================
 
 interface Hra {
@@ -28,14 +33,15 @@ interface Hra {
 }
 
 const HRY: Hra[] = [
-  {
-    id: 'buddyheim',
-    nazev: 'Buddyheim',
-    popis: 'RPG dobrodružství — postava, mapa, souboje',
-    cesta: '/hra/buddyheim',
-    nahled: '/backgrounds/mapa-sveta.jpg',
-    barva: 'violet',
-  },
+  // Buddyheim (RPG) je tu dočasně vyřazený — viz komentář nahoře.
+  // {
+  //   id: 'buddyheim',
+  //   nazev: 'Buddyheim',
+  //   popis: 'RPG dobrodružství — postava, mapa, souboje',
+  //   cesta: '/hra/buddyheim',
+  //   nahled: '/backgrounds/mapa-sveta.jpg',
+  //   barva: 'violet',
+  // },
   {
     id: 'souboj',
     nazev: 'Souboj',
