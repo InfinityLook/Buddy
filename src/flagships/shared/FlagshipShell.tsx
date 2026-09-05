@@ -26,6 +26,13 @@ interface Props {
   ikonaHlavicky: string
   dlazdice: FlagshipDlazdice[]
   velkeKarty: FlagshipVelkaKarta[]
+  /** Widgety navíc, co jdou připnout do slotů "Můj widget" (viz níž),
+   *  ale nekreslí se v pevné mřížce dlaždic — School Roomovy "Nástroje"
+   *  (Maturitní centrum, Flashcards, Math Solver, Textový editor, Mind
+   *  Map) mají vlastní rozbalovací seznam pod velkou kartou
+   *  (NastrojeSheet.tsx v SchoolRoomModule.tsx), ne místo v šestici
+   *  nahoře, ale pořád mají jít připnout stejně jako kterákoli z ní. */
+  dalsiMoznostiProSloty?: FlagshipDlazdice[]
   /** Panel upozornění drží stav appka volající shell, ne shell sám —
    *  jedna z dlaždic (School Room's "Upozornění") totiž potřebuje
    *  spustit úplně tu samou akci jako zvonek v hlavičce, a to jde jen
@@ -64,6 +71,7 @@ export const FlagshipShell: React.FC<Props> = ({
   ikonaHlavicky,
   dlazdice,
   velkeKarty,
+  dalsiMoznostiProSloty,
   notifOpen,
   onOpenNotifications,
   onCloseNotifications,
@@ -78,7 +86,12 @@ export const FlagshipShell: React.FC<Props> = ({
   const sloty = useFlagshipSloty(id)
   const nastavSlot = useFlagshipWidgetsStore((s) => s.nastavSlot)
 
-  const najitDlazdici = (widgetId: string | null) => (widgetId ? dlazdice.find((d) => d.id === widgetId) : undefined)
+  // Sloty smí ukazovat i widget, co v pevné mřížce vůbec nemá dlaždici
+  // (viz dalsiMoznostiProSloty výš) — hledá se proto vždycky v obou
+  // polích dohromady, ne jen v dlazdice.
+  const vsechnyMoznostiProSloty = [...dlazdice, ...(dalsiMoznostiProSloty ?? [])]
+  const najitDlazdici = (widgetId: string | null) =>
+    widgetId ? vsechnyMoznostiProSloty.find((d) => d.id === widgetId) : undefined
 
   return (
     <div className="app-container fs-page">
@@ -207,7 +220,7 @@ export const FlagshipShell: React.FC<Props> = ({
 
       {otevrenySlot !== null && (
         <WidgetPickerSheet
-          moznosti={dlazdice}
+          moznosti={vsechnyMoznostiProSloty}
           aktualniId={sloty[otevrenySlot]}
           onVybrat={(widgetId) => {
             nastavSlot(id, otevrenySlot, widgetId)
