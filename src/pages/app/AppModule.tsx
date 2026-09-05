@@ -73,29 +73,37 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
     if (returnPath) navigate(returnPath)
   }
 
+  // Appky vyhrazené výhradně pro vlajkovou appku (School Room a další,
+  // viz AppItem.jenVeVlajkoveAppce) se z mřížky /apps vylučují úplně
+  // natvrdo, ne jako "active: false" — "Zobrazit skryté" tenhle příznak
+  // schválně neobchází, je to appčino rozhodnutí, ne uživatelův
+  // vlastní přepínač. Kategorie/počty/banner se proto počítají odsud,
+  // ne přímo z `apps`.
+  const appyProMrizku = useMemo(() => apps.filter((app) => !app.jenVeVlajkoveAppce), [apps])
+
   // Kategorie bereme ze skutečných dlaždic. Napevno psaný seznam obsahoval
   // i "Zábava" a "Ostatní", pod kterými nikdy nic nebylo — kliknutí vedlo
   // na prázdnou stránku.
   const categories = useMemo(
-    () => [...new Set(apps.map((app) => app.category))].sort((a, b) => a.localeCompare(b, 'cs')),
-    [apps]
+    () => [...new Set(appyProMrizku.map((app) => app.category))].sort((a, b) => a.localeCompare(b, 'cs')),
+    [appyProMrizku]
   )
 
-  const hiddenCount = useMemo(() => apps.filter((app) => !app.active).length, [apps])
-  const favoriteCount = useMemo(() => apps.filter((app) => app.favorite).length, [apps])
+  const hiddenCount = useMemo(() => appyProMrizku.filter((app) => !app.active).length, [appyProMrizku])
+  const favoriteCount = useMemo(() => appyProMrizku.filter((app) => app.favorite).length, [appyProMrizku])
 
   // Poslední otevřená miniaplikace pro banner — skryté sem nepatří
   const lastApp = useMemo<AppItem | null>(() => {
-    const opened = apps.filter((app) => app.active && app.lastOpenedAt)
+    const opened = appyProMrizku.filter((app) => app.active && app.lastOpenedAt)
     if (opened.length === 0) return null
     return opened.reduce((best, app) =>
       (app.lastOpenedAt ?? 0) > (best.lastOpenedAt ?? 0) ? app : best
     )
-  }, [apps])
+  }, [appyProMrizku])
 
   const visibleApps = useMemo(
-    () => apps.filter((app) => showHidden || app.active),
-    [apps, showHidden]
+    () => appyProMrizku.filter((app) => showHidden || app.active),
+    [appyProMrizku, showHidden]
   )
 
   const filteredApps = useMemo(() => {

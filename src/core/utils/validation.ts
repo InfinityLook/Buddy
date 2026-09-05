@@ -17,6 +17,8 @@ export const AppItemSchema = v.object({
   // Nepovinné: jen vlajkové appky (School Room a další, viz
   // core/store/useAppStore.ts's AppItem.route) tohle pole mají.
   route: v.optional(v.string()),
+  // Nepovinné: appky přesunuté výhradně pod vlajkovou appku.
+  jenVeVlajkoveAppce: v.optional(v.boolean()),
 })
 
 // Schéma pro pole aplikací

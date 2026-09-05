@@ -40,6 +40,16 @@ export interface AppItem {
   // patří appce, ne uživatelovu uloženému stavu, stejně jako
   // title/category/icon/color.
   route?: string
+  // Appka přesunutá výhradně pod vlajkovou appku (School Room a další)
+  // — na rozdíl od `active` (uživatelův vlastní přepínač, obnovitelný
+  // přes "Zobrazit skryté") je tohle rozhodnutí appky samotné a "Zobrazit
+  // skryté" ho neobchází: taková dlaždice se v /apps nezobrazí, ani
+  // když si uživatel schované znovu zapne. Appka samotná (kód,
+  // MINI_APP_REGISTRY, uložená data) je beze změny — deep-link přes
+  // setActiveAppId funguje úplně stejně, protože apps.find() na tenhle
+  // příznak nekouká vůbec. Stejně jako `route` nikdy nepatří uživatelovu
+  // uloženému stavu, jen katalogu appky.
+  jenVeVlajkoveAppce?: boolean
 }
 
 interface AppState {
@@ -60,31 +70,30 @@ interface AppState {
 }
 
 const DEFAULT_APPS: AppItem[] = [
-  // Přesunuté do School Roomu (viz CLAUDE.md, src/flagships/school-room/)
-  // — active: false je schválně jediná změna, appka samotná (kód,
-  // registrace v MINI_APP_REGISTRY, uložená data) zůstává úplně beze
-  // změny. "Skryté" tu neznamená smazané: setActiveAppId pořád najde
-  // dlaždici přes apps.find() bez ohledu na active (jen výchozí mřížka
-  // v /apps je filtruje ven), takže School Roomovy dlaždice, co na ně
-  // deep-linkují (setActiveAppId(id, '/skola')), fungují úplně stejně,
-  // jako když je otvírala rovnou hlavní mřížka. Kdo si je i tak
-  // z /apps vyvolá zpátky přes "Zobrazit skryté", nic mu v tom nebrání.
-  { id: 'study-planner', title: 'Planer', category: 'Produktivita', icon: 'study-planner', color: 'purple', active: false, favorite: false },
-  { id: 'flashcards', title: 'Flashcards', category: 'Vzdělávání', icon: 'flashcards', color: 'cyan', active: false, favorite: true },
-  { id: 'pomodoro', title: 'Pomodoro', category: 'Produktivita', icon: 'pomodoro', color: 'orange', active: false, favorite: false },
-  { id: 'math-solver', title: 'Math Solver', category: 'Nástroje', icon: 'math-solver', color: 'green', active: false, favorite: false },
-  { id: 'quick-notes', title: 'Quick Notes', category: 'Produktivita', icon: 'quick-notes', color: 'pink', active: false, favorite: true },
+  // Přesunuté výhradně do School Roomu (viz CLAUDE.md, src/flagships/
+  // school-room/) — jenVeVlajkoveAppce: true je jediná změna, appka
+  // samotná (kód, registrace v MINI_APP_REGISTRY, uložená data) zůstává
+  // úplně beze změny. `active` zůstává true (appka je plně funkční,
+  // jen ne z hlavní mřížky) — na rozdíl od dřívější verze, co k tomu
+  // zneužívala `active: false`, tenhle příznak "Zobrazit skryté"
+  // neobchází: apps.find() na něj vůbec nekouká, takže School Roomovy
+  // dlaždice, co na ně deep-linkují (setActiveAppId(id, '/skola')),
+  // fungují úplně stejně, jako když je otvírala rovnou hlavní mřížka.
+  { id: 'study-planner', title: 'Planer', category: 'Produktivita', icon: 'study-planner', color: 'purple', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  { id: 'flashcards', title: 'Flashcards', category: 'Vzdělávání', icon: 'flashcards', color: 'cyan', active: true, favorite: true, jenVeVlajkoveAppce: true },
+  { id: 'pomodoro', title: 'Pomodoro', category: 'Produktivita', icon: 'pomodoro', color: 'orange', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  { id: 'math-solver', title: 'Math Solver', category: 'Nástroje', icon: 'math-solver', color: 'green', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  { id: 'quick-notes', title: 'Quick Notes', category: 'Produktivita', icon: 'quick-notes', color: 'pink', active: true, favorite: true, jenVeVlajkoveAppce: true },
   { id: 'goal-tracker', title: 'Goal Tracker', category: 'Produktivita', icon: 'goal-tracker', color: 'purple', active: true, favorite: false },
-  { id: 'mind-map', title: 'Mind Map', category: 'Vzdělávání', icon: 'mind-map', color: 'cyan', active: false, favorite: false },
-  { id: 'file-manager', title: 'File Manager', category: 'Nástroje', icon: 'file-manager', color: 'orange', active: false, favorite: false },
-  { id: 'exam-prep', title: 'Maturitní centrum', category: 'Vzdělávání', icon: 'exam-prep', color: 'pink', active: false, favorite: true },
-  { id: 'document-editor', title: 'Textový editor', category: 'Produktivita', icon: 'document-editor', color: 'green', active: false, favorite: false },
+  { id: 'mind-map', title: 'Mind Map', category: 'Vzdělávání', icon: 'mind-map', color: 'cyan', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  { id: 'file-manager', title: 'File Manager', category: 'Nástroje', icon: 'file-manager', color: 'orange', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  { id: 'exam-prep', title: 'Maturitní centrum', category: 'Vzdělávání', icon: 'exam-prep', color: 'pink', active: true, favorite: true, jenVeVlajkoveAppce: true },
+  { id: 'document-editor', title: 'Textový editor', category: 'Produktivita', icon: 'document-editor', color: 'green', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'finance', title: 'Finance', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false },
   { id: 'form-check', title: 'Form Check', category: 'Nástroje', icon: 'form-check', color: 'orange', active: true, favorite: false },
   // Nová, School Roomu vlastní (appka do teď neměla vůbec) — stejné
-  // "active: false, jen deep-linkem ze School Roomu" zacházení jako
-  // s přesunutými čtyřmi výš.
-  { id: 'kalendar', title: 'Kalendář', category: 'Produktivita', icon: 'calendar', color: 'cyan', active: false, favorite: false },
+  // zacházení jako s přesunutými výš.
+  { id: 'kalendar', title: 'Kalendář', category: 'Produktivita', icon: 'calendar', color: 'cyan', active: true, favorite: false, jenVeVlajkoveAppce: true },
   // Vlajková appka — viz AppItem.route výš a FlagshipShell.tsx. Zůstává
   // active: true, protože tohle JE ta dlaždice, přes kterou se do
   // School Roomu chodí; schovat by ji šlo úplně stejně jako kteroukoli
