@@ -95,15 +95,23 @@ export const useSoubojScene = ({ arenaSirka, arena }: UseSoubojSceneOptions): Us
     const container = containerRef.current
     if (!container) return
 
+    // Vylepšení — na vysokém devicePixelRatio (většina telefonů) už
+    // samo vykreslení ve vyšším rozlišení dělá antialiasing skoro
+    // zbytečný (supersampling z DPR ho z velké části nahrazuje) — MSAA
+    // (`antialias: true`) navrch je pak čistý výkonový náklad bez moc
+    // viditelného přínosu. Scéna se navíc kreslí DVAKRÁT za snímek
+    // (jedna kamera na půlku obrazovky, viz komentář nad souborem),
+    // takže tenhle náklad platí appka dvakrát, ne jednou.
+    const dpr = Math.min(window.devicePixelRatio, 2)
     let renderer: THREE.WebGLRenderer
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
+      renderer = new THREE.WebGLRenderer({ antialias: dpr <= 1, powerPreference: 'high-performance' })
     } catch {
       setSelhalo(true)
       return
     }
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.setPixelRatio(dpr)
     renderer.setScissorTest(true)
     renderer.outputColorSpace = THREE.SRGBColorSpace
     // Plátno jako první potomek kontejneru, ne appendChild na konec —
@@ -152,37 +160,69 @@ export const useSoubojScene = ({ arenaSirka, arena }: UseSoubojSceneOptions): Us
     // (žádný stažený model, appka na 3D postavy/scenérii nemá
     // pipeline), rozeseté v pásu ZA pěšinou, ať kamerám nic neblokuje
     // výhled na souboj samotný. Co přesně se rozseje (les/jen kameny/
-    // nic) i jakou barvou určuje vybraná aréna, viz areny.ts. ---
+    // nic) i jakou barvou určuje vybraná aréna, viz areny.ts.
+    //
+    // Vylepšení — INSTANCOVANÉ, ne 26 samostatných Mesh objektů jako
+    // dřív. Dřívější verze vytvářela vlastní geometrii i materiál pro
+    // KAŽDOU jednu dekoraci zvlášť, i když barva/tvar byly napříč nimi
+    // stejné (lišila se jen pozice/rotace/velikost) — 26 samostatných
+    // draw volání navíc, u scény, co se kreslí DVAKRÁT za snímek (jedna
+    // kamera na půlku obrazovky), tedy 52 volání jen na dekorace.
+    // InstancedMesh nakreslí libovolný počet instancí JEDNÍM draw
+    // voláním — sdílená geometrie/materiál napříč všemi stromy (resp.
+    // kameny) jedné arény, jen s jinou transformační maticí na
+    // instanci. Reálný, měřitelný zásah do výkonu na zařízení, kde má
+    // scéna běžet plynule, ne kosmetická reorganizace kódu. ---
     const dekorace = new THREE.Group()
     if (arena.dekorace !== 'zadne') {
-      for (let i = 0; i < 26; i++) {
-        const x = (Math.random() - 0.5) * (SVET_SIRKA + 16)
-        const z = -4 - Math.random() * 18
-        const jeStrom = arena.dekorace === 'les' && Math.random() > 0.35
-        const skupina = new THREE.Group()
-        if (jeStrom) {
-          const kmen = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.12, 0.18, 1.4, 6),
-            new THREE.MeshStandardMaterial({ color: arena.barvaKmene, roughness: 1 })
-          )
-          kmen.position.y = 0.7
-          const koruna = new THREE.Mesh(
-            new THREE.ConeGeometry(0.9, 1.8, 7),
-            new THREE.MeshStandardMaterial({ color: arena.barvaKoruny, roughness: 0.9 })
-          )
-          koruna.position.y = 2.1
-          skupina.add(kmen, koruna)
-        } else {
-          const kamen = new THREE.Mesh(
-            new THREE.DodecahedronGeometry(0.3 + Math.random() * 0.3),
-            new THREE.MeshStandardMaterial({ color: arena.barvaKamene, roughness: 1 })
-          )
-          kamen.position.y = 0.3
-          kamen.rotation.set(Math.random(), Math.random(), Math.random())
-          skupina.add(kamen)
-        }
-        skupina.position.set(x, 0, z)
-        dekorace.add(skupina)
+      const POCET_DEKORACI = 26
+      interface Umisteni {
+        x: number
+        z: number
+        jeStrom: boolean
+        rotace: number
+        skala: number
+      }
+      const umisteni: Umisteni[] = []
+      for (let i = 0; i < POCET_DEKORACI; i++) {
+        umisteni.push({
+          x: (Math.random() - 0.5) * (SVET_SIRKA + 16),
+          z: -4 - Math.random() * 18,
+          jeStrom: arena.dekorace === 'les' && Math.random() > 0.35,
+          rotace: Math.random() * Math.PI * 2,
+          skala: 0.3 + Math.random() * 0.3,
+        })
+      }
+      const stromy = umisteni.filter((u) => u.jeStrom)
+      const kameny = umisteni.filter((u) => !u.jeStrom)
+      const matice = new THREE.Matrix4()
+
+      if (stromy.length > 0) {
+        const matKmen = new THREE.MeshStandardMaterial({ color: arena.barvaKmene, roughness: 1 })
+        const matKoruna = new THREE.MeshStandardMaterial({ color: arena.barvaKoruny, roughness: 0.9 })
+        const kmeny = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.12, 0.18, 1.4, 6), matKmen, stromy.length)
+        const koruny = new THREE.InstancedMesh(new THREE.ConeGeometry(0.9, 1.8, 7), matKoruna, stromy.length)
+        stromy.forEach((u, i) => {
+          matice.makeTranslation(u.x, 0.7, u.z)
+          kmeny.setMatrixAt(i, matice)
+          matice.makeTranslation(u.x, 2.1, u.z)
+          koruny.setMatrixAt(i, matice)
+        })
+        dekorace.add(kmeny, koruny)
+      }
+
+      if (kameny.length > 0) {
+        const matKamen = new THREE.MeshStandardMaterial({ color: arena.barvaKamene, roughness: 1 })
+        const skaly = new THREE.InstancedMesh(new THREE.DodecahedronGeometry(1), matKamen, kameny.length)
+        const q = new THREE.Quaternion()
+        const s = new THREE.Vector3()
+        kameny.forEach((u, i) => {
+          q.setFromEuler(new THREE.Euler(u.rotace, u.rotace * 0.7, u.rotace * 1.3))
+          s.setScalar(u.skala)
+          matice.compose(new THREE.Vector3(u.x, u.skala, u.z), q, s)
+          skaly.setMatrixAt(i, matice)
+        })
+        dekorace.add(skaly)
       }
     }
     scene.add(dekorace)

@@ -72,6 +72,16 @@ export interface BojovnikStav {
    *  každý tik stejně jako zranitelnostKonci/utokKonci, prodlužuje se
    *  na KOMBO_OKNO_MS zpátky každým dalším neblokovaným zásahem. */
   komboKonci: number
+  /** Vylepšení — parry. Jak dlouho bojovník BEZ PŘERUŠENÍ drží blok —
+   *  roste každý tik, co blokuje, jinak spadne na 0. Zásah, co dopadne,
+   *  dokud je tohle číslo pod PARRY_OKNO_MS (engine.ts), je "perfektní
+   *  blok", ne obyčejný — cíl nedostane žádné poškození ani odražení a
+   *  útočník je navíc omráčen (viz engine.ts's aplikujJedenZasah). */
+  blokDrzenMs: number
+  /** Vylepšení — parry. Kolik ms zbývá z vizuálního záblesku "právě
+   *  jsem perfektně zablokoval" (Bojiste.tsx) — čistě UI, engine se na
+   *  ni jinde neptá, počítá se dolů stejně jako komboKonci výš. */
+  parryZablesk: number
 }
 
 /** Vstup jednoho hráče pro jeden krok simulace. `akce` je jednorázová

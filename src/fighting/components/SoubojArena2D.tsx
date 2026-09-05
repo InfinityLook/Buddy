@@ -1,7 +1,7 @@
 import React from 'react'
 import { ARENA_SIRKA } from '../combat/engine'
 import { POSTAVY } from '../combat/postavy'
-import { poziceProcenta, vizualniStavBojovnika } from '../combat/loop'
+import { jeComeback, jeParry, poziceProcenta, vizualniStavBojovnika } from '../combat/loop'
 import { PostavaGrafika } from './PostavaGrafika'
 import { Jiskry } from './Jiskry'
 import type { SoubojStav } from '../combat/types'
@@ -32,7 +32,9 @@ export const SoubojArena2D: React.FC<Props> = ({ stav, zasazen }) => {
         return (
           <div
             key={i}
-            className={`souboj-bojovnik souboj-bojovnik--${i + 1} souboj-bojovnik--${vizualniStav}`}
+            className={`souboj-bojovnik souboj-bojovnik--${i + 1} souboj-bojovnik--${vizualniStav} souboj-bojovnik--postava-${postava.id} ${
+              jeParry(b) ? 'souboj-bojovnik--parry' : ''
+            } ${jeComeback(b) ? 'souboj-bojovnik--comeback' : ''}`}
             style={{ left: `${poziceProcenta(b, ARENA_SIRKA)}%` }}
           >
             <PostavaGrafika postavaId={postava.id} size={58} />

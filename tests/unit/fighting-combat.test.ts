@@ -4,9 +4,15 @@ import {
   ARENA_SIRKA,
   BLOK_REDUKCE,
   CAS_LIMIT_MS,
+  COMEBACK_NASOBIC,
+  COMEBACK_PRAH,
   HITSTUN_MS,
+  KOMBO_BONUS_ZA_UDER,
   KOMBO_OKNO_MS,
   MAX_HP,
+  PARRY_OKNO_MS,
+  PARRY_TREST_MS,
+  PARRY_ZABLESK_MS,
   krokSouboje,
   vytvorBojovnika,
   vytvorSoubojStav,
@@ -63,6 +69,19 @@ describe('útoky', () => {
 
   it('blokovaný útok sníží poškození podle BLOK_REDUKCE a neudělí hitstun', () => {
     let stav = vytvorSoubojStav(0, 80)
+    // Vylepšení — parry: blok, co za útokem NEZAOSTÁVÁ vůbec (stejný
+    // tik jako útok, čerstvě zvednutý), je od parry mechaniky "perfektní"
+    // (viz vlastní sekce níž), ne obyčejný. Tenhle test chce ověřit
+    // OBYČEJNÝ blok, appka proto nechá obránce blokovat už DŘÍV, mimo
+    // parry okno, přesně jak "obyčejný blok" v praxi vypadá.
+    // Obránce zvedne blok TEĎ (deltaMs 0 — ustaví blokuje: true) a pak
+    // ho drží dost dlouho, aby přestal být "perfektní" — jeden krok s
+    // velkým deltaMs by první tik držení vždycky ukázal jako 0ms (appka
+    // neví, jak dlouho PŘED koncem tiku k držení došlo), skutečné
+    // nabíhání potřebuje aspoň dva kroky, přesně jak by to na 60 Hz
+    // vypadalo v praxi.
+    stav = krokSouboje(stav, [stat, { ...stat, blok: true }], 0)
+    stav = krokSouboje(stav, [stat, { ...stat, blok: true }], PARRY_OKNO_MS + 50)
     stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, { ...stat, blok: true }], 0)
     const ocekavane = AKCE_DATA.udar.poskozeni * (1 - BLOK_REDUKCE)
     expect(stav.hraci[1].hp).toBeCloseTo(MAX_HP - ocekavane)
@@ -170,7 +189,12 @@ describe('vylepšení — odražení (knockback)', () => {
     stavNeblok = krokSouboje(stavNeblok, [{ ...stat, akce: 'kop' }, stat], 0)
     const posunNeblok = stavNeblok.hraci[1].pozice - 80
 
+    // Vylepšení — parry: viz komentář u "blokovaný útok sníží poškození"
+    // výš — obyčejný (ne perfektní) blok musí zaostávat za útokem, ne
+    // začínat na stejném tiku.
     let stavBlok = vytvorSoubojStav(0, 80)
+    stavBlok = krokSouboje(stavBlok, [stat, { ...stat, blok: true }], 0)
+    stavBlok = krokSouboje(stavBlok, [stat, { ...stat, blok: true }], PARRY_OKNO_MS + 50)
     stavBlok = krokSouboje(stavBlok, [{ ...stat, akce: 'kop' }, { ...stat, blok: true }], 0)
     const posunBlok = stavBlok.hraci[1].pozice - 80
 
@@ -229,5 +253,110 @@ describe('vylepšení — kombo (komboPocet/komboKonci)', () => {
     stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, { ...stat, blok: true }], 0)
     expect(stav.hraci[0].komboKonci).toBe(0)
     expect(stav.hraci[0].komboPocet).toBe(0)
+  })
+})
+
+describe('vylepšení — parry (perfektní blok)', () => {
+  it('zásah proti čerstvě zvednutému bloku (ve stejném tiku) je perfektní — nulové poškození, nulové odražení', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, { ...stat, blok: true }], 0)
+    expect(stav.hraci[1].hp).toBe(MAX_HP)
+    expect(stav.hraci[1].pozice).toBe(80) // žádné odražení, na rozdíl od obyčejného bloku
+    expect(stav.hraci[1].zranitelnostKonci).toBe(0) // obránce sám žádný hitstun nedostal
+  })
+
+  it('perfektní blok potrestá útočníka delším omráčením než obyčejný neblokovaný zásah', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, { ...stat, blok: true }], 0)
+    expect(stav.hraci[0].zranitelnostKonci).toBe(PARRY_TREST_MS)
+    expect(PARRY_TREST_MS).toBeGreaterThan(HITSTUN_MS)
+  })
+
+  it('perfektní blok rozsvítí parryZablesk na obránci, ne na útočníkovi', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, { ...stat, blok: true }], 0)
+    expect(stav.hraci[1].parryZablesk).toBe(PARRY_ZABLESK_MS)
+    expect(stav.hraci[0].parryZablesk).toBe(0)
+  })
+
+  it('perfektní blok útočníkovi nepřidá kombo ani manu za zásah — trefa vůbec neprošla', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, { ...stat, blok: true }], 0)
+    expect(stav.hraci[0].komboPocet).toBe(0)
+    expect(stav.hraci[0].mana).toBe(0)
+  })
+
+  it('blok držený už DÉLE než PARRY_OKNO_MS před zásahem je obyčejný blok, ne perfektní', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    // Obránce drží blok bez přerušení, dřív než útočník vůbec udeří.
+    // Obránce zvedne blok TEĎ (deltaMs 0 — ustaví blokuje: true) a pak
+    // ho drží dost dlouho, aby přestal být "perfektní" — jeden krok s
+    // velkým deltaMs by první tik držení vždycky ukázal jako 0ms (appka
+    // neví, jak dlouho PŘED koncem tiku k držení došlo), skutečné
+    // nabíhání potřebuje aspoň dva kroky, přesně jak by to na 60 Hz
+    // vypadalo v praxi.
+    stav = krokSouboje(stav, [stat, { ...stat, blok: true }], 0)
+    stav = krokSouboje(stav, [stat, { ...stat, blok: true }], PARRY_OKNO_MS + 50)
+    expect(stav.hraci[1].blokDrzenMs).toBeGreaterThan(PARRY_OKNO_MS)
+
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, { ...stat, blok: true }], 0)
+    const ocekavane = AKCE_DATA.udar.poskozeni * (1 - BLOK_REDUKCE)
+    expect(stav.hraci[1].hp).toBeCloseTo(MAX_HP - ocekavane)
+    expect(stav.hraci[0].zranitelnostKonci).toBe(0) // útočník nebyl potrestán
+    expect(stav.hraci[1].parryZablesk).toBe(0)
+  })
+})
+
+describe('vylepšení — comeback', () => {
+  it('útočník pod COMEBACK_PRAH dá víc poškození než stejný útočník s plným HP', () => {
+    let stavPlne = vytvorSoubojStav(0, 80)
+    stavPlne = krokSouboje(stavPlne, [{ ...stat, akce: 'udar' }, stat], 0)
+    const dmgPlne = MAX_HP - stavPlne.hraci[1].hp
+
+    let stavComeback = vytvorSoubojStav(0, 80)
+    stavComeback.hraci[0] = { ...stavComeback.hraci[0], hp: MAX_HP * COMEBACK_PRAH } // přesně na hranici (<=)
+    stavComeback = krokSouboje(stavComeback, [{ ...stat, akce: 'udar' }, stat], 0)
+    const dmgComeback = MAX_HP - stavComeback.hraci[1].hp
+
+    expect(dmgComeback).toBeGreaterThan(dmgPlne)
+    expect(dmgComeback).toBeCloseTo(dmgPlne * COMEBACK_NASOBIC)
+  })
+
+  it('útočník TĚSNĚ nad prahem žádný bonus nedostane', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav.hraci[0] = { ...stav.hraci[0], hp: MAX_HP * COMEBACK_PRAH + 5 }
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 0)
+    const dmg = MAX_HP - stav.hraci[1].hp
+    expect(dmg).toBeCloseTo(AKCE_DATA.udar.poskozeni)
+  })
+
+  it('comeback platí i na blokovaný zásah, na rozdíl od komba', () => {
+    // Obránce musí blok držet už DŘÍV, ne od stejného tiku jako útok —
+    // jinak by šlo o perfektní blok (viz sekce výš), který dá nulové
+    // poškození bez ohledu na cokoliv, comeback bonus by tak nešlo
+    // vůbec pozorovat.
+    let stavPlne = vytvorSoubojStav(0, 80)
+    stavPlne = krokSouboje(stavPlne, [stat, { ...stat, blok: true }], 0)
+    stavPlne = krokSouboje(stavPlne, [stat, { ...stat, blok: true }], PARRY_OKNO_MS + 50)
+    stavPlne = krokSouboje(stavPlne, [{ ...stat, akce: 'udar' }, { ...stat, blok: true }], 0)
+    const dmgBlokPlne = MAX_HP - stavPlne.hraci[1].hp
+
+    let stavComeback = vytvorSoubojStav(0, 80)
+    stavComeback.hraci[0] = { ...stavComeback.hraci[0], hp: 10 }
+    stavComeback = krokSouboje(stavComeback, [stat, { ...stat, blok: true }], 0)
+    stavComeback = krokSouboje(stavComeback, [stat, { ...stat, blok: true }], PARRY_OKNO_MS + 50)
+    stavComeback = krokSouboje(stavComeback, [{ ...stat, akce: 'udar' }, { ...stat, blok: true }], 0)
+    const dmgBlokComeback = MAX_HP - stavComeback.hraci[1].hp
+
+    expect(dmgBlokComeback).toBeGreaterThan(dmgBlokPlne)
+  })
+
+  it('comeback a kombo bonus se násobí dohromady, ne že by jeden ten druhý ignoroval', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav.hraci[0] = { ...stav.hraci[0], hp: 10, komboPocet: 2, komboKonci: 500 }
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 0)
+    const dmg = MAX_HP - stav.hraci[1].hp
+    const ocekavane = AKCE_DATA.udar.poskozeni * (1 + 2 * KOMBO_BONUS_ZA_UDER) * COMEBACK_NASOBIC
+    expect(dmg).toBeCloseTo(ocekavane)
   })
 })

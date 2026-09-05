@@ -1,12 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { hostujMistnost, vygenerujKodMistnosti } from '../network'
 import { ARENA_SIRKA, krokSouboje, vytvorSoubojStav } from '../combat/engine'
-import { sestavVstup } from '../combat/loop'
+import { HIT_STOP_MS, sestavVstup } from '../combat/loop'
 import { nahodnaPostava, pripravAkciAi } from '../combat/ai'
 import type { PostavaId } from '../combat/postavy'
 import type { HracVstup, SoubojStav } from '../combat/types'
 import type { PripojitPayload, Smer, Tlacitko, VstupPayload } from '../types'
 import { Bojiste } from './Bojiste'
+import { PostavaGrafika } from './PostavaGrafika'
 import { SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
 // Vlastní import, ne spoléhání na to, že FightingModule.tsx ho už
 // natáhl — appka jednou přišla o styl přesně tímhle předpokladem
@@ -74,14 +75,13 @@ const VITEZSTVI_NA_ZAPAS = 2
 // (combat/ai.ts) místo přes živě držený stav tlačítek z broadcastu.
 const AI_HRAC_ID = 'pocitac-ai'
 
-// Druhé kolo vizuální "šťávy" — hit-stop. Krátké zamrznutí SIMULACE
-// (ne jen vizuálu) na doopravdy dopadlý zásah, stejný trik jako
-// bojovky ve videohrách odjakživa používají, ať úder působí těžčeji.
-// Schválně žádná nová herní logika v enginu — appka jen na pár
-// snímků PŘESTANE volat krokSouboje (viz tik() níž), takže se nic
-// nepohne ani nepřepočítá, dokud okno neuplyne; combat/engine.ts o
-// tom neví vůbec nic.
-const HIT_STOP_MS = 90
+// Sedmé kolo vylepšení — úvodní "VS" obrazovka mezi tím, co jsou oba
+// sloty připravené (pripraveno === true), a tím, co skutečně začne
+// běžet zápas — appka to schválně NEDĚLÁ jako vrstvu NAD už běžícím
+// zápasem, ale jako skutečné zpoždění startu (viz efekt níž), ať se
+// hráčům nezačne odpočítávat čas kola nebo přehrávat zvuk zásahu dřív,
+// než vůbec uvidí, proti komu hrají.
+const INTRO_MS = 2200
 
 // ==========================================
 // TV strana — vygeneruje kód místnosti, přiděluje připojující se
@@ -105,6 +105,14 @@ const HIT_STOP_MS = 90
 // skutečně pozastavit SIMULACI (nevolat krokSouboje), ne jen
 // vykreslení nad ní. Screen shake a KO zoom (druhá polovina stejného
 // kola) jsou naopak čistě prezentační, ty zůstávají v Bojiste.tsx.
+//
+// Sedmé kolo vylepšení přidalo úvodní "VS" obrazovku (INTRO_MS výš) —
+// zápas se teď doopravdy NEZAČNE hrát, dokud tahle obrazovka
+// doběhne (viz introAktivni v obou navazujících efektech), ne že by
+// se zápas rozjel na pozadí a intro nad ním jen chvíli viselo jako
+// vrstva. Parry a comeback (viz combat/engine.ts) žádnou vlastní
+// TV-stranu logiku nepotřebují — obojí je čistě v enginu a v
+// Bojiste.tsx, tady se to jinak vůbec nezmiňuje.
 // ==========================================
 
 export const TvHost: React.FC<Props> = ({ onZpet }) => {
@@ -125,6 +133,8 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
   // neposílá na síť (viz areny.ts's vlastní komentář), takže druhý
   // hráč o ní ani nemusí vědět, jen ji uvidí na TV.
   const [arenaId, setArenaId] = useState<ArenaId>(VYCHOZI_ARENA)
+  // Sedmé kolo vylepšení — úvodní "VS" obrazovka (viz INTRO_MS výš).
+  const [introAktivni, setIntroAktivni] = useState(false)
 
   // Zrcadlo aktuálního `hraci` stavu do refu — herní smyčka běží ve
   // vlastním requestAnimationFrame cyklu a potřebuje na každém tiku
@@ -187,8 +197,23 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
   // tlačítka a nová reference by smyčku pořád restartovala).
   const pripraveno = !!(hraci[0]?.postavaId && hraci[1]?.postavaId)
 
+  // Sedmé kolo vylepšení — jakmile jsou oba sloty připravené, appka
+  // nejdřív na INTRO_MS ukáže "VS" obrazovku a TEPRVE PAK (druhý efekt
+  // níž, závislý i na introAktivni) skutečně vytvoří SoubojStav a
+  // spustí herní smyčku — ne že by intro jela JAKO PŘEKRYV nad už
+  // běžícím zápasem.
   useEffect(() => {
-    if (!pripraveno) return
+    if (!pripraveno) {
+      setIntroAktivni(false)
+      return
+    }
+    setIntroAktivni(true)
+    const id = window.setTimeout(() => setIntroAktivni(false), INTRO_MS)
+    return () => window.clearTimeout(id)
+  }, [pripraveno])
+
+  useEffect(() => {
+    if (!pripraveno || introAktivni) return
     const h0 = hraciRef.current[0]
     const h1 = hraciRef.current[1]
     if (!h0 || !h1) return
@@ -285,7 +310,7 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
 
     idPozadavku = requestAnimationFrame(tik)
     return () => cancelAnimationFrame(idPozadavku)
-  }, [pripraveno])
+  }, [pripraveno, introAktivni])
 
   // Fáze 5 — sólo režim: doplní slot 2 počítačovým soupeřem s náhodně
   // zvolenou postavou, ať to na začátku není vždy stejný souboj. Jde o
@@ -338,7 +363,19 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
         <h1 className="souboj-title">Souboj — TV</h1>
       </header>
 
-      {soubojStav ? (
+      {introAktivni ? (
+        <div className="souboj-intro" aria-label="Zápas začíná">
+          <div className="souboj-intro-bojovnik souboj-intro-bojovnik--1">
+            <PostavaGrafika postavaId={hraci[0]?.postavaId ?? 'onyx'} size={96} />
+            <span className="souboj-intro-jmeno">{hraci[0]?.jmeno ?? 'Hráč 1'}</span>
+          </div>
+          <span className="souboj-intro-vs">VS</span>
+          <div className="souboj-intro-bojovnik souboj-intro-bojovnik--2">
+            <PostavaGrafika postavaId={hraci[1]?.postavaId ?? 'onyx'} size={96} />
+            <span className="souboj-intro-jmeno">{hraci[1]?.jmeno ?? 'Hráč 2'}</span>
+          </div>
+        </div>
+      ) : soubojStav ? (
         <>
           <div className="souboj-skore-pruh" aria-label="Skóre zápasu">
             <span className="souboj-skore-jmeno souboj-skore-jmeno--1">{hraci[0]?.jmeno ?? 'Hráč 1'}</span>

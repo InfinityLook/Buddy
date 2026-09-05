@@ -5,6 +5,7 @@ import {
   KOMBO_BONUS_ZA_UDER,
   MANA_ZA_ZASAH,
   MAX_HP,
+  PARRY_OKNO_MS,
   efektivniAkceData,
   krokSouboje,
   vytvorSoubojStav,
@@ -133,6 +134,12 @@ describe('Onyxův speciál — vysátí (vysati)', () => {
     let stav = vytvorSoubojStav(0, 80, 'onyx', 'onyx')
     stav.hraci[0] = { ...stav.hraci[0], mana: 100, hp: 40 }
 
+    // Vylepšení — parry: obránce musí blok držet už DŘÍV, mimo parry
+    // okno (fighting-combat.test.ts's vlastní sekce), jinak by šlo o
+    // perfektní blok s nulovým poškozením, a test by nezměřil to, co
+    // chce (obyčejné vysátí po zeslabeném zásahu).
+    stav = krokSouboje(stav, [stat, { ...stat, blok: true }], 0)
+    stav = krokSouboje(stav, [stat, { ...stat, blok: true }], PARRY_OKNO_MS + 50)
     stav = krokSouboje(stav, [plnaMana, { ...stat, blok: true }], 0)
 
     const poskozeni = 100 - stav.hraci[1].hp

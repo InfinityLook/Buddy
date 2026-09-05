@@ -3,6 +3,7 @@ import {
   AKCE_DATA,
   BLOK_REDUKCE,
   MAX_HP,
+  PARRY_OKNO_MS,
   RYCHLOST_POHYBU,
   efektivniAkceData,
   krokSouboje,
@@ -95,6 +96,13 @@ describe('rozdílné styly hry v reálném souboji', () => {
   it('blok a postavina obrana se kombinují (obrana nejdřív, blok navrch)', () => {
     let stav = vytvorSoubojStav(0, 80, 'onyx', 'bulwark')
     const maxHpBulwark = stav.hraci[1].maxHp
+    // Vylepšení — parry: blok, co za útokem nezaostává, je "perfektní"
+    // (nulové poškození, viz fighting-combat.test.ts's vlastní sekce),
+    // ne obyčejný — appka tu proto obránce nechá blok držet už DŘÍV,
+    // mimo parry okno, ať tenhle test doopravdy měří obyčejné
+    // obrana×blok skládání, ne parry.
+    stav = krokSouboje(stav, [stat, { ...stat, blok: true }], 0)
+    stav = krokSouboje(stav, [stat, { ...stat, blok: true }], PARRY_OKNO_MS + 50)
     stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, { ...stat, blok: true }], 0)
     const ocekavane = AKCE_DATA.udar.poskozeni * POSTAVY.bulwark.obranaNasobic * (1 - BLOK_REDUKCE)
     expect(stav.hraci[1].hp).toBeCloseTo(maxHpBulwark - ocekavane)

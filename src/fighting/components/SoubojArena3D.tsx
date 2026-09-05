@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react'
 import { ARENA_SIRKA } from '../combat/engine'
 import { POSTAVY } from '../combat/postavy'
-import { vizualniStavBojovnika } from '../combat/loop'
+import { jeComeback, jeParry, vizualniStavBojovnika } from '../combat/loop'
 import { useSoubojScene } from '../arena/useSoubojScene'
 import { ARENY, VYCHOZI_ARENA, type Arena, type ArenaId } from '../arena/areny'
 import { PostavaGrafika } from './PostavaGrafika'
@@ -66,7 +66,11 @@ export const SoubojArena3D: React.FC<Props> = ({ stav, zasazen, arenaId, onSelha
           const vizStav = vizualniStavBojovnika(b)
           return (
             <div key={`${kamera}-${i}`} ref={registrujSprite(kamera, i)} className="souboj-3d-sprite">
-              <div className={`souboj-bojovnik souboj-bojovnik--${i + 1} souboj-bojovnik--${vizStav}`}>
+              <div
+                className={`souboj-bojovnik souboj-bojovnik--${i + 1} souboj-bojovnik--${vizStav} souboj-bojovnik--postava-${postava.id} ${
+                  jeParry(b) ? 'souboj-bojovnik--parry' : ''
+                } ${jeComeback(b) ? 'souboj-bojovnik--comeback' : ''}`}
+              >
                 <PostavaGrafika postavaId={postava.id} size={54} />
                 {zasazen[i] && <Jiskry />}
                 {b.stitAktivni && <span className="souboj-stit-znacka">🛡️</span>}

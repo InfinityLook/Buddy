@@ -1,4 +1,4 @@
-import { CAS_LIMIT_MS } from './engine'
+import { CAS_LIMIT_MS, COMEBACK_PRAH } from './engine'
 import type { AkceData, BojovnikStav, HracVstup, SoubojStav, UtocnaAkce } from './types'
 import type { Smer, Tlacitko } from '../types'
 
@@ -15,6 +15,20 @@ import type { Smer, Tlacitko } from '../types'
  *  tiku — na telefonu prakticky nikdy nenastane, ale funkce musí být
  *  deterministická i tak. */
 const PORADI_AKCI: UtocnaAkce[] = ['udar', 'kop', 'specialni']
+
+/** Páté kolo vylepšení — hit-stop. Krátké zamrznutí SIMULACE (ne jen
+ *  vykreslení) na doopravdy dopadlý zásah — kdokoli vlastní herní
+ *  smyčku (TvHost.tsx pro TV/telefon zápas, LocalniZapas.tsx pro
+ *  jedno sdílené zařízení) na pár snímků prostě NEVOLÁ krokSouboje,
+ *  dokud tohle okno neuplyne (viz obou komponent vlastní komentář u
+ *  jejich `tik()`). Žije tady, ne v engine.ts — je to čistě o TOM, JAK
+ *  dlouho vlastník smyčky mezi dvěma voláními krokSouboje čeká, engine
+ *  sám o hit-stopu neví vůbec nic, stejná hranice jako u zbytku
+ *  tohohle souboru. Sedmé kolo vylepšení ho přesunulo sem z TvHost.tsx,
+ *  jakmile ho potřeboval i druhý vlastník smyčky — přesně stejné
+ *  pravidlo, jakým tenhle projekt povyšuje sdílené kusy kódu z jednoho
+ *  souboru do core/utils, jen v menším měřítku. */
+export const HIT_STOP_MS = 90
 
 /** Najde tlačítko, které přešlo z "nedrženo" na "drženo" právě mezi
  *  dvěma po sobě jdoucími stavy tlačítek z ovladače — edge detekce,
@@ -86,3 +100,16 @@ export const zbyvaSekund = (stav: SoubojStav): number => Math.max(0, Math.ceil((
  *  vykreslovací straně). Pro Bojiste.tsx's odznak "×N", zobrazí se
  *  jen od druhého zásahu v sérii (jeden zásah ještě není "kombo"). */
 export const komboAktivni = (b: BojovnikStav): number => (b.komboKonci > 0 ? b.komboPocet : 0)
+
+/** Vylepšení — parry. Jestli bojovník PRÁVĚ TEĎ ukazuje vizuální
+ *  záblesk perfektního bloku (engine.ts's PARRY_ZABLESK_MS) — čti
+ *  hotové pole, žádná logika navíc, stejná disciplína jako
+ *  komboAktivni výš. */
+export const jeParry = (b: BojovnikStav): boolean => b.parryZablesk > 0
+
+/** Vylepšení — comeback. Jestli bojovník PRÁVĚ TEĎ bojuje pod
+ *  COMEBACK_PRAH (engine.ts) a dostává tak bonus poškození — čistě
+ *  odvozené z hp/maxHp, žádný vlastní stav navíc. `b.hp > 0` navíc
+ *  vylučuje KO'd bojovníka (0 HP by jinak taky prošlo prahem, ale
+ *  "comeback" u někoho, kdo už prohrál, nedává smysl zobrazovat). */
+export const jeComeback = (b: BojovnikStav): boolean => b.hp > 0 && b.hp / b.maxHp <= COMEBACK_PRAH

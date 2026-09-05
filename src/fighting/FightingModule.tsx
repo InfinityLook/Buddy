@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { isSupabaseConfigured } from '@/core/supabase/client'
 import { TvHost } from './components/TvHost'
 import { Ovladac } from './components/Ovladac'
+import { LocalniZapas } from './components/LocalniZapas'
 import { odemkniZvuk } from './sound'
 import './FightingModule.css'
 
@@ -19,7 +20,7 @@ import './FightingModule.css'
 // (postavy, aréna, souboj samotný).
 // ==========================================
 
-type Role = 'vyber' | 'tv' | 'ovladac'
+type Role = 'vyber' | 'tv' | 'ovladac' | 'lokalne'
 
 export const FightingModule: React.FC = () => {
   const navigate = useNavigate()
@@ -44,6 +45,7 @@ export const FightingModule: React.FC = () => {
 
   if (role === 'tv') return <TvHost onZpet={() => setRole('vyber')} />
   if (role === 'ovladac') return <Ovladac onZpet={() => setRole('vyber')} />
+  if (role === 'lokalne') return <LocalniZapas onZpet={() => setRole('vyber')} />
 
   return (
     <div className="souboj-page">
@@ -84,6 +86,25 @@ export const FightingModule: React.FC = () => {
           <span className="souboj-volba-text">
             <span className="souboj-volba-nazev">Připojit se jako ovladač</span>
             <span className="souboj-volba-popis">Telefon se změní na joystick a tlačítka.</span>
+          </span>
+        </button>
+
+        <button
+          className="souboj-volba"
+          onClick={() => {
+            // Stejný důvod jako u "Hostovat na TV" výš — lokální zápas
+            // taky hraje zvuk přímo z tohohle zařízení, potřebuje tedy
+            // odemčený AudioContext ze stejného skutečného gesta.
+            odemkniZvuk()
+            setRole('lokalne')
+          }}
+        >
+          <span className="souboj-volba-ikona" aria-hidden="true">🤝</span>
+          <span className="souboj-volba-text">
+            <span className="souboj-volba-nazev">Hrát lokálně (jedno zařízení)</span>
+            <span className="souboj-volba-popis">
+              Bez TV a druhého telefonu — oba hráči sdílí tohle zařízení.
+            </span>
           </span>
         </button>
       </div>

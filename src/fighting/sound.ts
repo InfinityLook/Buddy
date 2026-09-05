@@ -76,3 +76,8 @@ export const zahrajRemizu = () => {
   ton(349.23, 0.16, 0.18)
   ton(349.23, 0.16, 0.18, 'sine', 0.2)
 }
+
+/** Vylepšení — parry. Ostrý kovový "cink", zjevně odlišný od
+ *  obyčejného zahrajZasah (tupý čtvercový tón) — perfektní blok má
+ *  znít jako úspěch obránce, ne jako další rána. */
+export const zahrajParry = () => ton(1046.5, 0.14, 0.24, 'triangle')

@@ -38,6 +38,31 @@ export const KOMBO_BONUS_ZA_UDER = 0.08
  *  bez tohohle by nekonečná série teoreticky mohla dát nekonečné
  *  poškození za jeden zásah. */
 export const KOMBO_MAX_STUPNU = 5
+/** Vylepšení — parry. Zásah, co dopadne, dokud bojovník drží blok
+ *  KRATŠÍ dobu než tohle číslo, je "perfektní blok" — odměna za
+ *  reakci na konkrétní úder, ne za to, že hráč blok drží od začátku
+ *  kola pořád. Dost krátké, aby to chtělo skutečné načasování, dost
+ *  dlouhé, aby to na telefonu vůbec šlo trefit. */
+export const PARRY_OKNO_MS = 150
+/** Vylepšení — parry. Útočník potrestaný perfektním blokem je omráčen
+ *  DÉLE než obyčejný neblokovaný zásah (HITSTUN_MS výš) — perfektní
+ *  blok má být citelně horší trest než jen "soupeř se ubránil". */
+export const PARRY_TREST_MS = 500
+/** Vylepšení — parry. Jak dlouho appka ukazuje vizuální záblesk
+ *  "právě jsem perfektně zablokoval" (Bojiste.tsx) — čistě kosmetické
+ *  okno, engine sám ho nikde jinde nepoužívá. */
+export const PARRY_ZABLESK_MS = 350
+/** Vylepšení — comeback. Pod jakým podílem max. HP útočník bojuje
+ *  "od zdi" a dostává bonus poškození (COMEBACK_NASOBIC níž) — dost
+ *  nízko, aby to nebyl stav, ve kterém je bojovník půl zápasu, ale
+ *  skutečná poslední šance na obrat. */
+export const COMEBACK_PRAH = 0.3
+/** Vylepšení — comeback. O kolik víc poškození dá útočník bojující
+ *  pod COMEBACK_PRAH — platí na blokovaný i neblokovaný zásah stejně
+ *  (na rozdíl od komba, které se blokovanému zásahu vůbec nepočítá),
+ *  protože comeback je o snaze útočníka samotného, ne o konkrétní
+ *  výměně. */
+export const COMEBACK_NASOBIC = 1.2
 
 export const AKCE_DATA: Record<UtocnaAkce, AkceData> = {
   udar: { poskozeni: 6, dosah: 90, trvaniMs: 250, cenaMany: 0, knockback: 18 },
@@ -63,6 +88,8 @@ export const vytvorBojovnika = (pozice: number, postavaId: PostavaId = VYCHOZI_P
     stitAktivni: false,
     komboPocet: 0,
     komboKonci: 0,
+    blokDrzenMs: 0,
+    parryZablesk: 0,
   }
 }
 
@@ -124,6 +151,10 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number): Vysle
   // (na rozdíl od blokKonci by nemělo smysl kombo "pozastavit" — čas
   // se počítá reálně, ne jen v tazích, kdy bojovník zrovna může jednat).
   const komboKonci = Math.max(0, b.komboKonci - deltaMs)
+  // Vylepšení — parry. Vizuální záblesk doznívá stejně nezávisle na
+  // busy stavu jako kombo okno výš — je to jen kosmetika, ne herní
+  // pravidlo, které by muselo čekat na to, až bojovník zase může jednat.
+  const parryZablesk = Math.max(0, b.parryZablesk - deltaMs)
 
   // Uprostřed hitstunu nebo vlastního útoku (i z minulého tiku) bojovník
   // ignoruje veškerý nový vstup — mana ale běží dál, regenerace není
@@ -131,7 +162,12 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number): Vysle
   const busy = zranitelnostKonci > 0 || utokKonci > 0
   if (busy) {
     return {
-      dalsi: { ...b, zranitelnostKonci, utokKonci, mana, komboKonci, blokuje: false },
+      // Vylepšení — parry. Bojovník uprostřed hitstunu/vlastního útoku
+      // logicky NEblokuje (blokuje se vynucuje na false o pár řádků
+      // níž stejně), takže blokDrzenMs se resetuje na 0 spolu s tím —
+      // jinak by "držené" číslo z předchozího bloku přežilo přes
+      // omráčení a zkreslilo by první parry po probuzení.
+      dalsi: { ...b, zranitelnostKonci, utokKonci, mana, komboKonci, parryZablesk, blokuje: false, blokDrzenMs: 0 },
       zahajenaAkce: null,
     }
   }
@@ -144,6 +180,11 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number): Vysle
   // Zmáčknutá akce přebije blok — jednodušší pravidlo než "blok
   // pohltí útočné tlačítko", a nezavádí to stav, kdy vstup nic neudělá.
   const blokuje = vstup.blok && !vstup.akce
+  // Vylepšení — parry. Roste, dokud bojovník blok drží NEPŘETRŽITĚ
+  // (z předchozího tiku, proto čte b.blokuje, ne čerstvé `blokuje`),
+  // jinak padá zpátky na 0 — je to "jak dlouho JE tenhle konkrétní
+  // blok už držený", ne kolikrát celkem hráč za kolo bloknul.
+  const blokDrzenMs = blokuje ? (b.blokuje ? b.blokDrzenMs + deltaMs : 0) : 0
 
   let novyUtokKonci = 0
   let zahajenaAkce: UtocnaAkce | null = null
@@ -179,6 +220,8 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number): Vysle
       posledniAkce: zahajenaAkce ?? b.posledniAkce,
       stitAktivni,
       komboKonci,
+      blokDrzenMs,
+      parryZablesk,
     },
     zahajenaAkce,
   }
@@ -231,9 +274,32 @@ const aplikujJedenZasah = (
   }
 
   const zasahBlokovan = cil.blokuje
+
+  // Vylepšení — parry. Blok držený jen krátce (PARRY_OKNO_MS) v
+  // okamžiku zásahu je "perfektní" — cíl nedostane VŮBEC nic (ani
+  // zbylé poškození po BLOK_REDUKCE, ani odražení, ani hitstun) a
+  // útočník je navíc potrestán delším omráčením (PARRY_TREST_MS,
+  // přísnějším než obyčejný HITSTUN_MS) — skutečná odměna za reakci na
+  // konkrétní úder, ne za to, že hráč blok drží od začátku kola.
+  // Kombo/comeback bonusy se na perfektní blok vůbec nepočítají —
+  // dopadlo nulové poškození, není co násobit.
+  const jePerfektniBlok = zasahBlokovan && cil.blokDrzenMs <= PARRY_OKNO_MS
+  if (jePerfektniBlok) {
+    const dalsi = [...hraci] as [BojovnikStav, BojovnikStav]
+    dalsi[cilIdx] = { ...cil, parryZablesk: PARRY_ZABLESK_MS }
+    dalsi[utocnikIdx] = { ...utocnik, zranitelnostKonci: PARRY_TREST_MS }
+    return { hraci: dalsi, poskozeniDorucene: 0 }
+  }
+
   const stupenKomba = utocnik.komboKonci > 0 ? Math.min(utocnik.komboPocet, KOMBO_MAX_STUPNU) : 0
   const bonusKomba = zasahBlokovan ? 1 : 1 + stupenKomba * KOMBO_BONUS_ZA_UDER
-  const poskozeni = (zasahBlokovan ? poskozeniZaklad * (1 - BLOK_REDUKCE) : poskozeniZaklad) * bonusKomba
+  // Vylepšení — comeback. Útočník bojující od nízkého HP dá víc
+  // poškození, blokovaně i naplno stejně (na rozdíl od komba, které se
+  // blokovanému zásahu vůbec nepočítá) — comeback je o snaze útočníka
+  // samotného obrátit zápas, ne o téhle konkrétní výměně.
+  const bonusComeback = utocnik.hp > 0 && utocnik.hp / utocnik.maxHp <= COMEBACK_PRAH ? COMEBACK_NASOBIC : 1
+  const poskozeni =
+    (zasahBlokovan ? poskozeniZaklad * (1 - BLOK_REDUKCE) : poskozeniZaklad) * bonusKomba * bonusComeback
 
   const smerOdrazeni = utocnik.pozice <= cil.pozice ? 1 : -1
   const silaOdrazeni = zasahBlokovan ? knockback * (1 - BLOK_REDUKCE) : knockback

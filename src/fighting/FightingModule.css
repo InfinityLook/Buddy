@@ -168,6 +168,81 @@
   background: rgba(53, 196, 240, 0.14);
 }
 
+/* Sedmé kolo vylepšení — úvodní "VS" obrazovka (TvHost.tsx's
+   introAktivni/INTRO_MS). Zabírá stejný prostor, kde by jinak byl
+   Bojiste — appka ji renderuje MÍSTO zápasu, ne jako překryv nad ním
+   (viz komponenta samotná). Obě strany vjíždí z opačných stran a
+   "VS" uprostřed jemně pulzuje, ať obrazovka nepůsobí staticky po
+   celých ~2 vteřiny, co je vidět. */
+.souboj-intro {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.2rem;
+  padding: 3.5rem 0;
+}
+
+.souboj-intro-bojovnik {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.souboj-intro-bojovnik--1 {
+  animation: souboj-intro-zleva 0.5s ease-out;
+}
+
+.souboj-intro-bojovnik--2 {
+  animation: souboj-intro-zprava 0.5s ease-out;
+}
+
+@keyframes souboj-intro-zleva {
+  0% {
+    transform: translateX(-60px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes souboj-intro-zprava {
+  0% {
+    transform: translateX(60px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.souboj-intro-jmeno {
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.souboj-intro-vs {
+  font-size: 2.4rem;
+  font-weight: 900;
+  color: var(--accent-magenta);
+  text-shadow: 0 0 18px rgba(217, 70, 239, 0.6);
+  animation: souboj-intro-vs-pulz 0.9s ease-in-out infinite;
+}
+
+@keyframes souboj-intro-vs-pulz {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
+}
+
 .souboj-hraci-mrizka {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -514,6 +589,66 @@
 .souboj-akcni-tlacitko--blok { background: radial-gradient(circle at 35% 30%, #6ee7b7, var(--accent-green)); }
 .souboj-akcni-tlacitko--specialni { background: radial-gradient(circle at 35% 30%, #fde68a, var(--accent-orange)); }
 
+/* Vylepšení — lokální režim (LocalniZapas.tsx), dva ovládací klastry
+   na TÉŽE obrazovce, ne jeden plnoobrazovkový gamepad jako
+   .souboj-ovladac — appka proto NEPOUŽÍVÁ `.souboj-tlacitka`'s pevnou
+   pozici (ta počítá s tím, že je jediná věc na obrazovce), oba klastry
+   žijí v běžném dokumentovém toku pod arénou, stránka se v případě
+   potřeby (malý telefon naostro) prostě doscrolluje — na rozdíl od
+   telefonu-ovladače tenhle režim počítá s tabletem nebo pohodlnějším
+   sdílením jednoho zařízení mezi dvěma lidmi, ne s jedním pevným
+   fyzickým gamepadem v ruce. */
+.souboj-lokal-ovladace {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.souboj-lokal-klastr {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.souboj-lokal-smer {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.souboj-lokal-smer-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.souboj-lokal-smer-btn:active {
+  transform: scale(0.92);
+}
+
+.souboj-lokal-akce {
+  display: grid;
+  grid-template-columns: repeat(2, 46px);
+  grid-template-rows: repeat(2, 46px);
+  gap: 8px;
+}
+
+.souboj-lokal-akcni-tlacitko {
+  width: 46px;
+  height: 46px;
+  font-size: 1.15rem;
+}
+
 /* ==========================================
    Fáze 3 — výběr postavy (ovladač, lokálně) + herní vykreslení (TV).
    ========================================== */
@@ -644,6 +779,54 @@
   font-size: 0.72rem;
   font-weight: 900;
   color: var(--accent-orange);
+}
+
+/* Sedmé kolo vylepšení — parry odznak (combat/loop.ts's jeParry), stejné
+   místo vedle jména jako kombo výš, jen jinou barvou a s krátkým
+   "vyskočením" — appka ho ukazuje přesně tak dlouho, jak dlouho běží
+   PARRY_ZABLESK_MS v enginu, žádný vlastní časovač tady navíc netřeba. */
+.souboj-parry-znacka {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #22d3ee;
+  animation: souboj-parry-vyskok 0.35s ease-out;
+}
+
+@keyframes souboj-parry-vyskok {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.25);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Sedmé kolo vylepšení — comeback (combat/loop.ts's jeComeback). Celá
+   hlavička bojovníka pod prahem nízkého HP dostane jemný pulzující
+   červený okraj — na rozdíl od hitstunova záblesku (krátký, jednorázový)
+   je tenhle stav DLOUHODOBÝ, drží se, dokud HP zůstává pod prahem, ne
+   jen na jeden snímek. */
+.souboj-bojovnik-hlavicka--comeback {
+  animation: souboj-comeback-pulz 1.3s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes souboj-comeback-pulz {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.18);
+  }
 }
 
 .souboj-hp-bar,
@@ -1039,7 +1222,9 @@
    ne dokola jako klidový stav — engine po KO stav zamrzne (viz
    engine.ts's komentář o stejné referenci objektu), takže tahle
    třída zůstává aplikovaná po zbytek kola beze změny a animace se
-   znovu nespustí. */
+   znovu nespustí. Tohle je jen ZÁKLADNÍ (obecný) pád — konkrétní
+   postava (souboj-bojovnik--postava-*, viz níž) ho přebíjí svým
+   vlastním, výraznějším dokončením, pokud ho má. */
 .souboj-bojovnik--ko {
   animation: souboj-bojovnik-ko 0.5s ease-out forwards;
 }
@@ -1052,6 +1237,143 @@
   100% {
     transform: rotate(82deg) translateY(8px);
     opacity: 0.45;
+  }
+}
+
+/* Sedmé kolo vylepšení — postava-specifické dokončovací animace. Každý
+   ze 4 bojovníků (combat/postavy.ts) má vlastní pád místo jednoho
+   sdíleného — appka nemá 3D/animační pipeline na cokoli složitějšího
+   (viz PostavaGrafika.tsx's vlastní komentář, proč je grafika ruční
+   SVG), takže "vlastní finisher" tady znamená vlastní kombinaci
+   transformu/barvy/rychlosti nad tou samou plochou SVG postavičkou —
+   levné, ale doopravdy odlišitelné na první pohled. Specificita
+   selektoru (dvě třídy) přebíjí obecný .souboj-bojovnik--ko výš beze
+   změny pořadí v souboru. */
+.souboj-bojovnik--ko.souboj-bojovnik--postava-pyra {
+  animation: souboj-ko-pyra 0.55s ease-in forwards;
+}
+@keyframes souboj-ko-pyra {
+  0% {
+    transform: rotate(0) scale(1);
+    filter: brightness(1);
+    opacity: 1;
+  }
+  35% {
+    transform: rotate(-8deg) scale(1.15);
+    filter: brightness(1.8) drop-shadow(0 0 14px rgba(249, 115, 22, 0.9));
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(70deg) scale(0.7);
+    filter: brightness(0.7);
+    opacity: 0;
+  }
+}
+
+.souboj-bojovnik--ko.souboj-bojovnik--postava-bulwark {
+  animation: souboj-ko-bulwark 0.6s ease-in forwards;
+}
+@keyframes souboj-ko-bulwark {
+  0% {
+    transform: translateY(0) rotate(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-4px) rotate(4deg);
+    opacity: 1;
+  }
+  100% {
+    /* Bulwark je "obrněný strážce" — nepadá dozadu jako ostatní,
+       prostě se sesune přímo dolů, jako by ho vlastní váha stáhla. */
+    transform: translateY(22px) rotate(12deg);
+    opacity: 0.35;
+  }
+}
+
+.souboj-bojovnik--ko.souboj-bojovnik--postava-volt {
+  animation: souboj-ko-volt 0.5s steps(6, end) forwards;
+}
+@keyframes souboj-ko-volt {
+  0% {
+    transform: translateX(0);
+    filter: brightness(1);
+    opacity: 1;
+  }
+  16% {
+    transform: translateX(-5px);
+    filter: brightness(2.4);
+    opacity: 1;
+  }
+  32% {
+    transform: translateX(4px);
+    filter: brightness(0.8);
+    opacity: 0.7;
+  }
+  48% {
+    transform: translateX(-3px);
+    filter: brightness(2.4);
+    opacity: 1;
+  }
+  100% {
+    /* Voltova elektrická "porucha signálu" dohasíná trhaně (steps),
+       ne plynule — je nejrychlejší ze všech, i jeho KO to má odrážet. */
+    transform: translateX(6px) rotate(20deg);
+    filter: brightness(0.5);
+    opacity: 0.2;
+  }
+}
+
+.souboj-bojovnik--ko.souboj-bojovnik--postava-onyx {
+  animation: souboj-ko-onyx 0.65s ease-in forwards;
+}
+@keyframes souboj-ko-onyx {
+  0% {
+    transform: scale(1) translateY(0);
+    filter: brightness(1);
+    opacity: 1;
+  }
+  100% {
+    /* Onyx je "stínový soupeř" — místo pádu se rozplyne, zmenší a
+       ztmavne, ne že by dopadl na zem jako ostatní tři. */
+    transform: scale(0.55) translateY(14px);
+    filter: brightness(0.3) drop-shadow(0 0 18px rgba(139, 92, 246, 0.7));
+    opacity: 0;
+  }
+}
+
+/* Sedmé kolo vylepšení — parry/comeback na tokenu bojovníka v aréně
+   samotné (na rozdíl od hlavičky/odznaku výš, tohle je viditelné i na
+   té části obrazovky, kam se hráč u TV skutečně dívá během souboje).
+   Parry je krátký, jednorázový záblesk (stejné okno jako odznak);
+   comeback je dlouhodobá pulzující aura, dokud HP zůstává nízko. */
+.souboj-bojovnik--parry .souboj-postava-svg {
+  filter: drop-shadow(0 0 16px rgba(34, 211, 238, 0.95)) brightness(1.4);
+}
+
+/* Comeback aura jde přes VLASTNÍ pseudoprvek (::before), ne přes
+   `animation`/`filter` na .souboj-bojovnik samotném — ten už drží
+   svoji vlastní animaci podle vizuálního stavu (idle dýchání, útočný
+   výpad, hitstunův otřes — viz výš), a `animation` shorthand na
+   stejném elementu by tu druhou prostě PŘEPSAL, ne s ní koexistoval.
+   Samostatný overlay box tenhle konflikt úplně obchází — .souboj-
+   bojovnik už má position: absolute (viz jeho základní pravidlo),
+   takže inset: -8px kotví přesně kolem existujícího tokenu. */
+.souboj-bojovnik--comeback::before {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: souboj-bojovnik-comeback-aura 1.3s ease-in-out infinite;
+}
+
+@keyframes souboj-bojovnik-comeback-aura {
+  0%,
+  100% {
+    box-shadow: 0 0 4px 2px rgba(239, 68, 68, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 18px 6px rgba(239, 68, 68, 0.75);
   }
 }
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { POSTAVY } from '../combat/postavy'
-import { hpProcenta, komboAktivni, manaProcenta, zbyvaSekund } from '../combat/loop'
-import { zahrajRemizu, zahrajSpecial, zahrajVyhra, zahrajZasah } from '../sound'
+import { hpProcenta, jeComeback, jeParry, komboAktivni, manaProcenta, zbyvaSekund } from '../combat/loop'
+import { zahrajParry, zahrajRemizu, zahrajSpecial, zahrajVyhra, zahrajZasah } from '../sound'
 import { SoubojArena3D } from './SoubojArena3D'
 import { SoubojArena2D } from './SoubojArena2D'
 import type { SoubojStav, UtocnaAkce } from '../combat/types'
@@ -73,6 +73,11 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId }) => {
     stav.hraci[0].posledniAkce,
     stav.hraci[1].posledniAkce,
   ])
+  // Vylepšení — parry. Stejný "zachyť PŘECHOD, ne držený stav" trik
+  // jako predchoziAkce výš — parryZablesk zůstává > 0 po celé okno
+  // (PARRY_ZABLESK_MS), appka chce zvuk spustit jen jednou, na tiku,
+  // kdy se poprvé rozsvítí.
+  const predchoziParry = useRef<[boolean, boolean]>([jeParry(stav.hraci[0]), jeParry(stav.hraci[1])])
   // Ať appka nespustí fanfáru/tón na KAŽDÉM snímku, co soubojStav
   // zůstává zamrzlé na stejné hodnotě stavKola 'konec' (viz engine.ts's
   // krokSouboje) — jen na skutečném PŘECHODU, stejná disciplína jako
@@ -93,6 +98,10 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId }) => {
         zahrajSpecial()
       }
       predchoziAkce.current[i] = stav.hraci[i].posledniAkce
+
+      const jeParryTeto = jeParry(stav.hraci[i])
+      if (jeParryTeto && !predchoziParry.current[i]) zahrajParry()
+      predchoziParry.current[i] = jeParryTeto
     })
     if (zasah) zahrajZasah()
     if (!zasah) return
@@ -127,10 +136,16 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId }) => {
           const b = stav.hraci[i]
           const postava = POSTAVY[b.postavaId]
           return (
-            <div key={i} className={`souboj-bojovnik-hlavicka souboj-bojovnik-hlavicka--${i + 1}`}>
+            <div
+              key={i}
+              className={`souboj-bojovnik-hlavicka souboj-bojovnik-hlavicka--${i + 1} ${
+                jeComeback(b) ? 'souboj-bojovnik-hlavicka--comeback' : ''
+              }`}
+            >
               <span className="souboj-bojovnik-jmeno">
                 {postava.ikona} {jmena[i]}
                 {komboAktivni(b) >= 2 && <span className="souboj-kombo-znacka">🔥×{komboAktivni(b)}</span>}
+                {jeParry(b) && <span className="souboj-parry-znacka">✋ PARRY!</span>}
               </span>
               <div className={`souboj-hp-bar ${zasazen[i] ? 'souboj-hp-bar--zasazen' : ''}`}>
                 {/* "Duch" pruh vzadu — stejná šířka jako výplň vpředu, jen
