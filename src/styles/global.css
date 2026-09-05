@@ -41,6 +41,31 @@
   -webkit-tap-highlight-color: transparent; /* Odstraní modrý záblesk při tapnutí na mobilu */
 }
 
+/* Appka se má chovat jako appka, ne jako web stránka — dlouhý podržení
+   na textu (nadpis, popisek, cokoliv) nesmí spustit systémový výběr
+   textu ani Googlí "vyhledat" lištu, kterou dlouhý podržet v Chromu na
+   Androidu přidává navrch. Bez tohohle to dřív řešilo pár komponent
+   zvlášť (FightingModule.css, MapaSveta.css, PostavaKarta.css,
+   ProfilModule.css) — tohle je to samé pravidlo jednou, pro celou appku. */
+* {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* `user-select` se dědí, takže pouhé vynechání inputu/textarey z
+   pravidla výše nestačí — bez vlastní hodnoty by si od rodiče
+   (těla stránky) zdědily to samé "none". Označování a kopírování
+   je tam skutečně potřeba (psaní zprávy, úprava jména, kód apod.),
+   takže dostávají vlastní, výslovnou hodnotu. */
+input,
+textarea,
+[contenteditable='true'] {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}
+
 html,
 body,
 #root {
