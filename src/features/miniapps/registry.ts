@@ -46,4 +46,7 @@ export const MINI_APP_REGISTRY: Record<string, LazyExoticComponent<React.Compone
   'form-check': lazy(() =>
     import('../../miniapps/form-check/FormCheck').then((m) => ({ default: m.FormCheck }))
   ),
+  'kalendar': lazy(() =>
+    import('../../miniapps/kalendar/Kalendar').then((m) => ({ default: m.Kalendar }))
+  ),
 }

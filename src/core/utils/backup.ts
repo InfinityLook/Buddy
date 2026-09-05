@@ -61,6 +61,10 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-inventar-storage', storage: 'secure', label: 'Herní batoh' },
   { key: 'schoolbuddy-vybaveni-storage', storage: 'secure', label: 'Herní vybavení' },
   { key: 'schoolbuddy-souboj-statistiky-storage', storage: 'secure', label: 'Statistiky Souboje' },
+  { key: 'schoolbuddy-kalendar-storage', storage: 'secure', label: 'Kalendář' },
+  // Které widgety má kdo připnuté nahoře v které vlajkové appce (School
+  // Room a případné budoucí) — viz src/flagships/shared/useFlagshipWidgets.ts.
+  { key: 'schoolbuddy-flagship-widgets-storage', storage: 'secure', label: 'Widgety vlajkových appek' },
   { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
   // Na rozdíl od role/kreditů níž je restorable: true bezpečné i pro
   // VIP vzhled — resolveActiveThemeId (core/theme/themes.ts) ověřuje

@@ -87,6 +87,14 @@ export const AppIcon: React.FC<AppIconProps> = ({ name, size = 20, className }) 
       return <svg {...common}><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M2 10h20"/><circle cx="17" cy="15" r="1.5"/></svg>
     case 'form-check':
       return <svg {...common}><circle cx="12" cy="4" r="2"/><path d="m6 21 2-7 2.5 2L14 21"/><path d="M8 14l1-5 3-1 3 3"/><path d="m17 8 2-2"/></svg>
+    case 'calendar':
+      return <svg {...common}><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+    case 'bar-chart':
+      return <svg {...common}><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
+    // Hlavička School Roomu (a dalších vlajkových appek) — vrstvy jako
+    // "hodně věcí naskládaných na jednom místě".
+    case 'layers':
+      return <svg {...common}><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/></svg>
     default:
       return null
   }

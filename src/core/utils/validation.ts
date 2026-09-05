@@ -14,6 +14,9 @@ export const AppItemSchema = v.object({
   // Nepovinné: zálohy a uložené stavy vzniklé před zavedením řazení
   // "naposledy použité" tenhle údaj nemají a musí projít validací dál.
   lastOpenedAt: v.optional(v.nullable(v.number())),
+  // Nepovinné: jen vlajkové appky (School Room a další, viz
+  // core/store/useAppStore.ts's AppItem.route) tohle pole mají.
+  route: v.optional(v.string()),
 })
 
 // Schéma pro pole aplikací

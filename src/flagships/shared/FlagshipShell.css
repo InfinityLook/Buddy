@@ -1,0 +1,378 @@
+/* Sdílený vzhled vlajkových appek (School Room a další) — .app-container/
+   .app-header/.app-icon-btn/.app-avatar-btn/.app-back-btn se přebírají
+   beze změny z AppModule.css (importované ve FlagshipShell.tsx), tenhle
+   soubor doplňuje jen to, co AppModule nemá: panel "Můj widget", jeho
+   sloty, pevnou mřížku dlaždic a dvě velké karty dole. */
+
+.fs-page {
+  gap: 1.25rem;
+}
+
+/* ------------------------------------------
+   PANEL "MŮJ WIDGET" + PEVNÁ MŘÍŽKA DLAŽDIC
+   ------------------------------------------ */
+.fs-panel {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  backdrop-filter: blur(10px);
+}
+
+.fs-panel-hlavicka {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.fs-panel-hlavicka h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.fs-panel-hlavicka p {
+  margin: 0.2rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.fs-plus-btn {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(53, 196, 240, 0.08);
+  border: 1.5px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(53, 196, 240, 0.35);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.fs-plus-btn:hover {
+  box-shadow: 0 0 22px rgba(53, 196, 240, 0.55);
+  transform: translateY(-1px);
+}
+
+.fs-sloty {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.7rem;
+}
+
+.fs-slot {
+  position: relative;
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1.5px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.4rem;
+  text-align: center;
+}
+
+.fs-slot:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.fs-slot.fs-slot--vyplneny {
+  border-style: solid;
+  border-color: var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.fs-slot-nazev {
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.fs-slot-odebrat {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.fs-slot-odebrat:hover {
+  color: var(--accent-red);
+}
+
+.fs-dlazdice-mrizka {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.7rem;
+}
+
+.fs-dlazdice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1rem 0.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.fs-dlazdice:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.fs-dlazdice-nazev {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.fs-dlazdice-popis {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------
+   BAREVNÉ VARIANTY IKON — sdílené mezi sloty/dlaždicemi/velkými
+   kartami, stejná paleta jako AppItem.color/AppCard.
+   ------------------------------------------ */
+.fs-dlazdice-ikona,
+.fs-slot-ikona,
+.fs-picker-ikona {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.fs-barva--purple { background: linear-gradient(135deg, #7c3aed, #a855f7); color: #fff; }
+.fs-barva--cyan { background: linear-gradient(135deg, #0284c7, #38bdf8); color: #fff; }
+.fs-barva--orange { background: linear-gradient(135deg, #d97706, #fbbf24); color: #fff; }
+.fs-barva--green { background: linear-gradient(135deg, #059669, #34d399); color: #fff; }
+.fs-barva--pink { background: linear-gradient(135deg, #db2777, #f472b6); color: #fff; }
+
+/* Barva bez pozadí (jen text/ikona) — použitá u šipky velké karty. */
+.fs-velka-karta-sipka.fs-barva--cyan,
+.fs-velka-karta-sipka.fs-barva--purple {
+  background: none;
+}
+
+/* ------------------------------------------
+   DVĚ VELKÉ KARTY (Soubory / Apps)
+   ------------------------------------------ */
+.fs-velke-karty {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.fs-velka-karta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  text-align: left;
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  min-height: 150px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.fs-velka-karta--cyan {
+  background: linear-gradient(160deg, rgba(53, 196, 240, 0.16), rgba(53, 196, 240, 0.03));
+  border-color: rgba(53, 196, 240, 0.35);
+}
+
+.fs-velka-karta--purple {
+  background: linear-gradient(160deg, rgba(138, 92, 246, 0.16), rgba(138, 92, 246, 0.03));
+  border-color: rgba(138, 92, 246, 0.35);
+}
+
+.fs-velka-karta-ikona {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fs-velka-karta-ikona.fs-barva--cyan { color: var(--accent-cyan); }
+.fs-velka-karta-ikona.fs-barva--purple { color: var(--accent-violet); }
+
+.fs-velka-karta-nazev {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-top: 0.3rem;
+}
+
+.fs-velka-karta-popis {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.fs-velka-karta-sipka {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+
+.fs-velka-karta-sipka.fs-barva--cyan { background: var(--accent-cyan); }
+.fs-velka-karta-sipka.fs-barva--purple { background: var(--accent-violet); }
+
+/* ------------------------------------------
+   DIALOG VÝBĚRU WIDGETU
+   ------------------------------------------ */
+.fs-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 16, 0.6);
+  z-index: 60;
+}
+
+.fs-picker {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 460px;
+  z-index: 61;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-strong);
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+  padding: 1rem;
+  padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+.fs-picker-hlavicka {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.fs-picker-hlavicka h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.fs-picker-zavrit {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.fs-picker-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fs-picker-polozka {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.7rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.fs-picker-polozka.is-aktivni {
+  border-color: var(--accent-cyan);
+  background: rgba(53, 196, 240, 0.1);
+}
+
+.fs-picker-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fs-picker-text strong {
+  font-size: 0.85rem;
+}
+
+.fs-picker-text span {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.fs-picker-odebrat {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-red);
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.55rem;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+@media (max-width: 680px) {
+  .fs-dlazdice-mrizka,
+  .fs-sloty {
+    gap: 0.5rem;
+  }
+
+  .fs-velke-karty {
+    grid-template-columns: 1fr;
+  }
+}

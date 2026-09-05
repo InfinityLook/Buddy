@@ -31,6 +31,15 @@ export interface AppItem {
   // Čas posledního otevření. Podklad pro řazení "naposledy použité"
   // a pro nabídku "pokračuj tam, kde jsi skončil" v banneru.
   lastOpenedAt?: number | null
+  // Vlajková appka (School Room a další, viz src/flagships/) — klepnutí
+  // na dlaždici v AppModule.tsx pak nejde přes MINI_APP_REGISTRY/
+  // setActiveAppId jako u obyčejné miniaplikace, ale přímo navigate() na
+  // tuhle cestu, protože vlajková appka je vlastní stránka s vlastní
+  // hlavičkou a spodní lištou, ne obsah do obecného fullscreen wrapperu.
+  // Nepovinné a nikdy se neukládá/nečte z existing při mergeApps níž —
+  // patří appce, ne uživatelovu uloženému stavu, stejně jako
+  // title/category/icon/color.
+  route?: string
 }
 
 interface AppState {
@@ -51,18 +60,36 @@ interface AppState {
 }
 
 const DEFAULT_APPS: AppItem[] = [
-  { id: 'study-planner', title: 'Planer', category: 'Produktivita', icon: 'study-planner', color: 'purple', active: true, favorite: false },
+  // Přesunuté do School Roomu (viz CLAUDE.md, src/flagships/school-room/)
+  // — active: false je schválně jediná změna, appka samotná (kód,
+  // registrace v MINI_APP_REGISTRY, uložená data) zůstává úplně beze
+  // změny. "Skryté" tu neznamená smazané: setActiveAppId pořád najde
+  // dlaždici přes apps.find() bez ohledu na active (jen výchozí mřížka
+  // v /apps je filtruje ven), takže School Roomovy dlaždice, co na ně
+  // deep-linkují (setActiveAppId(id, '/skola')), fungují úplně stejně,
+  // jako když je otvírala rovnou hlavní mřížka. Kdo si je i tak
+  // z /apps vyvolá zpátky přes "Zobrazit skryté", nic mu v tom nebrání.
+  { id: 'study-planner', title: 'Planer', category: 'Produktivita', icon: 'study-planner', color: 'purple', active: false, favorite: false },
   { id: 'flashcards', title: 'Flashcards', category: 'Vzdělávání', icon: 'flashcards', color: 'cyan', active: true, favorite: true },
-  { id: 'pomodoro', title: 'Pomodoro', category: 'Produktivita', icon: 'pomodoro', color: 'orange', active: true, favorite: false },
+  { id: 'pomodoro', title: 'Pomodoro', category: 'Produktivita', icon: 'pomodoro', color: 'orange', active: false, favorite: false },
   { id: 'math-solver', title: 'Math Solver', category: 'Nástroje', icon: 'math-solver', color: 'green', active: true, favorite: false },
-  { id: 'quick-notes', title: 'Quick Notes', category: 'Produktivita', icon: 'quick-notes', color: 'pink', active: true, favorite: true },
+  { id: 'quick-notes', title: 'Quick Notes', category: 'Produktivita', icon: 'quick-notes', color: 'pink', active: false, favorite: true },
   { id: 'goal-tracker', title: 'Goal Tracker', category: 'Produktivita', icon: 'goal-tracker', color: 'purple', active: true, favorite: false },
   { id: 'mind-map', title: 'Mind Map', category: 'Vzdělávání', icon: 'mind-map', color: 'cyan', active: true, favorite: false },
-  { id: 'file-manager', title: 'File Manager', category: 'Nástroje', icon: 'file-manager', color: 'orange', active: true, favorite: false },
+  { id: 'file-manager', title: 'File Manager', category: 'Nástroje', icon: 'file-manager', color: 'orange', active: false, favorite: false },
   { id: 'exam-prep', title: 'Maturitní centrum', category: 'Vzdělávání', icon: 'exam-prep', color: 'pink', active: true, favorite: true },
   { id: 'document-editor', title: 'Textový editor', category: 'Produktivita', icon: 'document-editor', color: 'green', active: true, favorite: false },
   { id: 'finance', title: 'Finance', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false },
   { id: 'form-check', title: 'Form Check', category: 'Nástroje', icon: 'form-check', color: 'orange', active: true, favorite: false },
+  // Nová, School Roomu vlastní (appka do teď neměla vůbec) — stejné
+  // "active: false, jen deep-linkem ze School Roomu" zacházení jako
+  // s přesunutými čtyřmi výš.
+  { id: 'kalendar', title: 'Kalendář', category: 'Produktivita', icon: 'calendar', color: 'cyan', active: false, favorite: false },
+  // Vlajková appka — viz AppItem.route výš a FlagshipShell.tsx. Zůstává
+  // active: true, protože tohle JE ta dlaždice, přes kterou se do
+  // School Roomu chodí; schovat by ji šlo úplně stejně jako kteroukoli
+  // jinou (toggleAppVisible), appka jí v tom nijak nebrání.
+  { id: 'school-room', title: 'School Room', category: 'Vzdělávání', icon: 'layers', color: 'cyan', active: true, favorite: false, route: '/skola' },
 ]
 
 // Katalog dlaždic patří kódu, uživateli jen jeho příznaky (oblíbené,

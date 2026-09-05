@@ -224,7 +224,13 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
               app={app}
               menuOpen={openMenuId === app.id}
               onMenuToggle={setOpenMenuId}
-              onClick={(selectedApp) => setActiveAppId(selectedApp.id)}
+              // Vlajková appka (route nastavené, viz useAppStore.ts's
+              // AppItem.route) je vlastní stránka, ne obsah do
+              // MINI_APP_REGISTRY fullscreen wrapperu — klepnutí proto
+              // rovnou naviguje tam, místo aby otvíralo aktivní appku.
+              onClick={(selectedApp) =>
+                selectedApp.route ? navigate(selectedApp.route) : setActiveAppId(selectedApp.id)
+              }
               onToggleFavorite={(id) => toggleFavorite(id)}
               onToggleVisible={(id) => toggleAppVisible(id)}
             />

@@ -3,6 +3,10 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import Login from './pages/login/Login.tsx'
 import Hub from './pages/hub/Hub.tsx'
 import AppModule from '@/pages/app/AppModule.tsx'
+// První "vlajková appka" (viz CLAUDE.md, src/flagships/) — eager stejně
+// jako AppModule/ProfilModule, nic v ní netáhne Three.js ani jinou
+// těžkou závislost, co by ospravedlnila React.lazy.
+import SchoolRoomModule from '@/flagships/school-room/SchoolRoomModule.tsx'
 import GamesHubModule from '@/pages/games/GamesHubModule.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
@@ -181,6 +185,21 @@ export default function App() {
             element={
               dovnitr ? (
                 <AppModule />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* Route pro School Room (první vlajková appka, viz
+              CLAUDE.md/src/flagships/) — vlastní stránka s vlastní
+              hlavičkou a spodní lištou, ne obsah uvnitř AppModule's
+              obecného fullscreen wrapperu jako obyčejná miniaplikace. */}
+          <Route
+            path="/skola"
+            element={
+              dovnitr ? (
+                <SchoolRoomModule />
               ) : (
                 <Navigate to="/" replace />
               )
