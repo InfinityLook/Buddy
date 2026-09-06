@@ -22,6 +22,19 @@ import type { Arena } from './areny'
 // Levnější než druhý renderer a zbytečná duplikace geometrie v paměti
 // — schválně "ať je to rychlé", jak appka slíbila.
 //
+// Desáté kolo vylepšení, na výslovnou žádost přes AskUserQuestion,
+// obrátilo kamery z třetí osoby (za a nad bojovníkem, koukající na
+// střed mezi oběma) na SKUTEČNÝ pohled z očí — kamera hráče sedí
+// přesně tam, kde stojí jeho vlastní bojovník (VYSKA_OCI, Z=0, stejná
+// rovina jako souboj samotný), a kouká přímo na soupeře, žádný odstup
+// ani lerpované "zaostření" na střed jako dřív. Přijatý (a výslovně
+// odsouhlasený) důsledek: vlastní postavu takhle NEJDE vidět vůbec —
+// appka ji proto v týhle kameře ani nevykresluje (viz SoubojArena3D.tsx),
+// a zpětnou vazbu o vlastním stavu (zásah/blok/štít/perfektní blok)
+// nese místo animace na (neviditelné) vlastní postavě přes obrazovku
+// přes celou svou půlku (souboj-vlastni-prekryv, tamtéž) — přesně jak
+// bylo řečeno předem, než padlo "ano".
+//
 // Bojovníci sami NEJSOU 3D objekty ve scéně — appka nemá žádný 3D
 // model postav (viz PostavaGrafika.tsx), takže zůstávají ploché SVG
 // "billboard" sprity mimo Three.js úplně, jen POZICOVANÉ podle toho,
@@ -37,15 +50,17 @@ import type { Arena } from './areny'
 /** Šířka herního světa v jednotkách Three.js, na kterou se mapuje
  *  1D pozice bojovníka 0..arenaSirka z enginu (engine.ts). */
 const SVET_SIRKA = 30
-const VYSKA_KAMERY = 5.6
-const HLOUBKA_KAMERY = 11.5
-const VYSKA_CILE = 2
+/** Výška očí kamery — kamera SEDÍ na místě vlastního bojovníka, ne
+ *  odtažená a zvednutá jako dřívější kamera třetí osoby. */
+const VYSKA_OCI = 1.6
+/** Výška, kam se (jak vlastní kamera dívá, tak kam se promítá) sprite
+ *  soupeře — zůstává stejná hodnota jako dřív, teď jako jediný účel:
+ *  billboard soupeře. */
 const VYSKA_POSTAVY = 1.35
-/** Jak moc kamera upřednostňuje "svého" bojovníka před středem mezi
- *  oběma — 0 by znamenalo identický záběr pro obě kamery, 1 by
- *  hrozilo, že soupeř vypadne ze záběru úplně. */
-const ZAOSTRENI_NA_VLASTNIHO = 0.55
-const RYCHLOST_SLEDOVANI = 3.4
+/** Jak rychle kamera sleduje pozici vlastního bojovníka — kamera JE
+ *  jeho hlava, žádné velké zpoždění nedává smysl, jen tolik hladkosti,
+ *  ať prudké odražení (knockback) nepůsobí jako trhavý skok obrazu. */
+const RYCHLOST_HLAVY = 14
 
 const worldX = (pozice: number, arenaSirka: number): number => (pozice / arenaSirka - 0.5) * SVET_SIRKA
 
@@ -231,8 +246,8 @@ export const useSoubojScene = ({ arenaSirka, arena }: UseSoubojSceneOptions): Us
       new THREE.PerspectiveCamera(60, 1, 0.1, 100),
       new THREE.PerspectiveCamera(60, 1, 0.1, 100),
     ]
-    kamery[0].position.set(0, VYSKA_KAMERY, HLOUBKA_KAMERY)
-    kamery[1].position.set(0, VYSKA_KAMERY, HLOUBKA_KAMERY)
+    kamery[0].position.set(0, VYSKA_OCI, 0)
+    kamery[1].position.set(0, VYSKA_OCI, 0)
 
     const prizpusob = () => {
       const sirka = container.clientWidth
@@ -289,21 +304,27 @@ export const useSoubojScene = ({ arenaSirka, arena }: UseSoubojSceneOptions): Us
       const [p0, p1] = poziceRef.current
       const x0 = worldX(p0, arenaSirka)
       const x1 = worldX(p1, arenaSirka)
-      const stred = (x0 + x1) / 2
+      // Kamera i (hráč i) sedí na pozici SVÉHO bojovníka a kouká na
+      // toho druhého — vlastniX je "kam patří moje hlava", protivnikX
+      // "na koho se dívám". Žádné zaostření na střed jako dřív u
+      // třetí osoby: v pohledu z očí není žádný "střed mezi oběma" k
+      // vidění, jen soupeř přímo před sebou.
       const vlastniX: [number, number] = [x0, x1]
+      const protivnikX: [number, number] = [x1, x0]
 
-      const lerpK = Math.min(1, RYCHLOST_SLEDOVANI * dt)
+      const lerpK = Math.min(1, RYCHLOST_HLAVY * dt)
       ;([0, 1] as const).forEach((i) => {
-        const cil = vlastniX[i] * ZAOSTRENI_NA_VLASTNIHO + stred * (1 - ZAOSTRENI_NA_VLASTNIHO)
-        kamery[i].position.x += (cil - kamery[i].position.x) * lerpK
-        kamery[i].lookAt(stred, VYSKA_CILE, 0)
+        kamery[i].position.x += (vlastniX[i] - kamery[i].position.x) * lerpK
+        kamery[i].lookAt(protivnikX[i], VYSKA_POSTAVY, 0)
         kamery[i].updateMatrixWorld()
       })
 
-      promitniSprite(0, 0, x0)
+      // Jen sprite SOUPEŘE na každou kameru — vlastní bojovník se v
+      // pohledu z očí nevykresluje vůbec (SoubojArena3D.tsx pro něj
+      // ani nezaregistruje DOM element, takže by tohle stejně jen
+      // tiše skončilo na `if (!el) return` v promitniSprite).
       promitniSprite(0, 1, x1)
       promitniSprite(1, 0, x0)
-      promitniSprite(1, 1, x1)
 
       const sirka = container.clientWidth
       const vyska = container.clientHeight

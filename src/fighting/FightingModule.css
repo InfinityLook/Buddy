@@ -1299,9 +1299,83 @@
   bottom: 0.5rem;
 }
 
-/* Jeden sprite = jeden bojovník v JEDNÉ z obou kamer (appka jich
-   rendruje čtyři — 2 bojovníci × 2 kamery, viz SoubojArena3D.tsx).
-   left/top/opacity sem každý snímek zapisuje přímo useSoubojScene.ts
+/* Desáté kolo vylepšení — pohled z očí (viz useSoubojScene.ts). Vlastní
+   bojovník v žádné kameře vidět není, takže tahle poloprůhledná vrstva
+   nese ZA něj zpětnou vazbu o vlastním stavu — přesně půlka obrazovky
+   patřící té jedné kameře (`--1` nahoře, `--2` dole, stejná konvence
+   jako štítek pohledu výš), animace/pozadí místo animace na (neexistujícím)
+   vlastním spritu. `pointer-events: none`, ať nikdy nestojí v cestě
+   ničemu klikatelnému (žádnému tu ostatně ani není). */
+.souboj-vlastni-prekryv {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  z-index: 2;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 0.7rem;
+}
+
+.souboj-vlastni-prekryv--1 {
+  top: 0;
+}
+
+.souboj-vlastni-prekryv--2 {
+  bottom: 0;
+}
+
+/* Zásah — krátký červený záblesk přes celou svou půlku, náhrada za
+   dřívější otřes/červený drop-shadow na (teď neviditelné) vlastní
+   postavě. Stejné okno (ZABLESK_MS v Bojiste.tsx) appka jinde reaguje
+   na tu samou "hp kleslo" událost. */
+.souboj-vlastni-prekryv--zasah {
+  animation: souboj-vlastni-zasah 0.35s ease-out;
+}
+
+@keyframes souboj-vlastni-zasah {
+  0% {
+    background: rgba(239, 68, 68, 0.55);
+  }
+  100% {
+    background: rgba(239, 68, 68, 0);
+  }
+}
+
+/* Blok — trvalý (ne jednorázový) modrý nádech po celou dobu, co
+   bojovník drží blok, náhrada za dřívější modrý drop-shadow na
+   vlastní postavě (vizualniStavBojovnika === 'blok', combat/loop.ts). */
+.souboj-vlastni-prekryv--blok {
+  background: radial-gradient(ellipse at 50% 100%, rgba(53, 196, 240, 0.32) 0%, transparent 70%);
+}
+
+/* Perfektní blok — krátký cyan záblesk, stejný přechodový trik
+   (jeParry, combat/loop.ts) appka jinde používá pro zvuk/hlášku. */
+.souboj-vlastni-prekryv--parry {
+  animation: souboj-vlastni-parry 0.4s ease-out;
+}
+
+@keyframes souboj-vlastni-parry {
+  0% {
+    background: rgba(53, 196, 240, 0.55);
+  }
+  100% {
+    background: rgba(53, 196, 240, 0);
+  }
+}
+
+.souboj-vlastni-stit {
+  font-size: 1.35rem;
+  filter: drop-shadow(0 0 6px rgba(53, 196, 240, 0.85));
+}
+
+/* Jeden sprite = sprite SOUPEŘE v jedné ze dvou kamer (appka jich od
+   desátého kola vylepšení rendruje dvě, ne čtyři — v pohledu z očí se
+   vlastní bojovník nevykresluje vůbec, viz SoubojArena3D.tsx a
+   VlastniStavPrekryv výš). left/top/opacity sem každý snímek zapisuje
+   přímo useSoubojScene.ts
    (mimo React, viz jeho komentář) — CSS tu jen dává rozumnou výchozí
    hodnotu, než doběhne první snímek smyčky, a kotví sprite na střed
    svého promítnutého bodu. Bez transition na left/top schválně: hook
