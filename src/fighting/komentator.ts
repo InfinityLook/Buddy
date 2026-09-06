@@ -55,3 +55,9 @@ export const oznamRemizu = () => rekni('Remíza!')
  *  stejný přechodový moment, na jaký sound.ts's zahrajParry už hraje
  *  tón, komentátor k tomu jen přidává slovo. */
 export const oznamPerfektniBlok = () => rekni('Perfektní blok!')
+
+/** Desáté kolo vylepšení — "3-2-1-BOJ!" odpočet (IntroPocitadlo.tsx).
+ *  Poslední krok ('FIGHT') dostává schválně stejné slovo jako
+ *  oznamZacatekKola výš — appka nevymýšlí druhou hlášku pro tu samou
+ *  chvíli. */
+export const oznamOdpocet = (hodnota: number | 'FIGHT') => rekni(hodnota === 'FIGHT' ? 'Boj!' : String(hodnota))

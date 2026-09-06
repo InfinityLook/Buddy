@@ -229,6 +229,7 @@
    "VS" uprostřed jemně pulzuje, ať obrazovka nepůsobí staticky po
    celých ~2 vteřiny, co je vidět. */
 .souboj-intro {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -305,6 +306,46 @@
   }
   50% {
     transform: scale(1.15);
+  }
+}
+
+/* Desáté kolo vylepšení — "3-2-1-BOJ!" odpočet (IntroPocitadlo.tsx).
+   Absolutní pozice přes celé intro (appka ho chce uprostřed obrazovky,
+   NAD VS kartami, ne mezi nimi — `.souboj-intro` dostalo `position:
+   relative` jen kvůli tomuhle, jinak beze změny). IntroPocitadlo.tsx
+   dává elementu `key={krok}`, ať React na KAŽDÝ krok odpočtu vytvoří
+   nový DOM uzel — bez toho by se `animation` spustila jen jednou, na
+   první číslo, a další by se jen tiše přepsaly beze švihu. */
+.souboj-intro-pocitadlo {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2.6rem;
+  font-weight: 900;
+  color: var(--accent-cyan);
+  text-shadow: 0 0 20px rgba(53, 196, 240, 0.7);
+  animation: souboj-pocitadlo-skok 0.4s ease-out;
+}
+
+.souboj-intro-pocitadlo--boj {
+  color: var(--accent-orange);
+  text-shadow: 0 0 24px rgba(249, 115, 22, 0.8);
+  font-size: 2.9rem;
+}
+
+@keyframes souboj-pocitadlo-skok {
+  0% {
+    transform: translateX(-50%) scale(0.4);
+    opacity: 0;
+  }
+  60% {
+    transform: translateX(-50%) scale(1.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(1);
+    opacity: 1;
   }
 }
 
@@ -997,6 +1038,18 @@
   animation: souboj-parry-vyskok 0.35s ease-out;
 }
 
+/* Desáté kolo vylepšení — vztek odznak, stejné místo jako kombo/parry
+   výš, jen zlatou barvou — zobrazuje se jen na nabitý vztek (jeho
+   POSTUPNÉ plnění už ukazuje pruh pod mana pruhem, viz níž). */
+.souboj-vztek-znacka {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #fbbf24;
+  animation: souboj-parry-vyskok 0.35s ease-out;
+}
+
 @keyframes souboj-parry-vyskok {
   0% {
     transform: scale(0.6);
@@ -1105,6 +1158,41 @@
   }
 }
 
+/* Desáté kolo vylepšení — vztek pruh, stejný tvar jako mana pruh nad
+   ním (Bojiste.tsx renders it right below), jen tenčí a zlatou barvou
+   — odlišná kategorie zdroje (poškození dostané, ne many nasbírané). */
+.souboj-vztek-bar {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-top: 0.15rem;
+}
+
+.souboj-vztek-bar-vypln {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #b45309, #fbbf24);
+  transition: width 0.12s linear;
+}
+
+.souboj-vztek-bar--plny {
+  animation: souboj-vztek-pulz 0.9s ease-in-out infinite;
+}
+
+@keyframes souboj-vztek-pulz {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 10px 2px rgba(251, 191, 36, 0.6);
+  }
+}
+
 /* Fáze 6 — krátký záblesk kolem HP pruhu v okamžiku zásahu (viz
    Bojiste.tsx's jediný vlastní stav, "zasazen"). Číslo samo se mění
    okamžitě (šířka výplně výš), tohle jen navíc upozorní OKO, že se
@@ -1148,8 +1236,51 @@
   80% { transform: translate(3px, -2px); }
 }
 
+/* Desáté kolo vylepšení — mírná rotace navrch stávajícího přiblížení,
+   ať vítězný záběr nepůsobí jako obyčejné "přiblížit kameru", ale jako
+   trochu dramatičtější náklon — schválně malý úhel (0.6°), appka
+   nechce, aby vypadala aréna nakřivo. */
 .souboj-arena-obal--zoom {
-  transform: scale(1.06);
+  transform: scale(1.06) rotate(0.6deg);
+}
+
+/* Desáté kolo vylepšení — aréna reaguje na dva stavy CELÉHO kola, ne
+   jen na jednorázový zásah (otres/zoom výš): "napjaté" (aspoň jeden
+   bojovník bojuje od zdi, viz Bojiste.tsx's napjateKolo) dostane
+   jemný trvalý červený nádech, náhlá smrt vlastní ostřejší variantu
+   stejné myšlenky — obě přes `filter`, ať se to sčítá s existujícím
+   ko-zpomaleni filtrem bez konfliktu vlastností. */
+.souboj-arena-obal--napjate {
+  filter: saturate(1.15) drop-shadow(0 0 14px rgba(239, 68, 68, 0.25));
+}
+
+.souboj-arena-obal--sudden {
+  filter: saturate(1.3) drop-shadow(0 0 22px rgba(239, 68, 68, 0.45));
+}
+
+/* Desáté kolo vylepšení — periodické zatmění ('zatmeni' arény, viz
+   combat/loop.ts's jeZatmeniAktivni). `::after` navrch celé arény
+   (obal je containing block), ne filter — appka chce SKUTEČNOU
+   tmavou vrstvu, ne jen posunuté barvy, ať je to čitelně "zhasnutá
+   scéna", ne jen tmavší odstín. */
+.souboj-arena-obal--zatmeni::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 3, 8, 0.72);
+  border-radius: var(--radius-lg);
+  pointer-events: none;
+  z-index: 5;
+  animation: souboj-zatmeni-fade 0.4s ease-out;
+}
+
+@keyframes souboj-zatmeni-fade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
 
 /* Deváté kolo vylepšení — "zpomalený" knokaut (Bojiste.tsx's
@@ -1188,6 +1319,34 @@
   }
   50% {
     transform: translate(-50%, -8px);
+  }
+}
+
+/* Desáté kolo vylepšení — telegraf dopadajícího balvanu (Bojiste.tsx's
+   `balvan?.varovani`, viz combat/loop.ts's stavBalvanuAreny). Stejné
+   umístění jako pickup výš (odznak nad podlahou arény), jen pulzuje
+   rychleji a červeně — jasně "něco odsud za chvíli ublíží", ne jen
+   "tady je něco k sebrání". */
+.souboj-balvan-varovani {
+  position: absolute;
+  bottom: 22%;
+  transform: translateX(-50%);
+  font-size: 1.5rem;
+  filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.7));
+  animation: souboj-balvan-pulz 0.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 4;
+}
+
+@keyframes souboj-balvan-pulz {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: translate(-50%, 0) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.2);
   }
 }
 
@@ -1371,6 +1530,41 @@
   filter: drop-shadow(0 0 6px rgba(53, 196, 240, 0.85));
 }
 
+/* Desáté kolo vylepšení — krátký "švih" na VLASTNÍ útok (v pohledu z
+   očí není vidět vlastní paži, tohle je jediná zpětná vazba, že úder
+   doopravdy odešel) — bílý diagonální záblesk přes celou půlku
+   obrazovky, jednorázově (viz SoubojArena3D.tsx's zaberVlastni). */
+.souboj-vlastni-prekryv--zaber::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 0.35) 50%, transparent 60%);
+  animation: souboj-vlastni-zaber 0.26s ease-out;
+  pointer-events: none;
+}
+
+@keyframes souboj-vlastni-zaber {
+  0% {
+    opacity: 0;
+    transform: translateX(-20%);
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(20%);
+  }
+}
+
+/* Desáté kolo vylepšení — vztek nabitý (vlastni.vztekPripraven, viz
+   combat/engine.ts). Trvalý (ne jednorázový) zlatý nádech po celou
+   dobu, dokud je vztek nabitý — stejný "trvá, dokud platí" tvar jako
+   `--blok` výš, jen zlatou barvou místo modré. */
+.souboj-vlastni-prekryv--vztek {
+  background: radial-gradient(ellipse at 50% 100%, rgba(251, 191, 36, 0.3) 0%, transparent 70%);
+}
+
 /* Jeden sprite = sprite SOUPEŘE v jedné ze dvou kamer (appka jich od
    desátého kola vylepšení rendruje dvě, ne čtyři — v pohledu z očí se
    vlastní bojovník nevykresluje vůbec, viz SoubojArena3D.tsx a
@@ -1506,6 +1700,15 @@
   100% {
     transform: translateX(calc(var(--smer-vypadu) * 3px));
   }
+}
+
+/* Desáté kolo vylepšení — chyt (grab). Navrch obyčejného výpadu výš
+   (`.souboj-bojovnik--utok` zůstává aplikovaná zároveň, appka jen
+   PŘIDÁVÁ zlatý odlesk na postavičku) — jasně odlišitelné od
+   obyčejného úderu/kopu, ať je na TV vidět, že se právě chystá
+   neblokovatelný zásah. */
+.souboj-bojovnik--chyt .souboj-postava-svg {
+  filter: drop-shadow(0 0 14px rgba(251, 191, 36, 0.95)) brightness(1.3);
 }
 
 /* Zásah (hitstun) — otřes + prudký záblesk, ať je na první pohled
@@ -1717,7 +1920,10 @@
   width: 3px;
   height: 13px;
   margin-left: -1.5px;
-  background: linear-gradient(180deg, #fff8, transparent);
+  /* Desáté kolo vylepšení — barva podle útočníkovy postavy/elementu
+     (Jiskry.tsx's `barva` prop), s bílou jako záložní hodnotou pro
+     starší volání bez ní. */
+  background: linear-gradient(180deg, var(--barva, #fff8), transparent);
   border-radius: 2px;
   transform: rotate(var(--uhel)) translateY(-2px);
   animation: souboj-jiskra-let 0.35s ease-out forwards;
@@ -1734,7 +1940,13 @@
   }
 }
 
+/* Desáté kolo vylepšení — `position: relative`/`overflow: hidden`
+   navíc kvůli konfetám (Konfety.tsx, viz jejich vlastní pravidla níž
+   v souboru) — containing block pro jejich absolutní obal, ať padají
+   vzhledem k TOMUHLE banneru, ne k celé stránce. */
 .souboj-konec-kola {
+  position: relative;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1886,4 +2098,76 @@
 .souboj-solo-btn:hover {
   border-color: var(--accent-cyan);
   background: rgba(53, 196, 240, 0.08);
+}
+
+/* Desáté kolo vylepšení — nápověda na chyt (grab), stejné místo nad
+   akčními tlačítky na obou ovladačích (Ovladac.tsx i LocalniZapas.tsx's
+   sdílené `.souboj-lokal-ovladace`) — malý, tichý text, appka ho
+   nechce nafukovat na celý banner pro jednu kombinaci tlačítek. */
+.souboj-chyt-hint {
+  text-align: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin: 0.3rem 0 0.6rem;
+}
+
+/* Desáté kolo vylepšení — tréninkové debug HUD (Bojiste.tsx). Malý
+   monospace panel pod arénou, jen v tréninku — appka tu chce syrová
+   čísla enginu, ne stylizované pruhy jako zbytek obrazovky. */
+.souboj-debug-hud {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.souboj-debug-sloupec {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.souboj-debug-nadpis {
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.1rem;
+}
+
+/* Desáté kolo vylepšení — konfety na vítězné obrazovce (Konfety.tsx).
+   `.souboj-konec-kola` samo dostalo `position: relative`/`overflow:
+   hidden` výš, u své vlastní deklarace — containing block pro tenhle
+   absolutně umístěný obal, ať konfety padají vzhledem k TOMUHLE
+   banneru, ne k celé stránce. */
+.souboj-konfety {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.souboj-konfeta {
+  position: absolute;
+  top: -12px;
+  width: 7px;
+  height: 12px;
+  border-radius: 1px;
+  animation: souboj-konfeta-pad var(--trvani) ease-in var(--zpozdeni) forwards;
+}
+
+@keyframes souboj-konfeta-pad {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(140px) rotate(var(--rotace));
+    opacity: 0;
+  }
 }

@@ -17,6 +17,8 @@ import type { HracVstup, SoubojMoznosti, SoubojStav } from '../combat/types'
 import type { EmotePayload, PripojitPayload, Smer, Tlacitko, VstupPayload } from '../types'
 import { Bojiste } from './Bojiste'
 import { PostavaGrafika } from './PostavaGrafika'
+import { IntroPocitadlo } from './IntroPocitadlo'
+import { nastavNapjatostHudby, spustitHudbu, zastavitHudbu } from '../sound'
 import { ARENY, nahodnaArena, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
 // Vlastní import, ne spoléhání na to, že FightingModule.tsx ho už
 // natáhl — appka jednou přišla o styl přesně tímhle předpokladem
@@ -283,6 +285,10 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
       handicapPro === 1 ? HANDICAP_MANA_NASOBIC : 1,
     ],
     hazardOkraju: ARENY[arenaId].nebezpeciOkraje,
+    // Desáté kolo vylepšení — interaktivní událost zvolené arény (viz
+    // combat/types.ts's SoubojMoznosti.udalostAreny) — appka ji sem
+    // kopíruje stejným způsobem jako hazardOkraju o řádek výš.
+    udalostAreny: ARENY[arenaId].udalost,
   })
 
   // Sedmé kolo vylepšení — jakmile jsou oba sloty připravené, appka
@@ -313,6 +319,13 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
     setSkore([0, 0])
     statistikyRef.current = prazdneStatistikyZapasu()
     setSoubojStav(novyStav)
+    // Desáté kolo vylepšení — ambientní hudba (sound.ts) startuje
+    // přesně tady, ve stejné chvíli jako samotný zápas (ne dřív, ne až
+    // z gesta uživatele — kontext je odemčený už z FightingModule.tsx's
+    // "Hostovat na TV" kliknutí), a zastaví se v cleanupu tohohle
+    // efektu — jak na konci komponenty, tak na KAŽDÉM dalším spuštění
+    // (nový zápas po opuštění 'pripraveno', viz introAktivni výš).
+    spustitHudbu()
 
     let idPozadavku: number
     let posledniCas = performance.now()
@@ -353,6 +366,11 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
         const hpPredTikem: [number, number] = [soubojStavRef.current.hraci[0].hp, soubojStavRef.current.hraci[1].hp]
         soubojStavRef.current = krokSouboje(soubojStavRef.current, [vstup0, vstup1], deltaMs)
         setSoubojStav(soubojStavRef.current)
+        // Desáté kolo vylepšení — hudba zesílí napjatost přesně podle
+        // toho, jestli právě běží náhlá smrt — nastavNapjatostHudby je
+        // sama o sobě no-op, pokud appka volá se stejnou hodnotou,
+        // jakou hudba už má, takže volat to na KAŽDÝ tik nic nestojí.
+        nastavNapjatostHudby(soubojStavRef.current.suddenDeath)
 
         // Osmé kolo vylepšení — přehled zápasu (viz statistikyRef výš)
         // se aktualizuje na KAŽDÉM tiku, ne jen na konci zápasu — jinak
@@ -418,7 +436,10 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
     }
 
     idPozadavku = requestAnimationFrame(tik)
-    return () => cancelAnimationFrame(idPozadavku)
+    return () => {
+      cancelAnimationFrame(idPozadavku)
+      zastavitHudbu()
+    }
   }, [pripraveno, introAktivni])
 
   // Fáze 5 — sólo režim: doplní slot 2 počítačovým soupeřem s náhodně
@@ -496,6 +517,9 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
             <span className="souboj-intro-jmeno">{hraci[1]?.jmeno ?? 'Hráč 2'}</span>
             <span className="souboj-intro-hlaska">„{POSTAVY[hraci[1]?.postavaId ?? 'onyx'].hlaska}“</span>
           </div>
+          {/* Desáté kolo vylepšení — "3-2-1-BOJ!" odpočet, viz
+              combat/loop.ts's prodloužené INTRO_MS. */}
+          <IntroPocitadlo celkovaDelkaMs={INTRO_MS} />
         </div>
       ) : soubojStav ? (
         <>
@@ -578,6 +602,9 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
               >
                 <span aria-hidden="true">{a.ikona}</span> {a.nazev}
                 {a.nebezpeciOkraje ? ' ⚠️' : ''}
+                {/* Desáté kolo vylepšení — interaktivní událost arény,
+                    stejný "napovězte dopředu" jazyk jako ⚠️ výš. */}
+                {a.udalost === 'balvan' ? ' 🪨' : a.udalost === 'zatmeni' ? ' 🌑' : ''}
               </button>
             ))}
             {/* Deváté kolo vylepšení — "překvapte mě" zkratka, stejný

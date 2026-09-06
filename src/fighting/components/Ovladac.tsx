@@ -323,6 +323,12 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
 
       <VirtualniJoystick onZmena={(x) => zpracujJoystick(x)} />
 
+      {/* Desáté kolo vylepšení — chyt (grab). Žádné nové tlačítko,
+          jen kombinace dvou existujících (viz combat/loop.ts's
+          detekujAkci) — bez týhle nápovědy by nikdo netušil, že to
+          jde. */}
+      <p className="souboj-chyt-hint">👊 + 🛡️ = Chyt (neblokovatelný)</p>
+
       <div className="souboj-tlacitka">
         {PORADI_TLACITEK.map((tlacitko) => (
           <button

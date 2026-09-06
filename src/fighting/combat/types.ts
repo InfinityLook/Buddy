@@ -12,8 +12,11 @@ import type { PostavaId } from './postavy'
 // ==========================================
 
 /** Tři útočné akce z referenčního obrázku — "blok" je držený stav,
- *  ne jednorázová akce, proto tu není. */
-export type UtocnaAkce = 'udar' | 'kop' | 'specialni'
+ *  ne jednorázová akce, proto tu není. Desáté kolo vylepšení přidalo
+ *  'chyt' (grab/throw) — fyzický ovladač na to nedostal žádné nové
+ *  tlačítko, appka ho pozná jako kombinaci dvou už existujících
+ *  (úder držený SPOLU s blokem, viz combat/loop.ts's detekujAkci). */
+export type UtocnaAkce = 'udar' | 'kop' | 'specialni' | 'chyt'
 
 export interface AkceData {
   /** Poškození při zásahu — pevné číslo, ne rozsah, aby byl engine
@@ -30,6 +33,11 @@ export interface AkceData {
    *  jednotky, stejná škála jako pozice/ARENA_SIRKA). Na blokovaný
    *  zásah se stejně jako poškození zeslabí přes BLOK_REDUKCE. */
   knockback: number
+  /** Desáté kolo vylepšení — chyt (grab). Akce s tímhle příznakem
+   *  ignoruje cílův blok úplně (a tím pádem i perfektní blok, viz
+   *  engine.ts's aplikujJedenZasah) — "neblokovatelný" útok jako
+   *  protiváha k tomu, že blok jinak zastaví/zeslabí úplně všechno. */
+  poskozeniPresBlok?: boolean
 }
 
 /** Živý stav jednoho bojovníka během souboje. */
@@ -82,6 +90,21 @@ export interface BojovnikStav {
    *  jsem perfektně zablokoval" (Bojiste.tsx) — čistě UI, engine se na
    *  ni jinde neptá, počítá se dolů stejně jako komboKonci výš. */
   parryZablesk: number
+  /** Desáté kolo vylepšení — vztek (rage). Roste, jen když bojovník
+   *  DOSTANE zásah (skutečně doručené poškození, po štítu/bloku), ne
+   *  když sám útočí — viz engine.ts's aplikujJedenZasah, kde se plní.
+   *  Čte se jen přes vztekPripraven níž, ne přímo — appka to nechce
+   *  nechat "přetéct" nad VZTEK_MAX ani po spotřebování nikdy neklesnout
+   *  pod 0. */
+  vztek: number
+  /** Desáté kolo vylepšení — vztek. Jakmile vztek dosáhne VZTEK_MAX,
+   *  tohle se natrvalo přepne na true (a ZŮSTÁVÁ true, i když bojovník
+   *  mezitím sám útočí a nic mu to nespotřebuje) — spotřebuje se teprve
+   *  PRVNÍM dalším zásahem, který bojovník jako ÚTOČNÍK doručí (blokovaně
+   *  i naplno stejně, viz aplikujJedenZasah), a ten jeden zásah dostane
+   *  VZTEK_NASOBIC navíc. Stejný "drží se, dokud se doopravdy nespotřebuje,
+   *  ne dokud neuplyne čas" tvar jako stitAktivni výš. */
+  vztekPripraven: boolean
 }
 
 /** Vstup jednoho hráče pro jeden krok simulace. `akce` je jednorázová
@@ -114,6 +137,14 @@ export interface SoubojMoznosti {
    *  jen kopíruje sem v okamžiku vytvorSoubojStav(), engine sám o
    *  arénách nic neví. */
   hazardOkraju: boolean
+  /** Desáté kolo vylepšení — interaktivní událost ZVOLENÉ arény
+   *  (arena/areny.ts's Arena.udalost), zkopírovaná sem stejným
+   *  způsobem jako hazardOkraju výš — engine sám o Arena objektech nic
+   *  neví, jen o tomhle poli. 'balvan' dává periodické, dopředu
+   *  avizované poškození uprostřed arény (viz engine.ts's UDALOST_*
+   *  konstanty a krokSouboje), 'zatmeni' je čistě vizuální
+   *  (Bojiste.tsx), engine ho tady jinak vůbec nepoužívá. */
+  udalostAreny: 'balvan' | 'zatmeni' | null
 }
 
 /** Stav celého souboje (jednoho kola) — dva bojovníci, uplynulý čas

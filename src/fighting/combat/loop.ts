@@ -1,4 +1,14 @@
-import { CAS_LIMIT_MS, COMEBACK_PRAH } from './engine'
+import {
+  CAS_LIMIT_MS,
+  COMEBACK_PRAH,
+  cyklusUdalostiAreny,
+  stredUdalostiBalvan,
+  UDALOST_PERIODA_MS,
+  UDALOST_VAROVANI_MS,
+  UDALOST_ZATMENI_PERIODA_MS,
+  UDALOST_ZATMENI_TRVANI_MS,
+  VZTEK_MAX,
+} from './engine'
 import type { AkceData, BojovnikStav, HracVstup, SoubojStav, UtocnaAkce } from './types'
 import type { Smer, Tlacitko } from '../types'
 
@@ -13,8 +23,10 @@ import type { Smer, Tlacitko } from '../types'
 
 /** Pořadí, ve kterém se řeší současně zmáčknutá tlačítka v jednom
  *  tiku — na telefonu prakticky nikdy nenastane, ale funkce musí být
- *  deterministická i tak. */
-const PORADI_AKCI: UtocnaAkce[] = ['udar', 'kop', 'specialni']
+ *  deterministická i tak. `'chyt'` (desáté kolo vylepšení) tu schválně
+ *  není — žádné fyzické tlačítko se pro něj nemačká přímo, detekujAkci
+ *  ho vyrábí jako kombinaci 'udar' + drženého bloku, viz níž. */
+const PORADI_AKCI: Exclude<UtocnaAkce, 'chyt'>[] = ['udar', 'kop', 'specialni']
 
 /** Páté kolo vylepšení — hit-stop. Krátké zamrznutí SIMULACE (ne jen
  *  vykreslení) na doopravdy dopadlý zásah — kdokoli vlastní herní
@@ -47,8 +59,13 @@ export const KO_HIT_STOP_MS = 480
  *  ať oba režimy dávají hráčům stejnou chvíli vidět, proti komu hrají,
  *  než začne odpočítávat čas/hit-stop/zvuk). Stejné "promuj do
  *  sdíleného modulu, jakmile ho potřebuje druhý vlastník smyčky"
- *  pravidlo jako HIT_STOP_MS výš. */
-export const INTRO_MS = 2200
+ *  pravidlo jako HIT_STOP_MS výš.
+ *
+ *  Desáté kolo vylepšení prodloužilo tuhle konstantu, aby se do
+ *  posledních ~2 s vešel skutečný "3-2-1-BOJ!" odpočet (IntroPocitadlo.tsx)
+ *  — appka VS karty (jméno/portrét/hláška) NEZKRACUJE, jen mu dává
+ *  o kus víc času, než na ně naváže odpočet. */
+export const INTRO_MS = 3400
 
 /** Najde tlačítko, které přešlo z "nedrženo" na "drženo" právě mezi
  *  dvěma po sobě jdoucími stavy tlačítek z ovladače — edge detekce,
@@ -59,7 +76,15 @@ export const detekujAkci = (
   aktualni: Record<Tlacitko, boolean>
 ): UtocnaAkce | null => {
   for (const akce of PORADI_AKCI) {
-    if (aktualni[akce] && !predchozi[akce]) return akce
+    if (aktualni[akce] && !predchozi[akce]) {
+      // Desáté kolo vylepšení — chyt (grab). Fyzický ovladač na to
+      // nedostal žádné nové tlačítko ani appka žádnou novou zprávu do
+      // network.ts — "úder držený SPOLU s blokem" appka pozná ze dvou
+      // už existujících tlačítek, protože Tlacitko='blok' je v
+      // `aktualni` odjakživa dostupné vedle samotného úderu.
+      if (akce === 'udar' && aktualni.blok) return 'chyt'
+      return akce
+    }
   }
   return null
 }
@@ -133,6 +158,33 @@ export const jeParry = (b: BojovnikStav): boolean => b.parryZablesk > 0
  *  vylučuje KO'd bojovníka (0 HP by jinak taky prošlo prahem, ale
  *  "comeback" u někoho, kdo už prohrál, nedává smysl zobrazovat). */
 export const jeComeback = (b: BojovnikStav): boolean => b.hp > 0 && b.hp / b.maxHp <= COMEBACK_PRAH
+
+/** Desáté kolo vylepšení — vztek. Kolik procent má mít vztek pruh —
+ *  stejná 0..100 clamp disciplína jako hpProcenta/manaProcenta výš. */
+export const vztekProcenta = (b: BojovnikStav): number => Math.max(0, Math.min(100, (b.vztek / VZTEK_MAX) * 100))
+
+/** Desáté kolo vylepšení — interaktivní událost arény ('balvan', viz
+ *  engine.ts's UDALOST_*). Čistě vizuální telegraf pro Bojiste.tsx —
+ *  žádnou logiku poškození tady appka nepočítá (to dělá engine.ts's
+ *  krokSouboje), jen řekne, jestli se má ukázat varovná zóna a KDE na
+ *  ose arény, sdílenou cyklusUdalostiAreny/stredUdalostiBalvan
+ *  matematikou, ať se telegraf a skutečný dopad nikdy nerozejdou.
+ *  Samotný okamžik dopadu appka schválně nerozlišuje jako třetí fázi —
+ *  kohokoli dopad zasáhne, tomu už tak jako tak klesne HP tenhle tik,
+ *  což spustí Bojiste.tsx's existující "zasah"/otres efekt úplně
+ *  stejně jako obyčejný úder, žádná druhá vizuální vrstva navíc netřeba. */
+export const stavBalvanuAreny = (cas: number, arenaSirka: number): { varovani: boolean; xProcenta: number } => {
+  const cyklus = cyklusUdalostiAreny(cas)
+  const hranice = (cyklus + 1) * UDALOST_PERIODA_MS
+  const stred = stredUdalostiBalvan(cyklus)
+  return { varovani: hranice - cas <= UDALOST_VAROVANI_MS, xProcenta: (stred / arenaSirka) * 100 }
+}
+
+/** Desáté kolo vylepšení — interaktivní událost arény ('zatmeni', viz
+ *  engine.ts's UDALOST_ZATMENI_*) — čistě vizuální, engine sám tohle
+ *  nikde nepočítá (na rozdíl od 'balvan' výš), takže appka to tu bere
+ *  přímo z `cas` bez jakéhokoli enginového vstupu. */
+export const jeZatmeniAktivni = (cas: number): boolean => (cas % UDALOST_ZATMENI_PERIODA_MS) < UDALOST_ZATMENI_TRVANI_MS
 
 /** Osmé kolo vylepšení — přehled posledního zápasu. Nejdelší dosažené
  *  kombo, počet skutečně doručených zásahů a počet perfektních bloků,

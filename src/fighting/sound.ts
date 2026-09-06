@@ -81,3 +81,68 @@ export const zahrajRemizu = () => {
  *  obyčejného zahrajZasah (tupý čtvercový tón) — perfektní blok má
  *  znít jako úspěch obránce, ne jako další rána. */
 export const zahrajParry = () => ton(1046.5, 0.14, 0.24, 'triangle')
+
+// ==========================================
+// Desáté kolo vylepšení — ambientní hudba na pozadí zápasu. Žádný
+// zvukový soubor, stejná "syntetizuj to sám" disciplína jako
+// zahrajZasah výš — jednoduchý setInterval-driven arpeggiator na
+// tichou hlasitost (0.05, výrazně tišší než jakýkoli efekt výš, ať
+// hudba nikdy nepřekřičí zvuk zásahu/speciálu), ne skutečný look-ahead
+// scheduler jako Music Studio's useBeatSequencer — appka tu netrefuje
+// rytmus na milisekundu, jen drží atmosféru, takže jednoduchý interval
+// stačí. Napjatost (nastavNapjatostHudby) mění tempo i notovou řadu na
+// nižší/disonantnější — appka o ni volá z herní smyčky (TvHost.tsx/
+// LocalniZapas.tsx) podle toho, jestli právě běží náhlá smrt.
+// ==========================================
+
+let hudbaIntervalId: number | null = null
+let hudbaNapjata = false
+let hudbaKrok = 0
+
+/** Klidné, konsonantní akordové noty (A3–G4) pro obyčejný průběh
+ *  zápasu — délka not (0.9 s) je schválně blízko tempu přehrávání
+ *  (900 ms), ať noty plynule navazují, ne přeskakují ticho mezi sebou. */
+const NOTY_KLID = [220, 261.63, 329.63, 392]
+/** Nižší, disonantnější noty pro náhlou smrt — appka je nepřehrává
+ *  jako "jiná píseň", jen posune stejný vzorec na temnější/rychlejší
+ *  variantu, ať je zřejmé, že jde pořád o tu samou hudbu, jen napjatější. */
+const NOTY_NAPJATO = [196, 233.08, 277.18, 311.13]
+
+const zahrajHudebniKrok = () => {
+  const noty = hudbaNapjata ? NOTY_NAPJATO : NOTY_KLID
+  ton(noty[hudbaKrok % noty.length], hudbaNapjata ? 0.5 : 0.9, 0.05, 'sine')
+  hudbaKrok += 1
+}
+
+/** Spustí smyčku ambientní hudby — no-op, pokud už jednou běží (appka
+ *  ji volá z herní smyčky na start zápasu, ne z gesta uživatele, takže
+ *  nemá smysl znovu vytvářet druhý interval navrch). */
+export const spustitHudbu = () => {
+  if (!audioCtx || hudbaIntervalId !== null) return
+  hudbaKrok = 0
+  zahrajHudebniKrok()
+  hudbaIntervalId = window.setInterval(zahrajHudebniKrok, hudbaNapjata ? 550 : 900)
+}
+
+export const zastavitHudbu = () => {
+  if (hudbaIntervalId !== null) {
+    window.clearInterval(hudbaIntervalId)
+    hudbaIntervalId = null
+  }
+}
+
+/** Přepne mezi klidnou a napjatou variantou — no-op, pokud appka už v
+ *  požadovaném stavu je (appka na tohle volá z herní smyčky na KAŽDÝ
+ *  tik, viz TvHost.tsx/LocalniZapas.tsx, takže tenhle časný návrat je
+ *  to, co drží náklad na nulu, dokud se stav doopravdy nezmění). Když
+ *  hudba právě hraje, appka ji restartuje s novým tempem — jednodušší
+ *  než měnit běžící interval, cena je jen krátký skok zpátky na první
+ *  notu vzorce, nic, co by u ambientní hudby vadilo. */
+export const nastavNapjatostHudby = (napjata: boolean) => {
+  if (hudbaNapjata === napjata) return
+  hudbaNapjata = napjata
+  if (hudbaIntervalId !== null) {
+    zastavitHudbu()
+    spustitHudbu()
+  }
+}

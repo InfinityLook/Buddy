@@ -37,6 +37,12 @@ export interface Arena {
    *  combat/types.ts's SoubojMoznosti.hazardOkraju, appka ho sem
    *  kopíruje jen v okamžiku, kdy se zápas vytváří. */
   nebezpeciOkraje: boolean
+  /** Desáté kolo vylepšení — interaktivní událost arény (viz
+   *  combat/engine.ts's SoubojMoznosti.udalostAreny/UDALOST_*). null =
+   *  klidná aréna bez žádné periodické události — appka to schválně
+   *  nedala všem třem, ať aréna bez události zůstane pořád na výběr
+   *  pro hráče, co chtějí čistý souboj bez vnějšího rušení. */
+  udalost: 'balvan' | 'zatmeni' | null
 }
 
 export const ARENY: Record<ArenaId, Arena> = {
@@ -56,6 +62,7 @@ export const ARENY: Record<ArenaId, Arena> = {
     barvaKoruny: '#2f5d34',
     barvaKamene: '#5a5248',
     nebezpeciOkraje: false,
+    udalost: null,
   },
   pousty: {
     id: 'pousty',
@@ -73,6 +80,11 @@ export const ARENY: Record<ArenaId, Arena> = {
     barvaKoruny: '#2f5d34',
     barvaKamene: '#8a6b45',
     nebezpeciOkraje: true,
+    // Desáté kolo vylepšení — padající balvan. Kaňon je jediné místo,
+    // kde "shora něco padá" dává skutečný scénografický smysl (vysoké
+    // stěny kolem cesty), stejná úvaha jako proč jen tahle aréna má
+    // hazard u kraje výš.
+    udalost: 'balvan',
   },
   noc: {
     id: 'noc',
@@ -90,6 +102,10 @@ export const ARENY: Record<ArenaId, Arena> = {
     barvaKoruny: '#2a2140',
     barvaKamene: '#2c3348',
     nebezpeciOkraje: false,
+    // Desáté kolo vylepšení — periodické zatmění. Čistě atmosférické
+    // pro arénu, co už je "noc" — periodicky ztmavne ještě víc, ne
+    // "noc s vypnutým světlem", ale skutečná vlastní událost.
+    udalost: 'zatmeni',
   },
 }
 

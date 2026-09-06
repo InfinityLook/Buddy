@@ -1,12 +1,12 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { ARENA_SIRKA } from '../combat/engine'
 import { POSTAVY } from '../combat/postavy'
 import { jeComeback, jeParry, vizualniStavBojovnika } from '../combat/loop'
 import { useSoubojScene } from '../arena/useSoubojScene'
 import { ARENY, VYCHOZI_ARENA, type Arena, type ArenaId } from '../arena/areny'
-import { PostavaGrafika } from './PostavaGrafika'
+import { PostavaGrafika, barvaAkcentuPostavy } from './PostavaGrafika'
 import { Jiskry } from './Jiskry'
-import type { BojovnikStav, SoubojStav } from '../combat/types'
+import type { BojovnikStav, SoubojStav, UtocnaAkce } from '../combat/types'
 
 interface Props {
   stav: SoubojStav
@@ -21,6 +21,8 @@ interface Props {
    *  zařízení bez WebGL. */
   onSelhalo: () => void
 }
+
+const ZABER_TRVANI_MS = 260
 
 // ==========================================
 // Skutečná 3D aréna (viz useSoubojScene.ts pro celé zdůvodnění) —
@@ -41,6 +43,18 @@ interface Props {
 // překryv přes celou svou půlku obrazovky, čtoucí přesně ta samá pole
 // z BojovnikStav (vizualniStavBojovnika/jeParry/stitAktivni), jen na
 // jiném vizuálním místě.
+//
+// Desátého kola další vylepšení přidalo dvě věci do VlastniStavPrekryv:
+// krátký "švih" na VLASTNÍ útok (zaberVlastni níž — jediná hranová
+// detekce, co tahle jinak čistě prezentační komponenta počítá, stejný
+// "porovnej PŘEDCHOZÍ a AKTUÁLNÍ posledniAkce" trik jako Bojiste.tsx's
+// vlastní zvuková detekce) a trvalý zlatý odlesk, dokud je vlastní
+// vztek nabitý (vlastni.vztekPripraven, combat/engine.ts) — obojí je
+// zpětná vazba o VLASTNÍM bojovníkovi, patří tedy sem, ne na sprite
+// soupeře. Barva jisker (Jiskry.tsx) a "chyt" třída na soupeřově
+// spritu čtou totéž — element ÚTOČNÍKA (tedy vlastního bojovníka
+// tady, protože sprite patří soupeři), stejná logika, jen na jiném
+// místě než ve 2D záložní aréně.
 // ==========================================
 
 /** Zpětná vazba o VLASTNÍM stavu bojovníka, kterého v pohledu z očí
@@ -48,11 +62,12 @@ interface Props {
  *  obrazovky místo animace na (neviditelné) vlastní postavě. Čte
  *  přesně stejná hotová pole jako sprite soupeře výš (žádná vlastní
  *  logika), jen jinak vykreslená. */
-const VlastniStavPrekryv: React.FC<{ kamera: 0 | 1; vlastni: BojovnikStav; zasazenVlastni: boolean }> = ({
-  kamera,
-  vlastni,
-  zasazenVlastni,
-}) => {
+const VlastniStavPrekryv: React.FC<{
+  kamera: 0 | 1
+  vlastni: BojovnikStav
+  zasazenVlastni: boolean
+  zaberVlastni: boolean
+}> = ({ kamera, vlastni, zasazenVlastni, zaberVlastni }) => {
   const vizStav = vizualniStavBojovnika(vlastni)
   return (
     <div
@@ -60,6 +75,8 @@ const VlastniStavPrekryv: React.FC<{ kamera: 0 | 1; vlastni: BojovnikStav; zasaz
         zasazenVlastni ? 'souboj-vlastni-prekryv--zasah' : ''
       } ${vizStav === 'blok' ? 'souboj-vlastni-prekryv--blok' : ''} ${
         jeParry(vlastni) ? 'souboj-vlastni-prekryv--parry' : ''
+      } ${zaberVlastni ? 'souboj-vlastni-prekryv--zaber' : ''} ${
+        vlastni.vztekPripraven ? 'souboj-vlastni-prekryv--vztek' : ''
       }`}
       aria-hidden="true"
     >
@@ -74,6 +91,39 @@ export const SoubojArena3D: React.FC<Props> = ({ stav, zasazen, arenaId, onSelha
     arenaSirka: ARENA_SIRKA,
     arena,
   })
+
+  // Desáté kolo vylepšení — krátký "švih" na vlastní útok (viz
+  // komponenta výš). Stejná "zachyť PŘECHOD posledniAkce, ne držený
+  // stav" disciplína jako Bojiste.tsx's vlastní zvuková detekce, jen
+  // tady navíc podmíněná `utokKonci > 0` — appka nechce animaci
+  // přehrát znovu na KAŽDÉM dalším snímku, co posledniAkce zůstává
+  // "lepivě" stejné dávno po tom, co útok doopravdy doběhl.
+  const predchoziAkceRef = useRef<[UtocnaAkce | null, UtocnaAkce | null]>([
+    stav.hraci[0].posledniAkce,
+    stav.hraci[1].posledniAkce,
+  ])
+  const [zaber, setZaber] = useState<[boolean, boolean]>([false, false])
+
+  useEffect(() => {
+    ;([0, 1] as const).forEach((i) => {
+      const b = stav.hraci[i]
+      if (b.posledniAkce !== null && b.posledniAkce !== predchoziAkceRef.current[i] && b.utokKonci > 0) {
+        setZaber((s) => {
+          const dalsi = [...s] as [boolean, boolean]
+          dalsi[i] = true
+          return dalsi
+        })
+        window.setTimeout(() => {
+          setZaber((s) => {
+            const dalsi = [...s] as [boolean, boolean]
+            dalsi[i] = false
+            return dalsi
+          })
+        }, ZABER_TRVANI_MS)
+      }
+      predchoziAkceRef.current[i] = b.posledniAkce
+    })
+  }, [stav.hraci])
 
   useEffect(() => {
     aktualizujPozice(stav.hraci[0].pozice, stav.hraci[1].pozice)
@@ -101,20 +151,28 @@ export const SoubojArena3D: React.FC<Props> = ({ stav, zasazen, arenaId, onSelha
         const vlastni = stav.hraci[kamera]
         const postava = POSTAVY[soupeř.postavaId]
         const vizStav = vizualniStavBojovnika(soupeř)
+        // Desáté kolo vylepšení — chyt, stejná detekce jako
+        // SoubojArena2D.tsx's vlastní komentář.
+        const jeChyt = vizStav === 'utok' && soupeř.posledniAkce === 'chyt'
         return (
           <React.Fragment key={kamera}>
             <div ref={registrujSprite(kamera, soupeřIdx)} className="souboj-3d-sprite">
               <div
                 className={`souboj-bojovnik souboj-bojovnik--${soupeřIdx + 1} souboj-bojovnik--${vizStav} souboj-bojovnik--postava-${postava.id} ${
                   jeParry(soupeř) ? 'souboj-bojovnik--parry' : ''
-                } ${jeComeback(soupeř) ? 'souboj-bojovnik--comeback' : ''}`}
+                } ${jeComeback(soupeř) ? 'souboj-bojovnik--comeback' : ''} ${jeChyt ? 'souboj-bojovnik--chyt' : ''}`}
               >
                 <PostavaGrafika postavaId={postava.id} size={54} />
-                {zasazen[soupeřIdx] && <Jiskry />}
+                {zasazen[soupeřIdx] && <Jiskry barva={barvaAkcentuPostavy(vlastni.postavaId)} />}
                 {soupeř.stitAktivni && <span className="souboj-stit-znacka">🛡️</span>}
               </div>
             </div>
-            <VlastniStavPrekryv kamera={kamera} vlastni={vlastni} zasazenVlastni={zasazen[kamera]} />
+            <VlastniStavPrekryv
+              kamera={kamera}
+              vlastni={vlastni}
+              zasazenVlastni={zasazen[kamera]}
+              zaberVlastni={zaber[kamera]}
+            />
           </React.Fragment>
         )
       })}

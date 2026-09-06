@@ -87,6 +87,51 @@ export const HAZARD_OKRAJE_POSKOZENI = 8
  *  (logické jednotky arény, ne procenta). */
 export const PICKUP_DOSTUPNY_OD_MS = 10000
 export const PICKUP_DOSAH = 30
+/** Desáté kolo vylepšení — vztek (rage meter). Kolik zásahu (v
+ *  jednotkách skutečně DORUČENÉHO poškození, viz aplikujJedenZasah) se
+ *  musí nastřádat, než je vztek plně nabitý — VZTEK_NASOBIC pak násobí
+ *  poškození PRVNÍHO příštího zásahu, který nabitý bojovník jako
+ *  ÚTOČNÍK doopravdy doručí, ať blokovaně nebo naplno (stejná šíře
+ *  jako comeback, ne úzká jako kombo — vztek je o odplatě za to, co
+ *  bojovník DOSTAL, ne o té konkrétní výměně). */
+export const VZTEK_MAX = 100
+export const VZTEK_NASOBIC = 1.4
+/** Desáté kolo vylepšení — interaktivní událost arény ('balvan',
+ *  arena/areny.ts's Arena.udalost). Perioda mezi dvěma dopady, okno
+ *  PŘED dopadem, po které appka dopředu avizuje (Bojiste.tsx's
+ *  telegraf), a vlastnosti samotného dopadu — pevné poškození, ne
+ *  násobené žádným jiným bonusem (stejná "pevné číslo navrch" logika
+ *  jako HAZARD_OKRAJE_POSKOZENI výš), a šířka zásahové zóny kolem
+ *  vylosovaného středu (viz stredUdalostiBalvan níž). */
+export const UDALOST_PERIODA_MS = 8000
+export const UDALOST_VAROVANI_MS = 1500
+export const UDALOST_SIRKA = 90
+export const UDALOST_POSKOZENI = 14
+/** Desáté kolo vylepšení — 'zatmeni' je čistě vizuální (Bojiste.tsx
+ *  ztmaví celou arénu na chvíli), engine sám tyhle konstanty nikde
+ *  nepoužívá — žijí tady jen proto, že appka drží všechny "kouzelné"
+ *  konstanty jedné arény pohromadě na jednom místě, ne rozeseté mezi
+ *  engine.ts a combat/loop.ts. */
+export const UDALOST_ZATMENI_PERIODA_MS = 10000
+export const UDALOST_ZATMENI_TRVANI_MS = 2000
+
+/** Desáté kolo vylepšení — do kterého "cyklu" periody UDALOST_PERIODA_MS
+ *  aktuální čas kola spadá — sdílené jedním místem mezi krokSouboje
+ *  (skutečné poškození) a combat/loop.ts's stavBalvanuAreny (vizuální
+ *  telegraf), ať avizovaná zóna a doopravdy zasažená zóna nikdy
+ *  nemůžou být jiné. */
+export const cyklusUdalostiAreny = (cas: number): number => Math.floor(cas / UDALOST_PERIODA_MS)
+
+/** Deterministický pseudonáhodný hash (Math.sin, ne Math.random) —
+ *  engine se nesmí spoléhat na skutečnou náhodu (viz modulový komentář
+ *  výš), tohle dá pro STEJNÝ cyklus vždycky STEJNÝ výsledek, ale mezi
+ *  různými cykly vypadá jako náhoda. Losuje jen do prostředních 70 %
+ *  arény, stejná "vždycky doopravdy dosažitelné z obou stran" úvaha
+ *  jako u vytvorSoubojStav's pickupPozice níž. */
+export const stredUdalostiBalvan = (cyklus: number): number => {
+  const hash = Math.abs(Math.sin(cyklus * 12.9898) * 43758.5453) % 1
+  return ARENA_SIRKA * 0.15 + hash * ARENA_SIRKA * 0.7
+}
 
 /** Osmé kolo vylepšení — výchozí volby zápasu, pro `vytvorSoubojStav`
  *  volané bez pátého argumentu (testy Fáze 1–7 na to spoléhají) a pro
@@ -96,12 +141,19 @@ export const VYCHOZI_MOZNOSTI: SoubojMoznosti = {
   treninkovyRezim: false,
   handicapManaRegen: [1, 1],
   hazardOkraju: false,
+  udalostAreny: null,
 }
 
+/** Desáté kolo vylepšení — 'chyt' (grab). Menší poškození než kop, ale
+ *  neblokovatelné (poskozeniPresBlok, viz types.ts) — appka ho schválně
+ *  nedala silnější než specialni, ať "neblokovatelné" samo o sobě
+ *  nebylo ještě navíc i nejtvrdší ranou ve hře. Kratší dosah než kop —
+ *  skutečný chyt/hod dává smysl jen zblízka. */
 export const AKCE_DATA: Record<UtocnaAkce, AkceData> = {
   udar: { poskozeni: 6, dosah: 90, trvaniMs: 250, cenaMany: 0, knockback: 18 },
   kop: { poskozeni: 10, dosah: 110, trvaniMs: 400, cenaMany: 0, knockback: 32 },
   specialni: { poskozeni: 22, dosah: 140, trvaniMs: 600, cenaMany: 40, knockback: 55 },
+  chyt: { poskozeni: 8, dosah: 70, trvaniMs: 500, cenaMany: 0, knockback: 45, poskozeniPresBlok: true },
 }
 
 export const vytvorBojovnika = (pozice: number, postavaId: PostavaId = VYCHOZI_POSTAVA): BojovnikStav => {
@@ -124,6 +176,8 @@ export const vytvorBojovnika = (pozice: number, postavaId: PostavaId = VYCHOZI_P
     komboKonci: 0,
     blokDrzenMs: 0,
     parryZablesk: 0,
+    vztek: 0,
+    vztekPripraven: false,
   }
 }
 
@@ -150,6 +204,7 @@ export const efektivniAkceData = (postavaId: PostavaId, akce: UtocnaAkce): AkceD
     trvaniMs: zaklad.trvaniMs / postava.rychlostNasobic,
     cenaMany: zaklad.cenaMany * postava.cenaManyNasobic,
     knockback: zaklad.knockback,
+    poskozeniPresBlok: zaklad.poskozeniPresBlok,
   }
 }
 
@@ -313,7 +368,17 @@ interface VysledekJednohoZasahu {
  *  zvolená aréna trestá odražení až ke kraji). Hazard se na rozdíl od
  *  komba/comebacku/sudden death NEnásobí do `poskozeni` — je to pevné
  *  číslo navrch (HAZARD_OKRAJE_POSKOZENI), počítané z toho, kam
- *  odražení cíl doopravdy dostalo, ne z toho, kolik dal útočník. */
+ *  odražení cíl doopravdy dostalo, ne z toho, kolik dal útočník.
+ *
+ *  Desáté kolo vylepšení přidalo `presBlok` (chyt/grab, viz types.ts's
+ *  AkceData.poskozeniPresBlok) a vztek. `presBlok` prostě vynutí
+ *  `zasahBlokovan` na false bez ohledu na to, jestli cíl doopravdy
+ *  drží blok — tím pádem automaticky vyřadí i perfektní blok níž (ten
+ *  vyžaduje zasahBlokovan true), žádná zvláštní podmínka navíc netřeba.
+ *  Vztek se plní CÍLI podle skutečně doručeného poškození (dole, kde
+ *  appka i tak počítá poskozeniCelkove) a spotřebuje se ÚTOČNÍKOVI na
+ *  tomhle zásahu, byl-li předtím nabitý — obojí čte/píše stejné dva
+ *  BojovnikStav objekty, co tahle funkce beztak už staví. */
 const aplikujJedenZasah = (
   hraci: [BojovnikStav, BojovnikStav],
   utocnikIdx: 0 | 1,
@@ -321,7 +386,8 @@ const aplikujJedenZasah = (
   poskozeniZaklad: number,
   knockback: number,
   bonusSuddenDeath: number,
-  hazardOkraju: boolean
+  hazardOkraju: boolean,
+  presBlok: boolean = false
 ): VysledekJednohoZasahu => {
   const utocnik = hraci[utocnikIdx]
   const cil = hraci[cilIdx]
@@ -337,7 +403,7 @@ const aplikujJedenZasah = (
     return { hraci: dalsi, poskozeniDorucene: 0 }
   }
 
-  const zasahBlokovan = cil.blokuje
+  const zasahBlokovan = cil.blokuje && !presBlok
 
   // Vylepšení — parry. Blok držený jen krátce (PARRY_OKNO_MS) v
   // okamžiku zásahu je "perfektní" — cíl nedostane VŮBEC nic (ani
@@ -362,11 +428,16 @@ const aplikujJedenZasah = (
   // blokovanému zásahu vůbec nepočítá) — comeback je o snaze útočníka
   // samotného obrátit zápas, ne o téhle konkrétní výměně.
   const bonusComeback = utocnik.hp > 0 && utocnik.hp / utocnik.maxHp <= COMEBACK_PRAH ? COMEBACK_NASOBIC : 1
+  // Desáté kolo vylepšení — vztek. Stejná šíře jako comeback výš
+  // (blokovaně i naplno stejně) — nabitý vztek se spotřebuje na
+  // PRVNÍM příštím zásahu, ať dopadl zeslabeně přes blok, nebo ne.
+  const bonusVztek = utocnik.vztekPripraven ? VZTEK_NASOBIC : 1
   const poskozeni =
     (zasahBlokovan ? poskozeniZaklad * (1 - BLOK_REDUKCE) : poskozeniZaklad) *
     bonusKomba *
     bonusComeback *
-    bonusSuddenDeath
+    bonusSuddenDeath *
+    bonusVztek
 
   const smerOdrazeni = utocnik.pozice <= cil.pozice ? 1 : -1
   const silaOdrazeni = zasahBlokovan ? knockback * (1 - BLOK_REDUKCE) : knockback
@@ -379,18 +450,34 @@ const aplikujJedenZasah = (
     hazardOkraju && (novaPozice <= HAZARD_OKRAJE_PRAH || novaPozice >= ARENA_SIRKA - HAZARD_OKRAJE_PRAH)
   const poskozeniCelkove = poskozeni + (dostalOdrazenKOkraji ? HAZARD_OKRAJE_POSKOZENI : 0)
 
+  // Desáté kolo vylepšení — vztek. Roste CÍLI podle skutečně
+  // doručeného poškození (po štítu/perfektním bloku už appka vůbec
+  // sem nedojde — oba mají svůj vlastní `return` výš), capnuté na
+  // VZTEK_MAX; jakmile ho dosáhne, vztekPripraven natrvalo naskočí a
+  // zůstává true, dokud se skutečně nespotřebuje jako útočníkův bonus
+  // jinde (viz níž).
+  const vztekNovy = Math.min(VZTEK_MAX, cil.vztek + poskozeniCelkove)
+
   const novyCil: BojovnikStav = {
     ...cil,
     hp: Math.max(0, cil.hp - poskozeniCelkove),
     pozice: novaPozice,
     // Blokovaný zásah hitstun neuděluje — obránce může jednat hned dál.
     zranitelnostKonci: zasahBlokovan ? cil.zranitelnostKonci : HITSTUN_MS,
+    vztek: vztekNovy,
+    vztekPripraven: cil.vztekPripraven || vztekNovy >= VZTEK_MAX,
   }
   const novyUtocnik: BojovnikStav = {
     ...utocnik,
     mana: Math.min(utocnik.maxMana, utocnik.mana + MANA_ZA_ZASAH),
     komboPocet: zasahBlokovan ? utocnik.komboPocet : stupenKomba + 1,
     komboKonci: zasahBlokovan ? utocnik.komboKonci : KOMBO_OKNO_MS,
+    // Spotřebuje se přesně tímhle zásahem, byl-li útočník nabitý —
+    // jinak zůstává beze změny (0/false, nebo případně ještě
+    // nastřádaný z dřívějška, kdyby byl tenhle bojovník OBĚMA stranami
+    // stejného tiku — útočníkem tady, cílem jinde).
+    vztek: utocnik.vztekPripraven ? 0 : utocnik.vztek,
+    vztekPripraven: false,
   }
 
   const dalsi = [...hraci] as [BojovnikStav, BojovnikStav]
@@ -437,8 +524,22 @@ const vyhodnotZasahPokudZahajen = (
   // Obrana je vlastnost CÍLE, ne útočníka — počítá se tady, jednou,
   // společně pro oba případné zásahy dvojitého úderu.
   const poskozeniZaklad = data.poskozeni * POSTAVY[cil.postavaId].obranaNasobic
+  // Desáté kolo vylepšení — chyt (grab). Vlastnost AKCE (viz
+  // types.ts's AkceData.poskozeniPresBlok), ne postavy ani speciálu —
+  // appka to čte jednou tady, stejně jako data.knockback, a jen
+  // přeposílá dál.
+  const presBlok = !!data.poskozeniPresBlok
 
-  let vysledek = aplikujJedenZasah(hraci, utocnikIdx, cilIdx, poskozeniZaklad, data.knockback, bonusSuddenDeath, hazardOkraju)
+  let vysledek = aplikujJedenZasah(
+    hraci,
+    utocnikIdx,
+    cilIdx,
+    poskozeniZaklad,
+    data.knockback,
+    bonusSuddenDeath,
+    hazardOkraju,
+    presBlok
+  )
   let poskozeniCelkem = vysledek.poskozeniDorucene
 
   if (jeSpecialSTemhleTypem('dvojity-zasah')) {
@@ -449,7 +550,8 @@ const vyhodnotZasahPokudZahajen = (
       poskozeniZaklad,
       data.knockback,
       bonusSuddenDeath,
-      hazardOkraju
+      hazardOkraju,
+      presBlok
     )
     poskozeniCelkem += vysledek.poskozeniDorucene
   }
@@ -499,6 +601,25 @@ export const krokSouboje = (stav: SoubojStav, vstupy: [HracVstup, HracVstup], de
   hraci = vyhodnotZasahPokudZahajen(hraci, 1, 0, t1.zahajenaAkce, bonusSuddenDeath, moznosti.hazardOkraju)
 
   const novyCas = stav.cas + deltaMs
+
+  // Desáté kolo vylepšení — interaktivní událost arény ('balvan', viz
+  // SoubojMoznosti.udalostAreny/UDALOST_* výš). Hranová detekce přesně
+  // na konci každého cyklu (ne "kdykoli v okně"), stejná disciplína
+  // jako komboKonci/pickup jinde v tomhle souboru — appka tak zásah
+  // uplatní přesně jednou za cyklus, ne na každý tik, co by náhodou
+  // spadal do stejného okna. Sdílí cyklusUdalostiAreny/stredUdalostiBalvan
+  // se combat/loop.ts's vizuálním telegrafem, ať avizovaná a doopravdy
+  // zasažená zóna nikdy nemůžou být jiné.
+  if (moznosti.udalostAreny === 'balvan') {
+    const cyklus = cyklusUdalostiAreny(stav.cas)
+    const hranice = (cyklus + 1) * UDALOST_PERIODA_MS
+    if (stav.cas < hranice && novyCas >= hranice) {
+      const stred = stredUdalostiBalvan(cyklus)
+      hraci = hraci.map((b) =>
+        Math.abs(b.pozice - stred) <= UDALOST_SIRKA ? { ...b, hp: Math.max(0, b.hp - UDALOST_POSKOZENI) } : b
+      ) as [BojovnikStav, BojovnikStav]
+    }
+  }
 
   // Deváté kolo vylepšení — sebrání pickupu, počítané PŘED tréninkovou
   // větví níž (tréninkové kolo taky pickup umí sebrat, jen se pak

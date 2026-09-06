@@ -18,6 +18,12 @@ import {
   HAZARD_OKRAJE_POSKOZENI,
   PICKUP_DOSTUPNY_OD_MS,
   VYCHOZI_MOZNOSTI,
+  VZTEK_MAX,
+  VZTEK_NASOBIC,
+  UDALOST_PERIODA_MS,
+  UDALOST_POSKOZENI,
+  cyklusUdalostiAreny,
+  stredUdalostiBalvan,
   krokSouboje,
   vytvorBojovnika,
   vytvorSoubojStav,
@@ -484,5 +490,126 @@ describe('vylepšení — pickup v aréně', () => {
     let stav = vytvorSoubojStav(0, ARENA_SIRKA, undefined, undefined, VYCHOZI_MOZNOSTI, nahodne)
     stav = krokSouboje(stav, [stat, stat], PICKUP_DOSTUPNY_OD_MS)
     expect(stav.pickupSebran).toBe(false)
+  })
+})
+
+describe('desáté kolo vylepšení — vztek (rage)', () => {
+  it('doručené poškození navyšuje CÍLŮV vztek', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 0)
+    expect(stav.hraci[1].vztek).toBe(AKCE_DATA.udar.poskozeni)
+    expect(stav.hraci[1].vztekPripraven).toBe(false)
+  })
+
+  it('vztek se capne na VZTEK_MAX a natrvalo nastaví vztekPripraven', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav.hraci[1] = { ...stav.hraci[1], vztek: VZTEK_MAX - 2 }
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 0) // 6 poškození, 98+6 > 100
+    expect(stav.hraci[1].vztek).toBe(VZTEK_MAX)
+    expect(stav.hraci[1].vztekPripraven).toBe(true)
+  })
+
+  it('nabitý vztek znásobí poškození PRVNÍHO dalšího zásahu a spotřebuje se', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav.hraci[0] = { ...stav.hraci[0], vztekPripraven: true, vztek: VZTEK_MAX }
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 0)
+    const ocekavane = AKCE_DATA.udar.poskozeni * VZTEK_NASOBIC
+    expect(stav.hraci[1].hp).toBeCloseTo(MAX_HP - ocekavane)
+    expect(stav.hraci[0].vztek).toBe(0)
+    expect(stav.hraci[0].vztekPripraven).toBe(false)
+  })
+
+  it('nabitý vztek platí i na BLOKOVANÝ zásah, stejná šíře jako comeback', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav.hraci[0] = { ...stav.hraci[0], vztekPripraven: true }
+    stav = krokSouboje(stav, [stat, { ...stat, blok: true }], 0)
+    stav = krokSouboje(stav, [stat, { ...stat, blok: true }], PARRY_OKNO_MS + 50)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, { ...stat, blok: true }], 0)
+    const ocekavane = AKCE_DATA.udar.poskozeni * (1 - BLOK_REDUKCE) * VZTEK_NASOBIC
+    expect(stav.hraci[1].hp).toBeCloseTo(MAX_HP - ocekavane)
+    expect(stav.hraci[0].vztekPripraven).toBe(false)
+  })
+
+  it('nenabitý vztek žádný bonus nedává', () => {
+    let stav = vytvorSoubojStav(0, 80)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 0)
+    expect(stav.hraci[1].hp).toBe(MAX_HP - AKCE_DATA.udar.poskozeni)
+  })
+})
+
+describe('desáté kolo vylepšení — chyt (grab, poskozeniPresBlok)', () => {
+  it('chyt ignoruje obyčejný blok úplně — plné poškození, skutečný hitstun', () => {
+    let stav = vytvorSoubojStav(0, 60) // <= dosah chytu (70)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'chyt' }, { ...stat, blok: true }], 0)
+    expect(stav.hraci[1].hp).toBe(MAX_HP - AKCE_DATA.chyt.poskozeni)
+    expect(stav.hraci[1].zranitelnostKonci).toBe(HITSTUN_MS)
+  })
+
+  it('chyt obchází i perfektní blok — útočník není potrestán, i když je blok čerstvě zvednutý', () => {
+    let stav = vytvorSoubojStav(0, 60)
+    // Blok zvednutý přesně tenhle tik (blokDrzenMs by u obyčejného
+    // útoku znamenalo "perfektní blok") — chyt to nemá jak zaznamenat,
+    // protože zasahBlokovan je vynucené na false.
+    stav = krokSouboje(stav, [{ ...stat, akce: 'chyt' }, { ...stat, blok: true }], 0)
+    expect(stav.hraci[0].zranitelnostKonci).toBe(0)
+  })
+
+  it('chyt mimo svůj (kratší) dosah netrefí', () => {
+    let stav = vytvorSoubojStav(0, 100) // > dosah chytu (70), <= dosah kopu
+    stav = krokSouboje(stav, [{ ...stat, akce: 'chyt' }, stat], 0)
+    expect(stav.hraci[1].hp).toBe(MAX_HP)
+  })
+})
+
+describe('desáté kolo vylepšení — interaktivní událost arény (balvan)', () => {
+  it('dopad přesně na hranici cyklu zasáhne jen bojovníka v zóně, ne toho mimo ni', () => {
+    const stred = stredUdalostiBalvan(0)
+    let stav = vytvorSoubojStav(stred, ARENA_SIRKA - 10, undefined, undefined, {
+      ...VYCHOZI_MOZNOSTI,
+      udalostAreny: 'balvan',
+    })
+    stav = krokSouboje(stav, [stat, stat], UDALOST_PERIODA_MS)
+    expect(stav.hraci[0].hp).toBe(MAX_HP - UDALOST_POSKOZENI)
+    expect(stav.hraci[1].hp).toBe(MAX_HP)
+  })
+
+  it('dopad se neuplatní dřív, než hranice cyklu doopravdy nastane', () => {
+    const stred = stredUdalostiBalvan(0)
+    let stav = vytvorSoubojStav(stred, ARENA_SIRKA - 10, undefined, undefined, {
+      ...VYCHOZI_MOZNOSTI,
+      udalostAreny: 'balvan',
+    })
+    stav = krokSouboje(stav, [stat, stat], UDALOST_PERIODA_MS - 100)
+    expect(stav.hraci[0].hp).toBe(MAX_HP)
+  })
+
+  it("'zatmeni' je čistě vizuální — engine žádné poškození neuplatní", () => {
+    const stred = stredUdalostiBalvan(0)
+    let stav = vytvorSoubojStav(stred, stred, undefined, undefined, {
+      ...VYCHOZI_MOZNOSTI,
+      udalostAreny: 'zatmeni',
+    })
+    stav = krokSouboje(stav, [stat, stat], UDALOST_PERIODA_MS)
+    expect(stav.hraci[0].hp).toBe(MAX_HP)
+    expect(stav.hraci[1].hp).toBe(MAX_HP)
+  })
+
+  it('hazard platí i v tréninku, ale HP zůstává podlahou na 1, kolo neskončí', () => {
+    const stred = stredUdalostiBalvan(0)
+    let stav = vytvorSoubojStav(stred, ARENA_SIRKA - 10, undefined, undefined, {
+      ...VYCHOZI_MOZNOSTI,
+      udalostAreny: 'balvan',
+      treninkovyRezim: true,
+    })
+    stav.hraci[0] = { ...stav.hraci[0], hp: 5 } // méně než UDALOST_POSKOZENI
+    stav = krokSouboje(stav, [stat, stat], UDALOST_PERIODA_MS)
+    expect(stav.hraci[0].hp).toBe(1)
+    expect(stav.stavKola).toBe('probiha')
+  })
+
+  it('cyklusUdalostiAreny/stredUdalostiBalvan jsou čistě deterministické funkce', () => {
+    expect(cyklusUdalostiAreny(0)).toBe(0)
+    expect(cyklusUdalostiAreny(UDALOST_PERIODA_MS)).toBe(1)
+    expect(stredUdalostiBalvan(0)).toBe(stredUdalostiBalvan(0))
   })
 })

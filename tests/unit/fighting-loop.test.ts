@@ -3,15 +3,30 @@ import {
   aktualizujStatistikyZapasu,
   detekujAkci,
   hpProcenta,
+  jeZatmeniAktivni,
   manaProcenta,
   maNaSpecial,
   poziceProcenta,
   prazdneStatistikyZapasu,
   sestavVstup,
+  stavBalvanuAreny,
   vizualniStavBojovnika,
+  vztekProcenta,
   zbyvaSekund,
 } from '@/fighting/combat/loop'
-import { AKCE_DATA, ARENA_SIRKA, CAS_LIMIT_MS, krokSouboje, vytvorBojovnika, vytvorSoubojStav } from '@/fighting/combat/engine'
+import {
+  AKCE_DATA,
+  ARENA_SIRKA,
+  CAS_LIMIT_MS,
+  UDALOST_PERIODA_MS,
+  UDALOST_VAROVANI_MS,
+  UDALOST_ZATMENI_PERIODA_MS,
+  UDALOST_ZATMENI_TRVANI_MS,
+  VZTEK_MAX,
+  krokSouboje,
+  vytvorBojovnika,
+  vytvorSoubojStav,
+} from '@/fighting/combat/engine'
 import type { HracVstup } from '@/fighting/combat/types'
 import type { Tlacitko } from '@/fighting/types'
 
@@ -39,6 +54,28 @@ describe('detekujAkci', () => {
   it('puštění tlačítka (drženo -> nedrženo) není akce', () => {
     const drzeno = { ...PRAZDNA, kop: true }
     expect(detekujAkci(drzeno, PRAZDNA)).toBeNull()
+  })
+
+  // Desáté kolo vylepšení — chyt (grab). Žádné nové tlačítko, jen
+  // kombinace úderu s drženým blokem.
+  it('čerstvý úder SPOLU s drženým blokem je chyt, ne obyčejný úder', () => {
+    const aktualni = { ...PRAZDNA, udar: true, blok: true }
+    expect(detekujAkci(PRAZDNA, aktualni)).toBe('chyt')
+  })
+
+  it('obyčejný úder bez bloku zůstává obyčejný úder', () => {
+    expect(detekujAkci(PRAZDNA, { ...PRAZDNA, udar: true })).toBe('udar')
+  })
+
+  it('blok držený už z minula (ne čerstvě) se čerstvým úderem pořád dá chyt', () => {
+    const predchozi = { ...PRAZDNA, blok: true }
+    const aktualni = { ...PRAZDNA, blok: true, udar: true }
+    expect(detekujAkci(predchozi, aktualni)).toBe('chyt')
+  })
+
+  it('kop se blokem chytem nestává — kombinace platí jen pro úder', () => {
+    const aktualni = { ...PRAZDNA, kop: true, blok: true }
+    expect(detekujAkci(PRAZDNA, aktualni)).toBe('kop')
   })
 })
 
@@ -180,5 +217,51 @@ describe('osmé kolo vylepšení — přehled zápasu (aktualizujStatistikyZapas
     const dalsi = aktualizujStatistikyZapasu(predchozi, novy, puvodni)
     expect(puvodni.zasahy).toEqual([0, 0])
     expect(dalsi).not.toBe(puvodni)
+  })
+})
+
+describe('desáté kolo vylepšení — vztekProcenta', () => {
+  it('0 vztek je 0 %, plný vztek je 100 %', () => {
+    const b0 = vytvorBojovnika(0)
+    expect(vztekProcenta(b0)).toBe(0)
+    expect(vztekProcenta({ ...b0, vztek: VZTEK_MAX })).toBe(100)
+  })
+
+  it('nikdy nepřeteče přes 100 %, ani kdyby pole obsahovalo víc', () => {
+    const b0 = vytvorBojovnika(0)
+    expect(vztekProcenta({ ...b0, vztek: VZTEK_MAX * 2 })).toBe(100)
+  })
+})
+
+describe('desáté kolo vylepšení — stavBalvanuAreny', () => {
+  it('mimo varovné okno hlásí klid', () => {
+    const stav = stavBalvanuAreny(0, ARENA_SIRKA)
+    expect(stav.varovani).toBe(false)
+  })
+
+  it('uvnitř varovného okna PŘED hranicí cyklu hlásí varování', () => {
+    const stav = stavBalvanuAreny(UDALOST_PERIODA_MS - UDALOST_VAROVANI_MS + 10, ARENA_SIRKA)
+    expect(stav.varovani).toBe(true)
+  })
+
+  it('xProcenta je stejné pro stejný cyklus bez ohledu na přesný čas uvnitř něj', () => {
+    const a = stavBalvanuAreny(100, ARENA_SIRKA)
+    const b = stavBalvanuAreny(UDALOST_PERIODA_MS - 200, ARENA_SIRKA)
+    expect(a.xProcenta).toBe(b.xProcenta)
+  })
+})
+
+describe('desáté kolo vylepšení — jeZatmeniAktivni', () => {
+  it('je aktivní na začátku periody', () => {
+    expect(jeZatmeniAktivni(0)).toBe(true)
+    expect(jeZatmeniAktivni(UDALOST_ZATMENI_TRVANI_MS - 10)).toBe(true)
+  })
+
+  it('mimo trvání periody není aktivní', () => {
+    expect(jeZatmeniAktivni(UDALOST_ZATMENI_TRVANI_MS + 10)).toBe(false)
+  })
+
+  it('opakuje se v každé další periodě', () => {
+    expect(jeZatmeniAktivni(UDALOST_ZATMENI_PERIODA_MS + 10)).toBe(true)
   })
 })

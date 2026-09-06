@@ -19,6 +19,8 @@ import type { Smer, Tlacitko } from '../types'
 import { ARENY, nahodnaArena, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
 import { Bojiste } from './Bojiste'
 import { PostavaGrafika } from './PostavaGrafika'
+import { IntroPocitadlo } from './IntroPocitadlo'
+import { nastavNapjatostHudby, spustitHudbu, zastavitHudbu } from '../sound'
 import { VyberPostavy } from './VyberPostavy'
 import '../FightingModule.css'
 
@@ -155,6 +157,9 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
       handicapPro === 1 ? HANDICAP_MANA_NASOBIC : 1,
     ],
     hazardOkraju: ARENY[arenaId].nebezpeciOkraje,
+    // Desáté kolo vylepšení — stejné kopírování jako TvHost.tsx's
+    // vlastní sestavMoznosti.
+    udalostAreny: ARENY[arenaId].udalost,
   })
 
   // Deváté kolo vylepšení — jakmile appka vstoupí do kroku 'hra',
@@ -187,6 +192,9 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
     skoreRef.current = [0, 0]
     setSkore([0, 0])
     statistikyRef.current = prazdneStatistikyZapasu()
+    // Desáté kolo vylepšení — ambientní hudba, stejná chvíle spuštění
+    // jako TvHost.tsx's vlastní efekt (viz jeho komentář).
+    spustitHudbu()
 
     let idPozadavku: number
     let posledniCas = performance.now()
@@ -215,6 +223,9 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
         const hpPredTikem: [number, number] = [soubojStavRef.current.hraci[0].hp, soubojStavRef.current.hraci[1].hp]
         soubojStavRef.current = krokSouboje(soubojStavRef.current, [vstup0, vstup1], deltaMs)
         setSoubojStav(soubojStavRef.current)
+        // Desáté kolo vylepšení — stejná napjatostní vazba jako
+        // TvHost.tsx's vlastní tik.
+        nastavNapjatostHudby(soubojStavRef.current.suddenDeath)
 
         statistikyRef.current = aktualizujStatistikyZapasu(
           soubojStavPredTikem,
@@ -274,7 +285,10 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
     }
 
     idPozadavku = requestAnimationFrame(tik)
-    return () => cancelAnimationFrame(idPozadavku)
+    return () => {
+      cancelAnimationFrame(idPozadavku)
+      zastavitHudbu()
+    }
   }, [krok, introAktivni, postava0, postava1])
 
   // Společný krok obou tlačítek níž — vytvoří čerstvé kolo od začátku,
@@ -389,6 +403,7 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
             >
               <span aria-hidden="true">{a.ikona}</span> {a.nazev}
               {a.nebezpeciOkraje ? ' ⚠️' : ''}
+              {a.udalost === 'balvan' ? ' 🪨' : a.udalost === 'zatmeni' ? ' 🌑' : ''}
             </button>
           ))}
           <button
@@ -480,6 +495,7 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
             <span className="souboj-intro-jmeno">Hráč 2</span>
             <span className="souboj-intro-hlaska">„{POSTAVY[postava1 ?? 'onyx'].hlaska}“</span>
           </div>
+          <IntroPocitadlo celkovaDelkaMs={INTRO_MS} />
         </div>
       ) : (
         soubojStav && (
@@ -539,6 +555,11 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
         </>
         )
       )}
+
+      {/* Desáté kolo vylepšení — chyt (grab), stejná nápověda jako
+          Ovladac.tsx — platí pro oba klastry stejně, appka ji proto
+          ukazuje jen jednou, nad oběma. */}
+      <p className="souboj-chyt-hint">👊 + 🛡️ = Chyt (neblokovatelný)</p>
 
       {/* Dva samostatné ovládací klastry na téže obrazovce — levý pro
           hráče 1, pravý (zrcadlený přes CSS, viz FightingModule.css)

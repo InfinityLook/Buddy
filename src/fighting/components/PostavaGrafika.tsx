@@ -98,6 +98,15 @@ const PALETA_ZLATA: PaletaPostavy = {
   aura: 'rgba(251, 191, 36, 0.6)',
 }
 
+/** Desáté kolo vylepšení — barva jisker při zásahu (Jiskry.tsx) podle
+ *  ÚTOČNÍKOVY postavy/elementu, ne jedna univerzální bílá. Appka k
+ *  tomu nepotřebuje exportovat celou (soukromou) PALETY tabulku výš,
+ *  jen tuhle jednu barvu — a schválně bere vždycky ZÁKLADNÍ paletu, ne
+ *  PALETA_ZLATA: zlatá je jen kosmetický přebal SAMOTNÉ postavičky
+ *  (kosmetika.ts's vlastní komentář), jiskry mají zůstat podle
+ *  postavy/elementu, ne podle toho, jestli má zrovna zapnutou variantu. */
+export const barvaAkcentuPostavy = (postavaId: PostavaId): string => PALETY[postavaId].akcent
+
 const PostavaGrafikaImpl: React.FC<Props> = ({
   postavaId,
   size = 72,
