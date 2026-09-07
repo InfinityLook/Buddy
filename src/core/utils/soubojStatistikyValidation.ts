@@ -35,6 +35,9 @@ export const SoubojStatistikySchema = v.object({
   historie: v.optional(v.array(v.unknown()), []),
   // Jedenácté kolo vylepšení — vnořený záznam podle soupeřovy postavy.
   zapasyProtiPostavam: v.optional(v.record(v.string(), v.unknown()), {}),
+  // Dvanácté kolo vylepšení — Žebříček. Nepovinné, ať starší uložená
+  // data (bez týhle vlastnosti vůbec) validaci neshodí.
+  nejlepsiVlnaZebricku: v.optional(v.unknown(), 0),
 })
 
 export const validateSoubojStatistikyData = (data: unknown) => {
@@ -86,6 +89,11 @@ export const validateSoubojStatistikyData = (data: unknown) => {
 
   return {
     success: true as const,
-    data: { vysledky, historie: historie.slice(0, MAX_HISTORIE), zapasyProtiPostavam },
+    data: {
+      vysledky,
+      historie: historie.slice(0, MAX_HISTORIE),
+      zapasyProtiPostavam,
+      nejlepsiVlnaZebricku: bezpecneCislo(result.output.nejlepsiVlnaZebricku),
+    },
   }
 }

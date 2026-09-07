@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
+import QRCode from 'qrcode'
 import { hostujMistnost, vygenerujKodMistnosti } from '../network'
+import { pripojovaciOdkaz } from '../qrOdkaz'
 import { ARENA_SIRKA, krokSouboje, vytvorSoubojStav } from '../combat/engine'
 import {
   aktualizujStatistikyZapasu,
@@ -20,6 +22,7 @@ import { PostavaGrafika } from './PostavaGrafika'
 import { IntroPocitadlo } from './IntroPocitadlo'
 import { nastavNapjatostHudby, spustitHudbu, zastavitHudbu } from '../sound'
 import { arenaNahledGradient, ARENY, nahodnaArena, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
+import { sdilejText } from '../sdileni'
 // Vlastní import, ne spoléhání na to, že FightingModule.tsx ho už
 // natáhl — appka jednou přišla o styl přesně tímhle předpokladem
 // (viz GameModule.css/TvorbaPostavy.tsx v CLAUDE.md), CSS import je
@@ -160,6 +163,19 @@ const MOZNOSTI_OBTIZNOSTI: { hodnota: Obtiznost; popisek: string }[] = [
 
 export const TvHost: React.FC<Props> = ({ onZpet }) => {
   const [kod] = useState(() => vygenerujKodMistnosti())
+  // Dvanácté kolo vylepšení — QR párování. Appka zakóduje kód do
+  // obrázku, jakmile ho zná (kod se sám nikdy nemění, takže appka to
+  // generuje jen JEDNOU) — čistě klientská knihovna (qrcode), žádný
+  // síťový dotaz, stejný vzor jako appka už používá pro sdílení
+  // profilu (ProfilSocialniSekce.tsx).
+  const [qr, setQr] = useState<string | null>(null)
+  useEffect(() => {
+    let platne = true
+    void QRCode.toDataURL(pripojovaciOdkaz(kod), { margin: 1, width: 176 }).then((url) => platne && setQr(url))
+    return () => {
+      platne = false
+    }
+  }, [kod])
   const [hraci, setHraci] = useState<(HracStav | null)[]>([null, null])
   const [soubojStav, setSoubojStav] = useState<SoubojStav | null>(null)
   // Kolik kol každý slot v PROBÍHAJÍCÍM zápase vyhrál — viz
@@ -597,6 +613,22 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
             </div>
           )}
 
+          {soubojStav.stavKola === 'konec' && zapasSkoncil && (
+            <button
+              type="button"
+              className="souboj-postava-nahodna"
+              onClick={() =>
+                void sdilejText(
+                  `Zápas Souboj skončil ${skore[0]} : ${skore[1]} (${hraci[0]?.jmeno ?? 'Hráč 1'} vs. ${
+                    hraci[1]?.jmeno ?? 'Hráč 2'
+                  })! ⚔️`
+                )
+              }
+            >
+              📤 Sdílet výsledek
+            </button>
+          )}
+
           {soubojStav.stavKola === 'konec' &&
             (zapasSkoncil ? (
               <button type="button" className="souboj-novy-zapas-btn" onClick={novyZapas}>
@@ -611,7 +643,11 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
       ) : (
         <>
           <div className="souboj-kod-karta">
-            <span className="souboj-kod-popis">Kód místnosti — zadej na telefonu</span>
+            {/* Dvanácté kolo vylepšení — QR kód vedle ručního zadání,
+                ne místo něj: appka nechce nikoho nutit mít u sebe
+                fotoaparát, ruční zadání pořád funguje beze změny. */}
+            {qr && <img className="souboj-kod-qr" src={qr} alt="QR kód pro připojení telefonu" />}
+            <span className="souboj-kod-popis">Naskenuj QR, nebo zadej kód ručně na telefonu</span>
             <span className="souboj-kod">{kod}</span>
           </div>
 

@@ -54,6 +54,14 @@ interface SoubojStatistikyState {
    *  PROTI TÉHLE konkrétní postavě"). */
   zapasyProtiPostavam: Partial<Record<PostavaId, Partial<Record<PostavaId, SoubojZaznam>>>>
   zaznamenejVysledek: (postavaId: PostavaId, vysledek: 'vyhra' | 'prohra' | 'remiza', souperId?: PostavaId) => void
+  /** Dvanácté kolo vylepšení — Žebříček (Zebricek.tsx). Nejvyšší vlna,
+   *  jakou appka kdy na tomhle zařízení přežila — appka ji jen
+   *  ZVYŠUJE, nikdy nesnižuje (viz zaznamenejVlnuZebricku samo),
+   *  stejná "rekord se dá jen překonat" logika, jakou appka jinde
+   *  nemá potřebu opakovat, protože žádný jiný odznak/statistika
+   *  takhle nefunguje. */
+  nejlepsiVlnaZebricku: number
+  zaznamenejVlnuZebricku: (vlna: number) => void
 }
 
 const PRAZDNY_ZAZNAM: SoubojZaznam = { vyhry: 0, prohry: 0, remizy: 0 }
@@ -64,6 +72,11 @@ export const useSoubojStatistikyStore = create<SoubojStatistikyState>()(
       vysledky: {},
       historie: [],
       zapasyProtiPostavam: {},
+      nejlepsiVlnaZebricku: 0,
+
+      zaznamenejVlnuZebricku: (vlna) => {
+        set((state) => ({ nejlepsiVlnaZebricku: Math.max(state.nejlepsiVlnaZebricku, vlna) }))
+      },
 
       zaznamenejVysledek: (postavaId, vysledek, souperId) => {
         set((state) => {

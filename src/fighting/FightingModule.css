@@ -2651,3 +2651,127 @@
   font-size: 0.74rem;
   color: var(--text-muted);
 }
+
+/* ==========================================
+   Dvanácté kolo vylepšení — Rychlý start, Žebříček, Turnaj, souboj
+   online, QR párování a úvodní tutorial (viz FightingModule.tsx,
+   Zebricek.tsx, TurnajLokalni.tsx, OnlineLobby.tsx, TvHost.tsx,
+   UvodniTutorial.tsx).
+   ========================================== */
+
+/* Rychlý start — stejná pilulka jako .souboj-volba, jen zvýrazněná
+   barevným okrajem, ať vyčnívá jako "nejrychlejší cesta ke hraní" nad
+   zbytkem seznamu rolí pod ní. */
+.souboj-volba--rychly {
+  border-color: rgba(250, 204, 21, 0.55);
+  background: rgba(250, 204, 21, 0.08);
+  margin-bottom: 0.9rem;
+}
+
+/* QR kód na TV čekací obrazovce — appka ho dává NAD kód, ne vedle
+   (na výšku, ne na šířku), ať se poměr stran obrázku (čtverec)
+   nepere s vodorovnou kartou. */
+.souboj-kod-qr {
+  border-radius: var(--radius-md);
+  background: #fff;
+  padding: 0.4rem;
+}
+
+/* Jeden ovládací klastr (ProtiPocitaci.tsx/OnlineHost.tsx/
+   OnlineGuest.tsx) — appka ho na rozdíl od dvou klastrů vedle sebe
+   (LocalniZapas.tsx/TurnajLokalni.tsx) chce vycentrovaný, ne
+   přitažený ke kraji přes justify-content: space-between. */
+.souboj-lokal-ovladace--jeden {
+  justify-content: center;
+}
+
+/* Online lobby — jednoduchý točící se kroužek místo textového
+   "Hledám…" bez jakékoli vizuální zpětné vazby, že appka doopravdy
+   něco dělá, ne že zamrzla. */
+.souboj-online-spinner {
+  width: 48px;
+  height: 48px;
+  margin: 1.5rem auto;
+  border-radius: 50%;
+  border: 4px solid var(--border-subtle);
+  border-top-color: var(--accent-cyan);
+  animation: souboj-online-tocit 0.9s linear infinite;
+}
+
+@keyframes souboj-online-tocit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Úvodní tutorial (UvodniTutorial.tsx) — celoobrazovková karta,
+   zobrazená JEDNOU (viz tutorial.ts) před čímkoli jiným v Souboji. */
+.souboj-tutorial-obrazovka {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100%;
+}
+
+.souboj-tutorial-karta {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.9rem;
+  max-width: 340px;
+  background: var(--bg-glass);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 2rem 1.5rem;
+}
+
+.souboj-tutorial-emoji {
+  font-size: 3rem;
+}
+
+.souboj-tutorial-nadpis {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 0;
+}
+
+.souboj-tutorial-text {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.souboj-tutorial-tecky {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.souboj-tutorial-tecka {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--border-subtle);
+}
+
+.souboj-tutorial-tecka.je-aktivni {
+  background: var(--accent-cyan);
+}
+
+.souboj-tutorial-akce {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.4rem;
+}
+
+.souboj-tutorial-preskocit {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  font-family: inherit;
+}

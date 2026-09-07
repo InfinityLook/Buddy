@@ -22,6 +22,7 @@ import { PostavaGrafika } from './PostavaGrafika'
 import { IntroPocitadlo } from './IntroPocitadlo'
 import { nastavNapjatostHudby, spustitHudbu, zastavitHudbu } from '../sound'
 import { VyberPostavy } from './VyberPostavy'
+import { sdilejText } from '../sdileni'
 import '../FightingModule.css'
 
 interface Props {
@@ -572,6 +573,16 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
                 </span>
               )}
             </div>
+          )}
+
+          {soubojStav.stavKola === 'konec' && !treninkovyRezim && zapasSkoncil && (
+            <button
+              type="button"
+              className="souboj-postava-nahodna"
+              onClick={() => void sdilejText(`Zápas Souboj skončil ${skore[0]} : ${skore[1]}! ⚔️`)}
+            >
+              📤 Sdílet výsledek
+            </button>
           )}
 
           {soubojStav.stavKola === 'konec' &&

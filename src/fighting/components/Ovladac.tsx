@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
-import { useGamificationStore } from '@/core/store/useGamificationStore'
-import { useWalletStore } from '@/core/store/useWalletStore'
 import { VirtualniJoystick } from '@/game/components/VirtualniJoystick'
-import { pripojSeJakoOvladac } from '../network'
-import { zavibrujProhru, zavibrujRemizu, zavibrujTlacitko, zavibrujVyhru } from '../haptika'
+import { pripojSeJakoOvladac, vygenerujHracId } from '../network'
+import { zavibrujTlacitko } from '../haptika'
 import { useSoubojStatistikyStore } from '../useSoubojStatistikyStore'
+import { zpracujVysledekZapasu } from '../xpZaZapas'
 import { POSTAVY, VSECHNY_POSTAVY } from '../combat/postavy'
 import type { PostavaId } from '../combat/postavy'
 import { RYCHLE_EMOTE } from '../types'
@@ -15,22 +14,15 @@ import '../FightingModule.css'
 
 interface Props {
   onZpet: () => void
+  /** Vylepšení — QR párování. TV zakóduje `?pripojit=<KOD>` do QR
+   *  obrázku (viz TvHost.tsx/qrOdkaz.ts); appka ho přečte JEDNOU při
+   *  startu (FightingModule.tsx) a rovnou přeskočí ruční zadávání kódu
+   *  — appka tak jde "naskenovat a hrát", žádné přepisování 4 znaků. */
+  predvyplnenyKod?: string
 }
-
-const vygenerujHracId = () => `hrac-${Math.random().toString(36).slice(2, 10)}`
 
 const IKONA_TLACITKA: Record<Tlacitko, string> = { udar: '👊', kop: '🦵', blok: '🛡️', specialni: '✨' }
 const PORADI_TLACITEK: Tlacitko[] = ['udar', 'kop', 'blok', 'specialni']
-
-/** Vylepšení — XP/kredity za odehraný zápas. Výhra jde přes
- *  recordAction (bumpne counters.souboj + zkontroluje ring_mistr
- *  odznak), prohra/remíza jen přes bare addXp — účastnický drobeček,
- *  co záměrně NENÍ počítaný k odznaku (ten má znamenat "vyhraj 5
- *  zápasů", ne "odehraj 5 zápasů", stejné rozlišení jako Buddyheimův
- *  arena_champion). */
-const XP_VYHRA = 25
-const KREDITY_VYHRA = 15
-const XP_UCAST = 8
 
 type StavSpojeni = 'zadavani' | 'vyberPostavy' | 'pripojovani' | 'pripojeno'
 
@@ -46,13 +38,16 @@ type StavSpojeni = 'zadavani' | 'vyberPostavy' | 'pripojovani' | 'pripojeno'
 // vědět, jak dlouho je tlačítko drženo, ne jen že bylo stisknuto.
 // ==========================================
 
-export const Ovladac: React.FC<Props> = ({ onZpet }) => {
+export const Ovladac: React.FC<Props> = ({ onZpet, predvyplnenyKod }) => {
   const { profile } = useProfileData()
   const [kodVstup, setKodVstup] = useState('')
-  const [kod, setKod] = useState<string | null>(null)
+  const [kod, setKod] = useState<string | null>(predvyplnenyKod ?? null)
   const [postavaId, setPostavaId] = useState<PostavaId | null>(null)
   const [slot, setSlot] = useState<1 | 2 | null>(null)
-  const [stavSpojeni, setStavSpojeni] = useState<StavSpojeni>('zadavani')
+  // QR párování — s předvyplněným kódem appka rovnou přeskočí ruční
+  // zadávání a jde na výběr postavy, stejně jako po odeslání formuláře
+  // dole ('zadavani' → 'vyberPostavy').
+  const [stavSpojeni, setStavSpojeni] = useState<StavSpojeni>(predvyplnenyKod ? 'vyberPostavy' : 'zadavani')
   const [vysledekZapasu, setVysledekZapasu] = useState<string | null>(null)
   // Vylepšení — statistiky (viz useSoubojStatistikyStore.ts). Vlastní
   // boolean místo dalšího StavSpojeni kroku, protože appka na tuhle
@@ -86,30 +81,8 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
       },
       konecZapasu: (p: KonecZapasuPayload) => {
         const muj = slotRef.current
-        // Jedenácté kolo vylepšení — rival statistiky. `p.postava0`/
-        // `postava1` odpovídají slotu 1/2 (viz TvHost.tsx's `hraci`
-        // pole, index 0 = slot 1), takže "moje" postava je ta druhá
-        // strana toho, co appka právě sama poslala — zaznamenejVysledek
-        // dostane soupeřovu postavu jen v odpovídajícím jazyce, ne
-        // dvakrát to samé.
-        const souperId = muj === 1 ? p.postava1 : muj === 2 ? p.postava0 : undefined
-        if (p.vitezSlot === null) {
-          useGamificationStore.getState().addXp(XP_UCAST)
-          if (postavaId) useSoubojStatistikyStore.getState().zaznamenejVysledek(postavaId, 'remiza', souperId)
-          setVysledekZapasu(`Remíza — +${XP_UCAST} XP`)
-          zavibrujRemizu()
-        } else if (p.vitezSlot === muj) {
-          useGamificationStore.getState().recordAction('souboj', XP_VYHRA)
-          useWalletStore.getState().credit(KREDITY_VYHRA)
-          if (postavaId) useSoubojStatistikyStore.getState().zaznamenejVysledek(postavaId, 'vyhra', souperId)
-          setVysledekZapasu(`Vyhrál jsi! +${XP_VYHRA} XP, +${KREDITY_VYHRA} kreditů`)
-          zavibrujVyhru()
-        } else {
-          useGamificationStore.getState().addXp(XP_UCAST)
-          if (postavaId) useSoubojStatistikyStore.getState().zaznamenejVysledek(postavaId, 'prohra', souperId)
-          setVysledekZapasu(`Prohrál jsi — +${XP_UCAST} XP`)
-          zavibrujProhru()
-        }
+        if (!muj) return
+        setVysledekZapasu(zpracujVysledekZapasu(muj, p.vitezSlot, p.postava0, p.postava1))
         window.setTimeout(() => setVysledekZapasu(null), 4000)
       },
     })
