@@ -3,7 +3,9 @@ import { POSTAVY } from '../combat/postavy'
 import { ARENA_SIRKA, PICKUP_DOSTUPNY_OD_MS } from '../combat/engine'
 import {
   hpProcenta,
+  hypeProcenta,
   jeComeback,
+  jeHypeGotov,
   jeParry,
   jeZatmeniAktivni,
   komboAktivni,
@@ -23,6 +25,7 @@ import {
 import { SoubojArena3D } from './SoubojArena3D'
 import { SoubojArena2D } from './SoubojArena2D'
 import { Konfety } from './Konfety'
+import { Pocasi } from './Pocasi'
 import type { SoubojStav, UtocnaAkce } from '../combat/types'
 import type { ArenaId } from '../arena/areny'
 
@@ -38,6 +41,12 @@ interface Props {
    *  sám hlídá časovač, po kterém emote zase zmizí — Bojiste jen
    *  vykresluje, co dostane, stejná disciplína jako zbytek komponenty. */
   emotes?: [string | null, string | null]
+  /** Jedenácté kolo vylepšení — pořadové číslo právě probíhajícího
+   *  kola (skore[0]+skore[1]+1 na straně volajícího) — čistě pro
+   *  krátký "KOLO N" banner na začátku, appka žádnou vlastní logiku
+   *  víckolového zápasu tady nemá a nechce mít. Nepovinné, starší
+   *  volání bez tohohle prop banner prostě neukáže. */
+  kolo?: number
 }
 
 const ZABLESK_MS = 350
@@ -99,9 +108,44 @@ const KO_BANNER_ZPOZDENI_MS = 550
 // ostatní v týhle komponentě.
 // ==========================================
 
-export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
+/** Jedenácté kolo vylepšení — motion trail. O kolik logických jednotek
+ *  arény se musí pozice posunout mezi dvěma po sobě jdoucími snímky,
+ *  aby appka útok bere jako "svižný pohyb" — hrubá aproximace rychlosti
+ *  bez skutečného měření času (viz Pocasi.tsx's obdobný komentář o
+ *  Math.random()), dost přesná pro čistě dekorativní efekt. */
+const PRAH_SVIZNEHO_POHYBU = 4.5
+
+/** Jedenácté kolo vylepšení — kombo eskalace. Od jaké délky série appka
+ *  odznak "🔥×N" zvětší/zbarví intenzivněji (viz FightingModule.css), a
+ *  od jaké ukáže ještě jednorázový přes celou obrazovku "milestone"
+ *  záblesk — appka schválně nemá milestone na KAŽDÉ zvýšení komba, jen
+ *  na tenhle jeden práh, ať to zůstane vzácný, doopravdy dramatický
+ *  moment. */
+const KOMBO_STUPEN_STREDNI = 3
+const KOMBO_STUPEN_MILESTONE = 5
+
+export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes, kolo }) => {
   const predchoziHp = useRef<[number, number]>([stav.hraci[0].hp, stav.hraci[1].hp])
   const [zasazen, setZasazen] = useState<[boolean, boolean]>([false, false])
+  // Jedenácté kolo vylepšení — motion trail (viz PRAH_SVIZNEHO_POHYBU
+  // výš). Počítané ve STEJNÉM efektu jako zasazen/otres níž — appka
+  // porovnává pozici mezi dvěma snímky přesně stejným způsobem, jakým
+  // už porovnává HP.
+  const predchoziPozice = useRef<[number, number]>([stav.hraci[0].pozice, stav.hraci[1].pozice])
+  const [svizny, setSvizny] = useState<[boolean, boolean]>([false, false])
+  // Jedenácté kolo vylepšení — kombo milestone (viz KOMBO_STUPEN_MILESTONE
+  // výš). Stejná "zachyť PŘECHOD, ne držený stav" disciplína jako
+  // predchoziParry níž — appka chce záblesk jen JEDNOU za sérii, na
+  // tiku, kdy poprvé přesáhne práh, ne na každém dalším snímku, co
+  // série zůstává nad ním.
+  const predchoziKombo = useRef<[number, number]>([komboAktivni(stav.hraci[0]), komboAktivni(stav.hraci[1])])
+  const [komboMilestone, setKomboMilestone] = useState(false)
+  // Jedenácté kolo vylepšení — "KOLO N" banner, jednou na každou
+  // změnu `kolo` (nový zápas i další kolo stejného zápasu obojí mění
+  // tenhle prop), ne na každý tik — proto vlastní efekt níž s `[kolo]`
+  // jako jedinou závislostí, ne uvnitř hlavního "srovnej dva snímky"
+  // efektu.
+  const [bannerKola, setBannerKola] = useState(false)
   // Vylepšení — screen shake. Jeden boolean pro celou arénu (na
   // rozdíl od zasazen, co je per-bojovník), nastavovaný ve STEJNÉM
   // efektu a se STEJNÝM časovačem jako zasazen — je to reakce na tu
@@ -149,7 +193,9 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
   useEffect(() => {
     const noveZasazen: [boolean, boolean] = [false, false]
     const novePoskozeni: [number, number] = [0, 0]
+    const noveSvizny: [boolean, boolean] = [false, false]
     let zasah = false
+    let jeMilestone = false
     ;([0, 1] as const).forEach((i) => {
       if (stav.hraci[i].hp < predchoziHp.current[i]) {
         noveZasazen[i] = true
@@ -157,6 +203,21 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
         novePoskozeni[i] = predchoziHp.current[i] - stav.hraci[i].hp
       }
       predchoziHp.current[i] = stav.hraci[i].hp
+
+      // Jedenácté kolo vylepšení — motion trail, hrubý odhad rychlosti
+      // z posunutí mezi dvěma po sobě jdoucími snímky (viz
+      // PRAH_SVIZNEHO_POHYBU výš).
+      noveSvizny[i] = Math.abs(stav.hraci[i].pozice - predchoziPozice.current[i]) > PRAH_SVIZNEHO_POHYBU
+      predchoziPozice.current[i] = stav.hraci[i].pozice
+
+      // Jedenácté kolo vylepšení — kombo milestone, přechod PŘES práh
+      // (ne "je nad prahem"), ať appka záblesk nepřehraje na každém
+      // dalším snímku, co série zůstává rozjetá.
+      const komboTeto = komboAktivni(stav.hraci[i])
+      if (komboTeto >= KOMBO_STUPEN_MILESTONE && predchoziKombo.current[i] < KOMBO_STUPEN_MILESTONE) {
+        jeMilestone = true
+      }
+      predchoziKombo.current[i] = komboTeto
 
       if (stav.hraci[i].posledniAkce === 'specialni' && predchoziAkce.current[i] !== 'specialni') {
         zahrajSpecial()
@@ -170,6 +231,11 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
       }
       predchoziParry.current[i] = jeParryTeto
     })
+    setSvizny(noveSvizny)
+    if (jeMilestone) {
+      setKomboMilestone(true)
+      window.setTimeout(() => setKomboMilestone(false), 900)
+    }
     if (zasah) zahrajZasah()
     if (!zasah) return
     setZasazen(noveZasazen)
@@ -181,6 +247,18 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
     }, ZABLESK_MS)
     return () => window.clearTimeout(id)
   }, [stav.hraci])
+
+  // Jedenácté kolo vylepšení — "KOLO N" banner, jednou za KAŽDOU
+  // změnu `kolo` (viz Props's vlastní komentář), ne uvnitř efektu
+  // výš — appka to schválně nedělá podmínkou uvnitř hlavního efektu,
+  // ten reaguje na `stav.hraci`, co se mění na každý tik, zatímco
+  // `kolo` se mění jen jednou za celé kolo.
+  useEffect(() => {
+    if (kolo === undefined) return
+    setBannerKola(true)
+    const id = window.setTimeout(() => setBannerKola(false), 1400)
+    return () => window.clearTimeout(id)
+  }, [kolo])
 
   useEffect(() => {
     if (stav.stavKola !== 'konec') {
@@ -273,13 +351,32 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
             >
               <span className="souboj-bojovnik-jmeno">
                 {postava.ikona} {jmena[i]}
-                {komboAktivni(b) >= 2 && <span className="souboj-kombo-znacka">🔥×{komboAktivni(b)}</span>}
+                {/* Jedenácté kolo vylepšení — kombo eskalace: od
+                    KOMBO_STUPEN_STREDNI dál se odznak zvětší/zbarví
+                    intenzivněji (viz FightingModule.css). */}
+                {komboAktivni(b) >= 2 && (
+                  <span
+                    className={`souboj-kombo-znacka ${
+                      komboAktivni(b) >= KOMBO_STUPEN_MILESTONE
+                        ? 'souboj-kombo-znacka--vysoka'
+                        : komboAktivni(b) >= KOMBO_STUPEN_STREDNI
+                          ? 'souboj-kombo-znacka--stredni'
+                          : ''
+                    }`}
+                  >
+                    🔥×{komboAktivni(b)}
+                  </span>
+                )}
                 {jeParry(b) && <span className="souboj-parry-znacka">✋ PARRY!</span>}
                 {/* Desáté kolo vylepšení — vztek. Odznak jen na nabitý
                     vztek (ne na celý průběh plnění, o tom už vypovídá
                     pruh níž) — stejná "upozorni jen, když už na tom
                     záleží" úvaha jako mana pruhu plná animace. */}
                 {b.vztekPripraven && <span className="souboj-vztek-znacka">⚡ VZTEK!</span>}
+                {/* Jedenácté kolo vylepšení — hype finisher, stejná
+                    "upozorni jen, když je hotovo" úvaha jako vztek
+                    výš. */}
+                {jeHypeGotov(b) && <span className="souboj-hype-znacka">💥 FINISH!</span>}
               </span>
               {/* Osmé kolo vylepšení — rychlý emote (viz Props výš). */}
               {emotes?.[i] && (
@@ -306,6 +403,14 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
                   i postupné plnění, ne jen okamžik "je hotovo". */}
               <div className={`souboj-vztek-bar ${b.vztekPripraven ? 'souboj-vztek-bar--plny' : ''}`}>
                 <div className="souboj-vztek-bar-vypln" style={{ width: `${vztekProcenta(b)}%` }} />
+              </div>
+              {/* Jedenácté kolo vylepšení — druhý ("hype") ukazatel,
+                  stejný tvar jako vztek pruh nad ním, jen tenčí a jinou
+                  barvou — appka ho ukazuje vždycky, ne jen od nějakého
+                  prahu, stejná "vidět postupné plnění, ne jen hotovo"
+                  úvaha jako vztek. */}
+              <div className={`souboj-hype-bar ${jeHypeGotov(b) ? 'souboj-hype-bar--plny' : ''}`}>
+                <div className="souboj-hype-bar-vypln" style={{ width: `${hypeProcenta(b)}%` }} />
               </div>
             </div>
           )
@@ -344,10 +449,27 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes }) => {
         }`}
       >
         {arena3dSelhala ? (
-          <SoubojArena2D stav={stav} zasazen={zasazen} />
+          <SoubojArena2D stav={stav} zasazen={zasazen} svizny={svizny} />
         ) : (
-          <SoubojArena3D stav={stav} zasazen={zasazen} arenaId={arenaId} onSelhalo={() => setArena3dSelhala(true)} />
+          <SoubojArena3D
+            stav={stav}
+            zasazen={zasazen}
+            svizny={svizny}
+            arenaId={arenaId}
+            onSelhalo={() => setArena3dSelhala(true)}
+          />
         )}
+
+        {/* Jedenácté kolo vylepšení — atmosféra podle arény (viz
+            Pocasi.tsx), overlay nad OBĚMA rendery arény najednou
+            (3D i 2D záložní), žádná duplicita. */}
+        <Pocasi arenaId={arenaId} />
+
+        {/* Jedenácté kolo vylepšení — "KOLO N" banner a kombo
+            milestone záblesk, oba krátké, jednorázové překryvy stejné
+            rodiny jako souboj-konec-kola níž. */}
+        {bannerKola && kolo !== undefined && <div className="souboj-banner-kola">KOLO {kolo}</div>}
+        {komboMilestone && <div className="souboj-kombo-milestone" aria-hidden="true">🔥 KOMBO!</div>}
 
         {/* Desáté kolo vylepšení — telegraf dopadajícího balvanu (viz
             `balvan` výš) — jen během avizovaného okna, ne po celou

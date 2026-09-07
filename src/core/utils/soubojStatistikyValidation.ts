@@ -33,6 +33,8 @@ const jePlatnyVysledek = (x: unknown): x is PlatnyVysledek => PLATNE_VYSLEDKY.in
 export const SoubojStatistikySchema = v.object({
   vysledky: v.optional(v.record(v.string(), v.unknown()), {}),
   historie: v.optional(v.array(v.unknown()), []),
+  // Jedenácté kolo vylepšení — vnořený záznam podle soupeřovy postavy.
+  zapasyProtiPostavam: v.optional(v.record(v.string(), v.unknown()), {}),
 })
 
 export const validateSoubojStatistikyData = (data: unknown) => {
@@ -53,12 +55,37 @@ export const validateSoubojStatistikyData = (data: unknown) => {
     }
   }
 
-  const historie: { postavaId: PostavaId; vysledek: PlatnyVysledek; kdy: number }[] = []
+  const historie: { postavaId: PostavaId; souperId?: PostavaId; vysledek: PlatnyVysledek; kdy: number }[] = []
   for (const polozka of result.output.historie) {
     const z = polozka as Record<string, unknown> | null | undefined
     if (!jePlatnaPostava(z?.postavaId) || !jePlatnyVysledek(z?.vysledek)) continue
-    historie.push({ postavaId: z.postavaId, vysledek: z.vysledek, kdy: bezpecneCislo(z?.kdy) })
+    const souperId = jePlatnaPostava(z?.souperId) ? z.souperId : undefined
+    historie.push({ postavaId: z.postavaId, souperId, vysledek: z.vysledek, kdy: bezpecneCislo(z?.kdy) })
   }
 
-  return { success: true as const, data: { vysledky, historie: historie.slice(0, MAX_HISTORIE) } }
+  // Jedenácté kolo vylepšení — stejná item-by-item disciplína jako
+  // `vysledky` výš, jen o jednu úroveň vnoření hlouběji: neplatná
+  // vlastní i soupeřova postava zahodí celý vnořený záznam.
+  const zapasyProtiPostavam: Record<string, Record<string, { vyhry: number; prohry: number; remizy: number }>> = {}
+  for (const [id, protiKomu] of Object.entries(result.output.zapasyProtiPostavam)) {
+    if (!jePlatnaPostava(id)) continue
+    const vnoreny = protiKomu as Record<string, unknown> | null | undefined
+    if (!vnoreny) continue
+    const radek: Record<string, { vyhry: number; prohry: number; remizy: number }> = {}
+    for (const [souperId, zaznam] of Object.entries(vnoreny)) {
+      if (!jePlatnaPostava(souperId)) continue
+      const z = zaznam as Record<string, unknown> | null | undefined
+      radek[souperId] = {
+        vyhry: bezpecneCislo(z?.vyhry),
+        prohry: bezpecneCislo(z?.prohry),
+        remizy: bezpecneCislo(z?.remizy),
+      }
+    }
+    if (Object.keys(radek).length > 0) zapasyProtiPostavam[id] = radek
+  }
+
+  return {
+    success: true as const,
+    data: { vysledky, historie: historie.slice(0, MAX_HISTORIE), zapasyProtiPostavam },
+  }
 }

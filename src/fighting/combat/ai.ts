@@ -24,7 +24,13 @@ import type { BojovnikStav, HracVstup } from './types'
 // (jehož vstup prochází hranovou detekcí v loop.ts) udělat nemůže.
 // ==========================================
 
-/** Šance za tik, že bot zaútočí, když je soupeř v dosahu. */
+/** Šance za tik, že bot zaútočí, když je soupeř v dosahu — pro
+ *  'normalni' obtížnost, výchozí i pro starší volání bez třetího
+ *  argumentu. Jedenácté kolo vylepšení přidalo OBTIZNOSTI (níž) jako
+ *  násobek/úpravu téhle a dalších dvou konstant, ne tři úplně
+ *  oddělené sady čísel — o kolik je "Těžká" horší soupeř, je tak jedno
+ *  centrální číslo na obtížnost, ne tři different-per-tier konstanty
+ *  co by šly rozejít. */
 export const AI_SANCE_UTOKU = 0.12
 /** Z útoků, které se bot rozhodne zahájit, jak velká část zkusí
  *  speciál místo kopu (jen pokud na něj má manu). */
@@ -33,11 +39,30 @@ export const AI_SANCE_SPECIALU = 0.4
  *  dosahu — schválně ne 100 %, ať to není neporazitelná zeď. */
 export const AI_SANCE_BLOKU = 0.5
 
+/** Jedenácté kolo vylepšení — tři obtížnosti bota, vybírané na čekací
+ *  obrazovce (TvHost.tsx) předtím, než "Hrát proti počítači" doplní
+ *  slot 2. Appka je NEřeší jako tři sady čísel napsaných zvlášť —
+ *  `NASOBICE_OBTIZNOSTI` jen škáluje ty tři AI_SANCE_* konstanty výš,
+ *  ať je jasné, že se všechny tři obtížnosti liší jen v TOM, JAK
+ *  ČASTO/PŘESNĚ bot dělá přesně tu samou sadu reaktivních rozhodnutí,
+ *  ne v tom, že by "Těžká" znala něco, co "Lehká" neumí. */
+export type Obtiznost = 'lehka' | 'normalni' | 'tezka'
+
+const NASOBICE_OBTIZNOSTI: Record<Obtiznost, { utok: number; specialu: number; bloku: number }> = {
+  lehka: { utok: 0.6, specialu: 0.5, bloku: 0.4 },
+  normalni: { utok: 1, specialu: 1, bloku: 1 },
+  tezka: { utok: 1.6, specialu: 1.3, bloku: 1.7 },
+}
+
+export const VYCHOZI_OBTIZNOST: Obtiznost = 'normalni'
+
 export const pripravAkciAi = (
   ja: BojovnikStav,
   souper: BojovnikStav,
+  obtiznost: Obtiznost = VYCHOZI_OBTIZNOST,
   nahodne: () => number = Math.random
 ): HracVstup => {
+  const nasobice = NASOBICE_OBTIZNOSTI[obtiznost]
   const vzdalenost = souper.pozice - ja.pozice
   const absVzdalenost = Math.abs(vzdalenost)
 
@@ -45,7 +70,7 @@ export const pripravAkciAi = (
   // v dosahu té konkrétní akce (ne dosahu bota samotného).
   if (souper.utokKonci > 0 && souper.posledniAkce) {
     const dataSoupere = efektivniAkceData(souper.postavaId, souper.posledniAkce)
-    if (absVzdalenost <= dataSoupere.dosah && nahodne() < AI_SANCE_BLOKU) {
+    if (absVzdalenost <= dataSoupere.dosah && nahodne() < Math.min(1, AI_SANCE_BLOKU * nasobice.bloku)) {
       return { smer: null, blok: true, akce: null }
     }
   }
@@ -57,9 +82,10 @@ export const pripravAkciAi = (
     return { smer: vzdalenost > 0 ? 'vpravo' : 'vlevo', blok: false, akce: null }
   }
 
-  if (nahodne() < AI_SANCE_UTOKU) {
+  if (nahodne() < Math.min(1, AI_SANCE_UTOKU * nasobice.utok)) {
     const dataSpecialu = efektivniAkceData(ja.postavaId, 'specialni')
-    const zkusitSpecial = maNaSpecial(ja, dataSpecialu) && nahodne() < AI_SANCE_SPECIALU
+    const zkusitSpecial =
+      maNaSpecial(ja, dataSpecialu) && nahodne() < Math.min(1, AI_SANCE_SPECIALU * nasobice.specialu)
     return { smer: null, blok: false, akce: zkusitSpecial ? 'specialni' : 'kop' }
   }
 

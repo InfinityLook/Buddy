@@ -515,10 +515,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  row-gap: 0.3rem;
   background: var(--bg-glass);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 0.8rem 1rem;
+}
+
+/* Jedenácté kolo vylepšení — "rival" statistiky (viz Ovladac.tsx).
+   `flex-basis: 100%` zalomí tenhle řádek na vlastní řádek uvnitř
+   flex-wrap kontejneru výš, ne vedle jméno/čísla ve stejné řadě. */
+.souboj-statistiky-rival {
+  flex-basis: 100%;
+  font-size: 0.68rem;
+  color: var(--text-muted);
 }
 
 .souboj-statistiky-jmeno {
@@ -2170,4 +2181,424 @@
     transform: translateY(140px) rotate(var(--rotace));
     opacity: 0;
   }
+}
+
+/* ==========================================
+   Jedenácté kolo vylepšení — druhá vlna: tech na chyt/simultánní
+   clash/sražení k zemi/hype (čistě enginové, žádný nový vzhled
+   navíc), obtížnost bota (reuse existující .souboj-nastaveni-*),
+   rival statistiky (viz výš), a graficky: titulní obrazovka/logo,
+   vítězná póza, HUD "kolo N" banner, kombo eskalace, počasí podle
+   arény, motion trail, dolly-in kamera (Three.js, žádné CSS), náhledy
+   arén, návod (movelist).
+   ========================================== */
+
+/* Sražení k zemi — ležící bojovník leží NAPLOCHO, ne v pádové póze
+   KO (ten je "definitivní konec kola", tohle je dočasný stav, ze
+   kterého se ještě vstává) — appka ho schválně dokončí (forwards) a
+   nechá ležet, dokud engine sám nezmění vizualniStavBojovnika zpátky. */
+.souboj-bojovnik--sraceny {
+  animation: souboj-bojovnik-sraceny 0.3s ease-out forwards;
+}
+
+.souboj-bojovnik--sraceny .souboj-postava-svg {
+  filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.7)) brightness(0.85);
+}
+
+@keyframes souboj-bojovnik-sraceny {
+  0% {
+    transform: rotate(0) translateY(0);
+  }
+  100% {
+    transform: rotate(78deg) translateY(6px);
+  }
+}
+
+/* Hype ukazatel — stejný tvar jako vztek pruh (souboj-vztek-bar výš),
+   jen fialovou barvou (odlišná kategorie zdroje: roste ze VŠECH
+   zásahů, dávaných i přijímaných, ne jen z dostaných jako vztek). */
+.souboj-hype-bar {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  margin-top: 0.15rem;
+}
+
+.souboj-hype-bar-vypln {
+  position: absolute;
+  inset: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #7c3aed, #d8b4fe);
+  transition: width 0.12s linear;
+}
+
+.souboj-hype-bar--plny {
+  animation: souboj-hype-pulz 0.9s ease-in-out infinite;
+}
+
+@keyframes souboj-hype-pulz {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(216, 180, 254, 0.6);
+  }
+  50% {
+    box-shadow: 0 0 10px 2px rgba(216, 180, 254, 0.6);
+  }
+}
+
+.souboj-hype-znacka {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #d8b4fe;
+  animation: souboj-parry-vyskok 0.35s ease-out;
+}
+
+/* Kombo eskalace — odznak roste/mění barvu s délkou série, ne jeden
+   pevný vzhled od druhého zásahu dál. */
+.souboj-kombo-znacka--stredni {
+  font-size: 0.85rem;
+  color: #fb923c;
+}
+
+.souboj-kombo-znacka--vysoka {
+  font-size: 1rem;
+  color: #ef4444;
+  animation: souboj-kombo-vysoka-pulz 0.5s ease-in-out infinite;
+}
+
+@keyframes souboj-kombo-vysoka-pulz {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* Kombo milestone — jednorázový, přes celou arénu, text zábleskem —
+   vzácný (jen na KOMBO_STUPEN_MILESTONE), proto zaslouží víc pozornosti
+   než obyčejný odznak vedle jména. */
+.souboj-kombo-milestone {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: #ef4444;
+  text-shadow: 0 0 18px rgba(239, 68, 68, 0.9);
+  z-index: 5;
+  pointer-events: none;
+  animation: souboj-kombo-milestone-pop 0.9s ease-out forwards;
+}
+
+@keyframes souboj-kombo-milestone-pop {
+  0% {
+    transform: translate(-50%, -50%) scale(0.4);
+    opacity: 0;
+  }
+  30% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 1;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0;
+  }
+}
+
+/* "KOLO N" banner — krátký, jednorázový přes vršek arény na začátku
+   každého kola (viz Bojiste.tsx's kolo prop), podobný jazyk jako
+   kombo milestone výš, jinou barvou a pozicí, ať se dva zábleskové
+   texty na stejném místě nikdy nepřekryjí (appka je navíc nikdy
+   nerenderuje zároveň — banner kola mizí dávno předtím, než by komu-
+   koli mohlo naskočit kombo). */
+.souboj-banner-kola {
+  position: absolute;
+  top: 12%;
+  left: 50%;
+  transform: translate(-50%, 0);
+  font-size: 1.3rem;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+  background: rgba(10, 10, 16, 0.55);
+  backdrop-filter: blur(6px);
+  padding: 0.35rem 1.1rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-subtle);
+  z-index: 5;
+  pointer-events: none;
+  animation: souboj-banner-kola-zmiz 1.4s ease-in forwards;
+}
+
+@keyframes souboj-banner-kola-zmiz {
+  0%, 55% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -8px) scale(0.95);
+  }
+}
+
+/* Vítězná póza — jednoduchý zvýrazňující odlesk + jemné "narovnání"
+   navrch toho, co postava zrovna dělá (idle/atd.), stejná restrikce
+   jako všude jinde v týhle appce: žádný nový 3D/animační pipeline,
+   jen kombinace filtru a transformu nad existující plochou SVG. */
+.souboj-bojovnik--vitez .souboj-postava-svg {
+  filter: drop-shadow(0 0 16px rgba(250, 204, 21, 0.9)) brightness(1.25);
+  animation: souboj-vitez-poza 0.6s ease-out;
+}
+
+@keyframes souboj-vitez-poza {
+  0% {
+    transform: scale(1) translateY(0);
+  }
+  40% {
+    transform: scale(1.12) translateY(-6px);
+  }
+  100% {
+    transform: scale(1.05) translateY(-2px);
+  }
+}
+
+/* Motion trail — hrubá aproximace rychlosti (viz Bojiste.tsx's
+   PRAH_SVIZNEHO_POHYBU), ne skutečné duplikované "duchové" sprity —
+   appka nemá druhou vrstvu vykreslování postavy k dispozici (SVG se
+   renderuje jednou), takže "stopa" je jen směrovaný rozostřený
+   box-shadow střík ve směru pohybu (--smer-vypadu, stejná proměnná
+   jako výpad při útoku výš). */
+.souboj-bojovnik--svizny .souboj-postava-svg {
+  filter: drop-shadow(calc(var(--smer-vypadu, 1) * -10px) 0 6px rgba(255, 255, 255, 0.35));
+}
+
+/* Atmosféra podle arény (Pocasi.tsx) — čistě CSS částice, jedna
+   sdílená vrstva nad arénou (2D i 3D variantou stejně), z-index nad
+   podlahou/vodou, ale pod HUD prvky (kolo/kombo bannery mají vyšší). */
+.souboj-pocasi {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.souboj-castice {
+  position: absolute;
+  top: -6%;
+  border-radius: 50%;
+}
+
+.souboj-castice--svetluska {
+  width: 4px;
+  height: 4px;
+  background: #fde68a;
+  box-shadow: 0 0 6px 2px rgba(253, 230, 138, 0.8);
+  animation: souboj-castice-plout linear infinite;
+}
+
+.souboj-castice--prach {
+  width: 3px;
+  height: 3px;
+  background: rgba(201, 167, 105, 0.55);
+  animation: souboj-castice-padat linear infinite;
+}
+
+.souboj-castice--popel {
+  width: 3px;
+  height: 5px;
+  background: rgba(148, 138, 168, 0.5);
+  box-shadow: 0 0 4px 1px rgba(148, 138, 168, 0.4);
+  animation: souboj-castice-padat linear infinite;
+}
+
+@keyframes souboj-castice-plout {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  10%, 90% {
+    opacity: 0.9;
+  }
+  50% {
+    transform: translate(14px, 45%);
+  }
+  100% {
+    transform: translate(-8px, 100%);
+    opacity: 0;
+  }
+}
+
+@keyframes souboj-castice-padat {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0;
+  }
+  10%, 85% {
+    opacity: 0.8;
+  }
+  100% {
+    transform: translate(6px, 100%);
+    opacity: 0;
+  }
+}
+
+/* Náhledy arén (areny.ts's arenaNahledGradient) — malý barevný
+   proužek nad textem pilulky výběru, ne nová karta navíc. */
+.souboj-arena-nahled {
+  display: block;
+  width: 100%;
+  height: 16px;
+  border-radius: calc(var(--radius-pill) - 2px);
+  margin-bottom: 0.25rem;
+}
+
+/* Titulní obrazovka (FightingModule.tsx) — stylizovaný gradientový
+   text místo holého nadpisu, dvě "jiskry" po stranách jako dekorace.
+   Appka pořád nemá žádnou skutečnou grafickou identitu (žádný art
+   pipeline), tohle je poctivě jen typografie + CSS, ne obrázek. */
+.souboj-titul {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  position: relative;
+  margin-bottom: 1.4rem;
+  text-align: center;
+}
+
+.souboj-logo {
+  margin: 0;
+  font-size: 2.6rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  background: linear-gradient(90deg, var(--accent-magenta), var(--accent-cyan), var(--accent-violet));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: souboj-logo-tok 5s linear infinite;
+}
+
+@keyframes souboj-logo-tok {
+  0% { background-position: 0% center; }
+  100% { background-position: 200% center; }
+}
+
+.souboj-logo-jiskra {
+  position: absolute;
+  top: 10%;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 12px 4px rgba(53, 196, 240, 0.8);
+  animation: souboj-logo-jiskra-blik 1.6s ease-in-out infinite;
+}
+
+.souboj-logo-jiskra--1 {
+  left: 8%;
+}
+
+.souboj-logo-jiskra--2 {
+  right: 8%;
+  animation-delay: 0.8s;
+  background: var(--accent-magenta);
+  box-shadow: 0 0 12px 4px rgba(236, 72, 153, 0.8);
+}
+
+@keyframes souboj-logo-jiskra-blik {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.6); }
+}
+
+/* Návod (Navod.tsx / tlačítko na titulní obrazovce). */
+.souboj-navod-btn {
+  display: block;
+  width: 100%;
+  margin-top: 1rem;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.souboj-navod {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.souboj-navod-sekce {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 0.9rem 1rem;
+}
+
+.souboj-navod-nadpis {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+}
+
+.souboj-navod-seznam {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.souboj-navod-postavy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.souboj-navod-postava {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+}
+
+.souboj-navod-postava-ikona {
+  font-size: 1.6rem;
+  flex-shrink: 0;
+}
+
+.souboj-navod-postava-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.souboj-navod-postava-jmeno {
+  font-weight: 800;
+  font-size: 0.88rem;
+}
+
+.souboj-navod-postava-special {
+  font-size: 0.78rem;
+  color: var(--accent-violet);
+}
+
+.souboj-navod-postava-podtitul {
+  font-size: 0.74rem;
+  color: var(--text-muted);
 }

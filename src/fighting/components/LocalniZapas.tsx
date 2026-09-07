@@ -16,7 +16,7 @@ import type { PostavaId } from '../combat/postavy'
 import type { SoubojMoznosti, SoubojStav } from '../combat/types'
 import { RYCHLE_EMOTE } from '../types'
 import type { Smer, Tlacitko } from '../types'
-import { ARENY, nahodnaArena, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
+import { arenaNahledGradient, ARENY, nahodnaArena, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
 import { Bojiste } from './Bojiste'
 import { PostavaGrafika } from './PostavaGrafika'
 import { IntroPocitadlo } from './IntroPocitadlo'
@@ -264,18 +264,22 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
 
           const zapasHotovy = skoreRef.current[0] >= pocetNaVyhru || skoreRef.current[1] >= pocetNaVyhru
           if (zapasHotovy) {
+            // Jedenácté kolo vylepšení — rival statistiky (viz
+            // useSoubojStatistikyStore.ts's zapasyProtiPostavam) —
+            // LocalniZapas obě postavy zná napřímo, žádné odvozování
+            // ze slotu jako Ovladac.tsx's konecZapasu handler netřeba.
             if (skoreRef.current[0] === skoreRef.current[1]) {
-              useSoubojStatistikyStore.getState().zaznamenejVysledek(postava0, 'remiza')
-              useSoubojStatistikyStore.getState().zaznamenejVysledek(postava1, 'remiza')
+              useSoubojStatistikyStore.getState().zaznamenejVysledek(postava0, 'remiza', postava1)
+              useSoubojStatistikyStore.getState().zaznamenejVysledek(postava1, 'remiza', postava0)
             } else {
               const vitezZapasu = skoreRef.current[0] > skoreRef.current[1] ? 0 : 1
               const prohravsi = vitezZapasu === 0 ? 1 : 0
               useSoubojStatistikyStore
                 .getState()
-                .zaznamenejVysledek(vitezZapasu === 0 ? postava0 : postava1, 'vyhra')
+                .zaznamenejVysledek(vitezZapasu === 0 ? postava0 : postava1, 'vyhra', prohravsi === 0 ? postava0 : postava1)
               useSoubojStatistikyStore
                 .getState()
-                .zaznamenejVysledek(prohravsi === 0 ? postava0 : postava1, 'prohra')
+                .zaznamenejVysledek(prohravsi === 0 ? postava0 : postava1, 'prohra', vitezZapasu === 0 ? postava0 : postava1)
             }
           }
         }
@@ -401,6 +405,7 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
               className={`souboj-arena-volba ${a.id === arenaId ? 'is-vybrana' : ''}`}
               onClick={() => setArenaId(a.id)}
             >
+              <span className="souboj-arena-nahled" style={{ background: arenaNahledGradient(a) }} aria-hidden="true" />
               <span aria-hidden="true">{a.ikona}</span> {a.nazev}
               {a.nebezpeciOkraje ? ' ⚠️' : ''}
               {a.udalost === 'balvan' ? ' 🪨' : a.udalost === 'zatmeni' ? ' 🌑' : ''}
@@ -510,7 +515,13 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
             </div>
           )}
 
-          <Bojiste stav={soubojStav} jmena={['Hráč 1', 'Hráč 2']} arenaId={arenaId} emotes={emoty} />
+          <Bojiste
+            stav={soubojStav}
+            jmena={['Hráč 1', 'Hráč 2']}
+            arenaId={arenaId}
+            emotes={emoty}
+            kolo={skore[0] + skore[1] + 1}
+          />
 
           {soubojStav.stavKola === 'konec' && zapasSkoncil && (
             <div className="souboj-recap" aria-label="Přehled zápasu">

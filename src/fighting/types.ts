@@ -42,6 +42,13 @@ export type VstupPayload =
 export interface KonecZapasuPayload {
   /** 1/2 = vítězný slot, null = remíza. */
   vitezSlot: 1 | 2 | null
+  /** Jedenácté kolo vylepšení — obě postavy zápasu, ať si každý telefon
+   *  může zaznamenat "rival" statistiku (viz useSoubojStatistikyStore.ts's
+   *  zapasyProtiPostavam) proti té konkrétní soupeřově postavě, ne jen
+   *  celkovou výhru/prohru. Žádné nové soukromí — obě strany se navzájem
+   *  viděly na "VS" obrazovce dřív, než zápas vůbec začal. */
+  postava0: PostavaId
+  postava1: PostavaId
 }
 
 /** Osmé kolo vylepšení — rychlý emote/škádlení z ovladače na TV. Jde

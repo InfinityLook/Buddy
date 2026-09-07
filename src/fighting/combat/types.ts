@@ -38,6 +38,10 @@ export interface AkceData {
    *  engine.ts's aplikujJedenZasah) — "neblokovatelný" útok jako
    *  protiváha k tomu, že blok jinak zastaví/zeslabí úplně všechno. */
   poskozeniPresBlok?: boolean
+  /** Jedenácté kolo vylepšení — sražení k zemi. Jen kop a specialni
+   *  tohle nesou (udar je moc slabý na to, aby srážel) — a jen na
+   *  zásah, co dopadne NAPLNO (viz engine.ts's aplikujJedenZasah). */
+  srazi?: boolean
 }
 
 /** Živý stav jednoho bojovníka během souboje. */
@@ -105,6 +109,29 @@ export interface BojovnikStav {
    *  VZTEK_NASOBIC navíc. Stejný "drží se, dokud se doopravdy nespotřebuje,
    *  ne dokud neuplyne čas" tvar jako stitAktivni výš. */
   vztekPripraven: boolean
+  /** Jedenácté kolo vylepšení — sražení k zemi. Silný zásah (kop nebo
+   *  specialni), co dopadl NAPLNO (ne blokovaný, ne přes štít/perfektní
+   *  blok — ty se sem vůbec nedostanou), srazí cíl na zem místo
+   *  obyčejného hitstunu. Dokud `vstavaniKonci > 0`, je bojovník úplně
+   *  NEZRANITELNÝ (viz engine.ts's aplikujJedenZasah) a nemůže jednat —
+   *  bez toho by "sražení k zemi" jen prodloužilo hitstun, nedalo by mu
+   *  žádnou vlastní identitu. */
+  sraceny: boolean
+  /** Jedenácté kolo vylepšení — kolik ms zbývá do vstání, počítá se
+   *  dolů stejně jako zranitelnostKonci/utokKonci. Poslední
+   *  VSTAVANI_OKNO_VOLBY_MS z tohohle čísla appka bere jako "okno
+   *  volby při vstávání" — drží-li hráč v tu chvíli blok, vstane rovnou
+   *  blokující (viz tikBojovnika), jinak vstane do obyčejného idle. */
+  vstavaniKonci: number
+  /** Jedenácté kolo vylepšení — druhý, pomalejší ukazatel vedle many
+   *  ("hype"). Roste POMALU z KAŽDÉHO skutečně doručeného poškození —
+   *  útočníkovi i cíli stejně (viz engine.ts's HYPE_ZISK_Z_POSKOZENI),
+   *  na rozdíl od many, co dostává jen útočník za vlastní zásah. Jakmile
+   *  dosáhne HYPE_MAX, další zahájení 'specialni' je zdarma (bez ceny
+   *  many) a dá mnohem víc poškození — viz tikBojovnika/engine.ts's
+   *  HYPE_FINISHER_NASOBIC — a spotřebuje se na nulu v okamžiku
+   *  zahájení, bez ohledu na to, jestli útok nakonec trefí. */
+  hype: number
 }
 
 /** Vstup jednoho hráče pro jeden krok simulace. `akce` je jednorázová

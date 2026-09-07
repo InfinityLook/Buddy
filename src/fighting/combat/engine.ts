@@ -114,6 +114,39 @@ export const UDALOST_POSKOZENI = 14
  *  engine.ts a combat/loop.ts. */
 export const UDALOST_ZATMENI_PERIODA_MS = 10000
 export const UDALOST_ZATMENI_TRVANI_MS = 2000
+/** Jedenácté kolo vylepšení — tech na chyt (grab tech). Pokusí-li se
+ *  OBĚ strany zahájit chyt VE STEJNÉM tiku, appka to bere jako
+ *  vzájemné vyproštění, ne jako dvojí neblokovatelný zásah — žádné
+ *  poškození, jen krátké vzájemné omráčení, ať se souboj nezasekne v
+ *  nekonečné smyčce dvou chytů proti sobě. */
+export const TECH_CHYT_STUN_MS = 300
+/** Jedenácté kolo vylepšení — simultánní "clash". Zahájí-li obě strany
+ *  ve stejném tiku útok (ne chyt — ten řeší tech výš) a jsou navzájem
+ *  v dosahu OBOU akcí, appka to vyhodnotí jako srážku úderů, ne jako
+ *  pevné pořadí "0 pak 1" — obě strany se prostě odrazí od sebe, žádné
+ *  poškození, žádná výhoda pro nikoho jen proto, že engine hráče
+ *  interně čísluje 0/1. */
+export const CLASH_ODRAZENI = 40
+export const CLASH_STUN_MS = 200
+/** Jedenácté kolo vylepšení — sražení k zemi. Jak dlouho sražený
+ *  bojovník leží (nezranitelný, nemůže jednat) — přesně na tiku, kdy
+ *  tohle dojde na 0, appka nabídne "volbu při vstávání" (viz
+ *  tikBojovnika): drží-li hráč právě TEHDY blok, vstane rovnou do
+ *  bloku, jinak vstane do obyčejného idle. Appka schválně nemá
+ *  rizikovější "vstávám útokem" variantu — ta by potřebovala vlastní
+ *  predikci dosahu ještě předtím, než bojovník vůbec vstane. */
+export const VSTAVANI_MS = 900
+/** Jedenácté kolo vylepšení — druhý, pomalejší "hype" ukazatel vedle
+ *  many. Roste mnohem pomaleji než mana (HYPE_ZISK_Z_POSKOZENI je
+ *  zlomek MANA_ZA_ZASAH výš) a z obou stran zásahu stejně — útočníkovi
+ *  i cíli — ne jen útočníkovi jako mana. Jakmile je plný, další
+ *  speciál je "finisher" — zdarma (bez many) a s HYPE_FINISHER_NASOBIC
+ *  navíc poškozením, ale spotřebuje se to jen JEDNÍM zásahem za kolo
+ *  (appka to schválně bere jako "za kolo", ne "za celý zápas" — engine
+ *  sám o délce zápasu nic neví, viz SoubojStav's vlastní komentář). */
+export const HYPE_MAX = 100
+export const HYPE_ZISK_Z_POSKOZENI = 0.35
+export const HYPE_FINISHER_NASOBIC = 2.2
 
 /** Desáté kolo vylepšení — do kterého "cyklu" periody UDALOST_PERIODA_MS
  *  aktuální čas kola spadá — sdílené jedním místem mezi krokSouboje
@@ -151,8 +184,8 @@ export const VYCHOZI_MOZNOSTI: SoubojMoznosti = {
  *  skutečný chyt/hod dává smysl jen zblízka. */
 export const AKCE_DATA: Record<UtocnaAkce, AkceData> = {
   udar: { poskozeni: 6, dosah: 90, trvaniMs: 250, cenaMany: 0, knockback: 18 },
-  kop: { poskozeni: 10, dosah: 110, trvaniMs: 400, cenaMany: 0, knockback: 32 },
-  specialni: { poskozeni: 22, dosah: 140, trvaniMs: 600, cenaMany: 40, knockback: 55 },
+  kop: { poskozeni: 10, dosah: 110, trvaniMs: 400, cenaMany: 0, knockback: 32, srazi: true },
+  specialni: { poskozeni: 22, dosah: 140, trvaniMs: 600, cenaMany: 40, knockback: 55, srazi: true },
   chyt: { poskozeni: 8, dosah: 70, trvaniMs: 500, cenaMany: 0, knockback: 45, poskozeniPresBlok: true },
 }
 
@@ -178,6 +211,9 @@ export const vytvorBojovnika = (pozice: number, postavaId: PostavaId = VYCHOZI_P
     parryZablesk: 0,
     vztek: 0,
     vztekPripraven: false,
+    sraceny: false,
+    vstavaniKonci: 0,
+    hype: 0,
   }
 }
 
@@ -205,6 +241,7 @@ export const efektivniAkceData = (postavaId: PostavaId, akce: UtocnaAkce): AkceD
     cenaMany: zaklad.cenaMany * postava.cenaManyNasobic,
     knockback: zaklad.knockback,
     poskozeniPresBlok: zaklad.poskozeniPresBlok,
+    srazi: zaklad.srazi,
   }
 }
 
@@ -241,6 +278,11 @@ interface VysledekTiku {
    *  zmáčkl tlačítko) — null, pokud nic nezačal (busy, blokoval,
    *  nebo na speciální neměl manu). */
   zahajenaAkce: UtocnaAkce | null
+  /** Jedenácté kolo vylepšení — jestli tenhle tik ZAHÁJIL hype
+   *  finisher (viz HYPE_MAX/HYPE_FINISHER_NASOBIC výš) — krokSouboje
+   *  to potřebuje vědět, aby vyhodnotZasahPokudZahajen dala tomuhle
+   *  jednomu zásahu bonusové poškození navíc. */
+  hypeFinisher: boolean
 }
 
 /** Posune jednoho bojovníka o jeden krok — pohyb, blok, případné
@@ -250,6 +292,13 @@ interface VysledekTiku {
 const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number, regenNasobic: number = 1): VysledekTiku => {
   const zranitelnostKonci = Math.max(0, b.zranitelnostKonci - deltaMs)
   const utokKonci = Math.max(0, b.utokKonci - deltaMs)
+  // Jedenácté kolo vylepšení — sražení k zemi. `vstavaniKonciPredtim`
+  // je hodnota PŘED odečtením tohohle tiku — potřebná jen k tomu, aby
+  // appka poznala PŘESNĚ tik, kdy bojovník vstává (přechod > 0 → 0),
+  // ne každý tik, co je ještě na zemi.
+  const vstavaniKonciPredtim = b.vstavaniKonci
+  const vstavaniKonci = Math.max(0, b.vstavaniKonci - deltaMs)
+  const proveVstavaAvi = vstavaniKonciPredtim > 0 && vstavaniKonci === 0
   // Osmé kolo vylepšení — handicap (SoubojMoznosti.handicapManaRegen)
   // násobí jen tohle číslo, ne poškození/rychlost/cokoli jiného —
   // slabší hráč tak dobíjí speciál rychleji, ale pořád hraje se
@@ -264,19 +313,38 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number, regenN
   // pravidlo, které by muselo čekat na to, až bojovník zase může jednat.
   const parryZablesk = Math.max(0, b.parryZablesk - deltaMs)
 
-  // Uprostřed hitstunu nebo vlastního útoku (i z minulého tiku) bojovník
-  // ignoruje veškerý nový vstup — mana ale běží dál, regenerace není
-  // vázaná na to, jestli zrovna může jednat.
-  const busy = zranitelnostKonci > 0 || utokKonci > 0
+  // Uprostřed hitstunu, sražení k zemi nebo vlastního útoku (i z
+  // minulého tiku) bojovník ignoruje veškerý nový vstup — mana ale
+  // běží dál, regenerace není vázaná na to, jestli zrovna může jednat.
+  const busy = zranitelnostKonci > 0 || utokKonci > 0 || vstavaniKonci > 0
   if (busy) {
+    // Jedenácté kolo vylepšení — vstávání. Přesně na tiku, kdy appka
+    // sražení dopočítá na 0 (proveVstavaAvi výš), appka nabídne
+    // "volbu při vstávání" — drží-li hráč v tu chvíli blok, vstane
+    // rovnou blokující (bezpečná volba, ale bez čerstvého blokDrzenMs,
+    // ať to hned nekvalifikuje jako perfektní blok), jinak vstane do
+    // obyčejného idle stejně jako po hitstunu/vlastním útoku dřív.
+    const blokujeVeVstani = proveVstavaAvi && vstup.blok
     return {
       // Vylepšení — parry. Bojovník uprostřed hitstunu/vlastního útoku
       // logicky NEblokuje (blokuje se vynucuje na false o pár řádků
       // níž stejně), takže blokDrzenMs se resetuje na 0 spolu s tím —
       // jinak by "držené" číslo z předchozího bloku přežilo přes
       // omráčení a zkreslilo by první parry po probuzení.
-      dalsi: { ...b, zranitelnostKonci, utokKonci, mana, komboKonci, parryZablesk, blokuje: false, blokDrzenMs: 0 },
+      dalsi: {
+        ...b,
+        zranitelnostKonci,
+        utokKonci,
+        vstavaniKonci,
+        sraceny: vstavaniKonci > 0,
+        mana,
+        komboKonci,
+        parryZablesk,
+        blokuje: blokujeVeVstani,
+        blokDrzenMs: 0,
+      },
       zahajenaAkce: null,
+      hypeFinisher: false,
     }
   }
 
@@ -297,15 +365,27 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number, regenN
   let novyUtokKonci = 0
   let zahajenaAkce: UtocnaAkce | null = null
   let manaPoUtoku = mana
+  let hypeFinisher = false
   let stitAktivni = b.stitAktivni
   if (!blokuje && vstup.akce) {
     const data = efektivniAkceData(b.postavaId, vstup.akce)
-    const maNaTo = vstup.akce !== 'specialni' || mana >= data.cenaMany
+    // Jedenácté kolo vylepšení — hype finisher. Plný hype nahrazuje
+    // požadavek many na speciál úplně — appka nechce, aby finisher stál
+    // OBOJÍ, to by z hype udělalo jen druhou manu se stejným efektem.
+    const jeHypeGotova = vstup.akce === 'specialni' && b.hype >= HYPE_MAX
+    const maNaTo = vstup.akce !== 'specialni' || jeHypeGotova || mana >= data.cenaMany
     if (maNaTo) {
       novyUtokKonci = data.trvaniMs
       zahajenaAkce = vstup.akce
       if (vstup.akce === 'specialni') {
-        manaPoUtoku = mana - data.cenaMany
+        if (jeHypeGotova) {
+          // Hype se spotřebuje HNED při zahájení, bez ohledu na to,
+          // jestli finisher nakonec trefí — stejná "utrať okamžitě"
+          // disciplína jako mana o pár řádků níž.
+          hypeFinisher = true
+        } else {
+          manaPoUtoku = mana - data.cenaMany
+        }
         // Vylepšení — 'stit' efekt (Bulwark) se aktivuje ZAHÁJENÍM
         // speciálu, ne jeho zásahem — štít chrání i když soupeř
         // zrovna není v dosahu.
@@ -324,7 +404,10 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number, regenN
       blokuje,
       zranitelnostKonci: 0,
       utokKonci: novyUtokKonci,
+      vstavaniKonci: 0,
+      sraceny: false,
       mana: manaPoUtoku,
+      hype: hypeFinisher ? 0 : b.hype,
       posledniAkce: zahajenaAkce ?? b.posledniAkce,
       stitAktivni,
       komboKonci,
@@ -332,6 +415,7 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number, regenN
       parryZablesk,
     },
     zahajenaAkce,
+    hypeFinisher,
   }
 }
 
@@ -387,10 +471,26 @@ const aplikujJedenZasah = (
   knockback: number,
   bonusSuddenDeath: number,
   hazardOkraju: boolean,
-  presBlok: boolean = false
+  presBlok: boolean = false,
+  srazi: boolean = false,
+  bonusHype: number = 1,
+  ignorujSraceni: boolean = false
 ): VysledekJednohoZasahu => {
   const utocnik = hraci[utocnikIdx]
   const cil = hraci[cilIdx]
+
+  // Jedenácté kolo vylepšení — sražení k zemi. Ležící cíl je úplně
+  // NEZRANITELNÝ (stejná "vůbec se sem nedostane" logika jako štít
+  // níž) — bez tohohle by druhý zásah uprostřed vstávání jen
+  // prodloužil ležení, místo aby appka měla jasně danou, konečnou dobu
+  // na zemi. `ignorujSraceni` je únik jen pro DRUHÝ zásah Voltova
+  // dvojitého úderu (viz vyhodnotZasahPokudZahajen) — bez něj by první
+  // zásah srazil cíl k zemi a druhý, ze stejné jedné akce, by pak
+  // narazil na tuhle nezranitelnost a dal nulové poškození, i když
+  // oba zásahy patří jednomu už zahájenému útoku, ne dvěma různým.
+  if (cil.vstavaniKonci > 0 && !ignorujSraceni) {
+    return { hraci, poskozeniDorucene: 0 }
+  }
 
   // 'stit' efekt (Bulwark) — pohltí tenhle zásah úplně a spotřebuje
   // se, přednost před obyčejným blokem (souběh obou by byl vzácný a
@@ -437,7 +537,8 @@ const aplikujJedenZasah = (
     bonusKomba *
     bonusComeback *
     bonusSuddenDeath *
-    bonusVztek
+    bonusVztek *
+    bonusHype
 
   const smerOdrazeni = utocnik.pozice <= cil.pozice ? 1 : -1
   const silaOdrazeni = zasahBlokovan ? knockback * (1 - BLOK_REDUKCE) : knockback
@@ -457,15 +558,29 @@ const aplikujJedenZasah = (
   // zůstává true, dokud se skutečně nespotřebuje jako útočníkův bonus
   // jinde (viz níž).
   const vztekNovy = Math.min(VZTEK_MAX, cil.vztek + poskozeniCelkove)
+  // Jedenácté kolo vylepšení — druhý ukazatel (hype). Roste z KAŽDÉHO
+  // skutečně doručeného poškození, útočníkovi i cíli stejně — na
+  // rozdíl od many/vzteku výš, co plní jen jedna strana.
+  const hypeCilNovy = Math.min(HYPE_MAX, cil.hype + poskozeniCelkove * HYPE_ZISK_Z_POSKOZENI)
+  // Jedenácté kolo vylepšení — sražení k zemi. Jen NAPLNO dopadlý
+  // zásah (zasahBlokovan by srážení vůbec nemělo šanci — appka
+  // schválně nechtěla, aby blok šlo obejít i sražením) s akcí, co
+  // srážet umí (AkceData.srazi) — nahradí obyčejný hitstun, ne že by
+  // se k němu jen přičetlo.
+  const sraziTohle = srazi && !zasahBlokovan
 
   const novyCil: BojovnikStav = {
     ...cil,
     hp: Math.max(0, cil.hp - poskozeniCelkove),
     pozice: novaPozice,
     // Blokovaný zásah hitstun neuděluje — obránce může jednat hned dál.
-    zranitelnostKonci: zasahBlokovan ? cil.zranitelnostKonci : HITSTUN_MS,
+    // Sražení nahrazuje obyčejný hitstun vlastním, delším vstáváním.
+    zranitelnostKonci: zasahBlokovan || sraziTohle ? cil.zranitelnostKonci : HITSTUN_MS,
+    sraceny: sraziTohle ? true : cil.sraceny,
+    vstavaniKonci: sraziTohle ? VSTAVANI_MS : cil.vstavaniKonci,
     vztek: vztekNovy,
     vztekPripraven: cil.vztekPripraven || vztekNovy >= VZTEK_MAX,
+    hype: hypeCilNovy,
   }
   const novyUtocnik: BojovnikStav = {
     ...utocnik,
@@ -478,6 +593,7 @@ const aplikujJedenZasah = (
     // stejného tiku — útočníkem tady, cílem jinde).
     vztek: utocnik.vztekPripraven ? 0 : utocnik.vztek,
     vztekPripraven: false,
+    hype: Math.min(HYPE_MAX, utocnik.hype + poskozeniCelkove * HYPE_ZISK_Z_POSKOZENI),
   }
 
   const dalsi = [...hraci] as [BojovnikStav, BojovnikStav]
@@ -508,7 +624,8 @@ const vyhodnotZasahPokudZahajen = (
   cilIdx: 0 | 1,
   akce: UtocnaAkce | null,
   bonusSuddenDeath: number,
-  hazardOkraju: boolean
+  hazardOkraju: boolean,
+  hypeFinisher: boolean = false
 ): [BojovnikStav, BojovnikStav] => {
   if (!akce) return hraci
 
@@ -529,6 +646,11 @@ const vyhodnotZasahPokudZahajen = (
   // appka to čte jednou tady, stejně jako data.knockback, a jen
   // přeposílá dál.
   const presBlok = !!data.poskozeniPresBlok
+  // Jedenácté kolo vylepšení — sražení k zemi/hype finisher, oba se
+  // jen přeposílají do aplikujJedenZasah stejným způsobem jako presBlok
+  // výš — tahle funkce sama žádnou z obou logik nepočítá.
+  const srazi = !!data.srazi
+  const bonusHype = hypeFinisher ? HYPE_FINISHER_NASOBIC : 1
 
   let vysledek = aplikujJedenZasah(
     hraci,
@@ -538,7 +660,9 @@ const vyhodnotZasahPokudZahajen = (
     data.knockback,
     bonusSuddenDeath,
     hazardOkraju,
-    presBlok
+    presBlok,
+    srazi,
+    bonusHype
   )
   let poskozeniCelkem = vysledek.poskozeniDorucene
 
@@ -551,7 +675,10 @@ const vyhodnotZasahPokudZahajen = (
       data.knockback,
       bonusSuddenDeath,
       hazardOkraju,
-      presBlok
+      presBlok,
+      srazi,
+      bonusHype,
+      true // ignorujSraceni — druhý zásah stejné akce, viz aplikujJedenZasah's komentář
     )
     poskozeniCelkem += vysledek.poskozeniDorucene
   }
@@ -566,6 +693,43 @@ const vyhodnotZasahPokudZahajen = (
   }
 
   return dalsi
+}
+
+/** Jedenácté kolo vylepšení — je bojovník v dosahu SVÉ VLASTNÍ akce na
+ *  toho druhého? Stejný výpočet, jaký vyhodnotZasahPokudZahajen dělá
+ *  interně (dosah, ne postavení) — appka ho sem vytáhla, ať to jeden
+ *  krok souboje může zjistit pro OBĚ strany najednou ještě PŘED tím,
+ *  než se rozhodne mezi obyčejným pořadím 0-pak-1 a simultánním
+ *  clashem. */
+const vDosahuVzajemne = (utocnik: BojovnikStav, cil: BojovnikStav, akce: UtocnaAkce): boolean =>
+  Math.abs(utocnik.pozice - cil.pozice) <= efektivniAkceData(utocnik.postavaId, akce).dosah
+
+/** Jedenácté kolo vylepšení — simultánní clash. Platí jen pro dva
+ *  ÚTOKY (ne chyt — ten řeší tech, viz krokSouboje), a jen tehdy, když
+ *  je KAŽDÝ v dosahu TÉ DRUHÉ strany akce — nestačí, že je v dosahu
+ *  jen jeden z obou, to už by byl normální, nesymetrický zásah. */
+const jeSoubeznyClash = (
+  hraci: [BojovnikStav, BojovnikStav],
+  akce0: UtocnaAkce | null,
+  akce1: UtocnaAkce | null
+): boolean => {
+  if (!akce0 || !akce1 || akce0 === 'chyt' || akce1 === 'chyt') return false
+  return vDosahuVzajemne(hraci[0], hraci[1], akce0) && vDosahuVzajemne(hraci[1], hraci[0], akce1)
+}
+
+/** Jedenácté kolo vylepšení — vyhodnotí clash: žádné poškození ani pro
+ *  jednu stranu, jen vzájemné odražení a krátké omráčení, symetrické
+ *  pro oba (appka schválně nechce, aby o výsledku srážky dvou útoků
+ *  rozhodovalo, kdo je hráč 0 a kdo hráč 1). */
+const aplikujClash = (hraci: [BojovnikStav, BojovnikStav]): [BojovnikStav, BojovnikStav] => {
+  const [b0, b1] = hraci
+  const smer = b0.pozice <= b1.pozice ? 1 : -1
+  const p0 = Math.max(0, Math.min(ARENA_SIRKA, b0.pozice - smer * CLASH_ODRAZENI))
+  const p1 = Math.max(0, Math.min(ARENA_SIRKA, b1.pozice + smer * CLASH_ODRAZENI))
+  return [
+    { ...b0, pozice: p0, zranitelnostKonci: CLASH_STUN_MS },
+    { ...b1, pozice: p1, zranitelnostKonci: CLASH_STUN_MS },
+  ]
 }
 
 /** Posune celý souboj o jeden krok. Jednou skončené kolo (stavKola
@@ -597,8 +761,29 @@ export const krokSouboje = (stav: SoubojStav, vstupy: [HracVstup, HracVstup], de
     : 1
 
   let hraci: [BojovnikStav, BojovnikStav] = [t0.dalsi, t1.dalsi]
-  hraci = vyhodnotZasahPokudZahajen(hraci, 0, 1, t0.zahajenaAkce, bonusSuddenDeath, moznosti.hazardOkraju)
-  hraci = vyhodnotZasahPokudZahajen(hraci, 1, 0, t1.zahajenaAkce, bonusSuddenDeath, moznosti.hazardOkraju)
+
+  // Jedenácté kolo vylepšení — tech na chyt. Zkusí-li OBĚ strany chyt
+  // ve stejném tiku, appka to bere jako vzájemné vyproštění (žádné
+  // poškození ani pro jednu stranu) místo obyčejného pevného pořadí
+  // 0-pak-1, které by jinak dalo výhodu jen hráči 0. Appka schválně
+  // nekontroluje dosah — obě strany se O TO POKUSILY současně, což už
+  // samo o sobě appka bere jako "dost blízko na tech".
+  const obaChytaji = t0.zahajenaAkce === 'chyt' && t1.zahajenaAkce === 'chyt'
+  if (obaChytaji) {
+    hraci = hraci.map((b) => ({ ...b, zranitelnostKonci: Math.max(b.zranitelnostKonci, TECH_CHYT_STUN_MS) })) as [
+      BojovnikStav,
+      BojovnikStav,
+    ]
+  } else if (jeSoubeznyClash(hraci, t0.zahajenaAkce, t1.zahajenaAkce)) {
+    // Jedenácté kolo vylepšení — simultánní clash (viz jeSoubeznyClash
+    // výš) — appka schválně vůbec nevolá vyhodnotZasahPokudZahajen pro
+    // ani jednu stranu, srážka nahrazuje obyčejné vyhodnocení zásahu
+    // úplně, ne že by se k němu jen přidávala.
+    hraci = aplikujClash(hraci)
+  } else {
+    hraci = vyhodnotZasahPokudZahajen(hraci, 0, 1, t0.zahajenaAkce, bonusSuddenDeath, moznosti.hazardOkraju, t0.hypeFinisher)
+    hraci = vyhodnotZasahPokudZahajen(hraci, 1, 0, t1.zahajenaAkce, bonusSuddenDeath, moznosti.hazardOkraju, t1.hypeFinisher)
+  }
 
   const novyCas = stav.cas + deltaMs
 

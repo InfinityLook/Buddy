@@ -2,6 +2,7 @@ import {
   CAS_LIMIT_MS,
   COMEBACK_PRAH,
   cyklusUdalostiAreny,
+  HYPE_MAX,
   stredUdalostiBalvan,
   UDALOST_PERIODA_MS,
   UDALOST_VAROVANI_MS,
@@ -116,11 +117,14 @@ export const poziceProcenta = (b: BojovnikStav, arenaSirka: number): number =>
 
 /** Jaký vizuální stav bojovníka právě teď platí — pro CSS třídu na
  *  TV straně. Pořadí kontrol je schválně důležité: KO má přednost
- *  před vším, hitstun před blokem (nemůže blokovat, když je omráčen). */
-export type VizualniStavBojovnika = 'ko' | 'hitstun' | 'blok' | 'utok' | 'idle'
+ *  před vším, sražení k zemi (jedenácté kolo vylepšení) před hitstunem
+ *  (leží se jinak, ne jen "je omráčen"), hitstun před blokem (nemůže
+ *  blokovat, když je omráčen). */
+export type VizualniStavBojovnika = 'ko' | 'sraceny' | 'hitstun' | 'blok' | 'utok' | 'idle'
 
 export const vizualniStavBojovnika = (b: BojovnikStav): VizualniStavBojovnika => {
   if (b.hp <= 0) return 'ko'
+  if (b.vstavaniKonci > 0) return 'sraceny'
   if (b.zranitelnostKonci > 0) return 'hitstun'
   if (b.blokuje) return 'blok'
   if (b.utokKonci > 0) return 'utok'
@@ -162,6 +166,15 @@ export const jeComeback = (b: BojovnikStav): boolean => b.hp > 0 && b.hp / b.max
 /** Desáté kolo vylepšení — vztek. Kolik procent má mít vztek pruh —
  *  stejná 0..100 clamp disciplína jako hpProcenta/manaProcenta výš. */
 export const vztekProcenta = (b: BojovnikStav): number => Math.max(0, Math.min(100, (b.vztek / VZTEK_MAX) * 100))
+
+/** Jedenácté kolo vylepšení — druhý ("hype") ukazatel — stejná 0..100
+ *  clamp disciplína jako vztekProcenta/hpProcenta/manaProcenta výš. */
+export const hypeProcenta = (b: BojovnikStav): number => Math.max(0, Math.min(100, (b.hype / HYPE_MAX) * 100))
+
+/** Jedenácté kolo vylepšení — jestli je hype právě teď plný (finisher
+ *  na příští speciál zdarma) — čti hotové pole, žádná logika navíc,
+ *  stejná disciplína jako maNaSpecial/jeComeback výš. */
+export const jeHypeGotov = (b: BojovnikStav): boolean => b.hype >= HYPE_MAX
 
 /** Desáté kolo vylepšení — interaktivní událost arény ('balvan', viz
  *  engine.ts's UDALOST_*). Čistě vizuální telegraf pro Bojiste.tsx —

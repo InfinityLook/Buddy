@@ -10,7 +10,7 @@ import {
   sestavVstup,
   type StatistikyZapasu,
 } from '../combat/loop'
-import { nahodnaPostava, pripravAkciAi } from '../combat/ai'
+import { nahodnaPostava, pripravAkciAi, VYCHOZI_OBTIZNOST, type Obtiznost } from '../combat/ai'
 import { POSTAVY } from '../combat/postavy'
 import type { PostavaId } from '../combat/postavy'
 import type { HracVstup, SoubojMoznosti, SoubojStav } from '../combat/types'
@@ -19,7 +19,7 @@ import { Bojiste } from './Bojiste'
 import { PostavaGrafika } from './PostavaGrafika'
 import { IntroPocitadlo } from './IntroPocitadlo'
 import { nastavNapjatostHudby, spustitHudbu, zastavitHudbu } from '../sound'
-import { ARENY, nahodnaArena, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
+import { arenaNahledGradient, ARENY, nahodnaArena, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
 // Vlastní import, ne spoléhání na to, že FightingModule.tsx ho už
 // natáhl — appka jednou přišla o styl přesně tímhle předpokladem
 // (viz GameModule.css/TvorbaPostavy.tsx v CLAUDE.md), CSS import je
@@ -101,6 +101,17 @@ const HANDICAP_MANA_NASOBIC = 1.75
 // (combat/ai.ts) místo přes živě držený stav tlačítek z broadcastu.
 const AI_HRAC_ID = 'pocitac-ai'
 
+// Jedenácté kolo vylepšení — obtížnost bota, vybíraná na stejné
+// čekací obrazovce jako "Hrát proti počítači" samotné — appka ji NEDÁ
+// jako přepínatelnou hodnotu (na rozdíl od arény/handicapu ta se totiž
+// vybírá AŽ V OKAMŽIKU doplnění AI slotu, ne dřív), a odtud dál po
+// celý zápas neměnná stejně jako zbytek voleb zápasu.
+const MOZNOSTI_OBTIZNOSTI: { hodnota: Obtiznost; popisek: string }[] = [
+  { hodnota: 'lehka', popisek: '🙂 Lehká' },
+  { hodnota: 'normalni', popisek: '😐 Normální' },
+  { hodnota: 'tezka', popisek: '😈 Těžká' },
+]
+
 // ==========================================
 // TV strana — vygeneruje kód místnosti, přiděluje připojující se
 // ovladače na sloty 1/2 a čeká, dokud oba nemají zvolenou postavu (buď
@@ -178,6 +189,14 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
   const [treninkovyRezim, setTreninkovyRezim] = useState(false)
   const [pocetNaVyhru, setPocetNaVyhru] = useState(VYCHOZI_POCET_NA_VYHRU)
   const [handicapPro, setHandicapPro] = useState<0 | 1 | null>(null)
+  // Jedenácté kolo vylepšení — obtížnost bota (viz MOZNOSTI_OBTIZNOSTI
+  // výš) a matchup 2. hráče (potřeba pro rival statistiky, viz
+  // konecZapasu handler v Ovladac.tsx) — ref ze stejného důvodu jako
+  // hraciRef/skoreRef: herní smyčka běží mimo React render cyklus a
+  // potřebuje na tik čerstvou hodnotu, ne uzavřenou z okamžiku startu.
+  const [obtiznostAi, setObtiznostAi] = useState<Obtiznost>(VYCHOZI_OBTIZNOST)
+  const obtiznostAiRef = useRef<Obtiznost>(VYCHOZI_OBTIZNOST)
+  obtiznostAiRef.current = obtiznostAi
   // Osmé kolo vylepšení — přehled posledního zápasu (combat/loop.ts's
   // StatistikyZapasu). Ref, ne state — aktualizuje se na KAŽDÉM tiku
   // herní smyčky (stejný důvod jako skoreRef/hraciRef), appka ho čte
@@ -357,7 +376,7 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
         // vstupPredchoziRef pro tenhle slot proto nepotřebuje.
         const vstup1: HracVstup =
           a1.hracId === AI_HRAC_ID
-            ? pripravAkciAi(soubojStavRef.current.hraci[1], soubojStavRef.current.hraci[0])
+            ? pripravAkciAi(soubojStavRef.current.hraci[1], soubojStavRef.current.hraci[0], obtiznostAiRef.current)
             : sestavVstup(a1.smer, vstupPredchoziRef.current[1], a1.tlacitka)
         if (a1.hracId !== AI_HRAC_ID) vstupPredchoziRef.current[1] = { ...a1.tlacitka }
 
@@ -427,7 +446,15 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
                 : skoreRef.current[0] > skoreRef.current[1]
                   ? 1
                   : 2
-            spravaRef.current?.oznamKonecZapasu({ vitezSlot: vitezZapasu })
+            // Jedenácté kolo vylepšení — obě postavy zápasu (viz
+            // types.ts's KonecZapasuPayload) — a0/a1 jsou tady jistě
+            // obě neprázdné (appka je vůbec dostala z destructuringu
+            // `if (a0 && a1 && ...)` výš), žádný fallback netřeba.
+            spravaRef.current?.oznamKonecZapasu({
+              vitezSlot: vitezZapasu,
+              postava0: a0.postavaId,
+              postava1: a1.postavaId,
+            })
           }
         }
       }
@@ -536,6 +563,7 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
             jmena={[hraci[0]?.jmeno ?? 'Hráč 1', hraci[1]?.jmeno ?? 'Hráč 2']}
             arenaId={arenaId}
             emotes={emoty}
+            kolo={skore[0] + skore[1] + 1}
           />
 
           {soubojStav.stavKola === 'konec' && zapasSkoncil && (
@@ -600,6 +628,9 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
                 className={`souboj-arena-volba ${a.id === arenaId ? 'is-vybrana' : ''}`}
                 onClick={() => setArenaId(a.id)}
               >
+                {/* Jedenácté kolo vylepšení — náhled arény (viz
+                    areny.ts's arenaNahledGradient). */}
+                <span className="souboj-arena-nahled" style={{ background: arenaNahledGradient(a) }} aria-hidden="true" />
                 <span aria-hidden="true">{a.ikona}</span> {a.nazev}
                 {a.nebezpeciOkraje ? ' ⚠️' : ''}
                 {/* Desáté kolo vylepšení — interaktivní událost arény,
@@ -719,9 +750,28 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
           </div>
 
           {hraci[0] && !hraci[1] && (
-            <button type="button" className="souboj-solo-btn" onClick={hratProtiPocitaci}>
-              🤖 Hrát proti počítači
-            </button>
+            <>
+              {/* Jedenácté kolo vylepšení — obtížnost bota, vybraná
+                  PŘED tím, než appka slot 2 doplní — jednou zvolená se
+                  dál po celý zápas nemění, stejná viditelnost jako
+                  handicap/délka zápasu výš. */}
+              <span className="souboj-nastaveni-nadpis">Obtížnost soupeře</span>
+              <div className="souboj-nastaveni-vyber" aria-label="Obtížnost bota">
+                {MOZNOSTI_OBTIZNOSTI.map((m) => (
+                  <button
+                    key={m.hodnota}
+                    type="button"
+                    className={`souboj-nastaveni-volba ${obtiznostAi === m.hodnota ? 'is-vybrana' : ''}`}
+                    onClick={() => setObtiznostAi(m.hodnota)}
+                  >
+                    {m.popisek}
+                  </button>
+                ))}
+              </div>
+              <button type="button" className="souboj-solo-btn" onClick={hratProtiPocitaci}>
+                🤖 Hrát proti počítači
+              </button>
+            </>
           )}
         </>
       )}

@@ -61,6 +61,15 @@ const VYSKA_POSTAVY = 1.35
  *  jeho hlava, žádné velké zpoždění nedává smysl, jen tolik hladkosti,
  *  ať prudké odražení (knockback) nepůsobí jako trhavý skok obrazu. */
 const RYCHLOST_HLAVY = 14
+/** Jedenácté kolo vylepšení — "dolly-in" na knokaut. Obě kamery mají
+ *  pevnou pozici (sedí na místě svého bojovníka) i pevný směr pohledu
+ *  (koukají na soupeře) — appka proto nemůže "přiblížit" posunutím
+ *  kamery dopředu, aniž by to zkreslilo, kde bojovníci doopravdy
+ *  stojí. Zúžení FOV (klasický "dolly zoom" bez skutečného pohybu
+ *  kamery) dá stejný dramatický efekt bez týhle nevýhody. */
+const FOV_VYCHOZI = 60
+const FOV_KO = 40
+const RYCHLOST_DOLLY = 3
 
 const worldX = (pozice: number, arenaSirka: number): number => (pozice / arenaSirka - 0.5) * SVET_SIRKA
 
@@ -85,6 +94,11 @@ interface UseSoubojSceneResult {
    *  neodregistruje 60× za sekundu jen proto, že stav rodiče na
    *  každý tik dostává novou funkci. */
   registrujSprite: (kamera: 0 | 1, bojovnik: 0 | 1) => (el: HTMLDivElement | null) => void
+  /** Jedenácté kolo vylepšení — "dolly-in" na knokaut (viz FOV_KO
+   *  výš). Zavolat s `true` na skutečný konec kola s vítězem, `false`
+   *  jinak — appka sama plynule lerpuje FOV obou kamer k cíli, ne že
+   *  by tenhle appel dělal skok. */
+  aktualizujKonecKola: (konec: boolean) => void
 }
 
 export const useSoubojScene = ({ arenaSirka, arena }: UseSoubojSceneOptions): UseSoubojSceneResult => {
@@ -92,9 +106,14 @@ export const useSoubojScene = ({ arenaSirka, arena }: UseSoubojSceneOptions): Us
   const [selhalo, setSelhalo] = useState(false)
   const poziceRef = useRef<[number, number]>([arenaSirka * 0.25, arenaSirka * 0.75])
   const spriteRefs = useRef<Record<string, HTMLDivElement | null>>({})
+  const konecKolaRef = useRef(false)
 
   const aktualizujPozice = (pozice0: number, pozice1: number) => {
     poziceRef.current = [pozice0, pozice1]
+  }
+
+  const aktualizujKonecKola = (konec: boolean) => {
+    konecKolaRef.current = konec
   }
 
   const registrujSprite = useMemo(() => {
@@ -313,10 +332,18 @@ export const useSoubojScene = ({ arenaSirka, arena }: UseSoubojSceneOptions): Us
       const protivnikX: [number, number] = [x1, x0]
 
       const lerpK = Math.min(1, RYCHLOST_HLAVY * dt)
+      // Jedenácté kolo vylepšení — dolly-in na knokaut (viz FOV_KO
+      // výš) — appka lerpuje FOV k cíli KAŽDÝ snímek bez ohledu na to,
+      // jestli konecKolaRef zrovna platí, ať se appka i sama vrátí na
+      // FOV_VYCHOZI plynule, ne skokem, jakmile další kolo začne.
+      const cilFov = konecKolaRef.current ? FOV_KO : FOV_VYCHOZI
+      const lerpFov = Math.min(1, RYCHLOST_DOLLY * dt)
       ;([0, 1] as const).forEach((i) => {
         kamery[i].position.x += (vlastniX[i] - kamery[i].position.x) * lerpK
         kamery[i].lookAt(protivnikX[i], VYSKA_POSTAVY, 0)
         kamery[i].updateMatrixWorld()
+        kamery[i].fov += (cilFov - kamery[i].fov) * lerpFov
+        kamery[i].updateProjectionMatrix()
       })
 
       // Jen sprite SOUPEŘE na každou kameru — vlastní bojovník se v
@@ -361,5 +388,5 @@ export const useSoubojScene = ({ arenaSirka, arena }: UseSoubojSceneOptions): Us
     }
   }, [arenaSirka, arena])
 
-  return { containerRef, selhalo, aktualizujPozice, registrujSprite }
+  return { containerRef, selhalo, aktualizujPozice, registrujSprite, aktualizujKonecKola }
 }

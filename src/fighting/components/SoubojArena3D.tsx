@@ -11,6 +11,10 @@ import type { BojovnikStav, SoubojStav, UtocnaAkce } from '../combat/types'
 interface Props {
   stav: SoubojStav
   zasazen: [boolean, boolean]
+  /** Jedenácté kolo vylepšení — motion trail (viz Bojiste.tsx's vlastní
+   *  komentář, jak se to počítá) — nepovinné, starší volání bez tohohle
+   *  prop appka bere jako "nikdo se nehýbe rychle". */
+  svizny?: [boolean, boolean]
   /** Vylepšení — kterou scénu (areny.ts) TV vybrala na čekací
    *  obrazovce před startem zápasu. Chybí-li (starší volání), padne
    *  appka na výchozí louku, ne na chybu. */
@@ -85,9 +89,9 @@ const VlastniStavPrekryv: React.FC<{
   )
 }
 
-export const SoubojArena3D: React.FC<Props> = ({ stav, zasazen, arenaId, onSelhalo }) => {
+export const SoubojArena3D: React.FC<Props> = ({ stav, zasazen, svizny, arenaId, onSelhalo }) => {
   const arena: Arena = ARENY[arenaId ?? VYCHOZI_ARENA]
-  const { containerRef, selhalo, aktualizujPozice, registrujSprite } = useSoubojScene({
+  const { containerRef, selhalo, aktualizujPozice, registrujSprite, aktualizujKonecKola } = useSoubojScene({
     arenaSirka: ARENA_SIRKA,
     arena,
   })
@@ -129,6 +133,14 @@ export const SoubojArena3D: React.FC<Props> = ({ stav, zasazen, arenaId, onSelha
     aktualizujPozice(stav.hraci[0].pozice, stav.hraci[1].pozice)
   }, [stav.hraci, aktualizujPozice])
 
+  // Jedenácté kolo vylepšení — dolly-in na knokaut (viz
+  // useSoubojScene.ts's vlastní komentář). Remíza/rozhodnutí časovým
+  // limitem se schválně nepočítá — tam nikdo formálně "nevypadl",
+  // stejné rozlišení jako Bojiste.tsx's vlastní "zpomalený" knokaut.
+  useEffect(() => {
+    aktualizujKonecKola(stav.stavKola === 'konec' && stav.vitez !== null)
+  }, [stav.stavKola, stav.vitez, aktualizujKonecKola])
+
   useEffect(() => {
     if (selhalo) onSelhalo()
   }, [selhalo, onSelhalo])
@@ -154,13 +166,18 @@ export const SoubojArena3D: React.FC<Props> = ({ stav, zasazen, arenaId, onSelha
         // Desáté kolo vylepšení — chyt, stejná detekce jako
         // SoubojArena2D.tsx's vlastní komentář.
         const jeChyt = vizStav === 'utok' && soupeř.posledniAkce === 'chyt'
+        // Jedenácté kolo vylepšení — vítězná póza (viz SoubojArena2D.tsx's
+        // vlastní komentář, stejná úvaha).
+        const jeVitez = stav.stavKola === 'konec' && stav.vitez === soupeřIdx
         return (
           <React.Fragment key={kamera}>
             <div ref={registrujSprite(kamera, soupeřIdx)} className="souboj-3d-sprite">
               <div
                 className={`souboj-bojovnik souboj-bojovnik--${soupeřIdx + 1} souboj-bojovnik--${vizStav} souboj-bojovnik--postava-${postava.id} ${
                   jeParry(soupeř) ? 'souboj-bojovnik--parry' : ''
-                } ${jeComeback(soupeř) ? 'souboj-bojovnik--comeback' : ''} ${jeChyt ? 'souboj-bojovnik--chyt' : ''}`}
+                } ${jeComeback(soupeř) ? 'souboj-bojovnik--comeback' : ''} ${jeChyt ? 'souboj-bojovnik--chyt' : ''} ${
+                  jeVitez ? 'souboj-bojovnik--vitez' : ''
+                } ${svizny?.[soupeřIdx] ? 'souboj-bojovnik--svizny' : ''}`}
               >
                 <PostavaGrafika postavaId={postava.id} size={54} />
                 {zasazen[soupeřIdx] && <Jiskry barva={barvaAkcentuPostavy(vlastni.postavaId)} />}

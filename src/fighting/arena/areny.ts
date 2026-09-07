@@ -121,3 +121,12 @@ export const SEZNAM_AREN: Arena[] = Object.values(ARENY)
  *  vlastní komentář nahoře, proč se nikdy neposílá po síti). */
 export const nahodnaArena = (nahodne: () => number = Math.random): ArenaId =>
   SEZNAM_AREN[Math.min(SEZNAM_AREN.length - 1, Math.floor(nahodne() * SEZNAM_AREN.length))].id
+
+/** Jedenácté kolo vylepšení — malý náhled arény pro výběrovou
+ *  obrazovku (TvHost.tsx/LocalniZapas.tsx), místo holé textové
+ *  pilulky. Odvozeno přímo ze skutečných barev arény (oblohy/mlhy dole
+ *  jako "nebe", země nahoře jako "podklad") — žádná druhá, ručně
+ *  malovaná sada barev pro totéž, appka nechce dvě místa, co by se
+ *  s časem mohly rozejít. */
+export const arenaNahledGradient = (a: Arena): string =>
+  `linear-gradient(180deg, ${a.barvaOblohy} 0%, ${a.barvaMlhy} 55%, ${a.barvaZeme} 100%)`

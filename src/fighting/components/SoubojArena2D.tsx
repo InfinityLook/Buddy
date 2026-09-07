@@ -9,6 +9,13 @@ import type { SoubojStav } from '../combat/types'
 interface Props {
   stav: SoubojStav
   zasazen: [boolean, boolean]
+  /** Jedenácté kolo vylepšení — motion trail. Appka schválně nepočítá
+   *  žádnou skutečnou rychlost (px/s) — jen hrubý odhad z toho, o
+   *  kolik se pozice posunula mezi dvěma po sobě jdoucími snímky
+   *  (Bojiste.tsx), dost pro čistě dekorativní efekt, ne pro přesné
+   *  měření. Nepovinné, starší volání bez tohohle prop appka bere jako
+   *  "nikdo se nehýbe rychle". */
+  svizny?: [boolean, boolean]
 }
 
 // ==========================================
@@ -21,7 +28,7 @@ interface Props {
 // oběma renderery plus společná hlavička (HP/mana pruhy).
 // ==========================================
 
-export const SoubojArena2D: React.FC<Props> = ({ stav, zasazen }) => {
+export const SoubojArena2D: React.FC<Props> = ({ stav, zasazen, svizny }) => {
   return (
     <div className="souboj-arena">
       <div className="souboj-arena-podlaha" aria-hidden="true" />
@@ -35,12 +42,19 @@ export const SoubojArena2D: React.FC<Props> = ({ stav, zasazen }) => {
         // ne dávno dohraný) appka pozná právě PROBÍHAJÍCÍ chyt, ne
         // jakýkoli chyt kdykoli dřív v kole.
         const jeChyt = vizualniStav === 'utok' && b.posledniAkce === 'chyt'
+        // Jedenácté kolo vylepšení — vítězná póza. Reaguje na `stav`
+        // přímo (ne na Bojiste.tsx's zpožděný bannerViditelny) — obojí
+        // se odehrává souběžně s dolly-in kamerou/knokautovými
+        // finishery, co taky nečekají na zpožděný text.
+        const jeVitez = stav.stavKola === 'konec' && stav.vitez === i
         return (
           <div
             key={i}
             className={`souboj-bojovnik souboj-bojovnik--${i + 1} souboj-bojovnik--${vizualniStav} souboj-bojovnik--postava-${postava.id} ${
               jeParry(b) ? 'souboj-bojovnik--parry' : ''
-            } ${jeComeback(b) ? 'souboj-bojovnik--comeback' : ''} ${jeChyt ? 'souboj-bojovnik--chyt' : ''}`}
+            } ${jeComeback(b) ? 'souboj-bojovnik--comeback' : ''} ${jeChyt ? 'souboj-bojovnik--chyt' : ''} ${
+              jeVitez ? 'souboj-bojovnik--vitez' : ''
+            } ${svizny?.[i] ? 'souboj-bojovnik--svizny' : ''}`}
             style={{ left: `${poziceProcenta(b, ARENA_SIRKA)}%` }}
           >
             <PostavaGrafika postavaId={postava.id} size={58} />

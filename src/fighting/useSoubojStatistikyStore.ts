@@ -24,12 +24,20 @@ interface SoubojZaznam {
  *  jinou identitu hráče než volenou postavu, a TV k tomuhle úložišti
  *  vůbec nemá přístup). Na rozdíl od `vysledky` (sečtená čísla za
  *  celou historii) tohle je poslední MAX_HISTORIE jednotlivých
- *  zápasů v pořadí od nejnovějšího — appka záměrně neukládá soupeřovu
- *  postavu (Ovladac.tsx's konecZapasu handler ji vůbec nezná, network
- *  ani KonecZapasuPayload ji nikdy neposílaly), jen svou vlastní
- *  postavu, výsledek a čas. */
+ *  zápasů v pořadí od nejnovějšího.
+ *
+ *  Jedenácté kolo vylepšení přidalo `souperId?` — dřív appka soupeřovu
+ *  postavu vůbec neznala (network/KonecZapasuPayload ji neposílaly),
+ *  teď TV (jediná strana, co OBĚ postavy doopravdy zná — obě prošly
+ *  její vlastní "VS" obrazovkou) rozešle obě jména spolu s výsledkem —
+ *  žádné nové soukromí to neotvírá, oba hráči už se navzájem viděli
+ *  na "VS" obrazovce, než zápas vůbec začal. Nepovinné (`?`), protože
+ *  sólo režim proti počítači souperId posílá taky (AI má svou vlastní
+ *  postavu), ale appka nechtěla dělat migraci pro starší uložené
+ *  záznamy bez něj. */
 export interface SoubojHistorieZaznam {
   postavaId: PostavaId
+  souperId?: PostavaId
   vysledek: 'vyhra' | 'prohra' | 'remiza'
   kdy: number
 }
@@ -37,7 +45,15 @@ export interface SoubojHistorieZaznam {
 interface SoubojStatistikyState {
   vysledky: Partial<Record<PostavaId, SoubojZaznam>>
   historie: SoubojHistorieZaznam[]
-  zaznamenejVysledek: (postavaId: PostavaId, vysledek: 'vyhra' | 'prohra' | 'remiza') => void
+  /** Jedenácté kolo vylepšení — "rival" statistiky. Vnořený záznam
+   *  [vlastní postava][soupeřova postava] → výhry/prohry/remízy proti
+   *  právě TÉ dvojici — appka to drží jako druhou, oddělenou strukturu
+   *  od `vysledky` (celkové součty bez ohledu na soupeře), ne že by
+   *  `vysledky` přepočítávala z týhle — obě mají jinou otázku, na
+   *  kterou odpovídají ("jak mi to jde celkově" vs. "jak mi to jde
+   *  PROTI TÉHLE konkrétní postavě"). */
+  zapasyProtiPostavam: Partial<Record<PostavaId, Partial<Record<PostavaId, SoubojZaznam>>>>
+  zaznamenejVysledek: (postavaId: PostavaId, vysledek: 'vyhra' | 'prohra' | 'remiza', souperId?: PostavaId) => void
 }
 
 const PRAZDNY_ZAZNAM: SoubojZaznam = { vyhry: 0, prohry: 0, remizy: 0 }
@@ -47,17 +63,32 @@ export const useSoubojStatistikyStore = create<SoubojStatistikyState>()(
     (set) => ({
       vysledky: {},
       historie: [],
+      zapasyProtiPostavam: {},
 
-      zaznamenejVysledek: (postavaId, vysledek) => {
+      zaznamenejVysledek: (postavaId, vysledek, souperId) => {
         set((state) => {
           const soucasny = state.vysledky[postavaId] ?? PRAZDNY_ZAZNAM
           const klic = vysledek === 'vyhra' ? 'vyhry' : vysledek === 'prohra' ? 'prohry' : 'remizy'
-          const zaznam: SoubojHistorieZaznam = { postavaId, vysledek, kdy: Date.now() }
+          const zaznam: SoubojHistorieZaznam = { postavaId, souperId, vysledek, kdy: Date.now() }
+
+          let zapasyProtiPostavam = state.zapasyProtiPostavam
+          if (souperId) {
+            const protiTemuto = state.zapasyProtiPostavam[postavaId]?.[souperId] ?? PRAZDNY_ZAZNAM
+            zapasyProtiPostavam = {
+              ...state.zapasyProtiPostavam,
+              [postavaId]: {
+                ...state.zapasyProtiPostavam[postavaId],
+                [souperId]: { ...protiTemuto, [klic]: protiTemuto[klic] + 1 },
+              },
+            }
+          }
+
           return {
             vysledky: {
               ...state.vysledky,
               [postavaId]: { ...soucasny, [klic]: soucasny[klic] + 1 },
             },
+            zapasyProtiPostavam,
             // Nejnovější první, oříznuto na MAX_HISTORIE — appka
             // nechce neomezeně rostoucí pole v secureStorage, a "co
             // se hrálo před pěti sty zápasy" stejně nikoho nezajímá.

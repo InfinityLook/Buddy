@@ -4,6 +4,7 @@ import { isSupabaseConfigured } from '@/core/supabase/client'
 import { TvHost } from './components/TvHost'
 import { Ovladac } from './components/Ovladac'
 import { LocalniZapas } from './components/LocalniZapas'
+import { Navod } from './components/Navod'
 import { odemkniZvuk } from './sound'
 import './FightingModule.css'
 
@@ -20,7 +21,7 @@ import './FightingModule.css'
 // (postavy, aréna, souboj samotný).
 // ==========================================
 
-type Role = 'vyber' | 'tv' | 'ovladac' | 'lokalne'
+type Role = 'vyber' | 'tv' | 'ovladac' | 'lokalne' | 'navod'
 
 export const FightingModule: React.FC = () => {
   const navigate = useNavigate()
@@ -46,6 +47,7 @@ export const FightingModule: React.FC = () => {
   if (role === 'tv') return <TvHost onZpet={() => setRole('vyber')} />
   if (role === 'ovladac') return <Ovladac onZpet={() => setRole('vyber')} />
   if (role === 'lokalne') return <LocalniZapas onZpet={() => setRole('vyber')} />
+  if (role === 'navod') return <Navod onZpet={() => setRole('vyber')} />
 
   return (
     <div className="souboj-page">
@@ -53,9 +55,21 @@ export const FightingModule: React.FC = () => {
         <button className="souboj-back-btn" onClick={() => navigate('/hra')}>
           ← Zpět do her
         </button>
-        <h1 className="souboj-title">Souboj</h1>
-        <p className="souboj-sub">Ve vývoji — zatím jen zkouška spojení telefon ↔ TV.</p>
       </header>
+
+      {/* Jedenácté kolo vylepšení — vlastní titulní obrazovka místo
+          holého textového nadpisu. Appka pořád nemá žádnou skutečnou
+          grafickou identitu (žádný art pipeline pro tuhle hru, viz
+          CLAUDE.md) — logo je proto stylizovaný text (gradient +
+          souboj-logo-jiskra dekorace), ne obrázek, stejná "poctivě
+          přiznaný, ne fingovaný" disciplína jako všude jinde v tomhle
+          souboru, kde na skutečné assety nedošlo. */}
+      <div className="souboj-titul" aria-label="Souboj">
+        <span className="souboj-logo-jiskra souboj-logo-jiskra--1" aria-hidden="true" />
+        <h1 className="souboj-logo">SOUBOJ</h1>
+        <span className="souboj-logo-jiskra souboj-logo-jiskra--2" aria-hidden="true" />
+        <p className="souboj-sub">Ve vývoji — zatím jen zkouška spojení telefon ↔ TV.</p>
+      </div>
 
       <div className="souboj-vyber">
         <button
@@ -108,6 +122,14 @@ export const FightingModule: React.FC = () => {
           </span>
         </button>
       </div>
+
+      {/* Jedenácté kolo vylepšení — movelist/tutorial (viz Navod.tsx),
+          samostatné tlačítko mimo souboj-vyber's tři role — otevření
+          návodu není "role", je to jen čtení, žádné síťové/lokální
+          rozhodnutí. */}
+      <button type="button" className="souboj-navod-btn" onClick={() => setRole('navod')}>
+        📖 Návod — postavy, arény, techniky
+      </button>
     </div>
   )
 }

@@ -27,6 +27,13 @@ import {
   krokSouboje,
   vytvorBojovnika,
   vytvorSoubojStav,
+  TECH_CHYT_STUN_MS,
+  CLASH_STUN_MS,
+  VSTAVANI_MS,
+  HYPE_MAX,
+  HYPE_ZISK_Z_POSKOZENI,
+  HYPE_FINISHER_NASOBIC,
+  MANA_ZA_ZASAH,
 } from '@/fighting/combat/engine'
 import type { HracVstup, SoubojMoznosti } from '@/fighting/combat/types'
 
@@ -611,5 +618,126 @@ describe('desáté kolo vylepšení — interaktivní událost arény (balvan)',
     expect(cyklusUdalostiAreny(0)).toBe(0)
     expect(cyklusUdalostiAreny(UDALOST_PERIODA_MS)).toBe(1)
     expect(stredUdalostiBalvan(0)).toBe(stredUdalostiBalvan(0))
+  })
+})
+
+describe('Jedenácté kolo vylepšení — tech na chyt', () => {
+  it('obě strany chytnou ve stejném tiku — žádné poškození, oba omráčeni', () => {
+    let stav = vytvorSoubojStav(0, 40)
+    const hp0 = stav.hraci[0].hp
+    const hp1 = stav.hraci[1].hp
+    stav = krokSouboje(stav, [{ ...stat, akce: 'chyt' }, { ...stat, akce: 'chyt' }], 0)
+    expect(stav.hraci[0].hp).toBe(hp0)
+    expect(stav.hraci[1].hp).toBe(hp1)
+    expect(stav.hraci[0].zranitelnostKonci).toBeGreaterThanOrEqual(TECH_CHYT_STUN_MS)
+    expect(stav.hraci[1].zranitelnostKonci).toBeGreaterThanOrEqual(TECH_CHYT_STUN_MS)
+  })
+
+  it('jen jedna strana chytne — obyčejný neblokovatelný zásah proběhne normálně', () => {
+    let stav = vytvorSoubojStav(0, 40)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'chyt' }, stat], 0)
+    expect(stav.hraci[1].hp).toBeLessThan(MAX_HP)
+    expect(stav.hraci[0].hp).toBe(MAX_HP)
+  })
+})
+
+describe('Jedenácté kolo vylepšení — simultánní clash', () => {
+  it('oba útočí ve stejném tiku a jsou navzájem v dosahu — žádné poškození, odražení od sebe', () => {
+    let stav = vytvorSoubojStav(100, 140)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, { ...stat, akce: 'udar' }], 0)
+    expect(stav.hraci[0].hp).toBe(MAX_HP)
+    expect(stav.hraci[1].hp).toBe(MAX_HP)
+    expect(stav.hraci[0].pozice).toBeLessThan(100)
+    expect(stav.hraci[1].pozice).toBeGreaterThan(140)
+    expect(stav.hraci[0].zranitelnostKonci).toBe(CLASH_STUN_MS)
+    expect(stav.hraci[1].zranitelnostKonci).toBe(CLASH_STUN_MS)
+  })
+
+  it('oba útočí, ale jsou mimo dosah — žádný clash, obyčejné minutí', () => {
+    let stav = vytvorSoubojStav(0, ARENA_SIRKA)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, { ...stat, akce: 'udar' }], 0)
+    expect(stav.hraci[0].hp).toBe(MAX_HP)
+    expect(stav.hraci[1].hp).toBe(MAX_HP)
+    expect(stav.hraci[0].zranitelnostKonci).toBe(0)
+  })
+
+  it('jen jedna strana útočí — obyčejný zásah, žádný clash', () => {
+    let stav = vytvorSoubojStav(0, 40)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 0)
+    expect(stav.hraci[1].hp).toBeLessThan(MAX_HP)
+    expect(stav.hraci[0].zranitelnostKonci).toBe(0)
+  })
+})
+
+describe('Jedenácté kolo vylepšení — sražení k zemi a vstávání', () => {
+  it('naplno dopadlý kop srazí cíl — sraceny/vstavaniKonci se nastaví místo obyčejného hitstunu', () => {
+    let stav = vytvorSoubojStav(0, 40)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], 0)
+    expect(stav.hraci[1].hp).toBeLessThan(MAX_HP)
+    expect(stav.hraci[1].sraceny).toBe(true)
+    expect(stav.hraci[1].vstavaniKonci).toBe(VSTAVANI_MS)
+  })
+
+  it('blokovaný kop nesráží — obyčejné blokované zeslabení', () => {
+    let stav = vytvorSoubojStav(0, 40)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, { ...stat, blok: true }], 0)
+    expect(stav.hraci[1].sraceny).toBe(false)
+  })
+
+  it('ležící bojovník je úplně nezranitelný, dokud vstavaniKonci neuplyne', () => {
+    let stav = vytvorSoubojStav(0, 40)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], 0)
+    const hpPoSrazeni = stav.hraci[1].hp
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 50)
+    expect(stav.hraci[1].hp).toBe(hpPoSrazeni)
+  })
+
+  it('drží-li se blok přesně na tiku, kdy se dopočítá vstávání, bojovník vstane rovnou blokující', () => {
+    let stav = vytvorSoubojStav(0, 40)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], 0)
+    stav = krokSouboje(stav, [stat, { ...stat, blok: true }], VSTAVANI_MS)
+    expect(stav.hraci[1].vstavaniKonci).toBe(0)
+    expect(stav.hraci[1].sraceny).toBe(false)
+    expect(stav.hraci[1].blokuje).toBe(true)
+  })
+
+  it('bez drženého bloku vstane do obyčejného idle, může jednat hned dál', () => {
+    let stav = vytvorSoubojStav(0, 40)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'kop' }, stat], 0)
+    stav = krokSouboje(stav, [stat, stat], VSTAVANI_MS)
+    expect(stav.hraci[1].vstavaniKonci).toBe(0)
+    expect(stav.hraci[1].blokuje).toBe(false)
+  })
+})
+
+describe('Jedenácté kolo vylepšení — hype finisher', () => {
+  it('hype roste z každého doručeného zásahu, útočníkovi i cíli stejně', () => {
+    let stav = vytvorSoubojStav(0, 40)
+    stav = krokSouboje(stav, [{ ...stat, akce: 'udar' }, stat], 0)
+    const ocekavane = (MAX_HP - stav.hraci[1].hp) * HYPE_ZISK_Z_POSKOZENI
+    expect(stav.hraci[0].hype).toBeCloseTo(ocekavane)
+    expect(stav.hraci[1].hype).toBeCloseTo(ocekavane)
+  })
+
+  it('plný hype udělá další speciál zdarma (bez many) a silnější, spotřebuje hype na 0', () => {
+    let stav = vytvorSoubojStav(0, 40)
+    stav.hraci[0] = { ...stav.hraci[0], hype: HYPE_MAX, mana: 0 }
+    const jedenSpecial = AKCE_DATA.specialni.poskozeni
+    stav = krokSouboje(stav, [{ ...stat, akce: 'specialni' }, stat], 0)
+    expect(MAX_HP - stav.hraci[1].hp).toBeCloseTo(jedenSpecial * HYPE_FINISHER_NASOBIC)
+    // Finisher sám nestojí manu (byl zdarma), ale ÚTOČNÍK pořád dostane
+    // MANA_ZA_ZASAH za skutečně doručený zásah, stejně jako u kteréhokoli
+    // jiného doopravdy dopadlého útoku — appka nechce, aby finisher
+    // vlastníka připravil o obyčejný zisk many z landnutého zásahu.
+    expect(stav.hraci[0].mana).toBe(MANA_ZA_ZASAH)
+    expect(stav.hraci[0].hype).toBeLessThan(HYPE_MAX)
+  })
+
+  it('bez plného hype a bez many speciál vůbec nevyjde (spadne na no-op, ne na finisher)', () => {
+    let stav = vytvorSoubojStav(0, 40)
+    stav.hraci[0] = { ...stav.hraci[0], hype: 0, mana: 0 }
+    stav = krokSouboje(stav, [{ ...stat, akce: 'specialni' }, stat], 0)
+    expect(stav.hraci[1].hp).toBe(MAX_HP)
+    expect(stav.hraci[0].posledniAkce).toBeNull()
   })
 })

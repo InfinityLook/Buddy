@@ -65,6 +65,9 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
   // připojení samotné.
   const [zobrazStatistiky, setZobrazStatistiky] = useState(false)
   const vysledky = useSoubojStatistikyStore((s) => s.vysledky)
+  // Jedenácté kolo vylepšení — "rival" statistiky (viz
+  // useSoubojStatistikyStore.ts's zapasyProtiPostavam).
+  const zapasyProtiPostavam = useSoubojStatistikyStore((s) => s.zapasyProtiPostavam)
   // Deváté kolo vylepšení — historie posledních zápasů (viz
   // useSoubojStatistikyStore.ts's vlastní komentář, proč bez soupeřovy
   // postavy — appka ji vůbec nezná).
@@ -88,20 +91,27 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
       },
       konecZapasu: (p: KonecZapasuPayload) => {
         const muj = slotRef.current
+        // Jedenácté kolo vylepšení — rival statistiky. `p.postava0`/
+        // `postava1` odpovídají slotu 1/2 (viz TvHost.tsx's `hraci`
+        // pole, index 0 = slot 1), takže "moje" postava je ta druhá
+        // strana toho, co appka právě sama poslala — zaznamenejVysledek
+        // dostane soupeřovu postavu jen v odpovídajícím jazyce, ne
+        // dvakrát to samé.
+        const souperId = muj === 1 ? p.postava1 : muj === 2 ? p.postava0 : undefined
         if (p.vitezSlot === null) {
           useGamificationStore.getState().addXp(XP_UCAST)
-          if (postavaId) useSoubojStatistikyStore.getState().zaznamenejVysledek(postavaId, 'remiza')
+          if (postavaId) useSoubojStatistikyStore.getState().zaznamenejVysledek(postavaId, 'remiza', souperId)
           setVysledekZapasu(`Remíza — +${XP_UCAST} XP`)
           zavibrujRemizu()
         } else if (p.vitezSlot === muj) {
           useGamificationStore.getState().recordAction('souboj', XP_VYHRA)
           useWalletStore.getState().credit(KREDITY_VYHRA)
-          if (postavaId) useSoubojStatistikyStore.getState().zaznamenejVysledek(postavaId, 'vyhra')
+          if (postavaId) useSoubojStatistikyStore.getState().zaznamenejVysledek(postavaId, 'vyhra', souperId)
           setVysledekZapasu(`Vyhrál jsi! +${XP_VYHRA} XP, +${KREDITY_VYHRA} kreditů`)
           zavibrujVyhru()
         } else {
           useGamificationStore.getState().addXp(XP_UCAST)
-          if (postavaId) useSoubojStatistikyStore.getState().zaznamenejVysledek(postavaId, 'prohra')
+          if (postavaId) useSoubojStatistikyStore.getState().zaznamenejVysledek(postavaId, 'prohra', souperId)
           setVysledekZapasu(`Prohrál jsi — +${XP_UCAST} XP`)
           zavibrujProhru()
         }
@@ -180,6 +190,18 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
           {VSECHNY_POSTAVY.map((p) => {
             const z = vysledky[p.id] ?? { vyhry: 0, prohry: 0, remizy: 0 }
             const celkem = z.vyhry + z.prohry + z.remizy
+            // Jedenácté kolo vylepšení — nejčastěji hraný soupeř TÉHLE
+            // postavy, počítáno jako "s kým se odehrálo nejvíc zápasů
+            // celkem", ne "proti komu je nejlepší poměr" — appka chce
+            // ukázat rivalitu, ne jen náhodně vytrženou jednu výhru.
+            let nejcastejsi: { id: PostavaId; vyhry: number; celkem: number } | null = null
+            for (const [souperId, sz] of Object.entries(zapasyProtiPostavam[p.id] ?? {}) as [
+              PostavaId,
+              { vyhry: number; prohry: number; remizy: number },
+            ][]) {
+              const c = sz.vyhry + sz.prohry + sz.remizy
+              if (!nejcastejsi || c > nejcastejsi.celkem) nejcastejsi = { id: souperId, vyhry: sz.vyhry, celkem: c }
+            }
             return (
               <div key={p.id} className="souboj-statistiky-radek">
                 <span className="souboj-statistiky-jmeno">
@@ -192,6 +214,12 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
                     <span className="souboj-stat souboj-stat--vyhra">{z.vyhry} V</span>
                     <span className="souboj-stat souboj-stat--prohra">{z.prohry} P</span>
                     <span className="souboj-stat souboj-stat--remiza">{z.remizy} R</span>
+                  </span>
+                )}
+                {nejcastejsi && (
+                  <span className="souboj-statistiky-rival">
+                    Nejčastější soupeř: {POSTAVY[nejcastejsi.id].ikona} {POSTAVY[nejcastejsi.id].jmeno} — {nejcastejsi.vyhry}/
+                    {nejcastejsi.celkem} výher
                   </span>
                 )}
               </div>
