@@ -74,6 +74,46 @@
   gap: 0.6rem;
 }
 
+/* Hlavička karty jako klikatelné tlačítko — pro pět položek menu na
+   hlavní stránce (viz SettingsModule.tsx's MENU_POLOZKY) i pro
+   akordeony uvnitř podobrazovek (Vzhled/Rámeček, Soukromí/Social,
+   Zálohování dat). Vizuálně stejná jako .settings-card-head, jen
+   resetovaná jako <button> a s šipkou napravo. */
+.settings-accordion-hlava {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-accordion-hlava > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-accordion-sipka {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+/* Otevřený akordeon: šipka se otočí o 90°. U položek menu na hlavní
+   stránce se tahle třída nikdy nepřidává (klik tam vždycky naviguje
+   pryč, nic se nerozbaluje), takže tam šipka zůstává směřovat vpravo. */
+.settings-accordion-sipka.je-otevreno {
+  transform: rotate(90deg);
+  color: var(--accent-cyan);
+}
+
 .settings-card-icon {
   width: 34px;
   height: 34px;
@@ -319,6 +359,91 @@
   vertical-align: middle;
 }
 
+/* ---------- zvuk ---------- */
+
+.settings-zvuk-radek {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.4rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.settings-zvuk-radek:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.settings-zvuk-hlava {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settings-zvuk-hlava > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-zvuk-ikona {
+  flex-shrink: 0;
+  font-size: 1.1rem;
+  width: 28px;
+  text-align: center;
+}
+
+.settings-zvuk-procent {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-cyan);
+  min-width: 2.6em;
+  text-align: right;
+}
+
+/* Vlastní styl posuvníku — appka jinde v projektu žádný <input
+   type="range"> nepoužívá, takže si musí definovat vzhled sama, ne
+   spoléhat na prohlížečovou výchozí (šedou, nezapadající do tématu). */
+.settings-zvuk-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  outline: none;
+  margin: 0;
+}
+
+.settings-zvuk-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+  border: 2px solid #06121f;
+  cursor: pointer;
+}
+
+.settings-zvuk-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent-violet), var(--accent-cyan));
+  border: 2px solid #06121f;
+  cursor: pointer;
+}
+
+.settings-zvuk-slider::-moz-range-track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+}
+
 /* ---------- vzhled aplikace ---------- */
 
 .settings-theme-grid {
@@ -462,6 +587,11 @@
    jako každá jiná karta, tady je jen seznam uložených snímků navíc,
    stejný "malý seznam pod kartou" tvar jako .settings-zarizeni výš,
    jen přejmenovaný podle toho, co doopravdy vypisuje. */
+.settings-zaloha-popis {
+  margin-bottom: 0.2rem;
+  line-height: 1.4;
+}
+
 .settings-zaloha-section {
   display: flex;
   flex-direction: column;

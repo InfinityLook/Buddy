@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { ziskejHlasitost } from '@/core/store/useZvukStore'
 import { zeptejSeBuddyho } from './api'
 import { BuddyStav, BuddyZprava } from './types'
 
@@ -83,6 +84,11 @@ export const useBuddyVoice = (): UseBuddyVoiceResult => {
     setStav('mluvi')
     const projev = new SpeechSynthesisUtterance(text)
     projev.lang = JAZYK
+    // Nastavení — Zvuk (core/store/useZvukStore.ts). Volume se čte na
+    // KAŽDÉ nové promluvení zvlášť, ne jednou při startu appky — appka
+    // tak vždycky použije aktuální hodnotu z posuvníku, i když se hráč
+    // stihl přehrabat v Nastavení mezi dvěma koly rozhovoru.
+    projev.volume = ziskejHlasitost('buddy')
 
     const hlasy = window.speechSynthesis.getVoices()
     const ceskyHlas = hlasy.find((h) => h.lang?.toLowerCase().startsWith('cs'))

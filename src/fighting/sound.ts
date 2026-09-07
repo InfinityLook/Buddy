@@ -1,3 +1,5 @@
+import { useZvukStore, ziskejHlasitost } from '@/core/store/useZvukStore'
+
 // ==========================================
 // Souboj — zvukové efekty pro TV stranu (tam jsou reproduktory, ne na
 // telefonu — ovladač dostává místo toho vibrace, viz haptika.ts).
@@ -12,16 +14,39 @@
 // spuštěné odkudkoli (i z requestAnimationFrame smyčky bez vlastního
 // gesta, jako TvHost.tsx's herní tik) už normálně hrají — prohlížeč
 // vyžaduje gesto jen na první odemčení kontextu, ne na každé přehrání.
+//
+// Nastavení — Zvuk (core/store/useZvukStore.ts) přidalo `masterGain` —
+// jeden sdílený uzel mezi VŠEMI zvuky týhle hry a `ctx.destination`,
+// místo aby si appka násobič hlasitosti počítala zvlášť pro každý
+// jednotlivý tón. Appka se na store přihlásí JEDNOU (subscribe, ne
+// hook — sound.ts není komponenta), takže tažení posuvníku "Hra" v
+// Nastavení ztiší i právě běžící ambientní hudbu okamžitě, ne až na
+// další zápas.
 // ==========================================
 
 let audioCtx: AudioContext | null = null
+let masterGain: GainNode | null = null
+
+/** Znovu spočítá a nastaví `masterGain` z aktuálního Nastavení —
+ *  appka to volá jednou při vytvoření kontextu a pak znovu při KAŽDÉ
+ *  změně uloženého Master/Hra posuvníku (viz subscribe níž). */
+const aplikujHlasitost = () => {
+  if (masterGain) masterGain.gain.value = ziskejHlasitost('hra')
+}
+
+useZvukStore.subscribe(aplikujHlasitost)
 
 export const odemkniZvuk = () => {
   if (audioCtx) return
   try {
     const Ctor =
       window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (Ctor) audioCtx = new Ctor()
+    if (Ctor) {
+      audioCtx = new Ctor()
+      masterGain = audioCtx.createGain()
+      masterGain.connect(audioCtx.destination)
+      aplikujHlasitost()
+    }
   } catch {
     audioCtx = null
   }
@@ -29,11 +54,11 @@ export const odemkniZvuk = () => {
 }
 
 const ton = (frekvence: number, delkaS: number, hlasitost = 0.2, typ: OscillatorType = 'sine', zpozdeniS = 0) => {
-  if (!audioCtx) return
+  if (!audioCtx || !masterGain) return
   try {
     const zacatek = audioCtx.currentTime + zpozdeniS
     const gain = audioCtx.createGain()
-    gain.connect(audioCtx.destination)
+    gain.connect(masterGain)
     gain.gain.setValueAtTime(0.0001, zacatek)
     gain.gain.exponentialRampToValueAtTime(hlasitost, zacatek + 0.01)
     gain.gain.exponentialRampToValueAtTime(0.0001, zacatek + delkaS)

@@ -1,3 +1,4 @@
+import { useZvukStore, ziskejHlasitost } from '@/core/store/useZvukStore'
 import type { DrumSound } from './types'
 
 // ==========================================
@@ -14,12 +15,36 @@ import type { DrumSound } from './types'
 // uvnitř skutečného gesta uživatele, další zvuky pak už jedou na tom
 // samém.
 let sdilenyKontext: AudioContext | null = null
+// Nastavení — Zvuk. Stejný "jeden sdílený masterGain mezi vším a
+// ctx.destination" trik jako fighting/sound.ts — appka se na store
+// přihlásí jednou, ať tažení posuvníku "Music" ztiší i právě hrající
+// beat okamžitě, ne až na další přehrání.
+let masterGain: GainNode | null = null
+
+const aplikujHlasitost = () => {
+  if (masterGain) masterGain.gain.value = ziskejHlasitost('music')
+}
+
+useZvukStore.subscribe(aplikujHlasitost)
 
 export const ziskejKontext = (): AudioContext => {
-  if (!sdilenyKontext) sdilenyKontext = new AudioContext()
+  if (!sdilenyKontext) {
+    sdilenyKontext = new AudioContext()
+    masterGain = sdilenyKontext.createGain()
+    masterGain.connect(sdilenyKontext.destination)
+    aplikujHlasitost()
+  }
   if (sdilenyKontext.state === 'suspended') void sdilenyKontext.resume()
   return sdilenyKontext
 }
+
+/** Cíl, kam appka připojuje KAŽDÝ jednotlivý zvukový uzel místo přímo
+ *  `ctx.destination` — viz hrajKick/hrajSnare/hrajHihat níž. Nikdy
+ *  null, jakmile appka jednou zavolala ziskejKontext() (ta ho založí
+ *  spolu s kontextem), ale appka to nechce vynucovat non-null assercí
+ *  přímo v každém volajícím — fallback na ctx.destination je stejně
+ *  bezpečný, jen bez hlasitostní násobičky. */
+const ziskejVystup = (ctx: AudioContext): AudioNode => masterGain ?? ctx.destination
 
 /** Krátký šumový buffer, znovu vytvořený jen jednou a pak sdílený mezi
  *  snare/hi-hat — obě potřebují bílý šum, jen jinak filtrovaný. */
@@ -38,7 +63,7 @@ const hrajKick = (ctx: AudioContext, cas: number) => {
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()
   osc.connect(gain)
-  gain.connect(ctx.destination)
+  gain.connect(ziskejVystup(ctx))
 
   osc.frequency.setValueAtTime(150, cas)
   osc.frequency.exponentialRampToValueAtTime(40, cas + 0.15)
@@ -59,7 +84,7 @@ const hrajSnare = (ctx: AudioContext, cas: number) => {
   const sumGain = ctx.createGain()
   sum.connect(sumFiltr)
   sumFiltr.connect(sumGain)
-  sumGain.connect(ctx.destination)
+  sumGain.connect(ziskejVystup(ctx))
   sumGain.gain.setValueAtTime(0.7, cas)
   sumGain.gain.exponentialRampToValueAtTime(0.01, cas + 0.15)
 
@@ -69,7 +94,7 @@ const hrajSnare = (ctx: AudioContext, cas: number) => {
   osc.frequency.value = 180
   const oscGain = ctx.createGain()
   osc.connect(oscGain)
-  oscGain.connect(ctx.destination)
+  oscGain.connect(ziskejVystup(ctx))
   oscGain.gain.setValueAtTime(0.4, cas)
   oscGain.gain.exponentialRampToValueAtTime(0.01, cas + 0.1)
 
@@ -88,7 +113,7 @@ const hrajHihat = (ctx: AudioContext, cas: number) => {
   const gain = ctx.createGain()
   sum.connect(filtr)
   filtr.connect(gain)
-  gain.connect(ctx.destination)
+  gain.connect(ziskejVystup(ctx))
   gain.gain.setValueAtTime(0.35, cas)
   gain.gain.exponentialRampToValueAtTime(0.01, cas + 0.05)
 
