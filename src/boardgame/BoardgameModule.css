@@ -1,0 +1,322 @@
+/* ==========================================
+   BUDDYHO TRH — Fáze 0 (lokální mřížka, kostka, pohyb). Stejný
+   "glass karty na tmavém pozadí" jazyk jako .souboj-page/.games-page.
+   ========================================== */
+
+.trh-page {
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background:
+    radial-gradient(circle at 18% 8%, rgba(76, 175, 106, 0.14) 0%, transparent 42%),
+    radial-gradient(circle at 88% 80%, rgba(245, 196, 81, 0.14) 0%, transparent 42%),
+    var(--bg-base);
+  color: var(--text-primary);
+  padding: calc(0.9rem + env(safe-area-inset-top)) 1rem calc(1.25rem + env(safe-area-inset-bottom));
+  max-width: 480px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.trh-top-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.trh-back-btn {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2rem 0;
+  cursor: pointer;
+}
+
+.trh-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+.trh-sub {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.trh-faze-poznamka {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.trh-varovani {
+  font-size: 0.78rem;
+  color: #fbbf24;
+}
+
+/* ---------- Menu ---------- */
+
+.trh-volba {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  text-align: left;
+  background: var(--bg-glass);
+  backdrop-filter: blur(14px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.trh-volba-ikona {
+  font-size: 1.8rem;
+}
+
+.trh-volba-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.trh-volba-text strong {
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+/* ---------- Nastavení hry ---------- */
+
+.trh-stepper-radek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.7rem 0.9rem;
+  font-size: 0.85rem;
+}
+
+.trh-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.trh-stepper button {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.trh-stepper button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.trh-sedadla {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trh-sedadlo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.7rem;
+}
+
+.trh-sedadlo-jmeno,
+.trh-sedadlo-jmeno-input {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.trh-sedadlo-jmeno-input {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.5rem;
+  min-width: 0;
+  flex: 1;
+  font-family: inherit;
+}
+
+.trh-postava-btn {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.trh-spustit-btn {
+  margin-top: 0.2rem;
+  background: linear-gradient(90deg, #4caf6a, #f5c451);
+  color: #06121f;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.trh-spustit-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---------- Herní obrazovka ---------- */
+
+.trh-page--hra {
+  gap: 0.6rem;
+}
+
+.trh-deska-obal {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  aspect-ratio: 1 / 1;
+  background: #0c1220;
+}
+
+.trh-deska-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.trh-poradi {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.trh-poradi-hrac {
+  font-size: 0.68rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+}
+
+.trh-poradi-hrac.je-na-tahu {
+  border-color: var(--accent-cyan);
+  color: var(--text-primary);
+}
+
+.trh-ovladani {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.trh-na-tahu {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.trh-kostka-btn {
+  background: linear-gradient(90deg, #f5c451, #c2694b);
+  color: #06121f;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.7rem 1.4rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.trh-kostka-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.trh-zbyva {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.trh-dpad {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  grid-template-rows: repeat(2, 44px);
+  gap: 0.35rem;
+  justify-content: center;
+}
+
+.trh-dpad-btn {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.trh-dpad-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.trh-dpad-btn--nahoru { grid-column: 2; grid-row: 1; }
+.trh-dpad-btn--vlevo { grid-column: 1; grid-row: 2; }
+.trh-dpad-btn--vpravo { grid-column: 3; grid-row: 2; }
+.trh-dpad-btn--dolu { grid-column: 2; grid-row: 2; }
+
+.trh-ukoncit-tah-btn {
+  margin-top: 0.2rem;
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  padding: 0.45rem 0.9rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.trh-ukoncit-tah-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}

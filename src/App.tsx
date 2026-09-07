@@ -34,6 +34,11 @@ const SocialModule = lazy(() => import('@/social/SocialModule'))
 // o herní vykreslování stejně jako Buddyheim, líný import od začátku
 // místo přechodu na něj až dodatečně.
 const FightingModule = lazy(() => import('@/fighting/FightingModule'))
+// Buddyho Trh (třetí/sedmá hra, zatím jen Fáze 0 — lokální mřížka,
+// kostka, pohyb, žádná ekonomika, viz src/boardgame/). Používá Three.js
+// pro 3D desku stejně jako Souboj/Buddyheim, proto líný import od
+// začátku, ne až dodatečně.
+const BoardgameModule = lazy(() => import('@/boardgame/BoardgameModule'))
 import { BootGate } from '@/components/BootGate'
 import { BiometricLock } from '@/components/BiometricLock'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
@@ -344,6 +349,24 @@ export default function App() {
               dovnitr ? (
                 <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
                   <FightingModule />
+                </Suspense>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
+
+          {/* Route pro Buddyho Trh (třetí/sedmá hra, zatím jen Fáze 0 —
+              lokální mřížka, kostka, pohyb, viz src/boardgame/). Na
+              rozdíl od Souboje nepotřebuje cloud vůbec — celá hra běží
+              na jednom zařízení. Ještě se nenabízí z rozcestníku her
+              jako skutečná karta, jde na ni jen přímý odkaz. */}
+          <Route
+            path="/hra/trh"
+            element={
+              dovnitr ? (
+                <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
+                  <BoardgameModule />
                 </Suspense>
               ) : (
                 <Navigate to="/" replace />
