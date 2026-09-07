@@ -31,11 +31,12 @@
     radial-gradient(circle at 50% 0%, rgba(138, 92, 246, 0.15) 0%, transparent 50%),
     radial-gradient(circle at 80% 90%, rgba(53, 196, 240, 0.1) 0%, transparent 40%);
   color: var(--app-text-main);
-  /* Spodní odsazení musí pokrýt výšku AppBottomNav (Fáze 4 Social nav
-     reworku, ~78px reálně naměřeno) — jinak poslední karta/dlaždice
-     zůstane napůl schovaná pod přilepenou lištou, stejná past jako
-     u .social-toast's vlastního posunu kvůli Social's bottom nav. */
-  padding: 1rem 1rem calc(5.5rem + env(safe-area-inset-bottom)) 1rem;
+  /* Stejná oprava jako ProfilModule.css's vlastní komentář — AppBottomNav
+     je sticky flex prvek, co si svoji výšku rezervuje sám, ne fixed
+     overlay nad obsahem, takže nepotřebuje dodatečné odsazení na svoji
+     výšku. Původní `calc(5.5rem + …)` nechávalo při doscrollování úplně
+     dolů viditelný mrtvý pruh prázdna pod lištou (real screenshot). */
+  padding: 1rem 1rem calc(1.5rem + env(safe-area-inset-bottom)) 1rem;
   max-width: 900px;
   margin: 0 auto;
   display: flex;

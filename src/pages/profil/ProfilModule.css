@@ -1033,10 +1033,17 @@
     radial-gradient(circle at 50% 95%, rgba(236, 72, 153, 0.13) 0%, transparent 45%),
     var(--profil-bg);
   color: var(--profil-text-main);
-  /* Spodní odsazení musí pokrýt výšku AppBottomNav (Fáze 4 Social nav
-     reworku, ~78px reálně naměřeno) — jinak poslední karta ("MŮJ KÓD")
-     zůstane napůl schovaná pod přilepenou lištou. */
-  padding: 0.75rem 0.75rem calc(5.5rem + env(safe-area-inset-bottom));
+  /* AppBottomNav (Fáze 4 Social nav reworku) je `position: sticky`
+     JAKO OBYČEJNÝ FLEX PRVEK téhle stránky, ne `position: fixed`
+     přilepený nad obsahem — svoji vlastní výšku si tak v layoutu
+     rezervuje sama, žádné dodatečné odsazení "na výšku lišty" navíc
+     nepotřebuje. Původní `calc(5.5rem + …)` (téměř přesně výška lišty)
+     tohle spletlo — reálný screenshot ukázal, že to při doscrollování
+     úplně dolů nechá pod lištou vzniknout mrtvý ~88px pruh prázdna
+     mezi ní a skutečným koncem obrazovky, ne že by cokoli schovávalo.
+     Zbylo jen malé, poctivé odsazení pro dech + skutečnou bezpečnou
+     zónu zařízení. */
+  padding: 0.75rem 0.75rem calc(1.5rem + env(safe-area-inset-bottom));
   max-width: 480px;
   margin: 0 auto;
   display: flex;
