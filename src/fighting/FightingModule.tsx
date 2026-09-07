@@ -33,7 +33,17 @@ import './FightingModule.css'
 // proti botovi s náhodnou postavou/arénou, žádný výběr navíc.
 // ==========================================
 
-type Role = 'vyber' | 'tv' | 'ovladac' | 'lokalne' | 'navod' | 'rychlyStart' | 'zebricek' | 'turnaj' | 'online'
+type Role =
+  | 'vyber'
+  | 'tvOvladac'
+  | 'tv'
+  | 'ovladac'
+  | 'lokalne'
+  | 'navod'
+  | 'rychlyStart'
+  | 'zebricek'
+  | 'turnaj'
+  | 'online'
 
 export const FightingModule: React.FC = () => {
   const navigate = useNavigate()
@@ -82,6 +92,55 @@ export const FightingModule: React.FC = () => {
   if (role === 'online') return <OnlineLobby onZpet={() => setRole('vyber')} />
   if (role === 'rychlyStart') return <RychlyStart onZpet={() => setRole('vyber')} />
 
+  if (role === 'tvOvladac') {
+    return (
+      <div className="souboj-page">
+        <header className="souboj-top-bar">
+          <button className="souboj-back-btn" onClick={() => setRole('vyber')}>
+            ← Zpět
+          </button>
+          <h1 className="souboj-title">TV a ovladač</h1>
+        </header>
+        <p className="souboj-sub">
+          Jedno zařízení je obrazovka u televize, druhé ovladač v ruce — vyber, čím bude TOHLE zařízení.
+        </p>
+
+        <div className="souboj-vyber">
+          <button
+            className="souboj-volba"
+            onClick={() => {
+              // Vylepšení — zvuk (sound.ts) potřebuje AudioContext
+              // odemčený uvnitř SKUTEČNÉHO gesta uživatele, jinak by ho
+              // prohlížeč odmítl. Tohle je nejzazší bod, kde appka ještě
+              // ví, že se chystá TV režim (a tedy bude chtít hrát zvuk) —
+              // TvHost.tsx sám žádné vlastní kliknutí "spustit zápas"
+              // nemá, zápas začíná automaticky, jakmile se připojí druhý
+              // hráč.
+              odemkniZvuk()
+              setRole('tv')
+            }}
+          >
+            <span className="souboj-volba-ikona" aria-hidden="true">📺</span>
+            <span className="souboj-volba-text">
+              <span className="souboj-volba-nazev">Hostovat na TV</span>
+              <span className="souboj-volba-popis">
+                Tohle zařízení ukáže hru — otevři na obrazovce u televize.
+              </span>
+            </span>
+          </button>
+
+          <button className="souboj-volba" onClick={() => setRole('ovladac')}>
+            <span className="souboj-volba-ikona" aria-hidden="true">🎮</span>
+            <span className="souboj-volba-text">
+              <span className="souboj-volba-nazev">Připojit se jako ovladač</span>
+              <span className="souboj-volba-popis">Telefon se změní na joystick a tlačítka.</span>
+            </span>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="souboj-page">
       <header className="souboj-top-bar">
@@ -122,34 +181,21 @@ export const FightingModule: React.FC = () => {
       </button>
 
       <div className="souboj-vyber">
-        <button
-          className="souboj-volba"
-          onClick={() => {
-            // Vylepšení — zvuk (sound.ts) potřebuje AudioContext
-            // odemčený uvnitř SKUTEČNÉHO gesta uživatele, jinak by ho
-            // prohlížeč odmítl. Tohle je nejzazší bod, kde appka ještě
-            // ví, že se chystá TV režim (a tedy bude chtít hrát zvuk) —
-            // TvHost.tsx sám žádné vlastní kliknutí "spustit zápas"
-            // nemá, zápas začíná automaticky, jakmile se připojí druhý
-            // hráč.
-            odemkniZvuk()
-            setRole('tv')
-          }}
-        >
+        {/* Šestnácté kolo vylepšení — "Hostovat na TV" a "Připojit se
+            jako ovladač" bývaly dvě samostatné položky rovnou tady,
+            přestože jde o dvě role JEDNÉ a TÉŽE herní sestavy (jedno
+            zařízení obrazovka, druhé ovladač) — appka je teď sloučila
+            do jednoho vstupu, co otevře malou podnabídku (role
+            'tvOvladac' výš) s přesně těma dvěma tlačítky beze změny.
+            Menu tak má o jednu položku míň, aniž by appka cokoli
+            skutečně smazala. */}
+        <button className="souboj-volba" onClick={() => setRole('tvOvladac')}>
           <span className="souboj-volba-ikona" aria-hidden="true">📺</span>
           <span className="souboj-volba-text">
-            <span className="souboj-volba-nazev">Hostovat na TV</span>
+            <span className="souboj-volba-nazev">TV a ovladač</span>
             <span className="souboj-volba-popis">
-              Tohle zařízení ukáže hru — otevři na obrazovce u televize.
+              Jedno zařízení hostuje na TV, druhé se připojí jako ovladač.
             </span>
-          </span>
-        </button>
-
-        <button className="souboj-volba" onClick={() => setRole('ovladac')}>
-          <span className="souboj-volba-ikona" aria-hidden="true">🎮</span>
-          <span className="souboj-volba-text">
-            <span className="souboj-volba-nazev">Připojit se jako ovladač</span>
-            <span className="souboj-volba-popis">Telefon se změní na joystick a tlačítka.</span>
           </span>
         </button>
 
