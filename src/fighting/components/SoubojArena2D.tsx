@@ -57,7 +57,7 @@ export const SoubojArena2D: React.FC<Props> = ({ stav, zasazen, svizny }) => {
             } ${svizny?.[i] ? 'souboj-bojovnik--svizny' : ''}`}
             style={{ left: `${poziceProcenta(b, ARENA_SIRKA)}%` }}
           >
-            <PostavaGrafika postavaId={postava.id} size={58} />
+            <PostavaGrafika postavaId={postava.id} size={58} vizualniStav={vizualniStav} jeChyt={jeChyt} jeVitez={jeVitez} />
             {zasazen[i] && <Jiskry barva={barvaAkcentuPostavy(stav.hraci[i === 0 ? 1 : 0].postavaId)} />}
             {b.stitAktivni && <span className="souboj-stit-znacka">🛡️</span>}
           </div>

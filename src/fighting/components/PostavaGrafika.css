@@ -3,13 +3,21 @@
    sdílené FightingModule.css, protože jde o jedinou, dobře ohraničenou
    komponentu (stejné zdůvodnění jako u ostatních miniaplikací appky —
    "Look at src/miniapps/pomodoro/ as the reference shape").
+
+   Grafika — .souboj-postava-svg zůstalo jako jméno třídy na <img>,
+   i když už dávno nejde o SVG: FightingModule.css má přes deset
+   pravidel tvaru `.souboj-bojovnik--X .souboj-postava-svg { filter:
+   ... }` (zásahový záblesk, parry glow, comeback puls, motion trail,
+   ...) a přejmenovat tu třídu by znamenalo přepsat všechna, pro nulový
+   viditelný rozdíl — filtr/drop-shadow funguje na <img> stejně jako
+   dřív na <svg>.
    ========================================== */
-.souboj-postava-svg {
-  display: block;
-  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, 0.4));
+.souboj-postava-obal {
+  position: relative;
+  display: inline-block;
 }
 
-.souboj-postava-svg--animovana {
+.souboj-postava-obal--animovana {
   animation: souboj-postava-dychani 3s ease-in-out infinite;
 }
 
@@ -21,4 +29,32 @@
   50% {
     transform: translateY(-4px);
   }
+}
+
+/* Záře za postavičkou — dřívější SVG radiální gradient ellipse,
+   teď obyčejný podklad za obrázkem, ať appka nese barevnou identitu
+   postavy (PALETY.aura v PostavaGrafika.tsx) dál, i když samotný
+   sprite už appka nepřebarvuje. */
+.souboj-postava-zar {
+  position: absolute;
+  inset: -8%;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.souboj-postava-svg {
+  position: relative;
+  z-index: 1;
+  display: block;
+  /* --souboj-postava-tint nese jen 'zlata' variantu (PostavaGrafika.tsx),
+     jako proměnná, ne přímo jako `filter` inline stylem — appka totiž
+     nechce, aby zlatý nádech přebil jedno z FightingModule.css's
+     přes deset stavových pravidel `.souboj-bojovnik--X .souboj-postava-svg
+     { filter: ... }` (zásah/parry/blok/chyt/...), který by inline
+     `style.filter` úplně smazal bez ohledu na CSS specificitu. Tahle
+     var se prostě jen NEPOUŽIJE, dokud je aktivní situační filtr výš
+     specificitou — stejná "situační filtr přebije klidový" logika,
+     co dřív platila i pro obyčejný drop-shadow tady dole. */
+  filter: var(--souboj-postava-tint, none) drop-shadow(0 4px 5px rgba(0, 0, 0, 0.4));
 }

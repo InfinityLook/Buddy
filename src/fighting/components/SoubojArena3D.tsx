@@ -179,7 +179,7 @@ export const SoubojArena3D: React.FC<Props> = ({ stav, zasazen, svizny, arenaId,
                   jeVitez ? 'souboj-bojovnik--vitez' : ''
                 } ${svizny?.[soupeřIdx] ? 'souboj-bojovnik--svizny' : ''}`}
               >
-                <PostavaGrafika postavaId={postava.id} size={54} />
+                <PostavaGrafika postavaId={postava.id} size={54} vizualniStav={vizStav} jeChyt={jeChyt} jeVitez={jeVitez} />
                 {zasazen[soupeřIdx] && <Jiskry barva={barvaAkcentuPostavy(vlastni.postavaId)} />}
                 {soupeř.stitAktivni && <span className="souboj-stit-znacka">🛡️</span>}
               </div>

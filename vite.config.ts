@@ -124,7 +124,13 @@ export default defineConfig(({ command }) => {
           // miniaplikaci nikdy neotevře, ho nesmí stáhnout při instalaci
           // PWA. Runtime caching pravidlo níž ho místo toho uloží při
           // prvním otevření Form Checku a od té chvíle jede z cache.
-          globIgnores: ['**/js/auto-update.js', '**/mediapipe/**', '**/push-sw.js'],
+          //
+          // souboj/postavy/** (Grafika — Kenney "Toon Characters" sprity
+          // pro čtyři bojovníky Souboje, viz PostavaGrafika.tsx, ~300 kB)
+          // je z instalační precache vyloučené stejným důvodem — jsou to
+          // .png, na rozdíl od RPG portrétů (.jpg, mimo globPatterns úplně
+          // samo od sebe) by se jinak do precache dostaly automaticky.
+          globIgnores: ['**/js/auto-update.js', '**/mediapipe/**', '**/push-sw.js', '**/souboj/postavy/**'],
           navigateFallbackDenylist: [/^\/api\//, /^\/version\.json$/, /^\/js\//],
           // Precache staré verze se po aktivaci nového SW smaže,
           // takže se v prohlížeči nehromadí zastaralé soubory.
@@ -175,6 +181,17 @@ export default defineConfig(({ command }) => {
               options: {
                 cacheName: 'postavy-runtime',
                 expiration: { maxEntries: 5, maxAgeSeconds: 60 * 60 * 24 * 365 }
+              }
+            },
+            // Grafika — Souboj bojovníků (public/souboj/postavy/**),
+            // stejným důvodem jako mediapipe/mapa-sveta/postavy výš:
+            // /hra/souboj otevře jen část uživatelů appky.
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/souboj/postavy/'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'souboj-postavy-runtime',
+                expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 365 }
               }
             }
           ],

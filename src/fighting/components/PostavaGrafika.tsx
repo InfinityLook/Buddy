@@ -1,5 +1,6 @@
 import React from 'react'
 import type { PostavaId, VariantaPostavy } from '../combat/postavy'
+import type { VizualniStavBojovnika } from '../combat/loop'
 import './PostavaGrafika.css'
 
 interface Props {
@@ -14,98 +15,117 @@ interface Props {
   /** Osmé kolo vylepšení — odemykatelná varianta barvy (kosmetika.ts).
    *  Výchozí 'vychozi' = beze změny oproti kterékoli dřívější fázi. */
   varianta?: VariantaPostavy
+  /** Grafika (asset pack) — která z osmi póz (viz POZY níž) se má
+   *  ukázat. Volající (SoubojArena2D/3D.tsx) tohle už dřív počítaly
+   *  pro `className` na obalovém <div> (vizualniStavBojovnika/jeChyt/
+   *  jeVitez) — appka jen znovu použije tytéž hotové hodnoty, žádný
+   *  nový výpočet. Chybí-li (VyberPostavy.tsx, TvHost.tsx's úvodní
+   *  "VS" obrazovka), padne na klidové 'idle'. */
+  vizualniStav?: VizualniStavBojovnika
+  jeChyt?: boolean
+  jeVitez?: boolean
 }
 
 interface PaletaPostavy {
-  telo: string
-  teloSvetle: string
-  /** Tmavší odstín těla — spodní zastávka přechodu na trupu/nohou
-   *  (viz `bodyGradId` níž) a barva rukavic/bot, ať postavička
-   *  vypadá stínovaná, ne plochá. */
-  teloTmave: string
-  akcent: string
+  /** Barva zářivého pozadí za postavičkou (dřívější "aura" ellipse v
+   *  SVG) — jediné, co appka od skutečné grafiky ještě přebarvuje,
+   *  viz komentář k Grafice níž. */
   aura: string
+  /** Barva doplňku pro Jiskry.tsx (zásahové jiskry podle útočníkovy
+   *  postavy/elementu) — nezávislá na vzhledu samotné postavičky. */
+  akcent: string
 }
 
 // ==========================================
-// Fáze 6 — ruční SVG ilustrace čtyř bojovníků Souboje, náhrada za
-// emoji ikony z Fáze 2/3 (viz CLAUDE.md). RPG hrdinové appky mají
-// skutečný fotkový pipeline (public/postavy/<id>.jpg, ořezané z
-// referenčního obrázkového sheetu — viz Game hub sekce), ale takový
-// sheet pro tuhle zbrusu novou čtveřici neexistuje a appka nemá k
-// dispozici žádný nástroj na generování obrázků — jediná cesta ke
-// "skutečné grafice", kterou appka umí sama vyrobit, je ruční SVG.
-// Vektor navíc sedí líp na "2D/2.5D stylizovaný vzhled", rozhodnutý
-// přes AskUserQuestion ještě před Fází 0 (žádný 3D pipeline na
-// postavy v projektu neexistuje), a beze ztráty ostrosti škáluje
-// mezi malou kartou na ovladači a větším tokenem v aréně na TV — bez
-// druhé sady souborů pro dvě velikosti, jako by to potřeboval rastr.
-// Barvy/doplněk se odvozují jen od postavaId, žádný vlastní stav,
-// žádný requestAnimationFrame — čistě prezentační, stejná kázeň jako
-// Bojiste.tsx samotné.
+// Grafika — náhrada Fáze 6/druhého kola SVG ilustrací za skutečný,
+// zdarma dostupný sprite pack: Kenney "Toon Characters" (CC0), přes
+// GitHub zrcadlo github.com/shorepine/kenney (kenney.nl/itch.io/
+// opengameart.org appka z tohoto sandboxu nemůže přímo stáhnout —
+// síťová politika je blokuje; GitHub ne). Appka sáhla přímo k
+// AskUserQuestion, než začala cokoli stahovat/integrovat (appčin
+// vlastní "diskutuj, pak stav" postup pro velké vizuální rozhodnutí)
+// — nabízela tři cesty (najít free asset pack / uživatel si vygeneruje
+// vlastní obrázky / jen vylepšit SVG) a "najdi free asset pack" bylo
+// zvolené, pak "GitHub zrcadlo Kenneyho" jako konkrétní zdroj, jakmile
+// se ukázalo, že kenney.nl/itch.io/opengameart.org samy jsou odsud
+// nedosažitelné (403 na síťové bráně, ne dočasná chyba — appka to
+// ověřila přímým dotazem, ne odhadem).
 //
-// Druhé kolo vylepšení (po prvním AskUserQuestion, viz CLAUDE.md)
-// přidalo stínovaný přechod na trupu/nohou/pažích místo plochých
-// barev, tmavý obrys na hlavních tvarech (jednotné `OBRYS`, ne barva
-// odvozená per postava — jednodušší a pořád dost tmavá na cokoli z
-// palety), drobné "rukavice" na koncích paží v barvě doplňku (spojuje
-// postavu s jejím vlastním akcentem) a lehce asymetrický bojový postoj
-// (jedna paže výš, druhá níž) místo úplně symetrické figury.
+// Balíček "Toon Characters" byl vybraný ze všech Kenneyho postavových
+// balíčků (Character Pack, Platformer Characters, Robot Pack, Animal
+// Pack, ...) proto, že jediný nese PŘESNĚ tu sadu pojmenovaných póz,
+// co Souboj potřebuje: idle/attack0/attack1/attackKick/hurt/hit/
+// duck/down/fallDown/cheer0/cheer1 — beze zbytku sedí na appčin už
+// existující stavový model (combat/loop.ts's VizualniStavBojovnika),
+// takže appka nemusela stavět žádnou frame-by-frame animaci ani nový
+// rendering pipeline, jen POZY (viz níž) — jednu statickou pózu na
+// stav, přesně jak to dělal dřívější ruční SVG (jeden tvar, animovaný
+// transformem/filtrem na obalovém <div> v FightingModule.css, beze
+// změny — viz .souboj-bojovnik--* pravidla tam). Balíček nabízí šest
+// postav (Female/Male adventurer, Female/Male person, Robot, Zombie),
+// appka použila čtyři podle SILUETY/TÉMATU, ne podle namalované
+// barvy: Robot (obrněný/mechanický) → Bulwark, Zombie (temný/přízračný)
+// → Onyx, zbylé dvě lidské postavy → Pyra/Volt. Barevná identita
+// postavy (aura záře za figurkou, barva jisker) zůstala přesně tam,
+// kde byla i u SVG — na PALETY níž, ne na obrázku samotném — takže
+// appka nemusí (a nezkouší) přebarvovat hotový sprite filtrem, jen
+// mu podkládá stejně barevnou záři jako dřív.
+//
+// Soubory appka stáhla a nahrála sama pod public/souboj/postavy/
+// <postavaId>/<poza>.png (~8 KB/soubor, 32 souborů celkem, ~300 kB) —
+// vyloučené z instalační precache (vite.config.ts's globIgnores),
+// dotahují se líně přes CacheFirst při prvním otevření Souboje, stejná
+// disciplína jako mediapipe/**, mapa-sveta.jpg a postavy/** pro RPG.
 // ==========================================
-
-const OBRYS = 'rgba(15, 23, 42, 0.38)'
 
 const PALETY: Record<PostavaId, PaletaPostavy> = {
-  pyra: {
-    telo: '#dc2626',
-    teloSvetle: '#fca5a5',
-    teloTmave: '#7f1d1d',
-    akcent: '#fed7aa',
-    aura: 'rgba(249, 115, 22, 0.55)',
-  },
-  bulwark: {
-    telo: '#1d4ed8',
-    teloSvetle: '#93c5fd',
-    teloTmave: '#1e3a8a',
-    akcent: '#e2e8f0',
-    aura: 'rgba(59, 130, 246, 0.45)',
-  },
-  volt: {
-    telo: '#ca8a04',
-    teloSvetle: '#fde68a',
-    teloTmave: '#854d0e',
-    akcent: '#fef9c3',
-    aura: 'rgba(250, 204, 21, 0.55)',
-  },
-  onyx: {
-    telo: '#4c1d95',
-    teloSvetle: '#a78bfa',
-    teloTmave: '#2e1065',
-    akcent: '#c4b5fd',
-    aura: 'rgba(139, 92, 246, 0.5)',
-  },
+  pyra: { akcent: '#fed7aa', aura: 'rgba(249, 115, 22, 0.55)' },
+  bulwark: { akcent: '#e2e8f0', aura: 'rgba(59, 130, 246, 0.45)' },
+  volt: { akcent: '#fef9c3', aura: 'rgba(250, 204, 21, 0.55)' },
+  onyx: { akcent: '#c4b5fd', aura: 'rgba(139, 92, 246, 0.5)' },
 }
 
-/** Osmé kolo vylepšení — jedna sdílená "prestižní" černo-zlatá paleta
- *  pro všechny čtyři postavy (viz kosmetika.ts's vlastní komentář, proč
- *  jedna sdílená místo čtyř bespoke). Postavu pořád pozná podle
- *  přívěsku/siluety (kreslí se dál podle postavaId níž), jen přebarvenou. */
-const PALETA_ZLATA: PaletaPostavy = {
-  telo: '#1c1917',
-  teloSvetle: '#78716c',
-  teloTmave: '#0c0a09',
-  akcent: '#fbbf24',
-  aura: 'rgba(251, 191, 36, 0.6)',
-}
+/** Osmé kolo vylepšení — jedna sdílená "prestižní" zlatá záře pro
+ *  všechny čtyři postavy (viz kosmetika.ts's vlastní komentář, proč
+ *  jedna sdílená místo čtyř bespoke). U SVG appka přebarvovala celou
+ *  paletu těla; skutečnou grafiku appka nepřebarvuje pixel po pixelu
+ *  (riziko zašpiněného výsledku u hotového art assetu) — 'zlata'
+ *  varianta místo toho položí přes sprite jemný sépiový/zlatý CSS
+ *  filtr (viz FILTR_ZLATA níž) a vymění záři za tuhle. Postavu pořád
+ *  pozná podle siluety/postoje (sprite se dál vybírá podle postavaId),
+ *  jen s teplejším, kovovým nádechem navrch. */
+const AURA_ZLATA = 'rgba(251, 191, 36, 0.6)'
+const FILTR_ZLATA = 'sepia(0.85) saturate(2.4) hue-rotate(-8deg) brightness(0.95)'
 
 /** Desáté kolo vylepšení — barva jisker při zásahu (Jiskry.tsx) podle
- *  ÚTOČNÍKOVY postavy/elementu, ne jedna univerzální bílá. Appka k
- *  tomu nepotřebuje exportovat celou (soukromou) PALETY tabulku výš,
- *  jen tuhle jednu barvu — a schválně bere vždycky ZÁKLADNÍ paletu, ne
- *  PALETA_ZLATA: zlatá je jen kosmetický přebal SAMOTNÉ postavičky
- *  (kosmetika.ts's vlastní komentář), jiskry mají zůstat podle
- *  postavy/elementu, ne podle toho, jestli má zrovna zapnutou variantu. */
+ *  ÚTOČNÍKOVY postavy/elementu, ne jedna univerzální bílá. Schválně
+ *  vždycky ZÁKLADNÍ paleta, ne zlatá záře — zlatá je jen kosmetický
+ *  přebal samotné postavičky, jiskry mají zůstat podle postavy/
+ *  elementu bez ohledu na zapnutou variantu. */
 export const barvaAkcentuPostavy = (postavaId: PostavaId): string => PALETY[postavaId].akcent
+
+/** Která pozovaná grafika (public/souboj/postavy/<id>/<soubor>.png)
+ *  odpovídá aktuálnímu stavu bojovníka — jedna větev na skutečný stav
+ *  enginu, `jeVitez` má přednost před vším (kolo skončilo výhrou),
+ *  `jeChyt` jen jemně rozliší útok neblokovatelným chytem od
+ *  obyčejného úderu/kopu (obojí je pořád `vizualniStav === 'utok'`). */
+const vyberPozu = (vizualniStav: VizualniStavBojovnika | undefined, jeChyt: boolean, jeVitez: boolean): string => {
+  if (jeVitez) return 'vitez'
+  switch (vizualniStav) {
+    case 'ko':
+      return 'ko'
+    case 'sraceny':
+      return 'sraceny'
+    case 'hitstun':
+      return 'hitstun'
+    case 'blok':
+      return 'blok'
+    case 'utok':
+      return jeChyt ? 'utok-chyt' : 'utok'
+    default:
+      return 'idle'
+  }
+}
 
 const PostavaGrafikaImpl: React.FC<Props> = ({
   postavaId,
@@ -113,93 +133,44 @@ const PostavaGrafikaImpl: React.FC<Props> = ({
   animovana = false,
   className,
   varianta = 'vychozi',
+  vizualniStav,
+  jeChyt = false,
+  jeVitez = false,
 }) => {
-  const p = varianta === 'zlata' ? PALETA_ZLATA : PALETY[postavaId]
-  const gradAuraId = `souboj-aura-${postavaId}-${varianta}`
-  const gradTeloId = `souboj-telo-${postavaId}-${varianta}`
+  const p = PALETY[postavaId]
+  const auraBarva = varianta === 'zlata' ? AURA_ZLATA : p.aura
+  const poza = vyberPozu(vizualniStav, jeChyt, jeVitez)
+  const vyska = Math.round((size * 128) / 96)
 
   return (
-    <svg
-      viewBox="0 0 120 160"
-      width={size}
-      height={Math.round((size * 160) / 120)}
-      className={`souboj-postava-svg ${animovana ? 'souboj-postava-svg--animovana' : ''} ${className ?? ''}`}
-      aria-hidden="true"
+    <span
+      className={`souboj-postava-obal ${animovana ? 'souboj-postava-obal--animovana' : ''} ${className ?? ''}`}
+      style={{ width: size, height: vyska }}
     >
-      <defs>
-        <radialGradient id={gradAuraId} cx="50%" cy="55%" r="60%">
-          <stop offset="0%" stopColor={p.aura} />
-          <stop offset="100%" stopColor="transparent" />
-        </radialGradient>
-        {/* Sdílený stínovaný přechod pro trup/nohy/paže — jeden gradient
-            na postavu, ne jeden na tvar, ať těla drží stejné "světlo
-            shora" napříč celou postavičkou. */}
-        <linearGradient id={gradTeloId} x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor={p.telo} />
-          <stop offset="100%" stopColor={p.teloTmave} />
-        </linearGradient>
-      </defs>
-
-      <ellipse cx="60" cy="90" rx="54" ry="54" fill={`url(#${gradAuraId})`} />
-
-      {/* signátura vzadu za tělem — Onyxův plášť, Bulwarkův štítový kotouč */}
-      {postavaId === 'onyx' && (
-        <path d="M20 60 Q10 102 26 148 L44 140 Q30 100 40 66 Z" fill={p.telo} stroke={OBRYS} strokeWidth="1.5" opacity="0.85" />
-      )}
-      {postavaId === 'bulwark' && <ellipse cx="60" cy="96" rx="32" ry="36" fill={p.teloSvetle} opacity="0.3" />}
-
-      {/* nohy — lehce od sebe, bojový postoj */}
-      <rect x="40" y="118" width="14" height="34" rx="6" fill={`url(#${gradTeloId})`} stroke={OBRYS} strokeWidth="1.5" />
-      <rect x="66" y="118" width="14" height="34" rx="6" fill={`url(#${gradTeloId})`} stroke={OBRYS} strokeWidth="1.5" />
-      {/* boty */}
-      <rect x="38" y="146" width="18" height="8" rx="4" fill={p.teloTmave} />
-      <rect x="64" y="146" width="18" height="8" rx="4" fill={p.teloTmave} />
-
-      {/* trup */}
-      <rect x="38" y="66" width="44" height="58" rx="16" fill={`url(#${gradTeloId})`} stroke={OBRYS} strokeWidth="1.5" />
-      <rect x="38" y="66" width="44" height="20" rx="10" fill={p.teloSvetle} opacity="0.45" />
-
-      {/* paže — mírně asymetrický postoj (levá výš, jako střeh) */}
-      <rect x="18" y="64" width="16" height="42" rx="8" fill={`url(#${gradTeloId})`} stroke={OBRYS} strokeWidth="1.5" />
-      <rect x="86" y="74" width="16" height="42" rx="8" fill={`url(#${gradTeloId})`} stroke={OBRYS} strokeWidth="1.5" />
-      {/* rukavice v barvě doplňku — propojuje postavičku s jejím akcentem */}
-      <circle cx="26" cy="108" r="9" fill={p.akcent} stroke={OBRYS} strokeWidth="1.5" opacity="0.92" />
-      <circle cx="94" cy="118" r="9" fill={p.akcent} stroke={OBRYS} strokeWidth="1.5" opacity="0.92" />
-
-      {/* hlava */}
-      <circle cx="60" cy="40" r="24" fill={p.teloSvetle} stroke={OBRYS} strokeWidth="1.5" />
-      <ellipse cx="51" cy="30" rx="7" ry="5" fill="#ffffff" opacity="0.35" />
-      <circle cx="52" cy="40" r="3.5" fill="#0f172a" />
-      <circle cx="68" cy="40" r="3.5" fill="#0f172a" />
-
-      {/* postavu odlišující doplněk */}
-      {postavaId === 'pyra' && (
-        <path
-          d="M60 6 L68 24 L60 19 L52 24 Z M45 11 L52 26 L43 23 Z M75 11 L68 26 L77 23 Z"
-          fill={p.akcent}
-          stroke={OBRYS}
-          strokeWidth="1"
-        />
-      )}
-      {postavaId === 'bulwark' && (
-        <path d="M60 10 L83 23 L83 40 L60 32 L37 40 L37 23 Z" fill={p.akcent} stroke={OBRYS} strokeWidth="1" />
-      )}
-      {postavaId === 'volt' && (
-        <path d="M63 6 L49 28 L58 28 L50 42 L74 18 L62 18 Z" fill={p.akcent} stroke={OBRYS} strokeWidth="1" />
-      )}
-      {postavaId === 'onyx' && (
-        <path d="M96 40 L104 128 L96 132 L86 44 Z" fill={p.akcent} stroke="#1e1b4b" strokeWidth="1.5" />
-      )}
-    </svg>
+      <span
+        className="souboj-postava-zar"
+        style={{ background: `radial-gradient(circle, ${auraBarva} 0%, transparent 70%)` }}
+        aria-hidden="true"
+      />
+      <img
+        src={`/souboj/postavy/${postavaId}/${poza}.png`}
+        alt=""
+        aria-hidden="true"
+        width={size}
+        height={vyska}
+        className="souboj-postava-svg"
+        style={varianta === 'zlata' ? ({ '--souboj-postava-tint': FILTR_ZLATA } as React.CSSProperties) : undefined}
+        draggable={false}
+      />
+    </span>
   )
 }
 
 /** Výkonová kontrola náročnosti Souboje — obě arény (SoubojArena2D/3D)
- *  vykreslují tohle SVG (2 gradienty, ~14 tvarů) z rodiče, co volá
- *  setSoubojStav na KAŽDÝ herní tik (60×/s), i když se postavaId/size/
- *  varianta bojovníka mezi tiky nikdy nemění — 2D aréna to bez
- *  memoizace přestavovala 2×/tik, 3D (dvě kamery × dva bojovníky) 4×/
+ *  vykreslují tuhle komponentu z rodiče, co volá setSoubojStav na
+ *  KAŽDÝ herní tik (60×/s), i když se postavaId/size/varianta/póza
+ *  bojovníka mezi tiky nejčastěji vůbec nemění — 2D aréna to bez
+ *  memoizace přestavovala 2×/tik, 3D (dvě kamery × dva bojovníci) 4×/
  *  tik, čistě zbytečně. React.memo se shallow porovnáním primitiv ve
- *  Props stačí, ať appka tuhle práci dělá jen při skutečné změně
- *  (výběr postavy/varianty), ne 60× za vteřinu bez důvodu. */
+ *  Props stačí, ať appka tuhle práci dělá jen při skutečné změně. */
 export const PostavaGrafika = React.memo(PostavaGrafikaImpl)
