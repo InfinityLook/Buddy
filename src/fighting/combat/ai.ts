@@ -1,4 +1,4 @@
-import { efektivniAkceData } from './engine'
+import { efektivniAkceData, smerMezi, vzdalenostBodu } from './engine'
 import { maNaSpecial } from './loop'
 import { VSECHNY_POSTAVY, type PostavaId } from './postavy'
 import type { BojovnikStav, HracVstup } from './types'
@@ -63,8 +63,11 @@ export const pripravAkciAi = (
   nahodne: () => number = Math.random
 ): HracVstup => {
   const nasobice = NASOBICE_OBTIZNOSTI[obtiznost]
-  const vzdalenost = souper.pozice - ja.pozice
-  const absVzdalenost = Math.abs(vzdalenost)
+  // Vylepšení — volný pohyb. Vzdálenost i směr honičky jsou teď 2D —
+  // `smerMezi` dá rovnou normalizovaný vektor "kam se vydat", appka ho
+  // pro rozhodování o dosahu potřebuje ještě doplnit skutečnou
+  // Eukleidovskou vzdáleností (vzdalenostBodu).
+  const absVzdalenost = vzdalenostBodu(ja.pozice, souper.pozice)
 
   // Reaktivní blok — soupeř zrovna zahájil akci (utokKonci > 0) a je
   // v dosahu té konkrétní akce (ne dosahu bota samotného).
@@ -79,7 +82,7 @@ export const pripravAkciAi = (
   const naDosahu = absVzdalenost <= dataKopu.dosah
 
   if (!naDosahu) {
-    return { smer: vzdalenost > 0 ? 'vpravo' : 'vlevo', blok: false, akce: null }
+    return { smer: smerMezi(ja.pozice, souper.pozice), blok: false, akce: null }
   }
 
   if (nahodne() < Math.min(1, AI_SANCE_UTOKU * nasobice.utok)) {

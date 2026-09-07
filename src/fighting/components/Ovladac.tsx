@@ -9,7 +9,7 @@ import { useSoubojStatistikyStore } from '../useSoubojStatistikyStore'
 import { POSTAVY, VSECHNY_POSTAVY } from '../combat/postavy'
 import type { PostavaId } from '../combat/postavy'
 import { RYCHLE_EMOTE } from '../types'
-import type { KonecZapasuPayload, PripojenoPayload, Smer, Tlacitko } from '../types'
+import type { KonecZapasuPayload, PripojenoPayload, SmerVektor, Tlacitko } from '../types'
 import { VyberPostavy } from './VyberPostavy'
 import '../FightingModule.css'
 
@@ -21,11 +21,6 @@ const vygenerujHracId = () => `hrac-${Math.random().toString(36).slice(2, 10)}`
 
 const IKONA_TLACITKA: Record<Tlacitko, string> = { udar: '👊', kop: '🦵', blok: '🛡️', specialni: '✨' }
 const PORADI_TLACITEK: Tlacitko[] = ['udar', 'kop', 'blok', 'specialni']
-
-/** Kolik má joystick vychýlit ze středu, než ho appka bere jako
- *  "vlevo"/"vpravo" — malé chvění palce kolem středu tak nespustí
- *  falešný pohyb. */
-const PRAH_JOYSTICKU = 0.3
 
 /** Vylepšení — XP/kredity za odehraný zápas. Výhra jde přes
  *  recordAction (bumpne counters.souboj + zkontroluje ring_mistr
@@ -124,7 +119,7 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
     // proto v poli závislostí schválně chybí.
   }, [stavSpojeni, kod, postavaId])
 
-  const posliSmer = (smer: Smer | null) => {
+  const posliSmer = (smer: SmerVektor | null) => {
     spravaRef.current?.poslatVstup({ hracId: hracIdRef.current, typ: 'smer', smer })
   }
 
@@ -143,17 +138,26 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
     spravaRef.current?.poslatVstup({ hracId: hracIdRef.current, typ: 'tlacitko', tlacitko, stisknuto })
   }
 
-  // Joystick hlásí spojitou výchylku (-1..1), engine ale pořád zná jen
-  // diskrétní "vlevo"/"vpravo" (viz engine.ts's tikBojovnika) — appka
-  // to tady jednou převede přes práh, ne že by se HracVstup/Smer měnily
-  // kvůli novému fyzickému ovladači. `posledniSmer` posílá vstup po
-  // síti jen při skutečné ZMĚNĚ, ne na každý pohyb palce o pixel —
-  // joystick hlásí polohu mnohem častěji, než kolikrát se skutečně
-  // mění, co appka chce poslat.
-  const posledniSmerRef = useRef<Smer | null>(null)
-  const zpracujJoystick = (x: number) => {
-    const smer: Smer | null = x < -PRAH_JOYSTICKU ? 'vlevo' : x > PRAH_JOYSTICKU ? 'vpravo' : null
-    if (smer === posledniSmerRef.current) return
+  // Vylepšení — volný pohyb. Joystick hlásí spojitý 2D vektor (x, z) —
+  // appka ho dřív zahazovala na jednu osu a threshold-ovala na diskrétní
+  // "vlevo"/"vpravo" (viz engine.ts's dřívější tikBojovnika); teď ho
+  // posílá beze změny, jen odfiltruje malé chvění palce kolem středu
+  // (DEADZONA_JOYSTICKU) a pošle po síti jen při skutečné ZMĚNĚ o víc
+  // než PRAH_ZMENY_SMERU — joystick hlásí polohu mnohem častěji, než
+  // kolikrát se skutečně mění, co appka chce poslat.
+  const DEADZONA_JOYSTICKU = 0.15
+  const PRAH_ZMENY_SMERU = 0.08
+  const posledniSmerRef = useRef<SmerVektor | null>(null)
+  const zpracujJoystick = (x: number, z: number) => {
+    const velikost = Math.hypot(x, z)
+    const smer: SmerVektor | null = velikost < DEADZONA_JOYSTICKU ? null : { x, z }
+    const predchozi = posledniSmerRef.current
+    const zmena =
+      (smer === null) !== (predchozi === null) ||
+      (smer !== null &&
+        predchozi !== null &&
+        Math.hypot(smer.x - predchozi.x, smer.z - predchozi.z) > PRAH_ZMENY_SMERU)
+    if (!zmena) return
     posledniSmerRef.current = smer
     posliSmer(smer)
   }
@@ -349,7 +353,7 @@ export const Ovladac: React.FC<Props> = ({ onZpet }) => {
         ))}
       </div>
 
-      <VirtualniJoystick onZmena={(x) => zpracujJoystick(x)} />
+      <VirtualniJoystick onZmena={(x, z) => zpracujJoystick(x, z)} />
 
       {/* Desáté kolo vylepšení — chyt (grab). Žádné nové tlačítko,
           jen kombinace dvou existujících (viz combat/loop.ts's

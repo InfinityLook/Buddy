@@ -130,7 +130,10 @@ export const SoubojArena3D: React.FC<Props> = ({ stav, zasazen, svizny, arenaId,
   }, [stav.hraci])
 
   useEffect(() => {
-    aktualizujPozice(stav.hraci[0].pozice, stav.hraci[1].pozice)
+    // Vylepšení — volný pohyb. `stav.hraci[i]` splňuje strukturálně to,
+    // co hook potřebuje (pozice.x/z + natoceni), žádný převodní krok
+    // navíc netřeba.
+    aktualizujPozice(stav.hraci[0], stav.hraci[1])
   }, [stav.hraci, aktualizujPozice])
 
   // Jedenácté kolo vylepšení — dolly-in na knokaut (viz

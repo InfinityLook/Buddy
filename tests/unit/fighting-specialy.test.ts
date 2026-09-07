@@ -11,7 +11,11 @@ import {
   vytvorSoubojStav,
 } from '@/fighting/combat/engine'
 import { POSTAVY } from '@/fighting/combat/postavy'
-import type { HracVstup } from '@/fighting/combat/types'
+import type { HracVstup, Pozice2D } from '@/fighting/combat/types'
+
+// Vylepšení — volný pohyb, stejný jednoosý testovací pomocník jako
+// fighting-combat.test.ts's vlastní P().
+const P = (x: number): Pozice2D => ({ x, z: 400 })
 
 // ==========================================
 // Vylepšení — čtyři vlastní efekty speciálu (postavy.ts's TypSpecialu),
@@ -35,12 +39,12 @@ describe('Pyřin speciál — bonus poškození (poskozeni)', () => {
   })
 
   it('Pyřin speciál dá v boji reálně víc poškození než neutrální postava', () => {
-    let stav = vytvorSoubojStav(0, 80, 'pyra', 'onyx')
+    let stav = vytvorSoubojStav(P(0), P(80), 'pyra', 'onyx')
     stav.hraci[0] = { ...stav.hraci[0], mana: 100 }
     stav = krokSouboje(stav, [plnaMana, stat], 0)
     const poskozeniPyra = MAX_HP - stav.hraci[1].hp
 
-    let stavNeutral = vytvorSoubojStav(0, 80, 'onyx', 'onyx')
+    let stavNeutral = vytvorSoubojStav(P(0), P(80), 'onyx', 'onyx')
     stavNeutral.hraci[0] = { ...stavNeutral.hraci[0], mana: 100 }
     stavNeutral = krokSouboje(stavNeutral, [plnaMana, stat], 0)
     const poskozeniNeutral = MAX_HP - stavNeutral.hraci[1].hp
@@ -51,7 +55,7 @@ describe('Pyřin speciál — bonus poškození (poskozeni)', () => {
 
 describe('Bulwarkův speciál — štít (stit)', () => {
   it('zahájení speciálu udělí štít i bez zásahu (mimo dosah)', () => {
-    let stav = vytvorSoubojStav(0, 780, 'bulwark', 'onyx') // daleko mimo dosah speciálu
+    let stav = vytvorSoubojStav(P(0), P(780), 'bulwark', 'onyx') // daleko mimo dosah speciálu
     stav.hraci[0] = { ...stav.hraci[0], mana: 100 }
     stav = krokSouboje(stav, [plnaMana, stat], 0)
     expect(stav.hraci[0].stitAktivni).toBe(true)
@@ -59,7 +63,7 @@ describe('Bulwarkův speciál — štít (stit)', () => {
   })
 
   it('štít pohltí další zásah úplně (nulové poškození, žádný hitstun) a spotřebuje se', () => {
-    let stav = vytvorSoubojStav(0, 80, 'bulwark', 'onyx')
+    let stav = vytvorSoubojStav(P(0), P(80), 'bulwark', 'onyx')
     stav.hraci[0] = { ...stav.hraci[0], stitAktivni: true }
     const hpPred = stav.hraci[0].hp
 
@@ -71,7 +75,7 @@ describe('Bulwarkův speciál — štít (stit)', () => {
   })
 
   it('po spotřebování štítu už další zásah dopadne normálně', () => {
-    let stav = vytvorSoubojStav(0, 80, 'bulwark', 'onyx')
+    let stav = vytvorSoubojStav(P(0), P(80), 'bulwark', 'onyx')
     stav.hraci[0] = { ...stav.hraci[0], stitAktivni: false }
     stav = krokSouboje(stav, [stat, { ...stat, akce: 'udar' }], 0)
     const ocekavane = AKCE_DATA.udar.poskozeni * POSTAVY.bulwark.obranaNasobic
@@ -81,7 +85,7 @@ describe('Bulwarkův speciál — štít (stit)', () => {
 
 describe('Voltův speciál — dvojitý zásah (dvojity-zasah)', () => {
   it('landne-li speciál, druhý zásah dostane kombo bonus z prvního (Druhé kolo vylepšení), mana je čistý dvojnásobek', () => {
-    let stav = vytvorSoubojStav(0, 80, 'volt', 'onyx')
+    let stav = vytvorSoubojStav(P(0), P(80), 'volt', 'onyx')
     stav.hraci[0] = { ...stav.hraci[0], mana: 100 }
     const manaPredUtokem = 100 - AKCE_DATA.specialni.cenaMany * POSTAVY.volt.cenaManyNasobic
 
@@ -97,7 +101,7 @@ describe('Voltův speciál — dvojitý zásah (dvojity-zasah)', () => {
   })
 
   it('štít cíle pohltí jen první z obou zásahů, druhý projde normálně', () => {
-    let stav = vytvorSoubojStav(0, 80, 'volt', 'onyx')
+    let stav = vytvorSoubojStav(P(0), P(80), 'volt', 'onyx')
     stav.hraci[0] = { ...stav.hraci[0], mana: 100 }
     stav.hraci[1] = { ...stav.hraci[1], stitAktivni: true }
 
@@ -111,7 +115,7 @@ describe('Voltův speciál — dvojitý zásah (dvojity-zasah)', () => {
 
 describe('Onyxův speciál — vysátí (vysati)', () => {
   it('vyléčí útočníka o specialniSila podíl skutečně způsobeného poškození', () => {
-    let stav = vytvorSoubojStav(0, 80, 'onyx', 'bulwark')
+    let stav = vytvorSoubojStav(P(0), P(80), 'onyx', 'bulwark')
     stav.hraci[0] = { ...stav.hraci[0], mana: 100, hp: 40 }
     const maxHpCile = stav.hraci[1].maxHp // Bulwark má maxHpNasobic 1.25, ne 100
 
@@ -122,7 +126,7 @@ describe('Onyxův speciál — vysátí (vysati)', () => {
   })
 
   it('vysátí nepřeteče přes maxHp', () => {
-    let stav = vytvorSoubojStav(0, 80, 'onyx', 'onyx')
+    let stav = vytvorSoubojStav(P(0), P(80), 'onyx', 'onyx')
     stav.hraci[0] = { ...stav.hraci[0], mana: 100, hp: stav.hraci[0].maxHp - 1 }
 
     stav = krokSouboje(stav, [plnaMana, stat], 0)
@@ -131,7 +135,7 @@ describe('Onyxův speciál — vysátí (vysati)', () => {
   })
 
   it('blokovaný speciál vysaje jen tolik, kolik po bloku doopravdy prošlo', () => {
-    let stav = vytvorSoubojStav(0, 80, 'onyx', 'onyx')
+    let stav = vytvorSoubojStav(P(0), P(80), 'onyx', 'onyx')
     stav.hraci[0] = { ...stav.hraci[0], mana: 100, hp: 40 }
 
     // Vylepšení — parry: obránce musí blok držet už DŘÍV, mimo parry

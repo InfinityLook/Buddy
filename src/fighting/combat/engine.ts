@@ -1,4 +1,4 @@
-import type { AkceData, BojovnikStav, HracVstup, SoubojMoznosti, SoubojStav, UtocnaAkce } from './types'
+import type { AkceData, BojovnikStav, HracVstup, Pozice2D, SoubojMoznosti, SoubojStav, UtocnaAkce } from './types'
 import { POSTAVY, VYCHOZI_POSTAVA, type PostavaId, type TypSpecialu } from './postavy'
 
 // ==========================================
@@ -9,8 +9,39 @@ import { POSTAVY, VYCHOZI_POSTAVA, type PostavaId, type TypSpecialu } from './po
 // disciplína jako game/leveling.ts).
 // ==========================================
 
+/** Vylepšení — volný pohyb. ARENA_SIRKA zůstává stejné jméno i číslo
+ *  jako dřív (appka nemění, co nemusí — stejná "neměň identifikátor
+ *  bezdůvodně" disciplína jako u SchoolBuddy → Buddy přejmenování),
+ *  ale teď platí na OBOU osách čtvercového hřiště, ne jen na jedné. */
 export const ARENA_SIRKA = 800
 export const RYCHLOST_POHYBU = 220 // jednotek za sekundu
+
+/** Vylepšení — volný pohyb. Eukleidovská vzdálenost dvou bodů arény
+ *  — jediné místo, kde se tenhle vzorec počítá, dřív to bylo prosté
+ *  Math.abs(a - b) na jedné ose, opakované na několika místech. */
+export const vzdalenostBodu = (a: Pozice2D, b: Pozice2D): number => Math.hypot(a.x - b.x, a.z - b.z)
+
+/** Vylepšení — volný pohyb. Jednotkový vektor směřující OD `a` K `b`
+ *  — použito pro odražení (knockback vždycky odstrčí cíl PRYČ od
+ *  útočníka) i pro srážku dvou útoků (aplikujClash). Stojí-li oba body
+ *  přesně na sobě (vzdálenost 0, prakticky nemožné, ale appka to
+ *  nechce nechat dělit nulou), padne na pevný záložní směr (0, 1) —
+ *  stejná "bezpečný default, ne NaN" disciplína jako jinde v appce. */
+export const smerMezi = (a: Pozice2D, b: Pozice2D): Pozice2D => {
+  const dx = b.x - a.x
+  const dz = b.z - a.z
+  const d = Math.hypot(dx, dz)
+  if (d < 0.0001) return { x: 0, z: 1 }
+  return { x: dx / d, z: dz / d }
+}
+
+/** Vylepšení — volný pohyb. Ohraničí bod na obě osy čtvercové arény
+ *  najednou — nahrazuje dřívější jednorozměrné `Math.max(0, Math.min(...))`
+ *  volané zvlášť, teď se stejná logika hodí na x i z pokaždé společně. */
+export const ohranicPozici = (p: Pozice2D): Pozice2D => ({
+  x: Math.max(0, Math.min(ARENA_SIRKA, p.x)),
+  z: Math.max(0, Math.min(ARENA_SIRKA, p.z)),
+})
 export const MAX_HP = 100
 export const MAX_MANA = 100
 /** Kolik ms po neblokovaném zásahu obránce nemůže jednat. */
@@ -161,9 +192,18 @@ export const cyklusUdalostiAreny = (cas: number): number => Math.floor(cas / UDA
  *  různými cykly vypadá jako náhoda. Losuje jen do prostředních 70 %
  *  arény, stejná "vždycky doopravdy dosažitelné z obou stran" úvaha
  *  jako u vytvorSoubojStav's pickupPozice níž. */
-export const stredUdalostiBalvan = (cyklus: number): number => {
-  const hash = Math.abs(Math.sin(cyklus * 12.9898) * 43758.5453) % 1
-  return ARENA_SIRKA * 0.15 + hash * ARENA_SIRKA * 0.7
+/** Vylepšení — volný pohyb. Vrací teď bod (x, z), ne jedno číslo na
+ *  ose — appka losuje obě souřadnice NEZÁVISLE, každou vlastním
+ *  hashem (jiný násobitel v Math.sin, ať x a z nekopírují stejnou
+ *  hodnotu), pořád stejný deterministický "stejný cyklus, stejný
+ *  výsledek" princip jako dřív. */
+export const stredUdalostiBalvan = (cyklus: number): Pozice2D => {
+  const hashX = Math.abs(Math.sin(cyklus * 12.9898) * 43758.5453) % 1
+  const hashZ = Math.abs(Math.sin(cyklus * 78.233 + 4.12) * 12543.783) % 1
+  return {
+    x: ARENA_SIRKA * 0.15 + hashX * ARENA_SIRKA * 0.7,
+    z: ARENA_SIRKA * 0.15 + hashZ * ARENA_SIRKA * 0.7,
+  }
 }
 
 /** Osmé kolo vylepšení — výchozí volby zápasu, pro `vytvorSoubojStav`
@@ -189,7 +229,11 @@ export const AKCE_DATA: Record<UtocnaAkce, AkceData> = {
   chyt: { poskozeni: 8, dosah: 70, trvaniMs: 500, cenaMany: 0, knockback: 45, poskozeniPresBlok: true },
 }
 
-export const vytvorBojovnika = (pozice: number, postavaId: PostavaId = VYCHOZI_POSTAVA): BojovnikStav => {
+export const vytvorBojovnika = (
+  pozice: Pozice2D,
+  postavaId: PostavaId = VYCHOZI_POSTAVA,
+  natoceni: number = 0
+): BojovnikStav => {
   const postava = POSTAVY[postavaId]
   return {
     hp: MAX_HP * postava.maxHpNasobic,
@@ -199,6 +243,7 @@ export const vytvorBojovnika = (pozice: number, postavaId: PostavaId = VYCHOZI_P
     mana: 0,
     maxMana: MAX_MANA,
     pozice,
+    natoceni,
     postavaId,
     blokuje: false,
     zranitelnostKonci: 0,
@@ -250,27 +295,38 @@ export const efektivniAkceData = (postavaId: PostavaId, akce: UtocnaAkce): AkceD
  *  ne kvůli replay/sync požadavku — pickup se losuje jednou tady, na
  *  TV, která je jediná strana, co engine doopravdy simuluje. */
 export const vytvorSoubojStav = (
-  pozice0: number,
-  pozice1: number,
+  pozice0: Pozice2D,
+  pozice1: Pozice2D,
   postava0: PostavaId = VYCHOZI_POSTAVA,
   postava1: PostavaId = VYCHOZI_POSTAVA,
   moznosti: SoubojMoznosti = VYCHOZI_MOZNOSTI,
   nahodne: () => number = Math.random
-): SoubojStav => ({
-  hraci: [vytvorBojovnika(pozice0, postava0), vytvorBojovnika(pozice1, postava1)],
-  cas: 0,
-  vitez: null,
-  stavKola: 'probiha',
-  moznosti,
-  suddenDeath: false,
-  suddenDeathOd: null,
-  // Pickup se schválně losuje jen do prostřední poloviny arény, ne
-  // až ke krajům — ať je vždycky doopravdy dosažitelný pro obě strany
-  // z jejich startovní pozice.
-  pickupPozice: ARENA_SIRKA * 0.25 + nahodne() * ARENA_SIRKA * 0.5,
-  pickupTyp: nahodne() < 0.5 ? 'mana' : 'stit',
-  pickupSebran: false,
-})
+): SoubojStav => {
+  // Vylepšení — volný pohyb. Oba bojovníci na startu hledí JEDEN NA
+  // DRUHÉHO (natoceni odvozené ze smerMezi) — appka to nastavuje jen
+  // jednou tady, dál se natočení mění výhradně skutečným pohybem
+  // (viz tikBojovnika), nikdy zpátky na "hleď na soupeře".
+  const natoceni0 = Math.atan2(smerMezi(pozice0, pozice1).x, smerMezi(pozice0, pozice1).z)
+  const natoceni1 = Math.atan2(smerMezi(pozice1, pozice0).x, smerMezi(pozice1, pozice0).z)
+  return {
+    hraci: [vytvorBojovnika(pozice0, postava0, natoceni0), vytvorBojovnika(pozice1, postava1, natoceni1)],
+    cas: 0,
+    vitez: null,
+    stavKola: 'probiha',
+    moznosti,
+    suddenDeath: false,
+    suddenDeathOd: null,
+    // Pickup se schválně losuje jen do prostředního čtverce arény, ne
+    // až ke krajům — ať je vždycky doopravdy dosažitelný z obou
+    // startovních pozic. Obě osy nezávisle, stejný rozsah jako dřív.
+    pickupPozice: {
+      x: ARENA_SIRKA * 0.25 + nahodne() * ARENA_SIRKA * 0.5,
+      z: ARENA_SIRKA * 0.25 + nahodne() * ARENA_SIRKA * 0.5,
+    },
+    pickupTyp: nahodne() < 0.5 ? 'mana' : 'stit',
+    pickupSebran: false,
+  }
+}
 
 interface VysledekTiku {
   dalsi: BojovnikStav
@@ -350,8 +406,26 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number, regenN
 
   const rychlostPostavy = POSTAVY[b.postavaId].rychlostNasobic
   let pozice = b.pozice
-  if (vstup.smer === 'vlevo') pozice = Math.max(0, pozice - (RYCHLOST_POHYBU * rychlostPostavy * deltaMs) / 1000)
-  if (vstup.smer === 'vpravo') pozice = Math.min(ARENA_SIRKA, pozice + (RYCHLOST_POHYBU * rychlostPostavy * deltaMs) / 1000)
+  let natoceni = b.natoceni
+  if (vstup.smer) {
+    // Vylepšení — volný pohyb. Joystick může poslat vektor libovolné
+    // délky (i > 1, kdyby ho volající poslal nenormalizovaný) — appka
+    // ho capne na jednotkovou velikost tady, ne že by věřila, že
+    // odesílatel to už udělal sám.
+    const delka = Math.hypot(vstup.smer.x, vstup.smer.z)
+    if (delka > 0.0001) {
+      const nx = vstup.smer.x / Math.max(1, delka)
+      const nz = vstup.smer.z / Math.max(1, delka)
+      const krok = (RYCHLOST_POHYBU * rychlostPostavy * deltaMs) / 1000
+      pozice = ohranicPozici({ x: pozice.x + nx * krok, z: pozice.z + nz * krok })
+      // Natočení sleduje SMĚR POHYBU, ne pozici soupeře — appka nemá
+      // žádný oddělený vstup "rozhlížení" (viz types.ts's komentář u
+      // natoceni), takže volná kamera se otáčí přesně tam, kam hráč
+      // jde. Stojí-li na místě (vstup.smer je null / nulový vektor),
+      // natočení zůstává beze změny.
+      natoceni = Math.atan2(vstup.smer.x, vstup.smer.z)
+    }
+  }
 
   // Zmáčknutá akce přebije blok — jednodušší pravidlo než "blok
   // pohltí útočné tlačítko", a nezavádí to stav, kdy vstup nic neudělá.
@@ -401,6 +475,7 @@ const tikBojovnika = (b: BojovnikStav, vstup: HracVstup, deltaMs: number, regenN
     dalsi: {
       ...b,
       pozice,
+      natoceni,
       blokuje,
       zranitelnostKonci: 0,
       utokKonci: novyUtokKonci,
@@ -540,15 +615,26 @@ const aplikujJedenZasah = (
     bonusVztek *
     bonusHype
 
-  const smerOdrazeni = utocnik.pozice <= cil.pozice ? 1 : -1
+  // Vylepšení — volný pohyb. Odražení teď jde ve 2D směru OD útočníka
+  // K cíli (smerMezi), ne jen "doleva, nebo doprava" na jedné ose.
+  const smerOdrazeni = smerMezi(utocnik.pozice, cil.pozice)
   const silaOdrazeni = zasahBlokovan ? knockback * (1 - BLOK_REDUKCE) : knockback
-  const novaPozice = Math.max(0, Math.min(ARENA_SIRKA, cil.pozice + smerOdrazeni * silaOdrazeni))
+  const novaPozice = ohranicPozici({
+    x: cil.pozice.x + smerOdrazeni.x * silaOdrazeni,
+    z: cil.pozice.z + smerOdrazeni.z * silaOdrazeni,
+  })
 
   // Osmé kolo vylepšení — hazard okraje arény. Pevné číslo navrch,
   // NErostoucí s žádným násobičem výš — je to o TOM, KAM odražení cíl
-  // dostalo, ne o síle samotného zásahu.
+  // dostalo, ne o síle samotného zásahu. Vylepšení — volný pohyb:
+  // "kraj" teď znamená blízko KTERÉKOLI ze čtyř hran čtvercové arény,
+  // ne jen levého/pravého konce jedné osy.
   const dostalOdrazenKOkraji =
-    hazardOkraju && (novaPozice <= HAZARD_OKRAJE_PRAH || novaPozice >= ARENA_SIRKA - HAZARD_OKRAJE_PRAH)
+    hazardOkraju &&
+    (novaPozice.x <= HAZARD_OKRAJE_PRAH ||
+      novaPozice.x >= ARENA_SIRKA - HAZARD_OKRAJE_PRAH ||
+      novaPozice.z <= HAZARD_OKRAJE_PRAH ||
+      novaPozice.z >= ARENA_SIRKA - HAZARD_OKRAJE_PRAH)
   const poskozeniCelkove = poskozeni + (dostalOdrazenKOkraji ? HAZARD_OKRAJE_POSKOZENI : 0)
 
   // Desáté kolo vylepšení — vztek. Roste CÍLI podle skutečně
@@ -632,7 +718,7 @@ const vyhodnotZasahPokudZahajen = (
   const utocnik = hraci[utocnikIdx]
   const cil = hraci[cilIdx]
   const data = efektivniAkceData(utocnik.postavaId, akce)
-  const vzdalenost = Math.abs(utocnik.pozice - cil.pozice)
+  const vzdalenost = vzdalenostBodu(utocnik.pozice, cil.pozice)
   if (vzdalenost > data.dosah) return hraci // netrefil se, mimo dosah
 
   const postavaUtocnika = POSTAVY[utocnik.postavaId]
@@ -702,7 +788,7 @@ const vyhodnotZasahPokudZahajen = (
  *  než se rozhodne mezi obyčejným pořadím 0-pak-1 a simultánním
  *  clashem. */
 const vDosahuVzajemne = (utocnik: BojovnikStav, cil: BojovnikStav, akce: UtocnaAkce): boolean =>
-  Math.abs(utocnik.pozice - cil.pozice) <= efektivniAkceData(utocnik.postavaId, akce).dosah
+  vzdalenostBodu(utocnik.pozice, cil.pozice) <= efektivniAkceData(utocnik.postavaId, akce).dosah
 
 /** Jedenácté kolo vylepšení — simultánní clash. Platí jen pro dva
  *  ÚTOKY (ne chyt — ten řeší tech, viz krokSouboje), a jen tehdy, když
@@ -723,9 +809,13 @@ const jeSoubeznyClash = (
  *  rozhodovalo, kdo je hráč 0 a kdo hráč 1). */
 const aplikujClash = (hraci: [BojovnikStav, BojovnikStav]): [BojovnikStav, BojovnikStav] => {
   const [b0, b1] = hraci
-  const smer = b0.pozice <= b1.pozice ? 1 : -1
-  const p0 = Math.max(0, Math.min(ARENA_SIRKA, b0.pozice - smer * CLASH_ODRAZENI))
-  const p1 = Math.max(0, Math.min(ARENA_SIRKA, b1.pozice + smer * CLASH_ODRAZENI))
+  // Vylepšení — volný pohyb. Směr srážky je teď 2D vektor OD b0 K b1
+  // (smerMezi) — oba se od sebe odrazí podél téhle jedné osy, stejná
+  // symetrie jako dřív (appka záměrně nerozhoduje o výsledku srážky
+  // podle toho, kdo je hráč 0 a kdo hráč 1).
+  const smer = smerMezi(b0.pozice, b1.pozice)
+  const p0 = ohranicPozici({ x: b0.pozice.x - smer.x * CLASH_ODRAZENI, z: b0.pozice.z - smer.z * CLASH_ODRAZENI })
+  const p1 = ohranicPozici({ x: b1.pozice.x + smer.x * CLASH_ODRAZENI, z: b1.pozice.z + smer.z * CLASH_ODRAZENI })
   return [
     { ...b0, pozice: p0, zranitelnostKonci: CLASH_STUN_MS },
     { ...b1, pozice: p1, zranitelnostKonci: CLASH_STUN_MS },
@@ -801,7 +891,7 @@ export const krokSouboje = (stav: SoubojStav, vstupy: [HracVstup, HracVstup], de
     if (stav.cas < hranice && novyCas >= hranice) {
       const stred = stredUdalostiBalvan(cyklus)
       hraci = hraci.map((b) =>
-        Math.abs(b.pozice - stred) <= UDALOST_SIRKA ? { ...b, hp: Math.max(0, b.hp - UDALOST_POSKOZENI) } : b
+        vzdalenostBodu(b.pozice, stred) <= UDALOST_SIRKA ? { ...b, hp: Math.max(0, b.hp - UDALOST_POSKOZENI) } : b
       ) as [BojovnikStav, BojovnikStav]
     }
   }
@@ -815,7 +905,7 @@ export const krokSouboje = (stav: SoubojStav, vstupy: [HracVstup, HracVstup], de
   if (!pickupSebran && novyCas >= PICKUP_DOSTUPNY_OD_MS) {
     for (const idx of [0, 1] as const) {
       if (pickupSebran) break
-      if (Math.abs(hraci[idx].pozice - stav.pickupPozice) > PICKUP_DOSAH) continue
+      if (vzdalenostBodu(hraci[idx].pozice, stav.pickupPozice) > PICKUP_DOSAH) continue
       const b = hraci[idx]
       const posilneny: BojovnikStav =
         stav.pickupTyp === 'mana' ? { ...b, mana: b.maxMana } : { ...b, stitAktivni: true }

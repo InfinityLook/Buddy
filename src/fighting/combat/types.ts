@@ -1,5 +1,15 @@
-import type { Smer } from '../types'
+import type { SmerVektor } from '../types'
 import type { PostavaId } from './postavy'
+
+/** Vylepšení — volný pohyb. Pozice bojovníka je od teď skutečný bod
+ *  ve dvourozměrné aréně (x/z, stejná osní konvence jako Three.js
+ *  scéna v arena/useSoubojScene.ts), ne skalár na jedné ose. Obě osy
+ *  sdílejí stejný rozsah 0..ARENA_SIRKA (engine.ts) — aréna je teď
+ *  čtvercové hřiště, ne úzký pruh. */
+export interface Pozice2D {
+  x: number
+  z: number
+}
 
 // ==========================================
 // Fáze 1 — jádro soubojového enginu jako čisté funkce, žádný React,
@@ -50,8 +60,18 @@ export interface BojovnikStav {
   maxHp: number
   mana: number
   maxMana: number
-  /** Pozice na ose 0..ARENA_SIRKA. */
-  pozice: number
+  /** Vylepšení — volný pohyb. Bod ve čtvercové aréně (viz Pozice2D
+   *  výš), dřív skalár na jedné ose. */
+  pozice: Pozice2D
+  /** Vylepšení — volný pohyb. Úhel (radiány), kterým bojovník právě
+   *  "hledí" — appka ho nepočítá ze samostatného vstupu (žádné druhé
+   *  tlačítko/vektor pro "rozhlížení" na ovladači, žádné nové pole na
+   *  síti navíc), jen z posledního NENULOVÉHO směru pohybu (viz
+   *  engine.ts's tikBojovnika) — stojí-li bojovník na místě, natočení
+   *  zůstává, kam se díval naposledy. Kamera (arena/useSoubojScene.ts)
+   *  z tohohle odvozuje, kterým směrem se vlastní hráč dívá — "volná"
+   *  kamera bez odděleného ovládání pohledu, ne uzamčená na soupeře. */
+  natoceni: number
   /** Která postava (Fáze 2) — určuje efektivní čísla akcí, viz
    *  engine.ts's efektivniAkceData(). */
   postavaId: PostavaId
@@ -139,9 +159,11 @@ export interface BojovnikStav {
  *  rozhoduje, kdy z "drženo" udělat "právě zmáčknuto". `smer` a `blok`
  *  naopak jsou držený stav, přesně jak je posílá ovladač. */
 export interface HracVstup {
-  /** Jen vlevo/vpravo se v Fázi 1 skutečně hýbe; nahoru/dolu (skok/
-   *  podřep) jsou z d-padu vyhrazené na později a engine je ignoruje. */
-  smer: Smer | null
+  /** Vylepšení — volný pohyb. Spojitý 2D vektor (viz fighting/types.ts's
+   *  SmerVektor) místo dřívějšího diskrétního 'vlevo'/'vpravo' stringu —
+   *  engine.ts's tikBojovnika ho sám normalizuje/capne na jednotkovou
+   *  velikost, volající (joystick) může poslat cokoli. */
+  smer: SmerVektor | null
   blok: boolean
   akce: UtocnaAkce | null
 }
@@ -201,7 +223,7 @@ export interface SoubojStav {
    *  losují jednou při vytvorSoubojStav() a dál se nemění — jen
    *  `pickupSebran` se přepne na true, jakmile ho někdo sebere. Žádné
    *  respawnování v rámci jednoho kola, ani v tréninku. */
-  pickupPozice: number
+  pickupPozice: Pozice2D
   pickupTyp: 'mana' | 'stit'
   pickupSebran: boolean
 }

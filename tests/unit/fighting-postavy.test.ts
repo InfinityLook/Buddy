@@ -11,7 +11,11 @@ import {
   vytvorSoubojStav,
 } from '@/fighting/combat/engine'
 import { POSTAVY, VSECHNY_POSTAVY, VYCHOZI_POSTAVA } from '@/fighting/combat/postavy'
-import type { HracVstup } from '@/fighting/combat/types'
+import type { HracVstup, Pozice2D } from '@/fighting/combat/types'
+
+// Vylepšení — volný pohyb, stejný jednoosý testovací pomocník jako
+// fighting-combat.test.ts's vlastní P().
+const P = (x: number): Pozice2D => ({ x, z: 400 })
 
 const stat: HracVstup = { smer: null, blok: false, akce: null }
 
@@ -52,28 +56,28 @@ describe('efektivniAkceData', () => {
 
 describe('vytvorBojovnika s postavou', () => {
   it('Bulwark má vyšší maximální HP než výchozí postava', () => {
-    const bulwark = vytvorBojovnika(0, 'bulwark')
-    const onyx = vytvorBojovnika(0)
+    const bulwark = vytvorBojovnika(P(0), 'bulwark')
+    const onyx = vytvorBojovnika(P(0))
     expect(bulwark.maxHp).toBeGreaterThan(onyx.maxHp)
     expect(bulwark.hp).toBe(bulwark.maxHp)
     expect(bulwark.postavaId).toBe('bulwark')
   })
 
   it('Pyra má nižší maximální HP než výchozí postava', () => {
-    const pyra = vytvorBojovnika(0, 'pyra')
-    const onyx = vytvorBojovnika(0)
+    const pyra = vytvorBojovnika(P(0), 'pyra')
+    const onyx = vytvorBojovnika(P(0))
     expect(pyra.maxHp).toBeLessThan(onyx.maxHp)
   })
 })
 
 describe('rozdílné styly hry v reálném souboji', () => {
   it('Bulwarkova obrana sníží přijaté poškození oproti neutrální postavě', () => {
-    let stavBulwark = vytvorSoubojStav(0, 80, 'onyx', 'bulwark')
+    let stavBulwark = vytvorSoubojStav(P(0), P(80), 'onyx', 'bulwark')
     const maxHpBulwark = stavBulwark.hraci[1].maxHp
     stavBulwark = krokSouboje(stavBulwark, [{ ...stat, akce: 'udar' }, stat], 0)
     const poskozeniBulwark = maxHpBulwark - stavBulwark.hraci[1].hp
 
-    let stavOnyx = vytvorSoubojStav(0, 80, 'onyx', 'onyx')
+    let stavOnyx = vytvorSoubojStav(P(0), P(80), 'onyx', 'onyx')
     stavOnyx = krokSouboje(stavOnyx, [{ ...stat, akce: 'udar' }, stat], 0)
     const poskozeniOnyx = MAX_HP - stavOnyx.hraci[1].hp
 
@@ -82,11 +86,11 @@ describe('rozdílné styly hry v reálném souboji', () => {
   })
 
   it('Pyřin úder dá víc poškození než neutrální postavy stejný úder', () => {
-    let stavPyra = vytvorSoubojStav(0, 80, 'pyra', 'onyx')
+    let stavPyra = vytvorSoubojStav(P(0), P(80), 'pyra', 'onyx')
     stavPyra = krokSouboje(stavPyra, [{ ...stat, akce: 'udar' }, stat], 0)
     const poskozeniPyra = MAX_HP - stavPyra.hraci[1].hp
 
-    let stavOnyx = vytvorSoubojStav(0, 80, 'onyx', 'onyx')
+    let stavOnyx = vytvorSoubojStav(P(0), P(80), 'onyx', 'onyx')
     stavOnyx = krokSouboje(stavOnyx, [{ ...stat, akce: 'udar' }, stat], 0)
     const poskozeniOnyx = MAX_HP - stavOnyx.hraci[1].hp
 
@@ -94,7 +98,7 @@ describe('rozdílné styly hry v reálném souboji', () => {
   })
 
   it('blok a postavina obrana se kombinují (obrana nejdřív, blok navrch)', () => {
-    let stav = vytvorSoubojStav(0, 80, 'onyx', 'bulwark')
+    let stav = vytvorSoubojStav(P(0), P(80), 'onyx', 'bulwark')
     const maxHpBulwark = stav.hraci[1].maxHp
     // Vylepšení — parry: blok, co za útokem nezaostává, je "perfektní"
     // (nulové poškození, viz fighting-combat.test.ts's vlastní sekce),
@@ -109,23 +113,23 @@ describe('rozdílné styly hry v reálném souboji', () => {
   })
 
   it('Volt se pohybuje rychleji než neutrální postava za stejný čas', () => {
-    let stavVolt = vytvorSoubojStav(400, 700, 'volt', 'onyx')
-    stavVolt = krokSouboje(stavVolt, [{ ...stat, smer: 'vpravo' }, stat], 500)
-    const posunVolt = stavVolt.hraci[0].pozice - 400
+    let stavVolt = vytvorSoubojStav(P(400), P(700), 'volt', 'onyx')
+    stavVolt = krokSouboje(stavVolt, [{ ...stat, smer: { x: 1, z: 0 } }, stat], 500)
+    const posunVolt = stavVolt.hraci[0].pozice.x - 400
 
-    let stavOnyx = vytvorSoubojStav(400, 700, 'onyx', 'onyx')
-    stavOnyx = krokSouboje(stavOnyx, [{ ...stat, smer: 'vpravo' }, stat], 500)
-    const posunOnyx = stavOnyx.hraci[0].pozice - 400
+    let stavOnyx = vytvorSoubojStav(P(400), P(700), 'onyx', 'onyx')
+    stavOnyx = krokSouboje(stavOnyx, [{ ...stat, smer: { x: 1, z: 0 } }, stat], 500)
+    const posunOnyx = stavOnyx.hraci[0].pozice.x - 400
 
     expect(posunVolt).toBeGreaterThan(posunOnyx)
     expect(posunVolt).toBeCloseTo((RYCHLOST_POHYBU * POSTAVY.volt.rychlostNasobic * 500) / 1000)
   })
 
   it('Volt se ze svého útoku zotaví dřív než neutrální postava (kratší cooldown)', () => {
-    let stavVolt = vytvorSoubojStav(0, 300, 'volt', 'onyx')
+    let stavVolt = vytvorSoubojStav(P(0), P(300), 'volt', 'onyx')
     stavVolt = krokSouboje(stavVolt, [{ ...stat, akce: 'kop' }, stat], 0)
 
-    let stavOnyx = vytvorSoubojStav(0, 300, 'onyx', 'onyx')
+    let stavOnyx = vytvorSoubojStav(P(0), P(300), 'onyx', 'onyx')
     stavOnyx = krokSouboje(stavOnyx, [{ ...stat, akce: 'kop' }, stat], 0)
 
     expect(stavVolt.hraci[0].utokKonci).toBeLessThan(stavOnyx.hraci[0].utokKonci)

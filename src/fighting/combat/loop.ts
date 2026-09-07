@@ -11,7 +11,7 @@ import {
   VZTEK_MAX,
 } from './engine'
 import type { AkceData, BojovnikStav, HracVstup, SoubojStav, UtocnaAkce } from './types'
-import type { Smer, Tlacitko } from '../types'
+import type { SmerVektor, Tlacitko } from '../types'
 
 // ==========================================
 // Fáze 3 — čisté funkce, které stojí mezi "co ovladač zrovna drží" a
@@ -95,7 +95,7 @@ export const detekujAkci = (
  *  bylo drženo tik předtím — engine sám edge detekci neřeší, jen ji
  *  spotřebovává (viz HracVstup.akce v types.ts). */
 export const sestavVstup = (
-  smer: Smer | null,
+  smer: SmerVektor | null,
   tlacitkaPredchozi: Record<Tlacitko, boolean>,
   tlacitkaAktualni: Record<Tlacitko, boolean>
 ): HracVstup => ({
@@ -110,10 +110,14 @@ export const hpProcenta = (b: BojovnikStav): number => Math.max(0, Math.min(100,
 /** Kolik procent má mít mana bar. */
 export const manaProcenta = (b: BojovnikStav): number => Math.max(0, Math.min(100, (b.mana / b.maxMana) * 100))
 
-/** Pozice bojovníka na ose arény jako procento šířky — pro CSS
- *  `left: N%` bez enginu samotného vědět nic o pixelech na obrazovce. */
-export const poziceProcenta = (b: BojovnikStav, arenaSirka: number): number =>
-  Math.max(0, Math.min(100, (b.pozice / arenaSirka) * 100))
+/** Vylepšení — volný pohyb. Pozice bojovníka v procentech ŠÍŘKY i
+ *  HLOUBKY arény najednou — dřív jen jedno číslo pro `left: N%` na
+ *  jedné ose, teď dvojice pro top-down 2D záložní arénu
+ *  (SoubojArena2D.tsx). */
+export const poziceProcenta = (b: BojovnikStav, arenaSirka: number): { xProcenta: number; zProcenta: number } => ({
+  xProcenta: Math.max(0, Math.min(100, (b.pozice.x / arenaSirka) * 100)),
+  zProcenta: Math.max(0, Math.min(100, (b.pozice.z / arenaSirka) * 100)),
+})
 
 /** Jaký vizuální stav bojovníka právě teď platí — pro CSS třídu na
  *  TV straně. Pořadí kontrol je schválně důležité: KO má přednost
@@ -186,11 +190,18 @@ export const jeHypeGotov = (b: BojovnikStav): boolean => b.hype >= HYPE_MAX
  *  kohokoli dopad zasáhne, tomu už tak jako tak klesne HP tenhle tik,
  *  což spustí Bojiste.tsx's existující "zasah"/otres efekt úplně
  *  stejně jako obyčejný úder, žádná druhá vizuální vrstva navíc netřeba. */
-export const stavBalvanuAreny = (cas: number, arenaSirka: number): { varovani: boolean; xProcenta: number } => {
+export const stavBalvanuAreny = (
+  cas: number,
+  arenaSirka: number
+): { varovani: boolean; xProcenta: number; zProcenta: number } => {
   const cyklus = cyklusUdalostiAreny(cas)
   const hranice = (cyklus + 1) * UDALOST_PERIODA_MS
   const stred = stredUdalostiBalvan(cyklus)
-  return { varovani: hranice - cas <= UDALOST_VAROVANI_MS, xProcenta: (stred / arenaSirka) * 100 }
+  return {
+    varovani: hranice - cas <= UDALOST_VAROVANI_MS,
+    xProcenta: (stred.x / arenaSirka) * 100,
+    zProcenta: (stred.z / arenaSirka) * 100,
+  }
 }
 
 /** Desáté kolo vylepšení — interaktivní událost arény ('zatmeni', viz

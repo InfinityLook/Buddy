@@ -13,9 +13,9 @@ import { useSoubojStatistikyStore } from '../useSoubojStatistikyStore'
 import { zavibrujTlacitko } from '../haptika'
 import { POSTAVY } from '../combat/postavy'
 import type { PostavaId } from '../combat/postavy'
-import type { SoubojMoznosti, SoubojStav } from '../combat/types'
+import type { Pozice2D, SoubojMoznosti, SoubojStav } from '../combat/types'
 import { RYCHLE_EMOTE } from '../types'
-import type { Smer, Tlacitko } from '../types'
+import type { SmerVektor, Tlacitko } from '../types'
 import { arenaNahledGradient, ARENY, nahodnaArena, SEZNAM_AREN, VYCHOZI_ARENA, type ArenaId } from '../arena/areny'
 import { Bojiste } from './Bojiste'
 import { PostavaGrafika } from './PostavaGrafika'
@@ -32,7 +32,24 @@ const PRAZDNA_TLACITKA: Record<Tlacitko, boolean> = { udar: false, kop: false, b
 const IKONA_TLACITKA: Record<Tlacitko, string> = { udar: '👊', kop: '🦵', blok: '🛡️', specialni: '✨' }
 const PORADI_TLACITEK: Tlacitko[] = ['udar', 'kop', 'blok', 'specialni']
 
-const POZICE_START: [number, number] = [200, ARENA_SIRKA - 200]
+/** Vylepšení — volný pohyb. Čtyři držené šipky (d-pad, viz JSX níž),
+ *  ne dřívější pár vlevo/vpravo — appka z nich poskládá skutečný 2D
+ *  vektor (smerZTlacitek), diagonála vzniká držením dvou sousedních
+ *  šipek najednou, stejně jako u kteréhokoli fyzického d-padu. */
+interface StavSmeru {
+  nahoru: boolean
+  dolu: boolean
+  vlevo: boolean
+  vpravo: boolean
+}
+const PRAZDNY_SMER: StavSmeru = { nahoru: false, dolu: false, vlevo: false, vpravo: false }
+
+// Vylepšení — volný pohyb, stejný tvar jako TvHost.tsx's vlastní
+// POZICE_START.
+const POZICE_START: [Pozice2D, Pozice2D] = [
+  { x: 200, z: ARENA_SIRKA / 2 },
+  { x: ARENA_SIRKA - 200, z: ARENA_SIRKA / 2 },
+]
 
 // Osmé kolo vylepšení — stejné volby délky zápasu/handicapu jako na
 // TV straně (TvHost.tsx), jen bez síťového kontextu — obojí je čistě
@@ -77,9 +94,10 @@ let posledniNastaveniLokalu: PosledniNastaveniLokalu | null = null
 // stejné Bojiste.tsx (takže i hit-stop/parry/comeback/combo/screen
 // shake fungují úplně stejně, appka tu nic z toho neduplikuje), jen
 // vstup nepřichází přes broadcast, ale ze dvou lokálních párů refů —
-// každý hráč má svůj vlastní směrový pár tlačítek (◀ ▶, ne joystick:
-// joystick by na polovině obrazovky sdílené se čtyřmi dalšími
-// tlačítky nebyl k ničemu) a čtyři akční tlačítka, se stejnou
+// každý hráč má svůj vlastní d-pad (▲▼◀▶, ne joystick: joystick by na
+// polovině obrazovky sdílené se čtyřmi dalšími tlačítky nebyl k
+// ničemu — viz Vylepšení níž, proč čtyři šipky místo dřívějšího
+// vodorovného páru) a čtyři akční tlačítka, se stejnou
 // pointerdown/pointerup + hranovou detekcí (sestavVstup, combat/
 // loop.ts), jakou telefon-ovladač už používá.
 //
@@ -143,10 +161,10 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
   // přímo z pointerdown/pointerup na TÉHLE obrazovce, ne ze sítě.
   const p1Tlacitka = useRef<Record<Tlacitko, boolean>>({ ...PRAZDNA_TLACITKA })
   const p1TlacitkaPredchozi = useRef<Record<Tlacitko, boolean>>({ ...PRAZDNA_TLACITKA })
-  const p1Smer = useRef<{ vlevo: boolean; vpravo: boolean }>({ vlevo: false, vpravo: false })
+  const p1Smer = useRef<StavSmeru>({ ...PRAZDNY_SMER })
   const p2Tlacitka = useRef<Record<Tlacitko, boolean>>({ ...PRAZDNA_TLACITKA })
   const p2TlacitkaPredchozi = useRef<Record<Tlacitko, boolean>>({ ...PRAZDNA_TLACITKA })
-  const p2Smer = useRef<{ vlevo: boolean; vpravo: boolean }>({ vlevo: false, vpravo: false })
+  const p2Smer = useRef<StavSmeru>({ ...PRAZDNY_SMER })
 
   // Osmé kolo vylepšení — poskládá SoubojMoznosti ze zvolených voleb
   // zápasu (stejná logika, jaká TvHost.tsx má pod stejným jménem).
@@ -199,8 +217,11 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
     let idPozadavku: number
     let posledniCas = performance.now()
 
-    const smerZTlacitek = (s: { vlevo: boolean; vpravo: boolean }): Smer | null =>
-      s.vlevo && !s.vpravo ? 'vlevo' : s.vpravo && !s.vlevo ? 'vpravo' : null
+    const smerZTlacitek = (s: StavSmeru): SmerVektor | null => {
+      const x = (s.vpravo ? 1 : 0) - (s.vlevo ? 1 : 0)
+      const z = (s.dolu ? 1 : 0) - (s.nahoru ? 1 : 0)
+      return x === 0 && z === 0 ? null : { x, z }
+    }
 
     const tik = (cas: number) => {
       const deltaMs = cas - posledniCas
@@ -583,10 +604,26 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
           const tlacitkaRef = hrac === 0 ? p1Tlacitka : p2Tlacitka
           return (
             <div key={hrac} className={`souboj-lokal-klastr souboj-lokal-klastr--${hrac + 1}`}>
+              {/* Vylepšení — volný pohyb. Plus-tvarovaný d-pad místo
+                  dřívějšího ◀▶ páru — appka teď potřebuje obě osy, ne
+                  jen jednu (viz FightingModule.css's vlastní komentář
+                  u .souboj-lokal-smer). */}
               <div className="souboj-lokal-smer">
                 <button
                   type="button"
-                  className="souboj-lokal-smer-btn"
+                  className="souboj-lokal-smer-btn souboj-lokal-smer-btn--nahoru"
+                  onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId)
+                    smerRef.current.nahoru = true
+                  }}
+                  onPointerUp={() => (smerRef.current.nahoru = false)}
+                  onPointerCancel={() => (smerRef.current.nahoru = false)}
+                >
+                  ▲
+                </button>
+                <button
+                  type="button"
+                  className="souboj-lokal-smer-btn souboj-lokal-smer-btn--vlevo"
                   onPointerDown={(e) => {
                     e.currentTarget.setPointerCapture(e.pointerId)
                     smerRef.current.vlevo = true
@@ -598,7 +635,7 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
                 </button>
                 <button
                   type="button"
-                  className="souboj-lokal-smer-btn"
+                  className="souboj-lokal-smer-btn souboj-lokal-smer-btn--vpravo"
                   onPointerDown={(e) => {
                     e.currentTarget.setPointerCapture(e.pointerId)
                     smerRef.current.vpravo = true
@@ -607,6 +644,18 @@ export const LocalniZapas: React.FC<Props> = ({ onZpet }) => {
                   onPointerCancel={() => (smerRef.current.vpravo = false)}
                 >
                   ▶
+                </button>
+                <button
+                  type="button"
+                  className="souboj-lokal-smer-btn souboj-lokal-smer-btn--dolu"
+                  onPointerDown={(e) => {
+                    e.currentTarget.setPointerCapture(e.pointerId)
+                    smerRef.current.dolu = true
+                  }}
+                  onPointerUp={() => (smerRef.current.dolu = false)}
+                  onPointerCancel={() => (smerRef.current.dolu = false)}
+                >
+                  ▼
                 </button>
               </div>
 

@@ -19,13 +19,17 @@ interface Props {
 }
 
 // ==========================================
-// Plochá 2D aréna — teď záložní varianta pro případ, že se skutečná
-// 3D scéna (SoubojArena3D.tsx) nepodaří spustit (useSoubojScene.ts's
-// `selhalo`, typicky chybějící WebGL). Appka radši ukáže tenhle
-// starší vzhled než aby byl zápas úplně nehratelný — beze změny
-// oproti verzi před přechodem na 3D, jen přesunuto z Bojiste.tsx do
-// vlastního souboru, ať Bojiste.tsx zůstává jen tenký přepínač mezi
-// oběma renderery plus společná hlavička (HP/mana pruhy).
+// Plochá 2D aréna — záložní varianta pro případ, že se skutečná 3D
+// scéna (SoubojArena3D.tsx) nepodaří spustit (useSoubojScene.ts's
+// `selhalo`, typicky chybějící WebGL). Appka radši ukáže tuhle
+// jednodušší vrstvu než aby byl zápas úplně nehratelný.
+//
+// Vylepšení — volný pohyb. Dřív šlo o postavičky stojící na jedné
+// vodorovné ose (jen `left`); teď appka kreslí skutečný TOP-DOWN
+// pohled shora — poziceProcenta (combat/loop.ts) vrací obě souřadnice
+// (x/z) najednou, appka je nastaví jako `left`/`top` na stejném
+// elementu (viz FightingModule.css's vlastní pravidlo, proč `top`
+// nahrazuje dřívější pevné `bottom` jen tady, ne ve skutečné 3D aréně).
 // ==========================================
 
 export const SoubojArena2D: React.FC<Props> = ({ stav, zasazen, svizny }) => {
@@ -47,6 +51,7 @@ export const SoubojArena2D: React.FC<Props> = ({ stav, zasazen, svizny }) => {
         // se odehrává souběžně s dolly-in kamerou/knokautovými
         // finishery, co taky nečekají na zpožděný text.
         const jeVitez = stav.stavKola === 'konec' && stav.vitez === i
+        const { xProcenta, zProcenta } = poziceProcenta(b, ARENA_SIRKA)
         return (
           <div
             key={i}
@@ -55,7 +60,7 @@ export const SoubojArena2D: React.FC<Props> = ({ stav, zasazen, svizny }) => {
             } ${jeComeback(b) ? 'souboj-bojovnik--comeback' : ''} ${jeChyt ? 'souboj-bojovnik--chyt' : ''} ${
               jeVitez ? 'souboj-bojovnik--vitez' : ''
             } ${svizny?.[i] ? 'souboj-bojovnik--svizny' : ''}`}
-            style={{ left: `${poziceProcenta(b, ARENA_SIRKA)}%` }}
+            style={{ left: `${xProcenta}%`, top: `${zProcenta}%` }}
           >
             <PostavaGrafika postavaId={postava.id} size={58} vizualniStav={vizualniStav} jeChyt={jeChyt} jeVitez={jeVitez} />
             {zasazen[i] && <Jiskry barva={barvaAkcentuPostavy(stav.hraci[i === 0 ? 1 : 0].postavaId)} />}

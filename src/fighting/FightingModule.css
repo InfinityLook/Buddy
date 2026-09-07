@@ -814,14 +814,23 @@
   gap: 0.6rem;
 }
 
+/* Vylepšení — volný pohyb. Dřív vodorovný pár ◀▶ (jen jedna osa) —
+   teď plus-tvarovaný d-pad (čtyři šipky na 3×3 mřížce, prostřední
+   buňky prázdné), ať appka na sdíleném zařízení pořád nemusí sahat po
+   plnohodnotném joysticku (ten by na půlce obrazovky se čtyřmi akčními
+   tlačítky navíc nebyl k ničemu, viz komponenta), ale zvládne oba
+   rozměry — držení dvou sousedních šipek najednou dá diagonální pohyb,
+   stejně jako u kteréhokoli fyzického d-padu. */
 .souboj-lokal-smer {
-  display: flex;
-  gap: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  grid-template-rows: repeat(3, 40px);
+  gap: 0.35rem;
 }
 
 .souboj-lokal-smer-btn {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: var(--radius-md);
   border: 2px solid rgba(255, 255, 255, 0.25);
   background: var(--bg-glass);
@@ -835,6 +844,26 @@
 
 .souboj-lokal-smer-btn:active {
   transform: scale(0.92);
+}
+
+.souboj-lokal-smer-btn--nahoru {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.souboj-lokal-smer-btn--vlevo {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.souboj-lokal-smer-btn--vpravo {
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.souboj-lokal-smer-btn--dolu {
+  grid-column: 2;
+  grid-row: 3;
 }
 
 .souboj-lokal-akce {
@@ -1309,10 +1338,14 @@
    pickupViditelny). Malý plovoucí odznak nad podlahou arény, jemně
    nadskakuje, ať je vidět, že jde sebrat, ne že je to jen statická
    dekorace jako stromy/kameny v pozadí. */
+/* Vylepšení — volný pohyb. Dřív `bottom: 22%` (pevná výška nad
+   podlahou, jen vodorovná pozice se měnila) — teď appka dostává obě
+   souřadnice (left/top) inline z Bojiste.tsx, takže odznak centruje
+   sám sebe na svůj bod ve DVOU rozměrech (translate(-50%, -50%)),
+   stejné centrování jako .souboj-bojovnik dělá přes margin. */
 .souboj-pickup-znacka {
   position: absolute;
-  bottom: 22%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   font-size: 1.6rem;
   filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.5));
   animation: souboj-pickup-nadskok 1s ease-in-out infinite;
@@ -1326,10 +1359,10 @@
 @keyframes souboj-pickup-nadskok {
   0%,
   100% {
-    transform: translate(-50%, 0);
+    transform: translate(-50%, -50%);
   }
   50% {
-    transform: translate(-50%, -8px);
+    transform: translate(-50%, calc(-50% - 8px));
   }
 }
 
@@ -1338,10 +1371,12 @@
    umístění jako pickup výš (odznak nad podlahou arény), jen pulzuje
    rychleji a červeně — jasně "něco odsud za chvíli ublíží", ne jen
    "tady je něco k sebrání". */
+/* Vylepšení — volný pohyb. Stejná změna jako pickup výš — obě
+   souřadnice inline z Bojiste.tsx, centrování přes translate(-50%,
+   -50%) místo dřívějšího pevného `bottom` + jen vodorovného centrování. */
 .souboj-balvan-varovani {
   position: absolute;
-  bottom: 22%;
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
   font-size: 1.5rem;
   filter: drop-shadow(0 0 8px rgba(239, 68, 68, 0.7));
   animation: souboj-balvan-pulz 0.4s ease-in-out infinite;
@@ -1353,11 +1388,11 @@
   0%,
   100% {
     opacity: 0.55;
-    transform: translate(-50%, 0) scale(1);
+    transform: translate(-50%, -50%) scale(1);
   }
   50% {
     opacity: 1;
-    transform: translate(-50%, 0) scale(1.2);
+    transform: translate(-50%, -50%) scale(1.2);
   }
 }
 
@@ -1625,6 +1660,20 @@
   align-items: flex-end;
   justify-content: center;
   transition: left 0.05s linear;
+}
+
+/* Vylepšení — volný pohyb. Záložní 2D aréna (SoubojArena2D.tsx, pro
+   případ, že WebGL selže) teď kreslí bojovníky shora (top-down, obě
+   osy x/z najednou), ne jen jako postavičky stojící na jedné vodorovné
+   ose — potřebuje tedy `top` místo pevného `bottom`, se stejným
+   "posuň o polovinu vlastní velikosti" centrováním, jaké `margin-left`
+   výš už dělá vodorovně. Skutečná 3D aréna (.souboj-arena--3d) svoje
+   sprity pozicuje jinak (viz .souboj-arena--3d .souboj-bojovnik výš),
+   proto tohle pravidlo záměrně platí jen tam, kde NENÍ 3D. */
+.souboj-arena:not(.souboj-arena--3d) .souboj-bojovnik {
+  bottom: auto;
+  margin-top: -42px;
+  transition: left 0.05s linear, top 0.05s linear;
 }
 
 /* Kontaktní stín pod nohama — bez něj postavička v ploché aréně

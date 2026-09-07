@@ -13,8 +13,8 @@ import {
 import { nahodnaPostava, pripravAkciAi, VYCHOZI_OBTIZNOST, type Obtiznost } from '../combat/ai'
 import { POSTAVY } from '../combat/postavy'
 import type { PostavaId } from '../combat/postavy'
-import type { HracVstup, SoubojMoznosti, SoubojStav } from '../combat/types'
-import type { EmotePayload, PripojitPayload, Smer, Tlacitko, VstupPayload } from '../types'
+import type { HracVstup, Pozice2D, SoubojMoznosti, SoubojStav } from '../combat/types'
+import type { EmotePayload, PripojitPayload, SmerVektor, Tlacitko, VstupPayload } from '../types'
 import { Bojiste } from './Bojiste'
 import { PostavaGrafika } from './PostavaGrafika'
 import { IntroPocitadlo } from './IntroPocitadlo'
@@ -36,7 +36,7 @@ interface HracStav {
   /** Postava zvolená LOKÁLNĚ na ovladači (VyberPostavy.tsx), dorazí
    *  hned s prvním 'pripojit' broadcastem — viz types.ts. */
   postavaId: PostavaId
-  smer: Smer | null
+  smer: SmerVektor | null
   tlacitka: Record<Tlacitko, boolean>
 }
 
@@ -47,20 +47,15 @@ const PRAZDNA_TLACITKA: Record<Tlacitko, boolean> = {
   specialni: false,
 }
 
-// Startovní pozice obou bojovníků na ose arény — dost daleko od sebe,
-// aby žádná ze čtyř postav (ani ta s nejkratším dosahem) netrefila
-// soupeře hned na první tik bez pohybu.
-const POZICE_START: [number, number] = [200, ARENA_SIRKA - 200]
-
-// Posun tečky v ukazateli směru na čekací obrazovce — čistě vizuální
-// potvrzení, že d-pad z ovladače doopravdy dorazil, dokud zápas ještě
-// neběží.
-const POSUN_SMERU: Record<Smer, { x: number; y: number }> = {
-  nahoru: { x: 0, y: -1 },
-  dolu: { x: 0, y: 1 },
-  vlevo: { x: -1, y: 0 },
-  vpravo: { x: 1, y: 0 },
-}
+// Vylepšení — volný pohyb. Startovní pozice obou bojovníků v
+// čtvercové aréně — dost daleko od sebe na ose x (stejná vzdálenost
+// jako dřív), oba na stejné hloubce z uprostřed, aby žádná ze čtyř
+// postav (ani ta s nejkratším dosahem) netrefila soupeře hned na
+// první tik bez pohybu.
+const POZICE_START: [Pozice2D, Pozice2D] = [
+  { x: 200, z: ARENA_SIRKA / 2 },
+  { x: ARENA_SIRKA - 200, z: ARENA_SIRKA / 2 },
+]
 
 const IKONA_TLACITKA: Record<Tlacitko, string> = {
   udar: '👊',
@@ -720,12 +715,15 @@ export const TvHost: React.FC<Props> = ({ onZpet }) => {
                       {hrac.jmeno} · {hrac.postavaId}
                     </span>
 
+                    {/* Vylepšení — volný pohyb. Tečka teď sleduje
+                        skutečný 2D vektor z joysticku přímo, ne
+                        vyhledávání v tabulce čtyř diskrétních směrů. */}
                     <div className="souboj-smer-indikator" aria-hidden="true">
                       <span
                         className="souboj-smer-tecka"
                         style={{
                           transform: hrac.smer
-                            ? `translate(${POSUN_SMERU[hrac.smer].x * 18}px, ${POSUN_SMERU[hrac.smer].y * 18}px)`
+                            ? `translate(${hrac.smer.x * 18}px, ${hrac.smer.z * 18}px)`
                             : 'translate(0, 0)',
                         }}
                       />

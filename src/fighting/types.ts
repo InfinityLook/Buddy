@@ -7,7 +7,21 @@
 
 import type { PostavaId } from './combat/postavy'
 
-export type Smer = 'nahoru' | 'dolu' | 'vlevo' | 'vpravo'
+/** Vylepšení — volný pohyb. Dřív diskrétní d-pad string ('vlevo'/
+ *  'vpravo', nahoru/dolu vyhrazené a enginem ignorované) — teď
+ *  spojitý 2D vektor přesně v tom tvaru, v jakém ho joystick
+ *  (game/components/VirtualniJoystick.tsx) reportuje sám od sebe už
+ *  od svého prvního nasazení v RPG průzkumu. Ovladač (Ovladac.tsx) ho
+ *  dřív dostával, ale zahazoval složku z a x threshold-oval na
+ *  diskrétní string — appka teď posílá skutečný vektor beze změny,
+ *  žádné druhé zprůhlednění navíc. Velikost (x²+z² <= 1) appka
+ *  nevynucuje na tomhle typu — engine.ts's tikBojovnika ji sám capne,
+ *  ať jeden nepozorný volající nemůže poslat rychlost 10× větší, než
+ *  má mít. */
+export interface SmerVektor {
+  x: number
+  z: number
+}
 
 export type Tlacitko = 'udar' | 'kop' | 'blok' | 'specialni'
 
@@ -27,9 +41,10 @@ export interface PripojenoPayload {
   slot: 1 | 2
 }
 
-/** Jeden vstup z ovladače — směr (d-pad) nebo akční tlačítko. */
+/** Jeden vstup z ovladače — směr (joystick, teď 2D vektor místo
+ *  diskrétního d-padu, viz SmerVektor výš) nebo akční tlačítko. */
 export type VstupPayload =
-  | { hracId: string; typ: 'smer'; smer: Smer | null }
+  | { hracId: string; typ: 'smer'; smer: SmerVektor | null }
   | { hracId: string; typ: 'tlacitko'; tlacitko: Tlacitko; stisknuto: boolean }
 
 /** Vylepšení — TV rozešle jednou při přechodu kola do stavu 'konec'

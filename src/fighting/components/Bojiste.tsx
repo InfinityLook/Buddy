@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { POSTAVY } from '../combat/postavy'
-import { ARENA_SIRKA, PICKUP_DOSTUPNY_OD_MS } from '../combat/engine'
+import { ARENA_SIRKA, PICKUP_DOSTUPNY_OD_MS, vzdalenostBodu } from '../combat/engine'
 import {
   hpProcenta,
   hypeProcenta,
@@ -26,7 +26,7 @@ import { SoubojArena3D } from './SoubojArena3D'
 import { SoubojArena2D } from './SoubojArena2D'
 import { Konfety } from './Konfety'
 import { Pocasi } from './Pocasi'
-import type { SoubojStav, UtocnaAkce } from '../combat/types'
+import type { Pozice2D, SoubojStav, UtocnaAkce } from '../combat/types'
 import type { ArenaId } from '../arena/areny'
 
 interface Props {
@@ -131,7 +131,7 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes, kolo })
   // výš). Počítané ve STEJNÉM efektu jako zasazen/otres níž — appka
   // porovnává pozici mezi dvěma snímky přesně stejným způsobem, jakým
   // už porovnává HP.
-  const predchoziPozice = useRef<[number, number]>([stav.hraci[0].pozice, stav.hraci[1].pozice])
+  const predchoziPozice = useRef<[Pozice2D, Pozice2D]>([stav.hraci[0].pozice, stav.hraci[1].pozice])
   const [svizny, setSvizny] = useState<[boolean, boolean]>([false, false])
   // Jedenácté kolo vylepšení — kombo milestone (viz KOMBO_STUPEN_MILESTONE
   // výš). Stejná "zachyť PŘECHOD, ne držený stav" disciplína jako
@@ -207,7 +207,7 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes, kolo })
       // Jedenácté kolo vylepšení — motion trail, hrubý odhad rychlosti
       // z posunutí mezi dvěma po sobě jdoucími snímky (viz
       // PRAH_SVIZNEHO_POHYBU výš).
-      noveSvizny[i] = Math.abs(stav.hraci[i].pozice - predchoziPozice.current[i]) > PRAH_SVIZNEHO_POHYBU
+      noveSvizny[i] = vzdalenostBodu(stav.hraci[i].pozice, predchoziPozice.current[i]) > PRAH_SVIZNEHO_POHYBU
       predchoziPozice.current[i] = stav.hraci[i].pozice
 
       // Jedenácté kolo vylepšení — kombo milestone, přechod PŘES práh
@@ -317,7 +317,12 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes, kolo })
   // nesebral. Procento na ose arény, stejná přepočtová logika jako
   // combat/loop.ts's poziceProcenta pro bojovníky.
   const pickupViditelny = !stav.pickupSebran && stav.cas >= PICKUP_DOSTUPNY_OD_MS && stav.stavKola === 'probiha'
-  const pickupProcenta = (stav.pickupPozice / ARENA_SIRKA) * 100
+  // Vylepšení — volný pohyb. Obě souřadnice (x/z) najednou, ne jen
+  // jedno číslo na ose — odznak je pořád jen plochý přiblížený náznak
+  // (viz komentář u JSX níž, proč ne skutečný 3D/2D objekt), teď jen
+  // umístěný ve DVOU rozměrech místo jednoho.
+  const pickupProcentaX = (stav.pickupPozice.x / ARENA_SIRKA) * 100
+  const pickupProcentaZ = (stav.pickupPozice.z / ARENA_SIRKA) * 100
   const pickupIkona = stav.pickupTyp === 'mana' ? '🔷' : '🌟'
   const pickupPopisek = stav.pickupTyp === 'mana' ? 'Plná mana' : 'Štít'
 
@@ -477,7 +482,7 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes, kolo })
         {balvan?.varovani && (
           <span
             className="souboj-balvan-varovani"
-            style={{ left: `${balvan.xProcenta}%` }}
+            style={{ left: `${balvan.xProcenta}%`, top: `${balvan.zProcenta}%` }}
             aria-label="Padá balvan"
           >
             ⚠️
@@ -491,7 +496,7 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes, kolo })
         {pickupViditelny && (
           <span
             className={`souboj-pickup-znacka souboj-pickup-znacka--${stav.pickupTyp}`}
-            style={{ left: `${pickupProcenta}%` }}
+            style={{ left: `${pickupProcentaX}%`, top: `${pickupProcentaZ}%` }}
             aria-label={`Bonusový předmět: ${pickupPopisek}`}
           >
             {pickupIkona}
@@ -516,7 +521,7 @@ export const Bojiste: React.FC<Props> = ({ stav, jmena, arenaId, emotes, kolo })
                 <span>Vztek {Math.round(vztekProcenta(b))}%</span>
                 <span>Poslední zásah −{Math.round(posledniPoskozeni[i])}</span>
                 <span>Akce {b.posledniAkce ?? '—'}</span>
-                <span>Pozice {Math.round(b.pozice)}</span>
+                <span>Pozice {Math.round(b.pozice.x)}, {Math.round(b.pozice.z)}</span>
               </div>
             )
           })}

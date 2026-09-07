@@ -27,8 +27,12 @@ import {
   vytvorBojovnika,
   vytvorSoubojStav,
 } from '@/fighting/combat/engine'
-import type { HracVstup } from '@/fighting/combat/types'
+import type { HracVstup, Pozice2D } from '@/fighting/combat/types'
 import type { Tlacitko } from '@/fighting/types'
+
+// Vylepšení — volný pohyb, stejný jednoosý testovací pomocník jako
+// fighting-combat.test.ts's vlastní P().
+const P = (x: number): Pozice2D => ({ x, z: 400 })
 
 const PRAZDNA: Record<Tlacitko, boolean> = { udar: false, kop: false, blok: false, specialni: false }
 
@@ -81,8 +85,8 @@ describe('detekujAkci', () => {
 
 describe('sestavVstup', () => {
   it('poskládá HracVstup se směrem, blokem a hranově detekovanou akcí', () => {
-    const vstup = sestavVstup('vpravo', PRAZDNA, { ...PRAZDNA, blok: true, specialni: true })
-    expect(vstup.smer).toBe('vpravo')
+    const vstup = sestavVstup({ x: 1, z: 0 }, PRAZDNA, { ...PRAZDNA, blok: true, specialni: true })
+    expect(vstup.smer).toEqual({ x: 1, z: 0 })
     expect(vstup.blok).toBe(true)
     expect(vstup.akce).toBe('specialni')
   })
@@ -96,78 +100,81 @@ describe('sestavVstup', () => {
 
 describe('hpProcenta / manaProcenta', () => {
   it('plné HP a plná mana dají 100 %', () => {
-    const b = vytvorBojovnika(0)
+    const b = vytvorBojovnika(P(0))
     expect(hpProcenta(b)).toBe(100)
     expect(manaProcenta(b)).toBe(0) // mana startuje na nule (viz engine.ts)
   })
 
   it('poloviční HP dá 50 %', () => {
-    const b = { ...vytvorBojovnika(0), hp: 50 }
+    const b = { ...vytvorBojovnika(P(0)), hp: 50 }
     expect(hpProcenta(b)).toBe(50)
   })
 
   it('nikdy nevrátí záporné procento ani přes 100 %', () => {
-    const zaporne = { ...vytvorBojovnika(0), hp: -20 }
+    const zaporne = { ...vytvorBojovnika(P(0)), hp: -20 }
     expect(hpProcenta(zaporne)).toBe(0)
-    const pres = { ...vytvorBojovnika(0), mana: 999 }
+    const pres = { ...vytvorBojovnika(P(0)), mana: 999 }
     expect(manaProcenta(pres)).toBe(100)
   })
 })
 
 describe('poziceProcenta', () => {
-  it('pozice na začátku arény je 0 %, uprostřed 50 %, na konci 100 %', () => {
-    expect(poziceProcenta(vytvorBojovnika(0), ARENA_SIRKA)).toBe(0)
-    expect(poziceProcenta(vytvorBojovnika(ARENA_SIRKA / 2), ARENA_SIRKA)).toBe(50)
-    expect(poziceProcenta(vytvorBojovnika(ARENA_SIRKA), ARENA_SIRKA)).toBe(100)
+  // Vylepšení — volný pohyb. Vrací teď obě souřadnice najednou
+  // (xProcenta/zProcenta) — P()'s pevné z=400 (střed arény) dá vždycky
+  // 50 % na ose z bez ohledu na x, appka to ověřuje spolu s x.
+  it('pozice na začátku arény je 0 %, uprostřed 50 %, na konci 100 % (osa x); z zůstává na středu', () => {
+    expect(poziceProcenta(vytvorBojovnika(P(0)), ARENA_SIRKA)).toEqual({ xProcenta: 0, zProcenta: 50 })
+    expect(poziceProcenta(vytvorBojovnika(P(ARENA_SIRKA / 2)), ARENA_SIRKA)).toEqual({ xProcenta: 50, zProcenta: 50 })
+    expect(poziceProcenta(vytvorBojovnika(P(ARENA_SIRKA)), ARENA_SIRKA)).toEqual({ xProcenta: 100, zProcenta: 50 })
   })
 })
 
 describe('vizualniStavBojovnika', () => {
   it('hp<=0 má přednost před vším ostatním (ko)', () => {
-    const b = { ...vytvorBojovnika(0), hp: 0, zranitelnostKonci: 100, blokuje: true, utokKonci: 100 }
+    const b = { ...vytvorBojovnika(P(0)), hp: 0, zranitelnostKonci: 100, blokuje: true, utokKonci: 100 }
     expect(vizualniStavBojovnika(b)).toBe('ko')
   })
 
   it('hitstun má přednost před blokem', () => {
-    const b = { ...vytvorBojovnika(0), zranitelnostKonci: 100, blokuje: true }
+    const b = { ...vytvorBojovnika(P(0)), zranitelnostKonci: 100, blokuje: true }
     expect(vizualniStavBojovnika(b)).toBe('hitstun')
   })
 
   it('blok má přednost před útokem', () => {
-    const b = { ...vytvorBojovnika(0), blokuje: true, utokKonci: 100 }
+    const b = { ...vytvorBojovnika(P(0)), blokuje: true, utokKonci: 100 }
     expect(vizualniStavBojovnika(b)).toBe('blok')
   })
 
   it('bez ničeho z výše je idle', () => {
-    expect(vizualniStavBojovnika(vytvorBojovnika(0))).toBe('idle')
+    expect(vizualniStavBojovnika(vytvorBojovnika(P(0)))).toBe('idle')
   })
 })
 
 describe('maNaSpecial', () => {
   it('false, když mana nestačí na cenu speciálu', () => {
-    const b = { ...vytvorBojovnika(0), mana: 10 }
+    const b = { ...vytvorBojovnika(P(0)), mana: 10 }
     expect(maNaSpecial(b, AKCE_DATA.specialni)).toBe(false)
   })
 
   it('true, když mana stačí přesně na cenu', () => {
-    const b = { ...vytvorBojovnika(0), mana: AKCE_DATA.specialni.cenaMany }
+    const b = { ...vytvorBojovnika(P(0)), mana: AKCE_DATA.specialni.cenaMany }
     expect(maNaSpecial(b, AKCE_DATA.specialni)).toBe(true)
   })
 })
 
 describe('vylepšení — zbyvaSekund', () => {
   it('na začátku kola vrátí celý limit v sekundách', () => {
-    const stav = vytvorSoubojStav(0, 80)
+    const stav = vytvorSoubojStav(P(0), P(80))
     expect(zbyvaSekund(stav)).toBe(CAS_LIMIT_MS / 1000)
   })
 
   it('klesá s uplynulým časem', () => {
-    const stav = { ...vytvorSoubojStav(0, 80), cas: CAS_LIMIT_MS - 5000 }
+    const stav = { ...vytvorSoubojStav(P(0), P(80)), cas: CAS_LIMIT_MS - 5000 }
     expect(zbyvaSekund(stav)).toBe(5)
   })
 
   it('nikdy nejde do záporu, i po vypršení limitu', () => {
-    const stav = { ...vytvorSoubojStav(0, 80), cas: CAS_LIMIT_MS + 9000 }
+    const stav = { ...vytvorSoubojStav(P(0), P(80)), cas: CAS_LIMIT_MS + 9000 }
     expect(zbyvaSekund(stav)).toBe(0)
   })
 })
@@ -176,20 +183,20 @@ describe('osmé kolo vylepšení — přehled zápasu (aktualizujStatistikyZapas
   const stat: HracVstup = { smer: null, blok: false, akce: null }
 
   it('predchozi === null vrátí akumulátor beze změny (první tik po startu)', () => {
-    const stav = vytvorSoubojStav(0, 80)
+    const stav = vytvorSoubojStav(P(0), P(80))
     const akumulator = prazdneStatistikyZapasu()
     expect(aktualizujStatistikyZapasu(null, stav, akumulator)).toBe(akumulator)
   })
 
   it('napočítá doručený zásah tomu, kdo zasáhl, ne tomu, kdo dostal', () => {
-    const predchozi = vytvorSoubojStav(0, 80)
+    const predchozi = vytvorSoubojStav(P(0), P(80))
     const novy = krokSouboje(predchozi, [{ ...stat, akce: 'kop' }, stat], 50)
     const stat0 = aktualizujStatistikyZapasu(predchozi, novy, prazdneStatistikyZapasu())
     expect(stat0.zasahy).toEqual([1, 0])
   })
 
   it('sleduje nejvyšší dosažené kombo, ne jen to poslední', () => {
-    let predchozi = vytvorSoubojStav(0, 80)
+    let predchozi = vytvorSoubojStav(P(0), P(80))
     let akumulator = prazdneStatistikyZapasu()
     let novy = krokSouboje(predchozi, [{ ...stat, akce: 'udar' }, stat], 50)
     akumulator = aktualizujStatistikyZapasu(predchozi, novy, akumulator)
@@ -202,7 +209,7 @@ describe('osmé kolo vylepšení — přehled zápasu (aktualizujStatistikyZapas
   })
 
   it('napočítá perfektní blok tomu, kdo ho provedl', () => {
-    const predchozi = vytvorSoubojStav(0, 80)
+    const predchozi = vytvorSoubojStav(P(0), P(80))
     // Hráč 1 zvedne blok přesně ve stejném tiku, kdy hráč 0 útočí —
     // perfektní blok (viz combat/engine.ts's PARRY_OKNO_MS).
     const novy = krokSouboje(predchozi, [{ ...stat, akce: 'kop' }, { ...stat, blok: true }], 50)
@@ -211,7 +218,7 @@ describe('osmé kolo vylepšení — přehled zápasu (aktualizujStatistikyZapas
   })
 
   it('nemutuje předaný akumulátor, vrací nový objekt', () => {
-    const predchozi = vytvorSoubojStav(0, 80)
+    const predchozi = vytvorSoubojStav(P(0), P(80))
     const novy = krokSouboje(predchozi, [{ ...stat, akce: 'kop' }, stat], 50)
     const puvodni = prazdneStatistikyZapasu()
     const dalsi = aktualizujStatistikyZapasu(predchozi, novy, puvodni)
@@ -222,13 +229,13 @@ describe('osmé kolo vylepšení — přehled zápasu (aktualizujStatistikyZapas
 
 describe('desáté kolo vylepšení — vztekProcenta', () => {
   it('0 vztek je 0 %, plný vztek je 100 %', () => {
-    const b0 = vytvorBojovnika(0)
+    const b0 = vytvorBojovnika(P(0))
     expect(vztekProcenta(b0)).toBe(0)
     expect(vztekProcenta({ ...b0, vztek: VZTEK_MAX })).toBe(100)
   })
 
   it('nikdy nepřeteče přes 100 %, ani kdyby pole obsahovalo víc', () => {
-    const b0 = vytvorBojovnika(0)
+    const b0 = vytvorBojovnika(P(0))
     expect(vztekProcenta({ ...b0, vztek: VZTEK_MAX * 2 })).toBe(100)
   })
 })
