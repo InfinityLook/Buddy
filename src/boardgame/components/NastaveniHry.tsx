@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import { startovniPozice, vytvorHrace } from '../engine'
+import { startovniPozice, VYCHOZI_LIMIT_MINUT, vytvorHrace } from '../engine'
 import { VSECHNY_POSTAVY, type PostavaId } from '../postavy'
-import type { Hrac } from '../types'
+import type { Hrac, LimitMinut } from '../types'
 
 // ==========================================
 // Buddyho Trh — nastavení lokální hry. Dva stepper (lidí u zařízení,
@@ -9,10 +9,16 @@ import type { Hrac } from '../types'
 // tlačítko postavy, co při klepnutí přeskočí na další volnou postavu
 // (žádný samostatný výběrový grid, appka má jen 6 postav a 2–6 sedadel,
 // takže cyklování stačí a je to nejmíň obrazovek na cestu ke hře).
+//
+// Časový limit je čtyři pevné pilulky (15/30/45/60 min), přesně jak
+// to bylo domluvené v mechanické diskuzi — žádný volný vstup, žádný
+// "bez limitu" (na rozdíl od per-tahového timeru, který appka
+// naopak nemá vůbec).
 // ==========================================
 
 const MIN_HRACU = 2
 const MAX_HRACU = 6
+const LIMITY_MINUT: LimitMinut[] = [15, 30, 45, 60]
 
 interface Sedadlo {
   id: string
@@ -54,13 +60,14 @@ const dalsiVolnaPostava = (aktualni: PostavaId, obsazene: Set<PostavaId>): Posta
 
 interface Props {
   onZpet: () => void
-  onSpustit: (hraci: Hrac[]) => void
+  onSpustit: (hraci: Hrac[], limitMinut: LimitMinut) => void
 }
 
 export const NastaveniHry: React.FC<Props> = ({ onZpet, onSpustit }) => {
   const [pocetLidi, setPocetLidi] = useState(2)
   const [pocetBotu, setPocetBotu] = useState(0)
   const [sedadla, setSedadla] = useState<Sedadlo[]>(() => vychoziSedadla(2, 0))
+  const [limitMinut, setLimitMinut] = useState<LimitMinut>(VYCHOZI_LIMIT_MINUT)
 
   const celkem = pocetLidi + pocetBotu
 
@@ -104,7 +111,7 @@ export const NastaveniHry: React.FC<Props> = ({ onZpet, onSpustit }) => {
         startovniPozice(poradi, sedadla.length)
       )
     )
-    onSpustit(hraci)
+    onSpustit(hraci, limitMinut)
   }
 
   return (
@@ -143,6 +150,21 @@ export const NastaveniHry: React.FC<Props> = ({ onZpet, onSpustit }) => {
       </div>
 
       {celkem < MIN_HRACU && <p className="trh-varovani">Potřeba aspoň {MIN_HRACU} hráči celkem.</p>}
+
+      <div className="trh-stepper-radek">
+        <span>Časový limit hry</span>
+        <div className="trh-limit-pilulky">
+          {LIMITY_MINUT.map((min) => (
+            <button
+              key={min}
+              className={`trh-limit-pilulka ${limitMinut === min ? 'je-vybrana' : ''}`}
+              onClick={() => setLimitMinut(min)}
+            >
+              {min} min
+            </button>
+          ))}
+        </div>
+      </div>
 
       <ul className="trh-sedadla">
         {sedadla.map((sedadlo) => {

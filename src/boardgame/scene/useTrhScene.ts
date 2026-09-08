@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { SIRKA_MRIZKY, VYSKA_MRIZKY } from '../engine'
+import { klicPole, OBCHODY_PODLE_KLICE } from '../obchody'
 import { POSTAVY } from '../postavy'
 import type { TrhStav } from '../types'
 
@@ -25,6 +26,7 @@ import type { TrhStav } from '../types'
 
 const VELIKOST_POLE = 1.4
 const MEZERA = 0.06
+const BARVA_NEPRODANEHO_OBCHODU = '#7a6a2e'
 
 interface UseTrhSceneOptions {
   stav: TrhStav
@@ -74,16 +76,28 @@ export const useTrhScene = ({ stav }: UseTrhSceneOptions): UseTrhSceneResult => 
     smerove.position.set(6, 12, 4)
     scene.add(smerove)
 
-    // Šachovnicová mřížka — jen dvě střídající se barvy, žádná
-    // funkce polí (nákup/vlastnictví) ještě neexistuje.
+    // Šachovnicová mřížka — dvě střídající se barvy pro obyčejná
+    // pole, plus jedna vlastní (a tedy nezávisle přebarvitelná)
+    // MeshStandardMaterial na každé z 12 obchodních políček (Fáze 1),
+    // ať přebarvení jednoho obchodu podle vlastníka nezmění barvu i
+    // ostatním polím, co sdílejí stejný materiál.
     const geometriePole = new THREE.BoxGeometry(VELIKOST_POLE - MEZERA, 0.2, VELIKOST_POLE - MEZERA)
     const materialSvetly = new THREE.MeshStandardMaterial({ color: '#22304e' })
     const materialTmavy = new THREE.MeshStandardMaterial({ color: '#1a2438' })
+    const obchodniMeshePodleKlice = new Map<string, THREE.Mesh>()
     for (let x = 0; x < SIRKA_MRIZKY; x++) {
       for (let z = 0; z < VYSKA_MRIZKY; z++) {
-        const pole = new THREE.Mesh(geometriePole, (x + z) % 2 === 0 ? materialSvetly : materialTmavy)
+        const klic = klicPole({ x, z })
+        const jeObchod = !!OBCHODY_PODLE_KLICE[klic]
+        const material = jeObchod
+          ? new THREE.MeshStandardMaterial({ color: BARVA_NEPRODANEHO_OBCHODU })
+          : (x + z) % 2 === 0
+            ? materialSvetly
+            : materialTmavy
+        const pole = new THREE.Mesh(geometriePole, material)
         pole.position.set(x * VELIKOST_POLE, 0, z * VELIKOST_POLE)
         scene.add(pole)
+        if (jeObchod) obchodniMeshePodleKlice.set(klic, pole)
       }
     }
 
@@ -108,6 +122,16 @@ export const useTrhScene = ({ stav }: UseTrhSceneOptions): UseTrhSceneResult => 
         if (!token) continue
         cilovaPozice.set(hrac.pozice.x * VELIKOST_POLE, 0.46, hrac.pozice.z * VELIKOST_POLE)
         token.position.lerp(cilovaPozice, 0.15)
+      }
+      // Vlastnictví obchodů se může kdykoli změnit (koupě/nájem
+      // nezávisí na herní smyčce), takže appka barvu obchodního pole
+      // přebarví každý snímek podle aktuálního stavu — 12 přiřazení
+      // barvy je zanedbatelná cena i na 60 sn./s.
+      for (const [klic, mesh] of obchodniMeshePodleKlice) {
+        const vlastnikId = stavRef.current.vlastnictvi[klic]
+        const material = mesh.material as THREE.MeshStandardMaterial
+        const vlastnik = vlastnikId ? stavRef.current.hraci.find((h) => h.id === vlastnikId) : undefined
+        material.color.set(vlastnik ? POSTAVY[vlastnik.postavaId].barva : BARVA_NEPRODANEHO_OBCHODU)
       }
       renderer.render(scene, camera)
       requestAnimationFrame(smycka)

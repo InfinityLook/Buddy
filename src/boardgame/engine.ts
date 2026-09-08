@@ -1,5 +1,6 @@
-import type { FazeTahu, Hrac, Pole2D, Smer, TrhStav } from './types'
+import type { FazeTahu, Hrac, LimitMinut, Pole2D, Smer, TrhStav } from './types'
 import type { PostavaId } from './postavy'
+import { najdiObchodNaPoli, OBCHODY_PODLE_KLICE } from './obchody'
 
 // ==========================================
 // Buddyho Trh — čistý herní engine, stejná disciplína jako
@@ -45,7 +46,9 @@ export const startovniPozice = (poradi: number, pocetHracu: number): Pole2D => {
   return { x, z }
 }
 
-export const vytvorTrhStav = (hraci: Hrac[]): TrhStav => ({
+export const VYCHOZI_LIMIT_MINUT: LimitMinut = 30
+
+export const vytvorTrhStav = (hraci: Hrac[], limitMinut: LimitMinut = VYCHOZI_LIMIT_MINUT): TrhStav => ({
   hraci,
   poradiHracu: hraci.map((h) => h.id),
   aktivniIndex: 0,
@@ -55,6 +58,11 @@ export const vytvorTrhStav = (hraci: Hrac[]): TrhStav => ({
   sirkaMrizky: SIRKA_MRIZKY,
   vyskaMrizky: VYSKA_MRIZKY,
   konec: false,
+  vlastnictvi: {},
+  nabidkaKoupe: null,
+  posledniUdalost: null,
+  limitMinut,
+  konecCasuMs: Date.now() + limitMinut * 60_000,
 })
 
 export const aktivniHrac = (stav: TrhStav): Hrac | undefined =>
@@ -93,7 +101,10 @@ export const krokHodu = (stav: TrhStav, nahodne: () => number = Math.random): Tr
 /** Posune aktivního hráče o jedno pole daným směrem. Krok mimo mřížku
  *  je tiše zahozen (nespotřebuje krok) — hráč prostě nemůže tím
  *  směrem, ne že by přišel o pohyb navíc za to, že to zkusil. Fáze
- *  přejde na 'konec-tahu', jakmile dojdou kroky. */
+ *  přejde na 'konec-tahu', jakmile dojdou kroky — a jen tehdy, na
+ *  úplně poslední doběhnuté políčko, se řeší ekonomika (nájem/nabídka
+ *  koupě), stejně jako v Monopoly rozhoduje jen políčko, na kterém
+ *  hráč doopravdy skončí, ne ta, přes která jen prošel. */
 export const krokPohybu = (stav: TrhStav, smer: Smer): TrhStav => {
   if (stav.faze !== 'pohyb' || stav.zbyvaKroku <= 0 || stav.konec) return stav
   const hrac = aktivniHrac(stav)
@@ -102,21 +113,76 @@ export const krokPohybu = (stav: TrhStav, smer: Smer): TrhStav => {
   const novaPozice = posunPole(hrac.pozice, smer)
   if (!vHranicich(novaPozice, stav)) return stav
 
-  const noviHraci = stav.hraci.map((h) => (h.id === hrac.id ? { ...h, pozice: novaPozice } : h))
+  let noviHraci = stav.hraci.map((h) => (h.id === hrac.id ? { ...h, pozice: novaPozice } : h))
   const zbyva = stav.zbyvaKroku - 1
+  const doslo = zbyva <= 0
+
+  let nabidkaKoupe: string | null = null
+  let posledniUdalost = stav.posledniUdalost
+
+  if (doslo) {
+    const obchod = najdiObchodNaPoli(novaPozice)
+    if (obchod) {
+      const vlastnikId = stav.vlastnictvi[obchod.klic]
+      if (!vlastnikId) {
+        nabidkaKoupe = obchod.klic
+      } else if (vlastnikId !== hrac.id) {
+        const najemce = noviHraci.find((h) => h.id === hrac.id)!
+        const castka = Math.min(najemce.penize, obchod.najem)
+        noviHraci = noviHraci.map((h) => {
+          if (h.id === hrac.id) return { ...h, penize: h.penize - castka }
+          if (h.id === vlastnikId) return { ...h, penize: h.penize + castka }
+          return h
+        })
+        const vlastnik = stav.hraci.find((h) => h.id === vlastnikId)
+        posledniUdalost = `${hrac.jmeno} zaplatil ${castka} Kč hráči ${vlastnik?.jmeno ?? '?'} za ${obchod.nazev}.`
+      }
+    }
+  }
 
   return {
     ...stav,
     hraci: noviHraci,
     zbyvaKroku: zbyva,
-    faze: zbyva <= 0 ? ('konec-tahu' as FazeTahu) : ('pohyb' as FazeTahu),
+    faze: doslo ? ('konec-tahu' as FazeTahu) : ('pohyb' as FazeTahu),
+    nabidkaKoupe,
+    posledniUdalost,
   }
 }
 
+/** Koupí obchod, na který právě aktivní hráč doběhl — no-op, pokud
+ *  žádná nabídka koupě neběží nebo na ni hráč nemá dost peněz. UI
+ *  (Deska.tsx) tohle taky kontroluje a tlačítko rovnou zablokuje, ale
+ *  engine si to hlídá nezávisle, stejný "nedůvěřuj jen volajícímu"
+ *  postoj jako `krokHodu`/`krokPohybu` mají vůči vlastní fázi. */
+export const koupitPole = (stav: TrhStav): TrhStav => {
+  if (!stav.nabidkaKoupe || stav.konec) return stav
+  const obchod = OBCHODY_PODLE_KLICE[stav.nabidkaKoupe]
+  const hrac = aktivniHrac(stav)
+  if (!obchod || !hrac || hrac.penize < obchod.cena) return stav
+
+  return {
+    ...stav,
+    hraci: stav.hraci.map((h) => (h.id === hrac.id ? { ...h, penize: h.penize - obchod.cena } : h)),
+    vlastnictvi: { ...stav.vlastnictvi, [obchod.klic]: hrac.id },
+    nabidkaKoupe: null,
+    posledniUdalost: `${hrac.jmeno} koupil ${obchod.nazev} za ${obchod.cena} Kč.`,
+  }
+}
+
+/** Odmítne nabídku koupě — obchod zůstává bance, tah může pokračovat
+ *  ke konci. */
+export const odmitnoutKoupi = (stav: TrhStav): TrhStav => {
+  if (!stav.nabidkaKoupe) return stav
+  return { ...stav, nabidkaKoupe: null }
+}
+
 /** Ukončí tah dřív, i když ještě zbývají kroky — hráč nemusí kroky
- *  dovyčerpat, jen je ztratí. Dovoleno z fáze 'pohyb' i 'konec-tahu'. */
+ *  dovyčerpat, jen je ztratí. Dovoleno z fáze 'pohyb' i 'konec-tahu',
+ *  ale ne dokud čeká nerozhodnutá nabídka koupě — appka by jinak
+ *  mohla tiše přeskočit rozhodnutí, na které hráč ani nesáhl. */
 export const ukonciTah = (stav: TrhStav): TrhStav => {
-  if (stav.faze === 'hod' || stav.konec) return stav
+  if (stav.faze === 'hod' || stav.konec || stav.nabidkaKoupe) return stav
   const dalsiIndex = (stav.aktivniIndex + 1) % stav.poradiHracu.length
   return {
     ...stav,
@@ -125,4 +191,28 @@ export const ukonciTah = (stav: TrhStav): TrhStav => {
     zbyvaKroku: 0,
     posledniHod: null,
   }
+}
+
+/** Kolik milisekund zbývá do konce časového limitu — appka to čte
+ *  přímo z hodin (Date.now()) při každém překreslení, engine sám
+ *  žádný tikající stav neudržuje. */
+export const zbyvaCasuMs = (stav: TrhStav, ted: number = Date.now()): number => Math.max(0, stav.konecCasuMs - ted)
+
+/** Zkontroluje časový limit a případně hru ukončí — appka volá
+ *  periodicky (setInterval v Deska.tsx), protože na rozdíl od
+ *  Souboj's tikajícího combat/engine.ts je tahle hra tahová, ne
+ *  kolová, a nemá vlastní smyčku, do které by se dal test na čas
+ *  zavěsit. No-op, dokud čas neuplynul nebo hra už neskončila. */
+export const zkontrolujCas = (stav: TrhStav, ted: number = Date.now()): TrhStav => {
+  if (stav.konec || ted < stav.konecCasuMs) return stav
+  return { ...stav, konec: true }
+}
+
+/** Hráč(i) s nejvíc penězi po konci hry — pole, ne jeden hráč, protože
+ *  remíza je reálná možnost a appka nemá pravidlo, jak ji rozseknout
+ *  (žádný tie-breaker nebyl domluvený, takže se zobrazí čestně jako
+ *  remíza, ne se náhodně vybere vítěz). */
+export const vitezovePodleStavu = (stav: TrhStav): Hrac[] => {
+  const nejvic = Math.max(...stav.hraci.map((h) => h.penize))
+  return stav.hraci.filter((h) => h.penize === nejvic)
 }

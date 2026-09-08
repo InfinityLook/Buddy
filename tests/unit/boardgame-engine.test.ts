@@ -8,6 +8,10 @@ import {
   aktivniHrac,
   platneSmery,
   startovniPozice,
+  koupitPole,
+  odmitnoutKoupi,
+  zkontrolujCas,
+  vitezovePodleStavu,
   SIRKA_MRIZKY,
   VYSKA_MRIZKY,
   POCATECNI_PENIZE,
@@ -146,5 +150,130 @@ describe('platneSmery', () => {
   it('uprostřed mřížky vrátí všechny čtyři', () => {
     const smery = platneSmery(stred, noveDva())
     expect(smery).toHaveLength(4)
+  })
+})
+
+// ==========================================
+// Fáze 1 — obchody, nájem a časový limit. (1,1) je "Pekárna"
+// (cena 150, nájem 20) podle src/boardgame/obchody.ts — testy staví
+// hráče vždy jedno pole od ní a hází kostkou tak, ať na ni doopravdy
+// dojdou (hod 1 = jeden krok).
+// ==========================================
+
+describe('koupitPole a odmitnoutKoupi (Fáze 1 — obchody)', () => {
+  it('doběhnutí na neprodané pole otevře nabídku koupě', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 1 })
+    let stav = vytvorTrhStav([h1])
+    stav = krokPohybu(krokHodu(stav, () => 0), 'vpravo') // (0,1) -> (1,1)
+    expect(stav.faze).toBe('konec-tahu')
+    expect(stav.nabidkaKoupe).toBe('1,1')
+  })
+
+  it('koupě strhne cenu a zapíše vlastnictví', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 1 })
+    let stav = vytvorTrhStav([h1])
+    stav = krokPohybu(krokHodu(stav, () => 0), 'vpravo')
+    stav = koupitPole(stav)
+    expect(stav.vlastnictvi['1,1']).toBe('a')
+    expect(aktivniHrac(stav)!.penize).toBe(POCATECNI_PENIZE - 150)
+    expect(stav.nabidkaKoupe).toBeNull()
+  })
+
+  it('koupě bez dostatku peněz je no-op', () => {
+    const h1 = { ...vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 1 }), penize: 50 }
+    let stav = vytvorTrhStav([h1])
+    stav = krokPohybu(krokHodu(stav, () => 0), 'vpravo')
+    const pred = stav
+    stav = koupitPole(stav)
+    expect(stav).toBe(pred)
+  })
+
+  it('odmítnutí koupě uvolní nabídku, obchod zůstává bance', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 1 })
+    let stav = vytvorTrhStav([h1])
+    stav = krokPohybu(krokHodu(stav, () => 0), 'vpravo')
+    stav = odmitnoutKoupi(stav)
+    expect(stav.nabidkaKoupe).toBeNull()
+    expect(stav.vlastnictvi['1,1']).toBeUndefined()
+  })
+
+  it('ukonciTah odmítne, dokud čeká nabídka koupě', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 1 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = vytvorTrhStav([h1, h2])
+    stav = krokPohybu(krokHodu(stav, () => 0), 'vpravo')
+    expect(stav.nabidkaKoupe).toBe('1,1')
+    const pred = stav
+    stav = ukonciTah(stav)
+    expect(stav).toBe(pred)
+  })
+})
+
+describe('nájem (Fáze 1)', () => {
+  it('doběhnutí na cizí obchod strhne nájem ve prospěch majitele', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 1 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 2, z: 1 })
+    let stav = vytvorTrhStav([h1, h2])
+
+    stav = koupitPole(krokPohybu(krokHodu(stav, () => 0), 'vpravo')) // Anna koupí Pekárnu
+    expect(stav.vlastnictvi['1,1']).toBe('a')
+    stav = ukonciTah(stav) // na tahu Bob
+
+    stav = krokPohybu(krokHodu(stav, () => 0), 'vlevo') // (2,1) -> (1,1), Bobův tah
+
+    const anna = stav.hraci.find((h) => h.id === 'a')!
+    const bob = stav.hraci.find((h) => h.id === 'b')!
+    expect(bob.penize).toBe(POCATECNI_PENIZE - 20)
+    expect(anna.penize).toBe(POCATECNI_PENIZE - 150 + 20)
+    expect(stav.nabidkaKoupe).toBeNull()
+  })
+
+  it('doběhnutí na vlastní obchod nic neúčtuje', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 1 })
+    let stav = vytvorTrhStav([h1])
+    stav = koupitPole(krokPohybu(krokHodu(stav, () => 0), 'vpravo')) // koupě (0,1)->(1,1)
+    stav = ukonciTah(stav) // jediný hráč, tah se vrátí zpátky na Annu
+    stav = krokPohybu(krokHodu(stav, () => 0), 'vlevo') // (1,1) -> (0,1)
+    stav = ukonciTah(stav)
+    stav = krokPohybu(krokHodu(stav, () => 0), 'vpravo') // (0,1) -> (1,1), vlastní pole
+
+    expect(aktivniHrac(stav)!.penize).toBe(POCATECNI_PENIZE - 150)
+    expect(stav.nabidkaKoupe).toBeNull()
+  })
+})
+
+describe('zkontrolujCas a vitezovePodleStavu (Fáze 1 — časový limit)', () => {
+  it('před vypršením limitu je no-op', () => {
+    const stav = noveDva()
+    const znovu = zkontrolujCas(stav, stav.konecCasuMs - 1000)
+    expect(znovu).toBe(stav)
+  })
+
+  it('po vypršení limitu ukončí hru', () => {
+    const stav = noveDva()
+    const znovu = zkontrolujCas(stav, stav.konecCasuMs + 1)
+    expect(znovu.konec).toBe(true)
+  })
+
+  it('po konci hry je no-op', () => {
+    let stav = noveDva()
+    stav = zkontrolujCas(stav, stav.konecCasuMs + 1)
+    const znovu = zkontrolujCas(stav, stav.konecCasuMs + 5000)
+    expect(znovu).toBe(stav)
+  })
+
+  it('vrátí hráče s nejvíc penězi', () => {
+    const h1 = { ...vytvorHrace('a', 'Anna', 'gros', false, stred), penize: 1200 }
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: stred.x + 1, z: stred.z })
+    const stav = vytvorTrhStav([h1, h2])
+    const vitezove = vitezovePodleStavu(stav)
+    expect(vitezove).toHaveLength(1)
+    expect(vitezove[0].id).toBe('a')
+  })
+
+  it('remíza vrátí víc hráčů', () => {
+    const stav = noveDva()
+    const vitezove = vitezovePodleStavu(stav)
+    expect(vitezove).toHaveLength(2)
   })
 })

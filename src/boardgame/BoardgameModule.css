@@ -201,6 +201,29 @@
   cursor: default;
 }
 
+.trh-limit-pilulky {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.trh-limit-pilulka {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-pill);
+  color: var(--text-secondary);
+  padding: 0.35rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.trh-limit-pilulka.je-vybrana {
+  border-color: #4caf6a;
+  color: var(--text-primary);
+  background: rgba(76, 175, 106, 0.15);
+}
+
 /* ---------- Herní obrazovka ---------- */
 
 .trh-page--hra {
@@ -319,4 +342,95 @@
 .trh-ukoncit-tah-btn:disabled {
   opacity: 0.3;
   cursor: default;
+}
+
+.trh-cas {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f5c451;
+}
+
+.trh-udalost {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.6rem;
+}
+
+.trh-nabidka {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.trh-nabidka-text {
+  margin: 0;
+  font-size: 0.82rem;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.trh-nabidka-btns {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ---------- Konec hry ---------- */
+
+.trh-konec {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.trh-konec-nadpis {
+  margin: 0;
+  font-size: 1.15rem;
+  text-align: center;
+}
+
+.trh-vysledky {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.trh-vysledek-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.82rem;
+}
+
+.trh-vysledek-radek.je-vitez {
+  border-color: #f5c451;
+  background: rgba(245, 196, 81, 0.12);
+}
+
+.trh-vysledek-jmeno {
+  flex: 1;
+  font-weight: 700;
+}
+
+.trh-vysledek-penize {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
 }

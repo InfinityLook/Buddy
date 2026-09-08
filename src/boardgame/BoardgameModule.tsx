@@ -2,7 +2,8 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { NastaveniHry } from './components/NastaveniHry'
 import { Deska } from './components/Deska'
-import type { Hrac } from './types'
+import { VYCHOZI_LIMIT_MINUT } from './engine'
+import type { Hrac, LimitMinut } from './types'
 import './BoardgameModule.css'
 
 // ==========================================
@@ -27,6 +28,7 @@ export const BoardgameModule: React.FC = () => {
   const navigate = useNavigate()
   const [krok, setKrok] = useState<Krok>('menu')
   const [hraci, setHraci] = useState<Hrac[]>([])
+  const [limitMinut, setLimitMinut] = useState<LimitMinut>(VYCHOZI_LIMIT_MINUT)
 
   const zpetDoMenu = () => {
     setHraci([])
@@ -37,8 +39,9 @@ export const BoardgameModule: React.FC = () => {
     return (
       <NastaveniHry
         onZpet={() => setKrok('menu')}
-        onSpustit={(noviHraci) => {
+        onSpustit={(noviHraci, novyLimit) => {
           setHraci(noviHraci)
+          setLimitMinut(novyLimit)
           setKrok('hra')
         }}
       />
@@ -46,7 +49,7 @@ export const BoardgameModule: React.FC = () => {
   }
 
   if (krok === 'hra') {
-    return <Deska pocatecniHraci={hraci} onZpet={zpetDoMenu} />
+    return <Deska pocatecniHraci={hraci} limitMinut={limitMinut} onZpet={zpetDoMenu} />
   }
 
   return (
@@ -70,8 +73,8 @@ export const BoardgameModule: React.FC = () => {
       </button>
 
       <p className="trh-faze-poznamka">
-        Fáze 0 — základní mřížka, kostka a pohyb. Nákup obchodů, karty a hraní přes víc telefonů přijdou
-        v dalších fázích.
+        Fáze 1 — mřížka, kostka, pohyb, nákup obchodů, nájmy a časový limit hry. Karty událostí, sabotáže, kolo
+        štěstí, obchodování mezi hráči a hraní přes víc telefonů přijdou v dalších fázích.
       </p>
     </div>
   )
