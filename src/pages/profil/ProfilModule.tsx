@@ -1,13 +1,17 @@
 import React, { lazy, Suspense, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useGamificationStore } from '@/core/store/useGamificationStore'
+import { useGamificationStore, DEFAULT_BADGES } from '@/core/store/useGamificationStore'
 import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
+import { plural } from '@/core/utils/pluralCZ'
 import { fileToResizedDataUrl } from '@/utils/image'
 import { nahrajAvatarDoCloudu, nahrajBannerDoCloudu } from '@/core/supabase/avatarStorage'
 import { isSupabaseConfigured } from '@/core/supabase/client'
+import { resolveActiveFrameId } from '@/social/avatarFrames'
 import { useProfileData } from './hooks/useProfileData'
 import { useActiveRole } from '@/core/role'
-import { ProfilNotifications } from './components/ProfilNotifications'
+import type { Badge } from '@/core/types/gamification.types'
+import { ProfilNotifications, useNotificationItems } from './components/ProfilNotifications'
+import { ProfilIcon } from './components/ProfilIcon'
 import { ProfilToast } from './components/ProfilToast'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import { useModulovySwipe } from '@/core/navigation/useModulovySwipe'
@@ -29,6 +33,25 @@ export const ProfilModule: React.FC = () => {
   // zpátky na 'user' — tag proto vždycky odpovídá skutečně platné roli,
   // ne tomu, co je poslední uložené.
   const aktivniRole = useActiveRole()
+  const notifications = useNotificationItems()
+  const maNeprectene = notifications.some((n) => !profile.readNotifications.includes(n.id))
+
+  // Stejné vyhodnocení jako u cizího profilu (VerejnyProfilDialog.tsx) —
+  // rámeček se ověřuje při každém zobrazení, ne jen při výběru ve
+  // VzhledARamecekSekce.tsx, ať appka nikdy nezobrazí VIP rámeček, kterému
+  // mezitím vypršelo předplatné. `aktivniRole.id` je tu místo hodnoty
+  // vrácené precti_verejny_profil() (ta je pro CIZÍ profil) — pro vlastní
+  // appka rovnou zná skutečně platnou roli.
+  const ramecek = resolveActiveFrameId(profile.frameId, aktivniRole.id)
+  const ramecekStyl = ramecek
+    ? ({ '--pa-a': ramecek.a, '--pa-b': ramecek.b } as React.CSSProperties)
+    : undefined
+
+  // Až 3 připnuté odznaky — appka je jinde (VerejnyProfilDialog.tsx) na
+  // cizím profilu ukazuje taky, na vlastním profilu ale dosud chyběly.
+  const pripnuteOdznaky: Badge[] = profile.pinnedBadges
+    .map((id) => DEFAULT_BADGES.find((b) => b.id === id))
+    .filter((b): b is Badge => b !== undefined)
 
   const [notifOpen, setNotifOpen] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
@@ -89,28 +112,22 @@ export const ProfilModule: React.FC = () => {
 
   return (
     <div className="profil-page" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
-      {/* Top Bar */}
+      {/* Top Bar — ikony místo emoji (🔔/⚙️), stejná kruhová tlačítka
+          jako Apps/Social, ne napůl hotový inline styl na textovém
+          odkazu jak dřív mělo zpět tlačítko. */}
       <div className="profil-top-bar">
-        <div>
-          <button
-            onClick={() => navigate('/hub')}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#94a3b8',
-              fontSize: '0.85rem',
-              cursor: 'pointer',
-              padding: 0,
-              marginBottom: '0.5rem',
-            }}
-          >
-            ← Zpět do Hubu
-          </button>
-          <h1 className="profil-title">Profil</h1>
-        </div>
+        <button className="profil-icon-btn" aria-label="Zpět do Hubu" onClick={() => navigate('/hub')}>
+          <ProfilIcon name="arrow-left" size={18} />
+        </button>
+        <h1 className="profil-title">Profil</h1>
         <div className="profil-top-actions">
-          <button className="profil-icon-btn" aria-label="Upozornění" onClick={() => setNotifOpen(true)}>🔔</button>
-          <button className="profil-icon-btn" aria-label="Nastavení" onClick={() => navigate('/nastaveni')}>⚙️</button>
+          <button className="profil-icon-btn" aria-label="Upozornění" onClick={() => setNotifOpen(true)}>
+            <ProfilIcon name="bell" size={18} />
+            {maNeprectene && <span className="profil-notif-badge" />}
+          </button>
+          <button className="profil-icon-btn" aria-label="Nastavení" onClick={() => navigate('/nastaveni')}>
+            <ProfilIcon name="settings" size={18} />
+          </button>
         </div>
       </div>
 
@@ -123,7 +140,9 @@ export const ProfilModule: React.FC = () => {
           onClick={() => bannerInputRef.current?.click()}
         >
           {!profile.bannerUrl && <span className="profil-banner-hint">🖼️ Přidat cover fotku</span>}
-          <span className="profil-banner-edit">✏️</span>
+          <span className="profil-banner-edit">
+            <ProfilIcon name="pencil" size={11} />
+          </span>
         </button>
         <input
           ref={bannerInputRef}
@@ -135,13 +154,21 @@ export const ProfilModule: React.FC = () => {
 
         <div className="profil-user-main">
           <div className="profil-avatar-wrapper">
-            <img src={profile.avatar} alt={profile.name} className="profil-avatar-img" />
+            {/* Stejný prstenec (rámeček/výchozí gradient) jako appka
+                ukazuje na cizím profilu (VerejnyProfilDialog.tsx) —
+                dřív vlastní stránka rámeček vůbec nezobrazovala, takže
+                si koupený/vybraný rámeček uživatel viděl jen očima
+                svých přátel, nikdy ne na svém vlastním profilu. */}
+            <div className={`profil-avatar-ring-wrap ${ramecek ? 'ma-ramecek' : ''}`} style={ramecekStyl}>
+              <span className="profil-avatar-ring" aria-hidden="true" />
+              <img src={profile.avatar} alt={profile.name} className="profil-avatar-img" />
+            </div>
             <button
               className="profil-avatar-edit"
               aria-label="Upravit fotku profilu"
               onClick={() => avatarInputRef.current?.click()}
             >
-              ✏️
+              <ProfilIcon name="pencil" size={11} />
             </button>
             <input
               ref={avatarInputRef}
@@ -162,6 +189,20 @@ export const ProfilModule: React.FC = () => {
             )}
             <h2 className="profil-user-name">{profile.name}</h2>
             <p className="profil-user-bio">{profile.motto}</p>
+            {/* Delší bio text (na rozdíl od motta výš) appka dřív na
+                vlastním profilu vůbec nevykreslovala, i když ho jde
+                vyplnit v Osobních údajích a cizí lidi ho u tebe v
+                Social vidí (VerejnyProfilDialog.tsx). */}
+            {profile.bio && <p className="profil-user-bio-text">{profile.bio}</p>}
+            {pripnuteOdznaky.length > 0 && (
+              <div className="profil-pripnute-odznaky">
+                {pripnuteOdznaky.map((b) => (
+                  <span key={b.id} className="profil-pripnuty-odznak" title={b.title}>
+                    {b.icon}
+                  </span>
+                ))}
+              </div>
+            )}
             <span className="profil-user-email">✉ {profile.email || 'E-mail nevyplněn'}</span>
           </div>
         </div>
@@ -169,21 +210,24 @@ export const ProfilModule: React.FC = () => {
         {/* Level & Streak — reálná data z gamifikačního storu */}
         <div className="profil-progress-grid">
           <div className="profil-level-box">
-            <div className="profil-box-head">
-              <span>ÚROVEŇ {level} 👑</span>
+            <div className="profil-level-box-top">
+              <span className="profil-level-badge">{level}</span>
+              <div className="profil-level-info">
+                <span className="profil-level-label">Úroveň {level} 👑</span>
+                <span className="profil-level-xp-label">{xp} / {xpToNext} XP</span>
+              </div>
             </div>
             <div className="profil-xp-bar-bg">
               <div className="profil-xp-bar-fill" style={{ width: `${progressPercent}%` }}></div>
             </div>
-            <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>{xp} / {xpToNext} XP</span>
           </div>
 
           <div className="profil-streak-box">
-            <span style={{ fontSize: '0.65rem', color: '#94a3b8', fontWeight: 700 }}>DENNÍ SÉRIE</span>
+            <span className="profil-streak-label">Denní série</span>
             <div className="profil-streak-val">
               🔥 {streakDays}
             </div>
-            <span style={{ fontSize: '0.6rem', color: '#64748b' }}>dní v řadě</span>
+            <span className="profil-streak-sub">{plural(streakDays, 'den v řadě', 'dny v řadě', 'dní v řadě')}</span>
           </div>
         </div>
       </div>
