@@ -3,7 +3,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
-import { MindNode } from './types'
+import { BARVY_UZLU, BarvaUzlu, MindNode } from './types'
 import { layoutMindMap } from './layout'
 
 const XP_PER_NODE = 5
@@ -31,6 +31,18 @@ const collectSubtree = (
   return acc
 }
 
+// Barva mimo pevnou paletu, nebo poznámka/tag jiného typu než string
+// (poškozený/ruční zásah do uloženého stavu), se tiše spraví na
+// "bez hodnoty" — stejný "nedůvěřuj uloženým datům naslepo" duch jako
+// ostatní miniaplikace, jen bez samostatného valibot schématu, protože
+// tenhle store si čištění dat už řeší sám (viz pruneOrphans výš).
+const sanitizeNode = (node: MindNode): MindNode => ({
+  ...node,
+  barva: node.barva && (BARVY_UZLU as readonly string[]).includes(node.barva) ? node.barva : null,
+  poznamka: typeof node.poznamka === 'string' ? node.poznamka : '',
+  tag: typeof node.tag === 'string' ? node.tag : '',
+})
+
 // Zahodí uzly, ke kterým se od kořene nedá dojít, a odkazy na potomky,
 // kteří v mapě nejsou. Dřívější verze deleteNode mazala jen samotný uzel
 // a jeho potomky nechávala v úložišti napořád — tohle ten odpad uklidí
@@ -42,7 +54,7 @@ const pruneOrphans = (nodes: Record<string, MindNode> | undefined): Record<strin
   const cleaned: Record<string, MindNode> = {}
 
   for (const id of reachable) {
-    if (nodes[id]) cleaned[id] = nodes[id]
+    if (nodes[id]) cleaned[id] = sanitizeNode(nodes[id])
   }
 
   for (const id of Object.keys(cleaned)) {
@@ -63,6 +75,10 @@ interface MindMapState {
   addChild: (parentId: string, text: string) => void
   renameNode: (id: string, text: string) => void
   deleteNode: (id: string) => void
+  /** null smaže barvu uzlu (návrat na "bez barvy"). */
+  setNodeBarva: (id: string, barva: BarvaUzlu | null) => void
+  /** Poznámka a tag se ukládají spolu, jedním formulářem v panelu. */
+  setNodeDetail: (id: string, poznamka: string, tag: string) => void
 }
 
 const useMindMapStore = create<MindMapState>()(
@@ -113,6 +129,22 @@ const useMindMapStore = create<MindMapState>()(
           return { nodes: { ...state.nodes, [id]: { ...node, text: text.trim() } } }
         })
       },
+
+      setNodeBarva: (id, barva) =>
+        set((state) => {
+          const node = state.nodes[id]
+          if (!node) return state
+          return { nodes: { ...state.nodes, [id]: { ...node, barva } } }
+        }),
+
+      setNodeDetail: (id, poznamka, tag) =>
+        set((state) => {
+          const node = state.nodes[id]
+          if (!node) return state
+          return {
+            nodes: { ...state.nodes, [id]: { ...node, poznamka: poznamka.trim(), tag: tag.trim() } },
+          }
+        }),
 
       // Maže celý podstrom — uzel i všechny jeho potomky do hloubky.
       deleteNode: (id) => {
@@ -173,7 +205,7 @@ const MAX_ZOOM = 1.4
 const ZOOM_STEP = 0.15
 
 export const useMindMap = () => {
-  const { nodes, addChild, renameNode, deleteNode } = useMindMapStore()
+  const { nodes, addChild, renameNode, deleteNode, setNodeBarva, setNodeDetail } = useMindMapStore()
 
   const [selectedId, setSelectedId] = useState<string>('root')
   const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set())
@@ -259,5 +291,7 @@ export const useMindMap = () => {
     addChild: handleAddChild,
     renameNode,
     deleteNode: handleDelete,
+    setNodeBarva,
+    setNodeDetail,
   }
 }

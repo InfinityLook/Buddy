@@ -1,7 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useMindMap } from './useMindMap'
 import { NODE_HEIGHT, NODE_WIDTH, edgePath } from './layout'
+import { BARVY_UZLU, BarvaUzlu } from './types'
 import './MindMap.css'
+
+// Popisky pro čtečky obrazovky/aria-label — stejná pevná paleta jako
+// Kalendářovo BARVY_DNE.
+const NAZEV_BARVY: Record<BarvaUzlu, string> = {
+  cyan: 'Tyrkysová',
+  violet: 'Fialová',
+  magenta: 'Purpurová',
+  green: 'Zelená',
+  orange: 'Oranžová',
+  red: 'Červená',
+}
 
 export const MindMap: React.FC = () => {
   const {
@@ -23,12 +35,16 @@ export const MindMap: React.FC = () => {
     addChild,
     renameNode,
     deleteNode,
+    setNodeBarva,
+    setNodeDetail,
   } = useMindMap()
 
   const [newText, setNewText] = useState('')
   const [renaming, setRenaming] = useState(false)
   const [renameText, setRenameText] = useState('')
   const renameInputRef = useRef<HTMLInputElement>(null)
+  const [poznamkaText, setPoznamkaText] = useState('')
+  const [tagText, setTagText] = useState('')
   const canvasRef = useRef<HTMLDivElement>(null)
   // Přizpůsobení proběhne samo jen jednou při otevření. Kdyby se
   // spouštělo při každé změně mapy, přepisovalo by uživateli přiblížení,
@@ -52,10 +68,18 @@ export const MindMap: React.FC = () => {
     if (renaming) renameInputRef.current?.focus()
   }, [renaming])
 
-  // Při přepnutí uzlu nesmí zůstat otevřené přejmenování toho minulého
+  // Při přepnutí uzlu nesmí zůstat otevřené přejmenování toho minulého,
+  // a pole poznámky/tagu se musí přenačíst na hodnoty nově vybraného uzlu.
   useEffect(() => {
     setRenaming(false)
-  }, [selectedId])
+    setPoznamkaText(selectedNode.poznamka ?? '')
+    setTagText(selectedNode.tag ?? '')
+  }, [selectedId, selectedNode.poznamka, selectedNode.tag])
+
+  const submitDetail = (e: React.FormEvent) => {
+    e.preventDefault()
+    setNodeDetail(selectedId, poznamkaText, tagText)
+  }
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault()
@@ -160,12 +184,23 @@ export const MindMap: React.FC = () => {
                 <button
                   className={`mm-node ${node.id === selectedId ? 'is-selected' : ''} ${
                     node.depth === 0 ? 'is-root' : ''
-                  }`}
+                  } ${node.barva ? `mm-node--barva-${node.barva}` : ''}`}
                   onClick={() => setSelectedId(node.id)}
                   title={node.text}
                 >
                   {node.text}
                 </button>
+
+                {/* Malé odznaky "má poznámku"/"má tag" — jen náznak, celý
+                    text obou je vidět v panelu vybraného uzlu níž, ne tady
+                    (uzel je jen 132×40 px, na plný text ani štítek by
+                    nezbylo místo bez kolize s toggle tlačítkem). */}
+                {(node.maPoznamku || node.maTag) && (
+                  <div className="mm-node-odznaky" aria-hidden="true">
+                    {node.maPoznamku && <span className="mm-node-odznak-poznamka">📝</span>}
+                    {node.maTag && <span className="mm-node-odznak-tag">#</span>}
+                  </div>
+                )}
 
                 {/* Přepínač větve sedí na pravém okraji uzlu, odkud
                     spojnice vychází — číslo ukazuje, kolik je skryto. */}
@@ -220,6 +255,53 @@ export const MindMap: React.FC = () => {
         ) : (
           <h3 className="mm-selected-title">{selectedNode.text}</h3>
         )}
+
+        <div className="mm-barvy-radek" role="group" aria-label="Barva uzlu">
+          <button
+            className={`mm-barva-vzorek mm-barva-vzorek--bez ${
+              !selectedNode.barva ? 'je-vybrana' : ''
+            }`}
+            aria-label="Bez barvy"
+            aria-pressed={!selectedNode.barva}
+            onClick={() => setNodeBarva(selectedId, null)}
+          >
+            ✕
+          </button>
+          {BARVY_UZLU.map((barva) => (
+            <button
+              key={barva}
+              className={`mm-barva-vzorek mm-barva-vzorek--${barva} ${
+                selectedNode.barva === barva ? 'je-vybrana' : ''
+              }`}
+              aria-label={NAZEV_BARVY[barva]}
+              aria-pressed={selectedNode.barva === barva}
+              onClick={() => setNodeBarva(selectedId, barva)}
+            />
+          ))}
+        </div>
+
+        <form className="mm-detail-form" onSubmit={submitDetail}>
+          <textarea
+            className="mm-detail-textarea"
+            placeholder="Poznámka k tématu..."
+            value={poznamkaText}
+            onChange={(e) => setPoznamkaText(e.target.value)}
+            rows={2}
+          />
+          <div className="mm-detail-tag-radek">
+            <input
+              type="text"
+              className="mm-detail-tag-input"
+              placeholder="Štítek (např. Důležité)"
+              value={tagText}
+              onChange={(e) => setTagText(e.target.value)}
+              maxLength={24}
+            />
+            <button type="submit" className="mm-detail-ulozit-btn">
+              Uložit
+            </button>
+          </div>
+        </form>
 
         <form className="mm-add-form" onSubmit={handleAdd}>
           <input

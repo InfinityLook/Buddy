@@ -1,4 +1,4 @@
-import { MindNode } from './types'
+import { BarvaUzlu, MindNode } from './types'
 
 // Rozměry uzlu a rozestupy. Drží se tady, protože je potřebuje jak
 // výpočet pozic, tak vykreslení — kdyby se rozešly, spojnice by
@@ -19,6 +19,9 @@ export interface LayoutNode {
   // Počet potomků celkem (i když je uzel sbalený)
   childCount: number
   collapsed: boolean
+  barva: BarvaUzlu | null
+  maPoznamku: boolean
+  maTag: boolean
 }
 
 export interface LayoutEdge {
@@ -89,6 +92,9 @@ export const layoutMindMap = (
       parentId: node.parentId,
       childCount: allChildren.length,
       collapsed: isCollapsed && allChildren.length > 0,
+      barva: node.barva ?? null,
+      maPoznamku: Boolean(node.poznamka),
+      maTag: Boolean(node.tag),
     }
 
     placed.push(laid)
