@@ -1,10 +1,15 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/core/store/useAppStore'
+import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
+import { useKalendar, naFormatDatumu } from '@/miniapps/kalendar/useKalendar'
+import { usePomodoro } from '@/miniapps/pomodoro/usePomodoro'
+import { AppIcon } from '@/pages/app/components/AppIcon'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { MujWidgetPanel } from '../shared/MujWidgetPanel'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
+import './SchoolRoomModule.css'
 
 // ==========================================
 // School Room — první "vlajková appka" appky (viz FlagshipShell.tsx
@@ -40,6 +45,22 @@ export const SchoolRoomModule: React.FC = () => {
   const setActiveAppId = useAppStore((s) => s.setActiveAppId)
   const [notifOpen, setNotifOpen] = useState(false)
   const [nastrojeOtevrene, setNastrojeOtevrene] = useState(false)
+
+  // "Moje přehled" — jediný skutečně nový obsah téhle appky (viz komentář
+  // u panelu níž), tři reálná čísla z appek, co v pokoji už mají svou
+  // dlaždici, ne vymyšlená data. Stejný "browse what's already loaded"
+  // duch jako Growth Roomovy "Moje cíle" — čte přímo store hooky, žádný
+  // nový store ani zvláštní stats.ts modul, protože všechny tři hodnoty
+  // (pendingCount, dnySUdalosti, completedSessions) už appky samy počítají.
+  const { pendingCount } = useStudyPlanner()
+  const { dnySUdalosti, dnes } = useKalendar()
+  const { completedSessions } = usePomodoro()
+
+  const dnesniStr = naFormatDatumu(dnes.getFullYear(), dnes.getMonth(), dnes.getDate())
+  const nadchazejiciUdalosti = useMemo(
+    () => [...dnySUdalosti].filter((d) => d >= dnesniStr).length,
+    [dnySUdalosti, dnesniStr]
+  )
 
   // Deep-link do miniaplikace stejným vzorem jako Hub.tsx's
   // setActiveAppId('study-planner', '/hub') — returnPath přivede
@@ -212,6 +233,59 @@ export const SchoolRoomModule: React.FC = () => {
         onOpenNotifications={() => setNotifOpen(true)}
         onCloseNotifications={() => setNotifOpen(false)}
       >
+        {/* "Moje přehled" — School Room je poslední z pokojů, co dostal
+            vlastní panel s reálnými daty (Fitness/Economy/Growth/Music
+            Room ho měly od začátku); dřív tu bylo jen "Statistiky" jako
+            zkratka na /odmeny. Tři čísla, žádné vymyšlené — nesplněné
+            úkoly z Planeru, nadcházející události z Kalendáře (spočtené
+            z jeho vlastního dnySUdalosti, ne nová appka), a celkem
+            dokončené Pomodoro bloky. Prázdný/nulový stav je vlastní
+            přátelská věta, ne holá "0". */}
+        <div className="sr-panel">
+          <div className="sr-panel-hlavicka">
+            <h2>Moje přehled</h2>
+            <p>Co tě dnes čeká ve škole</p>
+          </div>
+
+          <div className="sr-staty">
+            <div className="sr-stat-radek">
+              <span className="sr-stat-ikona fs-barva--green">
+                <AppIcon name="study-planner" size={18} />
+              </span>
+              <span className="sr-stat-text">
+                <span className="sr-stat-nazev">Nesplněné úkoly</span>
+                <span className="sr-stat-hodnota">
+                  {pendingCount > 0 ? pendingCount : 'Vše splněno! 🎉'}
+                </span>
+              </span>
+            </div>
+
+            <div className="sr-stat-radek">
+              <span className="sr-stat-ikona fs-barva--purple">
+                <AppIcon name="calendar" size={18} />
+              </span>
+              <span className="sr-stat-text">
+                <span className="sr-stat-nazev">Nadcházející události</span>
+                <span className="sr-stat-hodnota">
+                  {nadchazejiciUdalosti > 0 ? nadchazejiciUdalosti : 'Žádné naplánované'}
+                </span>
+              </span>
+            </div>
+
+            <div className="sr-stat-radek">
+              <span className="sr-stat-ikona fs-barva--orange">
+                <AppIcon name="pomodoro" size={18} />
+              </span>
+              <span className="sr-stat-text">
+                <span className="sr-stat-nazev">Dokončené Pomodoro bloky</span>
+                <span className="sr-stat-hodnota">
+                  {completedSessions > 0 ? completedSessions : 'Zatím žádné'}
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+
         <MujWidgetPanel id="school-room" dlazdice={dlazdice} dalsiMoznostiProSloty={dalsiMoznostiProSloty} />
       </FlagshipShell>
 
