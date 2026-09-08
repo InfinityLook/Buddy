@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { BARVY_DNE } from '@/miniapps/kalendar/types'
 
 // ==========================================
 // Ověření uložených událostí Kalendáře — stejný "nedůvěřuj uloženým
@@ -15,6 +16,10 @@ export const UdalostSchema = v.object({
 
 export const KalendarSchema = v.object({
   udalosti: v.optional(v.array(v.unknown()), []),
+  // Mapa datum -> barva, nepovinná (starší uložený stav ji vůbec neměl).
+  // Přijde jako obecný objekt (JSON nemá Record typ), ověřuje se až níž
+  // položku po položce, stejně jako pole udalosti.
+  barvyDni: v.optional(v.record(v.string(), v.unknown()), {}),
 })
 
 export const validateKalendarData = (data: unknown) => {
@@ -33,5 +38,14 @@ export const validateKalendarData = (data: unknown) => {
     })
     .filter((u): u is v.Output<typeof UdalostSchema> => u !== null)
 
-  return { success: true as const, data: { udalosti } }
+  // Stejně tak barva u jednoho dne mimo pevnou paletu (BARVY_DNE) se
+  // jen tiše vynechá, ne aby to shodilo celou mapu.
+  const barvyDni: Record<string, (typeof BARVY_DNE)[number]> = {}
+  for (const [datum, barva] of Object.entries(result.output.barvyDni)) {
+    if (typeof barva === 'string' && (BARVY_DNE as readonly string[]).includes(barva)) {
+      barvyDni[datum] = barva as (typeof BARVY_DNE)[number]
+    }
+  }
+
+  return { success: true as const, data: { udalosti, barvyDni } }
 }

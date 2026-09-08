@@ -43,7 +43,6 @@ import './SchoolRoomModule.css'
 export const SchoolRoomModule: React.FC = () => {
   const navigate = useNavigate()
   const setActiveAppId = useAppStore((s) => s.setActiveAppId)
-  const [notifOpen, setNotifOpen] = useState(false)
   const [nastrojeOtevrene, setNastrojeOtevrene] = useState(false)
 
   // "Moje přehled" — jediný skutečně nový obsah téhle appky (viz komentář
@@ -102,9 +101,9 @@ export const SchoolRoomModule: React.FC = () => {
       ikona: 'bell',
       barva: 'cyan',
       // Stejná akce jako zvonek v hlavičce (viz FlagshipShell.tsx's
-      // notifOpen prop) — dlaždice tu není nic navíc, jen druhá cesta
-      // ke stejnému panelu.
-      onClick: () => setNotifOpen(true),
+      // onOpenNotifications prop níž) — dlaždice tu není nic navíc, jen
+      // druhá cesta na tutéž obrazovku /skola/upozorneni.
+      onClick: () => navigate('/skola/upozorneni'),
     },
     {
       id: 'ukoly',
@@ -120,9 +119,10 @@ export const SchoolRoomModule: React.FC = () => {
       popis: 'Sleduj pokrok',
       ikona: 'bar-chart',
       barva: 'purple',
-      // /odmeny (RewardModule) už úroveň/XP/sérii/odznaky ukazuje —
-      // žádná nová obrazovka, jen zkratka na tu existující.
-      onClick: () => navigate('/odmeny'),
+      // Dřív jen zkratka na /odmeny (RewardModule's účtové skóre) —
+      // teď vlastní obrazovka School Roomu se skutečnými čísly z jeho
+      // vlastních tří appek (viz SkolaStatistiky.tsx).
+      onClick: () => navigate('/skola/statistiky'),
     },
   ]
 
@@ -229,9 +229,14 @@ export const SchoolRoomModule: React.FC = () => {
         popisHlavicky="Škola na jednom místě"
         ikonaHlavicky="layers"
         velkeKarty={velkeKarty}
-        notifOpen={notifOpen}
-        onOpenNotifications={() => setNotifOpen(true)}
-        onCloseNotifications={() => setNotifOpen(false)}
+        // Zvonek v hlavičce vede na stejnou novou obrazovku jako
+        // dlaždice "Upozornění" výš — School Room už si vyžádaným
+        // panelem přes sheet neotvírá, notifOpen proto zůstává natvrdo
+        // zavřený (FlagshipShell.tsx ho pořád vyžaduje jako prop, ale
+        // nikdy se nenastaví na true).
+        notifOpen={false}
+        onOpenNotifications={() => navigate('/skola/upozorneni')}
+        onCloseNotifications={() => {}}
       >
         {/* "Moje přehled" — School Room je poslední z pokojů, co dostal
             vlastní panel s reálnými daty (Fitness/Economy/Growth/Music

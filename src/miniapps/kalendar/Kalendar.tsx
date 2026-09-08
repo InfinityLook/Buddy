@@ -1,8 +1,20 @@
 import React, { useState } from 'react'
 import { naFormatDatumu, NAZVY_MESICU, rozlozeniMesice, useKalendar } from './useKalendar'
+import { BARVY_DNE, BarvaDne } from './types'
 import './Kalendar.css'
 
 const DNY_V_TYDNU = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne']
+
+// Popisky pro čtečky obrazovky/aria-label — pevná paleta, viz types.ts's
+// vlastní komentář u BARVY_DNE.
+const NAZEV_BARVY: Record<BarvaDne, string> = {
+  cyan: 'Tyrkysová',
+  violet: 'Fialová',
+  magenta: 'Purpurová',
+  green: 'Zelená',
+  orange: 'Oranžová',
+  red: 'Červená',
+}
 
 // 'YYYY-MM-DD' -> "15. května 2025" — parsováno ručně na místní datum
 // (ne new Date('2025-05-15'), co by ho v UTC prohlížeči posunulo o den).
@@ -25,6 +37,8 @@ export const Kalendar: React.FC = () => {
     jitMesicem,
     dnySUdalosti,
     udalostiDne,
+    barvyDni,
+    nastavBarvuDne,
     pridatUdalost,
     smazatUdalost,
   } = useKalendar()
@@ -76,13 +90,14 @@ export const Kalendar: React.FC = () => {
 
           const datumStr = naFormatDatumu(rok, mesic, den)
           const maUdalost = dnySUdalosti.has(datumStr)
+          const barvaDne = barvyDni[datumStr]
 
           return (
             <button
               key={datumStr}
               className={`kalendar-den ${datumStr === dnesniStr ? 'je-dnes' : ''} ${
                 datumStr === vybranyDen ? 'je-vybrany' : ''
-              }`}
+              } ${barvaDne ? `kalendar-den--barva-${barvaDne}` : ''}`}
               onClick={() => setVybranyDen(datumStr)}
             >
               {den}
@@ -101,6 +116,30 @@ export const Kalendar: React.FC = () => {
                 + Přidat
               </button>
             )}
+          </div>
+
+          <div className="kalendar-barvy-radek" role="group" aria-label="Barva dne">
+            <button
+              className={`kalendar-barva-vzorek kalendar-barva-vzorek--bez ${
+                !barvyDni[vybranyDen] ? 'je-vybrana' : ''
+              }`}
+              aria-label="Bez barvy"
+              aria-pressed={!barvyDni[vybranyDen]}
+              onClick={() => nastavBarvuDne(vybranyDen, null)}
+            >
+              ✕
+            </button>
+            {BARVY_DNE.map((barva) => (
+              <button
+                key={barva}
+                className={`kalendar-barva-vzorek kalendar-barva-vzorek--${barva} ${
+                  barvyDni[vybranyDen] === barva ? 'je-vybrana' : ''
+                }`}
+                aria-label={NAZEV_BARVY[barva]}
+                aria-pressed={barvyDni[vybranyDen] === barva}
+                onClick={() => nastavBarvuDne(vybranyDen, barva)}
+              />
+            ))}
           </div>
 
           {udalostiDne.length === 0 && !formOtevreny && (

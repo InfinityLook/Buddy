@@ -18,3 +18,13 @@ export interface Udalost {
   popis: string
   createdAt: number
 }
+
+// Pevná paleta barev pro označení dne — appka má přesně šest hlavních
+// akcentových barev (viz styles/global.css's --accent-*), stejná sada se
+// tu jen znovupoužívá jako "pevná nabídka, ne libovolný vstup" (stejný
+// duch jako Social's IKONY_SKUPIN/EMOJI_REAKCI). Barva dne je nezávislá
+// na tom, jestli má den nějakou událost — jde označit i prázdný den
+// (např. "den volna", "den zkoušky"), proto žije jako vlastní mapa
+// datum -> barva, ne jako pole na Udalost.
+export const BARVY_DNE = ['cyan', 'violet', 'magenta', 'green', 'orange', 'red'] as const
+export type BarvaDne = (typeof BARVY_DNE)[number]

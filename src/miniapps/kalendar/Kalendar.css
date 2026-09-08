@@ -93,6 +93,19 @@
   background: var(--accent-magenta);
 }
 
+/* Barva dne — vlastní prstenec (inset box-shadow), ne border/background,
+   schválně: je-dnes/je-vybrany už tyhle dvě vlastnosti používají pro
+   svůj vlastní stav, a kdyby si o ně barva dne řekla taky, jedno by tiše
+   přepsalo druhé (stejná past, co si tenhle soubor už jednou vyžádal
+   poučení jinde v appce — dvě odlišné věci na jedné buňce potřebují dvě
+   odlišné vlastnosti, ne sdílet jednu). */
+.kalendar-den--barva-cyan { box-shadow: inset 0 0 0 2px var(--accent-cyan); }
+.kalendar-den--barva-violet { box-shadow: inset 0 0 0 2px var(--accent-violet); }
+.kalendar-den--barva-magenta { box-shadow: inset 0 0 0 2px var(--accent-magenta); }
+.kalendar-den--barva-green { box-shadow: inset 0 0 0 2px var(--accent-green); }
+.kalendar-den--barva-orange { box-shadow: inset 0 0 0 2px var(--accent-orange); }
+.kalendar-den--barva-red { box-shadow: inset 0 0 0 2px var(--accent-red); }
+
 .kalendar-detail {
   background: var(--bg-glass);
   border: 1px solid var(--border-subtle);
@@ -133,6 +146,45 @@
   margin: 0;
   font-size: 0.8rem;
   color: var(--text-secondary);
+}
+
+.kalendar-barvy-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.kalendar-barva-vzorek {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  padding: 0;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+.kalendar-barva-vzorek--bez {
+  background: var(--bg-glass);
+  border-color: var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.kalendar-barva-vzorek--cyan { background: var(--accent-cyan); }
+.kalendar-barva-vzorek--violet { background: var(--accent-violet); }
+.kalendar-barva-vzorek--magenta { background: var(--accent-magenta); }
+.kalendar-barva-vzorek--green { background: var(--accent-green); }
+.kalendar-barva-vzorek--orange { background: var(--accent-orange); }
+.kalendar-barva-vzorek--red { background: var(--accent-red); }
+
+.kalendar-barva-vzorek.je-vybrana {
+  border-color: var(--text-primary);
+  transform: scale(1.15);
 }
 
 .kalendar-seznam {

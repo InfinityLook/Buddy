@@ -4,14 +4,20 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { validateKalendarData } from '@/core/utils/kalendarValidation'
-import { Udalost } from './types'
+import { BarvaDne, Udalost } from './types'
 
 const XP_ZA_UDALOST = 5
 
 interface KalendarState {
   udalosti: Udalost[]
+  // Datum -> barva, nezávisle na tom, jestli má den událost — viz
+  // types.ts's vlastní komentář u BARVY_DNE, proč je to vlastní mapa,
+  // ne pole na Udalost.
+  barvyDni: Record<string, BarvaDne>
   pridatUdalost: (datum: string, nazev: string, popis: string) => void
   smazatUdalost: (id: string) => void
+  /** null smaže barvu dne (návrat na "bez barvy"). */
+  nastavBarvuDne: (datum: string, barva: BarvaDne | null) => void
 }
 
 /** Vrátí 'YYYY-MM-DD' z místního data (ne UTC — Date.toISOString() by
@@ -28,6 +34,15 @@ const useKalendarStore = create<KalendarState>()(
   persist(
     (set) => ({
       udalosti: [],
+      barvyDni: {},
+
+      nastavBarvuDne: (datum, barva) =>
+        set((state) => {
+          const barvyDni = { ...state.barvyDni }
+          if (barva === null) delete barvyDni[datum]
+          else barvyDni[datum] = barva
+          return { barvyDni }
+        }),
 
       pridatUdalost: (datum, nazev, popis) => {
         if (!nazev.trim()) return
@@ -79,7 +94,7 @@ export const NAZVY_MESICU = [
 ]
 
 export const useKalendar = () => {
-  const { udalosti, pridatUdalost, smazatUdalost } = useKalendarStore()
+  const { udalosti, barvyDni, pridatUdalost, smazatUdalost, nastavBarvuDne } = useKalendarStore()
   const dnes = useMemo(() => new Date(), [])
   const [rok, setRok] = useState(dnes.getFullYear())
   const [mesic, setMesic] = useState(dnes.getMonth())
@@ -110,6 +125,8 @@ export const useKalendar = () => {
     jitMesicem,
     dnySUdalosti,
     udalostiDne,
+    barvyDni,
+    nastavBarvuDne,
     pocetUdalostiCelkem: udalosti.length,
     pridatUdalost,
     smazatUdalost,

@@ -7,6 +7,8 @@ import AppModule from '@/pages/app/AppModule.tsx'
 // AppModule/ProfilModule, nic v nich netáhne Three.js ani jinou těžkou
 // závislost, co by ospravedlnila React.lazy.
 import SchoolRoomModule from '@/flagships/school-room/SchoolRoomModule.tsx'
+import SkolaStatistiky from '@/flagships/school-room/SkolaStatistiky.tsx'
+import SkolaUpozorneni from '@/flagships/school-room/SkolaUpozorneni.tsx'
 import FitnessRoomModule from '@/flagships/fitness-room/FitnessRoomModule.tsx'
 import EconomyRoomModule from '@/flagships/economy-room/EconomyRoomModule.tsx'
 import GrowthRoomModule from '@/flagships/growth-room/GrowthRoomModule.tsx'
@@ -214,6 +216,20 @@ export default function App() {
                 <Navigate to="/" replace />
               )
             }
+          />
+
+          {/* Podstránky School Roomu — Statistiky a Upozornění bývaly
+              buď zkratka na /odmeny, nebo výsuvný panel nad obsahem;
+              teď obě vedou na vlastní celoobrazovkovou stránku, jen
+              School Roomu, ne Hubu/ostatních vlajkových appek (viz
+              CLAUDE.md). Gate stejný jako u /skola samotného. */}
+          <Route
+            path="/skola/statistiky"
+            element={dovnitr ? <SkolaStatistiky /> : <Navigate to="/" replace />}
+          />
+          <Route
+            path="/skola/upozorneni"
+            element={dovnitr ? <SkolaUpozorneni /> : <Navigate to="/" replace />}
           />
 
           {/* Route pro Fitness Room (druhá vlajková appka) — stejný
