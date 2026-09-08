@@ -64,34 +64,38 @@ export const MujWidgetPanel: React.FC<Props> = ({ id, dlazdice, dalsiMoznostiPro
         {sloty.map((widgetId, i) => {
           const d = najitDlazdici(widgetId)
           return (
-            <button
-              key={i}
-              className={`fs-slot ${d ? 'fs-slot--vyplneny' : ''}`}
-              onClick={() => (d ? d.onClick() : setOtevrenySlot(i))}
-            >
-              {d ? (
-                <>
-                  <span
-                    className="fs-slot-odebrat"
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`Odebrat ${d.nazev} ze slotu`}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      nastavSlot(id, i, null)
-                    }}
-                  >
-                    <AppIcon name="x" size={12} />
-                  </span>
-                  <span className={`fs-slot-ikona fs-barva--${d.barva}`}>
-                    <AppIcon name={d.ikona} size={22} />
-                  </span>
-                  <span className="fs-slot-nazev">{d.nazev}</span>
-                </>
-              ) : (
-                <AppIcon name="plus" size={26} />
+            // Odebírací "×" je schválně SOUROZENEC vybíratelného tlačítka,
+            // ne vnořený uvnitř něj — stejná past jako PostavaKarta's
+            // vlastní tlačítko smazání (viz jeho komentář): interaktivní
+            // prvek uvnitř tlačítka láme klávesnicovou navigaci i čtečky
+            // obrazovky, i když by šlo obejít e.stopPropagation().
+            <div key={i} className="fs-slot-wrap">
+              <button
+                className={`fs-slot ${d ? 'fs-slot--vyplneny' : ''}`}
+                onClick={() => (d ? d.onClick() : setOtevrenySlot(i))}
+              >
+                {d ? (
+                  <>
+                    <span className={`fs-slot-ikona fs-barva--${d.barva}`}>
+                      <AppIcon name={d.ikona} size={22} />
+                    </span>
+                    <span className="fs-slot-nazev">{d.nazev}</span>
+                  </>
+                ) : (
+                  <AppIcon name="plus" size={26} />
+                )}
+              </button>
+
+              {d && (
+                <button
+                  className="fs-slot-odebrat"
+                  aria-label={`Odebrat ${d.nazev} ze slotu`}
+                  onClick={() => nastavSlot(id, i, null)}
+                >
+                  <AppIcon name="x" size={12} />
+                </button>
               )}
-            </button>
+            </div>
           )
         })}
       </div>

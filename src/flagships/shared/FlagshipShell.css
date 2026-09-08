@@ -68,9 +68,17 @@
   gap: 0.7rem;
 }
 
-.fs-slot {
+/* Obal drží pozicovací kontext (position: relative) pro odebírací "×"
+   pod ním — .fs-slot samotné je teď jen tlačítko pro hlavní akci slotu,
+   viz MujWidgetPanel.tsx's komentář o sourozeneckém tlačítku. */
+.fs-slot-wrap {
   position: relative;
   aspect-ratio: 1;
+}
+
+.fs-slot {
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -109,6 +117,8 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
+  border: none;
+  padding: 0;
   background: rgba(0, 0, 0, 0.4);
   color: var(--text-secondary);
   display: flex;
