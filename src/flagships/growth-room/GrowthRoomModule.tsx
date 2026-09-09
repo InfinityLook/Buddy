@@ -4,6 +4,7 @@ import { useAppStore } from '@/core/store/useAppStore'
 import { useGoalTracker } from '@/miniapps/goal-tracker/useGoalTracker'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { getLevelProgress, getXpForNextLevel } from '@/core/utils/gamificationUtils'
+import { plural } from '@/core/utils/pluralCZ'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
@@ -163,7 +164,9 @@ export const GrowthRoomModule: React.FC = () => {
               </span>
               <span className="gro-stat-text">
                 <span className="gro-stat-nazev">Streak</span>
-                <span className="gro-stat-hodnota">{streakDays} {streakDays === 1 ? 'den' : 'dní'} v řadě</span>
+                <span className="gro-stat-hodnota">
+                  {streakDays} {plural(streakDays, 'den v řadě', 'dny v řadě', 'dní v řadě')}
+                </span>
               </span>
             </div>
 

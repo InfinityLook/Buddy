@@ -1,10 +1,11 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useMusicStudio } from '@/miniapps/music-studio/useMusicStudio'
 import { useBeatSequencer } from '@/miniapps/music-studio/useBeatSequencer'
 import { DRUM_LABELS, DRUM_SOUNDS } from '@/miniapps/music-studio/types'
 import { getFileBlob } from '@/core/utils/fileStorage'
+import { plural } from '@/core/utils/pluralCZ'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
@@ -43,6 +44,29 @@ export const MusicRoomModule: React.FC = () => {
 
   const [hrajeNahravkaId, setHrajeNahravkaId] = useState<string | null>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
+  // Sleduje URL rozehrané nahrávky napříč přehráním/přepnutím/zastavením/
+  // odchodem z Music Roomu — bez tohohle by createObjectURL uniklo
+  // pokaždé, když se přehrávání přeruší jinak než přirozeným koncem
+  // (přepnutí na jinou nahrávku, tlačítko Zastavit, opuštění pokoje),
+  // stejná "uvolni, ať to skončí jakkoliv" disciplína jako u kamery/mikrofonu
+  // jinde v appce.
+  const prehravanaUrlRef = useRef<string | null>(null)
+
+  const uvolnitPrehravanouUrl = () => {
+    if (prehravanaUrlRef.current) {
+      URL.revokeObjectURL(prehravanaUrlRef.current)
+      prehravanaUrlRef.current = null
+    }
+  }
+
+  // Opuštění pokoje s ještě běžící nahrávkou nesmí nechat viset ani
+  // přehrávání, ani jeho URL.
+  useEffect(() => {
+    return () => {
+      audioRef.current?.pause()
+      uvolnitPrehravanouUrl()
+    }
+  }, [])
 
   const otevritMusicStudio = () => {
     setActiveAppId('music-studio', '/music')
@@ -52,23 +76,26 @@ export const MusicRoomModule: React.FC = () => {
   const prehratNahravku = async (id: string) => {
     const blob = await getFileBlob(id)
     if (!blob || !audioRef.current) return
+    uvolnitPrehravanouUrl() // přepnutí na jinou nahrávku bez zastavení té předchozí
     const url = URL.createObjectURL(blob)
+    prehravanaUrlRef.current = url
     audioRef.current.src = url
     audioRef.current.onended = () => {
       setHrajeNahravkaId(null)
-      URL.revokeObjectURL(url)
+      uvolnitPrehravanouUrl()
     }
     try {
       await audioRef.current.play()
       setHrajeNahravkaId(id)
     } catch {
-      URL.revokeObjectURL(url)
+      uvolnitPrehravanouUrl()
     }
   }
 
   const zastavitNahravku = () => {
     audioRef.current?.pause()
     setHrajeNahravkaId(null)
+    uvolnitPrehravanouUrl()
   }
 
   const nastroje: FlagshipDlazdice[] = [
@@ -124,15 +151,15 @@ export const MusicRoomModule: React.FC = () => {
           <div className="mur-staty-mrizka">
             <div className="mur-stat-dlazdice">
               <span className="mur-stat-cislo">{patterns.length}</span>
-              <span className="mur-stat-popis">{patterns.length === 1 ? 'beat' : 'beaty'}</span>
+              <span className="mur-stat-popis">{plural(patterns.length, 'beat', 'beaty', 'beatů')}</span>
             </div>
             <div className="mur-stat-dlazdice">
               <span className="mur-stat-cislo">{recordings.length}</span>
-              <span className="mur-stat-popis">{recordings.length === 1 ? 'nahrávka' : 'nahrávky'}</span>
+              <span className="mur-stat-popis">{plural(recordings.length, 'nahrávka', 'nahrávky', 'nahrávek')}</span>
             </div>
             <div className="mur-stat-dlazdice">
               <span className="mur-stat-cislo">{songs.length}</span>
-              <span className="mur-stat-popis">{songs.length === 1 ? 'skladba' : 'skladby'}</span>
+              <span className="mur-stat-popis">{plural(songs.length, 'skladba', 'skladby', 'skladeb')}</span>
             </div>
           </div>
         </div>
