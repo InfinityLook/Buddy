@@ -4,6 +4,7 @@ import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { validateComicWriterData } from '@/core/utils/comicWriterValidation'
 import { Komiks, Panel, PanelRadek, TypRadku } from './types'
+import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 
 const COMIC_XP = 6
 
@@ -16,6 +17,7 @@ interface ComicWriterState {
   deleteKomiks: (id: string) => void
   setCilStran: (komiksId: string, cil: number | null) => void
   addStrana: (komiksId: string) => void
+  updateStrana: (komiksId: string, stranaId: string, data: { stav?: StavPolozky; poznamka?: string }) => void
   deleteStrana: (komiksId: string, stranaId: string) => void
   addPanel: (komiksId: string, stranaId: string, vizual: string) => void
   updatePanel: (komiksId: string, stranaId: string, panelId: string, vizual: string) => void
@@ -80,8 +82,22 @@ const useComicWriterStore = create<ComicWriterState>()(
           komiksy: state.komiksy.map((k) => {
             if (k.id !== komiksId) return k
             const cislo = k.strany.length + 1
-            return { ...k, strany: [...k.strany, { id: noveId(), cislo, panely: [] }], upravenoAt: new Date().toISOString() }
+            const nova = { id: noveId(), cislo, panely: [], stav: 'napad' as StavPolozky, poznamka: '' }
+            return { ...k, strany: [...k.strany, nova], upravenoAt: new Date().toISOString() }
           }),
+        })),
+
+      updateStrana: (komiksId, stranaId, data) =>
+        set((state) => ({
+          komiksy: state.komiksy.map((k) =>
+            k.id !== komiksId
+              ? k
+              : {
+                  ...k,
+                  strany: k.strany.map((s) => (s.id === stranaId ? { ...s, ...data } : s)),
+                  upravenoAt: new Date().toISOString(),
+                }
+          ),
         })),
 
       deleteStrana: (komiksId, stranaId) =>

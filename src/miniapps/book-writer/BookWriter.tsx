@@ -4,6 +4,8 @@ import { Kniha, celkovyPocetSlov, pocetSlov, serazenoPodleUpravy, sestavTextKnih
 import { plural } from '@/core/utils/pluralCZ'
 import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
+import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
 import './BookWriter.css'
 
 export const BookWriter: React.FC = () => {
@@ -87,7 +89,11 @@ interface KnihaEditorProps {
   onZpet: () => void
   updateKniha: (id: string, nazev: string) => void
   addKapitola: (knihaId: string, nazev: string) => void
-  updateKapitola: (knihaId: string, kapitolaId: string, data: { nazev?: string; text?: string }) => void
+  updateKapitola: (
+    knihaId: string,
+    kapitolaId: string,
+    data: { nazev?: string; text?: string; stav?: StavPolozky; poznamka?: string }
+  ) => void
   deleteKapitola: (knihaId: string, kapitolaId: string) => void
   presunKapitolu: (knihaId: string, kapitolaId: string, smer: 'nahoru' | 'dolu') => void
   setCilSlov: (knihaId: string, cil: number | null) => void
@@ -105,6 +111,8 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
 }) => {
   const [aktivniKapitolaId, setAktivniKapitolaId] = useState<string | null>(kniha.kapitoly[0]?.id ?? null)
   const [nahledOtevren, setNahledOtevren] = useState(false)
+  const [osnovaOtevrena, setOsnovaOtevrena] = useState(false)
+  const [fokusRezim, setFokusRezim] = useState(false)
   const indexAktivni = kniha.kapitoly.findIndex((k) => k.id === aktivniKapitolaId)
   const aktivniKapitola = indexAktivni >= 0 ? kniha.kapitoly[indexAktivni] : null
 
@@ -128,8 +136,21 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
     return <KnihaNahled kniha={kniha} onZpet={() => setNahledOtevren(false)} />
   }
 
+  if (osnovaOtevrena) {
+    return (
+      <KnihaOsnova
+        kniha={kniha}
+        onZpet={() => setOsnovaOtevrena(false)}
+        onOtevritKapitolu={(id) => {
+          setAktivniKapitolaId(id)
+          setOsnovaOtevrena(false)
+        }}
+      />
+    )
+  }
+
   return (
-    <div className="bw-app">
+    <div className={`bw-app${fokusRezim ? ' bw-app--fokus' : ''}`}>
       <div className="bw-header">
         <button className="bw-zpet-btn" onClick={onZpet} aria-label="Zpět na seznam knih">
           ←
@@ -149,6 +170,15 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
         </div>
         <button className="bw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celé knihy">
           👁 Náhled
+        </button>
+      </div>
+
+      <div className="bw-akce-radek">
+        <button className="bw-nahled-btn" onClick={() => setOsnovaOtevrena(true)}>
+          🔍 Osnova
+        </button>
+        <button className="bw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
+          {fokusRezim ? '🎯 Zpět z fokusu' : '🎯 Fokus'}
         </button>
       </div>
 
@@ -184,6 +214,13 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
               onChange={(e) => updateKapitola(kniha.id, aktivniKapitola.id, { nazev: e.target.value })}
               maxLength={60}
             />
+            <button
+              className={`bw-stav-badge bw-stav-badge--${aktivniKapitola.stav}`}
+              onClick={() => updateKapitola(kniha.id, aktivniKapitola.id, { stav: dalsiStav(aktivniKapitola.stav) })}
+              aria-label="Přepnout stav kapitoly"
+            >
+              {emojiStavu(aktivniKapitola.stav)} {oznaceniStavu(aktivniKapitola.stav)}
+            </button>
             <div className="bw-posun-btns">
               <button
                 className="bw-posun-btn"
@@ -209,7 +246,7 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
             value={aktivniKapitola.text}
             onChange={(e) => updateKapitola(kniha.id, aktivniKapitola.id, { text: e.target.value })}
             placeholder="Piš sem text kapitoly…"
-            rows={12}
+            rows={fokusRezim ? 22 : 12}
           />
 
           <div className="bw-spodni-radek">
@@ -220,6 +257,15 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
               Smazat kapitolu
             </button>
           </div>
+
+          <input
+            type="text"
+            className="bw-poznamka"
+            placeholder="Poznámka jen pro tebe (nezobrazí se v Náhledu ani exportu)…"
+            value={aktivniKapitola.poznamka}
+            onChange={(e) => updateKapitola(kniha.id, aktivniKapitola.id, { poznamka: e.target.value })}
+            maxLength={200}
+          />
         </>
       )}
 
@@ -272,3 +318,67 @@ const KnihaNahled: React.FC<{ kniha: Kniha; onZpet: () => void }> = ({ kniha, on
     </div>
   </div>
 )
+
+// Osnova celé knihy na jednu obrazovku plus fulltextové vyhledávání v
+// jednom — hledací pole nemá co filtrovat bez seznamu, a seznam beze
+// dneška, který kapitolu vlastně hledáš, potřebuje nějaké řazení, tak
+// se to nestaví jako dvě samostatné obrazovky. Bez dotazu ukazuje jen
+// pořadí/název/stav/počet slov; s dotazem filtruje na kapitoly, kde se
+// dotaz najde v názvu NEBO v textu, a u zásahu v textu přidá krátký
+// úryvek okolí.
+const KnihaOsnova: React.FC<{ kniha: Kniha; onZpet: () => void; onOtevritKapitolu: (id: string) => void }> = ({
+  kniha,
+  onZpet,
+  onOtevritKapitolu,
+}) => {
+  const [dotaz, setDotaz] = useState('')
+
+  const polozky = kniha.kapitoly
+    .map((k, i) => ({ kapitola: k, poradi: i + 1 }))
+    .filter(({ kapitola }) => obsahujeDotaz(kapitola.nazev, dotaz) || obsahujeDotaz(kapitola.text, dotaz))
+
+  return (
+    <div className="bw-app">
+      <div className="bw-header">
+        <button className="bw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+          ←
+        </button>
+        <div className="bw-header-text">
+          <strong>{kniha.nazev}</strong>
+          <span>Osnova a vyhledávání</span>
+        </div>
+      </div>
+
+      <input
+        type="text"
+        placeholder="Hledat v názvech i textu kapitol…"
+        value={dotaz}
+        onChange={(e) => setDotaz(e.target.value)}
+        autoFocus
+      />
+
+      <div className="bw-seznam">
+        {polozky.length === 0 && (
+          <p className="bw-prazdno">{dotaz ? 'Nic se nenašlo.' : 'Kniha zatím nemá žádnou kapitolu.'}</p>
+        )}
+        {polozky.map(({ kapitola: k, poradi }) => {
+          const uryvek = obsahujeDotaz(k.nazev, dotaz) ? null : najdiUryvek(k.text, dotaz)
+          return (
+            <div className="bw-radek" key={k.id}>
+              <button className="bw-radek-otevrit" onClick={() => onOtevritKapitolu(k.id)}>
+                <strong>
+                  {poradi}. {k.nazev}
+                </strong>
+                <span>
+                  {emojiStavu(k.stav)} {oznaceniStavu(k.stav)} · {pocetSlov(k.text)}{' '}
+                  {plural(pocetSlov(k.text), 'slovo', 'slova', 'slov')}
+                </span>
+                {uryvek && <span className="bw-osnova-uryvek">„{uryvek}“</span>}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}

@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { jePlatnyStav } from '@/flagships/writer-room/writerRoomStav'
 
 // ==========================================
 // Ověření dat appky Komiks (Writer's Room). Stejná "poškozená položka
@@ -37,7 +38,11 @@ const sanitizujStranu = (data: unknown) => {
   const d = data as Record<string, unknown>
   if (typeof d.id !== 'string' || typeof d.cislo !== 'number' || !Number.isFinite(d.cislo)) return null
   const panely = Array.isArray(d.panely) ? d.panely.map(sanitizujPanel).filter((p): p is NonNullable<typeof p> => p !== null) : []
-  return { id: d.id, cislo: d.cislo, panely }
+  // stav/poznamka jsou novější pole — starší uložená strana je nemá
+  // vůbec, stejný fallback jako u Kapitoly/Scény vedle.
+  const stav = jePlatnyStav(d.stav) ? d.stav : 'napad'
+  const poznamka = typeof d.poznamka === 'string' ? d.poznamka : ''
+  return { id: d.id, cislo: d.cislo, panely, stav, poznamka }
 }
 
 const sanitizujKomiks = (data: unknown) => {

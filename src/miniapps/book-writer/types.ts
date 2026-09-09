@@ -2,11 +2,22 @@
 // Kniha — appka Writer's Roomu na psaní knih po kapitolách.
 // ==========================================
 
+import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+
 export interface Kapitola {
   id: string
   nazev: string
   text: string
   createdAt: string
+  // Ruční štítek postupu, přepínaný jedním klepnutím (Nápad →
+  // Rozepsáno → Hotovo) — nezávislý na tom, jestli kapitola má text,
+  // ať jde odlišit "ještě jsem to nezačal" od "mám odstavec, ale
+  // rozhodně to není hotové".
+  stav: StavPolozky
+  // Autorova soukromá poznámka ke kapitole (např. "potřebuje revizi"),
+  // oddělená od samotného textu kapitoly — nikdy se neexportuje do
+  // .txt ani nezobrazuje v Náhledu, je jen pro appku samotnou.
+  poznamka: string
 }
 
 export interface Kniha {

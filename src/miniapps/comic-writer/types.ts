@@ -4,6 +4,8 @@
 // jakou komiksoví scénáristé profesionálně používají.
 // ==========================================
 
+import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+
 export type TypRadku = 'dialog' | 'popisek'
 
 export interface PanelRadek {
@@ -28,6 +30,12 @@ export interface Strana {
   id: string
   cislo: number
   panely: Panel[]
+  // Stejný ruční štítek postupu jako Kapitola.stav v Knize/Scena.stav
+  // ve Scénáři — cyklovaný jedním klepnutím.
+  stav: StavPolozky
+  // Stejná role jako Kapitola.poznamka/Scena.poznamka — autorova
+  // soukromá poznámka, do exportu/Náhledu se nepromítá.
+  poznamka: string
 }
 
 export interface Komiks {
@@ -49,6 +57,21 @@ export const celkovyPocetPanelu = (komiks: Komiks): number =>
 // Stejná "podle poslední úpravy" logika jako u Knihy/Scénáře.
 export const serazenoPodleUpravy = <T extends { upravenoAt: string }>(polozky: T[]): T[] =>
   [...polozky].sort((a, b) => b.upravenoAt.localeCompare(a.upravenoAt))
+
+// Stejná role jako Scenar.ziskejPostavy — jména postav skutečně
+// použitá v dialogu napříč celým komiksem, bez duplicit a abecedně,
+// pro nabídku už-použitých jmen při psaní řádku.
+export const ziskejPostavy = (komiks: Komiks): string[] => {
+  const jmena = new Set<string>()
+  komiks.strany.forEach((s) =>
+    s.panely.forEach((p) =>
+      p.radky.forEach((r) => {
+        if (r.typ === 'dialog' && r.postava.trim()) jmena.add(r.postava.trim())
+      })
+    )
+  )
+  return [...jmena].sort((a, b) => a.localeCompare(b, 'cs'))
+}
 
 // Poskládá celý komiks do jednoho čitelného scénáristického textu pro
 // export — strana → panel → řádky, stejná hierarchie, jakou appka

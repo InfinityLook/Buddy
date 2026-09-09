@@ -1,9 +1,11 @@
 import React, { useState } from 'react'
 import { useComicWriter } from './useComicWriter'
-import { celkovyPocetPanelu, Komiks, serazenoPodleUpravy, sestavTextKomiksu, TypRadku } from './types'
+import { celkovyPocetPanelu, Komiks, serazenoPodleUpravy, sestavTextKomiksu, TypRadku, ziskejPostavy } from './types'
 import { plural } from '@/core/utils/pluralCZ'
 import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
+import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
 import './ComicWriter.css'
 
 export const ComicWriter: React.FC = () => {
@@ -14,6 +16,7 @@ export const ComicWriter: React.FC = () => {
     deleteKomiks,
     setCilStran,
     addStrana,
+    updateStrana,
     deleteStrana,
     addPanel,
     updatePanel,
@@ -89,6 +92,7 @@ export const ComicWriter: React.FC = () => {
       updateKomiks={updateKomiks}
       setCilStran={setCilStran}
       addStrana={addStrana}
+      updateStrana={updateStrana}
       deleteStrana={deleteStrana}
       addPanel={addPanel}
       updatePanel={updatePanel}
@@ -107,6 +111,7 @@ interface KomiksEditorProps {
   updateKomiks: (id: string, nazev: string) => void
   setCilStran: (komiksId: string, cil: number | null) => void
   addStrana: (komiksId: string) => void
+  updateStrana: (komiksId: string, stranaId: string, data: { stav?: StavPolozky; poznamka?: string }) => void
   deleteStrana: (komiksId: string, stranaId: string) => void
   addPanel: (komiksId: string, stranaId: string, vizual: string) => void
   updatePanel: (komiksId: string, stranaId: string, panelId: string, vizual: string) => void
@@ -129,6 +134,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
   updateKomiks,
   setCilStran,
   addStrana,
+  updateStrana,
   deleteStrana,
   addPanel,
   updatePanel,
@@ -145,6 +151,8 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
   const [radekPostava, setRadekPostava] = useState('')
   const [radekText, setRadekText] = useState('')
   const [nahledOtevren, setNahledOtevren] = useState(false)
+  const [osnovaOtevrena, setOsnovaOtevrena] = useState(false)
+  const [fokusRezim, setFokusRezim] = useState(false)
 
   // Úprava existujícího panelu/řádku sdílí stejný formulář jako
   // přidávání nového — tahle dvě id říkají, jestli je aktuálně otevřený
@@ -230,8 +238,21 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
     return <KomiksNahled komiks={komiks} onZpet={() => setNahledOtevren(false)} />
   }
 
+  if (osnovaOtevrena) {
+    return (
+      <KomiksOsnova
+        komiks={komiks}
+        onZpet={() => setOsnovaOtevrena(false)}
+        onOtevritStranu={(id) => {
+          setAktivniStranaId(id)
+          setOsnovaOtevrena(false)
+        }}
+      />
+    )
+  }
+
   return (
-    <div className="cw-app">
+    <div className={`cw-app${fokusRezim ? ' cw-app--fokus' : ''}`}>
       <div className="cw-header">
         <button className="cw-zpet-btn" onClick={onZpet} aria-label="Zpět na seznam komiksů">
           ←
@@ -251,6 +272,15 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
         </div>
         <button className="cw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celého komiksu">
           👁 Náhled
+        </button>
+      </div>
+
+      <div className="cw-akce-radek">
+        <button className="cw-nahled-btn" onClick={() => setOsnovaOtevrena(true)}>
+          🔍 Osnova
+        </button>
+        <button className="cw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
+          {fokusRezim ? '🎯 Zpět z fokusu' : '🎯 Fokus'}
         </button>
       </div>
 
@@ -282,6 +312,13 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
           <div className="cw-page-head">
             <strong>Strana {aktivniStrana.cislo}</strong>
             <div className="cw-page-head-btns">
+              <button
+                className={`cw-stav-badge cw-stav-badge--${aktivniStrana.stav}`}
+                onClick={() => updateStrana(komiks.id, aktivniStrana.id, { stav: dalsiStav(aktivniStrana.stav) })}
+                aria-label="Přepnout stav strany"
+              >
+                {emojiStavu(aktivniStrana.stav)} {oznaceniStavu(aktivniStrana.stav)}
+              </button>
               <div className="cw-posun-btns">
                 <button
                   className="cw-posun-btn"
@@ -305,6 +342,15 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
               </button>
             </div>
           </div>
+
+          <input
+            type="text"
+            className="cw-poznamka"
+            placeholder="Poznámka jen pro tebe (nezobrazí se v Náhledu ani exportu)…"
+            value={aktivniStrana.poznamka}
+            onChange={(e) => updateStrana(komiks.id, aktivniStrana.id, { poznamka: e.target.value })}
+            maxLength={200}
+          />
 
           {aktivniStrana.panely.length === 0 && <p className="cw-prazdno">Strana zatím nemá žádný panel.</p>}
 
@@ -371,7 +417,20 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
                       <option value="popisek">Popisek</option>
                     </select>
                     {radekTyp === 'dialog' && (
-                      <input type="text" placeholder="Postava" value={radekPostava} onChange={(e) => setRadekPostava(e.target.value)} />
+                      <>
+                        <input
+                          type="text"
+                          list="cw-postavy-list"
+                          placeholder="Postava"
+                          value={radekPostava}
+                          onChange={(e) => setRadekPostava(e.target.value)}
+                        />
+                        <datalist id="cw-postavy-list">
+                          {ziskejPostavy(komiks).map((jmeno) => (
+                            <option key={jmeno} value={jmeno} />
+                          ))}
+                        </datalist>
+                      </>
                     )}
                   </div>
                   <input type="text" placeholder="Text…" value={radekText} onChange={(e) => setRadekText(e.target.value)} />
@@ -474,3 +533,99 @@ const KomiksNahled: React.FC<{ komiks: Komiks; onZpet: () => void }> = ({ komiks
     )}
   </div>
 )
+
+// Osnova + fulltextové vyhledávání v jednom, stejný důvod jako u Knihy/
+// Scénáře vedle. Bez dotazu ukazuje jen strany (číslo, stav, počet
+// panelů) — se strukturou hlouběji než na úrovni panelu se v Komiksu
+// stejně dá pracovat, jen skrz otevřenou stranu. S dotazem naopak
+// sestupuje až na jednotlivé panely, protože jinak by "hledání" jen
+// řeklo "je to někde na straně 4", ne kde přesně.
+const KomiksOsnova: React.FC<{ komiks: Komiks; onZpet: () => void; onOtevritStranu: (id: string) => void }> = ({
+  komiks,
+  onZpet,
+  onOtevritStranu,
+}) => {
+  const [dotaz, setDotaz] = useState('')
+  const postavy = ziskejPostavy(komiks)
+
+  const stranyKZobrazeni = komiks.strany
+    .map((s) => {
+      const panelyOznacene = s.panely.map((p, i) => ({ panel: p, poradi: i + 1 }))
+      const panelySeZasahem = dotaz
+        ? panelyOznacene.filter(
+            ({ panel }) =>
+              obsahujeDotaz(panel.vizual, dotaz) ||
+              panel.radky.some((r) => obsahujeDotaz(r.text, dotaz) || obsahujeDotaz(r.postava, dotaz))
+          )
+        : []
+      return { strana: s, panelySeZasahem, odpovida: dotaz === '' || panelySeZasahem.length > 0 }
+    })
+    .filter(({ odpovida }) => odpovida)
+
+  const uryvekPanelu = (panel: (typeof komiks.strany)[number]['panely'][number]): string => {
+    if (obsahujeDotaz(panel.vizual, dotaz)) return najdiUryvek(panel.vizual, dotaz) ?? panel.vizual
+    const radek = panel.radky.find((r) => obsahujeDotaz(r.text, dotaz) || obsahujeDotaz(r.postava, dotaz))
+    return (radek && najdiUryvek(radek.text, dotaz)) || radek?.text || panel.vizual
+  }
+
+  return (
+    <div className="cw-app">
+      <div className="cw-header">
+        <button className="cw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+          ←
+        </button>
+        <div className="cw-header-text">
+          <strong>{komiks.nazev}</strong>
+          <span>Osnova a vyhledávání</span>
+        </div>
+      </div>
+
+      <input
+        type="text"
+        placeholder="Hledat ve vizuálech i řádcích panelů…"
+        value={dotaz}
+        onChange={(e) => setDotaz(e.target.value)}
+        autoFocus
+      />
+
+      {postavy.length > 0 && (
+        <div className="cw-postavy-radek">
+          <span className="cw-panel-label">👥 Obsazení</span>
+          <div className="cw-chip-row">
+            {postavy.map((jmeno) => (
+              <span className="cw-chip cw-chip--staticky" key={jmeno}>
+                {jmeno}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="cw-seznam">
+        {stranyKZobrazeni.length === 0 && (
+          <p className="cw-prazdno">{dotaz ? 'Nic se nenašlo.' : 'Komiks zatím nemá žádnou stranu.'}</p>
+        )}
+        {stranyKZobrazeni.map(({ strana: s, panelySeZasahem }) => (
+          <div key={s.id}>
+            <div className="cw-radek">
+              <button className="cw-radek-otevrit" onClick={() => onOtevritStranu(s.id)}>
+                <strong>Strana {s.cislo}</strong>
+                <span>
+                  {emojiStavu(s.stav)} {oznaceniStavu(s.stav)} · {s.panely.length} {plural(s.panely.length, 'panel', 'panely', 'panelů')}
+                </span>
+              </button>
+            </div>
+            {panelySeZasahem.map(({ panel, poradi }) => (
+              <div className="cw-radek cw-radek--panel" key={panel.id}>
+                <button className="cw-radek-otevrit" onClick={() => onOtevritStranu(s.id)}>
+                  <span>Panel {poradi}</span>
+                  <span className="cw-osnova-uryvek">„{uryvekPanelu(panel)}“</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}

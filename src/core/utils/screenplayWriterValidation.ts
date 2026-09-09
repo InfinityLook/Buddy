@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 import { TYPY_MIST } from '@/miniapps/screenplay-writer/types'
+import { jePlatnyStav } from '@/flagships/writer-room/writerRoomStav'
 
 // ==========================================
 // Ověření dat appky Scénář (Writer's Room). Stejná "poškozená položka
@@ -38,7 +39,21 @@ const sanitizujScenu = (data: unknown) => {
 
   const prvky = Array.isArray(d.prvky) ? d.prvky.map(sanitizujPrvek).filter((p): p is NonNullable<typeof p> => p !== null) : []
 
-  return { id: d.id, typMista: d.typMista as (typeof TYPY_MIST)[number], misto: d.misto, cas: d.cas, prvky, createdAt: d.createdAt }
+  // stav/poznamka jsou novější pole — starší uložená scéna je nemá
+  // vůbec, stejný fallback jako u Kapitoly v bookWriterValidation.ts.
+  const stav = jePlatnyStav(d.stav) ? d.stav : 'napad'
+  const poznamka = typeof d.poznamka === 'string' ? d.poznamka : ''
+
+  return {
+    id: d.id,
+    typMista: d.typMista as (typeof TYPY_MIST)[number],
+    misto: d.misto,
+    cas: d.cas,
+    prvky,
+    createdAt: d.createdAt,
+    stav,
+    poznamka,
+  }
 }
 
 const sanitizujScenar = (data: unknown) => {

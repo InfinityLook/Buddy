@@ -360,3 +360,51 @@
   font-size: 0.72rem;
   color: var(--text-secondary);
 }
+
+.bw-akce-radek {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Fokus skryje jen mezistránkovou navigaci (přepínání kapitol) a
+   souhrnný postup celé knihy — hlavička a samotný textový editor
+   zůstávají, ať se dá z fokusu jednoduše i vystoupit. */
+.bw-app--fokus .bw-chip-row,
+.bw-app--fokus .bw-cil-lista,
+.bw-app--fokus .bw-cil-radek {
+  display: none;
+}
+
+.bw-stav-badge {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bw-stav-badge--rozepsano {
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #93c5fd;
+}
+
+.bw-stav-badge--hotovo {
+  border-color: rgba(52, 211, 153, 0.5);
+  color: #6ee7b7;
+}
+
+.bw-poznamka {
+  width: 100%;
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.bw-osnova-uryvek {
+  font-style: italic;
+  opacity: 0.85;
+}

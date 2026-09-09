@@ -4,6 +4,7 @@ import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { validateBookWriterData } from '@/core/utils/bookWriterValidation'
 import { Kniha } from './types'
+import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 
 // Stejně nízké XP jako u ostatních tvůrčích miniaplikací (Music Studio,
 // Kalendář) — odměna za jednu kapitolu, ne za celou knihu, ať se to dá
@@ -19,7 +20,11 @@ interface BookWriterState {
   deleteKniha: (id: string) => void
   setCilSlov: (knihaId: string, cil: number | null) => void
   addKapitola: (knihaId: string, nazev: string) => void
-  updateKapitola: (knihaId: string, kapitolaId: string, data: { nazev?: string; text?: string }) => void
+  updateKapitola: (
+    knihaId: string,
+    kapitolaId: string,
+    data: { nazev?: string; text?: string; stav?: StavPolozky; poznamka?: string }
+  ) => void
   deleteKapitola: (knihaId: string, kapitolaId: string) => void
   presunKapitolu: (knihaId: string, kapitolaId: string, smer: 'nahoru' | 'dolu') => void
 }
@@ -63,7 +68,14 @@ const useBookWriterStore = create<BookWriterState>()(
         })),
 
       addKapitola: (knihaId, nazev) => {
-        const nova = { id: noveId(), nazev: nazev.trim() || 'Nová kapitola', text: '', createdAt: new Date().toISOString() }
+        const nova = {
+          id: noveId(),
+          nazev: nazev.trim() || 'Nová kapitola',
+          text: '',
+          createdAt: new Date().toISOString(),
+          stav: 'napad' as StavPolozky,
+          poznamka: '',
+        }
         set((state) => ({
           knihy: state.knihy.map((k) =>
             k.id === knihaId ? { ...k, kapitoly: [...k.kapitoly, nova], upravenoAt: new Date().toISOString() } : k

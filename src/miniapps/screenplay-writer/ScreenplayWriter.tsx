@@ -1,9 +1,21 @@
 import React, { useState } from 'react'
 import { useScreenplayWriter } from './useScreenplayWriter'
-import { nadpisSceny, Scenar, serazenoPodleUpravy, sestavTextScenare, TYPY_MIST, TypMista } from './types'
+import {
+  nadpisSceny,
+  odhadStopazeMinut,
+  pocetSlov,
+  Scenar,
+  serazenoPodleUpravy,
+  sestavTextScenare,
+  TYPY_MIST,
+  TypMista,
+  ziskejPostavy,
+} from './types'
 import { plural } from '@/core/utils/pluralCZ'
 import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
+import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
 import './ScreenplayWriter.css'
 
 export const ScreenplayWriter: React.FC = () => {
@@ -102,7 +114,11 @@ interface ScenarEditorProps {
   updateScenar: (id: string, nazev: string) => void
   setCilScen: (scenarId: string, cil: number | null) => void
   addScena: (scenarId: string, data: { typMista: TypMista; misto: string; cas: string }) => void
-  updateScena: (scenarId: string, scenaId: string, data: { typMista?: TypMista; misto?: string; cas?: string }) => void
+  updateScena: (
+    scenarId: string,
+    scenaId: string,
+    data: { typMista?: TypMista; misto?: string; cas?: string; stav?: StavPolozky; poznamka?: string }
+  ) => void
   deleteScena: (scenarId: string, scenaId: string) => void
   addAkce: (scenarId: string, scenaId: string, text: string) => void
   addDialog: (scenarId: string, scenaId: string, data: { postava: string; text: string; poznamka?: string }) => void
@@ -128,6 +144,8 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
   const [aktivniScenaId, setAktivniScenaId] = useState<string | null>(scenar.sceny[0]?.id ?? null)
   const [formOtevren, setFormOtevren] = useState<'scena' | 'akce' | 'dialog' | null>(null)
   const [nahledOtevren, setNahledOtevren] = useState(false)
+  const [osnovaOtevrena, setOsnovaOtevrena] = useState(false)
+  const [fokusRezim, setFokusRezim] = useState(false)
 
   const [typMista, setTypMista] = useState<TypMista>('INT')
   const [misto, setMisto] = useState('')
@@ -236,8 +254,21 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
     return <ScenarNahled scenar={scenar} onZpet={() => setNahledOtevren(false)} />
   }
 
+  if (osnovaOtevrena) {
+    return (
+      <ScenarOsnova
+        scenar={scenar}
+        onZpet={() => setOsnovaOtevrena(false)}
+        onOtevritScenu={(id) => {
+          setAktivniScenaId(id)
+          setOsnovaOtevrena(false)
+        }}
+      />
+    )
+  }
+
   return (
-    <div className="sw-app">
+    <div className={`sw-app${fokusRezim ? ' sw-app--fokus' : ''}`}>
       <div className="sw-header">
         <button className="sw-zpet-btn" onClick={onZpet} aria-label="Zpět na seznam scénářů">
           ←
@@ -254,9 +285,19 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
             {scenar.sceny.length} {plural(scenar.sceny.length, 'scéna', 'scény', 'scén')}
             {scenar.cilScen ? ` / ${scenar.cilScen}` : ''}
           </span>
+          <span>🎬 odhad běhu: ~{odhadStopazeMinut(scenar)} min (hrubý odhad)</span>
         </div>
         <button className="sw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celého scénáře">
           👁 Náhled
+        </button>
+      </div>
+
+      <div className="sw-akce-radek">
+        <button className="sw-nahled-btn" onClick={() => setOsnovaOtevrena(true)}>
+          🔍 Osnova
+        </button>
+        <button className="sw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
+          {fokusRezim ? '🎯 Zpět z fokusu' : '🎯 Fokus'}
         </button>
       </div>
 
@@ -313,6 +354,13 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
             <div className="sw-sc-heading-radek">
               <div className="sw-sc-heading">{nadpisSceny(aktivniScena, indexAktivni + 1)}</div>
               <div className="sw-posun-btns">
+                <button
+                  className={`sw-stav-badge sw-stav-badge--${aktivniScena.stav}`}
+                  onClick={() => updateScena(scenar.id, aktivniScena.id, { stav: dalsiStav(aktivniScena.stav) })}
+                  aria-label="Přepnout stav scény"
+                >
+                  {emojiStavu(aktivniScena.stav)} {oznaceniStavu(aktivniScena.stav)}
+                </button>
                 <button className="sw-posun-btn" onClick={otevritUpravuSceny} aria-label="Upravit scénu">
                   ✏️
                 </button>
@@ -386,6 +434,15 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
             )}
           </div>
 
+          <input
+            type="text"
+            className="sw-poznamka"
+            placeholder="Poznámka jen pro tebe (nezobrazí se v Náhledu ani exportu)…"
+            value={aktivniScena.poznamka}
+            onChange={(e) => updateScena(scenar.id, aktivniScena.id, { poznamka: e.target.value })}
+            maxLength={200}
+          />
+
           {formOtevren === 'akce' && (
             <div className="sw-form">
               <textarea placeholder="Popiš, co se v téhle chvíli děje…" value={akceText} onChange={(e) => setAkceText(e.target.value)} rows={2} />
@@ -402,7 +459,18 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
 
           {formOtevren === 'dialog' && (
             <div className="sw-form">
-              <input type="text" placeholder="Jméno postavy" value={postava} onChange={(e) => setPostava(e.target.value)} />
+              <input
+                type="text"
+                list="sw-postavy-list"
+                placeholder="Jméno postavy"
+                value={postava}
+                onChange={(e) => setPostava(e.target.value)}
+              />
+              <datalist id="sw-postavy-list">
+                {ziskejPostavy(scenar).map((jmeno) => (
+                  <option key={jmeno} value={jmeno} />
+                ))}
+              </datalist>
               <input type="text" placeholder="Herecká poznámka (nepovinné)" value={poznamka} onChange={(e) => setPoznamka(e.target.value)} />
               <textarea placeholder="Text repliky…" value={dialogText} onChange={(e) => setDialogText(e.target.value)} rows={2} />
               <div className="sw-form-akce">
@@ -494,3 +562,84 @@ const ScenarNahled: React.FC<{ scenar: Scenar; onZpet: () => void }> = ({ scenar
     )}
   </div>
 )
+
+// Osnova + fulltextové vyhledávání v jednom, stejný důvod jako u Knihy
+// vedle — hledání beze seznamu, který filtruje, nedává smysl. Navíc
+// obsazení (jména postav použitá v dialogu) nahoře, protože Osnova je
+// jediné místo, kde appka o celém scénáři přemýšlí najednou, ne po
+// jedné scéně.
+const ScenarOsnova: React.FC<{ scenar: Scenar; onZpet: () => void; onOtevritScenu: (id: string) => void }> = ({
+  scenar,
+  onZpet,
+  onOtevritScenu,
+}) => {
+  const [dotaz, setDotaz] = useState('')
+  const postavy = ziskejPostavy(scenar)
+
+  const najdiProScenu = (s: Scenar['sceny'][number]): boolean =>
+    obsahujeDotaz(s.misto, dotaz) ||
+    obsahujeDotaz(s.cas, dotaz) ||
+    s.prvky.some((p) => obsahujeDotaz(p.text, dotaz) || (p.typ === 'dialog' && obsahujeDotaz(p.postava, dotaz)))
+
+  const polozky = scenar.sceny.map((s, i) => ({ scena: s, poradi: i + 1 })).filter(({ scena }) => najdiProScenu(scena))
+
+  return (
+    <div className="sw-app">
+      <div className="sw-header">
+        <button className="sw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+          ←
+        </button>
+        <div className="sw-header-text">
+          <strong>{scenar.nazev}</strong>
+          <span>Osnova a vyhledávání</span>
+        </div>
+      </div>
+
+      <input
+        type="text"
+        placeholder="Hledat v místech, časech i replikách…"
+        value={dotaz}
+        onChange={(e) => setDotaz(e.target.value)}
+        autoFocus
+      />
+
+      {postavy.length > 0 && (
+        <div className="sw-postavy-radek">
+          <span className="sw-panel-label">👥 Obsazení</span>
+          <div className="sw-chip-row">
+            {postavy.map((jmeno) => (
+              <span className="sw-chip sw-chip--staticky" key={jmeno}>
+                {jmeno}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="sw-seznam">
+        {polozky.length === 0 && <p className="sw-prazdno">{dotaz ? 'Nic se nenašlo.' : 'Scénář zatím nemá žádnou scénu.'}</p>}
+        {polozky.map(({ scena: s, poradi }) => {
+          const zasahVMiste = obsahujeDotaz(s.misto, dotaz) || obsahujeDotaz(s.cas, dotaz)
+          const prvekSeZasahem = zasahVMiste
+            ? null
+            : s.prvky.find((p) => obsahujeDotaz(p.text, dotaz) || (p.typ === 'dialog' && obsahujeDotaz(p.postava, dotaz)))
+          const uryvek = prvekSeZasahem ? najdiUryvek(prvekSeZasahem.text, dotaz) ?? prvekSeZasahem.text.slice(0, 60) : null
+
+          return (
+            <div className="sw-radek" key={s.id}>
+              <button className="sw-radek-otevrit" onClick={() => onOtevritScenu(s.id)}>
+                <strong>{nadpisSceny(s, poradi)}</strong>
+                <span>
+                  {emojiStavu(s.stav)} {oznaceniStavu(s.stav)} · {s.prvky.length}{' '}
+                  {plural(s.prvky.length, 'prvek', 'prvky', 'prvků')} ·{' '}
+                  {pocetSlov(s.prvky.map((p) => p.text).join(' '))} {plural(pocetSlov(s.prvky.map((p) => p.text).join(' ')), 'slovo', 'slova', 'slov')}
+                </span>
+                {uryvek && <span className="sw-osnova-uryvek">„{uryvek}“</span>}
+              </button>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}

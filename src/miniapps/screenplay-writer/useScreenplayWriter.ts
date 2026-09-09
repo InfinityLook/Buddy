@@ -4,6 +4,7 @@ import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { validateScreenplayWriterData } from '@/core/utils/screenplayWriterValidation'
 import { AkcePrvek, DialogPrvek, Scena, ScenaPrvek, Scenar, TypMista } from './types'
+import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 
 const SCREENPLAY_XP = 6
 
@@ -16,7 +17,11 @@ interface ScreenplayWriterState {
   deleteScenar: (id: string) => void
   setCilScen: (scenarId: string, cil: number | null) => void
   addScena: (scenarId: string, data: { typMista: TypMista; misto: string; cas: string }) => void
-  updateScena: (scenarId: string, scenaId: string, data: { typMista?: TypMista; misto?: string; cas?: string }) => void
+  updateScena: (
+    scenarId: string,
+    scenaId: string,
+    data: { typMista?: TypMista; misto?: string; cas?: string; stav?: StavPolozky; poznamka?: string }
+  ) => void
   deleteScena: (scenarId: string, scenaId: string) => void
   addAkce: (scenarId: string, scenaId: string, text: string) => void
   addDialog: (scenarId: string, scenaId: string, data: { postava: string; text: string; poznamka?: string }) => void
@@ -67,7 +72,14 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
       // scéna je tu ta smysluplná jednotka tvorby, stejně jako kapitola
       // u Knihy.
       addScena: (scenarId, data) => {
-        const nova = { id: noveId(), ...data, prvky: [], createdAt: new Date().toISOString() }
+        const nova = {
+          id: noveId(),
+          ...data,
+          prvky: [],
+          createdAt: new Date().toISOString(),
+          stav: 'napad' as StavPolozky,
+          poznamka: '',
+        }
         set((state) => ({
           scenare: state.scenare.map((s) =>
             s.id === scenarId ? { ...s, sceny: [...s.sceny, nova], upravenoAt: new Date().toISOString() } : s

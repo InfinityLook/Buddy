@@ -452,3 +452,71 @@
 .sw-smazat-scenu:hover {
   color: var(--accent-red);
 }
+
+.sw-akce-radek {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Fokus skryje jen přepínání scén a souhrnný postup celého scénáře —
+   samotná "papírová" plocha se scénou a nástrojová lišta zůstávají. */
+.sw-app--fokus .sw-chip-row,
+.sw-app--fokus .sw-cil-lista,
+.sw-app--fokus .sw-cil-radek {
+  display: none;
+}
+
+/* Sedí na světlé "papírové" ploše .sw-script-page vedle .sw-posun-btn
+   — proto vlastní světlá paleta, ne tmavá .bw-stav-badge ze
+   sesterské appky Knihy. */
+.sw-stav-badge {
+  flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  color: #17181c;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.66rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sw-stav-badge--rozepsano {
+  border-color: rgba(37, 99, 235, 0.5);
+  color: #1d4ed8;
+}
+
+.sw-stav-badge--hotovo {
+  border-color: rgba(5, 150, 105, 0.5);
+  color: #047857;
+}
+
+.sw-poznamka {
+  width: 100%;
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.sw-osnova-uryvek {
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.sw-postavy-radek {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sw-panel-label {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 700;
+}
+
+.sw-chip--staticky {
+  cursor: default;
+}

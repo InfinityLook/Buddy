@@ -14,7 +14,7 @@ const kniha = (kapitolyDatumy: string[]): Kniha => ({
   cilSlov: null,
   createdAt: VCERA,
   upravenoAt: VCERA,
-  kapitoly: kapitolyDatumy.map((d, i) => ({ id: `kap${i}`, nazev: `Kap ${i}`, text: '', createdAt: d })),
+  kapitoly: kapitolyDatumy.map((d, i) => ({ id: `kap${i}`, nazev: `Kap ${i}`, text: '', createdAt: d, stav: 'napad', poznamka: '' })),
 })
 
 const scenar = (scenyDatumy: string[]): Scenar => ({
@@ -23,7 +23,16 @@ const scenar = (scenyDatumy: string[]): Scenar => ({
   createdAt: VCERA,
   upravenoAt: VCERA,
   cilScen: null,
-  sceny: scenyDatumy.map((d, i) => ({ id: `sc${i}`, typMista: 'INT', misto: 'M', cas: 'DEN', prvky: [], createdAt: d })),
+  sceny: scenyDatumy.map((d, i) => ({
+    id: `sc${i}`,
+    typMista: 'INT',
+    misto: 'M',
+    cas: 'DEN',
+    prvky: [],
+    createdAt: d,
+    stav: 'napad',
+    poznamka: '',
+  })),
 })
 
 const komiks = (panelyDatumy: string[]): Komiks => ({
@@ -37,6 +46,8 @@ const komiks = (panelyDatumy: string[]): Komiks => ({
       id: 'str1',
       cislo: 1,
       panely: panelyDatumy.map((d, i) => ({ id: `p${i}`, vizual: 'v', radky: [], createdAt: d })),
+      stav: 'napad',
+      poznamka: '',
     },
   ],
 })

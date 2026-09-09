@@ -456,3 +456,65 @@
   justify-content: flex-end;
   gap: 0.4rem;
 }
+
+.cw-akce-radek {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Fokus skryje jen přepínání stran a souhrnný postup celého komiksu —
+   panely aktuální strany zůstávají plně editovatelné. */
+.cw-app--fokus .cw-chip-row,
+.cw-app--fokus .cw-cil-lista,
+.cw-app--fokus .cw-cil-radek {
+  display: none;
+}
+
+.cw-stav-badge {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.66rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cw-stav-badge--rozepsano {
+  border-color: rgba(96, 165, 250, 0.5);
+  color: #93c5fd;
+}
+
+.cw-stav-badge--hotovo {
+  border-color: rgba(52, 211, 153, 0.5);
+  color: #6ee7b7;
+}
+
+.cw-poznamka {
+  width: 100%;
+  font-size: 0.78rem;
+  font-style: italic;
+}
+
+.cw-osnova-uryvek {
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.cw-postavy-radek {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.cw-chip--staticky {
+  cursor: default;
+}
+
+.cw-radek--panel {
+  margin-left: 1.2rem;
+  padding: 0.4rem 0.75rem;
+}

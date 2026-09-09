@@ -1,4 +1,5 @@
 import * as v from 'valibot'
+import { jePlatnyStav } from '@/flagships/writer-room/writerRoomStav'
 
 // ==========================================
 // Ověření dat appky Kniha (Writer's Room) načtených z úložiště. Stejná
@@ -12,7 +13,12 @@ const sanitizujKapitolu = (data: unknown) => {
   if (typeof d.id !== 'string' || typeof d.nazev !== 'string' || typeof d.text !== 'string' || typeof d.createdAt !== 'string') {
     return null
   }
-  return { id: d.id, nazev: d.nazev, text: d.text, createdAt: d.createdAt }
+  // stav/poznamka jsou novější pole — starší uložená kapitola je nemá
+  // vůbec, fallback na "Nápad"/prázdnou poznámku, stejně jako u
+  // upravenoAt/cilSlov jinde v tomhle souboru.
+  const stav = jePlatnyStav(d.stav) ? d.stav : 'napad'
+  const poznamka = typeof d.poznamka === 'string' ? d.poznamka : ''
+  return { id: d.id, nazev: d.nazev, text: d.text, createdAt: d.createdAt, stav, poznamka }
 }
 
 const sanitizujKnihu = (data: unknown) => {

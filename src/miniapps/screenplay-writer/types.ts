@@ -4,6 +4,8 @@
 // a sled prvků (akce, nebo postava+dialog).
 // ==========================================
 
+import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+
 export type TypMista = 'INT' | 'EXT' | 'INT/EXT'
 export const TYPY_MIST: TypMista[] = ['INT', 'EXT', 'INT/EXT']
 
@@ -31,6 +33,12 @@ export interface Scena {
   cas: string
   prvky: ScenaPrvek[]
   createdAt: string
+  // Stejný ruční štítek postupu jako Kapitola.stav v Knize — cyklovaný
+  // jedním klepnutím, nezávislý na tom, jestli scéna má text.
+  stav: StavPolozky
+  // Stejná role jako Kapitola.poznamka — autorova soukromá poznámka,
+  // do exportu/Náhledu se nepromítá.
+  poznamka: string
 }
 
 export interface Scenar {
@@ -55,6 +63,42 @@ export const nadpisSceny = (s: Scena, poradi: number): string =>
 // Stejná "podle poslední úpravy, ne podle založení" logika jako u Knihy.
 export const serazenoPodleUpravy = <T extends { upravenoAt: string }>(polozky: T[]): T[] =>
   [...polozky].sort((a, b) => b.upravenoAt.localeCompare(a.upravenoAt))
+
+// Stejný prostý rozdělovač podle bílých znaků jako Kniha.pocetSlov —
+// duplikovaný záměrně, ne importovaný z book-writer, ať appky
+// zůstanou vzájemně nezávislé (stejná zásada jako u BARVY_UZLU jinde
+// v appce).
+export const pocetSlov = (text: string): number => {
+  const trimmed = text.trim()
+  return trimmed === '' ? 0 : trimmed.split(/\s+/).length
+}
+
+// Jména postav skutečně použitá v dialogu napříč celým scénářem, bez
+// duplicit a abecedně — appka je používá jako nabídku už-použitých
+// jmen při psaní repliky, ať nevznikne "Petr" vs. "petr".
+export const ziskejPostavy = (scenar: Scenar): string[] => {
+  const jmena = new Set<string>()
+  scenar.sceny.forEach((s) =>
+    s.prvky.forEach((p) => {
+      if (p.typ === 'dialog' && p.postava.trim()) jmena.add(p.postava.trim())
+    })
+  )
+  return [...jmena].sort((a, b) => a.localeCompare(b, 'cs'))
+}
+
+// Hrubý filmařský odhad stopáže — běžná scénáristická stránka se
+// počítá jako cca 200 slov a cca jedna minuta promítání. Appka žádné
+// skutečné stránkování nedělá, takže jde jen o orientační číslo pro
+// autora, ne o přesný přepočet — proto zaokrouhlené na celé minuty.
+const SLOV_NA_STRANU_SCENARE = 200
+
+export const odhadStopazeMinut = (scenar: Scenar): number => {
+  const slovCelkem = scenar.sceny.reduce(
+    (soucet, s) => soucet + s.prvky.reduce((mezisoucet, p) => mezisoucet + pocetSlov(p.text), 0),
+    0
+  )
+  return Math.round(slovCelkem / SLOV_NA_STRANU_SCENARE)
+}
 
 // Poskládá celý scénář do jednoho čitelného scénáristického textu pro
 // export — stejný formát, jaký appka sama vykresluje v editoru
