@@ -51,8 +51,11 @@ const sanitizujScenar = (data: unknown) => {
   // Stejný fallback jako u Knihy — starší uložený scénář upravenoAt
   // vůbec nemá.
   const upravenoAt = typeof d.upravenoAt === 'string' ? d.upravenoAt : d.createdAt
+  // cilScen je novější pole — starší scénář ho nemá vůbec, fallback na
+  // "žádný cíl", stejná výchozí hodnota, jakou by dostal nově založený.
+  const cilScen = typeof d.cilScen === 'number' && Number.isFinite(d.cilScen) ? d.cilScen : null
 
-  return { id: d.id, nazev: d.nazev, sceny, createdAt: d.createdAt, upravenoAt }
+  return { id: d.id, nazev: d.nazev, sceny, createdAt: d.createdAt, upravenoAt, cilScen }
 }
 
 const ScreenplayWriterSchema = v.object({

@@ -3,10 +3,12 @@ import { useBookWriter } from './useBookWriter'
 import { Kniha, celkovyPocetSlov, pocetSlov, serazenoPodleUpravy, sestavTextKnihy } from './types'
 import { plural } from '@/core/utils/pluralCZ'
 import { stahnoutTextovySoubor } from '@/core/utils/download'
+import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
 import './BookWriter.css'
 
 export const BookWriter: React.FC = () => {
-  const { knihy, addKniha, deleteKniha, setCilSlov, addKapitola, updateKapitola, deleteKapitola, presunKapitolu } = useBookWriter()
+  const { knihy, addKniha, updateKniha, deleteKniha, setCilSlov, addKapitola, updateKapitola, deleteKapitola, presunKapitolu } =
+    useBookWriter()
   const [aktivniKnihaId, setAktivniKnihaId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
 
@@ -54,6 +56,7 @@ export const BookWriter: React.FC = () => {
                   {k.kapitoly.length} {plural(k.kapitoly.length, 'kapitola', 'kapitoly', 'kapitol')} ·{' '}
                   {celkovyPocetSlov(k)} {plural(celkovyPocetSlov(k), 'slovo', 'slova', 'slov')}
                 </span>
+                <span className="bw-radek-cas">{formatujNaposledyUpraveno(k.upravenoAt)}</span>
               </button>
               <button className="bw-icon-btn danger" onClick={() => smazatKnihu(k)} aria-label={`Smazat ${k.nazev}`}>
                 ✕
@@ -69,6 +72,7 @@ export const BookWriter: React.FC = () => {
     <KnihaEditor
       kniha={aktivniKniha}
       onZpet={() => setAktivniKnihaId(null)}
+      updateKniha={updateKniha}
       addKapitola={addKapitola}
       updateKapitola={updateKapitola}
       deleteKapitola={deleteKapitola}
@@ -81,6 +85,7 @@ export const BookWriter: React.FC = () => {
 interface KnihaEditorProps {
   kniha: Kniha
   onZpet: () => void
+  updateKniha: (id: string, nazev: string) => void
   addKapitola: (knihaId: string, nazev: string) => void
   updateKapitola: (knihaId: string, kapitolaId: string, data: { nazev?: string; text?: string }) => void
   deleteKapitola: (knihaId: string, kapitolaId: string) => void
@@ -91,6 +96,7 @@ interface KnihaEditorProps {
 const KnihaEditor: React.FC<KnihaEditorProps> = ({
   kniha,
   onZpet,
+  updateKniha,
   addKapitola,
   updateKapitola,
   deleteKapitola,
@@ -129,7 +135,13 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
           ←
         </button>
         <div className="bw-header-text">
-          <strong>{kniha.nazev}</strong>
+          <input
+            className="bw-header-nazev"
+            value={kniha.nazev}
+            onChange={(e) => updateKniha(kniha.id, e.target.value)}
+            maxLength={60}
+            aria-label="Název knihy"
+          />
           <span>
             {celkem} {plural(celkem, 'slovo', 'slova', 'slov')}
             {kniha.cilSlov ? ` / ${kniha.cilSlov}` : ''}

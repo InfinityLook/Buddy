@@ -12,12 +12,22 @@ const noveId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 interface ComicWriterState {
   komiksy: Komiks[]
   addKomiks: (nazev: string) => string
+  updateKomiks: (id: string, nazev: string) => void
   deleteKomiks: (id: string) => void
+  setCilStran: (komiksId: string, cil: number | null) => void
   addStrana: (komiksId: string) => void
   deleteStrana: (komiksId: string, stranaId: string) => void
   addPanel: (komiksId: string, stranaId: string, vizual: string) => void
+  updatePanel: (komiksId: string, stranaId: string, panelId: string, vizual: string) => void
   deletePanel: (komiksId: string, stranaId: string, panelId: string) => void
   addRadek: (komiksId: string, stranaId: string, panelId: string, data: { typ: TypRadku; postava?: string; text: string }) => void
+  updateRadek: (
+    komiksId: string,
+    stranaId: string,
+    panelId: string,
+    radekId: string,
+    data: { typ?: TypRadku; postava?: string; text?: string }
+  ) => void
   deleteRadek: (komiksId: string, stranaId: string, panelId: string, radekId: string) => void
   presunStranu: (komiksId: string, stranaId: string, smer: 'nahoru' | 'dolu') => void
 }
@@ -46,12 +56,24 @@ const useComicWriterStore = create<ComicWriterState>()(
       addKomiks: (nazev) => {
         const id = noveId()
         const ted = new Date().toISOString()
-        const novy: Komiks = { id, nazev: nazev.trim() || 'Nový komiks', strany: [], createdAt: ted, upravenoAt: ted }
+        const novy: Komiks = { id, nazev: nazev.trim() || 'Nový komiks', strany: [], createdAt: ted, upravenoAt: ted, cilStran: null }
         set((state) => ({ komiksy: [novy, ...state.komiksy] }))
         return id
       },
 
+      // Živě vázaný vstup jako updateKniha/updateScenar — bez trimu/
+      // fallbacku.
+      updateKomiks: (id, nazev) =>
+        set((state) => ({
+          komiksy: state.komiksy.map((k) => (k.id === id ? { ...k, nazev, upravenoAt: new Date().toISOString() } : k)),
+        })),
+
       deleteKomiks: (id) => set((state) => ({ komiksy: state.komiksy.filter((k) => k.id !== id) })),
+
+      setCilStran: (komiksId, cil) =>
+        set((state) => ({
+          komiksy: state.komiksy.map((k) => (k.id === komiksId ? { ...k, cilStran: cil, upravenoAt: new Date().toISOString() } : k)),
+        })),
 
       addStrana: (komiksId) =>
         set((state) => ({
@@ -93,6 +115,23 @@ const useComicWriterStore = create<ComicWriterState>()(
         useGamificationStore.getState().recordAction('comic', COMIC_XP)
       },
 
+      updatePanel: (komiksId, stranaId, panelId, vizual) =>
+        set((state) => ({
+          komiksy: state.komiksy.map((k) =>
+            k.id !== komiksId
+              ? k
+              : {
+                  ...k,
+                  strany: k.strany.map((s) =>
+                    s.id !== stranaId
+                      ? s
+                      : { ...s, panely: s.panely.map((p) => (p.id === panelId ? { ...p, vizual } : p)) }
+                  ),
+                  upravenoAt: new Date().toISOString(),
+                }
+          ),
+        })),
+
       deletePanel: (komiksId, stranaId, panelId) =>
         set((state) => ({
           komiksy: state.komiksy.map((k) =>
@@ -129,6 +168,30 @@ const useComicWriterStore = create<ComicWriterState>()(
           ),
         }))
       },
+
+      updateRadek: (komiksId, stranaId, panelId, radekId, data) =>
+        set((state) => ({
+          komiksy: state.komiksy.map((k) =>
+            k.id !== komiksId
+              ? k
+              : {
+                  ...k,
+                  strany: k.strany.map((s) =>
+                    s.id !== stranaId
+                      ? s
+                      : {
+                          ...s,
+                          panely: s.panely.map((p) =>
+                            p.id !== panelId
+                              ? p
+                              : { ...p, radky: p.radky.map((r) => (r.id === radekId ? { ...r, ...data } : r)) }
+                          ),
+                        }
+                  ),
+                  upravenoAt: new Date().toISOString(),
+                }
+          ),
+        })),
 
       deleteRadek: (komiksId, stranaId, panelId, radekId) =>
         set((state) => ({

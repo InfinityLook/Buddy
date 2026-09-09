@@ -48,7 +48,8 @@ const sanitizujKomiks = (data: unknown) => {
   // Stejný fallback jako u Knihy/Scénáře — starší uložený komiks
   // upravenoAt vůbec nemá.
   const upravenoAt = typeof d.upravenoAt === 'string' ? d.upravenoAt : d.createdAt
-  return { id: d.id, nazev: d.nazev, strany, createdAt: d.createdAt, upravenoAt }
+  const cilStran = typeof d.cilStran === 'number' && Number.isFinite(d.cilStran) ? d.cilStran : null
+  return { id: d.id, nazev: d.nazev, strany, createdAt: d.createdAt, upravenoAt, cilStran }
 }
 
 const ComicWriterSchema = v.object({

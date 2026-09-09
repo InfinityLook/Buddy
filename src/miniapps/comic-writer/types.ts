@@ -38,6 +38,9 @@ export interface Komiks {
   // Stejný důvod jako u Kniha.upravenoAt/Scenar.upravenoAt — kdy se na
   // komiksu naposledy doopravdy pracovalo, ne kdy byl založen.
   upravenoAt: string
+  // Stejná role jako Kniha.cilSlov/Scenar.cilScen, jen v počtu stran —
+  // null = žádný cíl nenastaven.
+  cilStran: number | null
 }
 
 export const celkovyPocetPanelu = (komiks: Komiks): number =>

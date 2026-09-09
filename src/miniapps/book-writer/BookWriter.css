@@ -44,9 +44,29 @@
   white-space: nowrap;
 }
 
+.bw-header-nazev {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1rem;
+  font-weight: 800;
+  font-family: inherit;
+  padding: 0;
+}
+
+.bw-header-nazev:focus {
+  outline: none;
+}
+
 .bw-header-text span {
   font-size: 0.72rem;
   color: var(--text-secondary);
+}
+
+.bw-radek-cas {
+  opacity: 0.7;
 }
 
 .bw-nova-radek {

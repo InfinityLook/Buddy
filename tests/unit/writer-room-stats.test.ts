@@ -22,6 +22,7 @@ const scenar = (scenyDatumy: string[]): Scenar => ({
   nazev: 'Scénář',
   createdAt: VCERA,
   upravenoAt: VCERA,
+  cilScen: null,
   sceny: scenyDatumy.map((d, i) => ({ id: `sc${i}`, typMista: 'INT', misto: 'M', cas: 'DEN', prvky: [], createdAt: d })),
 })
 
@@ -30,6 +31,7 @@ const komiks = (panelyDatumy: string[]): Komiks => ({
   nazev: 'Komiks',
   createdAt: VCERA,
   upravenoAt: VCERA,
+  cilStran: null,
   strany: [
     {
       id: 'str1',

@@ -24,12 +24,12 @@ describe('serazenoPodleUpravy', () => {
   })
 
   it('funguje stejně pro scénáře i komiksy', () => {
-    const s1: Scenar = { id: 'x', nazev: 'X', sceny: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01' }
-    const s2: Scenar = { id: 'y', nazev: 'Y', sceny: [], createdAt: '2026-01-01', upravenoAt: '2026-05-01' }
+    const s1: Scenar = { id: 'x', nazev: 'X', sceny: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01', cilScen: null }
+    const s2: Scenar = { id: 'y', nazev: 'Y', sceny: [], createdAt: '2026-01-01', upravenoAt: '2026-05-01', cilScen: null }
     expect(serazenoScenaru([s1, s2]).map((s) => s.id)).toEqual(['y', 'x'])
 
-    const k1: Komiks = { id: 'p', nazev: 'P', strany: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01' }
-    const k2: Komiks = { id: 'q', nazev: 'Q', strany: [], createdAt: '2026-01-01', upravenoAt: '2026-05-01' }
+    const k1: Komiks = { id: 'p', nazev: 'P', strany: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01', cilStran: null }
+    const k2: Komiks = { id: 'q', nazev: 'Q', strany: [], createdAt: '2026-01-01', upravenoAt: '2026-05-01', cilStran: null }
     expect(serazenoKomiksu([k1, k2]).map((k) => k.id)).toEqual(['q', 'p'])
   })
 
@@ -71,6 +71,7 @@ describe('sestavTextScenare', () => {
       nazev: 'Scénář',
       createdAt: '1',
       upravenoAt: '1',
+      cilScen: null,
       sceny: [
         {
           id: 'sc1',
@@ -98,6 +99,7 @@ describe('sestavTextScenare', () => {
       nazev: 'S',
       createdAt: '1',
       upravenoAt: '1',
+      cilScen: null,
       sceny: [{ id: 'sc1', typMista: 'EXT', misto: 'park', cas: 'noc', createdAt: '1', prvky: [] }],
     }
     expect(sestavTextScenare(scenar)).toContain('(scéna zatím nemá žádný text)')
@@ -111,6 +113,7 @@ describe('sestavTextKomiksu', () => {
       nazev: 'Komiks',
       createdAt: '1',
       upravenoAt: '1',
+      cilStran: null,
       strany: [
         {
           id: 'str1',

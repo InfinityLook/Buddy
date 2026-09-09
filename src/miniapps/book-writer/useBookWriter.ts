@@ -15,6 +15,7 @@ const noveId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 interface BookWriterState {
   knihy: Kniha[]
   addKniha: (nazev: string) => string
+  updateKniha: (id: string, nazev: string) => void
   deleteKniha: (id: string) => void
   setCilSlov: (knihaId: string, cil: number | null) => void
   addKapitola: (knihaId: string, nazev: string) => void
@@ -46,6 +47,13 @@ const useBookWriterStore = create<BookWriterState>()(
         set((state) => ({ knihy: [nova, ...state.knihy] }))
         return id
       },
+
+      // Živě vázaný vstup jako updateKapitola — bez trimu/fallbacku,
+      // stejná volnost jako přejmenování kapitoly už má.
+      updateKniha: (id, nazev) =>
+        set((state) => ({
+          knihy: state.knihy.map((k) => (k.id === id ? { ...k, nazev, upravenoAt: new Date().toISOString() } : k)),
+        })),
 
       deleteKniha: (id) => set((state) => ({ knihy: state.knihy.filter((k) => k.id !== id) })),
 

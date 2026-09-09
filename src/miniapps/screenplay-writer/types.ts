@@ -41,6 +41,9 @@ export interface Scenar {
   // Stejný důvod jako u Kniha.upravenoAt — kdy se na scénáři naposledy
   // doopravdy psalo, ne kdy byl založen.
   upravenoAt: string
+  // Stejná role jako Kniha.cilSlov, jen v počtu scén — null = žádný cíl
+  // nenastaven.
+  cilScen: number | null
 }
 
 // Skládá skutečný scénáristický nadpis scény z jejích tří polí — appka
