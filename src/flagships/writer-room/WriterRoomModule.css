@@ -77,6 +77,13 @@
   color: var(--text-secondary);
 }
 
+.wr-dnes {
+  margin: 0.7rem 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
 /* ------------------------------------------
    NÁHLEDY KNIHA / SCÉNÁŘ / KOMIKS
    ------------------------------------------ */

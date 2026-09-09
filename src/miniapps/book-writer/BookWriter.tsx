@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
 import { useBookWriter } from './useBookWriter'
-import { Kniha, celkovyPocetSlov, pocetSlov } from './types'
+import { Kniha, celkovyPocetSlov, pocetSlov, serazenoPodleUpravy, sestavTextKnihy } from './types'
 import { plural } from '@/core/utils/pluralCZ'
+import { stahnoutTextovySoubor } from '@/core/utils/download'
 import './BookWriter.css'
 
 export const BookWriter: React.FC = () => {
-  const { knihy, addKniha, deleteKniha, setCilSlov, addKapitola, updateKapitola, deleteKapitola } = useBookWriter()
+  const { knihy, addKniha, deleteKniha, setCilSlov, addKapitola, updateKapitola, deleteKapitola, presunKapitolu } = useBookWriter()
   const [aktivniKnihaId, setAktivniKnihaId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
 
@@ -16,6 +17,10 @@ export const BookWriter: React.FC = () => {
     const id = addKniha(novyNazev)
     setNovyNazev('')
     setAktivniKnihaId(id)
+  }
+
+  const smazatKnihu = (k: Kniha) => {
+    if (window.confirm(`Smazat knihu „${k.nazev}“?`)) deleteKniha(k.id)
   }
 
   if (!aktivniKniha) {
@@ -41,7 +46,7 @@ export const BookWriter: React.FC = () => {
 
         <div className="bw-seznam">
           {knihy.length === 0 && <p className="bw-prazdno">Zatím žádná kniha. Založ první výš.</p>}
-          {knihy.map((k) => (
+          {serazenoPodleUpravy(knihy).map((k) => (
             <div className="bw-radek" key={k.id}>
               <button className="bw-radek-otevrit" onClick={() => setAktivniKnihaId(k.id)}>
                 <strong>{k.nazev}</strong>
@@ -50,7 +55,7 @@ export const BookWriter: React.FC = () => {
                   {celkovyPocetSlov(k)} {plural(celkovyPocetSlov(k), 'slovo', 'slova', 'slov')}
                 </span>
               </button>
-              <button className="bw-icon-btn danger" onClick={() => deleteKniha(k.id)} aria-label={`Smazat ${k.nazev}`}>
+              <button className="bw-icon-btn danger" onClick={() => smazatKnihu(k)} aria-label={`Smazat ${k.nazev}`}>
                 ✕
               </button>
             </div>
@@ -60,7 +65,17 @@ export const BookWriter: React.FC = () => {
     )
   }
 
-  return <KnihaEditor kniha={aktivniKniha} onZpet={() => setAktivniKnihaId(null)} addKapitola={addKapitola} updateKapitola={updateKapitola} deleteKapitola={deleteKapitola} setCilSlov={setCilSlov} />
+  return (
+    <KnihaEditor
+      kniha={aktivniKniha}
+      onZpet={() => setAktivniKnihaId(null)}
+      addKapitola={addKapitola}
+      updateKapitola={updateKapitola}
+      deleteKapitola={deleteKapitola}
+      presunKapitolu={presunKapitolu}
+      setCilSlov={setCilSlov}
+    />
+  )
 }
 
 interface KnihaEditorProps {
@@ -69,19 +84,43 @@ interface KnihaEditorProps {
   addKapitola: (knihaId: string, nazev: string) => void
   updateKapitola: (knihaId: string, kapitolaId: string, data: { nazev?: string; text?: string }) => void
   deleteKapitola: (knihaId: string, kapitolaId: string) => void
+  presunKapitolu: (knihaId: string, kapitolaId: string, smer: 'nahoru' | 'dolu') => void
   setCilSlov: (knihaId: string, cil: number | null) => void
 }
 
-const KnihaEditor: React.FC<KnihaEditorProps> = ({ kniha, onZpet, addKapitola, updateKapitola, deleteKapitola, setCilSlov }) => {
+const KnihaEditor: React.FC<KnihaEditorProps> = ({
+  kniha,
+  onZpet,
+  addKapitola,
+  updateKapitola,
+  deleteKapitola,
+  presunKapitolu,
+  setCilSlov,
+}) => {
   const [aktivniKapitolaId, setAktivniKapitolaId] = useState<string | null>(kniha.kapitoly[0]?.id ?? null)
-  const aktivniKapitola = kniha.kapitoly.find((k) => k.id === aktivniKapitolaId) ?? null
+  const [nahledOtevren, setNahledOtevren] = useState(false)
+  const indexAktivni = kniha.kapitoly.findIndex((k) => k.id === aktivniKapitolaId)
+  const aktivniKapitola = indexAktivni >= 0 ? kniha.kapitoly[indexAktivni] : null
 
   const pridatKapitolu = () => {
     const poradi = kniha.kapitoly.length + 1
     addKapitola(kniha.id, `Kapitola ${poradi}`)
   }
 
+  const smazatAktivniKapitolu = () => {
+    if (!aktivniKapitola) return
+    if (window.confirm(`Smazat kapitolu „${aktivniKapitola.nazev}“?`)) {
+      deleteKapitola(kniha.id, aktivniKapitola.id)
+      setAktivniKapitolaId(null)
+    }
+  }
+
   const celkem = celkovyPocetSlov(kniha)
+  const cilProcenta = kniha.cilSlov && kniha.cilSlov > 0 ? Math.min(100, Math.round((celkem / kniha.cilSlov) * 100)) : null
+
+  if (nahledOtevren) {
+    return <KnihaNahled kniha={kniha} onZpet={() => setNahledOtevren(false)} />
+  }
 
   return (
     <div className="bw-app">
@@ -96,7 +135,16 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({ kniha, onZpet, addKapitola, u
             {kniha.cilSlov ? ` / ${kniha.cilSlov}` : ''}
           </span>
         </div>
+        <button className="bw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celé knihy">
+          👁 Náhled
+        </button>
       </div>
+
+      {cilProcenta !== null && (
+        <div className="bw-cil-lista" role="progressbar" aria-valuenow={cilProcenta} aria-valuemin={0} aria-valuemax={100}>
+          <div className="bw-cil-vypln" style={{ width: `${cilProcenta}%` }} />
+        </div>
+      )}
 
       <div className="bw-chip-row">
         {kniha.kapitoly.map((k, i) => (
@@ -117,12 +165,32 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({ kniha, onZpet, addKapitola, u
         <p className="bw-prazdno">Zatím žádná kapitola. Přidej první tlačítkem „+“.</p>
       ) : (
         <>
-          <input
-            className="bw-kapitola-nazev"
-            value={aktivniKapitola.nazev}
-            onChange={(e) => updateKapitola(kniha.id, aktivniKapitola.id, { nazev: e.target.value })}
-            maxLength={60}
-          />
+          <div className="bw-kapitola-hlavicka">
+            <input
+              className="bw-kapitola-nazev"
+              value={aktivniKapitola.nazev}
+              onChange={(e) => updateKapitola(kniha.id, aktivniKapitola.id, { nazev: e.target.value })}
+              maxLength={60}
+            />
+            <div className="bw-posun-btns">
+              <button
+                className="bw-posun-btn"
+                onClick={() => presunKapitolu(kniha.id, aktivniKapitola.id, 'nahoru')}
+                disabled={indexAktivni <= 0}
+                aria-label="Posunout kapitolu nahoru"
+              >
+                ↑
+              </button>
+              <button
+                className="bw-posun-btn"
+                onClick={() => presunKapitolu(kniha.id, aktivniKapitola.id, 'dolu')}
+                disabled={indexAktivni >= kniha.kapitoly.length - 1}
+                aria-label="Posunout kapitolu dolů"
+              >
+                ↓
+              </button>
+            </div>
+          </div>
 
           <textarea
             className="bw-editor"
@@ -136,7 +204,7 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({ kniha, onZpet, addKapitola, u
             <span>
               {pocetSlov(aktivniKapitola.text)} {plural(pocetSlov(aktivniKapitola.text), 'slovo', 'slova', 'slov')} v téhle kapitole
             </span>
-            <button className="bw-icon-btn danger" onClick={() => deleteKapitola(kniha.id, aktivniKapitola.id)}>
+            <button className="bw-icon-btn danger" onClick={smazatAktivniKapitolu}>
               Smazat kapitolu
             </button>
           </div>
@@ -157,3 +225,38 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({ kniha, onZpet, addKapitola, u
     </div>
   )
 }
+
+const KnihaNahled: React.FC<{ kniha: Kniha; onZpet: () => void }> = ({ kniha, onZpet }) => (
+  <div className="bw-app">
+    <div className="bw-header">
+      <button className="bw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+        ←
+      </button>
+      <div className="bw-header-text">
+        <strong>{kniha.nazev}</strong>
+        <span>Náhled celé knihy</span>
+      </div>
+      <button
+        className="bw-nahled-btn"
+        onClick={() => stahnoutTextovySoubor(`${kniha.nazev || 'kniha'}.txt`, sestavTextKnihy(kniha))}
+      >
+        ⬇ .txt
+      </button>
+    </div>
+
+    <div className="bw-nahled">
+      {kniha.kapitoly.length === 0 ? (
+        <p className="bw-prazdno">Kniha zatím nemá žádnou kapitolu.</p>
+      ) : (
+        kniha.kapitoly.map((k, i) => (
+          <div className="bw-nahled-kapitola" key={k.id}>
+            <h3>
+              {i + 1}. {k.nazev}
+            </h3>
+            <p className="bw-nahled-text">{k.text.trim() || '(prázdná kapitola)'}</p>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+)

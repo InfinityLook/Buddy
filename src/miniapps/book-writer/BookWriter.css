@@ -206,18 +206,99 @@
   cursor: pointer;
 }
 
+.bw-kapitola-hlavicka {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .bw-kapitola-nazev {
+  flex: 1;
+  min-width: 0;
   font-size: 1rem;
   font-weight: 800;
   background: transparent;
   border: none;
   color: var(--text-primary);
   padding: 0;
-  width: 100%;
 }
 
 .bw-kapitola-nazev:focus {
   outline: none;
+}
+
+.bw-posun-btns {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.bw-posun-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bw-posun-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.bw-nahled-btn {
+  flex-shrink: 0;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.bw-cil-lista {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.bw-cil-vypln {
+  height: 100%;
+  background: var(--accent-orange);
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.bw-nahled {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.bw-nahled-kapitola h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--accent-orange);
+}
+
+.bw-nahled-text {
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.75;
+  color: var(--text-primary);
+  white-space: pre-wrap;
 }
 
 .bw-editor {

@@ -2,13 +2,15 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useBookWriter } from '@/miniapps/book-writer/useBookWriter'
-import { celkovyPocetSlov } from '@/miniapps/book-writer/types'
+import { celkovyPocetSlov, serazenoPodleUpravy as serazenoPodleUpravyKnih } from '@/miniapps/book-writer/types'
 import { useScreenplayWriter } from '@/miniapps/screenplay-writer/useScreenplayWriter'
+import { serazenoPodleUpravy as serazenoPodleUpravyScenaru } from '@/miniapps/screenplay-writer/types'
 import { useComicWriter } from '@/miniapps/comic-writer/useComicWriter'
-import { celkovyPocetPanelu } from '@/miniapps/comic-writer/types'
+import { celkovyPocetPanelu, serazenoPodleUpravy as serazenoPodleUpravyKomiksu } from '@/miniapps/comic-writer/types'
 import { plural } from '@/core/utils/pluralCZ'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
+import { spocitejDnesniTvorbu } from './writerRoomStats'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './WriterRoomModule.css'
 
@@ -31,9 +33,23 @@ export const WriterRoomModule: React.FC = () => {
   const [notifOpen, setNotifOpen] = useState(false)
   const [appsOtevrene, setAppsOtevrene] = useState(false)
 
-  const posledniKniha = knihy[0] ?? null
-  const posledniScenar = scenare[0] ?? null
-  const posledniKomiks = komiksy[0] ?? null
+  // Podle poslední ÚPRAVY, ne podle založení — jinak by tenhle panel
+  // pořád ukazoval naposledy založenou knihu/scénář/komiks, i když se
+  // ve skutečnosti dopisuje jiný, starší.
+  const posledniKniha = serazenoPodleUpravyKnih(knihy)[0] ?? null
+  const posledniScenar = serazenoPodleUpravyScenaru(scenare)[0] ?? null
+  const posledniKomiks = serazenoPodleUpravyKomiksu(komiksy)[0] ?? null
+  const dnesniTvorba = spocitejDnesniTvorbu(knihy, scenare, komiksy)
+  const dnesniCasti: string[] = []
+  if (dnesniTvorba.kapitol > 0) {
+    dnesniCasti.push(`${dnesniTvorba.kapitol} ${plural(dnesniTvorba.kapitol, 'kapitola', 'kapitoly', 'kapitol')}`)
+  }
+  if (dnesniTvorba.scen > 0) {
+    dnesniCasti.push(`${dnesniTvorba.scen} ${plural(dnesniTvorba.scen, 'scéna', 'scény', 'scén')}`)
+  }
+  if (dnesniTvorba.panelu > 0) {
+    dnesniCasti.push(`${dnesniTvorba.panelu} ${plural(dnesniTvorba.panelu, 'panel', 'panely', 'panelů')}`)
+  }
 
   const otevritKnihu = () => {
     setActiveAppId('book-writer', '/spisovatel')
@@ -105,6 +121,9 @@ export const WriterRoomModule: React.FC = () => {
               <span className="wr-stat-popis">{plural(komiksy.length, 'komiks', 'komiksy', 'komiksů')}</span>
             </div>
           </div>
+          <p className="wr-dnes">
+            {dnesniCasti.length === 0 ? 'Dnes jsi ještě nic nenapsal(a).' : `✍️ Dnes: ${dnesniCasti.join(', ')}`}
+          </p>
         </div>
 
         <div className="wr-panel">

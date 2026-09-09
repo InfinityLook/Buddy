@@ -19,7 +19,24 @@ interface ComicWriterState {
   deletePanel: (komiksId: string, stranaId: string, panelId: string) => void
   addRadek: (komiksId: string, stranaId: string, panelId: string, data: { typ: TypRadku; postava?: string; text: string }) => void
   deleteRadek: (komiksId: string, stranaId: string, panelId: string, radekId: string) => void
+  presunStranu: (komiksId: string, stranaId: string, smer: 'nahoru' | 'dolu') => void
 }
+
+// Stejný sdílený "posuň o jedno místo, no-op na kraji" helper jako
+// useBookWriter.ts/useScreenplayWriter.ts.
+const posunPolozku = <T,>(pole: T[], index: number, smer: 'nahoru' | 'dolu'): T[] => {
+  const cil = smer === 'nahoru' ? index - 1 : index + 1
+  if (cil < 0 || cil >= pole.length) return pole
+  const nove = [...pole]
+  ;[nove[index], nove[cil]] = [nove[cil], nove[index]]
+  return nove
+}
+
+// Strana.cislo je pořadové číslo k zobrazení, ne trvalé id — po
+// smazání nebo přesunu strany se musí přečíslovat na 1..N znova,
+// jinak by po smazání strany 2 ze tří zůstaly viset strany 1 a 3 s
+// dírou místo strany 2.
+const prescislovatStrany = (strany: Komiks['strany']): Komiks['strany'] => strany.map((s, i) => ({ ...s, cislo: i + 1 }))
 
 const useComicWriterStore = create<ComicWriterState>()(
   persist(
@@ -28,7 +45,8 @@ const useComicWriterStore = create<ComicWriterState>()(
 
       addKomiks: (nazev) => {
         const id = noveId()
-        const novy: Komiks = { id, nazev: nazev.trim() || 'Nový komiks', strany: [], createdAt: new Date().toISOString() }
+        const ted = new Date().toISOString()
+        const novy: Komiks = { id, nazev: nazev.trim() || 'Nový komiks', strany: [], createdAt: ted, upravenoAt: ted }
         set((state) => ({ komiksy: [novy, ...state.komiksy] }))
         return id
       },
@@ -40,26 +58,36 @@ const useComicWriterStore = create<ComicWriterState>()(
           komiksy: state.komiksy.map((k) => {
             if (k.id !== komiksId) return k
             const cislo = k.strany.length + 1
-            return { ...k, strany: [...k.strany, { id: noveId(), cislo, panely: [] }] }
+            return { ...k, strany: [...k.strany, { id: noveId(), cislo, panely: [] }], upravenoAt: new Date().toISOString() }
           }),
         })),
 
       deleteStrana: (komiksId, stranaId) =>
         set((state) => ({
           komiksy: state.komiksy.map((k) =>
-            k.id !== komiksId ? k : { ...k, strany: k.strany.filter((s) => s.id !== stranaId) }
+            k.id !== komiksId
+              ? k
+              : {
+                  ...k,
+                  strany: prescislovatStrany(k.strany.filter((s) => s.id !== stranaId)),
+                  upravenoAt: new Date().toISOString(),
+                }
           ),
         })),
 
       // Odměna za hotový panel, ne za stranu — panel je tu ta nejmenší
       // smysluplná tvůrčí jednotka, stejně jako scéna u Scénáře.
       addPanel: (komiksId, stranaId, vizual) => {
-        const novy: Panel = { id: noveId(), vizual, radky: [] }
+        const novy: Panel = { id: noveId(), vizual, radky: [], createdAt: new Date().toISOString() }
         set((state) => ({
           komiksy: state.komiksy.map((k) =>
             k.id !== komiksId
               ? k
-              : { ...k, strany: k.strany.map((s) => (s.id === stranaId ? { ...s, panely: [...s.panely, novy] } : s)) }
+              : {
+                  ...k,
+                  strany: k.strany.map((s) => (s.id === stranaId ? { ...s, panely: [...s.panely, novy] } : s)),
+                  upravenoAt: new Date().toISOString(),
+                }
           ),
         }))
         useGamificationStore.getState().recordAction('comic', COMIC_XP)
@@ -75,6 +103,7 @@ const useComicWriterStore = create<ComicWriterState>()(
                   strany: k.strany.map((s) =>
                     s.id !== stranaId ? s : { ...s, panely: s.panely.filter((p) => p.id !== panelId) }
                   ),
+                  upravenoAt: new Date().toISOString(),
                 }
           ),
         })),
@@ -95,6 +124,7 @@ const useComicWriterStore = create<ComicWriterState>()(
                           panely: s.panely.map((p) => (p.id === panelId ? { ...p, radky: [...p.radky, radek] } : p)),
                         }
                   ),
+                  upravenoAt: new Date().toISOString(),
                 }
           ),
         }))
@@ -117,8 +147,19 @@ const useComicWriterStore = create<ComicWriterState>()(
                           ),
                         }
                   ),
+                  upravenoAt: new Date().toISOString(),
                 }
           ),
+        })),
+
+      presunStranu: (komiksId, stranaId, smer) =>
+        set((state) => ({
+          komiksy: state.komiksy.map((k) => {
+            if (k.id !== komiksId) return k
+            const index = k.strany.findIndex((s) => s.id === stranaId)
+            if (index < 0) return k
+            return { ...k, strany: prescislovatStrany(posunPolozku(k.strany, index, smer)), upravenoAt: new Date().toISOString() }
+          }),
         })),
     }),
     {

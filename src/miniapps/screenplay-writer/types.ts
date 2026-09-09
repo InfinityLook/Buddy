@@ -38,6 +38,9 @@ export interface Scenar {
   nazev: string
   sceny: Scena[]
   createdAt: string
+  // Stejný důvod jako u Kniha.upravenoAt — kdy se na scénáři naposledy
+  // doopravdy psalo, ne kdy byl založen.
+  upravenoAt: string
 }
 
 // Skládá skutečný scénáristický nadpis scény z jejích tří polí — appka
@@ -45,3 +48,25 @@ export interface Scenar {
 // samostatně beze změny formátu.
 export const nadpisSceny = (s: Scena, poradi: number): string =>
   `${poradi}. ${s.typMista}. ${s.misto.toUpperCase()} – ${s.cas.toUpperCase()}`
+
+// Stejná "podle poslední úpravy, ne podle založení" logika jako u Knihy.
+export const serazenoPodleUpravy = <T extends { upravenoAt: string }>(polozky: T[]): T[] =>
+  [...polozky].sort((a, b) => b.upravenoAt.localeCompare(a.upravenoAt))
+
+// Poskládá celý scénář do jednoho čitelného scénáristického textu pro
+// export — stejný formát, jaký appka sama vykresluje v editoru
+// (nadpis scény, akce prostým textem, dialog s postavou velkými
+// písmeny a nepovinnou herecká poznámkou v závorce).
+export const sestavTextScenare = (scenar: Scenar): string =>
+  [
+    scenar.nazev.toUpperCase(),
+    '',
+    ...scenar.sceny.map((s, i) => {
+      const radky = s.prvky.map((p) =>
+        p.typ === 'akce'
+          ? p.text
+          : `${p.postava.toUpperCase()}${p.poznamka ? ` (${p.poznamka})` : ''}\n${p.text}`
+      )
+      return [nadpisSceny(s, i + 1), '', ...(radky.length > 0 ? radky : ['(scéna zatím nemá žádný text)'])].join('\n\n')
+    }),
+  ].join('\n\n')

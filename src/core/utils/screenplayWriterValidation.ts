@@ -48,7 +48,11 @@ const sanitizujScenar = (data: unknown) => {
 
   const sceny = Array.isArray(d.sceny) ? d.sceny.map(sanitizujScenu).filter((s): s is NonNullable<typeof s> => s !== null) : []
 
-  return { id: d.id, nazev: d.nazev, sceny, createdAt: d.createdAt }
+  // Stejný fallback jako u Knihy — starší uložený scénář upravenoAt
+  // vůbec nemá.
+  const upravenoAt = typeof d.upravenoAt === 'string' ? d.upravenoAt : d.createdAt
+
+  return { id: d.id, nazev: d.nazev, sceny, createdAt: d.createdAt, upravenoAt }
 }
 
 const ScreenplayWriterSchema = v.object({

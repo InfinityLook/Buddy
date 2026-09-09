@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
 import { useScreenplayWriter } from './useScreenplayWriter'
-import { nadpisSceny, Scenar, TYPY_MIST, TypMista } from './types'
+import { nadpisSceny, Scenar, serazenoPodleUpravy, sestavTextScenare, TYPY_MIST, TypMista } from './types'
 import { plural } from '@/core/utils/pluralCZ'
+import { stahnoutTextovySoubor } from '@/core/utils/download'
 import './ScreenplayWriter.css'
 
 export const ScreenplayWriter: React.FC = () => {
-  const { scenare, addScenar, deleteScenar, addScena, deleteScena, addAkce, addDialog, deletePrvek } = useScreenplayWriter()
+  const { scenare, addScenar, deleteScenar, addScena, deleteScena, addAkce, addDialog, deletePrvek, presunScenu } =
+    useScreenplayWriter()
   const [aktivniId, setAktivniId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
 
@@ -16,6 +18,10 @@ export const ScreenplayWriter: React.FC = () => {
     const id = addScenar(novyNazev)
     setNovyNazev('')
     setAktivniId(id)
+  }
+
+  const smazatScenar = (s: Scenar) => {
+    if (window.confirm(`Smazat scénář „${s.nazev}“?`)) deleteScenar(s.id)
   }
 
   if (!aktivni) {
@@ -41,13 +47,13 @@ export const ScreenplayWriter: React.FC = () => {
 
         <div className="sw-seznam">
           {scenare.length === 0 && <p className="sw-prazdno">Zatím žádný scénář. Založ první výš.</p>}
-          {scenare.map((s) => (
+          {serazenoPodleUpravy(scenare).map((s) => (
             <div className="sw-radek" key={s.id}>
               <button className="sw-radek-otevrit" onClick={() => setAktivniId(s.id)}>
                 <strong>{s.nazev}</strong>
                 <span>{s.sceny.length} {plural(s.sceny.length, 'scéna napsána', 'scény napsány', 'scén napsáno')}</span>
               </button>
-              <button className="sw-icon-btn danger" onClick={() => deleteScenar(s.id)} aria-label={`Smazat ${s.nazev}`}>
+              <button className="sw-icon-btn danger" onClick={() => smazatScenar(s)} aria-label={`Smazat ${s.nazev}`}>
                 ✕
               </button>
             </div>
@@ -66,6 +72,7 @@ export const ScreenplayWriter: React.FC = () => {
       addAkce={addAkce}
       addDialog={addDialog}
       deletePrvek={deletePrvek}
+      presunScenu={presunScenu}
     />
   )
 }
@@ -78,11 +85,22 @@ interface ScenarEditorProps {
   addAkce: (scenarId: string, scenaId: string, text: string) => void
   addDialog: (scenarId: string, scenaId: string, data: { postava: string; text: string; poznamka?: string }) => void
   deletePrvek: (scenarId: string, scenaId: string, prvekId: string) => void
+  presunScenu: (scenarId: string, scenaId: string, smer: 'nahoru' | 'dolu') => void
 }
 
-const ScenarEditor: React.FC<ScenarEditorProps> = ({ scenar, onZpet, addScena, deleteScena, addAkce, addDialog, deletePrvek }) => {
+const ScenarEditor: React.FC<ScenarEditorProps> = ({
+  scenar,
+  onZpet,
+  addScena,
+  deleteScena,
+  addAkce,
+  addDialog,
+  deletePrvek,
+  presunScenu,
+}) => {
   const [aktivniScenaId, setAktivniScenaId] = useState<string | null>(scenar.sceny[0]?.id ?? null)
   const [formOtevren, setFormOtevren] = useState<'scena' | 'akce' | 'dialog' | null>(null)
+  const [nahledOtevren, setNahledOtevren] = useState(false)
 
   const [typMista, setTypMista] = useState<TypMista>('INT')
   const [misto, setMisto] = useState('')
@@ -120,8 +138,14 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({ scenar, onZpet, addScena, d
 
   const smazatAktivniScenu = () => {
     if (!aktivniScena) return
-    deleteScena(scenar.id, aktivniScena.id)
-    setAktivniScenaId(null)
+    if (window.confirm(`Smazat scénu „${nadpisSceny(aktivniScena, indexAktivni + 1)}“?`)) {
+      deleteScena(scenar.id, aktivniScena.id)
+      setAktivniScenaId(null)
+    }
+  }
+
+  if (nahledOtevren) {
+    return <ScenarNahled scenar={scenar} onZpet={() => setNahledOtevren(false)} />
   }
 
   return (
@@ -134,6 +158,9 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({ scenar, onZpet, addScena, d
           <strong>{scenar.nazev}</strong>
           <span>{scenar.sceny.length} {plural(scenar.sceny.length, 'scéna', 'scény', 'scén')}</span>
         </div>
+        <button className="sw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celého scénáře">
+          👁 Náhled
+        </button>
       </div>
 
       <div className="sw-chip-row">
@@ -180,7 +207,27 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({ scenar, onZpet, addScena, d
       ) : (
         <>
           <div className="sw-script-page">
-            <div className="sw-sc-heading">{nadpisSceny(aktivniScena, indexAktivni + 1)}</div>
+            <div className="sw-sc-heading-radek">
+              <div className="sw-sc-heading">{nadpisSceny(aktivniScena, indexAktivni + 1)}</div>
+              <div className="sw-posun-btns">
+                <button
+                  className="sw-posun-btn"
+                  onClick={() => presunScenu(scenar.id, aktivniScena.id, 'nahoru')}
+                  disabled={indexAktivni <= 0}
+                  aria-label="Posunout scénu nahoru"
+                >
+                  ↑
+                </button>
+                <button
+                  className="sw-posun-btn"
+                  onClick={() => presunScenu(scenar.id, aktivniScena.id, 'dolu')}
+                  disabled={indexAktivni >= scenar.sceny.length - 1}
+                  aria-label="Posunout scénu dolů"
+                >
+                  ↓
+                </button>
+              </div>
+            </div>
 
             {aktivniScena.prvky.length === 0 && <p className="sw-sc-prazdno">Scéna zatím nemá žádný text.</p>}
 
@@ -257,3 +304,47 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({ scenar, onZpet, addScena, d
     </div>
   )
 }
+
+const ScenarNahled: React.FC<{ scenar: Scenar; onZpet: () => void }> = ({ scenar, onZpet }) => (
+  <div className="sw-app">
+    <div className="sw-header">
+      <button className="sw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+        ←
+      </button>
+      <div className="sw-header-text">
+        <strong>{scenar.nazev}</strong>
+        <span>Náhled celého scénáře</span>
+      </div>
+      <button
+        className="sw-nahled-btn"
+        onClick={() => stahnoutTextovySoubor(`${scenar.nazev || 'scenar'}.txt`, sestavTextScenare(scenar))}
+      >
+        ⬇ .txt
+      </button>
+    </div>
+
+    {scenar.sceny.length === 0 ? (
+      <p className="sw-prazdno">Scénář zatím nemá žádnou scénu.</p>
+    ) : (
+      scenar.sceny.map((s, i) => (
+        <div className="sw-script-page" key={s.id}>
+          <div className="sw-sc-heading">{nadpisSceny(s, i + 1)}</div>
+          {s.prvky.length === 0 && <p className="sw-sc-prazdno">Scéna zatím nemá žádný text.</p>}
+          {s.prvky.map((p) =>
+            p.typ === 'akce' ? (
+              <div className="sw-sc-prvek" key={p.id}>
+                <p className="sw-sc-action">{p.text}</p>
+              </div>
+            ) : (
+              <div className="sw-sc-prvek" key={p.id}>
+                <div className="sw-sc-character">{p.postava.toUpperCase()}</div>
+                {p.poznamka && <div className="sw-sc-paren">({p.poznamka})</div>}
+                <p className="sw-sc-dialogue">{p.text}</p>
+              </div>
+            )
+          )}
+        </div>
+      ))
+    )}
+  </div>
+)

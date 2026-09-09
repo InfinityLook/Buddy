@@ -49,6 +49,61 @@
   color: var(--text-secondary);
 }
 
+.cw-nahled-btn {
+  flex-shrink: 0;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cw-page-head-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cw-posun-btns {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.cw-posun-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cw-posun-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.cw-nahled-strana {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.9rem;
+  margin-top: 0.9rem;
+}
+
+.cw-nahled-strana:first-child {
+  border-top: none;
+  padding-top: 0;
+  margin-top: 0;
+}
+
 .cw-nova-radek,
 .cw-novy-panel {
   display: flex;

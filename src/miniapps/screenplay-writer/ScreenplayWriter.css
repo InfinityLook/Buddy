@@ -49,6 +49,59 @@
   color: var(--text-secondary);
 }
 
+.sw-nahled-btn {
+  flex-shrink: 0;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius-pill);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sw-sc-heading-radek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.7rem;
+}
+
+.sw-sc-heading-radek .sw-sc-heading {
+  margin-bottom: 0;
+}
+
+/* Posun tlačítka sedí přímo na "papírové" ploše .sw-script-page, ne
+   na tmavém pozadí appky — proto vlastní světlá paleta, ne sdílené
+   tmavé .bw-posun-btn/.cw-posun-btn ze sesterských appek. */
+.sw-posun-btns {
+  display: flex;
+  gap: 0.3rem;
+  flex-shrink: 0;
+}
+
+.sw-posun-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  color: #17181c;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sw-posun-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 .sw-nova-radek {
   display: flex;
   gap: 0.5rem;

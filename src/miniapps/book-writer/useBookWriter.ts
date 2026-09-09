@@ -20,6 +20,18 @@ interface BookWriterState {
   addKapitola: (knihaId: string, nazev: string) => void
   updateKapitola: (knihaId: string, kapitolaId: string, data: { nazev?: string; text?: string }) => void
   deleteKapitola: (knihaId: string, kapitolaId: string) => void
+  presunKapitolu: (knihaId: string, kapitolaId: string, smer: 'nahoru' | 'dolu') => void
+}
+
+// Posune položku o jedno místo v poli daným směrem — no-op na kraji
+// (žádné zacyklení), sdílené jedním malým helperem, ať se stejná
+// swap logika nepíše zvlášť pro kapitoly/scény/strany.
+const posunPolozku = <T,>(pole: T[], index: number, smer: 'nahoru' | 'dolu'): T[] => {
+  const cil = smer === 'nahoru' ? index - 1 : index + 1
+  if (cil < 0 || cil >= pole.length) return pole
+  const nove = [...pole]
+  ;[nove[index], nove[cil]] = [nove[cil], nove[index]]
+  return nove
 }
 
 const useBookWriterStore = create<BookWriterState>()(
@@ -29,7 +41,8 @@ const useBookWriterStore = create<BookWriterState>()(
 
       addKniha: (nazev) => {
         const id = noveId()
-        const nova: Kniha = { id, nazev: nazev.trim() || 'Nová kniha', cilSlov: null, kapitoly: [], createdAt: new Date().toISOString() }
+        const ted = new Date().toISOString()
+        const nova: Kniha = { id, nazev: nazev.trim() || 'Nová kniha', cilSlov: null, kapitoly: [], createdAt: ted, upravenoAt: ted }
         set((state) => ({ knihy: [nova, ...state.knihy] }))
         return id
       },
@@ -38,13 +51,15 @@ const useBookWriterStore = create<BookWriterState>()(
 
       setCilSlov: (knihaId, cil) =>
         set((state) => ({
-          knihy: state.knihy.map((k) => (k.id === knihaId ? { ...k, cilSlov: cil } : k)),
+          knihy: state.knihy.map((k) => (k.id === knihaId ? { ...k, cilSlov: cil, upravenoAt: new Date().toISOString() } : k)),
         })),
 
       addKapitola: (knihaId, nazev) => {
         const nova = { id: noveId(), nazev: nazev.trim() || 'Nová kapitola', text: '', createdAt: new Date().toISOString() }
         set((state) => ({
-          knihy: state.knihy.map((k) => (k.id === knihaId ? { ...k, kapitoly: [...k.kapitoly, nova] } : k)),
+          knihy: state.knihy.map((k) =>
+            k.id === knihaId ? { ...k, kapitoly: [...k.kapitoly, nova], upravenoAt: new Date().toISOString() } : k
+          ),
         }))
         useGamificationStore.getState().recordAction('book', BOOK_XP)
       },
@@ -54,15 +69,31 @@ const useBookWriterStore = create<BookWriterState>()(
           knihy: state.knihy.map((k) =>
             k.id !== knihaId
               ? k
-              : { ...k, kapitoly: k.kapitoly.map((kap) => (kap.id === kapitolaId ? { ...kap, ...data } : kap)) }
+              : {
+                  ...k,
+                  kapitoly: k.kapitoly.map((kap) => (kap.id === kapitolaId ? { ...kap, ...data } : kap)),
+                  upravenoAt: new Date().toISOString(),
+                }
           ),
         })),
 
       deleteKapitola: (knihaId, kapitolaId) =>
         set((state) => ({
           knihy: state.knihy.map((k) =>
-            k.id !== knihaId ? k : { ...k, kapitoly: k.kapitoly.filter((kap) => kap.id !== kapitolaId) }
+            k.id !== knihaId
+              ? k
+              : { ...k, kapitoly: k.kapitoly.filter((kap) => kap.id !== kapitolaId), upravenoAt: new Date().toISOString() }
           ),
+        })),
+
+      presunKapitolu: (knihaId, kapitolaId, smer) =>
+        set((state) => ({
+          knihy: state.knihy.map((k) => {
+            if (k.id !== knihaId) return k
+            const index = k.kapitoly.findIndex((kap) => kap.id === kapitolaId)
+            if (index < 0) return k
+            return { ...k, kapitoly: posunPolozku(k.kapitoly, index, smer), upravenoAt: new Date().toISOString() }
+          }),
         })),
     }),
     {

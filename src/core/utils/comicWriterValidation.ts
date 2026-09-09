@@ -25,7 +25,11 @@ const sanitizujPanel = (data: unknown) => {
   const d = data as Record<string, unknown>
   if (typeof d.id !== 'string' || typeof d.vizual !== 'string') return null
   const radky = Array.isArray(d.radky) ? d.radky.map(sanitizujRadek).filter((r): r is NonNullable<typeof r> => r !== null) : []
-  return { id: d.id, vizual: d.vizual, radky }
+  // createdAt je novější pole (viz Panel v types.ts) — starší panel ho
+  // nemá, fallback na epoch, ať prostě nikdy nespadne do "dnešní"
+  // statistiky místo aby zahodil celý panel.
+  const createdAt = typeof d.createdAt === 'string' ? d.createdAt : '1970-01-01T00:00:00.000Z'
+  return { id: d.id, vizual: d.vizual, radky, createdAt }
 }
 
 const sanitizujStranu = (data: unknown) => {
@@ -41,7 +45,10 @@ const sanitizujKomiks = (data: unknown) => {
   const d = data as Record<string, unknown>
   if (typeof d.id !== 'string' || typeof d.nazev !== 'string' || typeof d.createdAt !== 'string') return null
   const strany = Array.isArray(d.strany) ? d.strany.map(sanitizujStranu).filter((s): s is NonNullable<typeof s> => s !== null) : []
-  return { id: d.id, nazev: d.nazev, strany, createdAt: d.createdAt }
+  // Stejný fallback jako u Knihy/Scénáře — starší uložený komiks
+  // upravenoAt vůbec nemá.
+  const upravenoAt = typeof d.upravenoAt === 'string' ? d.upravenoAt : d.createdAt
+  return { id: d.id, nazev: d.nazev, strany, createdAt: d.createdAt, upravenoAt }
 }
 
 const ComicWriterSchema = v.object({

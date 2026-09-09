@@ -18,6 +18,19 @@ interface ScreenplayWriterState {
   addAkce: (scenarId: string, scenaId: string, text: string) => void
   addDialog: (scenarId: string, scenaId: string, data: { postava: string; text: string; poznamka?: string }) => void
   deletePrvek: (scenarId: string, scenaId: string, prvekId: string) => void
+  presunScenu: (scenarId: string, scenaId: string, smer: 'nahoru' | 'dolu') => void
+}
+
+// Stejný sdílený "posuň o jedno místo, no-op na kraji" helper jako
+// useBookWriter.ts — kdyby se to nekopírovalo, znamenalo by to
+// importovat mezi dvěma jinak nezávislými appkami jen kvůli deseti
+// řádkům.
+const posunPolozku = <T,>(pole: T[], index: number, smer: 'nahoru' | 'dolu'): T[] => {
+  const cil = smer === 'nahoru' ? index - 1 : index + 1
+  if (cil < 0 || cil >= pole.length) return pole
+  const nove = [...pole]
+  ;[nove[index], nove[cil]] = [nove[cil], nove[index]]
+  return nove
 }
 
 const useScreenplayWriterStore = create<ScreenplayWriterState>()(
@@ -27,7 +40,8 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
 
       addScenar: (nazev) => {
         const id = noveId()
-        const novy: Scenar = { id, nazev: nazev.trim() || 'Nový scénář', sceny: [], createdAt: new Date().toISOString() }
+        const ted = new Date().toISOString()
+        const novy: Scenar = { id, nazev: nazev.trim() || 'Nový scénář', sceny: [], createdAt: ted, upravenoAt: ted }
         set((state) => ({ scenare: [novy, ...state.scenare] }))
         return id
       },
@@ -40,7 +54,9 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
       addScena: (scenarId, data) => {
         const nova = { id: noveId(), ...data, prvky: [], createdAt: new Date().toISOString() }
         set((state) => ({
-          scenare: state.scenare.map((s) => (s.id === scenarId ? { ...s, sceny: [...s.sceny, nova] } : s)),
+          scenare: state.scenare.map((s) =>
+            s.id === scenarId ? { ...s, sceny: [...s.sceny, nova], upravenoAt: new Date().toISOString() } : s
+          ),
         }))
         useGamificationStore.getState().recordAction('screenplay', SCREENPLAY_XP)
       },
@@ -48,7 +64,9 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
       deleteScena: (scenarId, scenaId) =>
         set((state) => ({
           scenare: state.scenare.map((s) =>
-            s.id !== scenarId ? s : { ...s, sceny: s.sceny.filter((sc) => sc.id !== scenaId) }
+            s.id !== scenarId
+              ? s
+              : { ...s, sceny: s.sceny.filter((sc) => sc.id !== scenaId), upravenoAt: new Date().toISOString() }
           ),
         })),
 
@@ -58,7 +76,11 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
           scenare: state.scenare.map((s) =>
             s.id !== scenarId
               ? s
-              : { ...s, sceny: s.sceny.map((sc) => (sc.id === scenaId ? { ...sc, prvky: [...sc.prvky, prvek] } : sc)) }
+              : {
+                  ...s,
+                  sceny: s.sceny.map((sc) => (sc.id === scenaId ? { ...sc, prvky: [...sc.prvky, prvek] } : sc)),
+                  upravenoAt: new Date().toISOString(),
+                }
           ),
         }))
       },
@@ -75,7 +97,11 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
           scenare: state.scenare.map((s) =>
             s.id !== scenarId
               ? s
-              : { ...s, sceny: s.sceny.map((sc) => (sc.id === scenaId ? { ...sc, prvky: [...sc.prvky, prvek] } : sc)) }
+              : {
+                  ...s,
+                  sceny: s.sceny.map((sc) => (sc.id === scenaId ? { ...sc, prvky: [...sc.prvky, prvek] } : sc)),
+                  upravenoAt: new Date().toISOString(),
+                }
           ),
         }))
       },
@@ -90,8 +116,19 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
                   sceny: s.sceny.map((sc) =>
                     sc.id !== scenaId ? sc : { ...sc, prvky: sc.prvky.filter((p) => p.id !== prvekId) }
                   ),
+                  upravenoAt: new Date().toISOString(),
                 }
           ),
+        })),
+
+      presunScenu: (scenarId, scenaId, smer) =>
+        set((state) => ({
+          scenare: state.scenare.map((s) => {
+            if (s.id !== scenarId) return s
+            const index = s.sceny.findIndex((sc) => sc.id === scenaId)
+            if (index < 0) return s
+            return { ...s, sceny: posunPolozku(s.sceny, index, smer), upravenoAt: new Date().toISOString() }
+          }),
         })),
     }),
     {

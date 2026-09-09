@@ -1,11 +1,23 @@
 import React, { useState } from 'react'
 import { useComicWriter } from './useComicWriter'
-import { celkovyPocetPanelu, Komiks, TypRadku } from './types'
+import { celkovyPocetPanelu, Komiks, serazenoPodleUpravy, sestavTextKomiksu, TypRadku } from './types'
 import { plural } from '@/core/utils/pluralCZ'
+import { stahnoutTextovySoubor } from '@/core/utils/download'
 import './ComicWriter.css'
 
 export const ComicWriter: React.FC = () => {
-  const { komiksy, addKomiks, deleteKomiks, addStrana, deleteStrana, addPanel, deletePanel, addRadek, deleteRadek } = useComicWriter()
+  const {
+    komiksy,
+    addKomiks,
+    deleteKomiks,
+    addStrana,
+    deleteStrana,
+    addPanel,
+    deletePanel,
+    addRadek,
+    deleteRadek,
+    presunStranu,
+  } = useComicWriter()
   const [aktivniId, setAktivniId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
 
@@ -16,6 +28,10 @@ export const ComicWriter: React.FC = () => {
     const id = addKomiks(novyNazev)
     setNovyNazev('')
     setAktivniId(id)
+  }
+
+  const smazatKomiks = (k: Komiks) => {
+    if (window.confirm(`Smazat komiks „${k.nazev}“?`)) deleteKomiks(k.id)
   }
 
   if (!aktivni) {
@@ -41,7 +57,7 @@ export const ComicWriter: React.FC = () => {
 
         <div className="cw-seznam">
           {komiksy.length === 0 && <p className="cw-prazdno">Zatím žádný komiks. Založ první výš.</p>}
-          {komiksy.map((k) => (
+          {serazenoPodleUpravy(komiksy).map((k) => (
             <div className="cw-radek" key={k.id}>
               <button className="cw-radek-otevrit" onClick={() => setAktivniId(k.id)}>
                 <strong>{k.nazev}</strong>
@@ -50,7 +66,7 @@ export const ComicWriter: React.FC = () => {
                   {celkovyPocetPanelu(k)} {plural(celkovyPocetPanelu(k), 'panel', 'panely', 'panelů')}
                 </span>
               </button>
-              <button className="cw-icon-btn danger" onClick={() => deleteKomiks(k.id)} aria-label={`Smazat ${k.nazev}`}>
+              <button className="cw-icon-btn danger" onClick={() => smazatKomiks(k)} aria-label={`Smazat ${k.nazev}`}>
                 ✕
               </button>
             </div>
@@ -70,6 +86,7 @@ export const ComicWriter: React.FC = () => {
       deletePanel={deletePanel}
       addRadek={addRadek}
       deleteRadek={deleteRadek}
+      presunStranu={presunStranu}
     />
   )
 }
@@ -83,17 +100,30 @@ interface KomiksEditorProps {
   deletePanel: (komiksId: string, stranaId: string, panelId: string) => void
   addRadek: (komiksId: string, stranaId: string, panelId: string, data: { typ: TypRadku; postava?: string; text: string }) => void
   deleteRadek: (komiksId: string, stranaId: string, panelId: string, radekId: string) => void
+  presunStranu: (komiksId: string, stranaId: string, smer: 'nahoru' | 'dolu') => void
 }
 
-const KomiksEditor: React.FC<KomiksEditorProps> = ({ komiks, onZpet, addStrana, deleteStrana, addPanel, deletePanel, addRadek, deleteRadek }) => {
+const KomiksEditor: React.FC<KomiksEditorProps> = ({
+  komiks,
+  onZpet,
+  addStrana,
+  deleteStrana,
+  addPanel,
+  deletePanel,
+  addRadek,
+  deleteRadek,
+  presunStranu,
+}) => {
   const [aktivniStranaId, setAktivniStranaId] = useState<string | null>(komiks.strany[0]?.id ?? null)
   const [novyVizual, setNovyVizual] = useState('')
   const [radekFormPanelId, setRadekFormPanelId] = useState<string | null>(null)
   const [radekTyp, setRadekTyp] = useState<TypRadku>('dialog')
   const [radekPostava, setRadekPostava] = useState('')
   const [radekText, setRadekText] = useState('')
+  const [nahledOtevren, setNahledOtevren] = useState(false)
 
-  const aktivniStrana = komiks.strany.find((s) => s.id === aktivniStranaId) ?? null
+  const indexAktivni = komiks.strany.findIndex((s) => s.id === aktivniStranaId)
+  const aktivniStrana = indexAktivni >= 0 ? komiks.strany[indexAktivni] : null
 
   const pridatStranu = () => {
     addStrana(komiks.id)
@@ -113,6 +143,23 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({ komiks, onZpet, addStrana, 
     setRadekFormPanelId(null)
   }
 
+  const smazatAktivniStranu = () => {
+    if (!aktivniStrana) return
+    if (window.confirm(`Smazat stranu ${aktivniStrana.cislo}?`)) {
+      deleteStrana(komiks.id, aktivniStrana.id)
+      setAktivniStranaId(null)
+    }
+  }
+
+  const smazatPanel = (panelId: string, poradi: number) => {
+    if (!aktivniStrana) return
+    if (window.confirm(`Smazat panel ${poradi}?`)) deletePanel(komiks.id, aktivniStrana.id, panelId)
+  }
+
+  if (nahledOtevren) {
+    return <KomiksNahled komiks={komiks} onZpet={() => setNahledOtevren(false)} />
+  }
+
   return (
     <div className="cw-app">
       <div className="cw-header">
@@ -123,6 +170,9 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({ komiks, onZpet, addStrana, 
           <strong>{komiks.nazev}</strong>
           <span>{komiks.strany.length} {plural(komiks.strany.length, 'strana', 'strany', 'stran')}</span>
         </div>
+        <button className="cw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celého komiksu">
+          👁 Náhled
+        </button>
       </div>
 
       <div className="cw-chip-row">
@@ -146,9 +196,29 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({ komiks, onZpet, addStrana, 
         <>
           <div className="cw-page-head">
             <strong>Strana {aktivniStrana.cislo}</strong>
-            <button className="cw-icon-btn danger" onClick={() => { deleteStrana(komiks.id, aktivniStrana.id); setAktivniStranaId(null) }}>
-              Smazat stranu
-            </button>
+            <div className="cw-page-head-btns">
+              <div className="cw-posun-btns">
+                <button
+                  className="cw-posun-btn"
+                  onClick={() => presunStranu(komiks.id, aktivniStrana.id, 'nahoru')}
+                  disabled={indexAktivni <= 0}
+                  aria-label="Posunout stranu nahoru"
+                >
+                  ↑
+                </button>
+                <button
+                  className="cw-posun-btn"
+                  onClick={() => presunStranu(komiks.id, aktivniStrana.id, 'dolu')}
+                  disabled={indexAktivni >= komiks.strany.length - 1}
+                  aria-label="Posunout stranu dolů"
+                >
+                  ↓
+                </button>
+              </div>
+              <button className="cw-icon-btn danger" onClick={smazatAktivniStranu}>
+                Smazat stranu
+              </button>
+            </div>
           </div>
 
           {aktivniStrana.panely.length === 0 && <p className="cw-prazdno">Strana zatím nemá žádný panel.</p>}
@@ -160,7 +230,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({ komiks, onZpet, addStrana, 
                   <span className="cw-panel-num">{i + 1}</span>
                   <b>Panel {i + 1}</b>
                 </span>
-                <button className="cw-mini-smazat" onClick={() => deletePanel(komiks.id, aktivniStrana.id, p.id)}>
+                <button className="cw-mini-smazat" onClick={() => smazatPanel(p.id, i + 1)}>
                   ✕
                 </button>
               </div>
@@ -220,3 +290,56 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({ komiks, onZpet, addStrana, 
     </div>
   )
 }
+
+const KomiksNahled: React.FC<{ komiks: Komiks; onZpet: () => void }> = ({ komiks, onZpet }) => (
+  <div className="cw-app">
+    <div className="cw-header">
+      <button className="cw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+        ←
+      </button>
+      <div className="cw-header-text">
+        <strong>{komiks.nazev}</strong>
+        <span>Náhled celého komiksu</span>
+      </div>
+      <button
+        className="cw-nahled-btn"
+        onClick={() => stahnoutTextovySoubor(`${komiks.nazev || 'komiks'}.txt`, sestavTextKomiksu(komiks))}
+      >
+        ⬇ .txt
+      </button>
+    </div>
+
+    {komiks.strany.length === 0 ? (
+      <p className="cw-prazdno">Komiks zatím nemá žádnou stranu.</p>
+    ) : (
+      komiks.strany.map((s) => (
+        <div key={s.id} className="cw-nahled-strana">
+          <div className="cw-page-head">
+            <strong>Strana {s.cislo}</strong>
+          </div>
+          {s.panely.length === 0 && <p className="cw-prazdno">Strana zatím nemá žádný panel.</p>}
+          {s.panely.map((p, i) => (
+            <div className="cw-panel-card" key={p.id}>
+              <div className="cw-panel-head">
+                <span>
+                  <span className="cw-panel-num">{i + 1}</span>
+                  <b>Panel {i + 1}</b>
+                </span>
+              </div>
+              <div className="cw-panel-label">Vizuál</div>
+              <div className="cw-panel-visual">{p.vizual}</div>
+              {p.radky.map((r) => (
+                <div className="cw-panel-line" key={r.id}>
+                  <div>
+                    <span className="cw-panel-label cw-panel-label--radek">{r.typ === 'dialog' ? 'Dialog' : 'Popisek'}</span>
+                    {r.typ === 'dialog' && r.postava && <b> {r.postava.toUpperCase()}:</b>} {r.text}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      ))
+    )}
+  </div>
+)

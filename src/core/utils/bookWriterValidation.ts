@@ -24,7 +24,12 @@ const sanitizujKnihu = (data: unknown) => {
 
   const kapitoly = Array.isArray(d.kapitoly) ? d.kapitoly.map(sanitizujKapitolu).filter((k): k is NonNullable<typeof k> => k !== null) : []
 
-  return { id: d.id, nazev: d.nazev, cilSlov: d.cilSlov, kapitoly, createdAt: d.createdAt }
+  // upravenoAt je novější pole — starší uložený stav ho nemá vůbec,
+  // fallback na createdAt (kniha se "naposledy upravila" v okamžiku
+  // založení, pokud appka jinak neví o ničem novějším).
+  const upravenoAt = typeof d.upravenoAt === 'string' ? d.upravenoAt : d.createdAt
+
+  return { id: d.id, nazev: d.nazev, cilSlov: d.cilSlov, kapitoly, createdAt: d.createdAt, upravenoAt }
 }
 
 const BookWriterSchema = v.object({
