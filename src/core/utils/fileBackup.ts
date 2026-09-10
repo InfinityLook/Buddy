@@ -17,7 +17,7 @@ import { getFileBlob, listStoredFileIds, putFileBlob } from './fileStorage'
 
 export const exportFullBackupWithFiles = async (): Promise<boolean> => {
   try {
-    const envelope = collectFullBackup()
+    const envelope = await collectFullBackup()
     const zip = new JSZip()
     zip.file('backup.json', JSON.stringify(envelope, null, 2))
 

@@ -113,7 +113,7 @@ export const saveSnapshot = async (
   payload?: BackupEnvelope
 ): Promise<SnapshotInfo | null> => {
   try {
-    const envelope = payload ?? collectFullBackup()
+    const envelope = payload ?? (await collectFullBackup())
     const serialized = JSON.stringify(envelope)
 
     const snapshot: BackupSnapshot = {

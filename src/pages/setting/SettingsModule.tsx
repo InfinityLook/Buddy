@@ -184,7 +184,7 @@ export const SettingsModule: React.FC = () => {
     // Než přepíšeme současný stav, uložíme si ho — obnova jde takhle vzít zpět
     await saveSnapshot('before-restore')
 
-    const result = restoreFullBackup(snapshot.payload)
+    const result = await restoreFullBackup(snapshot.payload)
     if (!result.success) {
       showToast(result.error ?? 'Zálohu se nepodařilo obnovit.')
       return
@@ -213,7 +213,7 @@ export const SettingsModule: React.FC = () => {
       // Současný stav si schováme, ať jde obnova vzít zpět
       await saveSnapshot('before-restore')
 
-      const result = restoreFullBackup(data)
+      const result = await restoreFullBackup(data)
 
       if (!result.success) {
         showToast(result.error ?? 'Soubor není platná záloha.')

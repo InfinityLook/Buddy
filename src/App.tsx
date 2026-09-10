@@ -57,6 +57,8 @@ import { startInbox } from '@/social/inbox'
 import { startPresence } from '@/social/presence'
 import { startLoginNotify } from '@/core/security/loginNotify'
 import { setupStudyPlannerReminders } from '@/miniapps/study-planner/useStudyPlanner'
+import { setupFinanceRecurringCheck } from '@/miniapps/finance/useFinance'
+import { startFinanceSync } from '@/miniapps/finance/financeSync'
 
 export default function App() {
   const { isAuthed, login } = useAuthStore()
@@ -141,6 +143,13 @@ export default function App() {
     // Upozornění na termíny v Planeru — kontroluje se hned a pak při
     // každém návratu do appky, ne jen když je Planer zrovna otevřený.
     setupStudyPlannerReminders()
+    // Totéž pro Economy Roomovy opakující se platby (nájem/předplatné/
+    // výplata) — přidávají se samy, ať appka zrovna otevřená je nebo ne.
+    setupFinanceRecurringCheck()
+    // Cloudová synchronizace Financí (IndexedDB lokálně, Supabase jako
+    // zrcadlo pro přenos mezi zařízeními) — stejný "doplněk, ne
+    // podmínka" tichý no-op bez nastaveného cloudu jako startCloudSync.
+    startFinanceSync()
   }, [])
 
   return (

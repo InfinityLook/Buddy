@@ -20,6 +20,11 @@ const transakce = (type: TransactionType, amount: number, mesicniOffset: number)
   note: '',
   date: datumPredMesici(mesicniOffset),
   createdAt: new Date().toISOString(),
+  walletId: null,
+  receiptId: null,
+  receiptMime: null,
+  updatedAt: 0,
+  deletedAt: null,
 })
 
 describe('spocitatMesicniSrovnani', () => {

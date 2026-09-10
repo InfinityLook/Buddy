@@ -1,4 +1,4 @@
-import { patriDoObdobi } from '@/miniapps/finance/useFinance'
+import { patriDoObdobi } from '@/miniapps/finance/types'
 import type { Transaction } from '@/miniapps/finance/types'
 
 // ==========================================

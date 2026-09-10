@@ -3,8 +3,11 @@ import { StateStorage } from 'zustand/middleware'
 // Jednoduchý a rychlý šifrovací klíč (v produkci lze kombinovat např. s ID uživatele)
 const ENCRYPTION_KEY = 'schoolbuddy_secure_key_2026'
 
-// Pomocná funkce pro šifrování textu
-const encryptData = (data: string): string => {
+// Pomocná funkce pro šifrování textu — exportovaná i mimo tenhle
+// soubor, ať `indexedDbStorage.ts` používá přesně stejné (de)obfuskační
+// schéma nad jiným úložným strojem, ne druhou kopii stejného klíče,
+// který by se pak dal snadno omylem rozejít.
+export const encryptData = (data: string): string => {
   try {
     const textBytes = new TextEncoder().encode(data)
     const keyBytes = new TextEncoder().encode(ENCRYPTION_KEY)
@@ -17,7 +20,7 @@ const encryptData = (data: string): string => {
 }
 
 // Pomocná funkce pro dešifrování textu
-const decryptData = (encryptedData: string): string => {
+export const decryptData = (encryptedData: string): string => {
   try {
     const decoded = atob(encryptedData)
     const bytes = new Uint8Array(decoded.length)
@@ -38,7 +41,7 @@ export const secureStorage: StateStorage = {
   getItem: (name: string): string | null => {
     const item = localStorage.getItem(name)
     if (!item) return null
-    
+
     // Zkusíme dešifrovat. Pokud selže (např. u starých nezašifrovaných dat), vrátíme původní
     try {
       return decryptData(item)

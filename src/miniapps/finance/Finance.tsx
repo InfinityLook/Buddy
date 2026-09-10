@@ -1,7 +1,12 @@
-import React, { useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useFinance } from './useFinance'
 import { mistniDatum } from '@/core/utils/date'
+import { stahnoutBlob } from '@/core/utils/download'
+import { deleteFileBlob, getFileBlob, MAX_FILE_BYTES, putFileBlob } from '@/core/utils/fileStorage'
+import { fileToResizedBlob } from '@/utils/image'
 import {
+  EXPENSE_CATEGORIES,
+  ExpenseCategory,
   FinanceCategory,
   KategorieVysek,
   MesicniBod,
@@ -11,7 +16,9 @@ import {
   TransactionType,
   TYP_LABELS,
   TypFiltr,
+  UCTENKA_ID_PREFIX,
   categoriesFor,
+  sestavCsvTransakci,
 } from './types'
 import './Finance.css'
 
@@ -119,6 +126,49 @@ const TrendGraf: React.FC<{ body: MesicniBod[] }> = ({ body }) => {
   )
 }
 
+/** Náhled přiložené účtenky — obrázek se ukáže rovnou, PDF jako odkaz
+ *  na otevření v nové kartě. Vlastní object URL se revokuje při
+ *  odmountování/výměně, stejná disciplína jako Music Roomovo
+ *  přehrávání nahrávek (viz CLAUDE.md's vlastní poučení o úniku URL). */
+const NahledUctenky: React.FC<{ receiptId: string; receiptMime: string | null }> = ({
+  receiptId,
+  receiptMime,
+}) => {
+  const [url, setUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    let zruseno = false
+    let aktualniUrl: string | null = null
+
+    void getFileBlob(receiptId).then((blob) => {
+      if (zruseno || !blob) return
+      aktualniUrl = URL.createObjectURL(blob)
+      setUrl(aktualniUrl)
+    })
+
+    return () => {
+      zruseno = true
+      if (aktualniUrl) URL.revokeObjectURL(aktualniUrl)
+    }
+  }, [receiptId])
+
+  if (!url) return null
+
+  if (receiptMime?.startsWith('image/')) {
+    return (
+      <a href={url} target="_blank" rel="noreferrer" className="fin-uctenka-nahled-odkaz">
+        <img src={url} alt="Náhled účtenky" className="fin-uctenka-nahled-obrazek" />
+      </a>
+    )
+  }
+
+  return (
+    <a href={url} target="_blank" rel="noreferrer" className="fin-uctenka-odkaz">
+      📄 Otevřít účtenku
+    </a>
+  )
+}
+
 export const Finance: React.FC = () => {
   const {
     seznam,
@@ -136,6 +186,22 @@ export const Finance: React.FC = () => {
     addTransaction,
     updateTransaction,
     deleteTransaction,
+    wallets,
+    aktivniPenezenkaId,
+    setAktivniPenezenkaId,
+    addWallet,
+    deleteWallet,
+    budgets,
+    budgetStavy,
+    addBudget,
+    deleteBudget,
+    recurring,
+    addRecurring,
+    updateRecurring,
+    deleteRecurring,
+    goalStavy,
+    addGoal,
+    deleteGoal,
   } = useFinance()
 
   const [donutTyp, setDonutTyp] = useState<TransactionType>('vydaj')
@@ -147,6 +213,33 @@ export const Finance: React.FC = () => {
   const [category, setCategory] = useState<FinanceCategory>('Jídlo')
   const [note, setNote] = useState('')
   const [date, setDate] = useState(dnesniDatum())
+  const [walletId, setWalletId] = useState<string | null>(null)
+  const [receiptId, setReceiptId] = useState<string | null>(null)
+  const [receiptMime, setReceiptMime] = useState<string | null>(null)
+  const [nahravaSeUctenka, setNahravaSeUctenka] = useState(false)
+  const uctenkaInputRef = useRef<HTMLInputElement>(null)
+
+  // Které z profesionálních sekcí (Peněženky/Rozpočty/Opakující se
+  // platby/Cíle) je zrovna rozbalené — nezávislé accordiony, ne
+  // "jedna aktivní záložka", protože se nevylučují navzájem.
+  const [otevrenoPenezenky, setOtevrenoPenezenky] = useState(false)
+  const [otevrenoRozpocty, setOtevrenoRozpocty] = useState(false)
+  const [otevrenoOpakujici, setOtevrenoOpakujici] = useState(false)
+  const [otevrenoCile, setOtevrenoCile] = useState(false)
+
+  const [novaPenezenka, setNovaPenezenka] = useState('')
+  const [novyRozpocetKategorie, setNovyRozpocetKategorie] = useState<ExpenseCategory>(EXPENSE_CATEGORIES[0])
+  const [novyRozpocetLimit, setNovyRozpocetLimit] = useState('')
+  const [opakujiciForm, setOpakujiciForm] = useState({
+    type: 'vydaj' as TransactionType,
+    amount: '',
+    category: EXPENSE_CATEGORIES[0] as FinanceCategory,
+    note: '',
+    dayOfMonth: '1',
+  })
+  const [novyCilNazev, setNovyCilNazev] = useState('')
+  const [novyCilCastka, setNovyCilCastka] = useState('')
+  const [novyCilTermin, setNovyCilTermin] = useState('')
 
   const isFormOpen = editingId !== null
 
@@ -156,6 +249,9 @@ export const Finance: React.FC = () => {
     setCategory('Jídlo')
     setNote('')
     setDate(dnesniDatum())
+    setWalletId(aktivniPenezenkaId)
+    setReceiptId(null)
+    setReceiptMime(null)
     setEditingId('')
   }
 
@@ -165,6 +261,9 @@ export const Finance: React.FC = () => {
     setCategory(t.category)
     setNote(t.note)
     setDate(t.date)
+    setWalletId(t.walletId)
+    setReceiptId(t.receiptId)
+    setReceiptMime(t.receiptMime)
     setEditingId(t.id)
   }
 
@@ -177,12 +276,56 @@ export const Finance: React.FC = () => {
     setCategory(categoriesFor(novy)[0])
   }
 
+  // Účtenka se čte hned při výběru souboru, ne až při odeslání
+  // formuláře — appka tak umí ukázat náhled dřív, než uživatel klikne
+  // "Uložit", a případnou chybu (moc velký soubor) nahlásí okamžitě.
+  const handleUctenkaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const soubor = e.target.files?.[0]
+    e.target.value = ''
+    if (!soubor) return
+
+    setNahravaSeUctenka(true)
+    try {
+      const novaId = UCTENKA_ID_PREFIX + `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`
+
+      if (soubor.type.startsWith('image/')) {
+        // Zmenšeno na rozumnou čitelnou velikost, ne původní rozlišení
+        // fotoaparátu — účtenka musí jít přečíst, ne vypadat profesionálně.
+        const blob = await fileToResizedBlob(soubor, 1000, 0.82)
+        await putFileBlob(novaId, blob)
+      } else {
+        if (soubor.size > MAX_FILE_BYTES) {
+          window.alert('Soubor je moc velký (limit 25 MB).')
+          return
+        }
+        await putFileBlob(novaId, soubor)
+      }
+
+      // Stará účtenka (pokud se právě nahrazuje) se uvolní, ať v
+      // IndexedDB nezůstane osiřelý blob, na který už nic neukazuje.
+      if (receiptId) void deleteFileBlob(receiptId)
+
+      setReceiptId(novaId)
+      setReceiptMime(soubor.type || null)
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'Účtenku se nepodařilo přiložit.')
+    } finally {
+      setNahravaSeUctenka(false)
+    }
+  }
+
+  const odebratUctenku = () => {
+    if (receiptId) void deleteFileBlob(receiptId)
+    setReceiptId(null)
+    setReceiptMime(null)
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     const castka = Math.round(Number(amount))
     if (!Number.isFinite(castka) || castka <= 0) return
 
-    const input = { type, amount: castka, category, note: note.trim(), date }
+    const input = { type, amount: castka, category, note: note.trim(), date, walletId, receiptId, receiptMime }
     if (editingId) updateTransaction(editingId, input)
     else addTransaction(input)
     closeForm()
@@ -190,9 +333,61 @@ export const Finance: React.FC = () => {
 
   const handleDelete = (t: Transaction) => {
     if (window.confirm(`Smazat záznam „${t.note || t.category}“?`)) {
+      // Účtenka je čistě lokální soubor — smazáním transakce zmizí
+      // i ona, ne že by v IndexedDB zůstal osiřelý blob navždy.
+      if (t.receiptId) void deleteFileBlob(t.receiptId)
       deleteTransaction(t.id)
       if (editingId === t.id) closeForm()
     }
+  }
+
+  const exportCsv = () => {
+    if (seznam.length === 0) return
+    stahnoutBlob('transakce.csv', new Blob([sestavCsvTransakci(seznam)], { type: 'text/csv;charset=utf-8' }))
+  }
+
+  const pridatPenezenku = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!novaPenezenka.trim()) return
+    addWallet(novaPenezenka, null)
+    setNovaPenezenka('')
+  }
+
+  const pridatRozpocet = (e: React.FormEvent) => {
+    e.preventDefault()
+    const limit = Number(novyRozpocetLimit)
+    if (!Number.isFinite(limit) || limit <= 0) return
+    addBudget(novyRozpocetKategorie, limit)
+    setNovyRozpocetLimit('')
+  }
+
+  const kategorieBezRozpoctu = useMemo(
+    () => EXPENSE_CATEGORIES.filter((c) => !budgets.some((b) => b.category === c)),
+    [budgets]
+  )
+
+  const pridatOpakujici = (e: React.FormEvent) => {
+    e.preventDefault()
+    const castka = Number(opakujiciForm.amount)
+    if (!Number.isFinite(castka) || castka <= 0) return
+    addRecurring({
+      type: opakujiciForm.type,
+      amount: castka,
+      category: opakujiciForm.category,
+      note: opakujiciForm.note,
+      dayOfMonth: Number(opakujiciForm.dayOfMonth) || 1,
+    })
+    setOpakujiciForm({ type: 'vydaj', amount: '', category: EXPENSE_CATEGORIES[0], note: '', dayOfMonth: '1' })
+  }
+
+  const pridatCil = (e: React.FormEvent) => {
+    e.preventDefault()
+    const castka = Number(novyCilCastka)
+    if (!novyCilNazev.trim() || !Number.isFinite(castka) || castka <= 0) return
+    addGoal(novyCilNazev, castka, novyCilTermin || null)
+    setNovyCilNazev('')
+    setNovyCilCastka('')
+    setNovyCilTermin('')
   }
 
   const bilanceObdobi = prijmyObdobi - vydajeObdobi
@@ -202,10 +397,35 @@ export const Finance: React.FC = () => {
     <div className="fin-app">
       <div className="fin-header">
         <h2>Finance</h2>
-        <button className="fin-add-btn" onClick={isFormOpen ? closeForm : openAdd}>
-          {isFormOpen ? '✕' : '+ Záznam'}
-        </button>
+        <div className="fin-header-akce">
+          <button className="fin-csv-btn" onClick={exportCsv} disabled={seznam.length === 0} aria-label="Export do CSV">
+            ⬇ CSV
+          </button>
+          <button className="fin-add-btn" onClick={isFormOpen ? closeForm : openAdd}>
+            {isFormOpen ? '✕' : '+ Záznam'}
+          </button>
+        </div>
       </div>
+
+      {wallets.length > 0 && (
+        <div className="fin-filters">
+          <button
+            className={`fin-filter-chip ${aktivniPenezenkaId === null ? 'active' : ''}`}
+            onClick={() => setAktivniPenezenkaId(null)}
+          >
+            Vše
+          </button>
+          {wallets.map((w) => (
+            <button
+              key={w.id}
+              className={`fin-filter-chip ${aktivniPenezenkaId === w.id ? 'active' : ''}`}
+              onClick={() => setAktivniPenezenkaId(w.id)}
+            >
+              {w.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="fin-zustatek-card">
         <span className="fin-zustatek-label">Aktuální zůstatek</span>
@@ -289,7 +509,7 @@ export const Finance: React.FC = () => {
           </div>
 
           <span className="fin-section-title" style={{ marginTop: '0.5rem' }}>
-            Posledních 6 měsíců
+            Posledních 12 měsíců
           </span>
           <TrendGraf body={mesicniTrend} />
           <div className="fin-trend-legenda">
@@ -298,6 +518,245 @@ export const Finance: React.FC = () => {
           </div>
         </section>
       )}
+
+      {/* --- Peněženky/účty --- */}
+      <section className="fin-accordion">
+        <button className="fin-accordion-hlava" onClick={() => setOtevrenoPenezenky((o) => !o)}>
+          <span>💳 Peněženky a účty</span>
+          <span className={`fin-accordion-sipka ${otevrenoPenezenky ? 'je-otevreno' : ''}`}>›</span>
+        </button>
+        {otevrenoPenezenky && (
+          <div className="fin-accordion-telo">
+            {wallets.length === 0 && <p className="fin-empty fin-empty--mala">Zatím žádné peněženky.</p>}
+            {wallets.map((w) => (
+              <div key={w.id} className="fin-sprava-radek">
+                <span>{w.name}</span>
+                <button className="fin-icon-btn danger" onClick={() => deleteWallet(w.id)} aria-label={`Smazat peněženku ${w.name}`}>
+                  ✕
+                </button>
+              </div>
+            ))}
+            <form className="fin-mini-form" onSubmit={pridatPenezenku}>
+              <input
+                placeholder="Název (Hotovost, Účet…)"
+                value={novaPenezenka}
+                onChange={(e) => setNovaPenezenka(e.target.value)}
+              />
+              <button type="submit">+ Přidat</button>
+            </form>
+          </div>
+        )}
+      </section>
+
+      {/* --- Rozpočty --- */}
+      <section className="fin-accordion">
+        <button className="fin-accordion-hlava" onClick={() => setOtevrenoRozpocty((o) => !o)}>
+          <span>📊 Rozpočty</span>
+          <span className={`fin-accordion-sipka ${otevrenoRozpocty ? 'je-otevreno' : ''}`}>›</span>
+        </button>
+        {otevrenoRozpocty && (
+          <div className="fin-accordion-telo">
+            {budgetStavy.length === 0 && <p className="fin-empty fin-empty--mala">Zatím žádné rozpočty.</p>}
+            {budgetStavy.map(({ budget, utraceno, procenta, jePrekrocen }) => (
+              <div key={budget.id} className="fin-rozpocet-radek">
+                <div className="fin-rozpocet-hlavicka">
+                  <span>
+                    {CATEGORY_ICONS[budget.category]} {budget.category}
+                  </span>
+                  <button
+                    className="fin-icon-btn danger"
+                    onClick={() => deleteBudget(budget.id)}
+                    aria-label={`Smazat rozpočet ${budget.category}`}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="fin-rozpocet-lista">
+                  <div
+                    className={`fin-rozpocet-vypln ${jePrekrocen ? 'je-prekrocen' : ''}`}
+                    style={{ width: `${Math.min(100, procenta)}%` }}
+                  />
+                </div>
+                <span className={`fin-rozpocet-text ${jePrekrocen ? 'je-prekrocen' : ''}`}>
+                  {formatKc(utraceno)} z {formatKc(budget.limitKc)} ({procenta} %)
+                  {jePrekrocen && ' — limit překročen!'}
+                </span>
+              </div>
+            ))}
+            {kategorieBezRozpoctu.length > 0 && (
+              <form className="fin-mini-form" onSubmit={pridatRozpocet}>
+                <select value={novyRozpocetKategorie} onChange={(e) => setNovyRozpocetKategorie(e.target.value as ExpenseCategory)}>
+                  {kategorieBezRozpoctu.map((c) => (
+                    <option key={c} value={c}>
+                      {CATEGORY_ICONS[c]} {c}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="Limit Kč/měsíc"
+                  value={novyRozpocetLimit}
+                  onChange={(e) => setNovyRozpocetLimit(e.target.value)}
+                />
+                <button type="submit">+ Přidat</button>
+              </form>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* --- Opakující se platby --- */}
+      <section className="fin-accordion">
+        <button className="fin-accordion-hlava" onClick={() => setOtevrenoOpakujici((o) => !o)}>
+          <span>🔁 Opakující se platby</span>
+          <span className={`fin-accordion-sipka ${otevrenoOpakujici ? 'je-otevreno' : ''}`}>›</span>
+        </button>
+        {otevrenoOpakujici && (
+          <div className="fin-accordion-telo">
+            {recurring.length === 0 && <p className="fin-empty fin-empty--mala">Zatím žádné opakující se platby.</p>}
+            {recurring.map((r) => (
+              <div key={r.id} className="fin-sprava-radek">
+                <span>
+                  {CATEGORY_ICONS[r.category]} {r.note || r.category} · {formatKc(r.amount)} · {r.dayOfMonth}. den v měsíci
+                </span>
+                <div className="fin-row-actions">
+                  <button
+                    className={`fin-icon-btn ${r.active ? '' : 'je-neaktivni'}`}
+                    onClick={() => updateRecurring(r.id, !r.active)}
+                    aria-label={r.active ? `Pozastavit ${r.category}` : `Zapnout ${r.category}`}
+                  >
+                    {r.active ? '⏸️' : '▶️'}
+                  </button>
+                  <button className="fin-icon-btn danger" onClick={() => deleteRecurring(r.id)} aria-label={`Smazat ${r.category}`}>
+                    ✕
+                  </button>
+                </div>
+              </div>
+            ))}
+            <form className="fin-mini-form fin-mini-form--sloupec" onSubmit={pridatOpakujici}>
+              <div className="fin-type-toggle">
+                <button
+                  type="button"
+                  className={opakujiciForm.type === 'prijem' ? 'active' : ''}
+                  onClick={() =>
+                    setOpakujiciForm((f) => ({ ...f, type: 'prijem', category: categoriesFor('prijem')[0] }))
+                  }
+                >
+                  Příjem
+                </button>
+                <button
+                  type="button"
+                  className={opakujiciForm.type === 'vydaj' ? 'active' : ''}
+                  onClick={() =>
+                    setOpakujiciForm((f) => ({ ...f, type: 'vydaj', category: categoriesFor('vydaj')[0] }))
+                  }
+                >
+                  Výdaj
+                </button>
+              </div>
+              <div className="fin-form-row">
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="Částka Kč"
+                  value={opakujiciForm.amount}
+                  onChange={(e) => setOpakujiciForm((f) => ({ ...f, amount: e.target.value }))}
+                />
+                <select
+                  value={opakujiciForm.category}
+                  onChange={(e) => setOpakujiciForm((f) => ({ ...f, category: e.target.value as FinanceCategory }))}
+                >
+                  {categoriesFor(opakujiciForm.type).map((c) => (
+                    <option key={c} value={c}>
+                      {CATEGORY_ICONS[c]} {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="fin-form-row">
+                <input
+                  placeholder="Poznámka (Nájem, Netflix…)"
+                  value={opakujiciForm.note}
+                  onChange={(e) => setOpakujiciForm((f) => ({ ...f, note: e.target.value }))}
+                />
+                <input
+                  type="number"
+                  min={1}
+                  max={28}
+                  placeholder="Den v měsíci"
+                  value={opakujiciForm.dayOfMonth}
+                  onChange={(e) => setOpakujiciForm((f) => ({ ...f, dayOfMonth: e.target.value }))}
+                />
+              </div>
+              <button type="submit">+ Přidat opakující se platbu</button>
+            </form>
+          </div>
+        )}
+      </section>
+
+      {/* --- Finanční cíle --- */}
+      <section className="fin-accordion">
+        <button className="fin-accordion-hlava" onClick={() => setOtevrenoCile((o) => !o)}>
+          <span>🎯 Finanční cíle</span>
+          <span className={`fin-accordion-sipka ${otevrenoCile ? 'je-otevreno' : ''}`}>›</span>
+        </button>
+        {otevrenoCile && (
+          <div className="fin-accordion-telo">
+            {goalStavy.length === 0 && <p className="fin-empty fin-empty--mala">Zatím žádné finanční cíle.</p>}
+            {goalStavy.map(({ goal, procenta, jeSplneny }) => (
+              <div key={goal.id} className="fin-rozpocet-radek">
+                <div className="fin-rozpocet-hlavicka">
+                  <span>
+                    {jeSplneny ? '🎉 ' : ''}
+                    {goal.name}
+                    {goal.deadline && ` · do ${formatDatum(goal.deadline)}`}
+                  </span>
+                  <button className="fin-icon-btn danger" onClick={() => deleteGoal(goal.id)} aria-label={`Smazat cíl ${goal.name}`}>
+                    ✕
+                  </button>
+                </div>
+                <div className="fin-rozpocet-lista">
+                  <div
+                    className={`fin-rozpocet-vypln ${jeSplneny ? 'je-splneny' : ''}`}
+                    style={{ width: `${procenta}%` }}
+                    role="progressbar"
+                    aria-valuenow={procenta}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  />
+                </div>
+                <span className="fin-rozpocet-text">
+                  {formatKc(Math.max(0, zustatek))} z {formatKc(goal.targetAmount)} ({procenta} %)
+                </span>
+              </div>
+            ))}
+            <form className="fin-mini-form fin-mini-form--sloupec" onSubmit={pridatCil}>
+              <input
+                placeholder="Název cíle (Notebook, Dovolená…)"
+                value={novyCilNazev}
+                onChange={(e) => setNovyCilNazev(e.target.value)}
+              />
+              <div className="fin-form-row">
+                <input
+                  type="number"
+                  min={1}
+                  placeholder="Cílová částka Kč"
+                  value={novyCilCastka}
+                  onChange={(e) => setNovyCilCastka(e.target.value)}
+                />
+                <input
+                  type="date"
+                  value={novyCilTermin}
+                  onChange={(e) => setNovyCilTermin(e.target.value)}
+                  aria-label="Termín (nepovinné)"
+                />
+              </div>
+              <button type="submit">+ Přidat cíl</button>
+            </form>
+          </div>
+        )}
+      </section>
 
       {isFormOpen && (
         <form className="fin-form" onSubmit={handleSubmit}>
@@ -352,6 +811,44 @@ export const Finance: React.FC = () => {
             <input type="date" value={date} max={dnesniDatum()} onChange={(e) => setDate(e.target.value)} required />
           </div>
 
+          {wallets.length > 0 && (
+            <select
+              className="fin-penezenka-select"
+              value={walletId ?? ''}
+              onChange={(e) => setWalletId(e.target.value || null)}
+              aria-label="Peněženka"
+            >
+              <option value="">Bez peněženky</option>
+              {wallets.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          <div className="fin-uctenka-radek">
+            <input
+              ref={uctenkaInputRef}
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={handleUctenkaChange}
+              className="fin-uctenka-input"
+              id="fin-uctenka-input"
+            />
+            <label htmlFor="fin-uctenka-input" className="fin-uctenka-btn">
+              {nahravaSeUctenka ? 'Nahrávám…' : receiptId ? '📎 Vyměnit účtenku' : '📎 Přiložit účtenku'}
+            </label>
+            {receiptId && (
+              <>
+                <NahledUctenky receiptId={receiptId} receiptMime={receiptMime} />
+                <button type="button" className="fin-uctenka-odebrat" onClick={odebratUctenku}>
+                  Odebrat
+                </button>
+              </>
+            )}
+          </div>
+
           <button type="submit" className="fin-submit-btn">
             {editingId ? 'Uložit změny' : 'Přidat záznam'}
           </button>
@@ -387,9 +884,13 @@ export const Finance: React.FC = () => {
               {CATEGORY_ICONS[t.category]}
             </span>
             <div className="fin-row-mid">
-              <span className="fin-row-title">{t.note || t.category}</span>
+              <span className="fin-row-title">
+                {t.note || t.category}
+                {t.receiptId && <span className="fin-row-uctenka-znacka" aria-label="Má přiloženou účtenku"> 📎</span>}
+              </span>
               <span className="fin-row-sub">
                 {t.category} · {formatDatum(t.date)}
+                {t.walletId && wallets.find((w) => w.id === t.walletId) && ` · ${wallets.find((w) => w.id === t.walletId)!.name}`}
               </span>
             </div>
             <span className={`fin-row-castka ${t.type === 'prijem' ? 'je-prijem' : 'je-vydaj'}`}>

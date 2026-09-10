@@ -1,4 +1,5 @@
 import { secureStorage } from './secureStorage'
+import { indexedDbStorage } from './indexedDbStorage'
 import { validateBackupEnvelope, BackupEnvelope } from './backupValidation'
 import { validateAppsData } from './validation'
 
@@ -20,7 +21,13 @@ import { validateAppsData } from './validation'
 export const BACKUP_FORMAT = 'schoolbuddy-backup'
 export const BACKUP_VERSION = 1
 
-type StorageKind = 'secure' | 'raw'
+// 'indexeddb' = store, jehož Zustand persist jede nad indexedDbStorage.ts
+// (Economy Roomovy Finance — viz useFinance.ts's vlastní komentář, proč
+// se přesunuly z localStorage), ne nad secureStorage.ts. Bez vlastního
+// druhu by tenhle katalog dál četl/psal localStorage klíč, který Finance
+// už dávno nepoužívají — data by ze zálohy tiše zmizela, přesně ten
+// scénář, co komentář o katalogu níž varuje.
+type StorageKind = 'secure' | 'raw' | 'indexeddb'
 
 interface BackupStore {
   key: string
@@ -51,7 +58,7 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-mind-map-storage', storage: 'secure', label: 'Mind Map' },
   { key: 'schoolbuddy-file-manager-storage', storage: 'secure', label: 'File Manager' },
   { key: 'schoolbuddy-document-editor-storage', storage: 'secure', label: 'Textový editor' },
-  { key: 'schoolbuddy-finance-storage', storage: 'secure', label: 'Finance' },
+  { key: 'schoolbuddy-finance-storage', storage: 'indexeddb', label: 'Finance' },
   { key: 'schoolbuddy-form-check-storage', storage: 'secure', label: 'Form Check' },
   { key: 'schoolbuddy-examprep-storage', storage: 'secure', label: 'Maturitní centrum' },
   { key: 'schoolbuddy-pomodoro-storage', storage: 'secure', label: 'Pomodoro' },
@@ -114,22 +121,31 @@ export const BACKUP_STORES: BackupStore[] = [
 // zálohami — ty se dají naimportovat pořád, jen bez obsahu souborů,
 // stejně jako dřív.
 
-const readStore = (store: BackupStore): string | null =>
-  store.storage === 'secure' ? secureStorage.getItem(store.key) as string | null : localStorage.getItem(store.key)
+// Obojí async, i když sekce 'secure'/'raw' jsou samy synchronní — jediný
+// společný podpis pro všechny tři druhy úložiště je jednodušší než
+// rozlišovat sync/async cestu podle druhu na každém volajícím místě.
+const readStore = async (store: BackupStore): Promise<string | null> => {
+  if (store.storage === 'indexeddb') return indexedDbStorage.getItem(store.key)
+  return store.storage === 'secure'
+    ? (secureStorage.getItem(store.key) as string | null)
+    : localStorage.getItem(store.key)
+}
 
-const writeStore = (store: BackupStore, value: string): void => {
-  if (store.storage === 'secure') secureStorage.setItem(store.key, value)
+const writeStore = async (store: BackupStore, value: string): Promise<void> => {
+  if (store.storage === 'indexeddb') await indexedDbStorage.setItem(store.key, value)
+  else if (store.storage === 'secure') secureStorage.setItem(store.key, value)
   else localStorage.setItem(store.key, value)
 }
 
 // Posbírá aktuální stav všech storů do jedné obálky.
 // Hodnoty ukládáme rozparsované, aby výsledný JSON byl čitelný a nebyl
 // to jen jeden dlouhý zaescapovaný řetězec.
-export const collectFullBackup = (): BackupEnvelope => {
+export const collectFullBackup = async (): Promise<BackupEnvelope> => {
   const data: Record<string, unknown> = {}
 
-  for (const store of BACKUP_STORES) {
-    const raw = readStore(store)
+  const precteno = await Promise.all(BACKUP_STORES.map(async (store) => [store, await readStore(store)] as const))
+
+  for (const [store, raw] of precteno) {
     if (raw === null) continue // store, do kterého uživatel ještě nesáhl
 
     try {
@@ -170,9 +186,9 @@ export const exportDataToJson = (data: unknown, filename = 'buddy-backup.json') 
 }
 
 // Stáhne kompletní zálohu (všechny story) jako jeden soubor
-export const exportFullBackup = (): boolean =>
+export const exportFullBackup = async (): Promise<boolean> =>
   exportDataToJson(
-    collectFullBackup(),
+    await collectFullBackup(),
     `buddy-zaloha-${new Date().toISOString().slice(0, 10)}.json`
   )
 
@@ -213,7 +229,7 @@ export interface RestoreResult {
 // Zapíše zálohu zpátky do úložiště. Volající pak musí aplikaci znovu
 // načíst — Zustand story už jsou v paměti zrehydratované a samy by si
 // nových hodnot nevšimly.
-export const restoreFullBackup = (incoming: unknown): RestoreResult => {
+export const restoreFullBackup = async (incoming: unknown): Promise<RestoreResult> => {
   const envelope = validateBackupEnvelope(incoming)
 
   if (envelope.success) {
@@ -226,7 +242,7 @@ export const restoreFullBackup = (incoming: unknown): RestoreResult => {
       if (value === undefined) continue
 
       try {
-        writeStore(store, JSON.stringify(value))
+        await writeStore(store, JSON.stringify(value))
         restored.push(store.label)
       } catch (error) {
         console.error(`Store ${store.key} se nepodařilo obnovit:`, error)
@@ -258,7 +274,7 @@ export const restoreFullBackup = (incoming: unknown): RestoreResult => {
 
   // Starou zálohu zapíšeme do stejné obálky, jakou používá Zustand persist.
   const appStore = BACKUP_STORES[0]
-  writeStore(
+  await writeStore(
     appStore,
     JSON.stringify({ state: { apps: appsValidation.data, activeAppId: null, returnPath: null }, version: 1 })
   )
