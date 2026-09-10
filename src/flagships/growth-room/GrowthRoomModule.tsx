@@ -8,7 +8,7 @@ import { plural } from '@/core/utils/pluralCZ'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
-import { nejblizsiCile, pocetOdemcenych } from './growthStats'
+import { nejblizsiCile, pocetOdemcenych, spocitejPodleKategorie } from './growthStats'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './GrowthRoomModule.css'
 
@@ -16,6 +16,15 @@ import './GrowthRoomModule.css'
 // Tracker sám, tohle je jen "co je nejblíž hotové", stejná mez jako
 // MAX_PRSTENCU v Economy Roomu vedle.
 const MAX_NAHLED_CILU = 3
+
+// Barva pruhu podle kategorie — tři pevné akcentové barvy appky, stejná
+// "no charting library for a handful of bars" úspora jako u Writer's
+// Roomova grafu tvorby a admin panelu vedle.
+const BARVA_KATEGORIE: Record<string, string> = {
+  Studium: 'var(--accent-cyan)',
+  Návyky: 'var(--accent-orange)',
+  Osobní: 'var(--accent-violet)',
+}
 
 // ==========================================
 // Growth Room — čtvrtá vlajková appka (viz FlagshipShell.tsx pro celé
@@ -53,6 +62,8 @@ export const GrowthRoomModule: React.FC = () => {
   const progres = getLevelProgress(xp)
   const nahledCilu = nejblizsiCile(goals, MAX_NAHLED_CILU)
   const odemcenoOdznaku = pocetOdemcenych(badges)
+  const kategorie = spocitejPodleKategorie(goals)
+  const maxVKategorii = Math.max(1, ...kategorie.map((k) => k.count))
 
   const nastroje: FlagshipDlazdice[] = [
     {
@@ -131,6 +142,32 @@ export const GrowthRoomModule: React.FC = () => {
             </div>
           )}
         </div>
+
+        {kategorie.length > 0 && (
+          <div className="gro-panel">
+            <div className="gro-panel-hlavicka">
+              <h2>Cíle podle kategorie</h2>
+            </div>
+
+            <div className="gro-kat-seznam">
+              {kategorie.map((k) => (
+                <div key={k.category} className="gro-kat-radek">
+                  <span className="gro-kat-nazev">{k.category}</span>
+                  <div className="gro-kat-lista">
+                    <div
+                      className="gro-kat-vypln"
+                      style={{
+                        width: `${Math.max(6, Math.round((k.count / maxVKategorii) * 100))}%`,
+                        background: BARVA_KATEGORIE[k.category],
+                      }}
+                    />
+                  </div>
+                  <span className="gro-kat-pocet">{k.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="gro-panel">
           <div className="gro-panel-hlavicka">

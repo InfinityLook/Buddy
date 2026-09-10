@@ -31,6 +31,7 @@ export type ActivityKind =
   | 'rozvrh'
   | 'znamka'
   | 'citace'
+  | 'navyk'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -88,6 +89,11 @@ export const DEFAULT_BADGES: Badge[] = [
   { id: 'planovac_hodin', title: 'Plánovač hodin', description: 'Přidej 5 hodin do Rozvrhu.', icon: '🗓️', unlockedAt: null },
   { id: 'akademik', title: 'Akademik', description: 'Zapiš 15 známek do Známek.', icon: '📊', unlockedAt: null },
   { id: 'citovac', title: 'Citovač', description: 'Vytvoř 10 citací.', icon: '📚', unlockedAt: null },
+  // Growth Room — samostatný kind od 'goal' (dokončení celého cíle):
+  // odškrtnutí návyku pro daný den je opakovaná drobná akce, ne
+  // dokončení cíle, stejná "dvě různé věci, dva různé kindy" zásada
+  // jako u Pomodora/'souboj' vedle.
+  { id: 'navykar', title: 'Návykář', description: 'Odškrtni návyk 15×.', icon: '✅', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti. 'souboj'
@@ -122,6 +128,7 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   rozvrh: { badgeId: 'planovac_hodin', needed: 5 },
   znamka: { badgeId: 'akademik', needed: 15 },
   citace: { badgeId: 'citovac', needed: 10 },
+  navyk: { badgeId: 'navykar', needed: 15 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není

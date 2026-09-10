@@ -242,3 +242,272 @@
   line-height: 1.45;
   color: #94a3b8;
 }
+
+/* ------------------------------------------
+   HLAVIČKA — šablony vedle "+ Nový cíl"
+   ------------------------------------------ */
+.gt-header-actions { display: flex; gap: 0.35rem; align-items: center; }
+
+.gt-sablony-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #cbd5e1;
+  font-size: 0.9rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* ------------------------------------------
+   META ŘÁDEK — priorita/termín/typ/milníky vedle kategorie
+   ------------------------------------------ */
+.gt-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.gt-priorita-pill,
+.gt-typ-pill,
+.gt-termin-pill,
+.gt-milnik-pocet {
+  font-size: 0.55rem;
+  font-weight: 800;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.gt-priorita-pill--vysoka { color: #f87171; background: rgba(248, 113, 113, 0.15); }
+.gt-priorita-pill--stredni { color: #fbbf24; background: rgba(251, 191, 36, 0.15); }
+.gt-priorita-pill--nizka { color: #94a3b8; background: rgba(148, 163, 184, 0.15); }
+
+.gt-typ-pill { color: #38bdf8; background: rgba(56, 189, 248, 0.15); }
+
+.gt-termin-pill--overdue { color: #f87171; background: rgba(248, 113, 113, 0.15); }
+.gt-termin-pill--today { color: #fbbf24; background: rgba(251, 191, 36, 0.15); }
+.gt-termin-pill--soon { color: #38bdf8; background: rgba(56, 189, 248, 0.15); }
+.gt-termin-pill--later { color: #94a3b8; background: rgba(148, 163, 184, 0.15); }
+
+.gt-milnik-pocet { color: #34d399; background: rgba(52, 211, 153, 0.15); }
+
+/* ------------------------------------------
+   NÁVYKOVÉ CÍLE
+   ------------------------------------------ */
+.gt-navyk-btn {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  color: #c084fc;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 0.2rem;
+}
+
+.gt-navyk-btn.is-done {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+/* ------------------------------------------
+   ROZBALENÝ DETAIL — poznámka + milníky
+   ------------------------------------------ */
+.gt-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.gt-detail-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  color: #64748b;
+}
+
+.gt-poznamka-textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.4rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.gt-milniky-seznam { display: flex; flex-direction: column; gap: 0.25rem; }
+
+.gt-milnik-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.gt-milnik-checkbox {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.gt-milnik-checkbox.is-done { color: #34d399; }
+
+.gt-milnik-text {
+  flex: 1;
+  font-size: 0.72rem;
+  color: #e2e8f0;
+  overflow-wrap: anywhere;
+}
+
+.gt-milnik-text.is-done { color: #64748b; text-decoration: line-through; }
+
+.gt-milnik-smazat {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.65rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.gt-milniky-prazdno {
+  margin: 0;
+  font-size: 0.68rem;
+  color: #64748b;
+}
+
+.gt-pridat-milnik-form {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.gt-pridat-milnik-form input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+}
+
+/* ------------------------------------------
+   ARCHIV SPLNĚNÝCH CÍLŮ
+   ------------------------------------------ */
+.gt-archiv { margin-top: 0.2rem; }
+
+.gt-archiv-hlavicka {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.gt-archiv-telo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* ------------------------------------------
+   PŘEPÍNAČ TYPU (Cíl / Návyk)
+   ------------------------------------------ */
+.gt-typ-prepinac { display: flex; gap: 0.35rem; }
+
+.gt-typ-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.3rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.gt-typ-btn.active {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+/* ------------------------------------------
+   ŠABLONY — malý overlay, stejný tvar jako NahlasitDialog jinde v appce
+   ------------------------------------------ */
+.gt-sablony-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  padding: 1rem;
+}
+
+.gt-sablony-sheet {
+  background: #12172a;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  padding: 0.8rem;
+  width: 100%;
+  max-width: 360px;
+  max-height: 80vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.gt-sablony-hlavicka {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  margin-bottom: 0.2rem;
+}
+
+.gt-sablona-radek {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: #fff;
+}
+
+.gt-sablona-radek:hover { border-color: rgba(168, 85, 247, 0.4); }
+
+.gt-sablona-nazev { font-size: 0.75rem; font-weight: 700; }
+.gt-sablona-popis { font-size: 0.65rem; color: #94a3b8; }

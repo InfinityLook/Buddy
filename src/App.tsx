@@ -58,6 +58,7 @@ import { startPresence } from '@/social/presence'
 import { startLoginNotify } from '@/core/security/loginNotify'
 import { setupStudyPlannerReminders } from '@/miniapps/study-planner/useStudyPlanner'
 import { setupFinanceRecurringCheck } from '@/miniapps/finance/useFinance'
+import { setupGoalTrackerReminders } from '@/miniapps/goal-tracker/useGoalTracker'
 import { startFinanceSync } from '@/miniapps/finance/financeSync'
 
 export default function App() {
@@ -146,6 +147,9 @@ export default function App() {
     // Totéž pro Economy Roomovy opakující se platby (nájem/předplatné/
     // výplata) — přidávají se samy, ať appka zrovna otevřená je nebo ne.
     setupFinanceRecurringCheck()
+    // Upozornění na termíny cílů v Growth Roomu — stejný "kontroluj hned
+    // a pak při každém návratu" vzor jako Planerovy termíny výš.
+    setupGoalTrackerReminders()
     // Cloudová synchronizace Financí (IndexedDB lokálně, Supabase jako
     // zrcadlo pro přenos mezi zařízeními) — stejný "doplněk, ne
     // podmínka" tichý no-op bez nastaveného cloudu jako startCloudSync.

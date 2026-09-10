@@ -124,6 +124,49 @@
 }
 
 /* ------------------------------------------
+   CÍLE PODLE KATEGORIE
+   ------------------------------------------ */
+.gro-kat-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.gro-kat-radek {
+  display: grid;
+  grid-template-columns: 4.5rem 1fr 1.4rem;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.gro-kat-nazev {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gro-kat-lista {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.gro-kat-vypln {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.gro-kat-pocet {
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-align: right;
+}
+
+/* ------------------------------------------
    ÚROVEŇ & ODZNAKY
    ------------------------------------------ */
 .gro-staty {
