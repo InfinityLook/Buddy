@@ -24,12 +24,12 @@ describe('serazenoPodleUpravy', () => {
   })
 
   it('funguje stejně pro scénáře i komiksy', () => {
-    const s1: Scenar = { id: 'x', nazev: 'X', sceny: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01', cilScen: null }
-    const s2: Scenar = { id: 'y', nazev: 'Y', sceny: [], createdAt: '2026-01-01', upravenoAt: '2026-05-01', cilScen: null }
+    const s1: Scenar = { id: 'x', nazev: 'X', sceny: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01', cilScen: null, postavyPoznamky: {} }
+    const s2: Scenar = { id: 'y', nazev: 'Y', sceny: [], createdAt: '2026-01-01', upravenoAt: '2026-05-01', cilScen: null, postavyPoznamky: {} }
     expect(serazenoScenaru([s1, s2]).map((s) => s.id)).toEqual(['y', 'x'])
 
-    const k1: Komiks = { id: 'p', nazev: 'P', strany: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01', cilStran: null }
-    const k2: Komiks = { id: 'q', nazev: 'Q', strany: [], createdAt: '2026-01-01', upravenoAt: '2026-05-01', cilStran: null }
+    const k1: Komiks = { id: 'p', nazev: 'P', strany: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01', cilStran: null, postavyPoznamky: {} }
+    const k2: Komiks = { id: 'q', nazev: 'Q', strany: [], createdAt: '2026-01-01', upravenoAt: '2026-05-01', cilStran: null, postavyPoznamky: {} }
     expect(serazenoKomiksu([k1, k2]).map((k) => k.id)).toEqual(['q', 'p'])
   })
 
@@ -72,7 +72,7 @@ describe('sestavTextScenare', () => {
       createdAt: '1',
       upravenoAt: '1',
       cilScen: null,
-      sceny: [
+      postavyPoznamky: {},      sceny: [
         {
           id: 'sc1',
           typMista: 'INT',
@@ -102,7 +102,7 @@ describe('sestavTextScenare', () => {
       createdAt: '1',
       upravenoAt: '1',
       cilScen: null,
-      sceny: [
+      postavyPoznamky: {},      sceny: [
         { id: 'sc1', typMista: 'EXT', misto: 'park', cas: 'noc', createdAt: '1', stav: 'napad', poznamka: '', prvky: [] },
       ],
     }
@@ -118,7 +118,7 @@ describe('sestavTextKomiksu', () => {
       createdAt: '1',
       upravenoAt: '1',
       cilStran: null,
-      strany: [
+      postavyPoznamky: {},      strany: [
         {
           id: 'str1',
           cislo: 1,

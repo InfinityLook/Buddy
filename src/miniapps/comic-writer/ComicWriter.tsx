@@ -6,6 +6,7 @@ import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
 import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
+import { useWriterCheckpoints, checkpointyProDilo } from '@/flagships/writer-room/useWriterCheckpoints'
 import './ComicWriter.css'
 
 export const ComicWriter: React.FC = () => {
@@ -25,6 +26,9 @@ export const ComicWriter: React.FC = () => {
     updateRadek,
     deleteRadek,
     presunStranu,
+    nahradVKomiksu,
+    obnovZeCheckpointu,
+    setPoznamkaPostavy,
   } = useComicWriter()
   const [aktivniId, setAktivniId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
@@ -101,6 +105,9 @@ export const ComicWriter: React.FC = () => {
       updateRadek={updateRadek}
       deleteRadek={deleteRadek}
       presunStranu={presunStranu}
+      nahradVKomiksu={nahradVKomiksu}
+      obnovZeCheckpointu={obnovZeCheckpointu}
+      setPoznamkaPostavy={setPoznamkaPostavy}
     />
   )
 }
@@ -126,6 +133,9 @@ interface KomiksEditorProps {
   ) => void
   deleteRadek: (komiksId: string, stranaId: string, panelId: string, radekId: string) => void
   presunStranu: (komiksId: string, stranaId: string, smer: 'nahoru' | 'dolu') => void
+  nahradVKomiksu: (komiksId: string, hledat: string, nahradit: string) => number
+  obnovZeCheckpointu: (komiksId: string, snapshot: unknown) => boolean
+  setPoznamkaPostavy: (komiksId: string, jmeno: string, poznamka: string) => void
 }
 
 const KomiksEditor: React.FC<KomiksEditorProps> = ({
@@ -143,6 +153,9 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
   updateRadek,
   deleteRadek,
   presunStranu,
+  nahradVKomiksu,
+  obnovZeCheckpointu,
+  setPoznamkaPostavy,
 }) => {
   const [aktivniStranaId, setAktivniStranaId] = useState<string | null>(komiks.strany[0]?.id ?? null)
   const [novyVizual, setNovyVizual] = useState('')
@@ -152,6 +165,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
   const [radekText, setRadekText] = useState('')
   const [nahledOtevren, setNahledOtevren] = useState(false)
   const [osnovaOtevrena, setOsnovaOtevrena] = useState(false)
+  const [zalohyOtevreny, setZalohyOtevreny] = useState(false)
   const [fokusRezim, setFokusRezim] = useState(false)
 
   // Úprava existujícího panelu/řádku sdílí stejný formulář jako
@@ -247,6 +261,18 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
           setAktivniStranaId(id)
           setOsnovaOtevrena(false)
         }}
+        nahradVKomiksu={nahradVKomiksu}
+        setPoznamkaPostavy={setPoznamkaPostavy}
+      />
+    )
+  }
+
+  if (zalohyOtevreny) {
+    return (
+      <KomiksZalohy
+        komiks={komiks}
+        onZpet={() => setZalohyOtevreny(false)}
+        obnovZeCheckpointu={obnovZeCheckpointu}
       />
     )
   }
@@ -278,6 +304,9 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
       <div className="cw-akce-radek">
         <button className="cw-nahled-btn" onClick={() => setOsnovaOtevrena(true)}>
           🔍 Osnova
+        </button>
+        <button className="cw-nahled-btn" onClick={() => setZalohyOtevreny(true)}>
+          💾 Zálohy
         </button>
         <button className="cw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
           {fokusRezim ? '🎯 Zpět z fokusu' : '🎯 Fokus'}
@@ -491,6 +520,9 @@ const KomiksNahled: React.FC<{ komiks: Komiks; onZpet: () => void }> = ({ komiks
         <strong>{komiks.nazev}</strong>
         <span>Náhled celého komiksu</span>
       </div>
+      <button className="cw-nahled-btn" onClick={() => window.print()}>
+        🖨 Tisk
+      </button>
       <button
         className="cw-nahled-btn"
         onClick={() => stahnoutTextovySoubor(`${komiks.nazev || 'komiks'}.txt`, sestavTextKomiksu(komiks))}
@@ -540,13 +572,24 @@ const KomiksNahled: React.FC<{ komiks: Komiks; onZpet: () => void }> = ({ komiks
 // stejně dá pracovat, jen skrz otevřenou stranu. S dotazem naopak
 // sestupuje až na jednotlivé panely, protože jinak by "hledání" jen
 // řeklo "je to někde na straně 4", ne kde přesně.
-const KomiksOsnova: React.FC<{ komiks: Komiks; onZpet: () => void; onOtevritStranu: (id: string) => void }> = ({
-  komiks,
-  onZpet,
-  onOtevritStranu,
-}) => {
+const KomiksOsnova: React.FC<{
+  komiks: Komiks
+  onZpet: () => void
+  onOtevritStranu: (id: string) => void
+  nahradVKomiksu: (komiksId: string, hledat: string, nahradit: string) => number
+  setPoznamkaPostavy: (komiksId: string, jmeno: string, poznamka: string) => void
+}> = ({ komiks, onZpet, onOtevritStranu, nahradVKomiksu, setPoznamkaPostavy }) => {
   const [dotaz, setDotaz] = useState('')
+  const [nahraditFormOtevren, setNahraditFormOtevren] = useState(false)
+  const [nahraditZa, setNahraditZa] = useState('')
+  const [vysledekNahrazeni, setVysledekNahrazeni] = useState<number | null>(null)
+  const [otevrenaPostava, setOtevrenaPostava] = useState<string | null>(null)
   const postavy = ziskejPostavy(komiks)
+
+  const provestNahrazeni = () => {
+    if (!dotaz.trim()) return
+    setVysledekNahrazeni(nahradVKomiksu(komiks.id, dotaz, nahraditZa))
+  }
 
   const stranyKZobrazeni = komiks.strany
     .map((s) => {
@@ -584,20 +627,61 @@ const KomiksOsnova: React.FC<{ komiks: Komiks; onZpet: () => void; onOtevritStra
         type="text"
         placeholder="Hledat ve vizuálech i řádcích panelů…"
         value={dotaz}
-        onChange={(e) => setDotaz(e.target.value)}
+        onChange={(e) => {
+          setDotaz(e.target.value)
+          setVysledekNahrazeni(null)
+        }}
         autoFocus
       />
 
+      <button className="cw-nahled-btn" onClick={() => setNahraditFormOtevren((f) => !f)}>
+        🔁 Nahradit
+      </button>
+
+      {nahraditFormOtevren && (
+        <div className="cw-nahradit-radek">
+          <input
+            type="text"
+            placeholder="Nahradit za…"
+            value={nahraditZa}
+            onChange={(e) => setNahraditZa(e.target.value)}
+          />
+          <button className="cw-ulozit-btn" onClick={provestNahrazeni} disabled={!dotaz.trim()}>
+            Nahradit vše
+          </button>
+        </div>
+      )}
+      {vysledekNahrazeni !== null && (
+        <p className="cw-prazdno">
+          {vysledekNahrazeni === 0 ? 'Nic k nahrazení se nenašlo.' : `Nahrazeno ${vysledekNahrazeni}×.`}
+        </p>
+      )}
+
       {postavy.length > 0 && (
         <div className="cw-postavy-radek">
-          <span className="cw-panel-label">👥 Obsazení</span>
+          <span className="cw-panel-label">👥 Obsazení (bible postav — klepnutím přidáš poznámku)</span>
           <div className="cw-chip-row">
             {postavy.map((jmeno) => (
-              <span className="cw-chip cw-chip--staticky" key={jmeno}>
+              <button
+                key={jmeno}
+                className={`cw-chip${otevrenaPostava === jmeno ? ' active' : ''}`}
+                onClick={() => setOtevrenaPostava(otevrenaPostava === jmeno ? null : jmeno)}
+              >
                 {jmeno}
-              </span>
+              </button>
             ))}
           </div>
+          {otevrenaPostava && (
+            <input
+              type="text"
+              className="cw-poznamka"
+              placeholder={`Poznámka k postavě „${otevrenaPostava}“ (vzhled, motivace)…`}
+              value={komiks.postavyPoznamky[otevrenaPostava] ?? ''}
+              onChange={(e) => setPoznamkaPostavy(komiks.id, otevrenaPostava, e.target.value)}
+              maxLength={300}
+              autoFocus
+            />
+          )}
         </div>
       )}
 
@@ -623,6 +707,75 @@ const KomiksOsnova: React.FC<{ komiks: Komiks; onZpet: () => void; onOtevritStra
                 </button>
               </div>
             ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Ruční záložní verze (checkpointy) — stejná role a stejné UI jako
+// Kniha's KnihaZalohy/Scénář's ScenarZalohy vedle, jen nad komiksem.
+const KomiksZalohy: React.FC<{
+  komiks: Komiks
+  onZpet: () => void
+  obnovZeCheckpointu: (komiksId: string, snapshot: unknown) => boolean
+}> = ({ komiks, onZpet, obnovZeCheckpointu }) => {
+  const { checkpointy, vytvorCheckpoint, smazCheckpoint } = useWriterCheckpoints()
+  const [novyNazev, setNovyNazev] = useState('')
+  const [zprava, setZprava] = useState<string | null>(null)
+
+  const seznam = checkpointyProDilo(checkpointy, 'komiks', komiks.id)
+
+  const ulozitZalohu = () => {
+    vytvorCheckpoint('komiks', komiks.id, novyNazev || `Záloha ${seznam.length + 1}`, komiks)
+    setNovyNazev('')
+    setZprava('Záloha uložena.')
+  }
+
+  const obnovit = (nazev: string, data: unknown) => {
+    if (!window.confirm(`Obnovit komiks ze zálohy „${nazev}“? Aktuální stav stran se přepíše.`)) return
+    setZprava(obnovZeCheckpointu(komiks.id, data) ? 'Verze obnovena.' : 'Nepovedlo se obnovit — záloha je poškozená.')
+  }
+
+  return (
+    <div className="cw-app">
+      <div className="cw-header">
+        <button className="cw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+          ←
+        </button>
+        <div className="cw-header-text">
+          <strong>{komiks.nazev}</strong>
+          <span>Ruční zálohy</span>
+        </div>
+      </div>
+
+      <div className="cw-nova-radek">
+        <input
+          type="text"
+          placeholder={`Název zálohy (např. „Před přepsáním konce“)`}
+          value={novyNazev}
+          onChange={(e) => setNovyNazev(e.target.value)}
+          maxLength={60}
+        />
+        <button className="cw-ulozit-btn" onClick={ulozitZalohu}>
+          Uložit
+        </button>
+      </div>
+
+      {zprava && <p className="cw-prazdno">{zprava}</p>}
+
+      <div className="cw-seznam">
+        {seznam.length === 0 && <p className="cw-prazdno">Zatím žádná ruční záloha tohohle komiksu.</p>}
+        {seznam.map((c) => (
+          <div className="cw-radek" key={c.id}>
+            <button className="cw-radek-otevrit" onClick={() => obnovit(c.nazev, c.data)}>
+              <strong>{c.nazev}</strong>
+              <span>{formatujNaposledyUpraveno(c.createdAt)}</span>
+            </button>
+            <button className="cw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
+              ✕
+            </button>
           </div>
         ))}
       </div>

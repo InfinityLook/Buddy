@@ -520,3 +520,63 @@
 .sw-chip--staticky {
   cursor: default;
 }
+
+.sw-sablony-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sw-sablona-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.75rem;
+  color: var(--text-primary);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.sw-sablona-btn strong {
+  font-size: 0.85rem;
+}
+
+.sw-sablona-btn span {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.sw-nahradit-radek {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sw-nahradit-radek input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Tisk / PDF verze — jen "papírová" plocha scén se zobrazí, zbytek
+   appky (hlavička appky, tlačítka) zmizí. */
+@media print {
+  @page {
+    margin: 2cm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .sw-script-page,
+  .sw-script-page * {
+    visibility: visible;
+  }
+  /* Continuous flow, ne jedna scéna = jedna stránka — skutečný
+     scénáristický software taky nezalamuje stránku po každé scéně,
+     jen se snaží nerozdělit jednu scénu napůl. */
+  .sw-script-page {
+    page-break-inside: avoid;
+  }
+}

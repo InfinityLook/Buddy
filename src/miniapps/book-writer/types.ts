@@ -44,11 +44,44 @@ export const pocetSlov = (text: string): number => {
 export const celkovyPocetSlov = (kniha: Kniha): number =>
   kniha.kapitoly.reduce((soucet, k) => soucet + pocetSlov(k.text), 0)
 
+// Stejný hrubý filmařský/čtenářský odhad jako Scénářovo odhadStopazeMinut
+// vedle, jen v jednotkách "čtenář", ne "promítání" — běžná orientační
+// rychlost čtení je kolem 200 slov za minutu. Appka žádné skutečné
+// stránkování/typografii nedělá, takže jde jen o orientační číslo pro
+// autora, ne o přesný přepočet.
+const SLOV_ZA_MINUTU_CTENI = 200
+
+export const odhadCteniMinut = (kniha: Kniha): number => Math.round(celkovyPocetSlov(kniha) / SLOV_ZA_MINUTU_CTENI)
+
 // Seřadí knihy podle poslední úpravy, ne podle pořadí v poli (to je
 // pořadí založení) — použito jak seznamem knih v appce samotné, tak
 // Writer's Roomovým náhledem, ať obojí ukazuje totéž.
 export const serazenoPodleUpravy = <T extends { upravenoAt: string }>(polozky: T[]): T[] =>
   [...polozky].sort((a, b) => b.upravenoAt.localeCompare(a.upravenoAt))
+
+// Rychlé šablony struktury kapitol — místo prázdné kapitoly pokaždé
+// znovu autor může jedním klepnutím založit celou hotovou kostru
+// (názvy kapitol), do které pak jen píše. Pevná, malá sada — appka
+// nenabízí vlastní/upravitelné šablony, stejná "pevná sada, ne
+// libovolný vstup" zásada jako fixní barevné palety jinde v appce.
+export interface SablonaKapitol {
+  id: string
+  nazev: string
+  kapitoly: string[]
+}
+
+export const SABLONY_KAPITOL: SablonaKapitol[] = [
+  {
+    id: 'tri-akty',
+    nazev: 'Tři akty',
+    kapitoly: ['Akt I: Úvod', 'Akt II: Konflikt', 'Akt III: Rozuzlení'],
+  },
+  {
+    id: 'hrdinova-cesta',
+    nazev: 'Hrdinova cesta (zkráceně)',
+    kapitoly: ['Obyčejný svět', 'Volání k dobrodružství', 'Zkoušky a spojenci', 'Nejtemnější hodina', 'Návrat proměněný'],
+  },
+]
 
 // Poskládá celou knihu do jednoho čitelného textu pro export — nadpisy
 // kapitol jako řádky navíc, jinak čistý text tak, jak ho autor napsal.

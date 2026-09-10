@@ -1,16 +1,37 @@
 import React, { useState } from 'react'
 import { useBookWriter } from './useBookWriter'
-import { Kniha, celkovyPocetSlov, pocetSlov, serazenoPodleUpravy, sestavTextKnihy } from './types'
+import {
+  Kniha,
+  SABLONY_KAPITOL,
+  celkovyPocetSlov,
+  odhadCteniMinut,
+  pocetSlov,
+  serazenoPodleUpravy,
+  sestavTextKnihy,
+} from './types'
 import { plural } from '@/core/utils/pluralCZ'
 import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
 import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
+import { useWriterCheckpoints, checkpointyProDilo } from '@/flagships/writer-room/useWriterCheckpoints'
 import './BookWriter.css'
 
 export const BookWriter: React.FC = () => {
-  const { knihy, addKniha, updateKniha, deleteKniha, setCilSlov, addKapitola, updateKapitola, deleteKapitola, presunKapitolu } =
-    useBookWriter()
+  const {
+    knihy,
+    addKniha,
+    updateKniha,
+    deleteKniha,
+    setCilSlov,
+    addKapitola,
+    updateKapitola,
+    deleteKapitola,
+    presunKapitolu,
+    pridatSablonu,
+    nahradVKnize,
+    obnovZeCheckpointu,
+  } = useBookWriter()
   const [aktivniKnihaId, setAktivniKnihaId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
 
@@ -80,6 +101,9 @@ export const BookWriter: React.FC = () => {
       deleteKapitola={deleteKapitola}
       presunKapitolu={presunKapitolu}
       setCilSlov={setCilSlov}
+      pridatSablonu={pridatSablonu}
+      nahradVKnize={nahradVKnize}
+      obnovZeCheckpointu={obnovZeCheckpointu}
     />
   )
 }
@@ -97,6 +121,9 @@ interface KnihaEditorProps {
   deleteKapitola: (knihaId: string, kapitolaId: string) => void
   presunKapitolu: (knihaId: string, kapitolaId: string, smer: 'nahoru' | 'dolu') => void
   setCilSlov: (knihaId: string, cil: number | null) => void
+  pridatSablonu: (knihaId: string, nazvyKapitol: string[]) => void
+  nahradVKnize: (knihaId: string, hledat: string, nahradit: string) => number
+  obnovZeCheckpointu: (knihaId: string, snapshot: unknown) => boolean
 }
 
 const KnihaEditor: React.FC<KnihaEditorProps> = ({
@@ -108,17 +135,27 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
   deleteKapitola,
   presunKapitolu,
   setCilSlov,
+  pridatSablonu,
+  nahradVKnize,
+  obnovZeCheckpointu,
 }) => {
   const [aktivniKapitolaId, setAktivniKapitolaId] = useState<string | null>(kniha.kapitoly[0]?.id ?? null)
   const [nahledOtevren, setNahledOtevren] = useState(false)
   const [osnovaOtevrena, setOsnovaOtevrena] = useState(false)
+  const [zalohyOtevreny, setZalohyOtevreny] = useState(false)
   const [fokusRezim, setFokusRezim] = useState(false)
+  const [sablonyOtevrene, setSablonyOtevrene] = useState(false)
   const indexAktivni = kniha.kapitoly.findIndex((k) => k.id === aktivniKapitolaId)
   const aktivniKapitola = indexAktivni >= 0 ? kniha.kapitoly[indexAktivni] : null
 
   const pridatKapitolu = () => {
     const poradi = kniha.kapitoly.length + 1
     addKapitola(kniha.id, `Kapitola ${poradi}`)
+  }
+
+  const pouzitSablonu = (nazvyKapitol: string[]) => {
+    pridatSablonu(kniha.id, nazvyKapitol)
+    setSablonyOtevrene(false)
   }
 
   const smazatAktivniKapitolu = () => {
@@ -145,6 +182,17 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
           setAktivniKapitolaId(id)
           setOsnovaOtevrena(false)
         }}
+        nahradVKnize={nahradVKnize}
+      />
+    )
+  }
+
+  if (zalohyOtevreny) {
+    return (
+      <KnihaZalohy
+        kniha={kniha}
+        onZpet={() => setZalohyOtevreny(false)}
+        obnovZeCheckpointu={obnovZeCheckpointu}
       />
     )
   }
@@ -167,6 +215,7 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
             {celkem} {plural(celkem, 'slovo', 'slova', 'slov')}
             {kniha.cilSlov ? ` / ${kniha.cilSlov}` : ''}
           </span>
+          <span>📖 odhad čtení: ~{odhadCteniMinut(kniha)} min (hrubý odhad)</span>
         </div>
         <button className="bw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celé knihy">
           👁 Náhled
@@ -176,6 +225,9 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
       <div className="bw-akce-radek">
         <button className="bw-nahled-btn" onClick={() => setOsnovaOtevrena(true)}>
           🔍 Osnova
+        </button>
+        <button className="bw-nahled-btn" onClick={() => setZalohyOtevreny(true)}>
+          💾 Zálohy
         </button>
         <button className="bw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
           {fokusRezim ? '🎯 Zpět z fokusu' : '🎯 Fokus'}
@@ -201,7 +253,21 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
         <button className="bw-plus-chip" onClick={pridatKapitolu} aria-label="Přidat kapitolu">
           +
         </button>
+        <button className="bw-plus-chip" onClick={() => setSablonyOtevrene((s) => !s)} aria-label="Přidat kapitoly podle šablony">
+          📐
+        </button>
       </div>
+
+      {sablonyOtevrene && (
+        <div className="bw-sablony-seznam">
+          {SABLONY_KAPITOL.map((sablona) => (
+            <button key={sablona.id} className="bw-sablona-btn" onClick={() => pouzitSablonu(sablona.kapitoly)}>
+              <strong>{sablona.nazev}</strong>
+              <span>{sablona.kapitoly.join(' → ')}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {!aktivniKapitola ? (
         <p className="bw-prazdno">Zatím žádná kapitola. Přidej první tlačítkem „+“.</p>
@@ -294,6 +360,9 @@ const KnihaNahled: React.FC<{ kniha: Kniha; onZpet: () => void }> = ({ kniha, on
         <strong>{kniha.nazev}</strong>
         <span>Náhled celé knihy</span>
       </div>
+      <button className="bw-nahled-btn" onClick={() => window.print()}>
+        🖨 Tisk
+      </button>
       <button
         className="bw-nahled-btn"
         onClick={() => stahnoutTextovySoubor(`${kniha.nazev || 'kniha'}.txt`, sestavTextKnihy(kniha))}
@@ -326,12 +395,21 @@ const KnihaNahled: React.FC<{ kniha: Kniha; onZpet: () => void }> = ({ kniha, on
 // pořadí/název/stav/počet slov; s dotazem filtruje na kapitoly, kde se
 // dotaz najde v názvu NEBO v textu, a u zásahu v textu přidá krátký
 // úryvek okolí.
-const KnihaOsnova: React.FC<{ kniha: Kniha; onZpet: () => void; onOtevritKapitolu: (id: string) => void }> = ({
-  kniha,
-  onZpet,
-  onOtevritKapitolu,
-}) => {
+const KnihaOsnova: React.FC<{
+  kniha: Kniha
+  onZpet: () => void
+  onOtevritKapitolu: (id: string) => void
+  nahradVKnize: (knihaId: string, hledat: string, nahradit: string) => number
+}> = ({ kniha, onZpet, onOtevritKapitolu, nahradVKnize }) => {
   const [dotaz, setDotaz] = useState('')
+  const [nahraditFormOtevren, setNahraditFormOtevren] = useState(false)
+  const [nahraditZa, setNahraditZa] = useState('')
+  const [vysledekNahrazeni, setVysledekNahrazeni] = useState<number | null>(null)
+
+  const provestNahrazeni = () => {
+    if (!dotaz.trim()) return
+    setVysledekNahrazeni(nahradVKnize(kniha.id, dotaz, nahraditZa))
+  }
 
   const polozky = kniha.kapitoly
     .map((k, i) => ({ kapitola: k, poradi: i + 1 }))
@@ -353,9 +431,35 @@ const KnihaOsnova: React.FC<{ kniha: Kniha; onZpet: () => void; onOtevritKapitol
         type="text"
         placeholder="Hledat v názvech i textu kapitol…"
         value={dotaz}
-        onChange={(e) => setDotaz(e.target.value)}
+        onChange={(e) => {
+          setDotaz(e.target.value)
+          setVysledekNahrazeni(null)
+        }}
         autoFocus
       />
+
+      <button className="bw-nahled-btn" onClick={() => setNahraditFormOtevren((f) => !f)}>
+        🔁 Nahradit
+      </button>
+
+      {nahraditFormOtevren && (
+        <div className="bw-nahradit-radek">
+          <input
+            type="text"
+            placeholder="Nahradit za…"
+            value={nahraditZa}
+            onChange={(e) => setNahraditZa(e.target.value)}
+          />
+          <button className="bw-ulozit-btn" onClick={provestNahrazeni} disabled={!dotaz.trim()}>
+            Nahradit vše
+          </button>
+        </div>
+      )}
+      {vysledekNahrazeni !== null && (
+        <p className="bw-prazdno">
+          {vysledekNahrazeni === 0 ? 'Nic k nahrazení se nenašlo.' : `Nahrazeno ${vysledekNahrazeni}×.`}
+        </p>
+      )}
 
       <div className="bw-seznam">
         {polozky.length === 0 && (
@@ -378,6 +482,78 @@ const KnihaOsnova: React.FC<{ kniha: Kniha; onZpet: () => void; onOtevritKapitol
             </div>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+// Ruční záložní verze (checkpointy) — malá bezpečnostní síť před
+// velkou úpravou, ne plná historie verzí. Schválně jiná appka než
+// hlavní "Zálohy v aplikaci" v Nastavení (backupHistory.ts): ta dělá
+// snímek úplně celé appky, tohle jen jedné konkrétní knihy, kterou
+// autor sám pojmenuje.
+const KnihaZalohy: React.FC<{
+  kniha: Kniha
+  onZpet: () => void
+  obnovZeCheckpointu: (knihaId: string, snapshot: unknown) => boolean
+}> = ({ kniha, onZpet, obnovZeCheckpointu }) => {
+  const { checkpointy, vytvorCheckpoint, smazCheckpoint } = useWriterCheckpoints()
+  const [novyNazev, setNovyNazev] = useState('')
+  const [zprava, setZprava] = useState<string | null>(null)
+
+  const seznam = checkpointyProDilo(checkpointy, 'kniha', kniha.id)
+
+  const ulozitZalohu = () => {
+    vytvorCheckpoint('kniha', kniha.id, novyNazev || `Záloha ${seznam.length + 1}`, kniha)
+    setNovyNazev('')
+    setZprava('Záloha uložena.')
+  }
+
+  const obnovit = (nazev: string, data: unknown) => {
+    if (!window.confirm(`Obnovit knihu ze zálohy „${nazev}“? Aktuální stav kapitol se přepíše.`)) return
+    setZprava(obnovZeCheckpointu(kniha.id, data) ? 'Verze obnovena.' : 'Nepovedlo se obnovit — záloha je poškozená.')
+  }
+
+  return (
+    <div className="bw-app">
+      <div className="bw-header">
+        <button className="bw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+          ←
+        </button>
+        <div className="bw-header-text">
+          <strong>{kniha.nazev}</strong>
+          <span>Ruční zálohy</span>
+        </div>
+      </div>
+
+      <div className="bw-nova-radek">
+        <input
+          type="text"
+          placeholder={`Název zálohy (např. „Před přepsáním konce“)`}
+          value={novyNazev}
+          onChange={(e) => setNovyNazev(e.target.value)}
+          maxLength={60}
+        />
+        <button className="bw-ulozit-btn" onClick={ulozitZalohu}>
+          Uložit
+        </button>
+      </div>
+
+      {zprava && <p className="bw-prazdno">{zprava}</p>}
+
+      <div className="bw-seznam">
+        {seznam.length === 0 && <p className="bw-prazdno">Zatím žádná ruční záloha téhle knihy.</p>}
+        {seznam.map((c) => (
+          <div className="bw-radek" key={c.id}>
+            <button className="bw-radek-otevrit" onClick={() => obnovit(c.nazev, c.data)}>
+              <strong>{c.nazev}</strong>
+              <span>{formatujNaposledyUpraveno(c.createdAt)}</span>
+            </button>
+            <button className="bw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
+              ✕
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   )

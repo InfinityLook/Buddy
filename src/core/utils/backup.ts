@@ -75,6 +75,7 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-book-writer-storage', storage: 'secure', label: 'Kniha' },
   { key: 'schoolbuddy-screenplay-writer-storage', storage: 'secure', label: 'Scénář' },
   { key: 'schoolbuddy-comic-writer-storage', storage: 'secure', label: 'Komiks' },
+  { key: 'schoolbuddy-writer-checkpoints-storage', storage: 'secure', label: 'Zálohy Writer\'s Roomu' },
   { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
   // Na rozdíl od role/kreditů níž je restorable: true bezpečné i pro
   // VIP vzhled — resolveActiveThemeId (core/theme/themes.ts) ověřuje

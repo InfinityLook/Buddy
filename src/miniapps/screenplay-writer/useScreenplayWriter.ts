@@ -2,9 +2,10 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
-import { validateScreenplayWriterData } from '@/core/utils/screenplayWriterValidation'
+import { sanitizujScenar, validateScreenplayWriterData } from '@/core/utils/screenplayWriterValidation'
 import { AkcePrvek, DialogPrvek, Scena, ScenaPrvek, Scenar, TypMista } from './types'
 import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import { nahradVTextu } from '@/flagships/writer-room/writerRoomNahradit'
 
 const SCREENPLAY_XP = 6
 
@@ -28,6 +29,16 @@ interface ScreenplayWriterState {
   updatePrvek: (scenarId: string, scenaId: string, prvekId: string, data: { text?: string; postava?: string; poznamka?: string }) => void
   deletePrvek: (scenarId: string, scenaId: string, prvekId: string) => void
   presunScenu: (scenarId: string, scenaId: string, smer: 'nahoru' | 'dolu') => void
+  // Založí víc scén najednou podle šablony (viz SABLONY_SCEN v types.ts).
+  pridatSablonu: (scenarId: string, sceny: { typMista: TypMista; misto: string; cas: string }[]) => void
+  // Najde a nahradí zadaný text napříč celým scénářem — v akčním textu
+  // i v textu/jménu postavy u repliky (proto to zvládne i hromadné
+  // přejmenování postavy), vrací počet skutečných záměn.
+  nahradVScenari: (scenarId: string, hledat: string, nahradit: string) => number
+  // Stejná role jako Kniha's obnovZeCheckpointu.
+  obnovZeCheckpointu: (scenarId: string, snapshot: unknown) => boolean
+  // "Bible postav" — uloží/přepíše soukromou poznámku ke jménu postavy.
+  setPoznamkaPostavy: (scenarId: string, jmeno: string, poznamka: string) => void
 }
 
 // Stejný sdílený "posuň o jedno místo, no-op na kraji" helper jako
@@ -50,7 +61,15 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
       addScenar: (nazev) => {
         const id = noveId()
         const ted = new Date().toISOString()
-        const novy: Scenar = { id, nazev: nazev.trim() || 'Nový scénář', sceny: [], createdAt: ted, upravenoAt: ted, cilScen: null }
+        const novy: Scenar = {
+          id,
+          nazev: nazev.trim() || 'Nový scénář',
+          sceny: [],
+          createdAt: ted,
+          upravenoAt: ted,
+          cilScen: null,
+          postavyPoznamky: {},
+        }
         set((state) => ({ scenare: [novy, ...state.scenare] }))
         return id
       },
@@ -193,6 +212,76 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
             if (index < 0) return s
             return { ...s, sceny: posunPolozku(s.sceny, index, smer), upravenoAt: new Date().toISOString() }
           }),
+        })),
+
+      pridatSablonu: (scenarId, sceny) => {
+        const ted = new Date().toISOString()
+        const nove = sceny.map((data) => ({
+          id: noveId(),
+          ...data,
+          prvky: [],
+          createdAt: ted,
+          stav: 'napad' as StavPolozky,
+          poznamka: '',
+        }))
+        set((state) => ({
+          scenare: state.scenare.map((s) => (s.id === scenarId ? { ...s, sceny: [...s.sceny, ...nove], upravenoAt: ted } : s)),
+        }))
+        nove.forEach(() => useGamificationStore.getState().recordAction('screenplay', SCREENPLAY_XP))
+      },
+
+      nahradVScenari: (scenarId, hledat, nahradit) => {
+        let celkemZamen = 0
+        set((state) => ({
+          scenare: state.scenare.map((s) => {
+            if (s.id !== scenarId) return s
+            const sceny = s.sceny.map((sc) => {
+              const prvky = sc.prvky.map((p): ScenaPrvek => {
+                if (p.typ === 'akce') {
+                  const { text, pocet } = nahradVTextu(p.text, hledat, nahradit)
+                  celkemZamen += pocet
+                  return pocet > 0 ? { ...p, text } : p
+                }
+                const textVysledek = nahradVTextu(p.text, hledat, nahradit)
+                const postavaVysledek = nahradVTextu(p.postava, hledat, nahradit)
+                celkemZamen += textVysledek.pocet + postavaVysledek.pocet
+                return textVysledek.pocet + postavaVysledek.pocet > 0
+                  ? { ...p, text: textVysledek.text, postava: postavaVysledek.text }
+                  : p
+              })
+              return { ...sc, prvky }
+            })
+            return celkemZamen > 0 ? { ...s, sceny, upravenoAt: new Date().toISOString() } : s
+          }),
+        }))
+        return celkemZamen
+      },
+
+      obnovZeCheckpointu: (scenarId, snapshot) => {
+        const sanitizovano = sanitizujScenar(snapshot)
+        if (!sanitizovano) return false
+        set((state) => ({
+          scenare: state.scenare.map((s) =>
+            s.id === scenarId
+              ? {
+                  ...s,
+                  nazev: sanitizovano.nazev,
+                  sceny: sanitizovano.sceny,
+                  cilScen: sanitizovano.cilScen,
+                  postavyPoznamky: sanitizovano.postavyPoznamky,
+                  upravenoAt: new Date().toISOString(),
+                }
+              : s
+          ),
+        }))
+        return true
+      },
+
+      setPoznamkaPostavy: (scenarId, jmeno, poznamka) =>
+        set((state) => ({
+          scenare: state.scenare.map((s) =>
+            s.id === scenarId ? { ...s, postavyPoznamky: { ...s.postavyPoznamky, [jmeno]: poznamka } } : s
+          ),
         })),
     }),
     {

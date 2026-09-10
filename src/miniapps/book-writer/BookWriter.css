@@ -408,3 +408,71 @@
   font-style: italic;
   opacity: 0.85;
 }
+
+.bw-sablony-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.bw-sablona-btn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.75rem;
+  color: var(--text-primary);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.bw-sablona-btn strong {
+  font-size: 0.85rem;
+}
+
+.bw-sablona-btn span {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.bw-nahradit-radek {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.bw-nahradit-radek input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Tisk / PDF verze — jen náhled celého díla se zobrazí, zbytek appky
+   (hlavička appky, tlačítka) zmizí. Stejný "skryj vše, ukaž jen
+   obsah" trik jako u Scénáře/Komiksu vedle, jen jiná cílová třída. */
+@media print {
+  @page {
+    margin: 2cm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .bw-nahled,
+  .bw-nahled * {
+    visibility: visible;
+  }
+  .bw-nahled {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    color: #000;
+  }
+  /* Jedna kapitola = ideálně jedna stránka tisku, ať to čtenáři
+     nepřijde jako náhodně zalomený text — poslední kapitola žádnou
+     prázdnou stránku navíc nepřidává. */
+  .bw-nahled-kapitola:not(:last-child) {
+    page-break-after: always;
+  }
+}

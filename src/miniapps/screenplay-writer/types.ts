@@ -52,6 +52,13 @@ export interface Scenar {
   // Stejná role jako Kniha.cilSlov, jen v počtu scén — null = žádný cíl
   // nenastaven.
   cilScen: number | null
+  // "Bible postav" — krátká soukromá poznámka (vzhled, motivace) ke
+  // jménu už použitému v dialogu (viz ziskejPostavy níž). Klíčovaná
+  // jménem, ne id — appka nemá žádný samostatný "seznam postav" se
+  // vznikem/id, jméno v dialogu JE ta jediná identita postavy tady.
+  // Nepovinné pole — starší uložený scénář ho nemá vůbec, fallback na
+  // prázdný objekt (viz screenplayWriterValidation.ts).
+  postavyPoznamky: Record<string, string>
 }
 
 // Skládá skutečný scénáristický nadpis scény z jejích tří polí — appka
@@ -98,6 +105,50 @@ export const odhadStopazeMinut = (scenar: Scenar): number => {
     0
   )
   return Math.round(slovCelkem / SLOV_NA_STRANU_SCENARE)
+}
+
+// Rychlé šablony struktury scén — stejná role a stejná "pevná sada, ne
+// libovolný vstup" zásada jako Kniha's SABLONY_KAPITOL. Appka založí
+// scény s tímhle místem/časem, ať autor nezačíná pokaždé od úplně
+// prázdné scény.
+export interface SablonaScen {
+  id: string
+  nazev: string
+  sceny: { typMista: TypMista; misto: string; cas: string }[]
+}
+
+export const SABLONY_SCEN: SablonaScen[] = [
+  {
+    id: 'tri-akty',
+    nazev: 'Tři akty',
+    sceny: [
+      { typMista: 'INT', misto: 'AKT I – ÚVOD', cas: 'DEN' },
+      { typMista: 'INT', misto: 'AKT II – KONFLIKT', cas: 'DEN' },
+      { typMista: 'INT', misto: 'AKT III – ROZUZLENÍ', cas: 'DEN' },
+    ],
+  },
+]
+
+// Skládá scénář do skutečného formátu Fountain (https://fountain.io) —
+// prostého textového standardu, který otevře Final Draft i jiné
+// profesionální scénáristické nástroje. Na rozdíl od sestavTextScenare
+// níž (čitelný, ale ne strojově formátovaný export) tohle dodržuje
+// skutečnou Fountain syntaxi: scéna začíná INT./EXT. na začátku
+// odstavce, postava je celý řádek velkými písmeny, herecká poznámka v
+// závorce na vlastním řádku. Krátká title page (`Title: …`) na
+// začátku — appka nezná autora ani datum, takže jen název.
+export const sestavFountain = (scenar: Scenar): string => {
+  const znackaMista = (t: TypMista): string => (t === 'INT/EXT' ? 'INT./EXT.' : `${t}.`)
+  const bloky = scenar.sceny.map((s) => {
+    const nadpis = `${znackaMista(s.typMista)} ${s.misto.toUpperCase()} - ${s.cas.toUpperCase()}`
+    const radky = s.prvky.map((p) =>
+      p.typ === 'akce'
+        ? p.text
+        : [p.postava.toUpperCase(), p.poznamka ? `(${p.poznamka})` : null, p.text].filter(Boolean).join('\n')
+    )
+    return [nadpis, ...(radky.length > 0 ? radky : ['(scéna zatím nemá žádný text)'])].join('\n\n')
+  })
+  return [`Title: ${scenar.nazev}`, '', ...bloky].join('\n\n')
 }
 
 // Poskládá celý scénář do jednoho čitelného scénáristického textu pro

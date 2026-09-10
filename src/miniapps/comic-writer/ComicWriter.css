@@ -518,3 +518,34 @@
   margin-left: 1.2rem;
   padding: 0.4rem 0.75rem;
 }
+
+.cw-nahradit-radek {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cw-nahradit-radek input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Tisk / PDF verze — jen náhled celého komiksu se zobrazí, zbytek
+   appky (hlavička appky, tlačítka) zmizí. Stejný trik jako u
+   Kniha/Scénář vedle. */
+@media print {
+  @page {
+    margin: 2cm;
+  }
+  body * {
+    visibility: hidden;
+  }
+  .cw-nahled-strana,
+  .cw-nahled-strana * {
+    visibility: visible;
+  }
+  /* Jedna strana komiksu = ideálně jedna stránka tisku, stejný důvod
+     jako Kniha's "jedna kapitola = jedna stránka" vedle. */
+  .cw-nahled-strana:not(:last-child) {
+    page-break-after: always;
+  }
+}

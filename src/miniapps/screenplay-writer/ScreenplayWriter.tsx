@@ -4,8 +4,10 @@ import {
   nadpisSceny,
   odhadStopazeMinut,
   pocetSlov,
+  SABLONY_SCEN,
   Scenar,
   serazenoPodleUpravy,
+  sestavFountain,
   sestavTextScenare,
   TYPY_MIST,
   TypMista,
@@ -16,6 +18,7 @@ import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
 import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
+import { useWriterCheckpoints, checkpointyProDilo } from '@/flagships/writer-room/useWriterCheckpoints'
 import './ScreenplayWriter.css'
 
 export const ScreenplayWriter: React.FC = () => {
@@ -33,6 +36,10 @@ export const ScreenplayWriter: React.FC = () => {
     updatePrvek,
     deletePrvek,
     presunScenu,
+    pridatSablonu,
+    nahradVScenari,
+    obnovZeCheckpointu,
+    setPoznamkaPostavy,
   } = useScreenplayWriter()
   const [aktivniId, setAktivniId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
@@ -104,6 +111,10 @@ export const ScreenplayWriter: React.FC = () => {
       updatePrvek={updatePrvek}
       deletePrvek={deletePrvek}
       presunScenu={presunScenu}
+      pridatSablonu={pridatSablonu}
+      nahradVScenari={nahradVScenari}
+      obnovZeCheckpointu={obnovZeCheckpointu}
+      setPoznamkaPostavy={setPoznamkaPostavy}
     />
   )
 }
@@ -125,6 +136,10 @@ interface ScenarEditorProps {
   updatePrvek: (scenarId: string, scenaId: string, prvekId: string, data: { text?: string; postava?: string; poznamka?: string }) => void
   deletePrvek: (scenarId: string, scenaId: string, prvekId: string) => void
   presunScenu: (scenarId: string, scenaId: string, smer: 'nahoru' | 'dolu') => void
+  pridatSablonu: (scenarId: string, sceny: { typMista: TypMista; misto: string; cas: string }[]) => void
+  nahradVScenari: (scenarId: string, hledat: string, nahradit: string) => number
+  obnovZeCheckpointu: (scenarId: string, snapshot: unknown) => boolean
+  setPoznamkaPostavy: (scenarId: string, jmeno: string, poznamka: string) => void
 }
 
 const ScenarEditor: React.FC<ScenarEditorProps> = ({
@@ -140,12 +155,18 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
   updatePrvek,
   deletePrvek,
   presunScenu,
+  pridatSablonu,
+  nahradVScenari,
+  obnovZeCheckpointu,
+  setPoznamkaPostavy,
 }) => {
   const [aktivniScenaId, setAktivniScenaId] = useState<string | null>(scenar.sceny[0]?.id ?? null)
   const [formOtevren, setFormOtevren] = useState<'scena' | 'akce' | 'dialog' | null>(null)
   const [nahledOtevren, setNahledOtevren] = useState(false)
   const [osnovaOtevrena, setOsnovaOtevrena] = useState(false)
+  const [zalohyOtevreny, setZalohyOtevreny] = useState(false)
   const [fokusRezim, setFokusRezim] = useState(false)
+  const [sablonyOtevrene, setSablonyOtevrene] = useState(false)
 
   const [typMista, setTypMista] = useState<TypMista>('INT')
   const [misto, setMisto] = useState('')
@@ -163,6 +184,11 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
 
   const indexAktivni = scenar.sceny.findIndex((s) => s.id === aktivniScenaId)
   const aktivniScena = indexAktivni >= 0 ? scenar.sceny[indexAktivni] : null
+
+  const pouzitSablonu = (sceny: { typMista: TypMista; misto: string; cas: string }[]) => {
+    pridatSablonu(scenar.id, sceny)
+    setSablonyOtevrene(false)
+  }
 
   const otevritPridaniSceny = () => {
     setTypMista('INT')
@@ -263,6 +289,18 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
           setAktivniScenaId(id)
           setOsnovaOtevrena(false)
         }}
+        nahradVScenari={nahradVScenari}
+        setPoznamkaPostavy={setPoznamkaPostavy}
+      />
+    )
+  }
+
+  if (zalohyOtevreny) {
+    return (
+      <ScenarZalohy
+        scenar={scenar}
+        onZpet={() => setZalohyOtevreny(false)}
+        obnovZeCheckpointu={obnovZeCheckpointu}
       />
     )
   }
@@ -296,6 +334,9 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
         <button className="sw-nahled-btn" onClick={() => setOsnovaOtevrena(true)}>
           🔍 Osnova
         </button>
+        <button className="sw-nahled-btn" onClick={() => setZalohyOtevreny(true)}>
+          💾 Zálohy
+        </button>
         <button className="sw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
           {fokusRezim ? '🎯 Zpět z fokusu' : '🎯 Fokus'}
         </button>
@@ -320,7 +361,21 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
         <button className="sw-plus-chip" onClick={otevritPridaniSceny} aria-label="Přidat scénu">
           +
         </button>
+        <button className="sw-plus-chip" onClick={() => setSablonyOtevrene((s) => !s)} aria-label="Přidat scény podle šablony">
+          📐
+        </button>
       </div>
+
+      {sablonyOtevrene && (
+        <div className="sw-sablony-seznam">
+          {SABLONY_SCEN.map((sablona) => (
+            <button key={sablona.id} className="sw-sablona-btn" onClick={() => pouzitSablonu(sablona.sceny)}>
+              <strong>{sablona.nazev}</strong>
+              <span>{sablona.sceny.map((s) => s.misto).join(' → ')}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {formOtevren === 'scena' && (
         <div className="sw-form">
@@ -529,11 +584,20 @@ const ScenarNahled: React.FC<{ scenar: Scenar; onZpet: () => void }> = ({ scenar
         <strong>{scenar.nazev}</strong>
         <span>Náhled celého scénáře</span>
       </div>
+      <button className="sw-nahled-btn" onClick={() => window.print()}>
+        🖨 Tisk
+      </button>
       <button
         className="sw-nahled-btn"
         onClick={() => stahnoutTextovySoubor(`${scenar.nazev || 'scenar'}.txt`, sestavTextScenare(scenar))}
       >
         ⬇ .txt
+      </button>
+      <button
+        className="sw-nahled-btn"
+        onClick={() => stahnoutTextovySoubor(`${scenar.nazev || 'scenar'}.fountain`, sestavFountain(scenar))}
+      >
+        ⬇ Fountain
       </button>
     </div>
 
@@ -568,13 +632,24 @@ const ScenarNahled: React.FC<{ scenar: Scenar; onZpet: () => void }> = ({ scenar
 // obsazení (jména postav použitá v dialogu) nahoře, protože Osnova je
 // jediné místo, kde appka o celém scénáři přemýšlí najednou, ne po
 // jedné scéně.
-const ScenarOsnova: React.FC<{ scenar: Scenar; onZpet: () => void; onOtevritScenu: (id: string) => void }> = ({
-  scenar,
-  onZpet,
-  onOtevritScenu,
-}) => {
+const ScenarOsnova: React.FC<{
+  scenar: Scenar
+  onZpet: () => void
+  onOtevritScenu: (id: string) => void
+  nahradVScenari: (scenarId: string, hledat: string, nahradit: string) => number
+  setPoznamkaPostavy: (scenarId: string, jmeno: string, poznamka: string) => void
+}> = ({ scenar, onZpet, onOtevritScenu, nahradVScenari, setPoznamkaPostavy }) => {
   const [dotaz, setDotaz] = useState('')
+  const [nahraditFormOtevren, setNahraditFormOtevren] = useState(false)
+  const [nahraditZa, setNahraditZa] = useState('')
+  const [vysledekNahrazeni, setVysledekNahrazeni] = useState<number | null>(null)
+  const [otevrenaPostava, setOtevrenaPostava] = useState<string | null>(null)
   const postavy = ziskejPostavy(scenar)
+
+  const provestNahrazeni = () => {
+    if (!dotaz.trim()) return
+    setVysledekNahrazeni(nahradVScenari(scenar.id, dotaz, nahraditZa))
+  }
 
   const najdiProScenu = (s: Scenar['sceny'][number]): boolean =>
     obsahujeDotaz(s.misto, dotaz) ||
@@ -599,20 +674,61 @@ const ScenarOsnova: React.FC<{ scenar: Scenar; onZpet: () => void; onOtevritScen
         type="text"
         placeholder="Hledat v místech, časech i replikách…"
         value={dotaz}
-        onChange={(e) => setDotaz(e.target.value)}
+        onChange={(e) => {
+          setDotaz(e.target.value)
+          setVysledekNahrazeni(null)
+        }}
         autoFocus
       />
 
+      <button className="sw-nahled-btn" onClick={() => setNahraditFormOtevren((f) => !f)}>
+        🔁 Nahradit
+      </button>
+
+      {nahraditFormOtevren && (
+        <div className="sw-nahradit-radek">
+          <input
+            type="text"
+            placeholder="Nahradit za…"
+            value={nahraditZa}
+            onChange={(e) => setNahraditZa(e.target.value)}
+          />
+          <button className="sw-ulozit-btn" onClick={provestNahrazeni} disabled={!dotaz.trim()}>
+            Nahradit vše
+          </button>
+        </div>
+      )}
+      {vysledekNahrazeni !== null && (
+        <p className="sw-prazdno">
+          {vysledekNahrazeni === 0 ? 'Nic k nahrazení se nenašlo.' : `Nahrazeno ${vysledekNahrazeni}×.`}
+        </p>
+      )}
+
       {postavy.length > 0 && (
         <div className="sw-postavy-radek">
-          <span className="sw-panel-label">👥 Obsazení</span>
+          <span className="sw-panel-label">👥 Obsazení (bible postav — klepnutím přidáš poznámku)</span>
           <div className="sw-chip-row">
             {postavy.map((jmeno) => (
-              <span className="sw-chip sw-chip--staticky" key={jmeno}>
+              <button
+                key={jmeno}
+                className={`sw-chip${otevrenaPostava === jmeno ? ' active' : ''}`}
+                onClick={() => setOtevrenaPostava(otevrenaPostava === jmeno ? null : jmeno)}
+              >
                 {jmeno}
-              </span>
+              </button>
             ))}
           </div>
+          {otevrenaPostava && (
+            <input
+              type="text"
+              className="sw-poznamka"
+              placeholder={`Poznámka k postavě „${otevrenaPostava}“ (vzhled, motivace)…`}
+              value={scenar.postavyPoznamky[otevrenaPostava] ?? ''}
+              onChange={(e) => setPoznamkaPostavy(scenar.id, otevrenaPostava, e.target.value)}
+              maxLength={300}
+              autoFocus
+            />
+          )}
         </div>
       )}
 
@@ -639,6 +755,75 @@ const ScenarOsnova: React.FC<{ scenar: Scenar; onZpet: () => void; onOtevritScen
             </div>
           )
         })}
+      </div>
+    </div>
+  )
+}
+
+// Ruční záložní verze (checkpointy) — stejná role a stejné UI jako
+// Kniha's KnihaZalohy vedle, jen nad scénářem.
+const ScenarZalohy: React.FC<{
+  scenar: Scenar
+  onZpet: () => void
+  obnovZeCheckpointu: (scenarId: string, snapshot: unknown) => boolean
+}> = ({ scenar, onZpet, obnovZeCheckpointu }) => {
+  const { checkpointy, vytvorCheckpoint, smazCheckpoint } = useWriterCheckpoints()
+  const [novyNazev, setNovyNazev] = useState('')
+  const [zprava, setZprava] = useState<string | null>(null)
+
+  const seznam = checkpointyProDilo(checkpointy, 'scenar', scenar.id)
+
+  const ulozitZalohu = () => {
+    vytvorCheckpoint('scenar', scenar.id, novyNazev || `Záloha ${seznam.length + 1}`, scenar)
+    setNovyNazev('')
+    setZprava('Záloha uložena.')
+  }
+
+  const obnovit = (nazev: string, data: unknown) => {
+    if (!window.confirm(`Obnovit scénář ze zálohy „${nazev}“? Aktuální stav scén se přepíše.`)) return
+    setZprava(obnovZeCheckpointu(scenar.id, data) ? 'Verze obnovena.' : 'Nepovedlo se obnovit — záloha je poškozená.')
+  }
+
+  return (
+    <div className="sw-app">
+      <div className="sw-header">
+        <button className="sw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+          ←
+        </button>
+        <div className="sw-header-text">
+          <strong>{scenar.nazev}</strong>
+          <span>Ruční zálohy</span>
+        </div>
+      </div>
+
+      <div className="sw-nova-radek">
+        <input
+          type="text"
+          placeholder={`Název zálohy (např. „Před přepsáním konce“)`}
+          value={novyNazev}
+          onChange={(e) => setNovyNazev(e.target.value)}
+          maxLength={60}
+        />
+        <button className="sw-ulozit-btn" onClick={ulozitZalohu}>
+          Uložit
+        </button>
+      </div>
+
+      {zprava && <p className="sw-prazdno">{zprava}</p>}
+
+      <div className="sw-seznam">
+        {seznam.length === 0 && <p className="sw-prazdno">Zatím žádná ruční záloha tohohle scénáře.</p>}
+        {seznam.map((c) => (
+          <div className="sw-radek" key={c.id}>
+            <button className="sw-radek-otevrit" onClick={() => obnovit(c.nazev, c.data)}>
+              <strong>{c.nazev}</strong>
+              <span>{formatujNaposledyUpraveno(c.createdAt)}</span>
+            </button>
+            <button className="sw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
+              ✕
+            </button>
+          </div>
+        ))}
       </div>
     </div>
   )

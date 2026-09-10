@@ -72,7 +72,7 @@ const scenarSPostavami = (): Scenar => ({
   createdAt: '1',
   upravenoAt: '1',
   cilScen: null,
-  sceny: [
+  postavyPoznamky: {},  sceny: [
     {
       id: 'sc1',
       typMista: 'INT',
@@ -106,7 +106,7 @@ describe('ziskejPostavy (Scénář)', () => {
       createdAt: '1',
       upravenoAt: '1',
       cilScen: null,
-      sceny: [
+      postavyPoznamky: {},      sceny: [
         {
           id: 'sc1',
           typMista: 'INT',
@@ -134,7 +134,7 @@ describe('odhadStopazeMinut', () => {
       createdAt: '1',
       upravenoAt: '1',
       cilScen: null,
-      sceny: [
+      postavyPoznamky: {},      sceny: [
         {
           id: 'sc1',
           typMista: 'INT',
@@ -161,7 +161,7 @@ describe('odhadStopazeMinut', () => {
   })
 
   it('prázdný scénář má odhad 0 minut', () => {
-    const scenar: Scenar = { id: 's', nazev: 'S', createdAt: '1', upravenoAt: '1', cilScen: null, sceny: [] }
+    const scenar: Scenar = { id: 's', nazev: 'S', createdAt: '1', upravenoAt: '1', cilScen: null, postavyPoznamky: {}, sceny: [] }
     expect(odhadStopazeMinut(scenar)).toBe(0)
   })
 })
@@ -174,7 +174,7 @@ describe('ziskejPostavy (Komiks)', () => {
       createdAt: '1',
       upravenoAt: '1',
       cilStran: null,
-      strany: [
+      postavyPoznamky: {},      strany: [
         {
           id: 'str1',
           cislo: 1,

@@ -21,7 +21,11 @@ const sanitizujKapitolu = (data: unknown) => {
   return { id: d.id, nazev: d.nazev, text: d.text, createdAt: d.createdAt, stav, poznamka }
 }
 
-const sanitizujKnihu = (data: unknown) => {
+// Exportováno navíc pro obnovu z ručního checkpointu
+// (useWriterCheckpoints.ts) — stejná sanitizace, co appka už používá
+// pro `merge` při načtení z úložiště, ať se hluboká validace snímku
+// díla nepíše podruhé.
+export const sanitizujKnihu = (data: unknown) => {
   if (!data || typeof data !== 'object') return null
   const d = data as Record<string, unknown>
   if (typeof d.id !== 'string' || typeof d.nazev !== 'string' || typeof d.createdAt !== 'string') return null

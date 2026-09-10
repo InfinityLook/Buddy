@@ -2,9 +2,10 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
-import { validateBookWriterData } from '@/core/utils/bookWriterValidation'
+import { sanitizujKnihu, validateBookWriterData } from '@/core/utils/bookWriterValidation'
 import { Kniha } from './types'
 import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import { nahradVTextu } from '@/flagships/writer-room/writerRoomNahradit'
 
 // Stejně nízké XP jako u ostatních tvůrčích miniaplikací (Music Studio,
 // Kalendář) — odměna za jednu kapitolu, ne za celou knihu, ať se to dá
@@ -27,6 +28,17 @@ interface BookWriterState {
   ) => void
   deleteKapitola: (knihaId: string, kapitolaId: string) => void
   presunKapitolu: (knihaId: string, kapitolaId: string, smer: 'nahoru' | 'dolu') => void
+  // Založí víc kapitol najednou podle šablony (viz SABLONY_KAPITOL v
+  // types.ts) — stejná odměna jako za kapitolu přidanou po jedné.
+  pridatSablonu: (knihaId: string, nazvyKapitol: string[]) => void
+  // Najde a nahradí zadaný text ve všech kapitolách knihy najednou —
+  // vrací počet skutečných záměn, ať UI ví, co se vlastně stalo.
+  nahradVKnize: (knihaId: string, hledat: string, nahradit: string) => number
+  // Přepíše nazev/cilSlov/kapitoly podle uloženého checkpointu
+  // (useWriterCheckpoints.ts) — id/createdAt knihy zůstávají, jen se
+  // aktualizuje obsah. Vrací false, pokud checkpoint neprošel
+  // sanitizací (poškozená data), true při úspěchu.
+  obnovZeCheckpointu: (knihaId: string, snapshot: unknown) => boolean
 }
 
 // Posune položku o jedno místo v poli daným směrem — no-op na kraji
@@ -115,6 +127,55 @@ const useBookWriterStore = create<BookWriterState>()(
             return { ...k, kapitoly: posunPolozku(k.kapitoly, index, smer), upravenoAt: new Date().toISOString() }
           }),
         })),
+
+      pridatSablonu: (knihaId, nazvyKapitol) => {
+        const ted = new Date().toISOString()
+        const nove = nazvyKapitol.map((nazev) => ({
+          id: noveId(),
+          nazev,
+          text: '',
+          createdAt: ted,
+          stav: 'napad' as StavPolozky,
+          poznamka: '',
+        }))
+        set((state) => ({
+          knihy: state.knihy.map((k) =>
+            k.id === knihaId ? { ...k, kapitoly: [...k.kapitoly, ...nove], upravenoAt: ted } : k
+          ),
+        }))
+        // Odměna za každou skutečně založenou kapitolu, stejně jako by
+        // je autor přidal ručně jednu po druhé.
+        nove.forEach(() => useGamificationStore.getState().recordAction('book', BOOK_XP))
+      },
+
+      nahradVKnize: (knihaId, hledat, nahradit) => {
+        let celkemZamen = 0
+        set((state) => ({
+          knihy: state.knihy.map((k) => {
+            if (k.id !== knihaId) return k
+            const kapitoly = k.kapitoly.map((kap) => {
+              const { text, pocet } = nahradVTextu(kap.text, hledat, nahradit)
+              celkemZamen += pocet
+              return pocet > 0 ? { ...kap, text } : kap
+            })
+            return celkemZamen > 0 ? { ...k, kapitoly, upravenoAt: new Date().toISOString() } : k
+          }),
+        }))
+        return celkemZamen
+      },
+
+      obnovZeCheckpointu: (knihaId, snapshot) => {
+        const sanitizovano = sanitizujKnihu(snapshot)
+        if (!sanitizovano) return false
+        set((state) => ({
+          knihy: state.knihy.map((k) =>
+            k.id === knihaId
+              ? { ...k, nazev: sanitizovano.nazev, cilSlov: sanitizovano.cilSlov, kapitoly: sanitizovano.kapitoly, upravenoAt: new Date().toISOString() }
+              : k
+          ),
+        }))
+        return true
+      },
     }),
     {
       name: 'schoolbuddy-book-writer-storage',

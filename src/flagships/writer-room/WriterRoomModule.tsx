@@ -10,7 +10,7 @@ import { celkovyPocetPanelu, serazenoPodleUpravy as serazenoPodleUpravyKomiksu }
 import { plural } from '@/core/utils/pluralCZ'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
-import { spocitejDnesniTvorbu } from './writerRoomStats'
+import { spocitejDnesniTvorbu, spocitejTvorbuPodleDne } from './writerRoomStats'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './WriterRoomModule.css'
 
@@ -40,6 +40,8 @@ export const WriterRoomModule: React.FC = () => {
   const posledniScenar = serazenoPodleUpravyScenaru(scenare)[0] ?? null
   const posledniKomiks = serazenoPodleUpravyKomiksu(komiksy)[0] ?? null
   const dnesniTvorba = spocitejDnesniTvorbu(knihy, scenare, komiksy)
+  const tvorbaPodleDne = spocitejTvorbuPodleDne(knihy, scenare, komiksy)
+  const maxZaDen = Math.max(1, ...tvorbaPodleDne.map((d) => d.pocet))
   const dnesniCasti: string[] = []
   if (dnesniTvorba.kapitol > 0) {
     dnesniCasti.push(`${dnesniTvorba.kapitol} ${plural(dnesniTvorba.kapitol, 'kapitola', 'kapitoly', 'kapitol')}`)
@@ -124,6 +126,26 @@ export const WriterRoomModule: React.FC = () => {
           <p className="wr-dnes">
             {dnesniCasti.length === 0 ? 'Dnes jsi ještě nic nenapsal(a).' : `✍️ Dnes: ${dnesniCasti.join(', ')}`}
           </p>
+        </div>
+
+        <div className="wr-panel">
+          <div className="wr-panel-hlavicka">
+            <h2>Aktivita za posledních 14 dní</h2>
+          </div>
+          <div className="wr-graf" role="img" aria-label="Graf psací aktivity za posledních 14 dní">
+            {tvorbaPodleDne.map((den) => (
+              <div className="wr-graf-sloupec" key={den.datumIso}>
+                <div className="wr-graf-tyc-obal">
+                  <div
+                    className={`wr-graf-tyc${den.pocet > 0 ? ' ma-hodnotu' : ''}`}
+                    style={{ height: `${Math.max(4, (den.pocet / maxZaDen) * 100)}%` }}
+                    title={`${den.label}: ${den.pocet}`}
+                  />
+                </div>
+                <span className="wr-graf-popisek">{den.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="wr-panel">

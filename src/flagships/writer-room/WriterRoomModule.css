@@ -85,6 +85,50 @@
 }
 
 /* ------------------------------------------
+   GRAF PSACÍ AKTIVITY
+   ------------------------------------------ */
+.wr-graf {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.25rem;
+  height: 80px;
+}
+
+.wr-graf-sloupec {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  height: 100%;
+}
+
+.wr-graf-tyc-obal {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+}
+
+.wr-graf-tyc {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 4px 4px 0 0;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.wr-graf-tyc.ma-hodnotu {
+  background: #eab308;
+}
+
+.wr-graf-popisek {
+  font-size: 0.58rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------
    NÁHLEDY KNIHA / SCÉNÁŘ / KOMIKS
    ------------------------------------------ */
 .wr-preview-radek {

@@ -2,9 +2,10 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
-import { validateComicWriterData } from '@/core/utils/comicWriterValidation'
+import { sanitizujKomiks, validateComicWriterData } from '@/core/utils/comicWriterValidation'
 import { Komiks, Panel, PanelRadek, TypRadku } from './types'
 import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import { nahradVTextu } from '@/flagships/writer-room/writerRoomNahradit'
 
 const COMIC_XP = 6
 
@@ -32,6 +33,14 @@ interface ComicWriterState {
   ) => void
   deleteRadek: (komiksId: string, stranaId: string, panelId: string, radekId: string) => void
   presunStranu: (komiksId: string, stranaId: string, smer: 'nahoru' | 'dolu') => void
+  // Najde a nahradí zadaný text napříč celým komiksem — ve vizuálu
+  // panelu i v textu/jménu postavy u řádku, vrací počet skutečných
+  // záměn.
+  nahradVKomiksu: (komiksId: string, hledat: string, nahradit: string) => number
+  // Stejná role jako Kniha/Scénář's obnovZeCheckpointu.
+  obnovZeCheckpointu: (komiksId: string, snapshot: unknown) => boolean
+  // "Bible postav" — stejná role jako Scénář's setPoznamkaPostavy.
+  setPoznamkaPostavy: (komiksId: string, jmeno: string, poznamka: string) => void
 }
 
 // Stejný sdílený "posuň o jedno místo, no-op na kraji" helper jako
@@ -58,7 +67,15 @@ const useComicWriterStore = create<ComicWriterState>()(
       addKomiks: (nazev) => {
         const id = noveId()
         const ted = new Date().toISOString()
-        const novy: Komiks = { id, nazev: nazev.trim() || 'Nový komiks', strany: [], createdAt: ted, upravenoAt: ted, cilStran: null }
+        const novy: Komiks = {
+          id,
+          nazev: nazev.trim() || 'Nový komiks',
+          strany: [],
+          createdAt: ted,
+          upravenoAt: ted,
+          cilStran: null,
+          postavyPoznamky: {},
+        }
         set((state) => ({ komiksy: [novy, ...state.komiksy] }))
         return id
       },
@@ -239,6 +256,60 @@ const useComicWriterStore = create<ComicWriterState>()(
             if (index < 0) return k
             return { ...k, strany: prescislovatStrany(posunPolozku(k.strany, index, smer)), upravenoAt: new Date().toISOString() }
           }),
+        })),
+
+      nahradVKomiksu: (komiksId, hledat, nahradit) => {
+        let celkemZamen = 0
+        set((state) => ({
+          komiksy: state.komiksy.map((k) => {
+            if (k.id !== komiksId) return k
+            const strany = k.strany.map((s) => {
+              const panely = s.panely.map((p) => {
+                const vizualVysledek = nahradVTextu(p.vizual, hledat, nahradit)
+                celkemZamen += vizualVysledek.pocet
+                const radky = p.radky.map((r) => {
+                  const textVysledek = nahradVTextu(r.text, hledat, nahradit)
+                  const postavaVysledek = nahradVTextu(r.postava, hledat, nahradit)
+                  celkemZamen += textVysledek.pocet + postavaVysledek.pocet
+                  return textVysledek.pocet + postavaVysledek.pocet > 0
+                    ? { ...r, text: textVysledek.text, postava: postavaVysledek.text }
+                    : r
+                })
+                return vizualVysledek.pocet > 0 ? { ...p, vizual: vizualVysledek.text, radky } : { ...p, radky }
+              })
+              return { ...s, panely }
+            })
+            return celkemZamen > 0 ? { ...k, strany, upravenoAt: new Date().toISOString() } : k
+          }),
+        }))
+        return celkemZamen
+      },
+
+      obnovZeCheckpointu: (komiksId, snapshot) => {
+        const sanitizovano = sanitizujKomiks(snapshot)
+        if (!sanitizovano) return false
+        set((state) => ({
+          komiksy: state.komiksy.map((k) =>
+            k.id === komiksId
+              ? {
+                  ...k,
+                  nazev: sanitizovano.nazev,
+                  strany: sanitizovano.strany,
+                  cilStran: sanitizovano.cilStran,
+                  postavyPoznamky: sanitizovano.postavyPoznamky,
+                  upravenoAt: new Date().toISOString(),
+                }
+              : k
+          ),
+        }))
+        return true
+      },
+
+      setPoznamkaPostavy: (komiksId, jmeno, poznamka) =>
+        set((state) => ({
+          komiksy: state.komiksy.map((k) =>
+            k.id === komiksId ? { ...k, postavyPoznamky: { ...k.postavyPoznamky, [jmeno]: poznamka } } : k
+          ),
         })),
     }),
     {

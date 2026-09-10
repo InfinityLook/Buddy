@@ -56,7 +56,10 @@ const sanitizujScenu = (data: unknown) => {
   }
 }
 
-const sanitizujScenar = (data: unknown) => {
+// Exportováno navíc pro obnovu z ručního checkpointu
+// (useWriterCheckpoints.ts) — viz stejný komentář u sanitizujKnihu v
+// bookWriterValidation.ts.
+export const sanitizujScenar = (data: unknown) => {
   if (!data || typeof data !== 'object') return null
   const d = data as Record<string, unknown>
   if (typeof d.id !== 'string' || typeof d.nazev !== 'string' || typeof d.createdAt !== 'string') return null
@@ -70,7 +73,19 @@ const sanitizujScenar = (data: unknown) => {
   // "žádný cíl", stejná výchozí hodnota, jakou by dostal nově založený.
   const cilScen = typeof d.cilScen === 'number' && Number.isFinite(d.cilScen) ? d.cilScen : null
 
-  return { id: d.id, nazev: d.nazev, sceny, createdAt: d.createdAt, upravenoAt, cilScen }
+  // postavyPoznamky je novější pole (bible postav) — starší uložený
+  // scénář ho nemá vůbec, fallback na prázdný objekt. Položka se
+  // ověřuje po jedné, stejná "poškozená položka se zahodí, ne celý
+  // objekt" zásada jako u pole samotného.
+  const postavyPoznamkyRaw = d.postavyPoznamky
+  const postavyPoznamky: Record<string, string> = {}
+  if (postavyPoznamkyRaw && typeof postavyPoznamkyRaw === 'object') {
+    for (const [jmeno, poznamka] of Object.entries(postavyPoznamkyRaw as Record<string, unknown>)) {
+      if (typeof poznamka === 'string') postavyPoznamky[jmeno] = poznamka
+    }
+  }
+
+  return { id: d.id, nazev: d.nazev, sceny, createdAt: d.createdAt, upravenoAt, cilScen, postavyPoznamky }
 }
 
 const ScreenplayWriterSchema = v.object({

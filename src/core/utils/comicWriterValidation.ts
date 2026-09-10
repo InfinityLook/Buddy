@@ -45,7 +45,10 @@ const sanitizujStranu = (data: unknown) => {
   return { id: d.id, cislo: d.cislo, panely, stav, poznamka }
 }
 
-const sanitizujKomiks = (data: unknown) => {
+// Exportováno navíc pro obnovu z ručního checkpointu
+// (useWriterCheckpoints.ts) — viz stejný komentář u sanitizujKnihu v
+// bookWriterValidation.ts.
+export const sanitizujKomiks = (data: unknown) => {
   if (!data || typeof data !== 'object') return null
   const d = data as Record<string, unknown>
   if (typeof d.id !== 'string' || typeof d.nazev !== 'string' || typeof d.createdAt !== 'string') return null
@@ -54,7 +57,18 @@ const sanitizujKomiks = (data: unknown) => {
   // upravenoAt vůbec nemá.
   const upravenoAt = typeof d.upravenoAt === 'string' ? d.upravenoAt : d.createdAt
   const cilStran = typeof d.cilStran === 'number' && Number.isFinite(d.cilStran) ? d.cilStran : null
-  return { id: d.id, nazev: d.nazev, strany, createdAt: d.createdAt, upravenoAt, cilStran }
+
+  // postavyPoznamky je novější pole (bible postav) — stejný fallback a
+  // po-položce ověření jako u Scénáře v screenplayWriterValidation.ts.
+  const postavyPoznamkyRaw = d.postavyPoznamky
+  const postavyPoznamky: Record<string, string> = {}
+  if (postavyPoznamkyRaw && typeof postavyPoznamkyRaw === 'object') {
+    for (const [jmeno, poznamka] of Object.entries(postavyPoznamkyRaw as Record<string, unknown>)) {
+      if (typeof poznamka === 'string') postavyPoznamky[jmeno] = poznamka
+    }
+  }
+
+  return { id: d.id, nazev: d.nazev, strany, createdAt: d.createdAt, upravenoAt, cilStran, postavyPoznamky }
 }
 
 const ComicWriterSchema = v.object({
