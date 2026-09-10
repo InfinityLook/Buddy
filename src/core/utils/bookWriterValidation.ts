@@ -13,12 +13,13 @@ const sanitizujKapitolu = (data: unknown) => {
   if (typeof d.id !== 'string' || typeof d.nazev !== 'string' || typeof d.text !== 'string' || typeof d.createdAt !== 'string') {
     return null
   }
-  // stav/poznamka jsou novější pole — starší uložená kapitola je nemá
-  // vůbec, fallback na "Nápad"/prázdnou poznámku, stejně jako u
-  // upravenoAt/cilSlov jinde v tomhle souboru.
+  // stav/poznamka/stitky jsou novější pole — starší uložená kapitola je
+  // nemá vůbec, fallback na "Nápad"/prázdnou poznámku/prázdné štítky,
+  // stejně jako u upravenoAt/cilSlov jinde v tomhle souboru.
   const stav = jePlatnyStav(d.stav) ? d.stav : 'napad'
   const poznamka = typeof d.poznamka === 'string' ? d.poznamka : ''
-  return { id: d.id, nazev: d.nazev, text: d.text, createdAt: d.createdAt, stav, poznamka }
+  const stitky = typeof d.stitky === 'string' ? d.stitky : ''
+  return { id: d.id, nazev: d.nazev, text: d.text, createdAt: d.createdAt, stav, poznamka, stitky }
 }
 
 // Exportováno navíc pro obnovu z ručního checkpointu

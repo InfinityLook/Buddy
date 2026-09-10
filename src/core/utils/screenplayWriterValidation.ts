@@ -39,10 +39,11 @@ const sanitizujScenu = (data: unknown) => {
 
   const prvky = Array.isArray(d.prvky) ? d.prvky.map(sanitizujPrvek).filter((p): p is NonNullable<typeof p> => p !== null) : []
 
-  // stav/poznamka jsou novější pole — starší uložená scéna je nemá
-  // vůbec, stejný fallback jako u Kapitoly v bookWriterValidation.ts.
+  // stav/poznamka/stitky jsou novější pole — starší uložená scéna je
+  // nemá vůbec, stejný fallback jako u Kapitoly v bookWriterValidation.ts.
   const stav = jePlatnyStav(d.stav) ? d.stav : 'napad'
   const poznamka = typeof d.poznamka === 'string' ? d.poznamka : ''
+  const stitky = typeof d.stitky === 'string' ? d.stitky : ''
 
   return {
     id: d.id,
@@ -53,6 +54,7 @@ const sanitizujScenu = (data: unknown) => {
     createdAt: d.createdAt,
     stav,
     poznamka,
+    stitky,
   }
 }
 

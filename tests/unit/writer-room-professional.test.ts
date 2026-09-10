@@ -81,6 +81,7 @@ const scenarSPostavami = (): Scenar => ({
       createdAt: '1',
       stav: 'napad',
       poznamka: '',
+      stitky: '',
       prvky: [
         { id: 'p1', typ: 'akce', text: 'Petr vejde dovnitř.' },
         { id: 'p2', typ: 'dialog', postava: 'Petr', text: 'Ahoj.', poznamka: '' },
@@ -115,6 +116,7 @@ describe('ziskejPostavy (Scénář)', () => {
           createdAt: '1',
           stav: 'napad',
           poznamka: '',
+          stitky: '',
           prvky: [
             { id: 'p1', typ: 'akce', text: 'Něco se děje.' },
             { id: 'p2', typ: 'dialog', postava: '', text: 'Ticho.', poznamka: '' },
@@ -143,6 +145,7 @@ describe('odhadStopazeMinut', () => {
           createdAt: '1',
           stav: 'napad',
           poznamka: '',
+          stitky: '',
           prvky: [{ id: 'p1', typ: 'akce', text: Array(200).fill('slovo').join(' ') }],
         },
         {
@@ -153,6 +156,7 @@ describe('odhadStopazeMinut', () => {
           createdAt: '1',
           stav: 'napad',
           poznamka: '',
+          stitky: '',
           prvky: [{ id: 'p2', typ: 'akce', text: Array(200).fill('slovo').join(' ') }],
         },
       ],
@@ -180,11 +184,13 @@ describe('ziskejPostavy (Komiks)', () => {
           cislo: 1,
           stav: 'napad',
           poznamka: '',
+          stitky: '',
           panely: [
             {
               id: 'pan1',
               vizual: 'v',
               createdAt: '1',
+              zaber: null,
               radky: [
                 { id: 'r1', typ: 'dialog', postava: 'Hrdina', text: 'Letím!' },
                 { id: 'r2', typ: 'popisek', postava: '', text: 'O chvíli později...' },

@@ -7,13 +7,15 @@ import {
   odhadCteniMinut,
   pocetSlov,
   serazenoPodleUpravy,
+  sestavEpub,
   sestavTextKnihy,
 } from './types'
 import { plural } from '@/core/utils/pluralCZ'
-import { stahnoutTextovySoubor } from '@/core/utils/download'
+import { stahnoutBlob, stahnoutTextovySoubor } from '@/core/utils/download'
 import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
 import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
+import { najdiNaduzivanaSlova } from '@/flagships/writer-room/writerRoomStyl'
 import { useWriterCheckpoints, checkpointyProDilo } from '@/flagships/writer-room/useWriterCheckpoints'
 import './BookWriter.css'
 
@@ -31,6 +33,7 @@ export const BookWriter: React.FC = () => {
     pridatSablonu,
     nahradVKnize,
     obnovZeCheckpointu,
+    duplikovatKniha,
   } = useBookWriter()
   const [aktivniKnihaId, setAktivniKnihaId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
@@ -46,6 +49,11 @@ export const BookWriter: React.FC = () => {
 
   const smazatKnihu = (k: Kniha) => {
     if (window.confirm(`Smazat knihu „${k.nazev}“?`)) deleteKniha(k.id)
+  }
+
+  const duplikovat = (k: Kniha) => {
+    const novaId = duplikovatKniha(k.id)
+    if (novaId) setAktivniKnihaId(novaId)
   }
 
   if (!aktivniKniha) {
@@ -80,6 +88,9 @@ export const BookWriter: React.FC = () => {
                   {celkovyPocetSlov(k)} {plural(celkovyPocetSlov(k), 'slovo', 'slova', 'slov')}
                 </span>
                 <span className="bw-radek-cas">{formatujNaposledyUpraveno(k.upravenoAt)}</span>
+              </button>
+              <button className="bw-icon-btn" onClick={() => duplikovat(k)} aria-label={`Duplikovat ${k.nazev}`}>
+                ⧉
               </button>
               <button className="bw-icon-btn danger" onClick={() => smazatKnihu(k)} aria-label={`Smazat ${k.nazev}`}>
                 ✕
@@ -116,7 +127,7 @@ interface KnihaEditorProps {
   updateKapitola: (
     knihaId: string,
     kapitolaId: string,
-    data: { nazev?: string; text?: string; stav?: StavPolozky; poznamka?: string }
+    data: { nazev?: string; text?: string; stav?: StavPolozky; poznamka?: string; stitky?: string }
   ) => void
   deleteKapitola: (knihaId: string, kapitolaId: string) => void
   presunKapitolu: (knihaId: string, kapitolaId: string, smer: 'nahoru' | 'dolu') => void
@@ -210,6 +221,8 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
             onChange={(e) => updateKniha(kniha.id, e.target.value)}
             maxLength={60}
             aria-label="Název knihy"
+            spellCheck
+            lang="cs"
           />
           <span>
             {celkem} {plural(celkem, 'slovo', 'slova', 'slov')}
@@ -313,6 +326,8 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
             onChange={(e) => updateKapitola(kniha.id, aktivniKapitola.id, { text: e.target.value })}
             placeholder="Piš sem text kapitoly…"
             rows={fokusRezim ? 22 : 12}
+            spellCheck
+            lang="cs"
           />
 
           <div className="bw-spodni-radek">
@@ -331,6 +346,30 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
             value={aktivniKapitola.poznamka}
             onChange={(e) => updateKapitola(kniha.id, aktivniKapitola.id, { poznamka: e.target.value })}
             maxLength={200}
+            spellCheck
+            lang="cs"
+          />
+
+          {aktivniKapitola.stitky.trim() && (
+            <div className="bw-stitek-row">
+              {aktivniKapitola.stitky
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .map((stitek) => (
+                  <span className="bw-stitek" key={stitek}>
+                    #{stitek}
+                  </span>
+                ))}
+            </div>
+          )}
+          <input
+            type="text"
+            className="bw-poznamka"
+            placeholder="Vlastní štítky, oddělené čárkou (např. „akce, důležité“)…"
+            value={aktivniKapitola.stitky}
+            onChange={(e) => updateKapitola(kniha.id, aktivniKapitola.id, { stitky: e.target.value })}
+            maxLength={100}
           />
         </>
       )}
@@ -369,6 +408,12 @@ const KnihaNahled: React.FC<{ kniha: Kniha; onZpet: () => void }> = ({ kniha, on
       >
         ⬇ .txt
       </button>
+      <button
+        className="bw-nahled-btn"
+        onClick={async () => stahnoutBlob(`${kniha.nazev || 'kniha'}.epub`, await sestavEpub(kniha))}
+      >
+        ⬇ EPUB
+      </button>
     </div>
 
     <div className="bw-nahled">
@@ -405,6 +450,7 @@ const KnihaOsnova: React.FC<{
   const [nahraditFormOtevren, setNahraditFormOtevren] = useState(false)
   const [nahraditZa, setNahraditZa] = useState('')
   const [vysledekNahrazeni, setVysledekNahrazeni] = useState<number | null>(null)
+  const [naduzivanaOtevrena, setNaduzivanaOtevrena] = useState(false)
 
   const provestNahrazeni = () => {
     if (!dotaz.trim()) return
@@ -413,7 +459,12 @@ const KnihaOsnova: React.FC<{
 
   const polozky = kniha.kapitoly
     .map((k, i) => ({ kapitola: k, poradi: i + 1 }))
-    .filter(({ kapitola }) => obsahujeDotaz(kapitola.nazev, dotaz) || obsahujeDotaz(kapitola.text, dotaz))
+    .filter(
+      ({ kapitola }) =>
+        obsahujeDotaz(kapitola.nazev, dotaz) || obsahujeDotaz(kapitola.text, dotaz) || obsahujeDotaz(kapitola.stitky, dotaz)
+    )
+
+  const naduzivana = najdiNaduzivanaSlova(kniha.kapitoly.map((k) => k.text))
 
   return (
     <div className="bw-app">
@@ -459,6 +510,24 @@ const KnihaOsnova: React.FC<{
         <p className="bw-prazdno">
           {vysledekNahrazeni === 0 ? 'Nic k nahrazení se nenašlo.' : `Nahrazeno ${vysledekNahrazeni}×.`}
         </p>
+      )}
+
+      <button className="bw-nahled-btn" onClick={() => setNaduzivanaOtevrena((o) => !o)}>
+        🔠 Nadužívaná slova
+      </button>
+      {naduzivanaOtevrena && (
+        <div className="bw-seznam">
+          {naduzivana.length === 0 ? (
+            <p className="bw-prazdno">Žádné slovo se v knize neopakuje nápadně často.</p>
+          ) : (
+            naduzivana.map((n) => (
+              <div className="bw-stat-radek" key={n.slovo}>
+                <span>{n.slovo}</span>
+                <span>{n.pocet}×</span>
+              </div>
+            ))
+          )}
+        </div>
       )}
 
       <div className="bw-seznam">

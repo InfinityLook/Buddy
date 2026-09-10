@@ -3,6 +3,7 @@
 // ==========================================
 
 import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import JSZip from 'jszip'
 
 export interface Kapitola {
   id: string
@@ -18,6 +19,12 @@ export interface Kapitola {
   // oddělená od samotného textu kapitoly — nikdy se neexportuje do
   // .txt ani nezobrazuje v Náhledu, je jen pro appku samotnou.
   poznamka: string
+  // Volné, autorem psané štítky (např. "akce, důležité") — na rozdíl
+  // od `stav` (pevná tříhodnotová sada) jde o libovolný text, oddělený
+  // čárkou jen na zobrazení. Nepovinné pole — starší uložená kapitola
+  // ho nemá vůbec, fallback na prázdný řetězec (viz
+  // bookWriterValidation.ts).
+  stitky: string
 }
 
 export interface Kniha {
@@ -91,3 +98,108 @@ export const sestavTextKnihy = (kniha: Kniha): string =>
     '',
     ...kniha.kapitoly.map((k, i) => `${i + 1}. ${k.nazev}\n\n${k.text.trim() || '(prázdná kapitola)'}`),
   ].join('\n\n')
+
+const escapujXml = (s: string): string =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+
+// Skládá knihu do skutečného, platného souboru EPUB (verze 2.0.1) —
+// druhý, formátově věrný export vedle sestavTextKnihy výš, stejná
+// role jako Scénářovo sestavFountain vedle jeho vlastní sestavTextScenare
+// (čitelný .txt pro rychlé nahlédnutí, druhý formát pro skutečné čtečky/
+// nástroje). Používá appce už existující JSZip závislost (stejnou, co
+// core/utils/fileBackup.ts používá pro zálohy) — EPUB je jen zip se
+// zvláštní strukturou (mimetype/META-INF/OEBPS), žádná binární data se
+// nekódují, jen se sbalí vedle sebe. Prázdná kniha (bez kapitol) by
+// znamenala prázdný spine, který skutečné čtečky odmítají — appka
+// tenhle případ pokryje jednou zástupnou kapitolou místo pádu.
+export const sestavEpub = async (kniha: Kniha): Promise<Blob> => {
+  const zip = new JSZip()
+  // mimetype musí být první soubor v archivu a nesmí být komprimovaný —
+  // to je EPUB specifikace, ne appce vlastní rozhodnutí.
+  zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' })
+
+  zip.file(
+    'META-INF/container.xml',
+    `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`
+  )
+
+  const kapitolyKZapsani =
+    kniha.kapitoly.length > 0
+      ? kniha.kapitoly
+      : [{ id: 'prazdna', nazev: kniha.nazev, text: '(kniha zatím nemá žádnou kapitolu)', createdAt: '', stav: 'napad' as StavPolozky, poznamka: '', stitky: '' }]
+
+  const kapitolySoubory = kapitolyKZapsani.map((k, i) => {
+    const jmeno = `kapitola${i + 1}.xhtml`
+    const odstavce = (k.text.trim() || '(prázdná kapitola)')
+      .split(/\n+/)
+      .map((odstavec) => `<p>${escapujXml(odstavec)}</p>`)
+      .join('\n')
+    const obsah = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="cs">
+<head><title>${escapujXml(k.nazev)}</title></head>
+<body>
+<h1>${escapujXml(k.nazev)}</h1>
+${odstavce}
+</body>
+</html>`
+    return { id: `kap${i + 1}`, jmeno, obsah, nazev: k.nazev }
+  })
+
+  kapitolySoubory.forEach(({ jmeno, obsah }) => zip.file(`OEBPS/${jmeno}`, obsah))
+
+  const uid = `buddy-kniha-${kniha.id}`
+  const manifestPolozky = kapitolySoubory
+    .map(({ id, jmeno }) => `<item id="${id}" href="${jmeno}" media-type="application/xhtml+xml"/>`)
+    .join('\n    ')
+  const spinePolozky = kapitolySoubory.map(({ id }) => `<itemref idref="${id}"/>`).join('\n    ')
+
+  zip.file(
+    'OEBPS/content.opf',
+    `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="2.0" unique-identifier="BookId">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>${escapujXml(kniha.nazev)}</dc:title>
+    <dc:language>cs</dc:language>
+    <dc:identifier id="BookId">${uid}</dc:identifier>
+  </metadata>
+  <manifest>
+    ${manifestPolozky}
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+  </manifest>
+  <spine toc="ncx">
+    ${spinePolozky}
+  </spine>
+</package>`
+  )
+
+  const navPoints = kapitolySoubory
+    .map(
+      ({ jmeno, nazev }, i) => `<navPoint id="navpoint-${i + 1}" playOrder="${i + 1}">
+      <navLabel><text>${escapujXml(nazev)}</text></navLabel>
+      <content src="${jmeno}"/>
+    </navPoint>`
+    )
+    .join('\n    ')
+
+  zip.file(
+    'OEBPS/toc.ncx',
+    `<?xml version="1.0" encoding="UTF-8"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <head>
+    <meta name="dtb:uid" content="${uid}"/>
+  </head>
+  <docTitle><text>${escapujXml(kniha.nazev)}</text></docTitle>
+  <navMap>
+    ${navPoints}
+  </navMap>
+</ncx>`
+  )
+
+  return zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' })
+}

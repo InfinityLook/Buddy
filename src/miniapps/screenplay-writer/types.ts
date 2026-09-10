@@ -39,6 +39,10 @@ export interface Scena {
   // Stejná role jako Kapitola.poznamka — autorova soukromá poznámka,
   // do exportu/Náhledu se nepromítá.
   poznamka: string
+  // Stejná role jako Kapitola.stitky v Knize — volné, autorem psané
+  // štítky, oddělené čárkou jen na zobrazení. Nepovinné pole, fallback
+  // na prázdný řetězec (viz screenplayWriterValidation.ts).
+  stitky: string
 }
 
 export interface Scenar {
@@ -91,6 +95,33 @@ export const ziskejPostavy = (scenar: Scenar): string[] => {
     })
   )
   return [...jmena].sort((a, b) => a.localeCompare(b, 'cs'))
+}
+
+export interface StatistikaPostavy {
+  postava: string
+  radku: number
+  slov: number
+}
+
+// Kolik replik a kolik slov má která postava napříč celým scénářem —
+// jen dialogové prvky (typ 'dialog'), akce se do toho nepočítá, protože
+// tu žádná konkrétní postava "nemluví". Řazeno od nejvytíženější
+// postavy, ať autor hned vidí, kdo v jeho scénáři skutečně mluví
+// nejvíc (a naopak kdo skoro vůbec) — typický "professional use"
+// dotaz, který appka dřív neuměla zodpovědět jinak než ručním počítáním.
+export const spocitejReplikyPodlePostavy = (scenar: Scenar): StatistikaPostavy[] => {
+  const podlePostavy = new Map<string, { radku: number; slov: number }>()
+  scenar.sceny.forEach((s) =>
+    s.prvky.forEach((p) => {
+      if (p.typ !== 'dialog' || !p.postava.trim()) return
+      const jmeno = p.postava.trim()
+      const aktualni = podlePostavy.get(jmeno) ?? { radku: 0, slov: 0 }
+      podlePostavy.set(jmeno, { radku: aktualni.radku + 1, slov: aktualni.slov + pocetSlov(p.text) })
+    })
+  )
+  return [...podlePostavy.entries()]
+    .map(([postava, data]) => ({ postava, ...data }))
+    .sort((a, b) => b.radku - a.radku || a.postava.localeCompare(b.postava, 'cs'))
 }
 
 // Hrubý filmařský odhad stopáže — běžná scénáristická stránka se

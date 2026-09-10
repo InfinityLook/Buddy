@@ -9,6 +9,7 @@ import {
   serazenoPodleUpravy,
   sestavFountain,
   sestavTextScenare,
+  spocitejReplikyPodlePostavy,
   TYPY_MIST,
   TypMista,
   ziskejPostavy,
@@ -18,6 +19,7 @@ import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
 import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
+import { najdiNaduzivanaSlova } from '@/flagships/writer-room/writerRoomStyl'
 import { useWriterCheckpoints, checkpointyProDilo } from '@/flagships/writer-room/useWriterCheckpoints'
 import './ScreenplayWriter.css'
 
@@ -40,6 +42,7 @@ export const ScreenplayWriter: React.FC = () => {
     nahradVScenari,
     obnovZeCheckpointu,
     setPoznamkaPostavy,
+    duplikovatScenar,
   } = useScreenplayWriter()
   const [aktivniId, setAktivniId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
@@ -55,6 +58,11 @@ export const ScreenplayWriter: React.FC = () => {
 
   const smazatScenar = (s: Scenar) => {
     if (window.confirm(`Smazat scénář „${s.nazev}“?`)) deleteScenar(s.id)
+  }
+
+  const duplikovat = (s: Scenar) => {
+    const novaId = duplikovatScenar(s.id)
+    if (novaId) setAktivniId(novaId)
   }
 
   if (!aktivni) {
@@ -86,6 +94,9 @@ export const ScreenplayWriter: React.FC = () => {
                 <strong>{s.nazev}</strong>
                 <span>{s.sceny.length} {plural(s.sceny.length, 'scéna napsána', 'scény napsány', 'scén napsáno')}</span>
                 <span className="sw-radek-cas">{formatujNaposledyUpraveno(s.upravenoAt)}</span>
+              </button>
+              <button className="sw-icon-btn" onClick={() => duplikovat(s)} aria-label={`Duplikovat ${s.nazev}`}>
+                ⧉
               </button>
               <button className="sw-icon-btn danger" onClick={() => smazatScenar(s)} aria-label={`Smazat ${s.nazev}`}>
                 ✕
@@ -128,7 +139,7 @@ interface ScenarEditorProps {
   updateScena: (
     scenarId: string,
     scenaId: string,
-    data: { typMista?: TypMista; misto?: string; cas?: string; stav?: StavPolozky; poznamka?: string }
+    data: { typMista?: TypMista; misto?: string; cas?: string; stav?: StavPolozky; poznamka?: string; stitky?: string }
   ) => void
   deleteScena: (scenarId: string, scenaId: string) => void
   addAkce: (scenarId: string, scenaId: string, text: string) => void
@@ -318,6 +329,8 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
             onChange={(e) => updateScenar(scenar.id, e.target.value)}
             maxLength={60}
             aria-label="Název scénáře"
+            spellCheck
+            lang="cs"
           />
           <span>
             {scenar.sceny.length} {plural(scenar.sceny.length, 'scéna', 'scény', 'scén')}
@@ -496,11 +509,42 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
             value={aktivniScena.poznamka}
             onChange={(e) => updateScena(scenar.id, aktivniScena.id, { poznamka: e.target.value })}
             maxLength={200}
+            spellCheck
+            lang="cs"
+          />
+
+          {aktivniScena.stitky.trim() && (
+            <div className="sw-stitek-row">
+              {aktivniScena.stitky
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .map((stitek) => (
+                  <span className="sw-stitek" key={stitek}>
+                    #{stitek}
+                  </span>
+                ))}
+            </div>
+          )}
+          <input
+            type="text"
+            className="sw-poznamka"
+            placeholder="Vlastní štítky, oddělené čárkou (např. „akce, důležité“)…"
+            value={aktivniScena.stitky}
+            onChange={(e) => updateScena(scenar.id, aktivniScena.id, { stitky: e.target.value })}
+            maxLength={100}
           />
 
           {formOtevren === 'akce' && (
             <div className="sw-form">
-              <textarea placeholder="Popiš, co se v téhle chvíli děje…" value={akceText} onChange={(e) => setAkceText(e.target.value)} rows={2} />
+              <textarea
+                placeholder="Popiš, co se v téhle chvíli děje…"
+                value={akceText}
+                onChange={(e) => setAkceText(e.target.value)}
+                rows={2}
+                spellCheck
+                lang="cs"
+              />
               <div className="sw-form-akce">
                 <button className="sw-zrusit-btn" onClick={zrusitFormular}>
                   Zrušit
@@ -527,7 +571,14 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
                 ))}
               </datalist>
               <input type="text" placeholder="Herecká poznámka (nepovinné)" value={poznamka} onChange={(e) => setPoznamka(e.target.value)} />
-              <textarea placeholder="Text repliky…" value={dialogText} onChange={(e) => setDialogText(e.target.value)} rows={2} />
+              <textarea
+                placeholder="Text repliky…"
+                value={dialogText}
+                onChange={(e) => setDialogText(e.target.value)}
+                rows={2}
+                spellCheck
+                lang="cs"
+              />
               <div className="sw-form-akce">
                 <button className="sw-zrusit-btn" onClick={zrusitFormular}>
                   Zrušit
@@ -644,7 +695,9 @@ const ScenarOsnova: React.FC<{
   const [nahraditZa, setNahraditZa] = useState('')
   const [vysledekNahrazeni, setVysledekNahrazeni] = useState<number | null>(null)
   const [otevrenaPostava, setOtevrenaPostava] = useState<string | null>(null)
+  const [naduzivanaOtevrena, setNaduzivanaOtevrena] = useState(false)
   const postavy = ziskejPostavy(scenar)
+  const statistikyPostav = spocitejReplikyPodlePostavy(scenar)
 
   const provestNahrazeni = () => {
     if (!dotaz.trim()) return
@@ -654,9 +707,12 @@ const ScenarOsnova: React.FC<{
   const najdiProScenu = (s: Scenar['sceny'][number]): boolean =>
     obsahujeDotaz(s.misto, dotaz) ||
     obsahujeDotaz(s.cas, dotaz) ||
+    obsahujeDotaz(s.stitky, dotaz) ||
     s.prvky.some((p) => obsahujeDotaz(p.text, dotaz) || (p.typ === 'dialog' && obsahujeDotaz(p.postava, dotaz)))
 
   const polozky = scenar.sceny.map((s, i) => ({ scena: s, poradi: i + 1 })).filter(({ scena }) => najdiProScenu(scena))
+
+  const naduzivana = najdiNaduzivanaSlova(scenar.sceny.flatMap((s) => s.prvky.map((p) => p.text)))
 
   return (
     <div className="sw-app">
@@ -728,6 +784,36 @@ const ScenarOsnova: React.FC<{
               maxLength={300}
               autoFocus
             />
+          )}
+
+          <span className="sw-panel-label">🗣 Kolik kdo mluví</span>
+          <div className="sw-seznam">
+            {statistikyPostav.map((p) => (
+              <div className="sw-stat-radek" key={p.postava}>
+                <span>{p.postava}</span>
+                <span>
+                  {p.radku} {plural(p.radku, 'replika', 'repliky', 'replik')}, {p.slov} {plural(p.slov, 'slovo', 'slova', 'slov')}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button className="sw-nahled-btn" onClick={() => setNaduzivanaOtevrena((o) => !o)}>
+        🔠 Nadužívaná slova
+      </button>
+      {naduzivanaOtevrena && (
+        <div className="sw-seznam">
+          {naduzivana.length === 0 ? (
+            <p className="sw-prazdno">Žádné slovo se ve scénáři neopakuje nápadně často.</p>
+          ) : (
+            naduzivana.map((n) => (
+              <div className="sw-stat-radek" key={n.slovo}>
+                <span>{n.slovo}</span>
+                <span>{n.pocet}×</span>
+              </div>
+            ))
           )}
         </div>
       )}

@@ -40,7 +40,7 @@ describe('odhadCteniMinut (Kniha)', () => {
     cilSlov: null,
     createdAt: '1',
     upravenoAt: '1',
-    kapitoly: [{ id: '1', nazev: 'Kap', text: Array(slov).fill('slovo').join(' '), createdAt: '1', stav: 'napad', poznamka: '' }],
+    kapitoly: [{ id: '1', nazev: 'Kap', text: Array(slov).fill('slovo').join(' '), createdAt: '1', stav: 'napad', poznamka: '', stitky: '' }],
   })
 
   it('spočítá hrubý odhad ~200 slov = 1 minuta čtení', () => {
@@ -84,6 +84,7 @@ describe('sestavFountain', () => {
           createdAt: '1',
           stav: 'napad',
           poznamka: '',
+          stitky: '',
           prvky: [
             { id: 'p1', typ: 'akce', text: 'Petr vejde dovnitř.' },
             { id: 'p2', typ: 'dialog', postava: 'petr', text: 'Ahoj.', poznamka: 'potichu' },
@@ -108,7 +109,7 @@ describe('sestavFountain', () => {
       upravenoAt: '1',
       cilScen: null,
       postavyPoznamky: {},
-      sceny: [{ id: 'sc1', typMista: 'INT/EXT', misto: 'auto', cas: 'noc', createdAt: '1', stav: 'napad', poznamka: '', prvky: [] }],
+      sceny: [{ id: 'sc1', typMista: 'INT/EXT', misto: 'auto', cas: 'noc', createdAt: '1', stav: 'napad', poznamka: '', stitky: '', prvky: [] }],
     }
     expect(sestavFountain(scenar)).toContain('INT./EXT. AUTO - NOC')
   })
@@ -121,7 +122,7 @@ describe('sestavFountain', () => {
       upravenoAt: '1',
       cilScen: null,
       postavyPoznamky: {},
-      sceny: [{ id: 'sc1', typMista: 'EXT', misto: 'park', cas: 'den', createdAt: '1', stav: 'napad', poznamka: '', prvky: [] }],
+      sceny: [{ id: 'sc1', typMista: 'EXT', misto: 'park', cas: 'den', createdAt: '1', stav: 'napad', poznamka: '', stitky: '', prvky: [] }],
     }
     expect(sestavFountain(scenar)).toContain('(scéna zatím nemá žádný text)')
   })

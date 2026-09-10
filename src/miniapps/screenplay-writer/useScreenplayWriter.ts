@@ -21,7 +21,7 @@ interface ScreenplayWriterState {
   updateScena: (
     scenarId: string,
     scenaId: string,
-    data: { typMista?: TypMista; misto?: string; cas?: string; stav?: StavPolozky; poznamka?: string }
+    data: { typMista?: TypMista; misto?: string; cas?: string; stav?: StavPolozky; poznamka?: string; stitky?: string }
   ) => void
   deleteScena: (scenarId: string, scenaId: string) => void
   addAkce: (scenarId: string, scenaId: string, text: string) => void
@@ -39,6 +39,9 @@ interface ScreenplayWriterState {
   obnovZeCheckpointu: (scenarId: string, snapshot: unknown) => boolean
   // "Bible postav" — uloží/přepíše soukromou poznámku ke jménu postavy.
   setPoznamkaPostavy: (scenarId: string, jmeno: string, poznamka: string) => void
+  // Stejná role jako Kniha's duplikovatKniha — hluboká kopie
+  // existujícího scénáře (nové id scénáře i každé scény), žádná XP.
+  duplikovatScenar: (id: string) => string | null
 }
 
 // Stejný sdílený "posuň o jedno místo, no-op na kraji" helper jako
@@ -98,6 +101,7 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
           createdAt: new Date().toISOString(),
           stav: 'napad' as StavPolozky,
           poznamka: '',
+          stitky: '',
         }
         set((state) => ({
           scenare: state.scenare.map((s) =>
@@ -223,6 +227,7 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
           createdAt: ted,
           stav: 'napad' as StavPolozky,
           poznamka: '',
+          stitky: '',
         }))
         set((state) => ({
           scenare: state.scenare.map((s) => (s.id === scenarId ? { ...s, sceny: [...s.sceny, ...nove], upravenoAt: ted } : s)),
@@ -283,6 +288,26 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
             s.id === scenarId ? { ...s, postavyPoznamky: { ...s.postavyPoznamky, [jmeno]: poznamka } } : s
           ),
         })),
+
+      duplikovatScenar: (id) => {
+        let novaId: string | null = null
+        set((state) => {
+          const original = state.scenare.find((s) => s.id === id)
+          if (!original) return state
+          const ted = new Date().toISOString()
+          novaId = noveId()
+          const kopie: Scenar = {
+            ...original,
+            id: novaId,
+            nazev: `${original.nazev} (kopie)`,
+            createdAt: ted,
+            upravenoAt: ted,
+            sceny: original.sceny.map((sc) => ({ ...sc, id: noveId(), prvky: sc.prvky.map((p) => ({ ...p, id: noveId() })) })),
+          }
+          return { scenare: [kopie, ...state.scenare] }
+        })
+        return novaId
+      },
     }),
     {
       name: 'schoolbuddy-screenplay-writer-storage',

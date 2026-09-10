@@ -1,11 +1,22 @@
 import React, { useState } from 'react'
 import { useComicWriter } from './useComicWriter'
-import { celkovyPocetPanelu, Komiks, serazenoPodleUpravy, sestavTextKomiksu, TypRadku, ziskejPostavy } from './types'
+import {
+  celkovyPocetPanelu,
+  Komiks,
+  oznaceniZaberu,
+  serazenoPodleUpravy,
+  sestavTextKomiksu,
+  TYPY_ZABERU,
+  TypRadku,
+  TypZaberu,
+  ziskejPostavy,
+} from './types'
 import { plural } from '@/core/utils/pluralCZ'
 import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
 import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
+import { najdiNaduzivanaSlova } from '@/flagships/writer-room/writerRoomStyl'
 import { useWriterCheckpoints, checkpointyProDilo } from '@/flagships/writer-room/useWriterCheckpoints'
 import './ComicWriter.css'
 
@@ -29,6 +40,7 @@ export const ComicWriter: React.FC = () => {
     nahradVKomiksu,
     obnovZeCheckpointu,
     setPoznamkaPostavy,
+    duplikovatKomiks,
   } = useComicWriter()
   const [aktivniId, setAktivniId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
@@ -44,6 +56,11 @@ export const ComicWriter: React.FC = () => {
 
   const smazatKomiks = (k: Komiks) => {
     if (window.confirm(`Smazat komiks „${k.nazev}“?`)) deleteKomiks(k.id)
+  }
+
+  const duplikovat = (k: Komiks) => {
+    const novaId = duplikovatKomiks(k.id)
+    if (novaId) setAktivniId(novaId)
   }
 
   if (!aktivni) {
@@ -78,6 +95,9 @@ export const ComicWriter: React.FC = () => {
                   {celkovyPocetPanelu(k)} {plural(celkovyPocetPanelu(k), 'panel', 'panely', 'panelů')}
                 </span>
                 <span className="cw-radek-cas">{formatujNaposledyUpraveno(k.upravenoAt)}</span>
+              </button>
+              <button className="cw-icon-btn" onClick={() => duplikovat(k)} aria-label={`Duplikovat ${k.nazev}`}>
+                ⧉
               </button>
               <button className="cw-icon-btn danger" onClick={() => smazatKomiks(k)} aria-label={`Smazat ${k.nazev}`}>
                 ✕
@@ -118,10 +138,10 @@ interface KomiksEditorProps {
   updateKomiks: (id: string, nazev: string) => void
   setCilStran: (komiksId: string, cil: number | null) => void
   addStrana: (komiksId: string) => void
-  updateStrana: (komiksId: string, stranaId: string, data: { stav?: StavPolozky; poznamka?: string }) => void
+  updateStrana: (komiksId: string, stranaId: string, data: { stav?: StavPolozky; poznamka?: string; stitky?: string }) => void
   deleteStrana: (komiksId: string, stranaId: string) => void
-  addPanel: (komiksId: string, stranaId: string, vizual: string) => void
-  updatePanel: (komiksId: string, stranaId: string, panelId: string, vizual: string) => void
+  addPanel: (komiksId: string, stranaId: string, vizual: string, zaber?: TypZaberu | null) => void
+  updatePanel: (komiksId: string, stranaId: string, panelId: string, data: { vizual?: string; zaber?: TypZaberu | null }) => void
   deletePanel: (komiksId: string, stranaId: string, panelId: string) => void
   addRadek: (komiksId: string, stranaId: string, panelId: string, data: { typ: TypRadku; postava?: string; text: string }) => void
   updateRadek: (
@@ -159,6 +179,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
 }) => {
   const [aktivniStranaId, setAktivniStranaId] = useState<string | null>(komiks.strany[0]?.id ?? null)
   const [novyVizual, setNovyVizual] = useState('')
+  const [novyZaber, setNovyZaber] = useState<TypZaberu | ''>('')
   const [radekFormPanelId, setRadekFormPanelId] = useState<string | null>(null)
   const [radekTyp, setRadekTyp] = useState<TypRadku>('dialog')
   const [radekPostava, setRadekPostava] = useState('')
@@ -173,6 +194,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
   // formulář v editačním režimu (a nad kterou konkrétní položkou).
   const [upravovanyPanelId, setUpravovanyPanelId] = useState<string | null>(null)
   const [upravovanyVizual, setUpravovanyVizual] = useState('')
+  const [upravovanyZaber, setUpravovanyZaber] = useState<TypZaberu | ''>('')
   const [upravovanyRadek, setUpravovanyRadek] = useState<{ panelId: string; radekId: string } | null>(null)
 
   const indexAktivni = komiks.strany.findIndex((s) => s.id === aktivniStranaId)
@@ -184,18 +206,20 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
 
   const pridatPanel = () => {
     if (!aktivniStrana || !novyVizual.trim()) return
-    addPanel(komiks.id, aktivniStrana.id, novyVizual)
+    addPanel(komiks.id, aktivniStrana.id, novyVizual, novyZaber || null)
     setNovyVizual('')
+    setNovyZaber('')
   }
 
-  const otevritUpravuPanelu = (panelId: string, vizual: string) => {
+  const otevritUpravuPanelu = (panelId: string, vizual: string, zaber: TypZaberu | null) => {
     setUpravovanyPanelId(panelId)
     setUpravovanyVizual(vizual)
+    setUpravovanyZaber(zaber ?? '')
   }
 
   const ulozitUpravuPanelu = () => {
     if (!aktivniStrana || !upravovanyPanelId || !upravovanyVizual.trim()) return
-    updatePanel(komiks.id, aktivniStrana.id, upravovanyPanelId, upravovanyVizual)
+    updatePanel(komiks.id, aktivniStrana.id, upravovanyPanelId, { vizual: upravovanyVizual, zaber: upravovanyZaber || null })
     setUpravovanyPanelId(null)
   }
 
@@ -290,6 +314,8 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
             onChange={(e) => updateKomiks(komiks.id, e.target.value)}
             maxLength={60}
             aria-label="Název komiksu"
+            spellCheck
+            lang="cs"
           />
           <span>
             {komiks.strany.length} {plural(komiks.strany.length, 'strana', 'strany', 'stran')}
@@ -379,6 +405,30 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
             value={aktivniStrana.poznamka}
             onChange={(e) => updateStrana(komiks.id, aktivniStrana.id, { poznamka: e.target.value })}
             maxLength={200}
+            spellCheck
+            lang="cs"
+          />
+
+          {aktivniStrana.stitky.trim() && (
+            <div className="cw-stitek-row">
+              {aktivniStrana.stitky
+                .split(',')
+                .map((s) => s.trim())
+                .filter(Boolean)
+                .map((stitek) => (
+                  <span className="cw-stitek" key={stitek}>
+                    #{stitek}
+                  </span>
+                ))}
+            </div>
+          )}
+          <input
+            type="text"
+            className="cw-poznamka"
+            placeholder="Vlastní štítky, oddělené čárkou (např. „akce, důležité“)…"
+            value={aktivniStrana.stitky}
+            onChange={(e) => updateStrana(komiks.id, aktivniStrana.id, { stitky: e.target.value })}
+            maxLength={100}
           />
 
           {aktivniStrana.panely.length === 0 && <p className="cw-prazdno">Strana zatím nemá žádný panel.</p>}
@@ -389,9 +439,14 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
                 <span>
                   <span className="cw-panel-num">{i + 1}</span>
                   <b>Panel {i + 1}</b>
+                  {oznaceniZaberu(p.zaber) && <span className="cw-zaber-znacka">🎥 {oznaceniZaberu(p.zaber)}</span>}
                 </span>
                 <div className="cw-panel-head-btns">
-                  <button className="cw-mini-upravit" onClick={() => otevritUpravuPanelu(p.id, p.vizual)} aria-label="Upravit vizuál panelu">
+                  <button
+                    className="cw-mini-upravit"
+                    onClick={() => otevritUpravuPanelu(p.id, p.vizual, p.zaber)}
+                    aria-label="Upravit vizuál panelu"
+                  >
                     ✏️
                   </button>
                   <button className="cw-mini-smazat" onClick={() => smazatPanel(p.id, i + 1)}>
@@ -403,7 +458,21 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
               <div className="cw-panel-label">Vizuál</div>
               {upravovanyPanelId === p.id ? (
                 <div className="cw-radek-form">
-                  <input type="text" value={upravovanyVizual} onChange={(e) => setUpravovanyVizual(e.target.value)} />
+                  <input
+                    type="text"
+                    value={upravovanyVizual}
+                    onChange={(e) => setUpravovanyVizual(e.target.value)}
+                    spellCheck
+                    lang="cs"
+                  />
+                  <select value={upravovanyZaber} onChange={(e) => setUpravovanyZaber(e.target.value as TypZaberu | '')}>
+                    <option value="">— bez typu záběru —</option>
+                    {TYPY_ZABERU.map((z) => (
+                      <option key={z.id} value={z.id}>
+                        {z.label}
+                      </option>
+                    ))}
+                  </select>
                   <div className="cw-form-akce">
                     <button className="cw-zrusit-btn" onClick={() => setUpravovanyPanelId(null)}>
                       Zrušit
@@ -462,7 +531,14 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
                       </>
                     )}
                   </div>
-                  <input type="text" placeholder="Text…" value={radekText} onChange={(e) => setRadekText(e.target.value)} />
+                  <input
+                    type="text"
+                    placeholder="Text…"
+                    value={radekText}
+                    onChange={(e) => setRadekText(e.target.value)}
+                    spellCheck
+                    lang="cs"
+                  />
                   <div className="cw-form-akce">
                     <button
                       className="cw-zrusit-btn"
@@ -487,7 +563,22 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
           ))}
 
           <div className="cw-novy-panel">
-            <input type="text" placeholder="Popiš, co je v novém panelu vidět…" value={novyVizual} onChange={(e) => setNovyVizual(e.target.value)} />
+            <input
+              type="text"
+              placeholder="Popiš, co je v novém panelu vidět…"
+              value={novyVizual}
+              onChange={(e) => setNovyVizual(e.target.value)}
+              spellCheck
+              lang="cs"
+            />
+            <select value={novyZaber} onChange={(e) => setNovyZaber(e.target.value as TypZaberu | '')}>
+              <option value="">— bez typu záběru —</option>
+              {TYPY_ZABERU.map((z) => (
+                <option key={z.id} value={z.id}>
+                  {z.label}
+                </option>
+              ))}
+            </select>
             <button className="cw-ulozit-btn" onClick={pridatPanel}>
               + Přidat panel
             </button>
@@ -546,6 +637,7 @@ const KomiksNahled: React.FC<{ komiks: Komiks; onZpet: () => void }> = ({ komiks
                 <span>
                   <span className="cw-panel-num">{i + 1}</span>
                   <b>Panel {i + 1}</b>
+                  {oznaceniZaberu(p.zaber) && <span className="cw-zaber-znacka">🎥 {oznaceniZaberu(p.zaber)}</span>}
                 </span>
               </div>
               <div className="cw-panel-label">Vizuál</div>
@@ -584,6 +676,7 @@ const KomiksOsnova: React.FC<{
   const [nahraditZa, setNahraditZa] = useState('')
   const [vysledekNahrazeni, setVysledekNahrazeni] = useState<number | null>(null)
   const [otevrenaPostava, setOtevrenaPostava] = useState<string | null>(null)
+  const [naduzivanaOtevrena, setNaduzivanaOtevrena] = useState(false)
   const postavy = ziskejPostavy(komiks)
 
   const provestNahrazeni = () => {
@@ -601,9 +694,13 @@ const KomiksOsnova: React.FC<{
               panel.radky.some((r) => obsahujeDotaz(r.text, dotaz) || obsahujeDotaz(r.postava, dotaz))
           )
         : []
-      return { strana: s, panelySeZasahem, odpovida: dotaz === '' || panelySeZasahem.length > 0 }
+      return { strana: s, panelySeZasahem, odpovida: dotaz === '' || panelySeZasahem.length > 0 || obsahujeDotaz(s.stitky, dotaz) }
     })
     .filter(({ odpovida }) => odpovida)
+
+  const naduzivana = najdiNaduzivanaSlova(
+    komiks.strany.flatMap((s) => s.panely.flatMap((p) => [p.vizual, ...p.radky.map((r) => r.text)]))
+  )
 
   const uryvekPanelu = (panel: (typeof komiks.strany)[number]['panely'][number]): string => {
     if (obsahujeDotaz(panel.vizual, dotaz)) return najdiUryvek(panel.vizual, dotaz) ?? panel.vizual
@@ -655,6 +752,24 @@ const KomiksOsnova: React.FC<{
         <p className="cw-prazdno">
           {vysledekNahrazeni === 0 ? 'Nic k nahrazení se nenašlo.' : `Nahrazeno ${vysledekNahrazeni}×.`}
         </p>
+      )}
+
+      <button className="cw-nahled-btn" onClick={() => setNaduzivanaOtevrena((o) => !o)}>
+        🔠 Nadužívaná slova
+      </button>
+      {naduzivanaOtevrena && (
+        <div className="cw-seznam">
+          {naduzivana.length === 0 ? (
+            <p className="cw-prazdno">Žádné slovo se v komiksu neopakuje nápadně často.</p>
+          ) : (
+            naduzivana.map((n) => (
+              <div className="cw-stat-radek" key={n.slovo}>
+                <span>{n.slovo}</span>
+                <span>{n.pocet}×</span>
+              </div>
+            ))
+          )}
+        </div>
       )}
 
       {postavy.length > 0 && (

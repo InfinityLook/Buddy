@@ -16,6 +16,24 @@ export interface PanelRadek {
   text: string
 }
 
+// Typ záběru panelu — běžná součást profesionálního komiksového
+// scénáře (spolu s vizuálním popisem panel obvykle nese i informaci,
+// jak "blízko" se má kreslíř na scénu podívat). Pevná, malá sada — ne
+// libovolný vstup, stejná zásada jako u appce fixních barevných palet
+// jinde (BARVY_DNE/IKONY_SKUPIN). null = typ záběru nezadán, což je i
+// výchozí stav každého nového panelu.
+export type TypZaberu = 'detail' | 'polocelek' | 'celek' | 'celkovy'
+
+export const TYPY_ZABERU: { id: TypZaberu; label: string }[] = [
+  { id: 'detail', label: 'Detail' },
+  { id: 'polocelek', label: 'Polocelek' },
+  { id: 'celek', label: 'Celek' },
+  { id: 'celkovy', label: 'Celkový záběr' },
+]
+
+export const oznaceniZaberu = (zaber: TypZaberu | null): string | null =>
+  zaber ? (TYPY_ZABERU.find((z) => z.id === zaber)?.label ?? null) : null
+
 export interface Panel {
   id: string
   vizual: string
@@ -24,6 +42,10 @@ export interface Panel {
   // Writer's Roomu (spocitejDnesniTvorbu), Strana/Kniha/Scenar svoje
   // createdAt už měly odjakživa, Panel ne.
   createdAt: string
+  // Nepovinný typ záběru (viz TypZaberu výš) — null = zatím nezadán.
+  // Nepovinné pole, starší uložený panel ho nemá vůbec, fallback na
+  // null (viz comicWriterValidation.ts).
+  zaber: TypZaberu | null
 }
 
 export interface Strana {
@@ -36,6 +58,10 @@ export interface Strana {
   // Stejná role jako Kapitola.poznamka/Scena.poznamka — autorova
   // soukromá poznámka, do exportu/Náhledu se nepromítá.
   poznamka: string
+  // Stejná role jako Kapitola.stitky v Knize/Scena.stitky ve Scénáři —
+  // volné, autorem psané štítky. Nepovinné pole, fallback na prázdný
+  // řetězec (viz comicWriterValidation.ts).
+  stitky: string
 }
 
 export interface Komiks {
@@ -93,7 +119,9 @@ export const sestavTextKomiksu = (komiks: Komiks): string =>
               const radky = p.radky.map((r) =>
                 r.typ === 'dialog' ? `${(r.postava || 'POSTAVA').toUpperCase()}: ${r.text}` : `(${r.text})`
               )
-              return [`Panel ${i + 1}: ${p.vizual}`, ...radky].join('\n')
+              const zaberText = oznaceniZaberu(p.zaber)
+              const hlavicka = zaberText ? `Panel ${i + 1} (${zaberText}): ${p.vizual}` : `Panel ${i + 1}: ${p.vizual}`
+              return [hlavicka, ...radky].join('\n')
             })
           : ['(strana zatím nemá žádný panel)']),
       ].join('\n\n')

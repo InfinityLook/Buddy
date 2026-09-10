@@ -3,7 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { sanitizujKomiks, validateComicWriterData } from '@/core/utils/comicWriterValidation'
-import { Komiks, Panel, PanelRadek, TypRadku } from './types'
+import { Komiks, Panel, PanelRadek, TypRadku, TypZaberu } from './types'
 import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 import { nahradVTextu } from '@/flagships/writer-room/writerRoomNahradit'
 
@@ -18,10 +18,10 @@ interface ComicWriterState {
   deleteKomiks: (id: string) => void
   setCilStran: (komiksId: string, cil: number | null) => void
   addStrana: (komiksId: string) => void
-  updateStrana: (komiksId: string, stranaId: string, data: { stav?: StavPolozky; poznamka?: string }) => void
+  updateStrana: (komiksId: string, stranaId: string, data: { stav?: StavPolozky; poznamka?: string; stitky?: string }) => void
   deleteStrana: (komiksId: string, stranaId: string) => void
-  addPanel: (komiksId: string, stranaId: string, vizual: string) => void
-  updatePanel: (komiksId: string, stranaId: string, panelId: string, vizual: string) => void
+  addPanel: (komiksId: string, stranaId: string, vizual: string, zaber?: TypZaberu | null) => void
+  updatePanel: (komiksId: string, stranaId: string, panelId: string, data: { vizual?: string; zaber?: TypZaberu | null }) => void
   deletePanel: (komiksId: string, stranaId: string, panelId: string) => void
   addRadek: (komiksId: string, stranaId: string, panelId: string, data: { typ: TypRadku; postava?: string; text: string }) => void
   updateRadek: (
@@ -41,6 +41,10 @@ interface ComicWriterState {
   obnovZeCheckpointu: (komiksId: string, snapshot: unknown) => boolean
   // "Bible postav" — stejná role jako Scénář's setPoznamkaPostavy.
   setPoznamkaPostavy: (komiksId: string, jmeno: string, poznamka: string) => void
+  // Stejná role jako Kniha/Scénář's duplikovatKniha/duplikovatScenar —
+  // hluboká kopie existujícího komiksu (nové id komiksu, stran, panelů
+  // i řádků), žádná XP.
+  duplikovatKomiks: (id: string) => string | null
 }
 
 // Stejný sdílený "posuň o jedno místo, no-op na kraji" helper jako
@@ -99,7 +103,7 @@ const useComicWriterStore = create<ComicWriterState>()(
           komiksy: state.komiksy.map((k) => {
             if (k.id !== komiksId) return k
             const cislo = k.strany.length + 1
-            const nova = { id: noveId(), cislo, panely: [], stav: 'napad' as StavPolozky, poznamka: '' }
+            const nova = { id: noveId(), cislo, panely: [], stav: 'napad' as StavPolozky, poznamka: '', stitky: '' }
             return { ...k, strany: [...k.strany, nova], upravenoAt: new Date().toISOString() }
           }),
         })),
@@ -132,8 +136,8 @@ const useComicWriterStore = create<ComicWriterState>()(
 
       // Odměna za hotový panel, ne za stranu — panel je tu ta nejmenší
       // smysluplná tvůrčí jednotka, stejně jako scéna u Scénáře.
-      addPanel: (komiksId, stranaId, vizual) => {
-        const novy: Panel = { id: noveId(), vizual, radky: [], createdAt: new Date().toISOString() }
+      addPanel: (komiksId, stranaId, vizual, zaber = null) => {
+        const novy: Panel = { id: noveId(), vizual, radky: [], createdAt: new Date().toISOString(), zaber }
         set((state) => ({
           komiksy: state.komiksy.map((k) =>
             k.id !== komiksId
@@ -148,7 +152,7 @@ const useComicWriterStore = create<ComicWriterState>()(
         useGamificationStore.getState().recordAction('comic', COMIC_XP)
       },
 
-      updatePanel: (komiksId, stranaId, panelId, vizual) =>
+      updatePanel: (komiksId, stranaId, panelId, data) =>
         set((state) => ({
           komiksy: state.komiksy.map((k) =>
             k.id !== komiksId
@@ -158,7 +162,7 @@ const useComicWriterStore = create<ComicWriterState>()(
                   strany: k.strany.map((s) =>
                     s.id !== stranaId
                       ? s
-                      : { ...s, panely: s.panely.map((p) => (p.id === panelId ? { ...p, vizual } : p)) }
+                      : { ...s, panely: s.panely.map((p) => (p.id === panelId ? { ...p, ...data } : p)) }
                   ),
                   upravenoAt: new Date().toISOString(),
                 }
@@ -311,6 +315,30 @@ const useComicWriterStore = create<ComicWriterState>()(
             k.id === komiksId ? { ...k, postavyPoznamky: { ...k.postavyPoznamky, [jmeno]: poznamka } } : k
           ),
         })),
+
+      duplikovatKomiks: (id) => {
+        let novaId: string | null = null
+        set((state) => {
+          const original = state.komiksy.find((k) => k.id === id)
+          if (!original) return state
+          const ted = new Date().toISOString()
+          novaId = noveId()
+          const kopie: Komiks = {
+            ...original,
+            id: novaId,
+            nazev: `${original.nazev} (kopie)`,
+            createdAt: ted,
+            upravenoAt: ted,
+            strany: original.strany.map((s) => ({
+              ...s,
+              id: noveId(),
+              panely: s.panely.map((p) => ({ ...p, id: noveId(), radky: p.radky.map((r) => ({ ...r, id: noveId() })) })),
+            })),
+          }
+          return { komiksy: [kopie, ...state.komiksy] }
+        })
+        return novaId
+      },
     }),
     {
       name: 'schoolbuddy-comic-writer-storage',

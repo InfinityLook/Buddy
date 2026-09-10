@@ -51,8 +51,8 @@ describe('sestavTextKnihy', () => {
       createdAt: '1',
       upravenoAt: '1',
       kapitoly: [
-        { id: '1', nazev: 'Začátek', text: 'Bylo nebylo.', createdAt: '1', stav: 'napad', poznamka: '' },
-        { id: '2', nazev: 'Konec', text: '', createdAt: '1', stav: 'napad', poznamka: '' },
+        { id: '1', nazev: 'Začátek', text: 'Bylo nebylo.', createdAt: '1', stav: 'napad', poznamka: '', stitky: '' },
+        { id: '2', nazev: 'Konec', text: '', createdAt: '1', stav: 'napad', poznamka: '', stitky: '' },
       ],
     }
     const text = sestavTextKnihy(kniha)
@@ -81,6 +81,7 @@ describe('sestavTextScenare', () => {
           createdAt: '1',
           stav: 'napad',
           poznamka: '',
+          stitky: '',
           prvky: [
             { id: 'p1', typ: 'akce', text: 'Petr vejde dovnitř.' },
             { id: 'p2', typ: 'dialog', postava: 'petr', text: 'Ahoj.', poznamka: 'potichu' },
@@ -103,7 +104,7 @@ describe('sestavTextScenare', () => {
       upravenoAt: '1',
       cilScen: null,
       postavyPoznamky: {},      sceny: [
-        { id: 'sc1', typMista: 'EXT', misto: 'park', cas: 'noc', createdAt: '1', stav: 'napad', poznamka: '', prvky: [] },
+        { id: 'sc1', typMista: 'EXT', misto: 'park', cas: 'noc', createdAt: '1', stav: 'napad', poznamka: '', stitky: '', prvky: [] },
       ],
     }
     expect(sestavTextScenare(scenar)).toContain('(scéna zatím nemá žádný text)')
@@ -124,11 +125,13 @@ describe('sestavTextKomiksu', () => {
           cislo: 1,
           stav: 'napad',
           poznamka: '',
+          stitky: '',
           panely: [
             {
               id: 'pan1',
               vizual: 'hrdina letí',
               createdAt: '1',
+              zaber: null,
               radky: [
                 { id: 'r1', typ: 'dialog', postava: 'hrdina', text: 'Letím!' },
                 { id: 'r2', typ: 'popisek', postava: '', text: 'O chvíli později...' },

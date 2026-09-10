@@ -11,6 +11,7 @@ import { plural } from '@/core/utils/pluralCZ'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
 import { spocitejDnesniTvorbu, spocitejTvorbuPodleDne } from './writerRoomStats'
+import { useWriterRoomCil } from './useWriterRoomCil'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './WriterRoomModule.css'
 
@@ -42,6 +43,14 @@ export const WriterRoomModule: React.FC = () => {
   const dnesniTvorba = spocitejDnesniTvorbu(knihy, scenare, komiksy)
   const tvorbaPodleDne = spocitejTvorbuPodleDne(knihy, scenare, komiksy)
   const maxZaDen = Math.max(1, ...tvorbaPodleDne.map((d) => d.pocet))
+  const { cilDenne, cilTydenne, setCilDenne, setCilTydenne } = useWriterRoomCil()
+  // Cíl je "kolik kapitol/scén/panelů dohromady", stejné kombinované
+  // číslo, co dashboard už počítá pro 14denní graf výš — ne "kolik
+  // slov", protože scéna/panel žádný cíl počtu slov nemá.
+  const dnesPocet = dnesniTvorba.kapitol + dnesniTvorba.scen + dnesniTvorba.panelu
+  const tydenniPocet = tvorbaPodleDne.slice(-7).reduce((soucet, d) => soucet + d.pocet, 0)
+  const cilDenneProcenta = cilDenne && cilDenne > 0 ? Math.min(100, Math.round((dnesPocet / cilDenne) * 100)) : null
+  const cilTydenniProcenta = cilTydenne && cilTydenne > 0 ? Math.min(100, Math.round((tydenniPocet / cilTydenne) * 100)) : null
   const dnesniCasti: string[] = []
   if (dnesniTvorba.kapitol > 0) {
     dnesniCasti.push(`${dnesniTvorba.kapitol} ${plural(dnesniTvorba.kapitol, 'kapitola', 'kapitoly', 'kapitol')}`)
@@ -145,6 +154,54 @@ export const WriterRoomModule: React.FC = () => {
                 <span className="wr-graf-popisek">{den.label}</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="wr-panel">
+          <div className="wr-panel-hlavicka">
+            <h2>🎯 Psací cíl</h2>
+          </div>
+          <div className="wr-cil-radek">
+            <label htmlFor="wr-cil-denni">Denní cíl (kapitol/scén/panelů dohromady)</label>
+            <input
+              id="wr-cil-denni"
+              type="number"
+              min={0}
+              placeholder="např. 1"
+              value={cilDenne ?? ''}
+              onChange={(e) => setCilDenne(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+            />
+            {cilDenneProcenta !== null && (
+              <>
+                <div className="wr-cil-lista" role="progressbar" aria-valuenow={cilDenneProcenta} aria-valuemin={0} aria-valuemax={100}>
+                  <div className="wr-cil-vypln" style={{ width: `${cilDenneProcenta}%` }} />
+                </div>
+                <span className="wr-cil-popisek">
+                  {dnesPocet} z {cilDenne} dnes
+                </span>
+              </>
+            )}
+          </div>
+          <div className="wr-cil-radek">
+            <label htmlFor="wr-cil-tydenni">Týdenní cíl</label>
+            <input
+              id="wr-cil-tydenni"
+              type="number"
+              min={0}
+              placeholder="např. 7"
+              value={cilTydenne ?? ''}
+              onChange={(e) => setCilTydenne(e.target.value === '' ? null : Math.max(0, Number(e.target.value)))}
+            />
+            {cilTydenniProcenta !== null && (
+              <>
+                <div className="wr-cil-lista" role="progressbar" aria-valuenow={cilTydenniProcenta} aria-valuemin={0} aria-valuemax={100}>
+                  <div className="wr-cil-vypln" style={{ width: `${cilTydenniProcenta}%` }} />
+                </div>
+                <span className="wr-cil-popisek">
+                  {tydenniPocet} z {cilTydenne} tento týden
+                </span>
+              </>
+            )}
           </div>
         </div>
 

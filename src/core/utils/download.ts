@@ -20,8 +20,12 @@ export const bezpecnyNazevSouboru = (nazev: string): string =>
     .replace(/[\\/:*?"<>|]/g, '_')
     .trim() || 'soubor'
 
-export const stahnoutTextovySoubor = (nazevSouboru: string, obsah: string): void => {
-  const blob = new Blob([obsah], { type: 'text/plain;charset=utf-8' })
+// Obecná verze pro libovolný Blob (text i binární formát jako EPUB) —
+// text i binární export sdílí identický Blob + <a download> vzorec,
+// liší se jen v tom, čím se Blob naplní. `stahnoutTextovySoubor` níž
+// je jen tenký, zpětně kompatibilní obal nad touhle funkcí pro
+// nejčastější případ (obyčejný text).
+export const stahnoutBlob = (nazevSouboru: string, blob: Blob): void => {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
@@ -35,4 +39,8 @@ export const stahnoutTextovySoubor = (nazevSouboru: string, obsah: string): void
   link.click()
   document.body.removeChild(link)
   URL.revokeObjectURL(url)
+}
+
+export const stahnoutTextovySoubor = (nazevSouboru: string, obsah: string): void => {
+  stahnoutBlob(nazevSouboru, new Blob([obsah], { type: 'text/plain;charset=utf-8' }))
 }

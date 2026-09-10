@@ -1,5 +1,6 @@
 import * as v from 'valibot'
 import { jePlatnyStav } from '@/flagships/writer-room/writerRoomStav'
+import { TYPY_ZABERU, TypZaberu } from '@/miniapps/comic-writer/types'
 
 // ==========================================
 // Ověření dat appky Komiks (Writer's Room). Stejná "poškozená položka
@@ -21,6 +22,9 @@ const sanitizujRadek = (data: unknown) => {
   return { id: d.id, typ: d.typ as 'dialog' | 'popisek', postava: d.postava, text: d.text }
 }
 
+const jePlatnyZaber = (hodnota: unknown): hodnota is TypZaberu =>
+  typeof hodnota === 'string' && TYPY_ZABERU.some((z) => z.id === hodnota)
+
 const sanitizujPanel = (data: unknown) => {
   if (!data || typeof data !== 'object') return null
   const d = data as Record<string, unknown>
@@ -30,7 +34,11 @@ const sanitizujPanel = (data: unknown) => {
   // nemá, fallback na epoch, ať prostě nikdy nespadne do "dnešní"
   // statistiky místo aby zahodil celý panel.
   const createdAt = typeof d.createdAt === 'string' ? d.createdAt : '1970-01-01T00:00:00.000Z'
-  return { id: d.id, vizual: d.vizual, radky, createdAt }
+  // zaber je novější pole — starší panel ho nemá vůbec, fallback na
+  // null (typ záběru nezadán), stejná výchozí hodnota jako u nově
+  // založeného panelu.
+  const zaber = jePlatnyZaber(d.zaber) ? d.zaber : null
+  return { id: d.id, vizual: d.vizual, radky, createdAt, zaber }
 }
 
 const sanitizujStranu = (data: unknown) => {
@@ -38,11 +46,12 @@ const sanitizujStranu = (data: unknown) => {
   const d = data as Record<string, unknown>
   if (typeof d.id !== 'string' || typeof d.cislo !== 'number' || !Number.isFinite(d.cislo)) return null
   const panely = Array.isArray(d.panely) ? d.panely.map(sanitizujPanel).filter((p): p is NonNullable<typeof p> => p !== null) : []
-  // stav/poznamka jsou novější pole — starší uložená strana je nemá
-  // vůbec, stejný fallback jako u Kapitoly/Scény vedle.
+  // stav/poznamka/stitky jsou novější pole — starší uložená strana je
+  // nemá vůbec, stejný fallback jako u Kapitoly/Scény vedle.
   const stav = jePlatnyStav(d.stav) ? d.stav : 'napad'
   const poznamka = typeof d.poznamka === 'string' ? d.poznamka : ''
-  return { id: d.id, cislo: d.cislo, panely, stav, poznamka }
+  const stitky = typeof d.stitky === 'string' ? d.stitky : ''
+  return { id: d.id, cislo: d.cislo, panely, stav, poznamka, stitky }
 }
 
 // Exportováno navíc pro obnovu z ručního checkpointu

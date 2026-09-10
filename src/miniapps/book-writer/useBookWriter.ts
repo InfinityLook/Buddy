@@ -24,7 +24,7 @@ interface BookWriterState {
   updateKapitola: (
     knihaId: string,
     kapitolaId: string,
-    data: { nazev?: string; text?: string; stav?: StavPolozky; poznamka?: string }
+    data: { nazev?: string; text?: string; stav?: StavPolozky; poznamka?: string; stitky?: string }
   ) => void
   deleteKapitola: (knihaId: string, kapitolaId: string) => void
   presunKapitolu: (knihaId: string, kapitolaId: string, smer: 'nahoru' | 'dolu') => void
@@ -39,6 +39,12 @@ interface BookWriterState {
   // aktualizuje obsah. Vrací false, pokud checkpoint neprošel
   // sanitizací (poškozená data), true při úspěchu.
   obnovZeCheckpointu: (knihaId: string, snapshot: unknown) => boolean
+  // Založí novou knihu jako hlubokou kopii existující (nový vlastní
+  // id, "(kopie)" v názvu, kapitoly s vlastními novými id) — žádná XP
+  // se nedává, jde o vědomé rozvětvení existujícího díla, ne o novou
+  // tvorbu. Vrací id nové knihy, nebo null, když zdrojová kniha
+  // neexistuje.
+  duplikovatKniha: (id: string) => string | null
 }
 
 // Posune položku o jedno místo v poli daným směrem — no-op na kraji
@@ -87,6 +93,7 @@ const useBookWriterStore = create<BookWriterState>()(
           createdAt: new Date().toISOString(),
           stav: 'napad' as StavPolozky,
           poznamka: '',
+          stitky: '',
         }
         set((state) => ({
           knihy: state.knihy.map((k) =>
@@ -137,6 +144,7 @@ const useBookWriterStore = create<BookWriterState>()(
           createdAt: ted,
           stav: 'napad' as StavPolozky,
           poznamka: '',
+          stitky: '',
         }))
         set((state) => ({
           knihy: state.knihy.map((k) =>
@@ -175,6 +183,26 @@ const useBookWriterStore = create<BookWriterState>()(
           ),
         }))
         return true
+      },
+
+      duplikovatKniha: (id) => {
+        let novaId: string | null = null
+        set((state) => {
+          const original = state.knihy.find((k) => k.id === id)
+          if (!original) return state
+          const ted = new Date().toISOString()
+          novaId = noveId()
+          const kopie: Kniha = {
+            ...original,
+            id: novaId,
+            nazev: `${original.nazev} (kopie)`,
+            createdAt: ted,
+            upravenoAt: ted,
+            kapitoly: original.kapitoly.map((k) => ({ ...k, id: noveId() })),
+          }
+          return { knihy: [kopie, ...state.knihy] }
+        })
+        return novaId
       },
     }),
     {

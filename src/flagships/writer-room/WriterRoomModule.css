@@ -129,6 +129,50 @@
 }
 
 /* ------------------------------------------
+   PSACÍ CÍL
+   ------------------------------------------ */
+.wr-cil-radek {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.wr-cil-radek label {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.wr-cil-radek input[type='number'] {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  padding: 0.5rem 0.7rem;
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.wr-cil-lista {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.wr-cil-vypln {
+  height: 100%;
+  background: #eab308;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.wr-cil-popisek {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------
    NÁHLEDY KNIHA / SCÉNÁŘ / KOMIKS
    ------------------------------------------ */
 .wr-preview-radek {
