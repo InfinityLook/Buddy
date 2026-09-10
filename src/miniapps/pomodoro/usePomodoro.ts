@@ -12,6 +12,8 @@ import { nahlasPomodoroCasovac, zajistiPushPrihlaseni, zrusPomodoroCasovac } fro
 import {
   DEFAULT_SETTINGS,
   LIMITS,
+  MAX_SESSION_LOG,
+  PomodoroSession,
   TimerMode,
   TimerSettings,
   clamp,
@@ -105,6 +107,13 @@ const playChime = () => {
 
 interface PomodoroState {
   completedSessions: number
+  // Historie dokončených soustředění (viz types.ts) — "Studijní cíl"
+  // ve School Roomu a "podle předmětu" tady dole čtou z jednoho místa,
+  // ne ze dvou různých počítadel, co by se mohla rozejít.
+  sessionLog: PomodoroSession[]
+  // Volný text, ke kterému se přiřadí PŘÍŠTÍ dokončené soustředění —
+  // nepovinné, appka funguje úplně stejně, i když se nikdy nevyplní.
+  aktivniPredmet: string | null
   settings: TimerSettings
   mode: TimerMode
   isRunning: boolean
@@ -124,12 +133,15 @@ interface PomodoroState {
   complete: () => void
   updateSettings: (patch: Partial<TimerSettings>) => void
   resetStats: () => void
+  setAktivniPredmet: (predmet: string | null) => void
 }
 
 const usePomodoroStore = create<PomodoroState>()(
   persist(
     (set, get) => ({
       completedSessions: 0,
+      sessionLog: [],
+      aktivniPredmet: null,
       settings: DEFAULT_SETTINGS,
       mode: 'work',
       isRunning: false,
@@ -220,7 +232,17 @@ const usePomodoroStore = create<PomodoroState>()(
         )
 
         if (finishedMode === 'work') {
-          set((s) => ({ completedSessions: s.completedSessions + 1 }))
+          const zaznam: PomodoroSession = {
+            at: Date.now(),
+            minuty: state.settings.work,
+            predmet: state.aktivniPredmet,
+          }
+          set((s) => ({
+            completedSessions: s.completedSessions + 1,
+            // Nejvýš MAX_SESSION_LOG záznamů — nejstarší odpadávají,
+            // ať uložený stav neroste do nekonečna.
+            sessionLog: [...s.sessionLog, zaznam].slice(-MAX_SESSION_LOG),
+          }))
           useGamificationStore.getState().recordAction('pomodoro', xpForWorkBlock(state.settings.work))
 
           // Po nastaveném počtu soustředění přijde dlouhá pauza. Další
@@ -255,6 +277,8 @@ const usePomodoroStore = create<PomodoroState>()(
       },
 
       resetStats: () => set({ completedSessions: 0 }),
+
+      setAktivniPredmet: (predmet) => set({ aktivniPredmet: predmet?.trim() || null }),
     }),
     {
       name: 'schoolbuddy-pomodoro-storage',
@@ -263,10 +287,23 @@ const usePomodoroStore = create<PomodoroState>()(
       // Uložený stav ze starší verze žádné nastavení (a teď ani časovač) nemá
       merge: (persisted, current) => {
         const saved = persisted as Partial<PomodoroState> | undefined
+        // Poškozený/starý záznam historie se tiše vyřadí, ne aby shodil
+        // celý seznam — stejná odolnost jako u ostatních storů.
+        const sessionLog = Array.isArray(saved?.sessionLog)
+          ? saved!.sessionLog.filter(
+              (s): s is PomodoroSession =>
+                !!s &&
+                typeof s.at === 'number' &&
+                typeof s.minuty === 'number' &&
+                (s.predmet === null || typeof s.predmet === 'string')
+            )
+          : []
         return {
           ...current,
           ...saved,
           settings: { ...DEFAULT_SETTINGS, ...(saved?.settings ?? {}) },
+          sessionLog,
+          aktivniPredmet: typeof saved?.aktivniPredmet === 'string' ? saved.aktivniPredmet : null,
         }
       },
 
@@ -293,6 +330,8 @@ const usePomodoroStore = create<PomodoroState>()(
 export const usePomodoro = () => {
   const {
     completedSessions,
+    sessionLog,
+    aktivniPredmet,
     settings,
     mode,
     isRunning,
@@ -305,6 +344,7 @@ export const usePomodoro = () => {
     switchMode,
     updateSettings,
     resetStats,
+    setAktivniPredmet,
   } = usePomodoroStore()
 
   // Jen pro přerendrování zobrazeného odpočtu — samotné dokončení řeší
@@ -348,6 +388,9 @@ export const usePomodoro = () => {
     timeLeft,
     isRunning,
     completedSessions,
+    sessionLog,
+    aktivniPredmet,
+    setAktivniPredmet,
     settings,
     cyclePosition,
     progress,

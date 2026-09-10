@@ -122,6 +122,13 @@ const DEFAULT_APPS: AppItem[] = [
   { id: 'book-writer', title: 'Kniha', category: 'Kreativita', icon: 'book', color: 'gold', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'screenplay-writer', title: 'Scénář', category: 'Kreativita', icon: 'clapperboard', color: 'gold', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'comic-writer', title: 'Komiks', category: 'Kreativita', icon: 'comic', color: 'gold', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  // Rozvrh/Známky/Citace — nové School Roomovy appky pro profesionální
+  // (vysokoškolské) použití, appka do teď žádnou z nich neměla — stejné
+  // jenVeVlajkoveAppce zacházení od prvního commitu jako Music Studio/
+  // Writer's Room výš, nikdy se v /apps mřížce neukázaly.
+  { id: 'rozvrh', title: 'Rozvrh', category: 'Produktivita', icon: 'schedule', color: 'cyan', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  { id: 'znamky', title: 'Známky', category: 'Vzdělávání', icon: 'grades', color: 'pink', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  { id: 'citace', title: 'Citace', category: 'Vzdělávání', icon: 'quote', color: 'purple', active: true, favorite: false, jenVeVlajkoveAppce: true },
   // Vlajkové appky — viz AppItem.route výš a FlagshipShell.tsx. Zůstávají
   // active: true, protože tohle JSOU ty dlaždice, přes které se do
   // School Roomu/Fitness Roomu chodí; schovat by je šlo úplně stejně

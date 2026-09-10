@@ -125,6 +125,17 @@ export const AppIcon: React.FC<AppIconProps> = ({ name, size = 20, className }) 
       return <svg {...common}><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.4-2.5l13.9-3.5c1.1-.3 2.2.3 2.5 1.4Z"/><path d="m6.2 5.3 3.1 5.3"/><path d="m12.4 3.4 3.1 5.3"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/></svg>
     case 'comic':
       return <svg {...common}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    // Rozvrh — School Roomova nová dlaždice (viz SchoolRoomModule.tsx),
+    // "tabulka s hlavičkou a dvěma sloupci" jinak než 'calendar' (kroužky
+    // na vrchu) nebo 'grid' (čtyři čtverce).
+    case 'schedule':
+      return <svg {...common}><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="9" x2="8" y2="20"/><line x1="14" y1="9" x2="14" y2="20"/></svg>
+    // Známky — School Roomova druhá nová dlaždice, akademický klobouk.
+    case 'grades':
+      return <svg {...common}><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c0 1 3 2 6 2s6-1 6-2v-5"/></svg>
+    // Citace — School Roomův nový nástroj, uvozovky (dva stejné bloky).
+    case 'quote':
+      return <svg {...common}><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.008V21z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v4z"/></svg>
     default:
       return null
   }

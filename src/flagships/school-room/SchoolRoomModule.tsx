@@ -9,6 +9,8 @@ import { FlagshipShell } from '../shared/FlagshipShell'
 import { MujWidgetPanel } from '../shared/MujWidgetPanel'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
+import { useSkolaCil } from './useSkolaCil'
+import { spocitejMinutyDnes, spocitejMinutyTyden } from './skolaCilStats'
 import './SchoolRoomModule.css'
 
 // ==========================================
@@ -53,13 +55,27 @@ export const SchoolRoomModule: React.FC = () => {
   // (pendingCount, dnySUdalosti, completedSessions) už appky samy počítají.
   const { pendingCount } = useStudyPlanner()
   const { dnySUdalosti, dnes } = useKalendar()
-  const { completedSessions } = usePomodoro()
+  const { completedSessions, sessionLog } = usePomodoro()
 
   const dnesniStr = naFormatDatumu(dnes.getFullYear(), dnes.getMonth(), dnes.getDate())
   const nadchazejiciUdalosti = useMemo(
     () => [...dnySUdalosti].filter((d) => d >= dnesniStr).length,
     [dnySUdalosti, dnesniStr]
   )
+
+  // Studijní cíl — denní/týdenní minuty studia z Pomodorovy skutečné
+  // historie (sessionLog), stejný "wire it up, don't invent new logic"
+  // duch jako "Moje přehled" panel výš. Cíl samotný je uživatelovo
+  // číslo (useSkolaCil), splněné minuty appka nikdy sama nevymýšlí.
+  const { cilDenniMinut, cilTydenniMinut, setCilDenniMinut, setCilTydenniMinut } = useSkolaCil()
+  const minutyDnes = useMemo(() => spocitejMinutyDnes(sessionLog), [sessionLog])
+  const minutyTyden = useMemo(() => spocitejMinutyTyden(sessionLog), [sessionLog])
+  const cilDenniProcenta =
+    cilDenniMinut && cilDenniMinut > 0 ? Math.min(100, Math.round((minutyDnes / cilDenniMinut) * 100)) : null
+  const cilTydenniProcenta =
+    cilTydenniMinut && cilTydenniMinut > 0
+      ? Math.min(100, Math.round((minutyTyden / cilTydenniMinut) * 100))
+      : null
 
   // Deep-link do miniaplikace stejným vzorem jako Hub.tsx's
   // setActiveAppId('study-planner', '/hub') — returnPath přivede
@@ -123,6 +139,28 @@ export const SchoolRoomModule: React.FC = () => {
       // teď vlastní obrazovka School Roomu se skutečnými čísly z jeho
       // vlastních tří appek (viz SkolaStatistiky.tsx).
       onClick: () => navigate('/skola/statistiky'),
+    },
+    // Rozvrh a Známky — dvě nové, genuinně vysokoškolské potřeby, co
+    // appka do teď vůbec neměla (jako kdysi Kalendář). Dostávají
+    // vlastní dlaždici stejné váhy jako zbylých šest, ne jen místo v
+    // Nástrojích — obojí je organizační jádro, ne doplněk. .fs-dlazdice-
+    // mrizka je plynoucí 3sloupcová mřížka, osm dlaždic se prostě
+    // zalomí do třetí řady, žádná úprava CSS nebyla potřeba.
+    {
+      id: 'rozvrh',
+      nazev: 'Rozvrh',
+      popis: 'Týdenní rozvrh a docházka',
+      ikona: 'schedule',
+      barva: 'cyan',
+      onClick: () => otevritMiniaplikaci('rozvrh'),
+    },
+    {
+      id: 'znamky',
+      nazev: 'Známky',
+      popis: 'Studijní průměr',
+      ikona: 'grades',
+      barva: 'pink',
+      onClick: () => otevritMiniaplikaci('znamky'),
     },
   ]
 
@@ -213,13 +251,25 @@ export const SchoolRoomModule: React.FC = () => {
       barva: 'cyan',
       onClick: () => otevritMiniaplikaci('mind-map'),
     },
+    // Citace — nová, genuinně vysokoškolská potřeba, co v pevné osmici
+    // dlaždic výš místo nemá (na rozdíl od Rozvrhu/Známek to není denní
+    // organizační jádro, ale příležitostný nástroj pro psaní prací),
+    // takže jde do Nástrojů stejně jako Maturitní centrum/Flashcards/atd.
+    {
+      id: 'citace',
+      nazev: 'Citace',
+      popis: 'Generátor citací zdrojů',
+      ikona: 'quote',
+      barva: 'purple',
+      onClick: () => otevritMiniaplikaci('citace'),
+    },
   ]
 
-  // Do slotů "Můj widget" jde připnout i pět nástrojů, co v pevné
-  // šestici dlaždic místo nemají (Planer/Pomodoro/Quick Notes tam už
-  // jsou pod jinými id — viz komentář nahoře, proč se tu neopakují).
+  // Do slotů "Můj widget" jde připnout i nástroje, co v pevné mřížce
+  // dlaždic výš místo nemají (Planer/Pomodoro/Quick Notes tam už jsou
+  // pod jinými id — viz komentář nahoře, proč se tu neopakují).
   const dalsiMoznostiProSloty = nastroje.filter((n) =>
-    ['exam-prep', 'flashcards', 'math-solver', 'document-editor', 'mind-map'].includes(n.id)
+    ['exam-prep', 'flashcards', 'math-solver', 'document-editor', 'mind-map', 'citace'].includes(n.id)
   )
 
   return (
@@ -289,6 +339,72 @@ export const SchoolRoomModule: React.FC = () => {
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Studijní cíl — denní/týdenní minuty studia z Pomodorovy
+            skutečné historie soustředění, stejný "kladné číslo nebo
+            žádný cíl" tvar jako Writer Roomův psací cíl. Bez cíle se
+            nezobrazí žádný progres bar, jen prázdná pole na zadání. */}
+        <div className="sr-panel">
+          <div className="sr-panel-hlavicka">
+            <h2>🎯 Studijní cíl</h2>
+            <p>Kolik minut chceš dnes/týdně studovat</p>
+          </div>
+
+          <div className="sr-cil-radek">
+            <label>
+              Denní cíl (min)
+              <input
+                type="number"
+                min={0}
+                value={cilDenniMinut ?? ''}
+                onChange={(e) => setCilDenniMinut(e.target.value ? Number(e.target.value) : null)}
+              />
+            </label>
+            <label>
+              Týdenní cíl (min)
+              <input
+                type="number"
+                min={0}
+                value={cilTydenniMinut ?? ''}
+                onChange={(e) => setCilTydenniMinut(e.target.value ? Number(e.target.value) : null)}
+              />
+            </label>
+          </div>
+
+          {cilDenniProcenta !== null && (
+            <div className="sr-cil-progres">
+              <div
+                className="sr-cil-lista"
+                role="progressbar"
+                aria-valuenow={cilDenniProcenta}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div className="sr-cil-vypln" style={{ width: `${cilDenniProcenta}%` }} />
+              </div>
+              <span className="sr-cil-popisek">
+                {minutyDnes} z {cilDenniMinut} min dnes
+              </span>
+            </div>
+          )}
+
+          {cilTydenniProcenta !== null && (
+            <div className="sr-cil-progres">
+              <div
+                className="sr-cil-lista"
+                role="progressbar"
+                aria-valuenow={cilTydenniProcenta}
+                aria-valuemin={0}
+                aria-valuemax={100}
+              >
+                <div className="sr-cil-vypln" style={{ width: `${cilTydenniProcenta}%` }} />
+              </div>
+              <span className="sr-cil-popisek">
+                {minutyTyden} z {cilTydenniMinut} min tento týden
+              </span>
+            </div>
+          )}
         </div>
 
         <MujWidgetPanel id="school-room" dlazdice={dlazdice} dalsiMoznostiProSloty={dalsiMoznostiProSloty} />

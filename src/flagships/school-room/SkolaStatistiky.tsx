@@ -4,6 +4,8 @@ import { useAppStore } from '@/core/store/useAppStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { useKalendar, naFormatDatumu } from '@/miniapps/kalendar/useKalendar'
 import { usePomodoro } from '@/miniapps/pomodoro/usePomodoro'
+import { useZnamky } from '@/miniapps/znamky/useZnamky'
+import { celkovyVazenyPrumer, soucetKreditu, vazenyPrumerPredmetu } from '@/miniapps/znamky/types'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import '@/pages/app/AppModule.css'
 import './SchoolRoomModule.css'
@@ -23,9 +25,24 @@ export const SkolaStatistiky: React.FC = () => {
   const navigate = useNavigate()
   const setActiveAppId = useAppStore((s) => s.setActiveAppId)
 
-  const { pendingCount, overdueCount, totalCount } = useStudyPlanner()
+  const { pendingCount, overdueCount, totalCount, tasks } = useStudyPlanner()
   const { dnySUdalosti, dnes, pocetUdalostiCelkem } = useKalendar()
   const { completedSessions } = usePomodoro()
+  const { predmety } = useZnamky()
+
+  // Semestrální přehled — kolik nesplněných úkolů z Planeru patří ke
+  // kterému předmětu, spárováno prostým shodným názvem (case-insensitive,
+  // ořezaný o mezery). Planerův subject je volný text, appka ho tu jen
+  // ČTE proti Známkám, nic v Planeru se tímhle neomezuje ani nevynucuje.
+  const pocetUkoluPodlePredmetu = useMemo(() => {
+    const mapa = new Map<string, number>()
+    for (const task of tasks) {
+      if (task.completed) continue
+      const klic = task.subject.trim().toLowerCase()
+      mapa.set(klic, (mapa.get(klic) ?? 0) + 1)
+    }
+    return mapa
+  }, [tasks])
 
   const dnesniStr = naFormatDatumu(dnes.getFullYear(), dnes.getMonth(), dnes.getDate())
   const nadchazejiciUdalosti = useMemo(
@@ -143,6 +160,66 @@ export const SkolaStatistiky: React.FC = () => {
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Semestrální přehled — čtvrtá karta téhle obrazovky, řeší
+          "přehled předmětů s kredity" propojením Známek (skutečné
+          předměty/kredity/průměry) s Planerem (kolik nesplněných úkolů
+          patří ke kterému). Žádný nový store, jen spojení dvou už
+          existujících appek na jedné obrazovce. */}
+      <div className="sr-panel">
+        <div className="sr-panel-hlavicka">
+          <h2>Předměty (semestr)</h2>
+          <button className="sr-otevrit-btn" onClick={() => otevritMiniaplikaci('znamky')}>
+            Otevřít Známky ›
+          </button>
+        </div>
+        <div className="sr-staty">
+          <div className="sr-stat-radek">
+            <span className="sr-stat-ikona fs-barva--pink">
+              <AppIcon name="grades" size={18} />
+            </span>
+            <span className="sr-stat-text">
+              <span className="sr-stat-nazev">Celkový průměr</span>
+              <span className="sr-stat-hodnota">
+                {(() => {
+                  const prumer = celkovyVazenyPrumer(predmety)
+                  return prumer !== null ? prumer.toFixed(2) : 'Zatím žádné známky'
+                })()}
+              </span>
+            </span>
+          </div>
+          <div className="sr-stat-radek">
+            <span className="sr-stat-ikona fs-barva--cyan">
+              <AppIcon name="grades" size={18} />
+            </span>
+            <span className="sr-stat-text">
+              <span className="sr-stat-nazev">Kreditů celkem</span>
+              <span className="sr-stat-hodnota">{soucetKreditu(predmety) > 0 ? soucetKreditu(predmety) : 'Žádné'}</span>
+            </span>
+          </div>
+        </div>
+
+        {predmety.length === 0 ? (
+          <p className="sr-prazdno-text">Zatím žádné předměty — přidej je ve Známkách.</p>
+        ) : (
+          <ul className="sr-predmety-seznam">
+            {predmety.map((p) => {
+              const prumer = vazenyPrumerPredmetu(p)
+              const ukoly = pocetUkoluPodlePredmetu.get(p.nazev.trim().toLowerCase()) ?? 0
+              return (
+                <li key={p.id} className="sr-predmety-radek">
+                  <span className="sr-predmety-nazev">
+                    {p.nazev}
+                    {p.kredity > 0 && ` · ${p.kredity} kr.`}
+                  </span>
+                  <span className="sr-predmety-prumer">{prumer !== null ? prumer.toFixed(2) : '—'}</span>
+                  <span className="sr-predmety-ukoly">{ukoly > 0 ? `${ukoly} úkolů` : ''}</span>
+                </li>
+              )
+            })}
+          </ul>
+        )}
       </div>
     </div>
   )

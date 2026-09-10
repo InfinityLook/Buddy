@@ -45,3 +45,42 @@ export const clamp = (value: number, min: number, max: number): number =>
 // Délka režimu v sekundách podle nastavení
 export const durationFor = (mode: TimerMode, settings: TimerSettings): number =>
   settings[mode] * 60
+
+// ==========================================
+// Historie dokončených soustředění — "Pomodoro podle předmětu" a
+// School Roomův "Studijní cíl" obojí stojí na téhle jedné historii,
+// ne na dvou různých počítadlech. Předmět je volný text, nepovinný a
+// nevázaný na žádnou jinou appku (Známky apod.) — Pomodoro zůstává
+// samostatná miniaplikace jako každá jiná, ne appka svázaná s tou
+// druhou.
+// ==========================================
+
+export interface PomodoroSession {
+  /** Absolutní čas dokončení (Date.now()) — stejný "časové razítko, ne
+   *  countdown" přístup jako endsAt. */
+  at: number
+  minuty: number
+  predmet: string | null
+}
+
+// Kolik záznamů historie appka drží nejvýš — dost na smysluplný přehled
+// za týdny zpátky, ne neomezený růst uloženého stavu.
+export const MAX_SESSION_LOG = 300
+
+export interface SouhrnPredmetu {
+  predmet: string | null
+  minuty: number
+}
+
+/** Součet minut podle předmětu, seřazený od nejvíc odstudovaného —
+ *  čistá funkce nad hotovou historií, žádný store, testovatelná bez
+ *  komponenty. */
+export const spocitejSouhrnPodlePredmetu = (log: PomodoroSession[]): SouhrnPredmetu[] => {
+  const mapa = new Map<string | null, number>()
+  for (const s of log) {
+    mapa.set(s.predmet, (mapa.get(s.predmet) ?? 0) + s.minuty)
+  }
+  return [...mapa.entries()]
+    .map(([predmet, minuty]) => ({ predmet, minuty }))
+    .sort((a, b) => b.minuty - a.minuty)
+}

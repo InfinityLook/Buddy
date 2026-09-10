@@ -61,4 +61,13 @@ export const MINI_APP_REGISTRY: Record<string, LazyExoticComponent<React.Compone
   'comic-writer': lazy(() =>
     import('../../miniapps/comic-writer/ComicWriter').then((m) => ({ default: m.ComicWriter }))
   ),
+  'rozvrh': lazy(() =>
+    import('../../miniapps/rozvrh/Rozvrh').then((m) => ({ default: m.Rozvrh }))
+  ),
+  'znamky': lazy(() =>
+    import('../../miniapps/znamky/Znamky').then((m) => ({ default: m.Znamky }))
+  ),
+  'citace': lazy(() =>
+    import('../../miniapps/citace/Citace').then((m) => ({ default: m.Citace }))
+  ),
 }

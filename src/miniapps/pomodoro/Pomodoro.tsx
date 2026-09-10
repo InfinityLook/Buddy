@@ -1,6 +1,6 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { usePomodoro } from './usePomodoro'
-import { LIMITS, MODE_COLORS, MODE_LABELS, TimerMode } from './types'
+import { LIMITS, MODE_COLORS, MODE_LABELS, TimerMode, spocitejSouhrnPodlePredmetu } from './types'
 import './Pomodoro.css'
 
 const MODES: TimerMode[] = ['work', 'shortBreak', 'longBreak']
@@ -15,6 +15,9 @@ export const Pomodoro: React.FC = () => {
     timeLeft,
     isRunning,
     completedSessions,
+    sessionLog,
+    aktivniPredmet,
+    setAktivniPredmet,
     settings,
     cyclePosition,
     progress,
@@ -28,6 +31,7 @@ export const Pomodoro: React.FC = () => {
   } = usePomodoro()
 
   const [showSettings, setShowSettings] = useState(false)
+  const souhrnPredmetu = useMemo(() => spocitejSouhrnPodlePredmetu(sessionLog), [sessionLog])
 
   const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0')
   const seconds = (timeLeft % 60).toString().padStart(2, '0')
@@ -101,6 +105,22 @@ export const Pomodoro: React.FC = () => {
         </span>
       </div>
 
+      {/* Nepovinný předmět/štítek pro PŘÍŠTÍ dokončené soustředění — volný
+          text, appka funguje úplně stejně, i když se nikdy nevyplní. Dává
+          smysl vyplnit ho, i když už časovač běží (třeba se předmět
+          zapomněl zadat na začátku), proto se nezakazuje. */}
+      <label className="pomo-predmet-radek">
+        <span>Předmět (nepovinně)</span>
+        <input
+          type="text"
+          placeholder="např. Matematika"
+          value={aktivniPredmet ?? ''}
+          onChange={(e) => setAktivniPredmet(e.target.value)}
+          spellCheck
+          lang="cs"
+        />
+      </label>
+
       <div className="pomo-controls">
         <button className="pomo-btn main" onClick={toggleTimer}>
           {isRunning ? 'PAUZA' : 'START'}
@@ -120,6 +140,18 @@ export const Pomodoro: React.FC = () => {
           </button>
         )}
       </div>
+
+      {souhrnPredmetu.length > 0 && (
+        <div className="pomo-souhrn">
+          <span className="pomo-souhrn-title">Podle předmětu</span>
+          {souhrnPredmetu.map((s) => (
+            <div key={s.predmet ?? '—'} className="pomo-souhrn-radek">
+              <span>{s.predmet ?? 'Bez předmětu'}</span>
+              <strong>{s.minuty} min</strong>
+            </div>
+          ))}
+        </div>
+      )}
 
       {showSettings && (
         <div className="pomo-settings">

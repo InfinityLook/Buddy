@@ -77,6 +77,11 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-comic-writer-storage', storage: 'secure', label: 'Komiks' },
   { key: 'schoolbuddy-writer-checkpoints-storage', storage: 'secure', label: 'Zálohy Writer\'s Roomu' },
   { key: 'schoolbuddy-writer-room-cil-storage', storage: 'secure', label: 'Psací cíl Writer\'s Roomu' },
+  // School Roomovy nové appky pro profesionální (vysokoškolské) použití.
+  { key: 'schoolbuddy-rozvrh-storage', storage: 'secure', label: 'Rozvrh' },
+  { key: 'schoolbuddy-znamky-storage', storage: 'secure', label: 'Známky' },
+  { key: 'schoolbuddy-citace-storage', storage: 'secure', label: 'Citace' },
+  { key: 'schoolbuddy-skola-cil-storage', storage: 'secure', label: 'Studijní cíl School Roomu' },
   { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
   // Na rozdíl od role/kreditů níž je restorable: true bezpečné i pro
   // VIP vzhled — resolveActiveThemeId (core/theme/themes.ts) ověřuje

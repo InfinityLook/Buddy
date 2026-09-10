@@ -143,3 +143,111 @@
   font-size: 0.72rem;
   color: var(--text-secondary);
 }
+
+/* ------------------------------------------
+   Studijní cíl — SchoolRoomModule.tsx's panel se dvěma vstupy a dvěma
+   progres bary, stejný .wr-cil-* tvar jako Writer Roomův psací cíl,
+   jen s vlastní .sr- předponou (School Room má svoje vlastní CSS,
+   nesdílí soubor s Writer's Roomem).
+   ------------------------------------------ */
+.sr-cil-radek {
+  display: flex;
+  gap: 0.8rem;
+}
+
+.sr-cil-radek label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.sr-cil-radek input[type='number'] {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.6rem;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.sr-cil-progres {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.sr-cil-lista {
+  flex: 1;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--bg-panel);
+  overflow: hidden;
+}
+
+.sr-cil-vypln {
+  height: 100%;
+  background: var(--accent-cyan);
+  border-radius: 4px;
+}
+
+.sr-cil-popisek {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------
+   SkolaStatistiky.tsx's "Předměty (semestr)" karta — vlastní malý
+   seznam řádků, jinačí tvar než .sr-staty výš (tady je řádků na
+   předmět nepředem daný počet, ne pevné tři).
+   ------------------------------------------ */
+.sr-prazdno-text {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  text-align: center;
+  padding: 0.6rem;
+  margin: 0;
+}
+
+.sr-predmety-seznam {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sr-predmety-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+}
+
+.sr-predmety-nazev {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sr-predmety-prumer {
+  flex-shrink: 0;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-predmety-ukoly {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  min-width: 3.5rem;
+  text-align: right;
+}

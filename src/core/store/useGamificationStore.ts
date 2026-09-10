@@ -28,6 +28,9 @@ export type ActivityKind =
   | 'book'
   | 'screenplay'
   | 'comic'
+  | 'rozvrh'
+  | 'znamka'
+  | 'citace'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -81,6 +84,10 @@ export const DEFAULT_BADGES: Badge[] = [
   { id: 'romanopisec', title: 'Romanopisec', description: 'Napiš 10 kapitol v Knize.', icon: '📖', unlockedAt: null },
   { id: 'scenarista', title: 'Scenárista', description: 'Napiš 10 scén ve Scénáři.', icon: '🎬', unlockedAt: null },
   { id: 'komiksovy_kreslir', title: 'Komiksový tvůrce', description: 'Vytvoř 10 panelů v Komiksu.', icon: '💥', unlockedAt: null },
+  // School Roomovy nové appky pro profesionální (vysokoškolské) použití.
+  { id: 'planovac_hodin', title: 'Plánovač hodin', description: 'Přidej 5 hodin do Rozvrhu.', icon: '🗓️', unlockedAt: null },
+  { id: 'akademik', title: 'Akademik', description: 'Zapiš 15 známek do Známek.', icon: '📊', unlockedAt: null },
+  { id: 'citovac', title: 'Citovač', description: 'Vytvoř 10 citací.', icon: '📚', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti. 'souboj'
@@ -112,6 +119,9 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   book: { badgeId: 'romanopisec', needed: 10 },
   screenplay: { badgeId: 'scenarista', needed: 10 },
   comic: { badgeId: 'komiksovy_kreslir', needed: 10 },
+  rozvrh: { badgeId: 'planovac_hodin', needed: 5 },
+  znamka: { badgeId: 'akademik', needed: 15 },
+  citace: { badgeId: 'citovac', needed: 10 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není
