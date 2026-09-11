@@ -80,7 +80,17 @@ export default defineConfig(({ command }) => {
           theme_color: '#0a0e1a',
           background_color: '#0a0e1a',
           display: 'standalone',
-          orientation: 'portrait',
+          // Ne 'portrait' — nainstalovaná appka (na rozdíl od pouhé
+          // otevřené záložky v prohlížeči, která manifest ignoruje a řídí
+          // se jen fyzickým natočením telefonu) by s pevným 'portrait'
+          // zůstala uzamčená na výšku navždy, i kdyby appka sama volala
+          // screen.orientation.lock('landscape') (viz GamesHubModule.tsx/
+          // Ovladac.tsx) — manifest vyhrává nad JS. 'any' nechá appku
+          // otáčet se s telefonem stejně, jako to dělá běžná webová
+          // stránka, a appčiny vlastní @media (orientation: portrait)
+          // "otoč telefon" výzvy (BuddyZone, Souboj) pak fungují správně
+          // i po instalaci.
+          orientation: 'any',
           // Explicitní `id` drží identitu nainstalované aplikace stabilní.
           // Odpovídá výchozí hodnotě odvozené ze start_url, takže se z toho
           // na ploše telefonu nestane druhá, nová ikona.
