@@ -92,20 +92,91 @@
   border-color: var(--accent-cyan);
 }
 
+.ms-delka-prepinac {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  padding: 0.2rem;
+  margin-left: auto;
+}
+
+.ms-delka-prepinac button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.3rem 0.55rem;
+  border-radius: var(--radius-pill);
+  cursor: pointer;
+}
+
+.ms-delka-prepinac button.active {
+  background: var(--accent-cyan);
+  color: #06232b;
+}
+
 .ms-seq-grid {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.7rem;
   background: var(--bg-glass);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 0.8rem;
 }
 
+.ms-seq-radek-cely {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 .ms-seq-row {
   display: flex;
   align-items: center;
   gap: 0.6rem;
+}
+
+.ms-mixer-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding-left: calc(46px + 0.6rem);
+}
+
+.ms-mixer-radek input[type='range'] {
+  flex: 1;
+  accent-color: var(--accent-cyan);
+}
+
+.ms-mixer-btn {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  font-size: 0.65rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ms-mixer-btn.je-aktivni {
+  background: var(--accent-red);
+  border-color: var(--accent-red);
+  color: #fff;
+}
+
+.ms-mixer-btn--solo.je-aktivni {
+  background: var(--accent-orange);
+  border-color: var(--accent-orange);
 }
 
 .ms-seq-label {
@@ -146,6 +217,16 @@
 .ms-seq-cell.on-hihat {
   background: var(--accent-violet);
   border-color: var(--accent-violet);
+}
+
+.ms-seq-cell.on-clap {
+  background: var(--accent-orange);
+  border-color: var(--accent-orange);
+}
+
+.ms-seq-cell.on-tom {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
 }
 
 .ms-seq-cell.playhead {
@@ -256,6 +337,38 @@
   color: var(--text-secondary);
 }
 
+.ms-radek-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* ==== vlnová vizualizace (Nahrávání) ==== */
+
+.ms-vlna {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 44px;
+  padding: 0.3rem 0.4rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.ms-vlna-sloupec {
+  flex: 1;
+  min-width: 2px;
+  border-radius: 2px;
+  background: var(--accent-violet);
+  opacity: 0.45;
+}
+
+.ms-vlna-sloupec.je-zahrano {
+  background: var(--accent-cyan);
+  opacity: 1;
+}
+
 .ms-icon-btn {
   flex-shrink: 0;
   width: 34px;
@@ -356,12 +469,83 @@
   flex: 1;
 }
 
+.ms-orez-radek {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.ms-orez-radek label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.ms-orez-radek input[type='range'] {
+  accent-color: var(--accent-magenta);
+}
+
+.ms-rec-nastaveni {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.ms-rec-nastaveni label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.ms-checkbox-radek {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.5rem !important;
+}
+
+.ms-odpocet-znacka {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--accent-orange);
+}
+
 /* ==== Skladby ==== */
 
 .ms-nova-skladba {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.ms-vyvazeni {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.7rem;
+}
+
+.ms-vyvazeni label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.ms-vyvazeni input[type='range'] {
+  accent-color: var(--accent-cyan);
 }
 
 @media (prefers-reduced-motion: reduce) {

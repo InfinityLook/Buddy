@@ -1,5 +1,5 @@
 import * as v from 'valibot'
-import { DRUM_SOUNDS, KROKU_V_PATTERNU } from '@/miniapps/music-studio/types'
+import { DRUM_SOUNDS, KROKU_V_PATTERNU, POCTY_KROKU_NA_VYBER, type PocetKroku } from '@/miniapps/music-studio/types'
 
 // ==========================================
 // Ověření dat Music Studia (beaty/nahrávky/skladby) načtených z
@@ -7,10 +7,34 @@ import { DRUM_SOUNDS, KROKU_V_PATTERNU } from '@/miniapps/music-studio/types'
 // seznam" zásada jako gameCharacterValidation.ts/inventarValidation.ts
 // — appka jednu rozbitou nahrávku zapomene, ne že by uživateli smazala
 // všechny ostatní beaty a skladby s ní.
+//
+// `kroky`/`hlasitosti`/`pocetKroku` jsou navíc DOROVNÁVANÉ, ne jen
+// kontrolované — starší pattern uložený appkou před rozšířením na
+// clap/tom a volitelnou délku 8/16 krokům chybí přesně tahle pole
+// úplně. Appka je proto místo zahození celého patternu doplní
+// bezpečnými výchozími hodnotami (viz dorovnejKroky/dorovnejHlasitost
+// níž) — stejná "chybějící pole appka doplní, ne že by kvůli němu
+// vyhodila celou položku" zásada jako `upravenoAt`/`cilScen`/`cilStran`
+// dostaly ve Writer's Roomu.
 // ==========================================
 
-const jeBoolPole8 = (data: unknown): data is boolean[] =>
-  Array.isArray(data) && data.length === KROKU_V_PATTERNU && data.every((x) => typeof x === 'boolean')
+const jePlatnyPocetKroku = (x: unknown): x is PocetKroku =>
+  typeof x === 'number' && (POCTY_KROKU_NA_VYBER as readonly number[]).includes(x)
+
+const dorovnejKroky = (data: unknown, delka: number): boolean[] => {
+  const pole = Array.isArray(data) ? data.filter((x): x is boolean => typeof x === 'boolean') : []
+  return Array.from({ length: delka }, (_, i) => pole[i] ?? false)
+}
+
+const dorovnejHlasitost = (data: unknown): number => {
+  if (typeof data !== 'number' || !Number.isFinite(data)) return 100
+  return Math.min(100, Math.max(0, Math.round(data)))
+}
+
+const dorovnejPocetOpakovani = (data: unknown): number => {
+  if (typeof data !== 'number' || !Number.isFinite(data) || data < 0) return 0
+  return Math.round(data)
+}
 
 const sanitizujPattern = (data: unknown) => {
   if (!data || typeof data !== 'object') return null
@@ -18,16 +42,20 @@ const sanitizujPattern = (data: unknown) => {
   if (typeof d.id !== 'string' || typeof d.name !== 'string' || typeof d.createdAt !== 'string') return null
   if (typeof d.bpm !== 'number' || !Number.isFinite(d.bpm) || d.bpm < 40 || d.bpm > 240) return null
 
-  const kroky = d.kroky && typeof d.kroky === 'object' ? (d.kroky as Record<string, unknown>) : {}
-  if (!DRUM_SOUNDS.every((buben) => jeBoolPole8(kroky[buben]))) return null
+  const pocetKroku: PocetKroku = jePlatnyPocetKroku(d.pocetKroku) ? d.pocetKroku : KROKU_V_PATTERNU
 
-  return {
-    id: d.id,
-    name: d.name,
-    bpm: d.bpm,
-    kroky: kroky as Record<(typeof DRUM_SOUNDS)[number], boolean[]>,
-    createdAt: d.createdAt,
-  }
+  const krokyVstup = d.kroky && typeof d.kroky === 'object' ? (d.kroky as Record<string, unknown>) : {}
+  const kroky = Object.fromEntries(
+    DRUM_SOUNDS.map((buben) => [buben, dorovnejKroky(krokyVstup[buben], pocetKroku)])
+  ) as Record<(typeof DRUM_SOUNDS)[number], boolean[]>
+
+  const hlasitostiVstup =
+    d.hlasitosti && typeof d.hlasitosti === 'object' ? (d.hlasitosti as Record<string, unknown>) : {}
+  const hlasitosti = Object.fromEntries(
+    DRUM_SOUNDS.map((buben) => [buben, dorovnejHlasitost(hlasitostiVstup[buben])])
+  ) as Record<(typeof DRUM_SOUNDS)[number], number>
+
+  return { id: d.id, name: d.name, bpm: d.bpm, pocetKroku, kroky, hlasitosti, createdAt: d.createdAt }
 }
 
 const sanitizujRecording = (data: unknown) => {
@@ -53,7 +81,16 @@ const sanitizujSong = (data: unknown) => {
   const jePlatnyOdkaz = (x: unknown): x is string | null => x === null || typeof x === 'string'
   if (!jePlatnyOdkaz(d.beatPatternId) || !jePlatnyOdkaz(d.recordingId)) return null
 
-  return { id: d.id, name: d.name, beatPatternId: d.beatPatternId, recordingId: d.recordingId, createdAt: d.createdAt }
+  return {
+    id: d.id,
+    name: d.name,
+    beatPatternId: d.beatPatternId,
+    recordingId: d.recordingId,
+    pocetOpakovaniBeatu: dorovnejPocetOpakovani(d.pocetOpakovaniBeatu),
+    hlasitostBeatu: dorovnejHlasitost(d.hlasitostBeatu),
+    hlasitostNahravky: dorovnejHlasitost(d.hlasitostNahravky),
+    createdAt: d.createdAt,
+  }
 }
 
 const MusicStudioSchema = v.object({

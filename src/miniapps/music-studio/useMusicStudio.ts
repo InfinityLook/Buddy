@@ -22,7 +22,14 @@ interface MusicStudioState {
   deletePattern: (id: string) => void
   addRecordingMeta: (recording: Omit<Recording, 'id' | 'createdAt'>) => string
   deleteRecording: (id: string) => void
-  addSong: (name: string, beatPatternId: string | null, recordingId: string | null) => void
+  addSong: (
+    name: string,
+    beatPatternId: string | null,
+    recordingId: string | null,
+    pocetOpakovaniBeatu: number,
+    hlasitostBeatu: number,
+    hlasitostNahravky: number
+  ) => void
   deleteSong: (id: string) => void
 }
 
@@ -72,12 +79,15 @@ const useMusicStudioStore = create<MusicStudioState>()(
         void deleteFileBlob(id)
       },
 
-      addSong: (name, beatPatternId, recordingId) => {
+      addSong: (name, beatPatternId, recordingId, pocetOpakovaniBeatu, hlasitostBeatu, hlasitostNahravky) => {
         const nova: Song = {
           id: noveId(),
           name: name.trim() || 'Skladba',
           beatPatternId,
           recordingId,
+          pocetOpakovaniBeatu,
+          hlasitostBeatu,
+          hlasitostNahravky,
           createdAt: new Date().toISOString(),
         }
         set((state) => ({ songs: [nova, ...state.songs] }))

@@ -13,8 +13,12 @@ const INTERVAL_MS = 25
 
 /** Krokový sekvencer jednoho BeatPatternu — appka ho volá z Beat Makeru
  *  (živé přehrávání rozehrané mřížky) i ze Skladeb (přehrání uloženého
- *  patternu na pozadí skladby), stejný hook pro obojí. */
-export const useBeatSequencer = (pattern: BeatPattern | null) => {
+ *  patternu na pozadí skladby), stejný hook pro obojí. `onOpakovani`
+ *  (volitelné) appka volá pokaždé, když sekvencer dokončí jeden celý
+ *  průchod patternem a vrátí se na krok 0 — Skladby's vyvážení
+ *  (appka sama zastaví beat po N opakováních) na tuhle jedinou hranu
+ *  spoléhá místo počítat kroky zvenku. */
+export const useBeatSequencer = (pattern: BeatPattern | null, onOpakovani?: () => void) => {
   const [hraje, setHraje] = useState(false)
   const [aktualniKrok, setAktualniKrok] = useState(-1)
 
@@ -24,6 +28,12 @@ export const useBeatSequencer = (pattern: BeatPattern | null) => {
   // v okamžiku spuštění.
   const patternRef = useRef(pattern)
   patternRef.current = pattern
+
+  // Stejný důvod jako patternRef — spustit()'s useCallback má prázdné
+  // pole závislostí (interval se nemá znovu zakládat kvůli změně
+  // callbacku), takže musí číst přes ref, ne zavřít starou hodnotu.
+  const onOpakovaniRef = useRef(onOpakovani)
+  onOpakovaniRef.current = onOpakovani
 
   const dalsiKrokRef = useRef(0)
   const dalsiCasRef = useRef(0)
@@ -47,12 +57,19 @@ export const useBeatSequencer = (pattern: BeatPattern | null) => {
     intervalRef.current = setInterval(() => {
       const p = patternRef.current
       if (!p) return
-      const sekundNaKrok = 60 / p.bpm / 2 // osminové noty (2 kroky na dobu)
+      const pocetKroku = p.pocetKroku ?? KROKU_V_PATTERNU
+      // 8 kroků = osminové noty (2 na dobu), 16 kroků = šestnáctinové
+      // (4 na dobu) — obojí je tak vždycky přesně jeden takt ve 4/4.
+      const krokyNaDobu = pocetKroku / 4
+      const sekundNaKrok = 60 / p.bpm / krokyNaDobu
 
       while (dalsiCasRef.current < ctx.currentTime + LOOKAHEAD_S) {
         const krok = dalsiKrokRef.current
         for (const buben of DRUM_SOUNDS) {
-          if (p.kroky[buben][krok]) naplanujBuben(ctx, buben, dalsiCasRef.current)
+          if (p.kroky[buben]?.[krok]) {
+            const hlasitost = p.hlasitosti?.[buben] ?? 100
+            if (hlasitost > 0) naplanujBuben(ctx, buben, dalsiCasRef.current, hlasitost)
+          }
         }
 
         const zobrazitKrok = krok
@@ -60,7 +77,8 @@ export const useBeatSequencer = (pattern: BeatPattern | null) => {
         setTimeout(() => setAktualniKrok(zobrazitKrok), zpozdeniMs)
 
         dalsiCasRef.current += sekundNaKrok
-        dalsiKrokRef.current = (krok + 1) % KROKU_V_PATTERNU
+        dalsiKrokRef.current = (krok + 1) % pocetKroku
+        if (dalsiKrokRef.current === 0) onOpakovaniRef.current?.()
       }
     }, INTERVAL_MS)
 
