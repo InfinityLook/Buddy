@@ -1,86 +1,208 @@
 /* ==========================================
-   BUDDY ARCADE — konzolové menu her za tlačítkem Play v Hubu.
-   Vlastní vizuální jazyk (hero karta + polička dlaždic + dok), ne
-   Hub/Reward/Settings glass karty jedna pod druhou — schváleno jako
-   statický Artifact návrh, teprve pak sem přišel skutečný kód.
+   BUDDYZONE — landscape rozcestník her za tlačítkem Play v Hubu.
+   Postaveno podle dodaného "BuddyZone" mockupu — boční menu, horní
+   lišta, hero banner, "Vyber si hru" — nahrazuje dřívější svislou
+   "Buddy Arcade" konzolovou vrstvu (hero karta + polička dlaždic +
+   dok), protože nový layout je od základu landscape, ne portrét se
+   scrollem. Appka se snaží telefon zamknout na šířku (viz
+   GamesHubModule.tsx), ale skutečnou zárukou je čistě CSS "otoč
+   telefon" výzva níž — stejná dvojice appka poprvé postavila pro
+   Souboj (FightingModule.css) a dokumentuje v CLAUDE.md.
    ========================================== */
 
-.arc-page {
+.bz-page {
   height: 100vh;
   height: 100dvh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  display: flex;
-  flex-direction: column;
-  min-height: 100%;
-  background:
-    radial-gradient(circle at 18% 6%, rgba(53, 196, 240, 0.18) 0%, transparent 40%),
-    radial-gradient(circle at 88% 92%, rgba(138, 92, 246, 0.14) 0%, transparent 45%),
-    var(--bg-base);
+  width: 100vw;
+  overflow: hidden;
+  background: var(--bg-base);
   color: var(--text-primary);
-  padding: calc(0.9rem + env(safe-area-inset-top)) 1rem calc(1.1rem + env(safe-area-inset-bottom));
-  max-width: 480px;
-  margin: 0 auto;
-  box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* ---------- horní lišta ---------- */
+/* ---------- "otoč telefon" výzva — jen v portrétu ---------- */
 
-.arc-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-
-.arc-back {
-  display: flex;
+.bz-rotate-prompt {
+  display: none;
+  height: 100%;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
+  gap: 0.6rem;
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 2rem;
+}
+
+.bz-rotate-ikona {
+  font-size: 2.6rem;
+}
+
+@keyframes bz-otoc-houpani {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-90deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bz-rotate-ikona {
+    animation: bz-otoc-houpani 1.6s ease-in-out infinite;
+  }
+}
+
+/* ---------- layout: boční menu + hlavní obsah ---------- */
+
+.bz-shell {
+  display: flex;
+  height: 100%;
+}
+
+.bz-sidebar {
+  flex: 0 0 188px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding: calc(0.9rem + env(safe-area-inset-top)) 0.85rem calc(0.9rem + env(safe-area-inset-bottom))
+    calc(0.85rem + env(safe-area-inset-left));
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-subtle);
+  overflow-y: auto;
+}
+
+.bz-sidebar-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  padding: 0 0.15rem;
+}
+
+.bz-logo-znak {
+  font-size: 1.15rem;
+}
+
+.bz-logo-zone {
+  color: var(--accent-cyan);
+}
+
+.bz-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.bz-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.bz-nav-item--active {
+  background: rgba(53, 196, 240, 0.14);
+  color: var(--accent-cyan);
+}
+
+.bz-nav-item--inert {
+  color: var(--text-muted);
+  opacity: 0.55;
+  cursor: default;
+}
+
+.bz-sidebar-back {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 12px;
   border: 1px solid var(--border-subtle);
-  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.04);
+  font-family: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
   color: var(--text-secondary);
   cursor: pointer;
 }
 
-.arc-title-wrap {
+.bz-main {
   flex: 1;
-  padding: 0 0.7rem;
   min-width: 0;
-}
-
-.arc-title {
   display: flex;
-  align-items: baseline;
-  gap: 0.4rem;
-  font-size: 1.28rem;
-  font-weight: 900;
-  letter-spacing: -0.01em;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: calc(0.7rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right))
+    calc(0.8rem + env(safe-area-inset-bottom)) 1rem;
+  gap: 0.75rem;
 }
 
-.arc-title .arc-vsuvka {
-  font-size: 1.05rem;
+/* ---------- horní lišta ---------- */
+
+.bz-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  flex-shrink: 0;
 }
 
-.arc-sub {
-  margin: 0.15rem 0 0;
+.bz-search {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  max-width: 260px;
+  padding: 0.5rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
   font-size: 0.76rem;
-  color: var(--text-secondary);
 }
 
-/* Malý odznak úrovně vpravo nahoře — Buddyho vlastní detail, žádná
-   konzole tohle nemá: Hub už ukazuje level/XP prstenec, tak stejný
-   jazyk (prstenec + Lv N) nese i sem. */
-.arc-level {
+.bz-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+}
+
+.bz-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.bz-avatar {
+  color: var(--accent-cyan);
+}
+
+.bz-level {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   flex-shrink: 0;
   display: flex;
@@ -88,7 +210,7 @@
   justify-content: center;
 }
 
-.arc-level::before {
+.bz-level::before {
   content: '';
   position: absolute;
   inset: 3px;
@@ -96,364 +218,141 @@
   background: var(--bg-panel-raised);
 }
 
-.arc-level span {
+.bz-level span {
   position: relative;
   z-index: 1;
-  font-size: 0.6rem;
+  font-size: 0.56rem;
   font-weight: 900;
   color: var(--text-primary);
 }
 
-/* ---------- hero (zaměřená hra) ---------- */
+/* ---------- hero banner ---------- */
 
-.arc-eyebrow {
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--accent-cyan);
-  margin: 0 0 0.5rem 0.1rem;
-}
-
-.arc-hero {
+.bz-hero {
   position: relative;
-  border-radius: 22px;
+  flex-shrink: 0;
+  height: 92px;
+  border-radius: 18px;
   overflow: hidden;
-  background: var(--bg-panel);
-  border: 1px solid rgba(53, 196, 240, 0.3);
-  box-shadow: 0 18px 40px rgba(53, 196, 240, 0.12);
-}
-
-.arc-hero-plocha {
-  position: relative;
-  height: 152px;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
   background:
     radial-gradient(circle at 50% 45%, rgba(53, 196, 240, 0.32) 0%, transparent 62%),
     linear-gradient(160deg, #132436, #0c1522);
+  border: 1px solid rgba(53, 196, 240, 0.3);
 }
 
 /* Šest "impact spark" čárek vycházejících ze středu — stejný motiv,
    co appka sama používá v aréně Souboje (Bojiste.tsx) při zásahu,
    tady jako trvalá dekorace, ne reakce na zásah. */
-.arc-jiskry {
+.bz-hero-jiskry {
   position: absolute;
   inset: 0;
 }
 
-.arc-jiskry span {
+.bz-hero-jiskry span {
   position: absolute;
   top: 50%;
   left: 50%;
   width: 2px;
-  height: 56px;
+  height: 46px;
   background: linear-gradient(to bottom, rgba(53, 196, 240, 0.5), transparent);
   transform-origin: top center;
 }
 
-.arc-jiskry span:nth-child(1) { transform: translate(-50%, 0) rotate(0deg); }
-.arc-jiskry span:nth-child(2) { transform: translate(-50%, 0) rotate(60deg); }
-.arc-jiskry span:nth-child(3) { transform: translate(-50%, 0) rotate(120deg); }
-.arc-jiskry span:nth-child(4) { transform: translate(-50%, 0) rotate(180deg); }
-.arc-jiskry span:nth-child(5) { transform: translate(-50%, 0) rotate(240deg); }
-.arc-jiskry span:nth-child(6) { transform: translate(-50%, 0) rotate(300deg); }
+.bz-hero-jiskry span:nth-child(1) { transform: translate(-50%, 0) rotate(0deg); }
+.bz-hero-jiskry span:nth-child(2) { transform: translate(-50%, 0) rotate(60deg); }
+.bz-hero-jiskry span:nth-child(3) { transform: translate(-50%, 0) rotate(120deg); }
+.bz-hero-jiskry span:nth-child(4) { transform: translate(-50%, 0) rotate(180deg); }
+.bz-hero-jiskry span:nth-child(5) { transform: translate(-50%, 0) rotate(240deg); }
+.bz-hero-jiskry span:nth-child(6) { transform: translate(-50%, 0) rotate(300deg); }
 
-.arc-hero-znak {
+.bz-hero-znak {
   position: relative;
   z-index: 1;
-  width: 72px;
-  height: 72px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.2rem;
+  font-size: 1.7rem;
   background: rgba(10, 14, 26, 0.55);
   border: 1px solid rgba(53, 196, 240, 0.45);
-  box-shadow: 0 0 30px rgba(53, 196, 240, 0.4);
+  box-shadow: 0 0 24px rgba(53, 196, 240, 0.4);
 }
 
-.arc-hero-info {
-  padding: 1rem 1.05rem 1.1rem;
-}
+/* ---------- nadpis ---------- */
 
-.arc-hero-nazev {
-  margin: 0 0 0.35rem;
-  font-size: 1.3rem;
-  font-weight: 900;
-}
-
-.arc-hero-popis {
-  margin: 0 0 0.75rem;
-  font-size: 0.78rem;
-  line-height: 1.5;
-  color: var(--text-secondary);
-}
-
-.arc-chipy {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  margin-bottom: 0.95rem;
-}
-
-.arc-chip {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--border-subtle);
-  padding: 0.28rem 0.6rem;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-}
-
-.arc-cta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.45rem;
-  width: 100%;
-  padding: 0.8rem;
-  border: none;
-  border-radius: 14px;
-  font-family: inherit;
-  font-size: 0.92rem;
-  font-weight: 800;
-  color: var(--text-on-accent);
-  background: linear-gradient(135deg, var(--accent-cyan), #6fe0ff);
-  box-shadow: 0 10px 26px rgba(53, 196, 240, 0.35);
-  cursor: pointer;
-}
-
-/* ---------- polička s dlaždicemi (shelf) ---------- */
-
-.arc-shelf-hlavicka {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin: 1.2rem 0 0.6rem;
-}
-
-.arc-shelf-hlavicka h2 {
-  margin: 0;
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.arc-pocet {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-
-.arc-shelf {
-  display: flex;
-  gap: 0.7rem;
-  overflow-x: auto;
-  padding-bottom: 0.4rem;
-  scroll-snap-type: x proximity;
-}
-
-.arc-shelf::-webkit-scrollbar {
-  display: none;
-}
-
-.arc-dlazdice {
-  scroll-snap-align: start;
-  flex: 0 0 auto;
-  width: 116px;
-  border-radius: 16px;
-  overflow: hidden;
-  background: var(--bg-panel-raised);
-  border: 2px solid transparent;
-  padding: 0;
-  font-family: inherit;
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.arc-dlazdice--vybrana {
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 0 3px rgba(53, 196, 240, 0.16);
-}
-
-.arc-dlazdice-plocha {
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 80px;
-  font-size: 1.7rem;
-  background:
-    radial-gradient(circle at 32% 28%, rgba(53, 196, 240, 0.28) 0%, transparent 60%),
-    var(--bg-panel-raised);
-  color: var(--text-muted);
-}
-
-.arc-znacka-vybrano {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent-cyan);
-  color: var(--text-on-accent);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.arc-dlazdice-popisek {
-  display: block;
-  padding: 0.45rem 0.55rem 0.55rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.arc-dlazdice--zamceno {
-  cursor: default;
-  opacity: 0.68;
-}
-
-.arc-dlazdice--zamceno .arc-dlazdice-plocha {
-  background: repeating-linear-gradient(
-      135deg,
-      rgba(255, 255, 255, 0.035) 0px,
-      rgba(255, 255, 255, 0.035) 6px,
-      transparent 6px,
-      transparent 12px
-    ),
-    var(--bg-panel);
-}
-
-.arc-dlazdice--zamceno .arc-dlazdice-popisek {
-  color: var(--text-muted);
-  font-weight: 600;
-}
-
-.arc-hint {
-  text-align: center;
-  font-size: 0.64rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  color: var(--text-muted);
-  margin: 0.6rem 0 0;
-}
-
-/* ---------- spodní dok ---------- */
-
-.arc-dok-wrap {
-  margin-top: auto;
-  padding-top: 1.1rem;
-}
-
-.arc-dok {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-  padding: 0.55rem 0.65rem;
-  border-radius: 999px;
-  background: rgba(15, 19, 33, 0.72);
-  backdrop-filter: blur(10px);
-  border: 1px solid var(--border-subtle);
-}
-
-.arc-dok-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.42rem 0.75rem;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
-  font-family: inherit;
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.arc-dok-btn--info {
-  cursor: default;
-  background: transparent;
-}
-
-/* Buddyho dýchající orb uprostřed doku — stejný jazyk jako orb
-   v Hubu/spodní navigaci, ne generický konzolový ikonový přepínač. */
-.arc-orb {
-  position: relative;
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 35% 30%, #6fe0ff, var(--accent-cyan) 55%, #1c6f8c 100%);
-  box-shadow: 0 0 18px rgba(53, 196, 240, 0.55);
+.bz-hlavicka {
   flex-shrink: 0;
 }
 
-.arc-orb::before {
-  content: '';
-  position: absolute;
-  inset: 8px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.35);
-  filter: blur(2px);
+.bz-nadpis {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 900;
+  letter-spacing: -0.01em;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .arc-orb {
-    animation: arc-dech 3.2s ease-in-out infinite;
-  }
+.bz-podnadpis {
+  margin: 0.15rem 0 0;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
 }
 
-@keyframes arc-dech {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.06);
-  }
+/* ---------- obsah (tam, kde by byla mřížka "Dostupné hry") ---------- */
+
+.bz-obsah {
+  flex: 1;
+  min-height: 0;
+  display: flex;
 }
 
-/* ---------- "Připravuje se" (hry dočasně schované, viz GamesHubModule.tsx) ---------- */
-
-.arc-brzy {
+.bz-brzy {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  gap: 0.65rem;
-  padding: 2rem 1rem;
+  gap: 0.55rem;
+  padding: 1rem;
+  border-radius: 18px;
+  background: var(--bg-panel);
+  border: 1px dashed var(--border-subtle);
 }
 
-.arc-brzy-znak {
-  font-size: 2.6rem;
+.bz-brzy-znak {
+  font-size: 2.2rem;
   filter: grayscale(0.15);
 }
 
-.arc-brzy-nadpis {
+.bz-brzy-nadpis {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   font-weight: 900;
 }
 
-.arc-brzy-popis {
+.bz-brzy-popis {
   margin: 0;
-  max-width: 280px;
-  font-size: 0.8rem;
+  max-width: 340px;
+  font-size: 0.78rem;
   line-height: 1.5;
   color: var(--text-secondary);
+}
+
+/* Schválně AŽ ZA `.bz-shell`'s vlastním `display: flex` výš — při
+   shodné specificitě vyhrává v CSS pořadí ve zdroji, takže dřívější
+   umístění tohohle bloku by ho v portrétu tiše přebíjelo (přesně ta
+   chyba, co appka už jednou musela opravit u Souboje — viz
+   CLAUDE.md's poznámka u `.souboj-ovladac-otoc`). */
+@media (orientation: portrait) {
+  .bz-rotate-prompt {
+    display: flex;
+  }
+  .bz-shell {
+    display: none;
+  }
 }
