@@ -46,12 +46,15 @@ export type Zpetnavazba = 'v-poradku' | 'narovnej-zada' | null
 /** Druhy cvičení, co Form Check umí kamerou sledovat a počítat opakování
  *  sám — dřep (úhel v koleně) byl jediný od začátku, klik (úhel v lokti)
  *  je druhý, přidaný stejnou geometrií (poseMath.ts), jen jiným trojicí
- *  bodů a jinými prahy. */
-export type TypCviku = 'dřep' | 'klik'
+ *  bodů a jinými prahy. Výpad (třetí cvik) sdílí s dřepem úplně stejnou
+ *  trojici bodů (bok–koleno–kotník) — liší se jen prahy v poseMath.ts,
+ *  ne geometrií samotnou. */
+export type TypCviku = 'dřep' | 'klik' | 'výpad'
 
 export const NAZEV_CVIKU: Record<TypCviku, string> = {
   dřep: 'Dřep',
   klik: 'Klik',
+  výpad: 'Výpad',
 }
 
 /** Subjektivní náročnost sezení — čistě pro deník uživatele, appka s tím
@@ -91,6 +94,7 @@ export interface Sezeni {
 export const KCAL_ZA_OPAKOVANI: Record<TypCviku, number> = {
   dřep: 0.32,
   klik: 0.29,
+  výpad: 0.35,
 }
 
 // ==========================================

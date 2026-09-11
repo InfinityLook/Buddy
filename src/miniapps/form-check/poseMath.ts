@@ -85,12 +85,19 @@ const PRAH_NAHORE = 160 // nad touhle hranicí = zpátky nahoře (noha skoro pro
 const PRAH_DOLE_KLIK = 100 // úhel lokte pod touhle hranicí = dole (v kliku)
 const PRAH_NAHORE_KLIK = 155 // nad touhle hranicí = zpátky nahoře
 
+// Výpad sdílí s dřepem stejnou geometrii (bok–koleno–kotník — viz
+// bodyStrany níž), jen s hlubšími prahy: přední koleno se u výpadu
+// běžně ohýbá blíž k pravému úhlu než u obyčejného dřepu.
+const PRAH_DOLE_VYPAD = 95
+const PRAH_NAHORE_VYPAD = 165
+
 /** Prahy pro krokOpakovani podle zvoleného cviku — jedno místo, ze
- *  kterého usePoseEngine.ts čte, ať prahy dřepu a kliku nemůžou žít na
- *  dvou různých místech a rozejít se. */
+ *  kterého usePoseEngine.ts čte, ať prahy jednotlivých cviků nemůžou žít
+ *  na víc místech a rozejít se. */
 export const PRAHY_OPAKOVANI: Record<TypCviku, { dole: number; nahore: number }> = {
   dřep: { dole: PRAH_DOLE, nahore: PRAH_NAHORE },
   klik: { dole: PRAH_DOLE_KLIK, nahore: PRAH_NAHORE_KLIK },
+  výpad: { dole: PRAH_DOLE_VYPAD, nahore: PRAH_NAHORE_VYPAD },
 }
 
 /** Jeden krok stavového automatu opakování (dřep i klik sdílí stejný

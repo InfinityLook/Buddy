@@ -133,10 +133,10 @@ export const usePoseEngine = (cvik: TypCviku = 'dřep'): UsePoseEngineResult => 
           const b = bodyStrany(strana)
           const cvikNyni = cvikRef.current
 
-          // Dřep počítá úhel v koleně (bok–koleno–kotník), klik úhel
-          // v lokti (rameno–loket–zápěstí) — stejná geometrie, jiná
-          // trojice bodů; prahy pro oba drží PRAHY_OPAKOVANI v jednom
-          // místě (poseMath.ts), ať se nemůžou rozejít.
+          // Dřep i výpad počítají úhel v koleně (bok–koleno–kotník),
+          // klik úhel v lokti (rameno–loket–zápěstí) — stejná geometrie,
+          // jiná trojice bodů; prahy pro všechny tři drží PRAHY_OPAKOVANI
+          // v jednom místě (poseMath.ts), ať se nemůžou rozejít.
           const uhel =
             cvikNyni === 'klik'
               ? uhelVeVrcholu(body[b.rameno], body[b.loket], body[b.zapesti])
@@ -147,13 +147,14 @@ export const usePoseEngine = (cvik: TypCviku = 'dřep'): UsePoseEngineResult => 
           if (novyStav.pocet !== stavOpakovaniRef.current.pocet) setPocetOpakovani(novyStav.pocet)
           stavOpakovaniRef.current = novyStav
 
-          // Zpětná vazba na záda dává smysl jen u dřepu (a jen v dolní
-          // fázi — na začátku se každý přirozeně předklání a hlásit to
-          // jako chybu by jen mátlo, viz komentář u jeZadaNarovnana).
-          // U kliku by odklonTrupu na vodorovně natažené tělo hlásilo
-          // "narovnej záda" pořád, i při dokonalé technice — appka
-          // radši žádnou zpětnou vazbu než mylnou.
-          if (cvikNyni === 'dřep' && novyStav.faze === 'dole') {
+          // Zpětná vazba na záda dává smysl u dřepu i výpadu (trup má
+          // zůstat vzpřímený u obou) — a jen v dolní fázi, na začátku se
+          // každý přirozeně předklání a hlásit to jako chybu by jen
+          // mátlo (viz komentář u jeZadaNarovnana). U kliku by
+          // odklonTrupu na vodorovně natažené tělo hlásilo "narovnej
+          // záda" pořád, i při dokonalé technice — appka radši žádnou
+          // zpětnou vazbu než mylnou.
+          if ((cvikNyni === 'dřep' || cvikNyni === 'výpad') && novyStav.faze === 'dole') {
             const odklon = odklonTrupu(body[b.rameno], body[b.bok])
             setZpetnaVazba(jeZadaNarovnana(odklon) ? 'v-poradku' : 'narovnej-zada')
           } else {

@@ -19,8 +19,26 @@ const XP_STROP = 30
 
 const noveId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-const PLATNE_CVIKY: TypCviku[] = ['dřep', 'klik']
+const PLATNE_CVIKY: TypCviku[] = ['dřep', 'klik', 'výpad']
 const PLATNE_NAROCNOSTI: Narocnost[] = ['lehka', 'stredni', 'tezka']
+
+/** Malá vlastní kopie stejné "série po sobě jdoucích tréninkových dní"
+ *  logiky jako Fitness Roomovo spocitejSeriiTreninku (fitnessStats.ts)
+ *  — ne import odtamtud, appka nesmí dovolit miniapce importovat
+ *  z vlajkové appky (jen naopak), takže tahle drobná duplikace je
+ *  přijatá, stejná jako u BARVY_UZLU jinde v appce. Potřebná jen tady,
+ *  pro odznak "Tréninkový bojovník" níž. */
+const spocitejTreninkovouSerii = (sezeni: Sezeni[]): number => {
+  const dny = new Set(sezeni.map((s) => new Date(s.createdAt).toDateString()))
+  const kurzor = new Date()
+  if (!dny.has(kurzor.toDateString())) kurzor.setDate(kurzor.getDate() - 1)
+  let serie = 0
+  while (dny.has(kurzor.toDateString())) {
+    serie++
+    kurzor.setDate(kurzor.getDate() - 1)
+  }
+  return serie
+}
 
 /** Poškozená položka historie se tiše vyřadí, ne celý seznam — stejné
  *  pravidlo jako u každého jiného perzistovaného pole v týhle appce.
@@ -44,31 +62,63 @@ export const sanitizujSezeni = (raw: unknown): Sezeni[] => {
 
 interface FormCheckState {
   sezeni: Sezeni[]
+  // Preference pro hlasové hlášení opakování (FormCheck.tsx/hlaseni.ts)
+  // — přijatý stav appky, ne jen lokální React state, ať se volba
+  // pamatuje mezi sezeními stejně jako Pomodorovo soundEnabled.
+  hlasoveHlaseni: boolean
+  // Poslední den, kdy appka poslala připomenutí tréninku (viz
+  // fitnessReminders.ts) — žije tady, ne v samostatném poli, aby
+  // fitnessReminders.ts mohl číst i zapisovat přes .getState()/
+  // .setState() bez toho, aby tenhle soubor musel importovat
+  // core/utils/notify.ts (to by kontaminovalo testovatelnost
+  // sanitizujSezeni níž, viz stejná past popsaná u Financí/Goal
+  // Trackeru jinde v appce).
+  lastReminderDate: string | null
   ulozitSezeni: (pocetOpakovani: number, trvaniSekund: number, cvik: TypCviku) => string
   nastavPoznamkuSezeni: (id: string, poznamka: string, narocnost: Narocnost | null) => void
+  setHlasoveHlaseni: (zapnuto: boolean) => void
 }
 
-const useFormCheckStore = create<FormCheckState>()(
+export const useFormCheckStore = create<FormCheckState>()(
   persist(
     (set) => ({
       sezeni: [],
+      hlasoveHlaseni: true,
+      lastReminderDate: null,
 
       ulozitSezeni: (pocetOpakovani, trvaniSekund, cvik) => {
         if (pocetOpakovani <= 0) return ''
 
         const id = noveId()
-        set((state) => ({
-          sezeni: [
+        let noveSezeniSeznam: Sezeni[] = []
+        set((state) => {
+          noveSezeniSeznam = [
             ...state.sezeni,
             { id, cvik, pocetOpakovani, trvaniSekund, createdAt: new Date().toISOString() },
-          ],
-        }))
+          ]
+          return { sezeni: noveSezeniSeznam }
+        })
 
         // recordAction, ne bare addXp — počítadlo dokončených sezení
         // a XP se tak nemůžou rozejít, stejně jako u ostatních miniapek.
         useGamificationStore
           .getState()
           .recordAction('workout', Math.min(XP_STROP, pocetOpakovani * XP_ZA_OPAKOVANI))
+
+        // Tři odznaky, co se nevejdou do COUNT_BADGES's jednoduchého
+        // "počet stejných volání" tvaru (stejný důvod jako u Exam
+        // Prepova exam_master jinde v appce) — ruční kontrola po
+        // každém uloženém sezení, nad čerstvě aktualizovanou historií.
+        const gamifikace = useGamificationStore.getState()
+        const celkemOpakovaniCelkem = noveSezeniSeznam.reduce((s, z) => s + z.pocetOpakovani, 0)
+        if (celkemOpakovaniCelkem >= 100) gamifikace.unlockBadge('stovkar')
+
+        const pouziteCviky = new Set(noveSezeniSeznam.map((z) => z.cvik))
+        if (pouziteCviky.size >= PLATNE_CVIKY.length) gamifikace.unlockBadge('vsestranny')
+
+        if (spocitejTreninkovouSerii(noveSezeniSeznam) >= 7) {
+          gamifikace.unlockBadge('treninkovy_bojovnik')
+        }
 
         return id
       },
@@ -82,20 +132,37 @@ const useFormCheckStore = create<FormCheckState>()(
           sezeni: state.sezeni.map((s) => (s.id === id ? { ...s, poznamka, narocnost } : s)),
         }))
       },
+
+      setHlasoveHlaseni: (zapnuto) => set({ hlasoveHlaseni: zapnuto }),
     }),
     {
       name: 'schoolbuddy-form-check-storage',
       storage: createJSONStorage(() => secureStorage),
       merge: (persisted, current) => {
         const saved = persisted as Partial<FormCheckState> | undefined
-        return { ...current, ...saved, sezeni: sanitizujSezeni(saved?.sezeni) }
+        return {
+          ...current,
+          ...saved,
+          sezeni: sanitizujSezeni(saved?.sezeni),
+          hlasoveHlaseni: typeof saved?.hlasoveHlaseni === 'boolean' ? saved.hlasoveHlaseni : true,
+          lastReminderDate: typeof saved?.lastReminderDate === 'string' ? saved.lastReminderDate : null,
+        }
       },
     }
   )
 )
 
+/** Nejlepší jedno sezení PRO DANÝ CVIK — na rozdíl od nejlepsiSezeni níž
+ *  (max napříč úplně všemi cviky, což se nedá smysluplně srovnávat mezi
+ *  dřepem a klikem) je tohle to, s čím se má porovnávat živé počítadlo
+ *  během běžícího sezení (viz FormCheck.tsx's "Živá oslava osobního
+ *  rekordu"). Exportováno jako čistá funkce, ať jde otestovat bez
+ *  komponenty i bez Zustand storu. */
+export const nejlepsiOpakovaniProCvik = (sezeni: Sezeni[], cvik: TypCviku): number =>
+  sezeni.filter((s) => s.cvik === cvik).reduce((max, s) => Math.max(max, s.pocetOpakovani), 0)
+
 export const useFormCheck = () => {
-  const { sezeni, ulozitSezeni, nastavPoznamkuSezeni } = useFormCheckStore()
+  const { sezeni, hlasoveHlaseni, ulozitSezeni, nastavPoznamkuSezeni, setHlasoveHlaseni } = useFormCheckStore()
 
   const celkemOpakovani = sezeni.reduce((s, z) => s + z.pocetOpakovani, 0)
   const nejlepsiSezeni = sezeni.reduce((max, z) => Math.max(max, z.pocetOpakovani), 0)
@@ -105,7 +172,9 @@ export const useFormCheck = () => {
     pocetSezeni: sezeni.length,
     celkemOpakovani,
     nejlepsiSezeni,
+    hlasoveHlaseni,
     ulozitSezeni,
     nastavPoznamkuSezeni,
+    setHlasoveHlaseni,
   }
 }

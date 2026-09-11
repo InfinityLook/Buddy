@@ -94,6 +94,14 @@ export const DEFAULT_BADGES: Badge[] = [
   // dokončení cíle, stejná "dvě různé věci, dva různé kindy" zásada
   // jako u Pomodora/'souboj' vedle.
   { id: 'navykar', title: 'Návykář', description: 'Odškrtni návyk 15×.', icon: '✅', unlockedAt: null },
+  // Fitness Roomovy druhé kolo profesionálních vylepšení — tři odznaky,
+  // co se nevejdou do COUNT_BADGES's jednoduchého "počet stejných
+  // volání" tvaru (stejný důvod jako u exam_master jinde v appce),
+  // proto ruční kontrola přímo v useFormCheck.ts's ulozitSezeni, ne
+  // záznam tady dole.
+  { id: 'stovkar', title: 'Stovkař', description: 'Napočítej dohromady 100 opakování ve Form Checku.', icon: '💯', unlockedAt: null },
+  { id: 'vsestranny', title: 'Všestranný', description: 'Vyzkoušej ve Form Checku všechny cviky — dřep, klik i výpad.', icon: '🤸', unlockedAt: null },
+  { id: 'treninkovy_bojovnik', title: 'Tréninkový bojovník', description: 'Udrž si 7denní tréninkovou sérii ve Form Checku.', icon: '🏅', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti. 'souboj'

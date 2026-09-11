@@ -60,12 +60,22 @@ describe('krokOpakovani — obecný stavový automat', () => {
     stav = krokOpakovani(stav, 120, PRAHY_OPAKOVANI.dřep.dole, PRAHY_OPAKOVANI.dřep.nahore)
     expect(stav.faze).toBe('dole') // dřepový práh 160 ještě nepřekročen
   })
+
+  it('s vlastními prahy (výpad) počítá stejnou geometrii jako dřep, jen hlubší práh dole', () => {
+    const prahy = PRAHY_OPAKOVANI.výpad
+    let stav = POCATECNI_STAV
+    stav = krokOpakovani(stav, 80, prahy.dole, prahy.nahore) // pod 95 = dole
+    expect(stav.faze).toBe('dole')
+    stav = krokOpakovani(stav, 170, prahy.dole, prahy.nahore) // nad 165 = nahoře, +1
+    expect(stav).toEqual({ faze: 'nahore', pocet: 1 })
+  })
 })
 
 describe('PRAHY_OPAKOVANI', () => {
-  it('drží mezeru mezi dole/nahoře pro oba cviky (hystereze)', () => {
+  it('drží mezeru mezi dole/nahoře pro všechny tři cviky (hystereze)', () => {
     expect(PRAHY_OPAKOVANI.dřep.nahore).toBeGreaterThan(PRAHY_OPAKOVANI.dřep.dole)
     expect(PRAHY_OPAKOVANI.klik.nahore).toBeGreaterThan(PRAHY_OPAKOVANI.klik.dole)
+    expect(PRAHY_OPAKOVANI.výpad.nahore).toBeGreaterThan(PRAHY_OPAKOVANI.výpad.dole)
   })
 })
 

@@ -60,6 +60,7 @@ import { setupStudyPlannerReminders } from '@/miniapps/study-planner/useStudyPla
 import { setupFinanceRecurringCheck } from '@/miniapps/finance/useFinance'
 import { setupGoalTrackerReminders } from '@/miniapps/goal-tracker/useGoalTracker'
 import { startFinanceSync } from '@/miniapps/finance/financeSync'
+import { setupFitnessReminders } from '@/flagships/fitness-room/fitnessReminders'
 
 export default function App() {
   const { isAuthed, login } = useAuthStore()
@@ -150,6 +151,9 @@ export default function App() {
     // Upozornění na termíny cílů v Growth Roomu — stejný "kontroluj hned
     // a pak při každém návratu" vzor jako Planerovy termíny výš.
     setupGoalTrackerReminders()
+    // Připomenutí tréninku ve Fitness Roomu — stejný vzor ještě jednou,
+    // tentokrát nad Form Checkovou historií sezení.
+    setupFitnessReminders()
     // Cloudová synchronizace Financí (IndexedDB lokálně, Supabase jako
     // zrcadlo pro přenos mezi zařízeními) — stejný "doplněk, ne
     // podmínka" tichý no-op bez nastaveného cloudu jako startCloudSync.

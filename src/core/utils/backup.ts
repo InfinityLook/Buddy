@@ -61,6 +61,7 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-finance-storage', storage: 'indexeddb', label: 'Finance' },
   { key: 'schoolbuddy-form-check-storage', storage: 'secure', label: 'Form Check' },
   { key: 'schoolbuddy-fitness-cil-storage', storage: 'secure', label: 'Fitness cíl' },
+  { key: 'schoolbuddy-telesne-miry-storage', storage: 'secure', label: 'Tělesné míry' },
   { key: 'schoolbuddy-examprep-storage', storage: 'secure', label: 'Maturitní centrum' },
   { key: 'schoolbuddy-pomodoro-storage', storage: 'secure', label: 'Pomodoro' },
   { key: 'schoolbuddy-math-solver-storage', storage: 'secure', label: 'Math Solver' },

@@ -15,6 +15,8 @@ import {
   spocitejAktivituPodleDne,
 } from './fitnessStats'
 import { useFitnessCil } from './useFitnessCil'
+import { useTelesneMiry } from './useTelesneMiry'
+import { spocitejGrafVahy, serazenoPodleData, formatujRozdilVahy } from './telesneMiryStats'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './FitnessRoomModule.css'
 
@@ -30,6 +32,19 @@ const formatCasMinSek = (sekund: number): string => {
   if (sekund === 0) return '0 s'
   if (sekund < 60) return `${sekund} s`
   return `${Math.floor(sekund / 60)} min ${sekund % 60} s`
+}
+
+// new Date(rok, mesic - 1, den), ne new Date(retezec) — stejná
+// "zone-less literál, ne UTC posunutý" opatrnost jako Kalendářovo
+// zobrazitDatum, jinde v appce.
+const formatDatumMiry = (datum: string): string => {
+  const [rok, mesic, den] = datum.split('-').map(Number)
+  return new Date(rok, mesic - 1, den).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })
+}
+
+const dnesniDatumIso = (): string => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 // ==========================================
@@ -59,9 +74,39 @@ export const FitnessRoomModule: React.FC = () => {
   const setActiveAppId = useAppStore((s) => s.setActiveAppId)
   const { sezeni } = useFormCheck()
   const cile = useFitnessCil()
+  const miry = useTelesneMiry()
   const [notifOpen, setNotifOpen] = useState(false)
   const [appsOtevrene, setAppsOtevrene] = useState(false)
   const [upravujeCile, setUpravujeCile] = useState(false)
+
+  // Deník tělesných měr — přidávací formulář se otevírá/zavírá stejným
+  // tlačítkem jako úprava cílů výš, čistě lokální session stav.
+  const [pridavaZaznamMiry, setPridavaZaznamMiry] = useState(false)
+  const [novyDatumMiry, setNovyDatumMiry] = useState(dnesniDatumIso)
+  const [novaVahaText, setNovaVahaText] = useState('')
+  const [novyObvodText, setNovyObvodText] = useState('')
+
+  const handleUlozitZaznamMiry = () => {
+    const vaha = novaVahaText.trim() === '' ? null : Number(novaVahaText)
+    const obvod = novyObvodText.trim() === '' ? null : Number(novyObvodText)
+    if ((vaha === null || vaha <= 0) && (obvod === null || obvod <= 0)) return
+    miry.pridatZaznam(novyDatumMiry, vaha && vaha > 0 ? vaha : null, obvod && obvod > 0 ? obvod : null)
+    setNovaVahaText('')
+    setNovyObvodText('')
+    setPridavaZaznamMiry(false)
+  }
+
+  const handleSmazatZaznamMiry = (id: string) => {
+    if (!window.confirm('Smazat tenhle záznam?')) return
+    miry.smazatZaznam(id)
+  }
+
+  const zaznamySerazene = serazenoPodleData(miry.zaznamy)
+  const zaznamySVahou = zaznamySerazene.filter((z) => z.vahaKg !== null)
+  const posledniVaha = zaznamySVahou.length > 0 ? zaznamySVahou[zaznamySVahou.length - 1].vahaKg : null
+  const predposledniVaha = zaznamySVahou.length > 1 ? zaznamySVahou[zaznamySVahou.length - 2].vahaKg : null
+  const rozdilVahyText = posledniVaha !== null ? formatujRozdilVahy(posledniVaha, predposledniVaha) : null
+  const grafVahy = spocitejGrafVahy(miry.zaznamy, 14)
 
   const otevritFormCheck = () => {
     setActiveAppId('form-check', '/fitness')
@@ -217,6 +262,110 @@ export const FitnessRoomModule: React.FC = () => {
 
         <div className="fit-panel">
           <div className="fit-panel-hlavicka">
+            <div>
+              <h2>📏 Tělesné míry</h2>
+              {posledniVaha !== null ? (
+                <p>
+                  {posledniVaha} kg{rozdilVahyText ? ` · ${rozdilVahyText}` : ''}
+                </p>
+              ) : (
+                <p>Zatím žádný záznam</p>
+              )}
+            </div>
+            <button
+              className="fit-historie-btn"
+              aria-label="Přidat záznam tělesných měr"
+              onClick={() => setPridavaZaznamMiry((v) => !v)}
+            >
+              <AppIcon name="plus" size={18} />
+            </button>
+          </div>
+
+          {pridavaZaznamMiry && (
+            <div className="fit-miry-form">
+              <label>
+                Datum
+                <input
+                  type="date"
+                  value={novyDatumMiry}
+                  onChange={(e) => setNovyDatumMiry(e.target.value)}
+                />
+              </label>
+              <label>
+                Váha (kg)
+                <input
+                  type="number"
+                  min={1}
+                  step="0.1"
+                  inputMode="decimal"
+                  value={novaVahaText}
+                  onChange={(e) => setNovaVahaText(e.target.value)}
+                  placeholder="např. 72.5"
+                />
+              </label>
+              <label>
+                Obvod pasu (cm, nepovinné)
+                <input
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={novyObvodText}
+                  onChange={(e) => setNovyObvodText(e.target.value)}
+                  placeholder="nepovinné"
+                />
+              </label>
+              <button className="fit-miry-ulozit" onClick={handleUlozitZaznamMiry}>
+                Uložit záznam
+              </button>
+            </div>
+          )}
+
+          {grafVahy.length > 1 && (
+            <div className="fit-graf" role="img" aria-label="Sloupcový graf váhy v čase">
+              {grafVahy.map((b) => (
+                <div key={b.id} className="fit-graf-sloupec-wrap">
+                  <div
+                    className="fit-graf-sloupec fit-graf-sloupec--aktivni"
+                    style={{ height: `${b.vyskaProcent}%` }}
+                    title={`${formatDatumMiry(b.datum)}: ${b.vahaKg} kg`}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {miry.zaznamy.length > 0 && (
+            <div className="fit-miry-seznam">
+              {zaznamySerazene
+                .slice(-5)
+                .reverse()
+                .map((z) => (
+                  <div key={z.id} className="fit-miry-radek">
+                    <span className="fit-miry-datum">{formatDatumMiry(z.datum)}</span>
+                    <span className="fit-miry-hodnoty">
+                      {z.vahaKg !== null && `${z.vahaKg} kg`}
+                      {z.vahaKg !== null && z.obvodPasuCm !== null && ' · '}
+                      {z.obvodPasuCm !== null && `${z.obvodPasuCm} cm pas`}
+                    </span>
+                    <button
+                      className="fit-miry-smazat"
+                      aria-label="Smazat záznam"
+                      onClick={() => handleSmazatZaznamMiry(z.id)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+            </div>
+          )}
+
+          {miry.zaznamy.length === 0 && !pridavaZaznamMiry && (
+            <p className="fit-miry-prazdno">Zatím žádný záznam. Přidej první váhu tlačítkem výš.</p>
+          )}
+        </div>
+
+        <div className="fit-panel">
+          <div className="fit-panel-hlavicka">
             <h2>Aktivita za 14 dní</h2>
           </div>
 
@@ -365,7 +514,7 @@ export const FitnessRoomModule: React.FC = () => {
                 <AppIcon name="dumbbell" size={22} />
               </span>
               <span className="fit-trenink-nazev">Síla</span>
-              <span className="fit-trenink-popis">Dřep / Klik</span>
+              <span className="fit-trenink-popis">Dřep / Klik / Výpad</span>
             </button>
             {[
               { nazev: 'Kardio', popis: '20 min', ikona: 'flame', barva: 'orange' },
