@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { usePoseEngine } from './usePoseEngine'
 import { useFormCheck } from './useFormCheck'
+import { NAZEV_CVIKU, NAROCNOST_LABEL, sestavCsvSezeni, Narocnost, TypCviku } from './types'
+import { stahnoutTextovySoubor } from '@/core/utils/download'
 import './FormCheck.css'
 
 const formatDatum = (iso: string): string => {
@@ -13,27 +15,63 @@ const formatTrvani = (sekund: number): string => {
   return `${Math.floor(sekund / 60)} min ${sekund % 60} s`
 }
 
+const VYCHOZI_CIL_OPAKOVANI = 15
+const VSECHNY_CVIKY: TypCviku[] = ['dřep', 'klik']
+const VSECHNY_NAROCNOSTI: Narocnost[] = ['lehka', 'stredni', 'tezka']
+
 export const FormCheck: React.FC = () => {
-  const engine = usePoseEngine()
-  const { sezeni, pocetSezeni, celkemOpakovani, nejlepsiSezeni, ulozitSezeni } = useFormCheck()
+  // Cvik se smí měnit, jen dokud kamera neběží — engine.stav === 'vypnuto'
+  // (viz usePoseEngine.ts's vlastní komentář o tom, kdy se cvikRef čte).
+  const [cvik, setCvik] = useState<TypCviku>('dřep')
+  const engine = usePoseEngine(cvik)
+  const { sezeni, pocetSezeni, celkemOpakovani, nejlepsiSezeni, ulozitSezeni, nastavPoznamkuSezeni } =
+    useFormCheck()
+
+  // Nepovinný cíl opakování pro právě běžící sezení — čistě lokální,
+  // session-only stav (appka si ho neukládá mezi sezeními, ať jde
+  // pokaždé zvolit znovu podle chuti). Prázdný řetězec = žádný cíl.
+  const [cilOpakovaniText, setCilOpakovaniText] = useState('')
+  const cilOpakovani = cilOpakovaniText.trim() === '' ? null : Number(cilOpakovaniText)
+  const cilDosazen =
+    cilOpakovani !== null && cilOpakovani > 0 && engine.pocetOpakovani >= cilOpakovani
 
   // Shrnutí posledního sezení se ukáže hned po ukončení, ať vidí, co si
-  // právě vydělal, a nemusí to hledat v historii dole.
-  const [posledniShrnuti, setPosledniShrnuti] = useState<{ pocet: number; trvani: number } | null>(
-    null
-  )
+  // právě vydělal, a nemusí to hledat v historii dole. Nese i id sezení,
+  // ať se poznámka/náročnost dá připojit k té správné položce historie.
+  const [posledniShrnuti, setPosledniShrnuti] = useState<{
+    id: string
+    pocet: number
+    trvani: number
+    cvik: TypCviku
+  } | null>(null)
+  const [poznamkaText, setPoznamkaText] = useState('')
+  const [narocnostVybrana, setNarocnostVybrana] = useState<Narocnost | null>(null)
+  const [poznamkaUlozena, setPoznamkaUlozena] = useState(false)
 
   const handleStop = () => {
-    const { pocetOpakovani, trvaniSekund } = engine.stop()
+    const { pocetOpakovani, trvaniSekund, cvik: dokoncenyCvik } = engine.stop()
     if (pocetOpakovani > 0) {
-      ulozitSezeni(pocetOpakovani, trvaniSekund)
-      setPosledniShrnuti({ pocet: pocetOpakovani, trvani: trvaniSekund })
+      const id = ulozitSezeni(pocetOpakovani, trvaniSekund, dokoncenyCvik)
+      setPosledniShrnuti({ id, pocet: pocetOpakovani, trvani: trvaniSekund, cvik: dokoncenyCvik })
+      setPoznamkaText('')
+      setNarocnostVybrana(null)
+      setPoznamkaUlozena(false)
     }
   }
 
   const handleStart = () => {
     setPosledniShrnuti(null)
     engine.start()
+  }
+
+  const handleUlozitPoznamku = () => {
+    if (!posledniShrnuti) return
+    nastavPoznamkuSezeni(posledniShrnuti.id, poznamkaText.trim(), narocnostVybrana)
+    setPoznamkaUlozena(true)
+  }
+
+  const handleExport = () => {
+    stahnoutTextovySoubor('form-check-sezeni.csv', sestavCsvSezeni(sezeni))
   }
 
   return (
@@ -60,7 +98,14 @@ export const FormCheck: React.FC = () => {
 
         {engine.stav === 'bezi' && (
           <>
-            <div className="fc-counter">{engine.pocetOpakovani}</div>
+            <div className={`fc-counter ${cilDosazen ? 'fc-counter--cil-splnen' : ''}`}>
+              {engine.pocetOpakovani}
+              {cilOpakovani !== null && cilOpakovani > 0 && (
+                <span className="fc-counter-cil">
+                  {cilDosazen ? '✓' : `/ ${cilOpakovani}`}
+                </span>
+              )}
+            </div>
             {engine.zpetnaVazba && (
               <div className={`fc-feedback fc-feedback--${engine.zpetnaVazba}`}>
                 {engine.zpetnaVazba === 'v-poradku' ? '✓ Záda rovně' : '⚠ Narovnej záda'}
@@ -87,18 +132,76 @@ export const FormCheck: React.FC = () => {
         <div className="fc-gate">
           <span className="fc-gate-icon">🏋️</span>
           <p className="fc-gate-text">
-            Postav telefon tak, aby na kameru viděl celé tvé tělo z boku, a spočítáme dřepy za tebe.
+            Postav telefon tak, aby na kameru viděl celé tvé tělo z boku, a spočítáme cviky za tebe.
             Video nikdy neopustí tenhle telefon — rozpoznávání pozice běží celé offline, přímo
             v prohlížeči.
           </p>
+
+          <div className="fc-cvik-picker" role="group" aria-label="Vyber cvik">
+            {VSECHNY_CVIKY.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className={`fc-cvik-btn ${cvik === c ? 'fc-cvik-btn--vybrany' : ''}`}
+                onClick={() => setCvik(c)}
+              >
+                {NAZEV_CVIKU[c]}
+              </button>
+            ))}
+          </div>
+
+          <label className="fc-cil-pole">
+            Cíl opakování (nepovinné)
+            <input
+              type="number"
+              min={1}
+              inputMode="numeric"
+              value={cilOpakovaniText}
+              onChange={(e) => setCilOpakovaniText(e.target.value)}
+              placeholder={`např. ${VYCHOZI_CIL_OPAKOVANI}`}
+            />
+          </label>
+
           <button className="fc-start-btn" onClick={handleStart}>
             Zapnout kameru
           </button>
 
           {posledniShrnuti && (
-            <p className="fc-posledni-vysledek">
-              Poslední sezení: {posledniShrnuti.pocet}× dřep za {formatTrvani(posledniShrnuti.trvani)}
-            </p>
+            <div className="fc-posledni-blok">
+              <p className="fc-posledni-vysledek">
+                Poslední sezení: {posledniShrnuti.pocet}× {NAZEV_CVIKU[posledniShrnuti.cvik].toLowerCase()} za{' '}
+                {formatTrvani(posledniShrnuti.trvani)}
+              </p>
+
+              {!poznamkaUlozena ? (
+                <div className="fc-poznamka-form">
+                  <div className="fc-narocnost-radek" role="group" aria-label="Náročnost sezení">
+                    {VSECHNY_NAROCNOSTI.map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        className={`fc-narocnost-btn ${narocnostVybrana === n ? 'fc-narocnost-btn--vybrana' : ''}`}
+                        onClick={() => setNarocnostVybrana(n)}
+                      >
+                        {NAROCNOST_LABEL[n]}
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    className="fc-poznamka-input"
+                    placeholder="Poznámka k sezení (nepovinné)…"
+                    value={poznamkaText}
+                    onChange={(e) => setPoznamkaText(e.target.value)}
+                    rows={2}
+                  />
+                  <button className="fc-poznamka-ulozit" onClick={handleUlozitPoznamku}>
+                    Uložit poznámku
+                  </button>
+                </div>
+              ) : (
+                <p className="fc-poznamka-hotovo">✓ Uloženo</p>
+              )}
+            </div>
           )}
         </div>
       )}
@@ -127,7 +230,7 @@ export const FormCheck: React.FC = () => {
         <div className="fc-stats-row">
           <div className="fc-stat-card">
             <span className="fc-stat-hodnota">{celkemOpakovani}</span>
-            <span className="fc-stat-label">Dřepů celkem</span>
+            <span className="fc-stat-label">Opakování celkem</span>
           </div>
           <div className="fc-stat-card">
             <span className="fc-stat-hodnota">{nejlepsiSezeni}</span>
@@ -141,21 +244,31 @@ export const FormCheck: React.FC = () => {
       )}
 
       {sezeni.length > 0 && (
-        <div className="fc-list">
-          {sezeni.slice(0, 10).map((s) => (
-            <div key={s.id} className="fc-row">
-              <span className="fc-row-icon" aria-hidden="true">
-                🏋️
-              </span>
-              <div className="fc-row-mid">
-                <span className="fc-row-title">{s.pocetOpakovani}× dřep</span>
-                <span className="fc-row-sub">
-                  {formatDatum(s.createdAt)} · {formatTrvani(s.trvaniSekund)}
+        <>
+          <button className="fc-export-btn" onClick={handleExport}>
+            ⬇ Export CSV
+          </button>
+
+          <div className="fc-list">
+            {sezeni.slice(0, 10).map((s) => (
+              <div key={s.id} className="fc-row">
+                <span className="fc-row-icon" aria-hidden="true">
+                  🏋️
                 </span>
+                <div className="fc-row-mid">
+                  <span className="fc-row-title">
+                    {s.pocetOpakovani}× {NAZEV_CVIKU[s.cvik]}
+                  </span>
+                  <span className="fc-row-sub">
+                    {formatDatum(s.createdAt)} · {formatTrvani(s.trvaniSekund)}
+                    {s.narocnost && ` · ${NAROCNOST_LABEL[s.narocnost]}`}
+                  </span>
+                  {s.poznamka && <span className="fc-row-poznamka">{s.poznamka}</span>}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )

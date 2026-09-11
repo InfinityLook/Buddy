@@ -1,4 +1,4 @@
-import { Bod, FazePohybu, LM, StavOpakovani, Strana } from './types'
+import { Bod, FazePohybu, LM, StavOpakovani, Strana, TypCviku } from './types'
 
 // ==========================================
 // Čistá geometrie nad body kostry — bez videa, bez Reactu, bez MediaPipe.
@@ -48,28 +48,66 @@ export const vyberViditelnejsiStranu = (b: Bod[]): Strana => {
   return leva >= prava ? 'levá' : 'pravá'
 }
 
+/** Body obou cviků pro danou stranu naráz (dřep i klik čtou vždycky
+ *  stejnou "viditelnější stranu" — vyberViditelnejsiStranu níž se
+ *  neptá, který cvik se zrovna počítá). */
 export const bodyStrany = (strana: Strana) =>
   strana === 'levá'
-    ? { rameno: LM.LEVE_RAMENO, bok: LM.LEVY_BOK, koleno: LM.LEVE_KOLENO, kotnik: LM.LEVY_KOTNIK }
-    : { rameno: LM.PRAVE_RAMENO, bok: LM.PRAVY_BOK, koleno: LM.PRAVE_KOLENO, kotnik: LM.PRAVY_KOTNIK }
+    ? {
+        rameno: LM.LEVE_RAMENO,
+        loket: LM.LEVY_LOKET,
+        zapesti: LM.LEVE_ZAPESTI,
+        bok: LM.LEVY_BOK,
+        koleno: LM.LEVE_KOLENO,
+        kotnik: LM.LEVY_KOTNIK,
+      }
+    : {
+        rameno: LM.PRAVE_RAMENO,
+        loket: LM.PRAVY_LOKET,
+        zapesti: LM.PRAVE_ZAPESTI,
+        bok: LM.PRAVY_BOK,
+        koleno: LM.PRAVE_KOLENO,
+        kotnik: LM.PRAVY_KOTNIK,
+      }
 
 export const POCATECNI_STAV: StavOpakovani = { faze: 'nahore', pocet: 0 }
 
 // Mezera mezi prahy je záměrná (hystereze): bez ní by chvění úhlu kolem
 // jedné jediné hranice napočítalo desítky opakování za vteřinu místo
-// jednoho. Aby se opakování započítalo, musí úhel kolena projít celým
-// cyklem nahoře → dole → nahoře.
+// jednoho. Aby se opakování započítalo, musí úhel projít celým cyklem
+// nahoře → dole → nahoře.
 const PRAH_DOLE = 110 // úhel kolena pod touhle hranicí = dole (v dřepu)
 const PRAH_NAHORE = 160 // nad touhle hranicí = zpátky nahoře (noha skoro propnutá)
 
-/** Jeden krok stavového automatu dřepu. Opakování se připočítá v okamžiku
- *  návratu nahoru, ne při sednutí dolů — jinak by se počítalo, i kdyby
- *  cvičící sed nikdy nedokončil. */
-export const krokOpakovani = (stav: StavOpakovani, uhelKolena: number): StavOpakovani => {
-  if (stav.faze === 'nahore' && uhelKolena < PRAH_DOLE) {
+// Klik používá stejnou hysterezi, jen jiné prahy pro úhel v lokti —
+// nahoře (ruka skoro propnutá) je u kliku o něco méně propnutá než noha
+// v dřepu, dole je loket obvykle pokrčený k pravému úhlu nebo míň.
+const PRAH_DOLE_KLIK = 100 // úhel lokte pod touhle hranicí = dole (v kliku)
+const PRAH_NAHORE_KLIK = 155 // nad touhle hranicí = zpátky nahoře
+
+/** Prahy pro krokOpakovani podle zvoleného cviku — jedno místo, ze
+ *  kterého usePoseEngine.ts čte, ať prahy dřepu a kliku nemůžou žít na
+ *  dvou různých místech a rozejít se. */
+export const PRAHY_OPAKOVANI: Record<TypCviku, { dole: number; nahore: number }> = {
+  dřep: { dole: PRAH_DOLE, nahore: PRAH_NAHORE },
+  klik: { dole: PRAH_DOLE_KLIK, nahore: PRAH_NAHORE_KLIK },
+}
+
+/** Jeden krok stavového automatu opakování (dřep i klik sdílí stejný
+ *  tvar — jen jiný úhel a jiné prahy). Opakování se připočítá v okamžiku
+ *  návratu nahoru, ne při sednutí/pokrčení dolů — jinak by se počítalo,
+ *  i kdyby cvičící pohyb nikdy nedokončil. Výchozí prahy (dřep) jsou tu
+ *  kvůli zpětné kompatibilitě volání bez posledních dvou argumentů. */
+export const krokOpakovani = (
+  stav: StavOpakovani,
+  uhel: number,
+  prahDole: number = PRAH_DOLE,
+  prahNahore: number = PRAH_NAHORE
+): StavOpakovani => {
+  if (stav.faze === 'nahore' && uhel < prahDole) {
     return { faze: 'dole', pocet: stav.pocet }
   }
-  if (stav.faze === 'dole' && uhelKolena > PRAH_NAHORE) {
+  if (stav.faze === 'dole' && uhel > prahNahore) {
     return { faze: 'nahore', pocet: stav.pocet + 1 }
   }
   return stav

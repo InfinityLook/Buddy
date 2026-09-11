@@ -80,6 +80,25 @@
   line-height: 1;
 }
 
+.fc-counter-cil {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #fde68a;
+}
+
+/* Cíl opakování dosažen — počítadlo přebarveno do zelené, ať je hned
+   jasné (i bez čtení popisku), že sezení dosáhlo, na co bylo mířeno. */
+.fc-counter--cil-splnen {
+  background: rgba(6, 78, 59, 0.75);
+  border-color: rgba(52, 211, 153, 0.7);
+  color: #6ee7b7;
+}
+
+.fc-counter--cil-splnen .fc-counter-cil {
+  color: #a7f3d0;
+}
+
 .fc-feedback {
   position: absolute;
   bottom: 3.4rem;
@@ -184,6 +203,123 @@
   color: #94a3b8;
 }
 
+/* ------------------------------------------
+   VÝBĚR CVIKU A CÍLE OPAKOVÁNÍ (před spuštěním kamery)
+   ------------------------------------------ */
+
+.fc-cvik-picker {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.fc-cvik-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.fc-cvik-btn--vybrany {
+  background: rgba(251, 146, 60, 0.18);
+  border-color: #fb923c;
+  color: #fdba74;
+}
+
+.fc-cil-pole {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 100%;
+  max-width: 220px;
+  font-size: 0.68rem;
+  color: #94a3b8;
+  text-align: left;
+}
+
+.fc-cil-pole input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* ------------------------------------------
+   POZNÁMKA A NÁROČNOST PO SEZENÍ
+   ------------------------------------------ */
+
+.fc-posledni-blok {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  align-items: stretch;
+}
+
+.fc-poznamka-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fc-narocnost-radek {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.fc-narocnost-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.35rem 0.3rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.fc-narocnost-btn--vybrana {
+  background: rgba(138, 92, 246, 0.2);
+  border-color: #8a5cf6;
+  color: #c4b5fd;
+}
+
+.fc-poznamka-input {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.75rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.fc-poznamka-ulozit {
+  background: rgba(52, 211, 153, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  color: #6ee7b7;
+  font-weight: 700;
+  font-size: 0.74rem;
+  padding: 0.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.fc-poznamka-hotovo {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #6ee7b7;
+}
+
 /* Neurčitý ukazatel — nevíme dopředu, jak dlouho stažení modelu potrvá
    (poprvé ~6 MB, pak nic), stejný princip jako pruh na úvodní obrazovce
    appky v BootGate.css. */
@@ -267,3 +403,27 @@
 .fc-row-title { font-size: 0.74rem; font-weight: 700; }
 
 .fc-row-sub { font-size: 0.6rem; color: #94a3b8; }
+
+.fc-row-poznamka {
+  font-size: 0.6rem;
+  color: #cbd5e1;
+  font-style: italic;
+  margin-top: 0.1rem;
+}
+
+.fc-export-btn {
+  align-self: flex-start;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.3rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.fc-export-btn:hover {
+  border-color: #fb923c;
+  color: #fdba74;
+}

@@ -6,6 +6,7 @@ import {
   type NormalizedLandmark,
 } from '@mediapipe/tasks-vision'
 import {
+  PRAHY_OPAKOVANI,
   POCATECNI_STAV,
   bodyStrany,
   jeZadaNarovnana,
@@ -14,7 +15,7 @@ import {
   uhelVeVrcholu,
   vyberViditelnejsiStranu,
 } from './poseMath'
-import { StavKamery, StavOpakovani, Zpetnavazba } from './types'
+import { StavKamery, StavOpakovani, TypCviku, Zpetnavazba } from './types'
 
 // ==========================================
 // Životní cyklus kamery a rozpoznávání pozice.
@@ -48,8 +49,8 @@ interface UsePoseEngineResult {
   zpetnaVazba: Zpetnavazba
   vidimTe: boolean
   pocetKamer: number
-  start: () => void
-  stop: () => { pocetOpakovani: number; trvaniSekund: number }
+  start: (zachovatPocitadlo?: boolean) => void
+  stop: () => { pocetOpakovani: number; trvaniSekund: number; cvik: TypCviku }
   resetovatPocitadlo: () => void
   prepnoutKameru: () => void
 }
@@ -67,7 +68,7 @@ const popisChybyKamery = (err: unknown): string => {
   return 'Kameru se nepodařilo spustit.'
 }
 
-export const usePoseEngine = (): UsePoseEngineResult => {
+export const usePoseEngine = (cvik: TypCviku = 'dřep'): UsePoseEngineResult => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -88,6 +89,15 @@ export const usePoseEngine = (): UsePoseEngineResult => {
   const zacatekRef = useRef<number>(0)
   const deviceIdRef = useRef<string | undefined>(undefined)
   const bezimRef = useRef(false)
+
+  // Cvik se smí měnit jen ve stavu "vypnuto" (viz FormCheck.tsx — výběr
+  // se skryje, jakmile kamera běží), ale smycka() ho čte přes ref, ne
+  // přímo z argumentu — poslední zvolená hodnota v okamžiku start() je
+  // ta, se kterou se pak celé sezení počítá.
+  const cvikRef = useRef<TypCviku>(cvik)
+  useEffect(() => {
+    cvikRef.current = cvik
+  }, [cvik])
 
   const zastavitStream = () => {
     streamRef.current?.getTracks().forEach((t) => t.stop())
@@ -121,16 +131,29 @@ export const usePoseEngine = (): UsePoseEngineResult => {
 
           const strana = vyberViditelnejsiStranu(body)
           const b = bodyStrany(strana)
-          const uhelKolena = uhelVeVrcholu(body[b.bok], body[b.koleno], body[b.kotnik])
+          const cvikNyni = cvikRef.current
 
-          const novyStav = krokOpakovani(stavOpakovaniRef.current, uhelKolena)
+          // Dřep počítá úhel v koleně (bok–koleno–kotník), klik úhel
+          // v lokti (rameno–loket–zápěstí) — stejná geometrie, jiná
+          // trojice bodů; prahy pro oba drží PRAHY_OPAKOVANI v jednom
+          // místě (poseMath.ts), ať se nemůžou rozejít.
+          const uhel =
+            cvikNyni === 'klik'
+              ? uhelVeVrcholu(body[b.rameno], body[b.loket], body[b.zapesti])
+              : uhelVeVrcholu(body[b.bok], body[b.koleno], body[b.kotnik])
+          const prahy = PRAHY_OPAKOVANI[cvikNyni]
+
+          const novyStav = krokOpakovani(stavOpakovaniRef.current, uhel, prahy.dole, prahy.nahore)
           if (novyStav.pocet !== stavOpakovaniRef.current.pocet) setPocetOpakovani(novyStav.pocet)
           stavOpakovaniRef.current = novyStav
 
-          // Zpětná vazba na záda dává smysl jen v dolní fázi — na
-          // začátku dřepu se každý přirozeně předklání a hlásit to jako
-          // chybu by jen mátlo (viz komentář u jeZadaNarovnana).
-          if (novyStav.faze === 'dole') {
+          // Zpětná vazba na záda dává smysl jen u dřepu (a jen v dolní
+          // fázi — na začátku se každý přirozeně předklání a hlásit to
+          // jako chybu by jen mátlo, viz komentář u jeZadaNarovnana).
+          // U kliku by odklonTrupu na vodorovně natažené tělo hlásilo
+          // "narovnej záda" pořád, i při dokonalé technice — appka
+          // radši žádnou zpětnou vazbu než mylnou.
+          if (cvikNyni === 'dřep' && novyStav.faze === 'dole') {
             const odklon = odklonTrupu(body[b.rameno], body[b.bok])
             setZpetnaVazba(jeZadaNarovnana(odklon) ? 'v-poradku' : 'narovnej-zada')
           } else {
@@ -173,7 +196,10 @@ export const usePoseEngine = (): UsePoseEngineResult => {
     }
   }
 
-  const start = useCallback(() => {
+  // `zachovatPocitadlo` je jen pro přepnutí kamery mid-session (viz
+  // prepnoutKameru níž) — normální start (tlačítko "Zapnout kameru")
+  // vždycky počítadlo i čas začátku vynuluje, jako doteď.
+  const start = useCallback((zachovatPocitadlo = false) => {
     setStav('nacita-se')
     setChyba(null)
 
@@ -214,9 +240,15 @@ export const usePoseEngine = (): UsePoseEngineResult => {
 
         await zajistitLandmarker()
 
-        stavOpakovaniRef.current = POCATECNI_STAV
-        setPocetOpakovani(0)
-        zacatekRef.current = Date.now()
+        // Přepnutí kamery mid-session si počítadlo i čas začátku
+        // schválně ponechává — jinak by "🔄 Přepnout kameru" uprostřed
+        // cvičení potichu smazal už napočítaná opakování, aniž by se
+        // cokoliv uložilo (viz komentář u prepnoutKameru).
+        if (!zachovatPocitadlo) {
+          stavOpakovaniRef.current = POCATECNI_STAV
+          setPocetOpakovani(0)
+          zacatekRef.current = Date.now()
+        }
         bezimRef.current = true
         setStav('bezi')
         rafRef.current = requestAnimationFrame(smycka)
@@ -242,7 +274,7 @@ export const usePoseEngine = (): UsePoseEngineResult => {
     setVidimTe(false)
     setZpetnaVazba(null)
 
-    return { pocetOpakovani: stavOpakovaniRef.current.pocet, trvaniSekund }
+    return { pocetOpakovani: stavOpakovaniRef.current.pocet, trvaniSekund, cvik: cvikRef.current }
   }, [])
 
   const resetovatPocitadlo = useCallback(() => {
@@ -263,7 +295,9 @@ export const usePoseEngine = (): UsePoseEngineResult => {
 
       if (bezimRef.current) {
         stop()
-        start()
+        // true = zachovej napočítaná opakování a čas začátku, mění se
+        // jen zdroj obrazu — bez toho by se počítadlo tiše vynulovalo.
+        start(true)
       }
     })()
   }, [start, stop])
