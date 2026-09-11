@@ -1,0 +1,155 @@
+/* ==========================================
+   Rozcvička/strečink časovač — malý celoobrazovkový dialog, stejný
+   vizuální jazyk jako FlagshipShell.css's fs-overlay/fs-picker (vlastní
+   kopie, ne import odtamtud — self-contained miniapkový soubor).
+   ========================================== */
+
+.rc-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 8, 16, 0.75);
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.rc-karta {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 20px;
+  padding: 1.75rem 1.25rem 1.25rem;
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+.rc-zavrit {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.06);
+  border: none;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.rc-vyber {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.rc-vyber h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.rc-vyber p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.rc-vyber-btn {
+  padding: 0.9rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.rc-bezi {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.rc-nadpis-rezimu {
+  font-weight: 800;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.75rem;
+}
+
+.rc-krok-pocet {
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.rc-krok-nazev {
+  font-size: 1.2rem;
+  font-weight: 800;
+  margin: 0.25rem 0;
+}
+
+.rc-cas {
+  font-size: 2.75rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.rc-ovladani {
+  display: flex;
+  gap: 0.6rem;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.rc-preskocit,
+.rc-ukoncit {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.rc-preskocit {
+  background: var(--accent-cyan);
+  color: #04121a;
+  border: none;
+}
+
+.rc-ukoncit {
+  background: transparent;
+  color: var(--text-muted);
+}
+
+.rc-hotovo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+}
+
+.rc-hotovo-ikona {
+  font-size: 2.5rem;
+}
+
+.rc-hotovo p {
+  margin: 0;
+  font-weight: 700;
+}

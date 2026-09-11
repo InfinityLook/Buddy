@@ -93,11 +93,15 @@ const PRAH_NAHORE_VYPAD = 165
 
 /** Prahy pro krokOpakovani podle zvoleného cviku — jedno místo, ze
  *  kterého usePoseEngine.ts čte, ať prahy jednotlivých cviků nemůžou žít
- *  na víc místech a rozejít se. */
+ *  na víc místech a rozejít se. Prkno tu má záznam jen kvůli úplnosti
+ *  typu (Record<TypCviku, …> ho vyžaduje) — usePoseEngine.ts pro něj
+ *  krokOpakovani vůbec nevolá (viz PRAH_PRKNO_SPRAVNE výš), takže se
+ *  tahle dvojice čísel nikdy doopravdy nepoužije. */
 export const PRAHY_OPAKOVANI: Record<TypCviku, { dole: number; nahore: number }> = {
   dřep: { dole: PRAH_DOLE, nahore: PRAH_NAHORE },
   klik: { dole: PRAH_DOLE_KLIK, nahore: PRAH_NAHORE_KLIK },
   výpad: { dole: PRAH_DOLE_VYPAD, nahore: PRAH_NAHORE_VYPAD },
+  prkno: { dole: PRAH_DOLE, nahore: PRAH_NAHORE },
 }
 
 /** Jeden krok stavového automatu opakování (dřep i klik sdílí stejný
@@ -121,6 +125,20 @@ export const krokOpakovani = (
 }
 
 export const JE_DOLE = (faze: FazePohybu): boolean => faze === 'dole'
+
+// Prkno (viz types.ts's JE_CVIK_NA_CAS) se neměří hysterezí nahoře/dole
+// jako ostatní tři cviky — počítá se VYDRŽENÝ ČAS ve správné poloze, ne
+// opakování. Úhel v boku (rameno–bok–kotník, stejná trojice bodů jako
+// dřep/výpad, viz bodyStrany výš) blízko 180° znamená rovné tělo od
+// ramen po kotníky; jediný práh stačí, žádná hystereze není potřeba,
+// protože se tu nic nepočítá cyklem nahoru/dolu — jen se buď přičítá
+// čas, nebo ne.
+const PRAH_PRKNO_SPRAVNE = 150 // stupňů v boku; míň = tělo se láme (prohnutá/zvednutá pánev)
+
+/** Je tělo v prkně dost rovné, aby se výdrž počítala? Vrací true/false
+ *  pro jeden snímek — usePoseEngine.ts podle toho přičítá (nebo nepřičítá)
+ *  uplynulý čas do celkové výdrže. */
+export const jePrknoSpravne = (uhelVBoku: number): boolean => uhelVBoku >= PRAH_PRKNO_SPRAVNE
 
 const PRAH_NAROVNANI = 45 // stupňů od svislice; nad tím = "narovnej záda"
 

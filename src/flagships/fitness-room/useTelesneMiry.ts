@@ -21,14 +21,22 @@ const noveId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
 interface TelesneMiryState {
   zaznamy: ZaznamMiry[]
+  // Výška je jedna hodnota pro celý účet, ne pole u každého záznamu —
+  // na rozdíl od váhy se v týdnu/měsíci nemění, takže by se u každého
+  // záznamu jen znovu opisovala ta samá hodnota. Slouží jedině k výpočtu
+  // BMI (telesneMiryStats.ts's vypocitejBmi) — appka jinde výšku
+  // nepoužívá ani neodhaduje.
+  vyskaCm: number | null
   pridatZaznam: (datum: string, vahaKg: number | null, obvodPasuCm: number | null) => void
   smazatZaznam: (id: string) => void
+  setVyska: (vyskaCm: number | null) => void
 }
 
 export const useTelesneMiry = create<TelesneMiryState>()(
   persist(
     (set) => ({
       zaznamy: [],
+      vyskaCm: null,
 
       pridatZaznam: (datum, vahaKg, obvodPasuCm) => {
         set((state) => ({
@@ -39,6 +47,8 @@ export const useTelesneMiry = create<TelesneMiryState>()(
       smazatZaznam: (id) => {
         set((state) => ({ zaznamy: state.zaznamy.filter((z) => z.id !== id) }))
       },
+
+      setVyska: (vyskaCm) => set({ vyskaCm: vyskaCm !== null && vyskaCm > 0 ? vyskaCm : null }),
     }),
     {
       name: 'schoolbuddy-telesne-miry-storage',
@@ -47,8 +57,12 @@ export const useTelesneMiry = create<TelesneMiryState>()(
       merge: (persisted, current) => {
         const saved = persisted as Partial<TelesneMiryState> | undefined
         const validace = validateTelesneMiryData(saved?.zaznamy)
-        if (!validace.success) return current
-        return { ...current, zaznamy: validace.data }
+        const vyska = saved?.vyskaCm
+        return {
+          ...current,
+          zaznamy: validace.success ? validace.data : current.zaznamy,
+          vyskaCm: typeof vyska === 'number' && Number.isFinite(vyska) && vyska > 0 ? vyska : null,
+        }
       },
     }
   )

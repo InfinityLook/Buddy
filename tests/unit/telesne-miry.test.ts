@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { spocitejGrafVahy, serazenoPodleData, formatujRozdilVahy } from '@/flagships/fitness-room/telesneMiryStats'
+import {
+  spocitejGrafVahy,
+  serazenoPodleData,
+  formatujRozdilVahy,
+  vypocitejBmi,
+  popisBmiKategorie,
+} from '@/flagships/fitness-room/telesneMiryStats'
 import { validateTelesneMiryData } from '@/core/utils/telesneMiryValidation'
 import type { ZaznamMiry } from '@/flagships/fitness-room/useTelesneMiry'
 
@@ -66,6 +72,37 @@ describe('formatujRozdilVahy', () => {
 
   it('beze změny má vlastní hlášku, ne "+0"', () => {
     expect(formatujRozdilVahy(75, 75)).toBe('beze změny od posledního záznamu')
+  })
+})
+
+describe('vypocitejBmi', () => {
+  it('bez výšky vrátí null, appka si BMI nevymýšlí', () => {
+    expect(vypocitejBmi(75, null)).toBeNull()
+  })
+
+  it('spočítá BMI z váhy a výšky (kg / m²)', () => {
+    // 75 kg / 1.80² m = 23.1(48…), zaokrouhleno na 1 des. místo
+    expect(vypocitejBmi(75, 180)).toBe(23.1)
+  })
+
+  it('nulová nebo záporná výška se bere jako neplatná (null), ne dělení nulou', () => {
+    expect(vypocitejBmi(75, 0)).toBeNull()
+    expect(vypocitejBmi(75, -10)).toBeNull()
+  })
+})
+
+describe('popisBmiKategorie', () => {
+  it('rozřadí do čtyř běžných WHO pásem', () => {
+    expect(popisBmiKategorie(17)).toBe('Podváha')
+    expect(popisBmiKategorie(22)).toBe('Normální váha')
+    expect(popisBmiKategorie(27)).toBe('Nadváha')
+    expect(popisBmiKategorie(32)).toBe('Obezita')
+  })
+
+  it('hranice pásem patří vyššímu pásmu (18.5 už normální, 25 už nadváha)', () => {
+    expect(popisBmiKategorie(18.5)).toBe('Normální váha')
+    expect(popisBmiKategorie(25)).toBe('Nadváha')
+    expect(popisBmiKategorie(30)).toBe('Obezita')
   })
 })
 

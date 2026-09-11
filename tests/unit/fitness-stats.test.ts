@@ -164,7 +164,7 @@ describe('sestavCsvSezeni', () => {
   it('začíná BOM a hlavičkou s očekávanými sloupci', () => {
     const csv = sestavCsvSezeni([])
     expect(csv.startsWith('﻿')).toBe(true)
-    expect(csv).toContain('Datum;Cvik;Opakování;Délka (s);Odhad kcal;Náročnost;Poznámka')
+    expect(csv).toContain('Datum;Cvik;Opakování / Výdrž (s);Délka (s);Odhad kcal;Náročnost;Poznámka')
   })
 
   it('obsahuje jeden řádek na sezení s českým názvem cviku', () => {

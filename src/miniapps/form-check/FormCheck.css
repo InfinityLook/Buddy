@@ -365,6 +365,127 @@
   max-width: none;
 }
 
+.fc-counter-jednotka {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.fc-cil-navrh {
+  background: rgba(53, 196, 240, 0.12);
+  border: 1px solid rgba(53, 196, 240, 0.4);
+  color: #7dd3fc;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.4rem 0.6rem;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+
+.fc-sdilet-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #e2e8f0;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+  width: 100%;
+}
+
+/* ------------------------------------------
+   OKRUHOVÝ TRÉNINK (víc cviků za sebou)
+   ------------------------------------------ */
+
+.fc-rezim-picker {
+  display: flex;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.fc-rezim-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #cbd5e1;
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 0.5rem 0.4rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.fc-rezim-btn--vybrany {
+  background: rgba(138, 92, 246, 0.2);
+  border-color: #8a5cf6;
+  color: #c4b5fd;
+}
+
+.fc-okruh-builder {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fc-okruh-pridat {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.fc-okruh-pridat select,
+.fc-okruh-pridat input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.78rem;
+  min-width: 0;
+}
+
+.fc-okruh-pridat-btn {
+  flex-shrink: 0;
+  background: rgba(138, 92, 246, 0.2);
+  border: 1px solid #8a5cf6;
+  color: #c4b5fd;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.fc-okruh-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.fc-okruh-krok {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  color: #cbd5e1;
+}
+
+.fc-okruh-krok button {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
 /* ------------------------------------------
    POZNÁMKA A NÁROČNOST PO SEZENÍ
    ------------------------------------------ */

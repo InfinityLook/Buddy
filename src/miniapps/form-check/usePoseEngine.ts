@@ -9,6 +9,7 @@ import {
   PRAHY_OPAKOVANI,
   POCATECNI_STAV,
   bodyStrany,
+  jePrknoSpravne,
   jeZadaNarovnana,
   krokOpakovani,
   odklonTrupu,
@@ -87,6 +88,15 @@ export const usePoseEngine = (cvik: TypCviku = 'dřep'): UsePoseEngineResult => 
   const drawingRef = useRef<DrawingUtils | null>(null)
   const stavOpakovaniRef = useRef<StavOpakovani>(POCATECNI_STAV)
   const zacatekRef = useRef<number>(0)
+  // Prkno (viz JE_CVIK_NA_CAS v types.ts) se počítá jinak než ostatní tři
+  // cviky — vydrzMsRef drží celkový čas ve správné poloze, přičítaný jen
+  // v okamžicích, kdy tělo doopravdy je rovné (viz smycka níž).
+  // posledniSnimekCasRef drží čas POSLEDNÍHO zpracovaného snímku, aby šlo
+  // spočítat, kolik času od něj uplynulo — null znamená "první snímek po
+  // startu (nebo po chvíli, kdy appka tělo neviděla)", kdy se nemá
+  // přičítat nic, jinak by se do výdrže omylem započítala i mezera.
+  const vydrzMsRef = useRef<number>(0)
+  const posledniSnimekCasRef = useRef<number | null>(null)
   const deviceIdRef = useRef<string | undefined>(undefined)
   const bezimRef = useRef(false)
 
@@ -133,33 +143,59 @@ export const usePoseEngine = (cvik: TypCviku = 'dřep'): UsePoseEngineResult => 
           const b = bodyStrany(strana)
           const cvikNyni = cvikRef.current
 
-          // Dřep i výpad počítají úhel v koleně (bok–koleno–kotník),
-          // klik úhel v lokti (rameno–loket–zápěstí) — stejná geometrie,
-          // jiná trojice bodů; prahy pro všechny tři drží PRAHY_OPAKOVANI
-          // v jednom místě (poseMath.ts), ať se nemůžou rozejít.
-          const uhel =
-            cvikNyni === 'klik'
-              ? uhelVeVrcholu(body[b.rameno], body[b.loket], body[b.zapesti])
-              : uhelVeVrcholu(body[b.bok], body[b.koleno], body[b.kotnik])
-          const prahy = PRAHY_OPAKOVANI[cvikNyni]
+          if (cvikNyni === 'prkno') {
+            // Prkno se neměří hysterezí nahoře/dole jako ostatní tři
+            // cviky — počítá se ČAS strávený v rovné poloze
+            // (rameno–bok–kotník blízko 180°, viz jePrknoSpravne).
+            const uhelVBoku = uhelVeVrcholu(body[b.rameno], body[b.bok], body[b.kotnik])
+            const spravnaPoloha = jePrknoSpravne(uhelVBoku)
 
-          const novyStav = krokOpakovani(stavOpakovaniRef.current, uhel, prahy.dole, prahy.nahore)
-          if (novyStav.pocet !== stavOpakovaniRef.current.pocet) setPocetOpakovani(novyStav.pocet)
-          stavOpakovaniRef.current = novyStav
+            const ted = performance.now()
+            const delta = posledniSnimekCasRef.current !== null ? ted - posledniSnimekCasRef.current : 0
+            posledniSnimekCasRef.current = ted
+            if (spravnaPoloha) vydrzMsRef.current += delta
 
-          // Zpětná vazba na záda dává smysl u dřepu i výpadu (trup má
-          // zůstat vzpřímený u obou) — a jen v dolní fázi, na začátku se
-          // každý přirozeně předklání a hlásit to jako chybu by jen
-          // mátlo (viz komentář u jeZadaNarovnana). U kliku by
-          // odklonTrupu na vodorovně natažené tělo hlásilo "narovnej
-          // záda" pořád, i při dokonalé technice — appka radši žádnou
-          // zpětnou vazbu než mylnou.
-          if ((cvikNyni === 'dřep' || cvikNyni === 'výpad') && novyStav.faze === 'dole') {
-            const odklon = odklonTrupu(body[b.rameno], body[b.bok])
-            setZpetnaVazba(jeZadaNarovnana(odklon) ? 'v-poradku' : 'narovnej-zada')
+            const vydrzS = Math.floor(vydrzMsRef.current / 1000)
+            if (vydrzS !== stavOpakovaniRef.current.pocet) setPocetOpakovani(vydrzS)
+            // faze se u prkna nikde nečte (žádný cyklus nahoře/dole),
+            // drží se jen kvůli sdílenému tvaru StavOpakovani.
+            stavOpakovaniRef.current = { faze: 'nahore', pocet: vydrzS }
+
+            setZpetnaVazba(spravnaPoloha ? 'v-poradku' : 'narovnej-zada')
           } else {
-            setZpetnaVazba(null)
+            // Dřep i výpad počítají úhel v koleně (bok–koleno–kotník),
+            // klik úhel v lokti (rameno–loket–zápěstí) — stejná geometrie,
+            // jiná trojice bodů; prahy pro všechny tři drží PRAHY_OPAKOVANI
+            // v jednom místě (poseMath.ts), ať se nemůžou rozejít.
+            const uhel =
+              cvikNyni === 'klik'
+                ? uhelVeVrcholu(body[b.rameno], body[b.loket], body[b.zapesti])
+                : uhelVeVrcholu(body[b.bok], body[b.koleno], body[b.kotnik])
+            const prahy = PRAHY_OPAKOVANI[cvikNyni]
+
+            const novyStav = krokOpakovani(stavOpakovaniRef.current, uhel, prahy.dole, prahy.nahore)
+            if (novyStav.pocet !== stavOpakovaniRef.current.pocet) setPocetOpakovani(novyStav.pocet)
+            stavOpakovaniRef.current = novyStav
+
+            // Zpětná vazba na záda dává smysl u dřepu i výpadu (trup má
+            // zůstat vzpřímený u obou) — a jen v dolní fázi, na začátku se
+            // každý přirozeně předklání a hlásit to jako chybu by jen
+            // mátlo (viz komentář u jeZadaNarovnana). U kliku by
+            // odklonTrupu na vodorovně natažené tělo hlásilo "narovnej
+            // záda" pořád, i při dokonalé technice — appka radši žádnou
+            // zpětnou vazbu než mylnou.
+            if ((cvikNyni === 'dřep' || cvikNyni === 'výpad') && novyStav.faze === 'dole') {
+              const odklon = odklonTrupu(body[b.rameno], body[b.bok])
+              setZpetnaVazba(jeZadaNarovnana(odklon) ? 'v-poradku' : 'narovnej-zada')
+            } else {
+              setZpetnaVazba(null)
+            }
           }
+        } else {
+          // Tělo zrovna není v záběru vidět — nulovat časovou základnu
+          // prkna, ať se po návratu do záběru nezapočítá celá mezera
+          // jako by v ní bylo tělo rovné.
+          posledniSnimekCasRef.current = null
         }
 
         ctx.restore()
@@ -249,7 +285,12 @@ export const usePoseEngine = (cvik: TypCviku = 'dřep'): UsePoseEngineResult => 
           stavOpakovaniRef.current = POCATECNI_STAV
           setPocetOpakovani(0)
           zacatekRef.current = Date.now()
+          vydrzMsRef.current = 0
         }
+        // Bez ohledu na zachovatPocitadlo — nový/obnovený stream znamená
+        // nový první snímek, ať se časová mezera od PŘED přepnutím kamery
+        // nezapočítá do prknovy výdrže.
+        posledniSnimekCasRef.current = null
         bezimRef.current = true
         setStav('bezi')
         rafRef.current = requestAnimationFrame(smycka)
@@ -281,6 +322,8 @@ export const usePoseEngine = (cvik: TypCviku = 'dřep'): UsePoseEngineResult => 
   const resetovatPocitadlo = useCallback(() => {
     stavOpakovaniRef.current = POCATECNI_STAV
     setPocetOpakovani(0)
+    vydrzMsRef.current = 0
+    posledniSnimekCasRef.current = null
   }, [])
 
   const prepnoutKameru = useCallback(() => {

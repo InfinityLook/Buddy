@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { useFormCheckStore, nejlepsiOpakovaniProCvik } from '@/miniapps/form-check/useFormCheck'
+import { useFormCheckStore, nejlepsiOpakovaniProCvik, navrhniCilNaPriste } from '@/miniapps/form-check/useFormCheck'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import type { Sezeni } from '@/miniapps/form-check/types'
 
@@ -53,6 +53,32 @@ describe('nejlepsiOpakovaniProCvik', () => {
   })
 })
 
+describe('navrhniCilNaPriste', () => {
+  const sezeni: Sezeni[] = [
+    { id: '1', cvik: 'dřep', pocetOpakovani: 10, trvaniSekund: 30, createdAt: '2024-01-01T10:00:00Z' },
+    { id: '2', cvik: 'dřep', pocetOpakovani: 14, trvaniSekund: 30, createdAt: '2024-01-05T10:00:00Z' },
+    { id: '3', cvik: 'dřep', pocetOpakovani: 12, trvaniSekund: 30, createdAt: '2024-01-03T10:00:00Z' },
+  ]
+
+  it('navrhne o jedno víc, než bylo v POSLEDNÍM (nejnovějším) sezení daného cviku, ne v nejlepším', () => {
+    // Nejlepší je 14 (5.1.), ale poslední podle data je taky 5.1. — zkusí
+    // se jiné pořadí, ať test doopravdy ověří "poslední", ne "max".
+    expect(navrhniCilNaPriste(sezeni, 'dřep')).toBe(15)
+  })
+
+  it('cvik bez žádné historie vrátí null, ne vymyšlené číslo', () => {
+    expect(navrhniCilNaPriste(sezeni, 'klik')).toBeNull()
+  })
+
+  it('opravdu bere nejnovější sezení, ne nejlepší — nejnovější je horší než starší', () => {
+    const historieSHorsimPoslednim: Sezeni[] = [
+      { id: 'a', cvik: 'klik', pocetOpakovani: 20, trvaniSekund: 30, createdAt: '2024-01-01T10:00:00Z' },
+      { id: 'b', cvik: 'klik', pocetOpakovani: 8, trvaniSekund: 30, createdAt: '2024-02-01T10:00:00Z' },
+    ]
+    expect(navrhniCilNaPriste(historieSHorsimPoslednim, 'klik')).toBe(9)
+  })
+})
+
 describe('useFormCheckStore.ulozitSezeni — odznaky', () => {
   it('"Stovkař" se odemkne, jakmile součet opakování napříč historií dosáhne 100', () => {
     useFormCheckStore.getState().ulozitSezeni(60, 60, 'dřep')
@@ -62,12 +88,13 @@ describe('useFormCheckStore.ulozitSezeni — odznaky', () => {
     expect(jeOdemcen('stovkar')).toBe(true)
   })
 
-  it('"Všestranný" se odemkne, až historie obsahuje všechny tři cviky', () => {
+  it('"Všestranný" se odemkne, až historie obsahuje všechny čtyři cviky', () => {
     useFormCheckStore.getState().ulozitSezeni(5, 30, 'dřep')
     useFormCheckStore.getState().ulozitSezeni(5, 30, 'klik')
+    useFormCheckStore.getState().ulozitSezeni(5, 30, 'výpad')
     expect(jeOdemcen('vsestranny')).toBe(false)
 
-    useFormCheckStore.getState().ulozitSezeni(5, 30, 'výpad')
+    useFormCheckStore.getState().ulozitSezeni(5, 30, 'prkno')
     expect(jeOdemcen('vsestranny')).toBe(true)
   })
 

@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   bodyStrany,
+  jePrknoSpravne,
   jeZadaNarovnana,
   krokOpakovani,
   odklonTrupu,
@@ -103,6 +104,17 @@ describe('bodyStrany', () => {
       koleno: LM.LEVE_KOLENO,
       kotnik: LM.LEVY_KOTNIK,
     })
+  })
+})
+
+describe('jePrknoSpravne', () => {
+  it('rovné tělo (úhel blízko 180°) je správná poloha', () => {
+    expect(jePrknoSpravne(178)).toBe(true)
+    expect(jePrknoSpravne(150)).toBe(true) // přesně na hranici
+  })
+
+  it('prohnutá/zvednutá pánev (úhel výrazně pod 150°) správná poloha není', () => {
+    expect(jePrknoSpravne(120)).toBe(false)
   })
 })
 

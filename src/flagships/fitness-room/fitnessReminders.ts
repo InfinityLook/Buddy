@@ -1,6 +1,8 @@
 import { showAppNotification } from '@/core/utils/notify'
 import { useFormCheckStore } from '@/miniapps/form-check/useFormCheck'
+import { NAZEV_CVIKU } from '@/miniapps/form-check/types'
 import { useFitnessCil } from './useFitnessCil'
+import { useCvicebniPlan, dnesniDenVTydnu } from './useCvicebniPlan'
 
 // ==========================================
 // Připomenutí tréninku — stejný "modulový" vzor jako Planerovo
@@ -36,12 +38,20 @@ const checkFitnessReminder = (): void => {
   const trenovalDnes = formState.sezeni.some((s) => new Date(s.createdAt).toISOString().slice(0, 10) === today)
   if (trenovalDnes) return
 
+  // Dnešní plán (viz useCvicebniPlan.ts) — den odpočinku appku vůbec
+  // neotravuje, nemá co připomínat. Nenastavený den (chybějící klíč)
+  // se chová jako dřív, obecnou hláškou.
+  const planDnes = useCvicebniPlan.getState().plan[dnesniDenVTydnu()]
+  if (planDnes === 'odpocinek') return
+
   useFormCheckStore.setState({ lastReminderDate: today })
 
   const cilMin = useFitnessCil.getState().cilTreninkMin
-  const zprava = cilMin
-    ? `Dnešní cíl ${cilMin} min tréninku ještě čeká.`
-    : 'Dnešní trénink ve Fitness Roomu ještě čeká.'
+  const zprava = planDnes
+    ? `Dnešní plán: ${NAZEV_CVIKU[planDnes]}. Ještě jsi netrénoval(a).`
+    : cilMin
+      ? `Dnešní cíl ${cilMin} min tréninku ještě čeká.`
+      : 'Dnešní trénink ve Fitness Roomu ještě čeká.'
 
   void showAppNotification('🏋️ Fitness Room', zprava, 'fitness-room')
 }

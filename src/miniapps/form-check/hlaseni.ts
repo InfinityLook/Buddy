@@ -39,3 +39,9 @@ export const ohlasOpakovani = (pocet: number): void => rekni(String(pocet))
 export const ohlasNovyRekord = (): void => rekni('Nový rekord!')
 export const ohlasCilSplnen = (): void => rekni('Cíl splněn!')
 export const ohlasZacniSerii = (cisloSerie: number): void => rekni(`Začni sérii ${cisloSerie}!`)
+
+// Rozcvička/strečink časovač (RozcvickaCasovac.tsx) je bez kamery, ale
+// hlas dává smysl stejně — ohlásí název dalšího kroku, ať se uživatel
+// nemusí koukat do telefonu mezi jednotlivými cviky.
+export const ohlasKrokRozcvicky = (nazevKroku: string): void => rekni(nazevKroku)
+export const ohlasHotovoRozcvicka = (): void => rekni('Hotovo! Skvělá práce.')

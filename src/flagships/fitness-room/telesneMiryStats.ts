@@ -53,3 +53,26 @@ export const formatujRozdilVahy = (posledni: number, predchozi: number | null): 
   const znamenko = rozdil > 0 ? '+' : ''
   return `${znamenko}${rozdil} kg od posledního záznamu`
 }
+
+// ==========================================
+// BMI — počítá se, jen když uživatel sám zadal výšku (useTelesneMiry.ts's
+// vyskaCm); bez ní appka nic nevymýšlí, stejná poctivost jako u "zatím
+// nesledujeme" jinde v appce. Standardní WHO kategorie, výslovně
+// označené appkou jako orientační, ne lékařská diagnóza.
+// ==========================================
+
+export const vypocitejBmi = (vahaKg: number, vyskaCm: number | null): number | null => {
+  if (vyskaCm === null || vyskaCm <= 0) return null
+  const vyskaM = vyskaCm / 100
+  return Math.round((vahaKg / (vyskaM * vyskaM)) * 10) / 10
+}
+
+/** Čtyři obvyklé WHO pásma BMI — appka je bere jako orientační popisek,
+ *  ne jako lékařské hodnocení (proto se hodnota BMI vždycky ukazuje
+ *  vedle popisku, nikdy jen samotný popisek). */
+export const popisBmiKategorie = (bmi: number): string => {
+  if (bmi < 18.5) return 'Podváha'
+  if (bmi < 25) return 'Normální váha'
+  if (bmi < 30) return 'Nadváha'
+  return 'Obezita'
+}

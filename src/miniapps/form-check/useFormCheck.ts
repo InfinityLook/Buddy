@@ -19,7 +19,7 @@ const XP_STROP = 30
 
 const noveId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
-const PLATNE_CVIKY: TypCviku[] = ['dřep', 'klik', 'výpad']
+const PLATNE_CVIKY: TypCviku[] = ['dřep', 'klik', 'výpad', 'prkno']
 const PLATNE_NAROCNOSTI: Narocnost[] = ['lehka', 'stredni', 'tezka']
 
 /** Malá vlastní kopie stejné "série po sobě jdoucích tréninkových dní"
@@ -57,6 +57,7 @@ export const sanitizujSezeni = (raw: unknown): Sezeni[] => {
       cvik: PLATNE_CVIKY.includes(s.cvik) ? s.cvik : 'dřep',
       poznamka: typeof s.poznamka === 'string' ? s.poznamka : '',
       narocnost: PLATNE_NAROCNOSTI.includes(s.narocnost as Narocnost) ? s.narocnost : null,
+      okruhId: typeof s.okruhId === 'string' ? s.okruhId : undefined,
     }))
 }
 
@@ -74,7 +75,7 @@ interface FormCheckState {
   // sanitizujSezeni níž, viz stejná past popsaná u Financí/Goal
   // Trackeru jinde v appce).
   lastReminderDate: string | null
-  ulozitSezeni: (pocetOpakovani: number, trvaniSekund: number, cvik: TypCviku) => string
+  ulozitSezeni: (pocetOpakovani: number, trvaniSekund: number, cvik: TypCviku, okruhId?: string) => string
   nastavPoznamkuSezeni: (id: string, poznamka: string, narocnost: Narocnost | null) => void
   setHlasoveHlaseni: (zapnuto: boolean) => void
 }
@@ -86,7 +87,7 @@ export const useFormCheckStore = create<FormCheckState>()(
       hlasoveHlaseni: true,
       lastReminderDate: null,
 
-      ulozitSezeni: (pocetOpakovani, trvaniSekund, cvik) => {
+      ulozitSezeni: (pocetOpakovani, trvaniSekund, cvik, okruhId) => {
         if (pocetOpakovani <= 0) return ''
 
         const id = noveId()
@@ -94,7 +95,7 @@ export const useFormCheckStore = create<FormCheckState>()(
         set((state) => {
           noveSezeniSeznam = [
             ...state.sezeni,
-            { id, cvik, pocetOpakovani, trvaniSekund, createdAt: new Date().toISOString() },
+            { id, cvik, pocetOpakovani, trvaniSekund, createdAt: new Date().toISOString(), okruhId },
           ]
           return { sezeni: noveSezeniSeznam }
         })
@@ -160,6 +161,20 @@ export const useFormCheckStore = create<FormCheckState>()(
  *  komponenty i bez Zustand storu. */
 export const nejlepsiOpakovaniProCvik = (sezeni: Sezeni[], cvik: TypCviku): number =>
   sezeni.filter((s) => s.cvik === cvik).reduce((max, s) => Math.max(max, s.pocetOpakovani), 0)
+
+/** Návrh cíle na příště — jednoduchá progresivní zátěž (progressive
+ *  overload): appka vezme POSLEDNÍ sezení daného cviku a navrhne o
+ *  jedno opakování/vteřinu výdrže víc, ne nejlepší dosavadní výsledek —
+ *  cíl má být dosažitelný krok od toho, co uživatel dělal naposledy, ne
+ *  skok na jeho životní maximum. Bez dosavadní historie daného cviku
+ *  vrací null (žádný vymyšlený cíl, stejná poctivost jako u appčiných
+ *  "zatím nesledujeme" hlášek jinde). */
+export const navrhniCilNaPriste = (sezeni: Sezeni[], cvik: TypCviku): number | null => {
+  const proCvik = sezeni.filter((s) => s.cvik === cvik)
+  if (proCvik.length === 0) return null
+  const posledni = [...proCvik].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  return posledni.pocetOpakovani + 1
+}
 
 export const useFormCheck = () => {
   const { sezeni, hlasoveHlaseni, ulozitSezeni, nastavPoznamkuSezeni, setHlasoveHlaseni } = useFormCheckStore()

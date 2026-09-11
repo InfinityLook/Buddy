@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { usePoseEngine } from './usePoseEngine'
-import { useFormCheck, nejlepsiOpakovaniProCvik } from './useFormCheck'
-import { NAZEV_CVIKU, NAROCNOST_LABEL, sestavCsvSezeni, Narocnost, TypCviku } from './types'
+import { useFormCheck, nejlepsiOpakovaniProCvik, navrhniCilNaPriste } from './useFormCheck'
+import { NAZEV_CVIKU, NAROCNOST_LABEL, JE_CVIK_NA_CAS, formatPocetCviku, sestavCsvSezeni, Narocnost, TypCviku } from './types'
 import { ohlasOpakovani, ohlasNovyRekord, ohlasCilSplnen, ohlasZacniSerii } from './hlaseni'
 import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { requestNotificationPermission } from '@/core/utils/notify'
+import { sdilejText } from '@/core/utils/sdileni'
 import './FormCheck.css'
 
 const formatDatum = (iso: string): string => {
@@ -19,8 +20,10 @@ const formatTrvani = (sekund: number): string => {
 
 const VYCHOZI_CIL_OPAKOVANI = 15
 const VYCHOZI_ODPOCINEK_S = 60
-const VSECHNY_CVIKY: TypCviku[] = ['dřep', 'klik', 'výpad']
+const VSECHNY_CVIKY: TypCviku[] = ['dřep', 'klik', 'výpad', 'prkno']
 const VSECHNY_NAROCNOSTI: Narocnost[] = ['lehka', 'stredni', 'tezka']
+
+const noveOkruhId = () => `okruh-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
 
 export const FormCheck: React.FC = () => {
   // Cvik se smí měnit, jen dokud kamera neběží — engine.stav === 'vypnuto'
@@ -46,6 +49,12 @@ export const FormCheck: React.FC = () => {
   const cilDosazen =
     cilOpakovani !== null && cilOpakovani > 0 && engine.pocetOpakovani >= cilOpakovani
 
+  // Návrh cíle na příště — jednoduchá progresivní zátěž (viz
+  // navrhniCilNaPriste v useFormCheck.ts). Zobrazuje se jen, dokud
+  // uživatel sám nic nezadal — jakmile vyplní vlastní cíl, návrh mizí,
+  // ať mu appka nepřebíjí vlastní volbu.
+  const navrhovanyCil = navrhniCilNaPriste(sezeni, cvik)
+
   // Série a odpočinek mezi nimi — taky čistě lokální/session-only, jako
   // cíl opakování výš. Počet sérií 1 (výchozí, nevyplněno) se chová
   // úplně stejně jako dřív: žádná série, žádný odpočinek, jen "Ukončit
@@ -63,6 +72,24 @@ export const FormCheck: React.FC = () => {
   // jen aktualniSerie samotné, protože handleDokoncitSerii i countdown
   // efekt níž potřebují stejnou hodnotu synchronně, ne až po překreslení.
   const cisloDalsiSerieRef = useRef(1)
+
+  // Okruhový trénink — na rozdíl od "Série a odpočinek" výš (víc kol
+  // STEJNÉHO cviku) jde o sled RŮZNÝCH cviků za sebou, každý s vlastním
+  // cílem. Kamera mezi kroky okruhu neběží nastartuj/vypni — cvikRef se
+  // smí měnit i za běhu (usePoseEngine.ts's efekt na cvik nemá žádnou
+  // podmínku na engine.stav), takže appka mezi kroky jen vynuluje
+  // počítadlo a přepne cvik, bez odpočinku (skutečné okruhy bez
+  // odpočinku mezi RŮZNÝMI cviky jsou běžné — odpočinek zůstává
+  // vyhrazený pro víc sérií STEJNÉHO cviku výš).
+  const [rezimOkruh, setRezimOkruh] = useState(false)
+  const [okruhKroky, setOkruhKroky] = useState<{ cvik: TypCviku; cil: number }[]>([])
+  const [novyOkruhCvik, setNovyOkruhCvik] = useState<TypCviku>('dřep')
+  const [novyOkruhCilText, setNovyOkruhCilText] = useState('')
+  const [okruhBezi, setOkruhBezi] = useState(false)
+  const [okruhIndex, setOkruhIndex] = useState(0)
+  const [okruhVysledky, setOkruhVysledky] = useState<{ cvik: TypCviku; pocet: number; trvani: number }[]>([])
+  const okruhIdRef = useRef<string | null>(null)
+  const segmentZacatekRef = useRef<number>(0)
 
   // Shrnutí posledního sezení se ukáže hned po ukončení, ať vidí, co si
   // právě vydělal, a nemusí to hledat v historii dole. Nese i id sezení,
@@ -89,6 +116,21 @@ export const FormCheck: React.FC = () => {
   const [novyRekord, setNovyRekord] = useState(false)
 
   const handleStop = () => {
+    if (rezimOkruh && okruhBezi) {
+      const { pocetOpakovani, cvik: dokoncenyCvik } = engine.stop()
+      let vysledky = okruhVysledky
+      if (pocetOpakovani > 0) {
+        const trvaniSegmentu = Math.max(1, Math.round((Date.now() - segmentZacatekRef.current) / 1000))
+        ulozitSezeni(pocetOpakovani, trvaniSegmentu, dokoncenyCvik, okruhIdRef.current ?? undefined)
+        vysledky = [...vysledky, { cvik: dokoncenyCvik, pocet: pocetOpakovani, trvani: trvaniSegmentu }]
+      }
+      setOkruhVysledky(vysledky)
+      setOkruhBezi(false)
+      setOkruhIndex(0)
+      setOkruhKroky([])
+      return
+    }
+
     const { pocetOpakovani, trvaniSekund, cvik: dokoncenyCvik } = engine.stop()
     const celkemVSezeni = soucetPredchozichSerii + pocetOpakovani
     if (celkemVSezeni > 0) {
@@ -101,6 +143,57 @@ export const FormCheck: React.FC = () => {
     setSoucetPredchozichSerii(0)
     setAktualniSerie(1)
     setZbyvaOdpocinekS(null)
+  }
+
+  const handlePridatDoOkruhu = () => {
+    const cil = Number(novyOkruhCilText)
+    if (!cil || cil <= 0) return
+    setOkruhKroky((k) => [...k, { cvik: novyOkruhCvik, cil }])
+    setNovyOkruhCilText('')
+  }
+
+  const handleOdebratZOkruhu = (index: number) => {
+    setOkruhKroky((k) => k.filter((_, i) => i !== index))
+  }
+
+  const handleSpustitOkruh = () => {
+    if (okruhKroky.length === 0) return
+    okruhIdRef.current = noveOkruhId()
+    setOkruhVysledky([])
+    setOkruhIndex(0)
+    setOkruhBezi(true)
+    setCvik(okruhKroky[0].cvik)
+    setCilOpakovaniText(String(okruhKroky[0].cil))
+    requestNotificationPermission()
+    segmentZacatekRef.current = Date.now()
+    engine.start()
+  }
+
+  const handleDalsiCvikOkruhu = () => {
+    const dokoncenoVSegmentu = engine.pocetOpakovani
+    const aktualniCvik = okruhKroky[okruhIndex].cvik
+    let vysledky = okruhVysledky
+    if (dokoncenoVSegmentu > 0) {
+      const trvaniSegmentu = Math.max(1, Math.round((Date.now() - segmentZacatekRef.current) / 1000))
+      ulozitSezeni(dokoncenoVSegmentu, trvaniSegmentu, aktualniCvik, okruhIdRef.current ?? undefined)
+      vysledky = [...vysledky, { cvik: aktualniCvik, pocet: dokoncenoVSegmentu, trvani: trvaniSegmentu }]
+      setOkruhVysledky(vysledky)
+    }
+
+    const dalsiIndex = okruhIndex + 1
+    if (dalsiIndex >= okruhKroky.length) {
+      engine.stop()
+      setOkruhBezi(false)
+      setOkruhIndex(0)
+      setOkruhKroky([])
+      return
+    }
+
+    setOkruhIndex(dalsiIndex)
+    setCvik(okruhKroky[dalsiIndex].cvik)
+    setCilOpakovaniText(String(okruhKroky[dalsiIndex].cil))
+    engine.resetovatPocitadlo()
+    segmentZacatekRef.current = Date.now()
   }
 
   const handleStart = () => {
@@ -180,9 +273,14 @@ export const FormCheck: React.FC = () => {
       cilOslavenRef.current = true
       if (hlasoveHlaseni) ohlasCilSplnen()
     } else if (hlasoveHlaseni) {
-      ohlasOpakovani(engine.pocetOpakovani)
+      // Prkno (a jiné časomíra cviky) by při ohlašování KAŽDÉ vteřiny
+      // hlas jen zahltily — ohlásí se jen každých 10 vteřin, ne každé
+      // opakování jako u dřepu/kliku/výpadu.
+      if (!JE_CVIK_NA_CAS[cvik] || engine.pocetOpakovani % 10 === 0) {
+        ohlasOpakovani(engine.pocetOpakovani)
+      }
     }
-  }, [engine.pocetOpakovani, engine.stav, hlasoveHlaseni, cilDosazen])
+  }, [engine.pocetOpakovani, engine.stav, hlasoveHlaseni, cilDosazen, cvik])
 
   const handleUlozitPoznamku = () => {
     if (!posledniShrnuti) return
@@ -209,9 +307,15 @@ export const FormCheck: React.FC = () => {
         </button>
       </div>
 
-      {engine.stav === 'bezi' && pocetSerii > 1 && (
+      {engine.stav === 'bezi' && !rezimOkruh && pocetSerii > 1 && (
         <div className="fc-serie-info">
           Série {aktualniSerie} z {pocetSerii}
+        </div>
+      )}
+
+      {engine.stav === 'bezi' && rezimOkruh && okruhBezi && (
+        <div className="fc-serie-info">
+          Okruh: krok {okruhIndex + 1} z {okruhKroky.length} — {NAZEV_CVIKU[okruhKroky[okruhIndex].cvik]}
         </div>
       )}
 
@@ -248,6 +352,7 @@ export const FormCheck: React.FC = () => {
           <>
             <div className={`fc-counter ${cilDosazen ? 'fc-counter--cil-splnen' : ''}`}>
               {engine.pocetOpakovani}
+              {JE_CVIK_NA_CAS[cvik] && <span className="fc-counter-jednotka"> s</span>}
               {cilOpakovani !== null && cilOpakovani > 0 && (
                 <span className="fc-counter-cil">
                   {cilDosazen ? '✓' : `/ ${cilOpakovani}`}
@@ -269,9 +374,14 @@ export const FormCheck: React.FC = () => {
               <button className="fc-icon-btn" onClick={engine.resetovatPocitadlo} aria-label="Vynulovat počítadlo">
                 ↺
               </button>
-              {pocetSerii > 1 && aktualniSerie < pocetSerii && (
+              {!rezimOkruh && pocetSerii > 1 && aktualniSerie < pocetSerii && (
                 <button className="fc-serie-dokoncit-btn" onClick={handleDokoncitSerii}>
                   Další série
+                </button>
+              )}
+              {rezimOkruh && okruhBezi && (
+                <button className="fc-serie-dokoncit-btn" onClick={handleDalsiCvikOkruhu}>
+                  {okruhIndex + 1 >= okruhKroky.length ? 'Dokončit okruh' : 'Další cvik'}
                 </button>
               )}
               <button className="fc-stop-btn" onClick={handleStop}>
@@ -291,66 +401,186 @@ export const FormCheck: React.FC = () => {
             v prohlížeči.
           </p>
 
-          <div className="fc-cvik-picker" role="group" aria-label="Vyber cvik">
-            {VSECHNY_CVIKY.map((c) => (
-              <button
-                key={c}
-                type="button"
-                className={`fc-cvik-btn ${cvik === c ? 'fc-cvik-btn--vybrany' : ''}`}
-                onClick={() => setCvik(c)}
-              >
-                {NAZEV_CVIKU[c]}
+          <div className="fc-rezim-picker" role="group" aria-label="Vyber druh tréninku">
+            <button
+              type="button"
+              className={`fc-rezim-btn ${!rezimOkruh ? 'fc-rezim-btn--vybrany' : ''}`}
+              onClick={() => setRezimOkruh(false)}
+            >
+              Jednotlivý cvik
+            </button>
+            <button
+              type="button"
+              className={`fc-rezim-btn ${rezimOkruh ? 'fc-rezim-btn--vybrany' : ''}`}
+              onClick={() => setRezimOkruh(true)}
+            >
+              Okruh (víc cviků za sebou)
+            </button>
+          </div>
+
+          {!rezimOkruh && (
+            <>
+              <div className="fc-cvik-picker" role="group" aria-label="Vyber cvik">
+                {VSECHNY_CVIKY.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`fc-cvik-btn ${cvik === c ? 'fc-cvik-btn--vybrany' : ''}`}
+                    onClick={() => setCvik(c)}
+                  >
+                    {NAZEV_CVIKU[c]}
+                  </button>
+                ))}
+              </div>
+
+              <label className="fc-cil-pole">
+                {JE_CVIK_NA_CAS[cvik] ? 'Cíl výdrže (s, nepovinné)' : 'Cíl opakování (nepovinné)'}
+                <input
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={cilOpakovaniText}
+                  onChange={(e) => setCilOpakovaniText(e.target.value)}
+                  placeholder={`např. ${VYCHOZI_CIL_OPAKOVANI}`}
+                />
+              </label>
+
+              {navrhovanyCil !== null && cilOpakovaniText.trim() === '' && (
+                <button type="button" className="fc-cil-navrh" onClick={() => setCilOpakovaniText(String(navrhovanyCil))}>
+                  💡 Naposledy {formatPocetCviku(navrhovanyCil - 1, cvik)} — zkus dnes {formatPocetCviku(navrhovanyCil, cvik)}
+                </button>
+              )}
+
+              <div className="fc-serie-radek">
+                <label className="fc-cil-pole">
+                  Počet sérií (nepovinné)
+                  <input
+                    type="number"
+                    min={1}
+                    inputMode="numeric"
+                    value={pocetSeriiText}
+                    onChange={(e) => setPocetSeriiText(e.target.value)}
+                    placeholder="1"
+                  />
+                </label>
+                <label className="fc-cil-pole">
+                  Odpočinek mezi sériemi (s)
+                  <input
+                    type="number"
+                    min={5}
+                    inputMode="numeric"
+                    value={odpocinekText}
+                    onChange={(e) => setOdpocinekText(e.target.value)}
+                    placeholder={String(VYCHOZI_ODPOCINEK_S)}
+                  />
+                </label>
+              </div>
+
+              <button className="fc-start-btn" onClick={handleStart}>
+                Zapnout kameru
               </button>
-            ))}
-          </div>
+            </>
+          )}
 
-          <label className="fc-cil-pole">
-            Cíl opakování (nepovinné)
-            <input
-              type="number"
-              min={1}
-              inputMode="numeric"
-              value={cilOpakovaniText}
-              onChange={(e) => setCilOpakovaniText(e.target.value)}
-              placeholder={`např. ${VYCHOZI_CIL_OPAKOVANI}`}
-            />
-          </label>
+          {rezimOkruh && (
+            <div className="fc-okruh-builder">
+              <div className="fc-okruh-pridat">
+                <select value={novyOkruhCvik} onChange={(e) => setNovyOkruhCvik(e.target.value as TypCviku)}>
+                  {VSECHNY_CVIKY.map((c) => (
+                    <option key={c} value={c}>
+                      {NAZEV_CVIKU[c]}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={novyOkruhCilText}
+                  onChange={(e) => setNovyOkruhCilText(e.target.value)}
+                  placeholder={JE_CVIK_NA_CAS[novyOkruhCvik] ? 'vteřin' : 'opakování'}
+                />
+                <button type="button" className="fc-okruh-pridat-btn" onClick={handlePridatDoOkruhu}>
+                  Přidat
+                </button>
+              </div>
 
-          <div className="fc-serie-radek">
-            <label className="fc-cil-pole">
-              Počet sérií (nepovinné)
-              <input
-                type="number"
-                min={1}
-                inputMode="numeric"
-                value={pocetSeriiText}
-                onChange={(e) => setPocetSeriiText(e.target.value)}
-                placeholder="1"
-              />
-            </label>
-            <label className="fc-cil-pole">
-              Odpočinek mezi sériemi (s)
-              <input
-                type="number"
-                min={5}
-                inputMode="numeric"
-                value={odpocinekText}
-                onChange={(e) => setOdpocinekText(e.target.value)}
-                placeholder={String(VYCHOZI_ODPOCINEK_S)}
-              />
-            </label>
-          </div>
+              {okruhKroky.length > 0 && (
+                <div className="fc-okruh-seznam">
+                  {okruhKroky.map((k, i) => (
+                    <div key={`${k.cvik}-${i}`} className="fc-okruh-krok">
+                      <span>
+                        {i + 1}. {NAZEV_CVIKU[k.cvik]} — {formatPocetCviku(k.cil, k.cvik)}
+                      </span>
+                      <button type="button" onClick={() => handleOdebratZOkruhu(i)} aria-label="Odebrat z okruhu">
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-          <button className="fc-start-btn" onClick={handleStart}>
-            Zapnout kameru
-          </button>
+              <button
+                className="fc-start-btn"
+                onClick={handleSpustitOkruh}
+                disabled={okruhKroky.length === 0}
+              >
+                Spustit okruh
+              </button>
+            </div>
+          )}
+
+          {okruhVysledky.length > 0 && !okruhBezi && (
+            <div className="fc-posledni-blok">
+              <p className="fc-posledni-vysledek">Okruh dokončen! 🎉</p>
+              <div className="fc-okruh-seznam">
+                {okruhVysledky.map((v, i) => (
+                  <div key={i} className="fc-okruh-krok">
+                    <span>
+                      {NAZEV_CVIKU[v.cvik]} — {formatPocetCviku(v.pocet, v.cvik)} za {formatTrvani(v.trvani)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                className="fc-sdilet-btn"
+                onClick={() =>
+                  void sdilejText(
+                    `Dokončil(a) jsem okruhový trénink ve Form Checku: ${okruhVysledky
+                      .map((v) => `${NAZEV_CVIKU[v.cvik]} ${formatPocetCviku(v.pocet, v.cvik)}`)
+                      .join(', ')}! 💪`,
+                    'Form Check'
+                  )
+                }
+              >
+                📤 Sdílet výsledek
+              </button>
+            </div>
+          )}
 
           {posledniShrnuti && (
             <div className="fc-posledni-blok">
               <p className="fc-posledni-vysledek">
-                Poslední sezení: {posledniShrnuti.pocet}× {NAZEV_CVIKU[posledniShrnuti.cvik].toLowerCase()} za{' '}
-                {formatTrvani(posledniShrnuti.trvani)}
+                Poslední sezení: {formatPocetCviku(posledniShrnuti.pocet, posledniShrnuti.cvik)}{' '}
+                {NAZEV_CVIKU[posledniShrnuti.cvik].toLowerCase()} za {formatTrvani(posledniShrnuti.trvani)}
               </p>
+
+              <button
+                type="button"
+                className="fc-sdilet-btn"
+                onClick={() =>
+                  void sdilejText(
+                    `Dokončil(a) jsem trénink ve Form Checku: ${formatPocetCviku(
+                      posledniShrnuti.pocet,
+                      posledniShrnuti.cvik
+                    )} ${NAZEV_CVIKU[posledniShrnuti.cvik].toLowerCase()}! 💪`,
+                    'Form Check'
+                  )
+                }
+              >
+                📤 Sdílet výsledek
+              </button>
 
               {!poznamkaUlozena ? (
                 <div className="fc-poznamka-form">

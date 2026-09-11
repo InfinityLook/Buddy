@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useFormCheck } from '@/miniapps/form-check/useFormCheck'
+import { NAZEV_CVIKU, type TypCviku } from '@/miniapps/form-check/types'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { plural } from '@/core/utils/pluralCZ'
 import { FlagshipShell } from '../shared/FlagshipShell'
@@ -16,7 +17,9 @@ import {
 } from './fitnessStats'
 import { useFitnessCil } from './useFitnessCil'
 import { useTelesneMiry } from './useTelesneMiry'
-import { spocitejGrafVahy, serazenoPodleData, formatujRozdilVahy } from './telesneMiryStats'
+import { spocitejGrafVahy, serazenoPodleData, formatujRozdilVahy, vypocitejBmi, popisBmiKategorie } from './telesneMiryStats'
+import { useCvicebniPlan, dnesniDenVTydnu, NAZEV_DNE, type HodnotaPlanu, type DenVTydnu } from './useCvicebniPlan'
+import { RozcvickaCasovac } from './RozcvickaCasovac'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './FitnessRoomModule.css'
 
@@ -75,9 +78,18 @@ export const FitnessRoomModule: React.FC = () => {
   const { sezeni } = useFormCheck()
   const cile = useFitnessCil()
   const miry = useTelesneMiry()
+  const cvicebniPlan = useCvicebniPlan()
   const [notifOpen, setNotifOpen] = useState(false)
   const [appsOtevrene, setAppsOtevrene] = useState(false)
   const [upravujeCile, setUpravujeCile] = useState(false)
+  const [upravujePlan, setUpravujePlan] = useState(false)
+  const [rozcvickaOtevrena, setRozcvickaOtevrena] = useState(false)
+  const [novaVyskaText, setNovaVyskaText] = useState('')
+
+  const handleUlozitVysku = () => {
+    const vyska = Number(novaVyskaText)
+    miry.setVyska(vyska > 0 ? vyska : null)
+  }
 
   // Deník tělesných měr — přidávací formulář se otevírá/zavírá stejným
   // tlačítkem jako úprava cílů výš, čistě lokální session stav.
@@ -107,6 +119,12 @@ export const FitnessRoomModule: React.FC = () => {
   const predposledniVaha = zaznamySVahou.length > 1 ? zaznamySVahou[zaznamySVahou.length - 2].vahaKg : null
   const rozdilVahyText = posledniVaha !== null ? formatujRozdilVahy(posledniVaha, predposledniVaha) : null
   const grafVahy = spocitejGrafVahy(miry.zaznamy, 14)
+  const bmi = posledniVaha !== null ? vypocitejBmi(posledniVaha, miry.vyskaCm) : null
+
+  const denDnes = dnesniDenVTydnu()
+  const planDnes: HodnotaPlanu | undefined = cvicebniPlan.plan[denDnes]
+  const VSECHNY_CVIKY_PLAN: TypCviku[] = ['dřep', 'klik', 'výpad', 'prkno']
+  const VSECHNY_DNY: DenVTydnu[] = [1, 2, 3, 4, 5, 6, 7]
 
   const otevritFormCheck = () => {
     setActiveAppId('form-check', '/fitness')
@@ -263,10 +281,63 @@ export const FitnessRoomModule: React.FC = () => {
         <div className="fit-panel">
           <div className="fit-panel-hlavicka">
             <div>
+              <h2>📅 Cvičební plán</h2>
+              {planDnes === undefined && <p>Dnes ({NAZEV_DNE[denDnes]}) není nic naplánováno.</p>}
+              {planDnes === 'odpocinek' && <p>Dnes ({NAZEV_DNE[denDnes]}) je den odpočinku. 😌</p>}
+              {planDnes && planDnes !== 'odpocinek' && (
+                <p>
+                  Dnes ({NAZEV_DNE[denDnes]}): <strong>{NAZEV_CVIKU[planDnes]}</strong>
+                </p>
+              )}
+            </div>
+            <button
+              className="fit-historie-btn"
+              aria-label="Upravit cvičební plán"
+              onClick={() => setUpravujePlan((v) => !v)}
+            >
+              ✏️
+            </button>
+          </div>
+
+          {planDnes && planDnes !== 'odpocinek' && !upravujePlan && (
+            <button className="fit-plan-spustit" onClick={otevritFormCheck}>
+              Spustit dnešní trénink ›
+            </button>
+          )}
+
+          {upravujePlan && (
+            <div className="fit-plan-editace">
+              {VSECHNY_DNY.map((den) => (
+                <div key={den} className="fit-plan-radek">
+                  <span className="fit-plan-den">{NAZEV_DNE[den]}</span>
+                  <select
+                    value={cvicebniPlan.plan[den] ?? ''}
+                    onChange={(e) =>
+                      cvicebniPlan.nastavDen(den, e.target.value === '' ? null : (e.target.value as HodnotaPlanu))
+                    }
+                  >
+                    <option value="">Nenastaveno</option>
+                    <option value="odpocinek">Den odpočinku</option>
+                    {VSECHNY_CVIKY_PLAN.map((c) => (
+                      <option key={c} value={c}>
+                        {NAZEV_CVIKU[c]}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="fit-panel">
+          <div className="fit-panel-hlavicka">
+            <div>
               <h2>📏 Tělesné míry</h2>
               {posledniVaha !== null ? (
                 <p>
                   {posledniVaha} kg{rozdilVahyText ? ` · ${rozdilVahyText}` : ''}
+                  {bmi !== null && ` · BMI ${bmi} (${popisBmiKategorie(bmi)})`}
                 </p>
               ) : (
                 <p>Zatím žádný záznam</p>
@@ -317,6 +388,23 @@ export const FitnessRoomModule: React.FC = () => {
               <button className="fit-miry-ulozit" onClick={handleUlozitZaznamMiry}>
                 Uložit záznam
               </button>
+
+              <label className="fit-miry-vyska-pole">
+                Výška (cm) — pro výpočet BMI, stačí zadat jednou
+                <span className="fit-miry-vyska-radek">
+                  <input
+                    type="number"
+                    min={1}
+                    inputMode="numeric"
+                    value={novaVyskaText || (miry.vyskaCm ?? '')}
+                    onChange={(e) => setNovaVyskaText(e.target.value)}
+                    placeholder="např. 175"
+                  />
+                  <button className="fit-miry-vyska-ulozit" onClick={handleUlozitVysku}>
+                    Uložit výšku
+                  </button>
+                </span>
+              </label>
             </div>
           )}
 
@@ -516,9 +604,18 @@ export const FitnessRoomModule: React.FC = () => {
               <span className="fit-trenink-nazev">Síla</span>
               <span className="fit-trenink-popis">Dřep / Klik / Výpad</span>
             </button>
+            <button
+              className="fit-trenink-dlazdice"
+              onClick={() => setRozcvickaOtevrena(true)}
+            >
+              <span className="fit-text--cyan">
+                <AppIcon name="moon" size={22} />
+              </span>
+              <span className="fit-trenink-nazev">Mobilita</span>
+              <span className="fit-trenink-popis">Rozcvička / strečink</span>
+            </button>
             {[
               { nazev: 'Kardio', popis: '20 min', ikona: 'flame', barva: 'orange' },
-              { nazev: 'Mobilita', popis: '15 min', ikona: 'moon', barva: 'cyan' },
               { nazev: 'Core', popis: '10 min', ikona: 'bar-chart', barva: 'green' },
             ].map((t) => (
               <button key={t.nazev} className="fit-trenink-dlazdice fit-trenink-dlazdice--brzy" disabled>
@@ -535,6 +632,7 @@ export const FitnessRoomModule: React.FC = () => {
       </FlagshipShell>
 
       {appsOtevrene && <NastrojeSheet nadpis="Apps" nastroje={nastroje} onZavrit={() => setAppsOtevrene(false)} />}
+      {rozcvickaOtevrena && <RozcvickaCasovac onZavrit={() => setRozcvickaOtevrena(false)} />}
     </>
   )
 }
