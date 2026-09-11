@@ -425,3 +425,35 @@
     transform: scale(1.06);
   }
 }
+
+/* ---------- "Připravuje se" (hry dočasně schované, viz GamesHubModule.tsx) ---------- */
+
+.arc-brzy {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 0.65rem;
+  padding: 2rem 1rem;
+}
+
+.arc-brzy-znak {
+  font-size: 2.6rem;
+  filter: grayscale(0.15);
+}
+
+.arc-brzy-nadpis {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.arc-brzy-popis {
+  margin: 0;
+  max-width: 280px;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}

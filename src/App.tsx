@@ -21,26 +21,22 @@ import SettingsModule from '@/pages/setting/SettingsModule.tsx'
 import ShopModule from '@/pages/shop/ShopModule.tsx'
 import AdminModule from '@/pages/admin/AdminModule.tsx'
 import SupportModule from '@/pages/support/SupportModule.tsx'
-// Buddyheim (RPG, src/game/) je dočasně vyřazený z nabídky her na
-// žádost — appka nejdřív dodělá a vyladí Souboj (hru pro dva), RPG
-// zůstává beze změny v kódu, jen dočasně nedosažitelný (viz route
-// /hra/buddyheim níž a GamesHubModule.tsx's HRY). Vrátit ho zpátky
-// znamená jen odkomentovat tenhle import a přehodit element routy
-// zpátky na <GameModule />, žádný jiný soubor se nemusí měnit.
+// Buddyheim (RPG, src/game/), Souboj (bojovka pro dva, src/fighting/)
+// a Buddyho Trh (deskovka, src/boardgame/) jsou všechny tři na žádost
+// dočasně SCHOVANÉ, ne smazané — appka začíná hry stavět úplně od
+// znova a /hra teď ukazuje jen "Připravuje se" (viz GamesHubModule.tsx).
+// Žádný soubor v src/game/, src/fighting/ ani src/boardgame/ se kvůli
+// tomu nemění. Vrátit některou z nich zpátky znamená: odkomentovat její
+// lazy import tady, přehodit její routu z <Navigate to="/hra" replace />
+// níž zpátky na skutečný element (obalený ve <Suspense>, jako předtím),
+// a vrátit jí kartu v GamesHubModule.tsx's HRY.
 // const GameModule = lazy(() => import('@/game/GameModule'))
 // Social má od verze s ambientní 3D scénou v pozadí stejnou závislost
 // na Three.js jako Game hub, a otevírá se mnohem častěji než /hra —
 // proto musí jet líně stejně tak, jinak by ho zatížila každá návštěva.
 const SocialModule = lazy(() => import('@/social/SocialModule'))
-// Souboj (druhá hra, zatím jen síťové párování ve Fázi 0) — poroste
-// o herní vykreslování stejně jako Buddyheim, líný import od začátku
-// místo přechodu na něj až dodatečně.
-const FightingModule = lazy(() => import('@/fighting/FightingModule'))
-// Buddyho Trh (třetí/sedmá hra, zatím jen Fáze 0 — lokální mřížka,
-// kostka, pohyb, žádná ekonomika, viz src/boardgame/). Používá Three.js
-// pro 3D desku stejně jako Souboj/Buddyheim, proto líný import od
-// začátku, ne až dodatečně.
-const BoardgameModule = lazy(() => import('@/boardgame/BoardgameModule'))
+// const FightingModule = lazy(() => import('@/fighting/FightingModule'))
+// const BoardgameModule = lazy(() => import('@/boardgame/BoardgameModule'))
 import { BootGate } from '@/components/BootGate'
 import { BiometricLock } from '@/components/BiometricLock'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
@@ -363,49 +359,15 @@ export default function App() {
             element={dovnitr ? <GamesHubModule /> : <Navigate to="/" replace />}
           />
 
-          {/* Route pro Buddyheim (RPG, 3D průzkum) — dočasně vyřazený
-              z nabídky her (viz komentář u lazy importu GameModule
-              výš a GamesHubModule.tsx's HRY): appka teď dokončuje
-              a lepí Souboj, RPG se vrátí, až se na to dostane. Přímý
-              odkaz proto vede zpátky na rozcestník her místo do hry
-              samotné, ať appka nenechá rozpracovanou/odloženou funkci
+          {/* Buddyheim (RPG), Souboj (bojovka pro dva) a Buddyho Trh
+              (deskovka) jsou všechny tři na žádost dočasně schované —
+              viz komentář u jejich (zakomentovaných) lazy importů výš.
+              Každý přímý odkaz proto vede zpátky na rozcestník her
+              místo do hry samotné, ať appka nenechá schovanou funkci
               dosažitelnou jen díky uhodnuté URL. */}
           <Route path="/hra/buddyheim" element={<Navigate to="/hra" replace />} />
-
-          {/* Route pro Souboj (druhá hra, zatím jen Fáze 0 — síťové
-              párování telefon-ovladač <-> TV, viz src/fighting/). Ještě
-              se nenabízí z rozcestníku her jako skutečná karta, jde na
-              ni jen přímý odkaz. */}
-          <Route
-            path="/hra/souboj"
-            element={
-              dovnitr ? (
-                <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
-                  <FightingModule />
-                </Suspense>
-              ) : (
-                <Navigate to="/" replace />
-              )
-            }
-          />
-
-          {/* Route pro Buddyho Trh (třetí/sedmá hra, zatím jen Fáze 0 —
-              lokální mřížka, kostka, pohyb, viz src/boardgame/). Na
-              rozdíl od Souboje nepotřebuje cloud vůbec — celá hra běží
-              na jednom zařízení. Ještě se nenabízí z rozcestníku her
-              jako skutečná karta, jde na ni jen přímý odkaz. */}
-          <Route
-            path="/hra/trh"
-            element={
-              dovnitr ? (
-                <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
-                  <BoardgameModule />
-                </Suspense>
-              ) : (
-                <Navigate to="/" replace />
-              )
-            }
-          />
+          <Route path="/hra/souboj" element={<Navigate to="/hra" replace />} />
+          <Route path="/hra/trh" element={<Navigate to="/hra" replace />} />
 
           {/* Route pro obchod (kredity, VIP a doplňky) */}
           <Route
