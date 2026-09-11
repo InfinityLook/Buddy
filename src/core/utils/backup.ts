@@ -105,6 +105,10 @@ export const BACKUP_STORES: BackupStore[] = [
   // o nich stejně musí server, tohle je jen kopie pro vykreslení.
   { key: 'schoolbuddy-role-storage', storage: 'secure', label: 'Role účtu', restorable: false },
   { key: 'schoolbuddy-wallet-storage', storage: 'secure', label: 'Kredity', restorable: false },
+  // Survival Night (src/survival/) — Gold/Crystal/nejvyšší vlna jsou
+  // vydřený postup jako u gamification-storage výš, proto taky
+  // restorable: false — obnova ze starší zálohy je nesmí vrátit zpátky.
+  { key: 'schoolbuddy-survival-storage', storage: 'secure', label: 'Survival Night', restorable: false },
   // Klíč, pod kterým profil ležel dřív. V katalogu zůstává kvůli zálohám
   // vytvořeným před převodem profilu na Zustand — po obnově se aplikace
   // načte znovu a useProfileData si data ze starého klíče přenese samo.

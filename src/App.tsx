@@ -37,6 +37,11 @@ import SupportModule from '@/pages/support/SupportModule.tsx'
 const SocialModule = lazy(() => import('@/social/SocialModule'))
 // const FightingModule = lazy(() => import('@/fighting/FightingModule'))
 // const BoardgameModule = lazy(() => import('@/boardgame/BoardgameModule'))
+// Survival Night — čtvrtá hra, první, co se v přestavěném BuddyZone
+// skutečně hraje. Stejná Three.js závislost jako Social/GameModule/
+// FightingModule/BoardgameModule výš, proto taky líně — nikdo, kdo
+// Survival Night nikdy neotevře, ji nemá platit v hlavním balíčku.
+const SurvivalModule = lazy(() => import('@/survival/SurvivalModule'))
 import { BootGate } from '@/components/BootGate'
 import { BiometricLock } from '@/components/BiometricLock'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
@@ -368,6 +373,21 @@ export default function App() {
           <Route path="/hra/buddyheim" element={<Navigate to="/hra" replace />} />
           <Route path="/hra/souboj" element={<Navigate to="/hra" replace />} />
           <Route path="/hra/trh" element={<Navigate to="/hra" replace />} />
+
+          {/* Survival Night — první skutečně hratelná hra přestavěného
+              BuddyZone (viz GamesHubModule.tsx). */}
+          <Route
+            path="/hra/survival-night"
+            element={
+              dovnitr ? (
+                <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
+                  <SurvivalModule />
+                </Suspense>
+              ) : (
+                <Navigate to="/" replace />
+              )
+            }
+          />
 
           {/* Route pro obchod (kredity, VIP a doplňky) */}
           <Route

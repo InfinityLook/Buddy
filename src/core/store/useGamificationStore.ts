@@ -32,6 +32,16 @@ export type ActivityKind =
   | 'znamka'
   | 'citace'
   | 'navyk'
+  // Survival Night (src/survival/) — vlastní kind pro zabití, ne
+  // sdílení s Buddyheimovým 'battle'/Souboj's 'souboj': tři různé hry,
+  // tři různá počítadla, stejná zásada jako 'souboj' vs 'battle' výš.
+  // Zabití bosse ale reálně poráží "svého prvního bosse" ve stejném
+  // obecném smyslu jako Buddyheimův dungeon — proto Survival Night's
+  // boss kill zapisuje přes existující 'boss' kind níž, ne přes nový,
+  // a znovupoužije už existující odznak boss_slayer (bod 23 zadání:
+  // nepřidávej druhý paralelní systém).
+  | 'survival_kill'
+  | 'survival_wave'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -102,6 +112,16 @@ export const DEFAULT_BADGES: Badge[] = [
   { id: 'stovkar', title: 'Stovkař', description: 'Napočítej dohromady 100 opakování ve Form Checku.', icon: '💯', unlockedAt: null },
   { id: 'vsestranny', title: 'Všestranný', description: 'Vyzkoušej ve Form Checku všechny cviky — dřep, klik i výpad.', icon: '🤸', unlockedAt: null },
   { id: 'treninkovy_bojovnik', title: 'Tréninkový bojovník', description: 'Udrž si 7denní tréninkovou sérii ve Form Checku.', icon: '🏅', unlockedAt: null },
+  // Survival Night — 'Monster Hunter' se počtem hodí do COUNT_BADGES
+  // (viz níž), 'First Blood'/'Survivor'/'Impossible'/'Night Legend' ne:
+  // "za první zabití vůbec" a "přežít X vln V JEDNOM běhu" nejsou
+  // "kolikrát se to stalo celkem", stejný problém jako exam_master —
+  // odemykají se ručně přímo v src/survival/useSurvivalEngine.ts.
+  { id: 'first_blood', title: 'First Blood', description: 'Poraz první monstrum v Survival Night.', icon: '🩸', unlockedAt: null },
+  { id: 'monster_hunter', title: 'Monster Hunter', description: 'Poraz 100 monster v Survival Night.', icon: '🗡️', unlockedAt: null },
+  { id: 'survivor', title: 'Survivor', description: 'Přežij 10 vln v jednom běhu Survival Night.', icon: '🌙', unlockedAt: null },
+  { id: 'impossible', title: 'Impossible', description: 'Přežij 50 vln v jednom běhu Survival Night.', icon: '💀', unlockedAt: null },
+  { id: 'night_legend', title: 'Night Legend', description: 'Přežij 100 vln v jednom běhu Survival Night.', icon: '🌌', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti. 'souboj'
@@ -137,6 +157,10 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   znamka: { badgeId: 'akademik', needed: 15 },
   citace: { badgeId: 'citovac', needed: 10 },
   navyk: { badgeId: 'navykar', needed: 15 },
+  // Survival Night — 'boss' badge (boss_slayer) je záměrně sdílený s
+  // Buddyheimem (viz komentář u ActivityKind výš), 'survival_kill' je
+  // vlastní, needed odpovídá "Monster Hunter" (bod 21 zadání).
+  survival_kill: { badgeId: 'monster_hunter', needed: 100 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není

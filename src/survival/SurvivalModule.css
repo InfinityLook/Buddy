@@ -1,0 +1,500 @@
+/* ==========================================
+   SURVIVAL NIGHT — appčin existující design systém (styles/global.css):
+   deep navy pozadí, cyan/violet/magenta akcenty, glassmorphism karty,
+   zaoblené rohy. Vlastní vlnová aréna (Hra.tsx) smí být temnější/
+   fantasy, ale menu (Start/Run End/panely) drží appčin běžný jazyk,
+   ať to vypadá jako součást BuddyZone, ne jako cizí šablona.
+   ========================================== */
+
+.sn-page {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  overflow: hidden;
+  /* Appka řeší telefon na výšku i na šířku stejně jako jinde v appce —
+     žádný natvrdo omezený rozměr, jen bezpečné okraje. */
+  height: 100vh;
+  height: 100dvh;
+}
+
+.sn-screen {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+  padding: calc(1rem + env(safe-area-inset-top)) 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.sn-zpet-btn {
+  align-self: flex-start;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 999px;
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+/* --- Start screen --- */
+
+.sn-start {
+  align-items: center;
+  text-align: center;
+  justify-content: flex-start;
+  background: radial-gradient(circle at 50% 0%, rgba(138, 92, 246, 0.18), transparent 60%), var(--bg-base);
+}
+
+.sn-start-hlavicka {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sn-start-emoji {
+  font-size: 2.6rem;
+  filter: drop-shadow(0 0 18px rgba(53, 196, 240, 0.55));
+}
+
+.sn-start-nadpis {
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  margin: 0;
+  background: linear-gradient(120deg, var(--accent-cyan), var(--accent-violet));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sn-start-tagline {
+  margin: 0;
+  color: var(--text-secondary);
+  letter-spacing: 0.12em;
+  font-size: 0.8rem;
+}
+
+.sn-hrat-btn {
+  width: 100%;
+  max-width: 320px;
+  padding: 1rem;
+  border-radius: 1.1rem;
+  border: none;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-on-accent);
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  box-shadow: 0 12px 30px rgba(53, 196, 240, 0.28);
+  cursor: pointer;
+}
+
+.sn-start-staty {
+  width: 100%;
+  max-width: 360px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+}
+
+.sn-start-stat {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.9rem;
+  padding: 0.7rem 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  backdrop-filter: blur(8px);
+}
+
+.sn-start-stat-cislo {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.sn-start-stat-label {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+}
+
+.sn-start-menu {
+  width: 100%;
+  max-width: 360px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.sn-start-menu button {
+  padding: 0.75rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel-raised);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+
+/* --- Info panely (Postava/Výbava/Schopnosti/Statistiky) --- */
+
+.sn-panel {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  padding: 1.1rem;
+  backdrop-filter: blur(10px);
+}
+
+.sn-panel-nadpis {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+}
+
+.sn-panel-radek {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.9rem;
+}
+
+.sn-panel-radek:last-of-type {
+  border-bottom: none;
+}
+
+.sn-panel-pozn {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.sn-katalog-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sn-katalog-ikona {
+  font-size: 1.4rem;
+}
+
+.sn-katalog-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.sn-katalog-jmeno {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.sn-katalog-rarita {
+  font-size: 0.65rem;
+  font-weight: 500;
+  margin-left: 0.35rem;
+}
+
+.sn-katalog-popis {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.sn-katalog-znacka {
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: var(--accent-green);
+  border: 1px solid var(--accent-green);
+  border-radius: 999px;
+  padding: 0.15rem 0.5rem;
+  white-space: nowrap;
+}
+
+/* --- Herní obrazovka / aréna --- */
+
+.sn-arena {
+  position: relative;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.sn-arena-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.sn-arena-canvas canvas {
+  display: block;
+}
+
+.sn-arena-selhalo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+  background: var(--bg-base);
+}
+
+/* --- HUD --- */
+
+.sn-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.sn-hud-top {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.5rem;
+}
+
+.sn-hud-back {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.sn-hud-wave-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sn-hud-wave-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-primary);
+}
+
+.sn-hud-progress {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.sn-hud-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-violet));
+  transition: width 0.25s ease-out;
+}
+
+.sn-hud-progress-fill--boss {
+  background: linear-gradient(90deg, var(--accent-red), var(--accent-magenta));
+}
+
+.sn-hud-cas {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.sn-hud-log {
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  pointer-events: none;
+}
+
+.sn-hud-log-radek {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  background: rgba(10, 14, 26, 0.55);
+  border-radius: 0.5rem;
+  padding: 0.15rem 0.5rem;
+  width: fit-content;
+  max-width: 90%;
+}
+
+.sn-hud-bottom {
+  margin-top: auto;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  /* Levý odsazovací padding uvolní místo pro appčin existující
+     virtuální joystick (VirtualniJoystick.css, fixní vlevo dole,
+     ~104px + odstup) — na desktopu (pointer: fine) joystick mizí, tam
+     appka odsazení taky vrátí zpátky (viz media query níž). */
+  padding: 0 1rem calc(0.9rem + env(safe-area-inset-bottom)) 8.5rem;
+}
+
+.sn-hud-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sn-hud-hp-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.sn-hud-hp-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.sn-hud-hp-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+
+.sn-hud-hp-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-red), var(--accent-orange));
+  transition: width 0.2s linear;
+}
+
+.sn-hud-cisla {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.sn-hud-akce {
+  align-self: flex-end;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.sn-hud-akce-ikona {
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  backdrop-filter: blur(8px);
+}
+
+.sn-hud-akce-ikona--aktivni {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 14px rgba(53, 196, 240, 0.35);
+}
+
+.sn-hud-akce-ikona--zamceno {
+  opacity: 0.4;
+}
+
+@media (pointer: fine) {
+  .sn-hud-bottom {
+    padding-left: 1rem;
+  }
+}
+
+/* --- Run End --- */
+
+.sn-konec {
+  align-items: center;
+  text-align: center;
+  justify-content: center;
+}
+
+.sn-konec-nadpis {
+  margin: 0;
+  font-size: 1.4rem;
+  letter-spacing: 0.06em;
+}
+
+.sn-konec-rekord {
+  font-weight: 800;
+  color: var(--accent-orange);
+  font-size: 1.05rem;
+  animation: sn-rekord-pulz 1.4s ease-in-out infinite;
+}
+
+@keyframes sn-rekord-pulz {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+.sn-konec-staty {
+  width: 100%;
+  max-width: 340px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  padding: 1rem 1.1rem;
+}
+
+.sn-konec-radek {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.sn-konec-radek:last-child {
+  border-bottom: none;
+}
+
+.sn-konec-radek--odmena span:last-child {
+  color: var(--accent-green);
+  font-weight: 700;
+}
+
+.sn-konec-akce {
+  width: 100%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sn-menu-btn {
+  padding: 0.85rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-panel-raised);
+  color: var(--text-primary);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sn-konec-rekord {
+    animation: none;
+  }
+}

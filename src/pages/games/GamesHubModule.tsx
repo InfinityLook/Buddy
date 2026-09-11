@@ -18,19 +18,21 @@ import './GamesHubModule.css'
 // telefon doopravdy na šířku neleží — stejná dvojice appka už jednou
 // postavila pro Souboj a dokumentuje v CLAUDE.md).
 //
-// Appčiny tři hry — Buddyheim (RPG, src/game/), Souboj (bojovka pro
-// dva, src/fighting/) a Buddyho Trh (deskovka, src/boardgame/) — jsou
-// na žádost dočasně SCHOVANÉ, ne smazané: appka začíná hry stavět
-// úplně od znova, tahle obrazovka mezitím tam, kde by byla mřížka
-// "Dostupné hry", ukazuje jen "Připravuje se". Žádný soubor ve všech
-// třech herních složkách se kvůli tomu nemění — jen tahle obrazovka
-// přestala nabízet karty a routy v App.tsx přestaly na ně odkazovat
-// (viz komentář tam u zakomentovaných lazy importů). Vrátit některou
-// hru zpátky znamená: přidat jí sem znovu skutečnou mřížku karet,
+// Appčiny tři STARŠÍ hry — Buddyheim (RPG, src/game/), Souboj (bojovka
+// pro dva, src/fighting/) a Buddyho Trh (deskovka, src/boardgame/) —
+// jsou pořád na žádost dočasně SCHOVANÉ, ne smazané: žádný soubor ve
+// všech třech herních složkách se kvůli tomu nemění — jen tahle
+// obrazovka jim nenabízí kartu a routy v App.tsx na ně přestaly
+// odkazovat (viz komentář tam u zakomentovaných lazy importů). Vrátit
+// některou hru zpátky znamená: přidat jí sem znovu skutečnou kartu,
 // odkomentovat její lazy import v App.tsx a přehodit její routu
 // z <Navigate to="/hra" replace /> zpátky na skutečný element —
 // stejný "hide, keep documented, one-line revert" postup, co appka
 // použila jako první na samotného Buddyheima.
+//
+// SURVIVAL NIGHT (src/survival/) je čtvrtá, nová hra a PRVNÍ, co se
+// tu doopravdy hraje — nahrazuje bývalé "Připravuje se" skutečnou,
+// spustitelnou kartou.
 //
 // Boční menu mapuje jen to, co appka doopravdy má — Nastavení a
 // Achievementy (appčina existující obrazovka odměn na /odmeny) vedou
@@ -146,19 +148,20 @@ export const GamesHubModule: React.FC = () => {
 
           <div className="bz-hlavicka">
             <h1 className="bz-nadpis">Vyber si hru</h1>
-            <p className="bz-podnadpis">Nové hry se teprve staví</p>
+            <p className="bz-podnadpis">Survival Night je tu — přežij co nejvíc vln.</p>
           </div>
 
           <div className="bz-obsah">
-            <div className="bz-brzy">
-              <span className="bz-brzy-znak" aria-hidden="true">
-                🛠️
+            <button className="bz-hra-karta" onClick={() => navigate('/hra/survival-night')}>
+              <span className="bz-hra-karta-znak" aria-hidden="true">
+                🌙
               </span>
-              <h2 className="bz-brzy-nadpis">Připravuje se</h2>
-              <p className="bz-brzy-popis">
-                BuddyZone prochází přestavbou — hry tu brzy budou zase k mání. Díky za trpělivost!
-              </p>
-            </div>
+              <span className="bz-hra-karta-text">
+                <span className="bz-hra-karta-nazev">Survival Night</span>
+                <span className="bz-hra-karta-popis">Temná noční aréna. Vlny monster. Přežij co nejdéle.</span>
+              </span>
+              <span className="bz-hra-karta-hrat">HRÁT ▶</span>
+            </button>
           </div>
         </main>
       </div>
