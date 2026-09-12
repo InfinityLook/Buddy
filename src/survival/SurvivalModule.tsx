@@ -14,6 +14,13 @@ import './SurvivalModule.css'
 // namontovaná — přechod start→hra→konec jen mění, co se z jejího
 // stavu zrovna zobrazuje, engine sám neresetuje nic, dokud appka
 // nezavolá restartovat().
+//
+// Landscape, stejný postup jako BuddyZone/Souboj: appka se snaží
+// telefon zamknout na šířku (screen.orientation.lock, best-effort —
+// nefunguje mimo fullscreen a vůbec na iOS Safari), ale skutečnou
+// zárukou je čistě CSS "otoč telefon" výzva v SurvivalModule.css přes
+// @media (orientation: portrait), co skutečný obsah schová, dokud
+// telefon doopravdy na šířku neleží.
 // ==========================================
 
 type Obrazovka = 'start' | 'hra' | 'konec'
@@ -30,6 +37,15 @@ export const SurvivalModule: React.FC = () => {
     if (vysledekBehu) setObrazovka('konec')
   }, [vysledekBehu])
 
+  useEffect(() => {
+    // DOM lib netypuje `.lock()` (pořád experimentální metoda) — místní
+    // cast stejný jako GamesHubModule.tsx/Ovladac.tsx jinde v appce.
+    const orientaceSZamkem = screen.orientation as ScreenOrientation & {
+      lock?: (orientace: string) => Promise<void>
+    }
+    orientaceSZamkem.lock?.('landscape').catch(() => {})
+  }, [])
+
   const zacniHru = () => {
     restartovat()
     setObrazovka('hra')
@@ -37,15 +53,22 @@ export const SurvivalModule: React.FC = () => {
 
   return (
     <div className="sn-page">
-      {obrazovka === 'start' && <StartScreen onHrat={zacniHru} onZpet={() => navigate('/hra')} />}
+      <div className="sn-rotate-prompt" aria-hidden="true">
+        <span className="sn-rotate-ikona">🔄</span>
+        <p>Otoč telefon na šířku</p>
+      </div>
 
-      {obrazovka === 'hra' && (
-        <Hra hud={hud} stavRef={stavRef} nastavSmer={nastavSmer} krok={krok} onUkoncit={ukoncitPredcasne} />
-      )}
+      <div className="sn-shell">
+        {obrazovka === 'start' && <StartScreen onHrat={zacniHru} onZpet={() => navigate('/hra')} />}
 
-      {obrazovka === 'konec' && vysledekBehu && (
-        <RunEndScreen vysledek={vysledekBehu} onHratZnovu={zacniHru} onHlavniMenu={() => setObrazovka('start')} />
-      )}
+        {obrazovka === 'hra' && (
+          <Hra hud={hud} stavRef={stavRef} nastavSmer={nastavSmer} krok={krok} onUkoncit={ukoncitPredcasne} />
+        )}
+
+        {obrazovka === 'konec' && vysledekBehu && (
+          <RunEndScreen vysledek={vysledekBehu} onHratZnovu={zacniHru} onHlavniMenu={() => setObrazovka('start')} />
+        )}
+      </div>
     </div>
   )
 }

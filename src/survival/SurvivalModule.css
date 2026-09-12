@@ -18,6 +18,49 @@
   height: 100dvh;
 }
 
+/* ---------- "otoč telefon" výzva — jen v portrétu ----------
+   Stejný postup jako BuddyZone/Souboj: skrytá dokud appka není v
+   landscape orientaci, viz @media (orientation: portrait) na konci
+   souboru — musí zůstat na konci, ať v pořadí zdroje přebije
+   `.sn-shell`'s vlastní bezpodmínečné `display: flex` (stejná past
+   se stejnou specificitou co appka už jednou opravovala u Souboje). */
+
+.sn-rotate-prompt {
+  display: none;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 2rem;
+}
+
+.sn-rotate-ikona {
+  font-size: 2.6rem;
+}
+
+@keyframes sn-otoc-houpani {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-90deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sn-rotate-ikona {
+    animation: sn-otoc-houpani 1.6s ease-in-out infinite;
+  }
+}
+
+.sn-shell {
+  height: 100%;
+}
+
 .sn-screen {
   position: relative;
   height: 100%;
@@ -496,5 +539,22 @@
 @media (prefers-reduced-motion: reduce) {
   .sn-konec-rekord {
     animation: none;
+  }
+}
+
+/* ==========================================
+   LANDSCAPE ZÁMEK — musí zůstat úplně na konci souboru. Při shodné
+   specificitě vyhrává v CSS pořadí ve zdroji, takže dřívější umístění
+   tohohle bloku by ho v portrétu tiše přebíjelo `.sn-shell`'s vlastní
+   bezpodmínečné `display: flex` výš — přesně ta chyba, co appka už
+   jednou musela opravit u Souboje (viz CLAUDE.md's poznámka u
+   `.souboj-ovladac-otoc`) a znovu u BuddyZone.
+   ========================================== */
+@media (orientation: portrait) {
+  .sn-rotate-prompt {
+    display: flex;
+  }
+  .sn-shell {
+    display: none;
   }
 }
