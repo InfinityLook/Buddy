@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { krokHry, vytvorPocatecniStav, extrahovat, pokracovatVeVlne } from './engine/engine'
+import { krokHry, vytvorPocatecniStav, extrahovat, pokracovatVeVlne, vyberPerk } from './engine/engine'
 import { SurvivalHerniStav, Pozice2D, PostavaDef, DuvodKonceBehu } from './types'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useSurvivalStore } from '@/core/store/useSurvivalStore'
@@ -68,6 +68,10 @@ interface UseSurvivalEngineResult {
   extrahovat: () => void
   /** ...a z jejího "POKRAČOVAT" tlačítka. */
   pokracovat: () => void
+  /** Bod 11 zadání — zavolat s vybraným perkId z level-up karty (UI
+   *  přijde v dalším kroku). No-op mimo aktivní nabídku (viz
+   *  engine.ts's vlastní guard v vyberPerk). */
+  vyberPerk: (perkId: string) => void
 }
 
 export const useSurvivalEngine = (postava: PostavaDef): UseSurvivalEngineResult => {
@@ -186,6 +190,10 @@ export const useSurvivalEngine = (postava: PostavaDef): UseSurvivalEngineResult 
     pokracovatVeVlne(stavRef.current)
   }, [])
 
+  const vyberPerkZBehu = useCallback((perkId: string) => {
+    vyberPerk(stavRef.current, perkId)
+  }, [])
+
   return {
     hud,
     stavRef,
@@ -196,5 +204,6 @@ export const useSurvivalEngine = (postava: PostavaDef): UseSurvivalEngineResult 
     ukoncitPredcasne,
     extrahovat: extrahovatZBehu,
     pokracovat: pokracovatZBehu,
+    vyberPerk: vyberPerkZBehu,
   }
 }

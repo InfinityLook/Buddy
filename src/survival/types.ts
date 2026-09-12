@@ -147,6 +147,10 @@ export interface HracStav {
   kritickyNasobic: number
   /** Kdy naposledy vystřelil/sekl — cooldown auto-útoku. */
   posledniUtokMs: number
+  /** Bod 11 zadání — úroveň PRO TENHLE BĚH, ne appčin účtový level
+   *  (useGamificationStore). Roste podle stav.xpZaBeh přes
+   *  data/uroven.ts's prahXpProUroven, viz engine.ts's zkontrolujLevelUp. */
+  uroven: number
 }
 
 /** Playable postava (bod 9 zadání) — v první verzi jen Ranger, ale
@@ -200,4 +204,20 @@ export interface SurvivalHerniStav {
   konec: boolean
   duvodKonce: DuvodKonceBehu
   log: ZaznamUdalosti[]
+  /** Bod 11 zadání (level-up) — pole 3 nabídnutých perk id, dokud appka
+   *  čeká na hráčovo rozhodnutí (viz engine.ts's vyberPerk); `null`,
+   *  když žádná volba neběží. Dokud je nenulové, `krokHry` CELOU hru
+   *  pozastaví — appka nechce, aby nepřátelé dál chodili/útočili,
+   *  zatímco hráč čte tři karty a vybírá, stejná "žádné noví nepřátelé
+   *  ani pohyb, dokud neproběhne rozhodnutí" zásada jako u faceVlny
+   *  'extrakce', jen širší (tam appka pořád nechává souboj doběhnout,
+   *  tady ne — level-up může nastat i uprostřed vlny, ne jen na jejím
+   *  konci). */
+  levelUpNabidka: string[] | null
+  /** Bod 12 zadání (build/synergy systém, přijde v dalším kroku) —
+   *  perkId → kolikrát byl vybraný (perky se dají stackovat). Appka to
+   *  sleduje od začátku, i než existuje UI, co by to čtenářsky
+   *  využilo — stejná "data existují dřív než jejich spotřebitel" věc
+   *  jako zbraně/schopnosti v první verzi appky. */
+  ziskanePerky: Record<string, number>
 }

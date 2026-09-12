@@ -10,6 +10,8 @@ import { MONSTRA } from '../data/monsters'
 import { vypocitejVlnu, jeBossVlna, jeExtrakcniVlna } from '../data/waves'
 import { bossProVlnu } from '../data/bosses'
 import { vyhodnotZabiti } from './loot'
+import { PERKY, PerkDef, POCET_VOLEB_PERKU, MAX_KRITICKA_SANCE } from '../data/perky'
+import { prahXpProUroven } from '../data/uroven'
 
 // ==========================================
 // Survival Night — čistý herní tick (bod 26/27 zadání: Game Engine,
@@ -63,6 +65,7 @@ export const vytvorHrace = (postava: PostavaDef): HracStav => ({
   kritickaSance: postava.kritickaSance,
   kritickyNasobic: 1.8,
   posledniUtokMs: -Infinity,
+  uroven: 1,
 })
 
 export const vytvorPocatecniStav = (postava: PostavaDef): SurvivalHerniStav => {
@@ -83,6 +86,8 @@ export const vytvorPocatecniStav = (postava: PostavaDef): SurvivalHerniStav => {
     konec: false,
     duvodKonce: null,
     log: [],
+    levelUpNabidka: null,
+    ziskanePerky: {},
   }
 }
 
@@ -187,6 +192,68 @@ const zahajDalsiVlnu = (stav: SurvivalHerniStav): void => {
   }
 }
 
+/** Vybere POCET_VOLEB_PERKU různých perků z celého katalogu — appka
+ *  nevylučuje perky, co hráč už dřív má (stackování je záměr, viz
+ *  data/perky.ts's vlastní komentář), jen v RÁMCI jedné nabídky se
+ *  žádný perk neopakuje dvakrát. */
+const vyberNabidkuPerku = (nahodne: () => number): string[] => {
+  const dostupne = [...PERKY]
+  const vybrane: string[] = []
+  for (let i = 0; i < POCET_VOLEB_PERKU && dostupne.length > 0; i++) {
+    const index = Math.floor(nahodne() * dostupne.length)
+    vybrane.push(dostupne[index].id)
+    dostupne.splice(index, 1)
+  }
+  return vybrane
+}
+
+/** Skutečně aplikuje jeden perk na hráčovy statistiky — jediné místo,
+ *  co ví, jak se který EfektPerku promítne do HracStav (viz
+ *  data/perky.ts's vlastní komentář, proč se damage/utokyZaSekundu/
+ *  dosahUtoku/rychlost násobí, kdežto maxHp/kritickyNasobic se sčítají). */
+const aplikujPerk = (hrac: HracStav, perk: PerkDef): void => {
+  switch (perk.efekt) {
+    case 'damage':
+      hrac.damage = Math.round(hrac.damage * (1 + perk.hodnota))
+      break
+    case 'utokyZaSekundu':
+      hrac.utokyZaSekundu *= 1 + perk.hodnota
+      break
+    case 'dosahUtoku':
+      hrac.dosahUtoku *= 1 + perk.hodnota
+      break
+    case 'rychlost':
+      hrac.rychlost *= 1 + perk.hodnota
+      break
+    case 'maxHp':
+      hrac.maxHp += perk.hodnota
+      hrac.hp += perk.hodnota
+      break
+    case 'kritickaSance':
+      hrac.kritickaSance = Math.min(MAX_KRITICKA_SANCE, hrac.kritickaSance + perk.hodnota)
+      break
+    case 'kritickyNasobic':
+      hrac.kritickyNasobic += perk.hodnota
+      break
+  }
+}
+
+/** Zkontroluje, jestli aktuální xpZaBeh přeskočilo práh pro DALŠÍ
+ *  úroveň (data/uroven.ts) — voláno po každém přírůstku XP (zabití
+ *  běžného monstra i bosse). Appka řeší jen JEDNU úroveň najednou: i
+ *  kdyby jedno zabití přeskočilo dva prahy zároveň, appka nabídne
+ *  perk-výběr jen pro první z nich — jakmile appka dostane odpověď
+ *  (vyberPerk), levelUpNabidka se vynuluje a příští tik (appka je
+ *  jinak pozastavená, viz krokHry's vlastní guard) tuhle funkci zavolá
+ *  znovu a odhalí druhý práh sama, žádná fronta navíc není potřeba. */
+const zkontrolujLevelUp = (stav: SurvivalHerniStav, nahodne: () => number): void => {
+  if (stav.levelUpNabidka) return
+  if (stav.xpZaBeh < prahXpProUroven(stav.hrac.uroven + 1)) return
+  stav.hrac.uroven += 1
+  stav.levelUpNabidka = vyberNabidkuPerku(nahodne)
+  pridejLog(stav, `⭐ Level up! Úroveň ${stav.hrac.uroven}`)
+}
+
 /**
  * Jeden krok herní smyčky. MUTUJE `stav` přímo (viz komentář nahoře
  * souboru) a vrací ho zpátky jen pro pohodlí volajícího.
@@ -204,6 +271,10 @@ export const krokHry = (
   nahodne: () => number = Math.random
 ): SurvivalHerniStav => {
   if (stav.konec) return stav
+  // Bod 11 zadání — appka CELOU hru pozastaví, dokud čeká na výběr
+  // perku (viz levelUpNabidka's vlastní komentář v types.ts): žádný
+  // pohyb, spawn ani útok, dokud hráč nerozhodne přes vyberPerk().
+  if (stav.levelUpNabidka) return stav
   const dt = dtMs / 1000
   stav.cas += dtMs
 
@@ -312,6 +383,7 @@ export const krokHry = (
           stav.zabitiCelkem += 1
           stav.bossPorazenoZaBeh += 1
           pridejLog(stav, `👑 ${boss.jmeno} poražen! +${boss.xp} XP, +${boss.gold} Gold`)
+          zkontrolujLevelUp(stav, nahodne)
         } else {
           const def = MONSTRA[nejblizsi.defId as keyof typeof MONSTRA]
           if (def) {
@@ -324,6 +396,7 @@ export const krokHry = (
             if (vysledek.krystal > 0) text += ` +${vysledek.krystal} 💎`
             if (vysledek.vzacnyDrop) text = `✨ RARE DROP! ${text}`
             pridejLog(stav, text)
+            zkontrolujLevelUp(stav, nahodne)
           }
         }
       }
@@ -350,13 +423,15 @@ export const krokHry = (
     }
   }
 
-  // --- smrt --- (má přednost i nad právě nastavenou 'extrakce' fází —
-  // pokud stejný tik killnul posledního nepřítele I hráče zároveň,
-  // appka hráči nedovolí extrahovat kořist, se kterou už neodešel).
+  // --- smrt --- (má přednost i nad právě nastavenou 'extrakce' fází i
+  // nad čerstvě nabídnutým levelUpNabidka — pokud stejný tik killnul
+  // posledního nepřítele/vyvolal level-up I zabil hráče zároveň, appka
+  // nedovolí extrahovat kořist ani ukáže mrtvému hráči kartu na výběr).
   if (stav.hrac.hp <= 0) {
     stav.hrac.hp = 0
     stav.konec = true
     stav.duvodKonce = 'smrt'
+    stav.levelUpNabidka = null
   }
 
   return stav
@@ -382,4 +457,22 @@ export const extrahovat = (stav: SurvivalHerniStav): void => {
 export const pokracovatVeVlne = (stav: SurvivalHerniStav): void => {
   if (stav.faceVlny !== 'extrakce' || stav.konec) return
   zahajDalsiVlnu(stav)
+}
+
+/** Hráč vybral jeden z nabídnutých perků (bod 11 zadání) — no-op mimo
+ *  aktivní nabídku, po konci běhu, nebo pro id, co appka zrovna
+ *  nenabídla (appka UI nevěří o nic víc než extrahovat/
+ *  pokracovatVeVlne výš). Zapíše výběr do ziskanePerky (appka to
+ *  potřebuje pro budoucí build/synergy systém, bod 12 zadání), zvedne
+ *  hráčovy statistiky a nabídku vynuluje — příští `krokHry` volání
+ *  hru zase rozjede. */
+export const vyberPerk = (stav: SurvivalHerniStav, perkId: string): void => {
+  if (!stav.levelUpNabidka || stav.konec) return
+  if (!stav.levelUpNabidka.includes(perkId)) return
+  const perk = PERKY.find((p) => p.id === perkId)
+  if (!perk) return
+  aplikujPerk(stav.hrac, perk)
+  stav.ziskanePerky[perkId] = (stav.ziskanePerky[perkId] ?? 0) + 1
+  pridejLog(stav, `${perk.ikona} Perk: ${perk.jmeno}`)
+  stav.levelUpNabidka = null
 }
