@@ -140,7 +140,11 @@ export default defineConfig(({ command }) => {
           // je z instalační precache vyloučené stejným důvodem — jsou to
           // .png, na rozdíl od RPG portrétů (.jpg, mimo globPatterns úplně
           // samo od sebe) by se jinak do precache dostaly automaticky.
-          globIgnores: ['**/js/auto-update.js', '**/mediapipe/**', '**/push-sw.js', '**/souboj/postavy/**'],
+          //
+          // survival/** (Grafika — Kenney sprity pro Survival Night's
+          // hráče/8 monster/bosse, viz useSurvivalScene.ts, ~30 kB) ze
+          // stejného důvodu — /hra/survival-night otevře jen část hráčů.
+          globIgnores: ['**/js/auto-update.js', '**/mediapipe/**', '**/push-sw.js', '**/souboj/postavy/**', '**/survival/**'],
           navigateFallbackDenylist: [/^\/api\//, /^\/version\.json$/, /^\/js\//],
           // Precache staré verze se po aktivaci nového SW smaže,
           // takže se v prohlížeči nehromadí zastaralé soubory.
@@ -202,6 +206,17 @@ export default defineConfig(({ command }) => {
               options: {
                 cacheName: 'souboj-postavy-runtime',
                 expiration: { maxEntries: 40, maxAgeSeconds: 60 * 60 * 24 * 365 }
+              }
+            },
+            // Grafika — Survival Night's hráč/8 monster/boss (public/survival/**),
+            // stejným důvodem jako mediapipe/mapa-sveta/postavy/souboj-postavy výš:
+            // /hra/survival-night otevře jen část hráčů appky.
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/survival/'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'survival-runtime',
+                expiration: { maxEntries: 15, maxAgeSeconds: 60 * 60 * 24 * 365 }
               }
             }
           ],

@@ -16,11 +16,41 @@ import { ARENA_POLOMER } from '../engine/engine'
 // nesmí kreslit stovky DOM elementů) — jeden InstancedMesh NA TYP
 // monstra (8 typů + samostatný Mesh pro bosse, kterého je vždycky
 // nejvýš jeden), pozice se každý snímek přepočítávají přímo do matic
-// instancí, ne přes React re-render. Appka nemá žádnou skutečnou 3D
-// grafiku postav/monster (na rozdíl od zbraní/bossů/mapy budoucích
-// verzí) — primitivní geometrie (kapsle/kužely) obarvené podle
-// MonstrumDef.barva, stejný "žádný umělecký pipeline, poctivé
-// primitivum" postoj jako usePlayerWorld.ts.
+// instancí, ne přes React re-render.
+//
+// Postavy/monstra/boss teď mají SKUTEČNOU grafiku (appčino "co dál
+// tam chybí" bod 3), ne primitivní geometrii — hráč, 8 monster a boss
+// jsou textované billboardy (Kenney sprity, viz public/survival/**,
+// stejný "najdi free asset pack na GitHub mirroru" postup jako Souboj
+// vlastní PostavaGrafika.tsx): jedna THREE.PlaneGeometry na typ
+// (rozměry z předem změřeného poměru stran té konkrétní PNG), textura
+// se ale nikdy nemapuje na SDÍLENOU geometrii dvou různých typů —
+// stejná "jeden InstancedMesh na typ" architektura jako dřív, jen s
+// texturovanou rovinou místo obarvené kapsle. Billboard (roviny se
+// musí vždycky natáčet čelem ke kameře, jinak by z boku zmizely do
+// nuly) appka řeší nejlevnějším možným způsobem — appčina kamera nikdy
+// neobíhá kolem hráče (jen ho sleduje shora/zezadu ve FIXNÍM úhlu, viz
+// VYSKA_KAMERY/ODSTUP_KAMERY), takže appka nepočítá natočení ke kameře
+// per-instanci/per-snímek vůbec: jeden `billboardKvaternion`, spočtený
+// JEDNOU při vytvoření scény (ne v renderovací smyčce), natočí VŠECHNY
+// roviny (hráč/nepřátelé/boss) napořád stejně.
+//
+// Kenney sprity jsou vybrané "nejbližší dostupný vzhled, ne doslovná
+// shoda" (stejná zásada jako Souboj kdysi Robot→Bulwark) — appčin mirror
+// (github.com/shorepine/kenney) nemá žádný "monstrum/příšera" balíček,
+// jen hotové "Enemy sprites" z platformerové sady: crawler→spider (🕷️,
+// doslovná shoda), wolf→snake (nejrychlejší dostupný pozemní tvor bez
+// psí siluety), bat→bat (🦇, doslovná shoda), shambler→slimeBlock
+// (hranaté/těžkopádné, sedí na pomalého "šouravého" zombíka), mage→
+// spinner (jediný "magicky" vypadající rotující tvar v balíčku),
+// hunter→piranha (útočný lovec, "bite" animace), demon→barnacle
+// (nejtrnitější/nejagresivnější tvar pro epický stupeň), eater→ghost
+// (👻, sedí přesně na vlastní emoji "Soul Eater"). Boss (Shadow Wolf)
+// dostal snakeLava — velký, ohnivě zbarvený had, vizuálně odlišný od
+// obyčejného "wolf" hada, ale tematicky navazující. Appka NEBARVÍ
+// sprity přes MonstrumDef.barva navrch — každý typ má vlastní, dost
+// odlišnou paletu už ze samotné kresby, druhá vrstva tónování by ji jen
+// kalila.
 //
 // Kamera je "chase cam" shora a mírně zezadu, sleduje HRÁČE (ne první
 // osoba jako Souboj) — hráč musí vidět nepřátele přicházející ze
@@ -45,6 +75,27 @@ const ZORNE_POLE = 68
 const RYCHLOST_KAMERY = 5
 
 const MONSTRUM_IDS = Object.keys(MONSTRA)
+
+// Poměr stran (šířka/výška) skutečných stažených PNG — appka je nemůže
+// zjistit synchronně před doběhnutím TextureLoaderu, takže je má
+// napevno změřené předem (viz public/survival/**'s vlastní rozměry).
+const POMER_STRAN_MONSTRA: Record<string, number> = {
+  crawler: 71 / 45,
+  wolf: 63 / 23,
+  bat: 70 / 47,
+  shambler: 51 / 50,
+  mage: 63 / 62,
+  hunter: 45 / 60,
+  demon: 51 / 57,
+  eater: 51 / 73,
+}
+const POMER_STRAN_BOSS = 53 / 147
+const POMER_STRAN_HRACE = 192 / 256
+const VYSKA_HRACE = 1.7
+
+/** Výška billboardu z appčina vlastního `polomer` (kapsle to dřív měla
+ *  podobně — poloměr + délka), ne z pixelové velikosti PNG. */
+const vyskaZPolomeru = (polomer: number) => Math.max(0.9, polomer * 3)
 
 interface UseSurvivalSceneResult {
   containerRef: React.RefObject<HTMLDivElement>
@@ -87,6 +138,13 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
 
     const camera = new THREE.PerspectiveCamera(ZORNE_POLE, container.clientWidth / container.clientHeight, 0.1, 200)
     camera.position.set(0, VYSKA_KAMERY, ODSTUP_KAMERY)
+
+    const nacitac = new THREE.TextureLoader()
+    const nactiTexturu = (url: string) => {
+      const t = nacitac.load(url)
+      t.colorSpace = THREE.SRGBColorSpace
+      return t
+    }
 
     // --- světla — chladné noční ambientní + teplá záře od "měsíce" ---
     // Zesíleno oproti první verzi (0.55→1.05 ambientní, přidané měkké
@@ -192,37 +250,74 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     hrbitov.position.set(-ARENA_POLOMER * 0.5, 0, -ARENA_POLOMER * 0.45)
     scene.add(hrbitov)
 
-    // --- hráč — kapsle se záři, otáčí se ve směru pohybu ---
+    // --- hráč — texturovaný billboard (Kenney "Toon Characters",
+    // Male adventurer), point light zůstává pro atmosféru kolem hráče ---
+    const hracVyska = VYSKA_HRACE
+    const hracSirka = hracVyska * POMER_STRAN_HRACE
     const hracSkupina = new THREE.Group()
     const hracTelo = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.42, 0.85, 4, 10),
-      new THREE.MeshStandardMaterial({ color: '#35c4f0', emissive: '#1c7fa8', emissiveIntensity: 0.6 })
+      new THREE.PlaneGeometry(hracSirka, hracVyska),
+      new THREE.MeshBasicMaterial({
+        map: nactiTexturu('/survival/postava/ranger.png'),
+        transparent: false,
+        alphaTest: 0.5,
+        side: THREE.DoubleSide,
+      })
     )
-    hracTelo.position.y = 0.9
+    hracTelo.position.y = hracVyska / 2
     hracSkupina.add(hracTelo, new THREE.PointLight('#35c4f0', 1.1, 5))
     scene.add(hracSkupina)
 
-    // --- nepřátelé: 1 InstancedMesh na typ, kapacita KAPACITA_NA_TYP ---
-    const geometrieNepritele = new THREE.CapsuleGeometry(0.4, 0.6, 3, 8)
+    // --- nepřátelé: 1 InstancedMesh na typ, kapacita KAPACITA_NA_TYP —
+    // geometrie i textura jsou teď per-typ (poměr stran skutečné PNG),
+    // ne jedna sdílená kapsle obarvená podle MonstrumDef.barva ---
     const instanceNepratel: Record<string, THREE.InstancedMesh> = {}
+    const vyskaNepratel: Record<string, number> = {}
     for (const id of MONSTRUM_IDS) {
       const def = MONSTRA[id as keyof typeof MONSTRA]
-      const material = new THREE.MeshStandardMaterial({ color: def.barva, roughness: 0.7 })
-      const mesh = new THREE.InstancedMesh(geometrieNepritele, material, KAPACITA_NA_TYP)
+      const vyska = vyskaZPolomeru(def.polomer)
+      const sirka = vyska * (POMER_STRAN_MONSTRA[id] ?? 1)
+      vyskaNepratel[id] = vyska
+      const geometrie = new THREE.PlaneGeometry(sirka, vyska)
+      const material = new THREE.MeshBasicMaterial({
+        map: nactiTexturu(`/survival/monstra/${id}.png`),
+        transparent: false,
+        alphaTest: 0.5,
+        side: THREE.DoubleSide,
+      })
+      const mesh = new THREE.InstancedMesh(geometrie, material, KAPACITA_NA_TYP)
       mesh.count = 0
       scene.add(mesh)
       instanceNepratel[id] = mesh
     }
 
-    // --- boss — samostatný, výrazně větší mesh (vždycky jen jeden) ---
+    // --- boss — samostatný, výrazně větší billboard (vždycky jen jeden) ---
+    const bossVyska = 3.9
+    const bossSirka = bossVyska * POMER_STRAN_BOSS
     const bossMesh = new THREE.Mesh(
-      new THREE.IcosahedronGeometry(1.1, 0),
-      new THREE.MeshStandardMaterial({ color: '#1a0b23', emissive: '#7f1d1d', emissiveIntensity: 0.55, roughness: 0.5 })
+      new THREE.PlaneGeometry(bossSirka, bossVyska),
+      new THREE.MeshBasicMaterial({
+        map: nactiTexturu('/survival/monstra/boss.png'),
+        transparent: false,
+        alphaTest: 0.5,
+        side: THREE.DoubleSide,
+      })
     )
     bossMesh.visible = false
     const bossHalo = new THREE.PointLight('#ef4444', 1.8, 10)
     bossHalo.visible = false
     scene.add(bossMesh, bossHalo)
+
+    // --- billboard — appčina kamera nikdy neobíhá kolem hráče (jen ho
+    // sleduje shora/zezadu ve FIXNÍM úhlu), takže appka nepočítá
+    // natočení ke kameře zvlášť pro každou instanci/snímek — jeden
+    // společný kvaternion, spočtený jednou předem, natočí VŠECHNY
+    // roviny (hráč/nepřátelé/boss) čelem ke kameře napořád. ---
+    const billboardPomocnik = new THREE.Object3D()
+    billboardPomocnik.lookAt(0, -VYSKA_KAMERY, -ODSTUP_KAMERY)
+    const billboardKvaternion = billboardPomocnik.quaternion.clone()
+    hracTelo.quaternion.copy(billboardKvaternion)
+    bossMesh.quaternion.copy(billboardKvaternion)
 
     // --- pickupy (Health Orb/Potion) — malé zářící koule, 1 InstancedMesh na typ ---
     const geometriePickup = new THREE.SphereGeometry(0.3, 12, 12)
@@ -253,7 +348,7 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     const kvaternion = new THREE.Quaternion()
     const meritko = new THREE.Vector3(1, 1, 1)
     let posledniHracX = 0
-    let posledniHracZ = 0
+    let smerHrace = 1
 
     const krok = () => {
       if (!bezi) return
@@ -267,19 +362,17 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
         hracSkupina.position.x = stav.hrac.pozice.x
         hracSkupina.position.z = stav.hrac.pozice.z
 
+        // Billboard místo natáčení k pohybu (appka teď má texturovanou
+        // rovinu, ne kapsli) — appka jen zrcadlí šířku podle směru
+        // pohybu (mrtvá zóna 0.01, ať se hráč netřepe při nulovém
+        // pohybu na hranici zaokrouhlení), zbytek řeší sdílený
+        // billboardKvaternion nastavený jednou při vytvoření.
         const dx = stav.hrac.pozice.x - posledniHracX
-        const dz = stav.hrac.pozice.z - posledniHracZ
-        if (Math.hypot(dx, dz) > 0.01) {
-          const cilNatoceni = Math.atan2(dx, dz)
-          hracSkupina.rotation.y += (cilNatoceni - hracSkupina.rotation.y) * Math.min(1, 10 * dt)
-        }
+        if (Math.abs(dx) > 0.01) smerHrace = dx < 0 ? -1 : 1
         posledniHracX = stav.hrac.pozice.x
-        posledniHracZ = stav.hrac.pozice.z
 
-        if (!klidnyRezim) {
-          const pulz = 1 + Math.sin(cas * 5) * 0.04
-          hracTelo.scale.setScalar(pulz)
-        }
+        const pulzHrace = klidnyRezim ? 1 : 1 + Math.sin(cas * 5) * 0.04
+        hracTelo.scale.set(smerHrace * pulzHrace, pulzHrace, 1)
 
         // --- nepřátelé podle typu ---
         const podleTypu: Record<string, typeof stav.aktivniNepratele> = {}
@@ -298,11 +391,12 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
           const mesh = instanceNepratel[id]
           const seznam = podleTypu[id].slice(0, KAPACITA_NA_TYP)
           mesh.count = seznam.length
+          const zakladniY = vyskaNepratel[id] / 2
           seznam.forEach((n, i) => {
             const houpani = klidnyRezim ? 0 : Math.sin(cas * 6 + i) * 0.05
             matice.compose(
-              new THREE.Vector3(n.pozice.x, 0.55 + houpani, n.pozice.z),
-              kvaternion,
+              new THREE.Vector3(n.pozice.x, zakladniY + houpani, n.pozice.z),
+              billboardKvaternion,
               meritko
             )
             mesh.setMatrixAt(i, matice)
@@ -313,10 +407,12 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
         if (boss) {
           bossMesh.visible = true
           bossHalo.visible = true
-          bossMesh.position.set(boss.pozice.x, 1.1, boss.pozice.z)
-          bossHalo.position.copy(bossMesh.position)
+          bossMesh.position.set(boss.pozice.x, bossVyska / 2, boss.pozice.z)
+          bossHalo.position.set(boss.pozice.x, bossVyska * 0.3, boss.pozice.z)
+          // Rotace kolem Y neměla u ploché roviny (billboard, ne
+          // icosahedron jako dřív) žádný smysl — plamínek "dýchání"
+          // přes měřítko zůstal, stejně jako u hráče.
           if (!klidnyRezim) {
-            bossMesh.rotation.y = cas * 0.5
             bossMesh.scale.setScalar(1 + Math.sin(cas * 3) * 0.05)
           }
         } else {
