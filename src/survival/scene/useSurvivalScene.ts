@@ -25,9 +25,17 @@ import { ARENA_POLOMER } from '../engine/engine'
 // Kamera je "chase cam" shora a mírně zezadu, sleduje HRÁČE (ne první
 // osoba jako Souboj) — hráč musí vidět nepřátele přicházející ze
 // všech stran, což z první osoby nejde.
+//
+// Health Orb/Potion pickupy (appčino "co ještě zbývá" — engine/engine.ts's
+// vlastní spawnujPickupPodleCasu/sebratPickupy) dostaly stejnou "jeden
+// InstancedMesh na typ" léčbu jako nepřátelé, jen s podstatně menší
+// kapacitou (appka jich má na zemi nejvýš MAX_PICKUPU_NA_ARENE = 3
+// najednou) — appka nechce druhý, nezávislý styl vykreslování jen
+// proto, že jde o mnohem míň objektů.
 // ==========================================
 
 const KAPACITA_NA_TYP = 40
+const PICKUP_KAPACITA = 4
 // Strmější, vyšší kamera (skoro shora) + širší zorné pole než v první
 // verzi — appka potřebuje, aby hráč viděl monstra přicházející ze
 // VŠECH stran (bod 3/25 zadání), ne jen v úzkém kuželu před sebou.
@@ -216,6 +224,16 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     bossHalo.visible = false
     scene.add(bossMesh, bossHalo)
 
+    // --- pickupy (Health Orb/Potion) — malé zářící koule, 1 InstancedMesh na typ ---
+    const geometriePickup = new THREE.SphereGeometry(0.3, 12, 12)
+    const materialOrb = new THREE.MeshStandardMaterial({ color: '#22c55e', emissive: '#22c55e', emissiveIntensity: 1.2 })
+    const materialLektvar = new THREE.MeshStandardMaterial({ color: '#a855f7', emissive: '#a855f7', emissiveIntensity: 1.2 })
+    const meshOrb = new THREE.InstancedMesh(geometriePickup, materialOrb, PICKUP_KAPACITA)
+    meshOrb.count = 0
+    const meshLektvar = new THREE.InstancedMesh(geometriePickup, materialLektvar, PICKUP_KAPACITA)
+    meshLektvar.count = 0
+    scene.add(meshOrb, meshLektvar)
+
     // --- resize ---
     const prizpusob = () => {
       const sirka = container.clientWidth
@@ -305,6 +323,25 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
           bossMesh.visible = false
           bossHalo.visible = false
         }
+
+        // --- pickupy — jemné houpání nahoru/dolů, ať appka nevypadá
+        // jako statická rekvizita položená na zemi ---
+        const orby = stav.pickupy.filter((p) => p.typ === 'orb').slice(0, PICKUP_KAPACITA)
+        const lektvary = stav.pickupy.filter((p) => p.typ === 'lektvar').slice(0, PICKUP_KAPACITA)
+        meshOrb.count = orby.length
+        orby.forEach((p, i) => {
+          const houpani = klidnyRezim ? 0 : Math.sin(cas * 3 + i) * 0.15
+          matice.compose(new THREE.Vector3(p.pozice.x, 0.6 + houpani, p.pozice.z), kvaternion, meritko)
+          meshOrb.setMatrixAt(i, matice)
+        })
+        meshOrb.instanceMatrix.needsUpdate = true
+        meshLektvar.count = lektvary.length
+        lektvary.forEach((p, i) => {
+          const houpani = klidnyRezim ? 0 : Math.sin(cas * 3 + i) * 0.15
+          matice.compose(new THREE.Vector3(p.pozice.x, 0.6 + houpani, p.pozice.z), kvaternion, meritko)
+          meshLektvar.setMatrixAt(i, matice)
+        })
+        meshLektvar.instanceMatrix.needsUpdate = true
 
         // --- kamera sleduje hráče shora/zezadu ---
         const cilKamX = hracSkupina.position.x

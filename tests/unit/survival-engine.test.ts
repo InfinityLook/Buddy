@@ -134,6 +134,7 @@ describe('engine.ts — krokHry', () => {
       posledniUtokMs: -Infinity,
       fazeIndex: 0,
       posledniTeleportMs: -Infinity,
+      zpomalenoDoMs: -Infinity,
     })
     const hpPred = stav.hrac.hp
     krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
@@ -164,6 +165,7 @@ describe('engine.ts — krokHry', () => {
       posledniUtokMs: -Infinity,
       fazeIndex: 0,
       posledniTeleportMs: -Infinity,
+      zpomalenoDoMs: -Infinity,
     })
     krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
     expect(stav.aktivniNepratele.length).toBe(0)
@@ -191,6 +193,7 @@ describe('engine.ts — krokHry', () => {
       posledniUtokMs: -Infinity,
       fazeIndex: 0,
       posledniTeleportMs: -Infinity,
+      zpomalenoDoMs: -Infinity,
     })
     krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
     expect(stav.konec).toBe(true)
@@ -262,6 +265,13 @@ describe('engine.ts — extrakce (bod 18 zadání: "continue or extract")', () =
     stav.zbyvaSpawnovat = 0
     stav.aktivniNepratele = []
     stav.hrac.hp = 0
+    // Appka potlačí i pickup spawn (viz jeho vlastní testovací sekce
+    // níž) — jinak by s deterministickým nahodne0 (vždycky 0) appka
+    // spawnula Health Orb přesně na hráčovu pozici (0,0) a "mrtvého"
+    // hráče by ve stejném ticku vzkřísila dřív, než appka stihne
+    // vyhodnotit konec běhu — přesně ten typ souběhu, co tenhle test
+    // ověřuje pro extrakci, teď navíc i pro pickupy.
+    stav.posledniPickupSpawnMs = stav.cas
     krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
     expect(stav.konec).toBe(true)
     expect(stav.duvodKonce).toBe('smrt')
@@ -346,6 +356,7 @@ describe('engine.ts — level-up a perky (bod 11 zadání, krok 1: engine bez UI
     posledniUtokMs: -Infinity,
     fazeIndex: 0,
     posledniTeleportMs: -Infinity,
+    zpomalenoDoMs: -Infinity,
   })
 
   it('prahXpProUroven: úroveň 1 je zadarmo (0 XP), dál přísně roste', () => {
@@ -598,19 +609,20 @@ describe('engine.ts — pouzitSchopnost (bod 11/12 zadání, krok 4/4: aktivní 
     posledniUtokMs: -Infinity,
     fazeIndex: 0,
     posledniTeleportMs: -Infinity,
+    zpomalenoDoMs: -Infinity,
   })
 
-  it('SCHOPNOSTI_IMPLEMENTOVANE obsahuje přesně fire_nova a energy_shield, zbylé tři ne', () => {
+  it('SCHOPNOSTI_IMPLEMENTOVANE obsahuje přesně čtyři z pěti — jen vampire ne (má cooldownMs: 0, je to pasivní efekt)', () => {
     expect(SCHOPNOSTI_IMPLEMENTOVANE.has('fire_nova')).toBe(true)
     expect(SCHOPNOSTI_IMPLEMENTOVANE.has('energy_shield')).toBe(true)
-    expect(SCHOPNOSTI_IMPLEMENTOVANE.has('chain_lightning')).toBe(false)
-    expect(SCHOPNOSTI_IMPLEMENTOVANE.has('frost_aura')).toBe(false)
+    expect(SCHOPNOSTI_IMPLEMENTOVANE.has('chain_lightning')).toBe(true)
+    expect(SCHOPNOSTI_IMPLEMENTOVANE.has('frost_aura')).toBe(true)
     expect(SCHOPNOSTI_IMPLEMENTOVANE.has('vampire')).toBe(false)
   })
 
-  it('neimplementovanou nebo neznámou schopnost appka tiše ignoruje — no-op, žádný cooldown se nezapíše', () => {
+  it('neimplementovanou (vampire) nebo neznámou schopnost appka tiše ignoruje — no-op, žádný cooldown se nezapíše', () => {
     const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
-    pouzitSchopnost(stav, 'chain_lightning', nahodne0)
+    pouzitSchopnost(stav, 'vampire', nahodne0)
     pouzitSchopnost(stav, 'neexistujici-id', nahodne0)
     expect(Object.keys(stav.hrac.posledniPouzitiSchopnosti)).toHaveLength(0)
   })
@@ -727,5 +739,210 @@ describe('engine.ts — pouzitSchopnost (bod 11/12 zadání, krok 4/4: aktivní 
     stav.konec = true
     pouzitSchopnost(stav, 'energy_shield', nahodne0)
     expect(stav.hrac.stitAbsorpce).toBe(0)
+  })
+})
+
+describe('engine.ts — Health Orb/Potion pickupy (appčino "co ještě zbývá")', () => {
+  const nahodne0 = () => 0
+  // Vysoký hod umístí pickup daleko od hráče (appka drží 90 % poloměru
+  // arény, uhel skoro plná otáčka) — appka ho tak může spawnout, aniž
+  // by ho hráč ve STEJNÉM ticku hned znovu sebral (appka sbírá pickupy
+  // hned po spawnu, viz engine.ts's krokHry).
+  const nahodneDaleko = () => 0.99
+
+  it('první krokHry hned spawne pickup (appka nečeká celý interval na úplně první — stejná okamžitá logika jako u prvního monstra)', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodneDaleko)
+    expect(stav.pickupy).toHaveLength(1)
+    expect(stav.pickupy[0].typ).toBe('orb')
+  })
+
+  it('nízký hod (pod SANCE_LEKTVAR) appka spawne jako vzácnější lektvar, ne obyčejný orb', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    krokHry(stav, 16, { x: 0, z: 0 }, () => 0.05)
+    expect(stav.pickupy).toHaveLength(1)
+    expect(stav.pickupy[0].typ).toBe('lektvar')
+  })
+
+  it('appka nikdy nespawne víc pickupů, než je MAX_PICKUPU_NA_ARENE', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    stav.pickupy = [
+      { id: 'p1', typ: 'orb', pozice: { x: 100, z: 100 } },
+      { id: 'p2', typ: 'orb', pozice: { x: -100, z: 100 } },
+      { id: 'p3', typ: 'orb', pozice: { x: 100, z: -100 } },
+    ]
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodneDaleko)
+    expect(stav.pickupy).toHaveLength(3)
+  })
+
+  it('další pickup appka nespawne dřív, než uplyne PICKUP_SPAWN_INTERVAL_MS od posledního', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodneDaleko) // appka spawne první hned (viz test výš)
+    expect(stav.pickupy).toHaveLength(1)
+
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodneDaleko) // jen +16 ms — appka MUSÍ počkat
+    expect(stav.pickupy).toHaveLength(1)
+
+    krokHry(stav, 7000, { x: 0, z: 0 }, nahodneDaleko) // appka uplyne celý interval
+    expect(stav.pickupy).toHaveLength(2)
+  })
+
+  it('sebratPickupy vyléčí hráče, pickup zmizí ze země, appka nikdy nepřeléčí nad maxHp', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    stav.hrac.hp = stav.hrac.maxHp - 10 // chybí 10 HP
+    stav.pickupy = [{ id: 'p1', typ: 'orb', pozice: { x: 0, z: 0 } }] // přesně na hráči
+    stav.posledniPickupSpawnMs = stav.cas // appka potlačí ambientní spawn, ať test měří jen tenhle jeden pickup
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
+    // appčin orb léčí round(maxHp * 0.15) = 15, ale appka nedovolí
+    // přeléčit nad maxHp — appka tak ořeže na chybějících 10.
+    expect(stav.hrac.hp).toBe(stav.hrac.maxHp)
+    expect(stav.pickupy).toHaveLength(0)
+  })
+
+  it('pickup appka sebere, i když je hráč na plné HP — jen se nic nevyléčí (žádné "šetření si ho")', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    const hpPred = stav.hrac.hp
+    stav.pickupy = [{ id: 'p1', typ: 'lektvar', pozice: { x: 0, z: 0 } }]
+    stav.posledniPickupSpawnMs = stav.cas
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
+    expect(stav.hrac.hp).toBe(hpPred)
+    expect(stav.pickupy).toHaveLength(0)
+  })
+
+  it('pickup appka nesebere, dokud je hráč mimo dosah', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    stav.hrac.hp = 1
+    stav.pickupy = [{ id: 'p1', typ: 'orb', pozice: { x: 20, z: 0 } }]
+    stav.posledniPickupSpawnMs = stav.cas
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
+    expect(stav.hrac.hp).toBe(1)
+    expect(stav.pickupy).toHaveLength(1)
+  })
+})
+
+describe('engine.ts — pouzitSchopnost: chain_lightning a frost_aura (dvě další ze čtyř implementovaných)', () => {
+  const nahodne0 = () => 0
+
+  const nepritelNaPozici = (id: string, hp: number, pozice: { x: number; z: number }, rychlost = 0) => ({
+    id,
+    defId: 'crawler',
+    jeBoss: false,
+    pozice,
+    hp,
+    maxHp: hp,
+    damage: 5,
+    rychlost,
+    polomer: 0.4,
+    typ: 'pozemni' as const,
+    dosahUtoku: 0,
+    barva: '#000',
+    emoji: '🕷️',
+    posledniUtokMs: -Infinity,
+    fazeIndex: 0,
+    posledniTeleportMs: -Infinity,
+    zpomalenoDoMs: -Infinity,
+  })
+
+  it('chain_lightning skáče od nejbližšího k dalšímu, poškození u KAŽDÉHO dalšího skoku klesá', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    const a = nepritelNaPozici('a', 999, { x: 2, z: 0 })
+    const b = nepritelNaPozici('b', 999, { x: 6, z: 0 }) // 4 od `a`, v dosahu skoku
+    const c = nepritelNaPozici('c', 999, { x: 10, z: 0 }) // 4 od `b`, v dosahu skoku
+    stav.aktivniNepratele.push(a, b, c)
+
+    pouzitSchopnost(stav, 'chain_lightning', nahodne0)
+
+    // damage = round(20*2) = 40; round(40*0.7) = 28; round(28*0.7) = 20
+    expect(a.hp).toBe(999 - 40)
+    expect(b.hp).toBe(999 - 28)
+    expect(c.hp).toBe(999 - 20)
+  })
+
+  it('chain_lightning nikdy nezasáhne stejného nepřítele dvakrát a respektuje CHAIN_LIGHTNING_MAX_CILU', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    // 5 nepřátel v řadě po 3 od sebe — appka smí zasáhnout jen první 4.
+    const nepratele = [0, 3, 6, 9, 12].map((x, i) => nepritelNaPozici(`n${i}`, 999, { x, z: 0 }))
+    stav.aktivniNepratele.push(...nepratele)
+
+    pouzitSchopnost(stav, 'chain_lightning', nahodne0)
+
+    const zasazeni = nepratele.filter((n) => n.hp < 999)
+    expect(zasazeni).toHaveLength(4)
+    expect(nepratele[4].hp).toBe(999) // pátý (nejdál) appka nechá bez zásahu
+  })
+
+  it('chain_lightning bez jediného nepřítele v dosahu je jen "whiff" — appka i tak zapíše cooldown', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    pouzitSchopnost(stav, 'chain_lightning', nahodne0)
+    expect(stav.hrac.posledniPouzitiSchopnosti.chain_lightning).toBe(0)
+    // Zavolání znovu ihned appka odmítne — cooldown ještě neuplynul.
+    stav.hrac.posledniPouzitiSchopnosti.chain_lightning = -Infinity // appka by jinak musela čekat 6 s
+    pouzitSchopnost(stav, 'chain_lightning', nahodne0)
+    expect(stav.hrac.posledniPouzitiSchopnosti.chain_lightning).toBe(0) // zapsáno znovu, appka to skutečně provedla
+  })
+
+  it('chain_lightning zabití prochází STEJNOU kořist/XP cestou jako auto-útok (zpracujZabitiNepritele)', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    stav.aktivniNepratele.push(nepritelNaPozici('slaby', 1, { x: 1, z: 0 }))
+    pouzitSchopnost(stav, 'chain_lightning', nahodne0)
+    expect(stav.aktivniNepratele).toHaveLength(0)
+    expect(stav.zabitiCelkem).toBe(1)
+    expect(stav.xpZaBeh).toBe(MONSTRA.crawler.xp)
+  })
+
+  it('frost_aura zasáhne jen nepřátele v dosahu (FROST_AURA_POLOMER) a nastaví jim zpomalenoDoMs do budoucnosti', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    const blizko = nepritelNaPozici('blizko', 999, { x: 4, z: 0 })
+    const daleko = nepritelNaPozici('daleko', 999, { x: 12, z: 0 })
+    stav.aktivniNepratele.push(blizko, daleko)
+
+    pouzitSchopnost(stav, 'frost_aura', nahodne0)
+
+    expect(blizko.zpomalenoDoMs).toBeGreaterThan(stav.cas)
+    expect(daleko.zpomalenoDoMs).toBe(-Infinity)
+  })
+
+  it('frost_aura opravdu zpomalí pohyb zasaženého nepřítele oproti nezasaženému, na stejnou vzdálenost k hráči', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    const zpomaleny = nepritelNaPozici('zpomaleny', 999, { x: 4, z: 0 }, 2) // v dosahu aury
+    const normalni = nepritelNaPozici('normalni', 999, { x: 12, z: 0 }, 2) // mimo dosah
+    stav.aktivniNepratele.push(zpomaleny, normalni)
+
+    pouzitSchopnost(stav, 'frost_aura', nahodne0)
+    krokHry(stav, 500, { x: 0, z: 0 }, nahodne0) // 0.5 s pohybu
+
+    // Bez zpomalení by oba ušli rychlost×dt = 2×0.5 = 1.0. Appka
+    // zpomalenému sníží efektivní rychlost na FROST_AURA_ZPOMALENI_NASOBIC
+    // (0.35)×, takže ušel jen 0.35 — výrazně méně než nezpomalený.
+    const posunZpomaleny = 4 - zpomaleny.pozice.x
+    const posunNormalni = 12 - normalni.pozice.x
+    expect(posunZpomaleny).toBeCloseTo(0.35, 5)
+    expect(posunNormalni).toBeCloseTo(1, 5)
+  })
+
+  it('frost_aura zpomalení appka zruší, jakmile uplyne jeho trvání', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    const nepritel = nepritelNaPozici('n', 999, { x: 4, z: 0 }, 2)
+    stav.aktivniNepratele.push(nepritel)
+    pouzitSchopnost(stav, 'frost_aura', nahodne0)
+
+    stav.cas = nepritel.zpomalenoDoMs + 1 // appka posune čas těsně ZA vypršení
+
+    krokHry(stav, 500, { x: 0, z: 0 }, nahodne0)
+    const posun = 4 - nepritel.pozice.x
+    expect(posun).toBeCloseTo(1, 5) // plná rychlost, appka zpomalení už nepoužije
   })
 })

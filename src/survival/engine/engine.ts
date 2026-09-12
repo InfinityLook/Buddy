@@ -5,6 +5,7 @@ import {
   Pozice2D,
   PostavaDef,
   ZaznamUdalosti,
+  PickupInstance,
 } from '../types'
 import { MONSTRA } from '../data/monsters'
 import { vypocitejVlnu, jeBossVlna, jeExtrakcniVlna } from '../data/waves'
@@ -50,14 +51,18 @@ const MAX_LOG_ZAZNAMU = 6
  *  kosmetický nápis "extrahováno". */
 export const EXTRAKCE_BONUS_NASOBIC = 1.25
 
-// Bod 11/12 zadání (krok 4/4) — appka umí opravdu POUŽÍT jen tyhle dvě
-// z pěti katalogových schopností (data/abilities.ts) zatím; zbylé tři
-// (chain_lightning/frost_aura/vampire) appka nechává v katalogu i v
-// HUDu (jen jako zamčené/informativní ikony) — stejná "appka
-// nepředstírá funkčnost, co ještě nemá" zásada, co CLAUDE.md popisuje
-// u celého bodu 11/12 před krokem 2. Exportováno, ať appka nemá druhou,
-// nezávislou kopii týhle sady v HUD.tsx.
-export const SCHOPNOSTI_IMPLEMENTOVANE = new Set(['fire_nova', 'energy_shield'])
+// Bod 11/12 zadání — appka umí opravdu POUŽÍT čtyři z pěti katalogových
+// schopností (data/abilities.ts): fire_nova/energy_shield ze čtvrtého
+// kroku plus chain_lightning/frost_aura teď. 'vampire' zůstává jediná
+// NEimplementovaná, a to schválně, ne jen "ještě nedošlo": v
+// abilities.ts má `cooldownMs: 0`, což appka čte jako signál, že to
+// vůbec není tlačítková schopnost s odpočtem, ale PASIVNÍ efekt
+// ("léčí za zabité nepřátele" — tedy něco, co by se mělo zapojit přímo
+// do zpracujZabitiNepritele, ne do pouzitSchopnost). Implementovat ji
+// jako čtvrté tlačítko s cooldownem by znamenalo předstírat jiný
+// mechanismus, než jaký data sama popisují — appka radši nechá
+// zamčenou ikonu, než by ji postavila špatně.
+export const SCHOPNOSTI_IMPLEMENTOVANE = new Set(['fire_nova', 'energy_shield', 'chain_lightning', 'frost_aura'])
 /** Fire Nova zasáhne vše v tomhle poloměru kolem hráče. */
 const FIRE_NOVA_POLOMER = 4
 /** Poškození Fire Novy appka počítá jako násobek hráčovy VLASTNÍ
@@ -74,6 +79,38 @@ const ENERGY_SHIELD_ABSORPCE_Z_MAXHP = 0.2
 /** "Dočasný" (temporary) — štít appka zruší i s nespotřebovanou
  *  kapacitou, jakmile uplyne tenhle čas od aktivace. */
 const ENERGY_SHIELD_TRVANI_MS = 5000
+/** Chain Lightning — první zásah je nejsilnější (v dosahu od HRÁČE),
+ *  každý další "skok" (v dosahu od PŘEDCHOZÍHO zasaženého, ne od
+ *  hráče) je slabší a nikdy nezasáhne stejného nepřítele dvakrát. */
+const CHAIN_LIGHTNING_DOSAH_PRVNI = 8
+const CHAIN_LIGHTNING_DOSAH_SKOKU = 5
+const CHAIN_LIGHTNING_MAX_CILU = 4
+const CHAIN_LIGHTNING_NASOBIC = 2
+const CHAIN_LIGHTNING_POKLES_NA_SKOK = 0.7
+/** Frost Aura — appka nemění nepřítelovo `rychlost` natrvalo (jako
+ *  boss's dočasná fáze), jen zapíše, DO KDY (stav.cas) zpomalení
+ *  platí (NepritelInstance.zpomalenoDoMs), a AI smyčka si to čte
+ *  KAŽDÝ tik stejně nedůvěřivě, jako už čte boss.faze.nasobicRychlosti
+ *  — appka nechce druhé, nezávislé místo, co by mohlo zpomalení
+ *  "zapomenout" zrušit. */
+const FROST_AURA_POLOMER = 5
+const FROST_AURA_TRVANI_MS = 4000
+const FROST_AURA_ZPOMALENI_NASOBIC = 0.35
+
+// Health Orb/Potion pickupy (CLAUDE.md's vlastní "co ještě zbývá"
+// položka) — appka je spawnuje periodicky, NEZÁVISLE na vlnách/
+// spawnu monster, s pevným stropem, ať se jich na zemi nenahromadí
+// víc, než appka chce. 'lektvar' je vzácnější, ale léčí podstatně víc
+// než obyčejný 'orb' — appka to řeší jednou šancí (SANCE_LEKTVAR), ne
+// druhou nezávislou spawn logikou.
+const PICKUP_SPAWN_INTERVAL_MS = 7000
+const MAX_PICKUPU_NA_ARENE = 3
+/** Kolize appka počítá stejně jako u nepřítele — pickup.polomer (tady
+ *  pevné, appka nemá pro pickupy druhé MonstrumDef) + hráčův polomer. */
+const PICKUP_POLOMER = 0.5
+const SANCE_LEKTVAR = 0.2
+const ORB_LECIVOST_PODIL_MAXHP = 0.15
+const LEKTVAR_LECIVOST_PODIL_MAXHP = 0.4
 
 let poradiId = 0
 const dalsiId = (predpona: string): string => `${predpona}-${(poradiId++).toString(36)}`
@@ -107,6 +144,8 @@ export const vytvorPocatecniStav = (postava: PostavaDef): SurvivalHerniStav => {
     zbyvaSpawnovat: prvniVlna.pocetNepratel,
     posledniSpawnMs: -Infinity,
     aktivniNepratele: [],
+    pickupy: [],
+    posledniPickupSpawnMs: -Infinity,
     hrac: vytvorHrace(postava),
     xpZaBeh: 0,
     goldZaBeh: 0,
@@ -125,6 +164,19 @@ export const vytvorPocatecniStav = (postava: PostavaDef): SurvivalHerniStav => {
 const bodNaOkraji = (nahodne: () => number): Pozice2D => {
   const uhel = nahodne() * Math.PI * 2
   return { x: Math.cos(uhel) * ARENA_POLOMER, z: Math.sin(uhel) * ARENA_POLOMER }
+}
+
+/** Náhodný bod KDEKOLIV uvnitř arény (na rozdíl od bodNaOkraji výš,
+ *  co dává body jen na obvodu — nepřátelé mají přicházet zvenčí,
+ *  pickupy naopak čeká hráč, co běhá po celé ploše). `Math.sqrt(nahodne())`
+ *  je standardní technika rovnoměrného vzorkování kruhu — bez ní by se
+ *  body shlukovaly blíž ke středu, protože stejný přírůstek poloměru
+ *  blíž k okraji pokrývá větší plochu. appka navíc drží 90 % poloměru,
+ *  ať pickup nespawne až těsně na hranici arény. */
+const bodVArene = (nahodne: () => number): Pozice2D => {
+  const uhel = nahodne() * Math.PI * 2
+  const polomer = Math.sqrt(nahodne()) * ARENA_POLOMER * 0.9
+  return { x: Math.cos(uhel) * polomer, z: Math.sin(uhel) * polomer }
 }
 
 const pridejLog = (stav: SurvivalHerniStav, text: string): void => {
@@ -156,6 +208,7 @@ const spawnujMonstrum = (stav: SurvivalHerniStav, typy: string[], multiplikator:
     posledniUtokMs: -Infinity,
     fazeIndex: 0,
     posledniTeleportMs: -Infinity,
+    zpomalenoDoMs: -Infinity,
   })
 }
 
@@ -178,8 +231,47 @@ const spawnujBosse = (stav: SurvivalHerniStav, multiplikator: number, nahodne: (
     posledniUtokMs: -Infinity,
     fazeIndex: 0,
     posledniTeleportMs: -Infinity,
+    zpomalenoDoMs: -Infinity,
   })
   pridejLog(stav, `👹 ${boss.jmeno} se objevil!`)
+}
+
+/** Spawne nový pickup, pokud (a) appka pod stropem MAX_PICKUPU_NA_ARENE
+ *  a (b) uplynul PICKUP_SPAWN_INTERVAL_MS od posledního — appka to
+ *  volá KAŽDÝ tik, ne jen o vlnách, takže pickup poroste nezávisle na
+ *  tom, jestli hráč zrovna bojuje, nebo je ve fázi 'extrakce'. */
+const spawnujPickupPodleCasu = (stav: SurvivalHerniStav, nahodne: () => number): void => {
+  if (stav.pickupy.length >= MAX_PICKUPU_NA_ARENE) return
+  if (stav.cas - stav.posledniPickupSpawnMs < PICKUP_SPAWN_INTERVAL_MS) return
+  const typ = nahodne() < SANCE_LEKTVAR ? 'lektvar' : 'orb'
+  const pickup: PickupInstance = { id: dalsiId('pickup'), typ, pozice: bodVArene(nahodne) }
+  stav.pickupy.push(pickup)
+  stav.posledniPickupSpawnMs = stav.cas
+}
+
+/** Zkontroluje, jestli hráč prošel přes některý pickup, a pokud ano,
+ *  vyléčí ho a pickup ze země odstraní. appka léčí jen do plného HP
+ *  (žádné "přeléčení" nad maxHp) — když je hráč už na plné HP, pickup
+ *  se přesto sebere (appka nemá důvod nutit hráče "šetřit si ho" —
+ *  nejde o inventářovou položku), jen se do logu napíše, že HP bylo
+ *  už plné, ne kolik se vyléčilo. */
+const sebratPickupy = (stav: SurvivalHerniStav): void => {
+  if (stav.pickupy.length === 0) return
+  const zbyvajici: PickupInstance[] = []
+  for (const pickup of stav.pickupy) {
+    const vzd = Math.hypot(pickup.pozice.x - stav.hrac.pozice.x, pickup.pozice.z - stav.hrac.pozice.z)
+    if (vzd >= PICKUP_POLOMER + stav.hrac.polomer) {
+      zbyvajici.push(pickup)
+      continue
+    }
+    const podil = pickup.typ === 'lektvar' ? LEKTVAR_LECIVOST_PODIL_MAXHP : ORB_LECIVOST_PODIL_MAXHP
+    const chybi = stav.hrac.maxHp - stav.hrac.hp
+    const vyleceno = Math.min(chybi, Math.round(stav.hrac.maxHp * podil))
+    stav.hrac.hp += vyleceno
+    const ikona = pickup.typ === 'lektvar' ? '🧪' : '💚'
+    pridejLog(stav, vyleceno > 0 ? `${ikona} +${vyleceno} HP` : `${ikona} Sebráno (HP už plné)`)
+  }
+  stav.pickupy = zbyvajici
 }
 
 /** Fáze bosse podle podílu HP — faze[0].podHp musí být 1 (platí od
@@ -416,10 +508,16 @@ export const krokHry = (
     stav.faceVlny = 'boss-boj'
   }
 
+  // --- pickupy (Health Orb/Potion) — nezávisle na vlnách/faceVlny ---
+  spawnujPickupPodleCasu(stav, nahodne)
+  sebratPickupy(stav)
+
   // --- AI nepřátel + kontaktní boj ---
   for (const nepritel of stav.aktivniNepratele) {
     let rychlost = nepritel.rychlost
     let nasobicPoskozeni = 1
+
+    if (stav.cas <= nepritel.zpomalenoDoMs) rychlost *= FROST_AURA_ZPOMALENI_NASOBIC
 
     if (nepritel.jeBoss) {
       const boss = bossProVlnu(stav.vlna)
@@ -602,6 +700,48 @@ export const pouzitSchopnost = (stav: SurvivalHerniStav, schopnostId: string, na
     stav.hrac.stitAbsorpce = absorpce
     stav.hrac.stitVyprsiMs = stav.cas + ENERGY_SHIELD_TRVANI_MS
     pridejLog(stav, `🛡️ Energy Shield! +${absorpce} pohlcení`)
+  } else if (schopnostId === 'chain_lightning') {
+    let aktualniBod: Pozice2D = stav.hrac.pozice
+    let dosah = CHAIN_LIGHTNING_DOSAH_PRVNI
+    let poskozeni = Math.round(stav.hrac.damage * CHAIN_LIGHTNING_NASOBIC)
+    const zasazeneIds = new Set<string>()
+    const mrtvi: NepritelInstance[] = []
+
+    for (let skok = 0; skok < CHAIN_LIGHTNING_MAX_CILU; skok++) {
+      let dalsiCil: NepritelInstance | null = null
+      let nejmensiVzd = Infinity
+      for (const nepritel of stav.aktivniNepratele) {
+        if (zasazeneIds.has(nepritel.id)) continue
+        const vzd = Math.hypot(nepritel.pozice.x - aktualniBod.x, nepritel.pozice.z - aktualniBod.z)
+        if (vzd <= dosah && vzd < nejmensiVzd) {
+          nejmensiVzd = vzd
+          dalsiCil = nepritel
+        }
+      }
+      if (!dalsiCil) break
+      dalsiCil.hp -= poskozeni
+      zasazeneIds.add(dalsiCil.id)
+      if (dalsiCil.hp <= 0) mrtvi.push(dalsiCil)
+      aktualniBod = dalsiCil.pozice
+      dosah = CHAIN_LIGHTNING_DOSAH_SKOKU
+      poskozeni = Math.round(poskozeni * CHAIN_LIGHTNING_POKLES_NA_SKOK)
+    }
+
+    pridejLog(stav, `⚡ Chain Lightning! ${zasazeneIds.size}× zasaženo`)
+    if (mrtvi.length > 0) {
+      stav.aktivniNepratele = stav.aktivniNepratele.filter((n) => n.hp > 0)
+      for (const zabity of mrtvi) zpracujZabitiNepritele(stav, zabity, nahodne)
+    }
+  } else if (schopnostId === 'frost_aura') {
+    let pocetZasazenych = 0
+    for (const nepritel of stav.aktivniNepratele) {
+      const vzd = Math.hypot(nepritel.pozice.x - stav.hrac.pozice.x, nepritel.pozice.z - stav.hrac.pozice.z)
+      if (vzd <= FROST_AURA_POLOMER) {
+        nepritel.zpomalenoDoMs = stav.cas + FROST_AURA_TRVANI_MS
+        pocetZasazenych += 1
+      }
+    }
+    pridejLog(stav, `❄️ Frost Aura! ${pocetZasazenych}× zpomaleno`)
   }
 
   stav.hrac.posledniPouzitiSchopnosti[schopnostId] = stav.cas

@@ -131,6 +131,12 @@ export interface NepritelInstance {
   fazeIndex: number
   /** Jen boss ve fázi 'teleport' — kdy naposledy teleportoval. */
   posledniTeleportMs: number
+  /** Frost Aura (schopnost) — do kdy (stav.cas) tenhle konkrétní
+   *  nepřítel platí za zpomaleného. -Infinity = nikdy nezasažen. Appka
+   *  to čte KAŽDÝ tik v AI smyčce (engine.ts), stejný "vyhodnoť při
+   *  čtení, nic si neukládej navíc" vzor jako boss's vlastní faze
+   *  přepočítávaná z hp/maxHp. */
+  zpomalenoDoMs: number
 }
 
 export interface HracStav {
@@ -199,6 +205,23 @@ export interface ZaznamUdalosti {
   cas: number
 }
 
+/** Health Orb / Potion — appčino "co nám ještě zbývá" ze seznamu
+ *  CLAUDE.md ("Health Orb/Potion pickups on the map"). Na rozdíl od
+ *  kořisti ze zabití (loot.ts, jen čísla — XP/Gold/Crystal) je tohle
+ *  SKUTEČNÝ objekt v aréně, co appka periodicky spawnuje (viz
+ *  engine.ts's vlastní konstanty), a hráč ho sebere prostým průchodem
+ *  přes jeho pozici — žádné tlačítko, žádný inventář, stejná
+ *  "sebráno = spotřebováno okamžitě" jednoduchost jako appčiny
+ *  ostatní pickupy jinde (Buddyho Trh nemá obdobu, tohle je appčina
+ *  první). */
+export type TypPickupu = 'orb' | 'lektvar'
+
+export interface PickupInstance {
+  id: string
+  typ: TypPickupu
+  pozice: Pozice2D
+}
+
 export type DuvodKonceBehu = 'smrt' | 'extrakce' | null
 
 export interface SurvivalHerniStav {
@@ -212,6 +235,9 @@ export interface SurvivalHerniStav {
   zbyvaSpawnovat: number
   posledniSpawnMs: number
   aktivniNepratele: NepritelInstance[]
+  /** Health Orb/Potion na zemi — viz PickupInstance's vlastní komentář. */
+  pickupy: PickupInstance[]
+  posledniPickupSpawnMs: number
   hrac: HracStav
   xpZaBeh: number
   goldZaBeh: number
