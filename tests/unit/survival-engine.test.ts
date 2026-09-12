@@ -14,6 +14,7 @@ import { MONSTRA } from '@/survival/data/monsters'
 import { VYCHOZI_POSTAVA } from '@/survival/data/postavy'
 import { prahXpProUroven } from '@/survival/data/uroven'
 import { PERKY, MAX_KRITICKA_SANCE, POCET_VOLEB_PERKU } from '@/survival/data/perky'
+import { jeSynergieSplnena } from '@/survival/data/synergie'
 
 // ==========================================
 // Survival Night — engine je čistý (žádný React/prohlížeč), takže jde
@@ -488,5 +489,88 @@ describe('engine.ts — level-up a perky (bod 11 zadání, krok 1: engine bez UI
     // mrtvému hráči kartu na výběr — stejná "level se nevrací, jen se
     // zavře nabídka" logika jako u extrakce/wave state výš.
     expect(stav.hrac.uroven).toBe(2)
+  })
+})
+
+describe('synergie.ts / vyberPerk — build/synergy systém (bod 12 zadání, krok 3/4)', () => {
+  it('jeSynergieSplnena — "kombo" platí, jen když appka má VŠECHNY vyjmenované perky aspoň jednou', () => {
+    const podminka = { typ: 'kombo' as const, perky: ['sila', 'rychlopalba'] }
+    expect(jeSynergieSplnena(podminka, {})).toBe(false)
+    expect(jeSynergieSplnena(podminka, { sila: 1 })).toBe(false)
+    expect(jeSynergieSplnena(podminka, { sila: 1, rychlopalba: 1 })).toBe(true)
+  })
+
+  it('jeSynergieSplnena — "stack" platí, jen když appka má daný perk aspoň `pocet`-krát', () => {
+    const podminka = { typ: 'stack' as const, perkId: 'sila', pocet: 3 }
+    expect(jeSynergieSplnena(podminka, { sila: 2 })).toBe(false)
+    expect(jeSynergieSplnena(podminka, { sila: 3 })).toBe(true)
+    expect(jeSynergieSplnena(podminka, { sila: 4 })).toBe(true)
+  })
+
+  it('vyberPerk() odemkne "kombo" synergii přesně tím výběrem, co podmínku poprvé splní', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.levelUpNabidka = ['sila', 'dosah', 'hbitost']
+    vyberPerk(stav, 'sila')
+    expect(stav.aplikovaneSynergie).not.toContain('valecnik')
+
+    stav.levelUpNabidka = ['rychlopalba', 'dosah', 'hbitost']
+    const damagePredSynergii = stav.hrac.damage
+    vyberPerk(stav, 'rychlopalba')
+
+    expect(stav.aplikovaneSynergie).toContain('valecnik')
+    // "Válečník" sám přidá dalších +15 % damage NAD RÁMEC toho, co
+    // "Rychlopalba" (utokyZaSekundu) sama o sobě damage vůbec nemění —
+    // appka tak pozná, že bonus skutečně proběhl, ne jen že se stav
+    // sám o sobě náhodou nezměnil.
+    expect(stav.hrac.damage).toBe(Math.round(damagePredSynergii * 1.15))
+  })
+
+  it('vyberPerk() odemkne "stack" synergii až při TŘETÍM stejném perku, ne dřív', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.levelUpNabidka = ['sila', 'dosah', 'hbitost']
+    vyberPerk(stav, 'sila')
+    expect(stav.aplikovaneSynergie).not.toContain('berserk')
+
+    stav.levelUpNabidka = ['sila', 'dosah', 'hbitost']
+    vyberPerk(stav, 'sila')
+    expect(stav.aplikovaneSynergie).not.toContain('berserk')
+
+    stav.levelUpNabidka = ['sila', 'dosah', 'hbitost']
+    vyberPerk(stav, 'sila')
+    expect(stav.aplikovaneSynergie).toContain('berserk')
+  })
+
+  it('appka udělí bonus ze synergie jen JEDNOU za běh, i když podmínka dál platí', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    for (let i = 0; i < 3; i++) {
+      stav.levelUpNabidka = ['sila', 'dosah', 'hbitost']
+      vyberPerk(stav, 'sila')
+    }
+    expect(stav.aplikovaneSynergie.filter((id) => id === 'berserk')).toHaveLength(1)
+
+    // Čtvrtá Síla podmínku (3×) pořád splňuje, appka ale bonus podruhé
+    // nepřičte — jen "berserk" by se v aplikovaneSynergie objevil
+    // dvakrát, kdyby appka tuhle ochranu neměla.
+    stav.levelUpNabidka = ['sila', 'dosah', 'hbitost']
+    vyberPerk(stav, 'sila')
+    expect(stav.aplikovaneSynergie.filter((id) => id === 'berserk')).toHaveLength(1)
+  })
+
+  it('vyberPerk() může odemknout víc než jednu synergii najednou — appka projde CELÝ katalog, ne jen jednu', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.ziskanePerky = { sila: 1, rychlopalba: 1, hbitost: 1 }
+    stav.levelUpNabidka = ['vitalita', 'dosah', 'presnost']
+
+    vyberPerk(stav, 'vitalita')
+
+    expect(stav.aplikovaneSynergie).toContain('valecnik')
+    expect(stav.aplikovaneSynergie).toContain('nezmar')
+  })
+
+  it('vyberPerk() bez odemčené synergie nechá aplikovaneSynergie prázdné', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.levelUpNabidka = ['sila', 'dosah', 'hbitost']
+    vyberPerk(stav, 'dosah')
+    expect(stav.aplikovaneSynergie).toEqual([])
   })
 })

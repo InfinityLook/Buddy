@@ -10,8 +10,9 @@ import { MONSTRA } from '../data/monsters'
 import { vypocitejVlnu, jeBossVlna, jeExtrakcniVlna } from '../data/waves'
 import { bossProVlnu } from '../data/bosses'
 import { vyhodnotZabiti } from './loot'
-import { PERKY, PerkDef, POCET_VOLEB_PERKU, MAX_KRITICKA_SANCE } from '../data/perky'
+import { PERKY, EfektPerku, POCET_VOLEB_PERKU, MAX_KRITICKA_SANCE } from '../data/perky'
 import { prahXpProUroven } from '../data/uroven'
+import { SYNERGIE, jeSynergieSplnena } from '../data/synergie'
 
 // ==========================================
 // Survival Night — čistý herní tick (bod 26/27 zadání: Game Engine,
@@ -88,6 +89,7 @@ export const vytvorPocatecniStav = (postava: PostavaDef): SurvivalHerniStav => {
     log: [],
     levelUpNabidka: null,
     ziskanePerky: {},
+    aplikovaneSynergie: [],
   }
 }
 
@@ -207,34 +209,55 @@ const vyberNabidkuPerku = (nahodne: () => number): string[] => {
   return vybrane
 }
 
-/** Skutečně aplikuje jeden perk na hráčovy statistiky — jediné místo,
+/** Skutečně aplikuje jeden efekt na hráčovy statistiky — jediné místo,
  *  co ví, jak se který EfektPerku promítne do HracStav (viz
  *  data/perky.ts's vlastní komentář, proč se damage/utokyZaSekundu/
- *  dosahUtoku/rychlost násobí, kdežto maxHp/kritickyNasobic se sčítají). */
-const aplikujPerk = (hrac: HracStav, perk: PerkDef): void => {
-  switch (perk.efekt) {
+ *  dosahUtoku/rychlost násobí, kdežto maxHp/kritickyNasobic se sčítají).
+ *  Sdílené mezi obyčejným perkem (vyberPerk) i bonusem ze synergie
+ *  (zkontrolujSynergie, data/synergie.ts) — appka nechce druhou,
+ *  nezávislou kopii týhle logiky jen proto, že bonus tentokrát nejde
+ *  přes level-up kartu. */
+const aplikujEfekt = (hrac: HracStav, efekt: EfektPerku, hodnota: number): void => {
+  switch (efekt) {
     case 'damage':
-      hrac.damage = Math.round(hrac.damage * (1 + perk.hodnota))
+      hrac.damage = Math.round(hrac.damage * (1 + hodnota))
       break
     case 'utokyZaSekundu':
-      hrac.utokyZaSekundu *= 1 + perk.hodnota
+      hrac.utokyZaSekundu *= 1 + hodnota
       break
     case 'dosahUtoku':
-      hrac.dosahUtoku *= 1 + perk.hodnota
+      hrac.dosahUtoku *= 1 + hodnota
       break
     case 'rychlost':
-      hrac.rychlost *= 1 + perk.hodnota
+      hrac.rychlost *= 1 + hodnota
       break
     case 'maxHp':
-      hrac.maxHp += perk.hodnota
-      hrac.hp += perk.hodnota
+      hrac.maxHp += hodnota
+      hrac.hp += hodnota
       break
     case 'kritickaSance':
-      hrac.kritickaSance = Math.min(MAX_KRITICKA_SANCE, hrac.kritickaSance + perk.hodnota)
+      hrac.kritickaSance = Math.min(MAX_KRITICKA_SANCE, hrac.kritickaSance + hodnota)
       break
     case 'kritickyNasobic':
-      hrac.kritickyNasobic += perk.hodnota
+      hrac.kritickyNasobic += hodnota
       break
+  }
+}
+
+/** Bod 12 zadání (krok 3/4) — po každém perkovém výběru appka projde
+ *  CELÝ katalog SYNERGIE (ne jen tu, co by mohla souviset s právě
+ *  vybraným perkem — viz synergie.ts's vlastní komentář, proč i
+ *  starší synergie může začít platit teprve tímhle posledním výběrem)
+ *  a tiše udělí bonus za každou, co (a) ještě appka tenhle běh
+ *  neudělila a (b) její podmínka už platí. Na rozdíl od perku appka
+ *  synergii nikdy nenabízí jako volbu — hráč se o ní dozví jen z logu. */
+const zkontrolujSynergie = (stav: SurvivalHerniStav): void => {
+  for (const synergie of SYNERGIE) {
+    if (stav.aplikovaneSynergie.includes(synergie.id)) continue
+    if (!jeSynergieSplnena(synergie.podminka, stav.ziskanePerky)) continue
+    aplikujEfekt(stav.hrac, synergie.efekt, synergie.hodnota)
+    stav.aplikovaneSynergie.push(synergie.id)
+    pridejLog(stav, `${synergie.ikona} Synergie: ${synergie.jmeno}!`)
   }
 }
 
@@ -462,17 +485,18 @@ export const pokracovatVeVlne = (stav: SurvivalHerniStav): void => {
 /** Hráč vybral jeden z nabídnutých perků (bod 11 zadání) — no-op mimo
  *  aktivní nabídku, po konci běhu, nebo pro id, co appka zrovna
  *  nenabídla (appka UI nevěří o nic víc než extrahovat/
- *  pokracovatVeVlne výš). Zapíše výběr do ziskanePerky (appka to
- *  potřebuje pro budoucí build/synergy systém, bod 12 zadání), zvedne
- *  hráčovy statistiky a nabídku vynuluje — příští `krokHry` volání
- *  hru zase rozjede. */
+ *  pokracovatVeVlne výš). Zapíše výběr do ziskanePerky, zvedne
+ *  hráčovy statistiky přes aplikujEfekt, zkontroluje, jestli tenhle
+ *  výběr právě neodemkl nějakou synergii (bod 12 zadání, krok 3/4) a
+ *  nabídku vynuluje — příští `krokHry` volání hru zase rozjede. */
 export const vyberPerk = (stav: SurvivalHerniStav, perkId: string): void => {
   if (!stav.levelUpNabidka || stav.konec) return
   if (!stav.levelUpNabidka.includes(perkId)) return
   const perk = PERKY.find((p) => p.id === perkId)
   if (!perk) return
-  aplikujPerk(stav.hrac, perk)
+  aplikujEfekt(stav.hrac, perk.efekt, perk.hodnota)
   stav.ziskanePerky[perkId] = (stav.ziskanePerky[perkId] ?? 0) + 1
   pridejLog(stav, `${perk.ikona} Perk: ${perk.jmeno}`)
+  zkontrolujSynergie(stav)
   stav.levelUpNabidka = null
 }

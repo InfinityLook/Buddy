@@ -214,10 +214,16 @@ export interface SurvivalHerniStav {
    *  tady ne — level-up může nastat i uprostřed vlny, ne jen na jejím
    *  konci). */
   levelUpNabidka: string[] | null
-  /** Bod 12 zadání (build/synergy systém, přijde v dalším kroku) —
-   *  perkId → kolikrát byl vybraný (perky se dají stackovat). Appka to
-   *  sleduje od začátku, i než existuje UI, co by to čtenářsky
-   *  využilo — stejná "data existují dřív než jejich spotřebitel" věc
-   *  jako zbraně/schopnosti v první verzi appky. */
+  /** Bod 12 zadání (build/synergy systém) — perkId → kolikrát byl
+   *  vybraný (perky se dají stackovat). Appka to sleduje od začátku
+   *  kroku 1, i než existovalo UI, co by to čtenářsky využilo — stejná
+   *  "data existují dřív než jejich spotřebitel" věc jako zbraně/
+   *  schopnosti v první verzi appky. */
   ziskanePerky: Record<string, number>
+  /** Bod 12 zadání (krok 3/4) — id synergií (data/synergie.ts), co
+   *  appka UŽ tenhle běh udělila (viz engine.ts's zkontrolujSynergie).
+   *  Bez týhle evidence by appka nemohla poznat, jestli má bonus
+   *  přičíst poprvé, nebo jestli ho hráč už jednou dostal a podmínka
+   *  (např. 'stack' se stejným perkem) prostě pořád platí. */
+  aplikovaneSynergie: string[]
 }
