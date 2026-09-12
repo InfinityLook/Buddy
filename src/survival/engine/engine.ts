@@ -54,17 +54,32 @@ const MAX_LOG_ZAZNAMU = 6
 export const EXTRAKCE_BONUS_NASOBIC = 1.25
 
 // Bod 11/12 zadání — appka umí opravdu POUŽÍT čtyři z pěti katalogových
-// schopností (data/abilities.ts): fire_nova/energy_shield ze čtvrtého
-// kroku plus chain_lightning/frost_aura teď. 'vampire' zůstává jediná
-// NEimplementovaná, a to schválně, ne jen "ještě nedošlo": v
+// schopností (data/abilities.ts) jako TLAČÍTKA s odpočtem:
+// fire_nova/energy_shield ze čtvrtého kroku plus chain_lightning/
+// frost_aura z pátého. 'vampire' schválně NENÍ v týhle množině — v
 // abilities.ts má `cooldownMs: 0`, což appka čte jako signál, že to
 // vůbec není tlačítková schopnost s odpočtem, ale PASIVNÍ efekt
-// ("léčí za zabité nepřátele" — tedy něco, co by se mělo zapojit přímo
-// do zpracujZabitiNepritele, ne do pouzitSchopnost). Implementovat ji
-// jako čtvrté tlačítko s cooldownem by znamenalo předstírat jiný
-// mechanismus, než jaký data sama popisují — appka radši nechá
-// zamčenou ikonu, než by ji postavila špatně.
+// ("léčí za zabité nepřátele"), takže appka ji nikdy nenabídne jako
+// tlačítko (HUD.tsx ji vykresluje samostatně, mimo tuhle množinu i
+// mimo "zatím zamčeno" cestu). Implementovat ji jako páté tlačítko
+// s cooldownem by znamenalo předstírat jiný mechanismus, než jaký
+// data sama popisují.
 export const SCHOPNOSTI_IMPLEMENTOVANE = new Set(['fire_nova', 'energy_shield', 'chain_lightning', 'frost_aura'])
+/** Vampire (appčino "co dál tam chybí" bod 5) — appka ji zapíná VŽDY,
+ *  bez zvláštního "vybav si pasivku" kroku, stejně jako appka nikdy
+ *  nenutí hráče "vybrat si" žádnou z ostatních čtyř schopností do
+ *  výbavy (všechny jsou prostě dostupné, jen tahle bez tlačítka) —
+ *  vydřený návrh zavádět kvůli jedné pasivce celý loadout systém, co
+ *  appka jinde vůbec nemá, by byl skutečný scope creep, ne poctivé
+ *  dokončení téhle jedné položky. Léčí procento hráčova VLASTNÍHO
+ *  maxHp (stejná "% z maxHp" konvence jako appčiny pickupy o kus výš),
+ *  ne pevné číslo — build se sílenou Vitalitou tak dostane úměrně
+ *  víc léčení za stejné zabití, přesně jak appka odměňuje build i
+ *  jinde (Fire Nova/Chain Lightning škálují hráčovou damage statou).
+ *  Boss kill léčí podstatně víc než běžné monstrum — stejný poměr,
+ *  jakým appka už odměňuje bosse větším XP/Gold. */
+export const VAMPIRE_LECIVOST_PODIL_MAXHP = 0.03
+export const VAMPIRE_LECIVOST_BOSS_PODIL_MAXHP = 0.2
 /** Fire Nova zasáhne vše v tomhle poloměru kolem hráče. */
 const FIRE_NOVA_POLOMER = 4
 /** Poškození Fire Novy appka počítá jako násobek hráčovy VLASTNÍ
@@ -422,6 +437,18 @@ const zkontrolujSynergie = (stav: SurvivalHerniStav): void => {
  *  ho tentokrát nezabil obyčejný auto-útok, ale plošná schopnost.
  *  Volající už musí mít `nepritel` odstraněného z `stav.aktivniNepratele`
  *  předtím, než tohle zavolá. */
+/** Vampire's pasivní léčení (viz VAMPIRE_LECIVOST_PODIL_MAXHP's vlastní
+ *  komentář) — appka ho aplikuje na KAŽDÉ zabití (boss i běžné
+ *  monstrum) stejně, jen s jinou sazbou, ne dvakrát nezávisle napsané.
+ *  Nikdy nepřeteče přes maxHp (Math.min), a appka poctivě neloguje
+ *  léčení, které fakticky nic nezměnilo (hráč už byl na plné HP). */
+const aplikujVampirovoLeceni = (stav: SurvivalHerniStav, podil: number): void => {
+  const predHp = stav.hrac.hp
+  stav.hrac.hp = Math.min(stav.hrac.maxHp, stav.hrac.hp + stav.hrac.maxHp * podil)
+  const leceno = Math.round(stav.hrac.hp - predHp)
+  if (leceno > 0) pridejLog(stav, `🩸 Vampire: +${leceno} HP`)
+}
+
 const zpracujZabitiNepritele = (stav: SurvivalHerniStav, nepritel: NepritelInstance, nahodne: () => number): void => {
   if (nepritel.jeBoss) {
     const boss = bossProVlnu(stav.vlna)
@@ -430,6 +457,7 @@ const zpracujZabitiNepritele = (stav: SurvivalHerniStav, nepritel: NepritelInsta
     stav.zabitiCelkem += 1
     stav.bossPorazenoZaBeh += 1
     pridejLog(stav, `👑 ${boss.jmeno} poražen! +${boss.xp} XP, +${boss.gold} Gold`)
+    aplikujVampirovoLeceni(stav, VAMPIRE_LECIVOST_BOSS_PODIL_MAXHP)
     zkontrolujLevelUp(stav, nahodne)
     return
   }
@@ -444,6 +472,7 @@ const zpracujZabitiNepritele = (stav: SurvivalHerniStav, nepritel: NepritelInsta
   if (vysledek.krystal > 0) text += ` +${vysledek.krystal} 💎`
   if (vysledek.vzacnyDrop) text = `✨ RARE DROP! ${text}`
   pridejLog(stav, text)
+  aplikujVampirovoLeceni(stav, VAMPIRE_LECIVOST_PODIL_MAXHP)
   zkontrolujLevelUp(stav, nahodne)
 }
 

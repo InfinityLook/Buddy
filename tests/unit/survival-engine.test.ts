@@ -10,6 +10,8 @@ import {
   vyberPerk,
   pouzitSchopnost,
   SCHOPNOSTI_IMPLEMENTOVANE,
+  VAMPIRE_LECIVOST_PODIL_MAXHP,
+  VAMPIRE_LECIVOST_BOSS_PODIL_MAXHP,
 } from '@/survival/engine/engine'
 import { vypocitejVlnu, jeBossVlna, jeExtrakcniVlna } from '@/survival/data/waves'
 import { vyhodnotZabiti } from '@/survival/engine/loot'
@@ -1001,5 +1003,86 @@ describe('engine.ts — vytvorHrace/vytvorPocatecniStav: výběr zbraně (appči
       if (z.id === 'iron_sword') continue
       expect(z.odemkovaciCena).toBeGreaterThan(0)
     }
+  })
+})
+
+describe('engine.ts — Vampire pasivní léčení (appčino "co dál tam chybí" bod 5)', () => {
+  const nahodne0 = () => 0
+
+  const nepritelNaPozici = (id: string, hp: number, pozice: { x: number; z: number }, damage = 5, jeBoss = false) => ({
+    id,
+    defId: 'crawler',
+    jeBoss,
+    pozice,
+    hp,
+    maxHp: hp,
+    damage,
+    rychlost: 0,
+    polomer: 0.4,
+    typ: 'pozemni' as const,
+    dosahUtoku: 0,
+    barva: '#000',
+    emoji: '🕷️',
+    posledniUtokMs: -Infinity,
+    fazeIndex: 0,
+    posledniTeleportMs: -Infinity,
+    zpomalenoDoMs: -Infinity,
+  })
+
+  it('zabití běžného monstra vyléčí hráče o VAMPIRE_LECIVOST_PODIL_MAXHP z jeho vlastního maxHp — vždy, appka to nepodmiňuje žádným "vybav si pasivku" přepínačem', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.hrac.hp = stav.hrac.maxHp * 0.5 // hráč zraněný, aby appka měla co léčit
+    stav.aktivniNepratele.push(nepritelNaPozici('slaby', 1, { x: 1, z: 0 }))
+
+    pouzitSchopnost(stav, 'fire_nova', nahodne0)
+
+    expect(stav.hrac.hp).toBeCloseTo(stav.hrac.maxHp * 0.5 + stav.hrac.maxHp * VAMPIRE_LECIVOST_PODIL_MAXHP, 5)
+  })
+
+  it('zabití bosse vyléčí podstatně víc než běžné monstrum (VAMPIRE_LECIVOST_BOSS_PODIL_MAXHP)', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.hrac.hp = stav.hrac.maxHp * 0.3
+    stav.hrac.dosahUtoku = 999 // appka nechce řešit dosah, jen kdo umřel a co appka za to vyléčí
+    stav.aktivniNepratele.push(nepritelNaPozici('boss', 1, { x: 1, z: 0 }, 5, true))
+    // Appka potlačí appčin vlastní ambientní pickup (spawnuje se na (0,0),
+    // přesně tam, kde hráč startuje, a s nahodne0 se hned sebere) — stejný
+    // trik jako appka už musela použít u extrakčního testu výš, jinak by
+    // se tenhle test spoléhal na to, co doopravdy testuje Health Orb/
+    // Potion, ne Vampira.
+    stav.posledniPickupSpawnMs = stav.cas
+
+    krokHry(stav, 1000, { x: 0, z: 0 }, nahodne0) // auto-útok skutečně zabije bosse
+
+    const ocekavaneHp = stav.hrac.maxHp * 0.3 + stav.hrac.maxHp * VAMPIRE_LECIVOST_BOSS_PODIL_MAXHP
+    expect(stav.hrac.hp).toBeCloseTo(ocekavaneHp, 5)
+    expect(VAMPIRE_LECIVOST_BOSS_PODIL_MAXHP).toBeGreaterThan(VAMPIRE_LECIVOST_PODIL_MAXHP)
+  })
+
+  it('léčení nikdy nepřeteče přes maxHp — appka ho ořízne, ne že by hráč skončil "přeléčený"', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.hrac.hp = stav.hrac.maxHp - 1 // těsně pod plným HP
+    stav.aktivniNepratele.push(nepritelNaPozici('slaby', 1, { x: 1, z: 0 }))
+
+    pouzitSchopnost(stav, 'fire_nova', nahodne0)
+
+    expect(stav.hrac.hp).toBe(stav.hrac.maxHp)
+  })
+
+  it('zabití na plné HP appka doopravdy neléčí (no-op) — appka to poctivě nezaloguje jako "+0 HP"', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    expect(stav.hrac.hp).toBe(stav.hrac.maxHp)
+    stav.aktivniNepratele.push(nepritelNaPozici('slaby', 1, { x: 1, z: 0 }))
+
+    pouzitSchopnost(stav, 'fire_nova', nahodne0)
+
+    expect(stav.hrac.hp).toBe(stav.hrac.maxHp)
+    expect(stav.log.some((z) => z.text.includes('Vampire'))).toBe(false)
+  })
+
+  it('vampire NENÍ v SCHOPNOSTI_IMPLEMENTOVANE (žádné tlačítko) a použití appka stejně tiše ignoruje, jako u kteréhokoli jiného neimplementovaného id', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    expect(SCHOPNOSTI_IMPLEMENTOVANE.has('vampire')).toBe(false)
+    pouzitSchopnost(stav, 'vampire', nahodne0)
+    expect(Object.keys(stav.hrac.posledniPouzitiSchopnosti)).toHaveLength(0)
   })
 })

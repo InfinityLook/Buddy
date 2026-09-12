@@ -9,14 +9,17 @@ import { BuildPanel } from './BuildPanel'
 // ==========================================
 // Herní HUD (bod 3 zadání) — čistě prezentační, čte throttlovaný
 // snímek stavu (viz useSurvivalEngine.ts's komentář, proč se HUD
-// neaktualizuje 60×/s). Bod 11/12 zadání (krok 4/4) — appka umí
-// doopravdy POUŽÍT jen dvě z pěti katalogových schopností
-// (SCHOPNOSTI_IMPLEMENTOVANE, viz engine.ts's vlastní komentář); ty se
-// tu kreslí jako reálná tlačítka s cooldownem, zbylé tři zůstávají jen
-// informativní zamčené ikony. `zbran` (bod 10 zadání, appčino "co dál
-// tam chybí" bod 4) je teď skutečně vybraná/vybavená zbraň, ne natvrdo
-// Iron Sword — StartScreen.tsx/SurvivalModule.tsx/Hra.tsx ji sem
-// posílají jako obyčejný prop, HUD sám nic nepočítá, jen zobrazuje.
+// neaktualizuje 60×/s). Bod 11/12 zadání — appka umí doopravdy POUŽÍT
+// čtyři z pěti katalogových schopností jako tlačítka s cooldownem
+// (SCHOPNOSTI_IMPLEMENTOVANE, viz engine.ts's vlastní komentář); páté,
+// Vampire, appka vykresluje TŘETím, samostatným způsobem — ne jako
+// tlačítko (nemá žádnou akci k použití), ne jako "zatím zamčeno" (je
+// doopravdy implementovaná, jen pasivně, viz engine.ts's
+// aplikujVampirovoLeceni) — plochá "aktivní" ikonka bez cooldownu.
+// `zbran` (bod 10 zadání, appčino "co dál tam chybí" bod 4) je teď
+// skutečně vybraná/vybavená zbraň, ne natvrdo Iron Sword —
+// StartScreen.tsx/SurvivalModule.tsx/Hra.tsx ji sem posílají jako
+// obyčejný prop, HUD sám nic nepočítá, jen zobrazuje.
 //
 // zobrazBuild je čistě lokální UI přepínač (appka si nic nepersistuje
 // ani nepauzuje) — otevírá BuildPanel.tsx, poslední zbývající kus bodu
@@ -103,6 +106,17 @@ export const HUD: React.FC<Props> = ({ stav, zbran = VYCHOZI_ZBRAN, onUkoncit, o
             {zbran.ikona}
           </span>
           {SCHOPNOSTI.map((s) => {
+            if (s.id === 'vampire') {
+              return (
+                <span
+                  key={s.id}
+                  className="sn-hud-akce-ikona sn-hud-akce-ikona--pasivni"
+                  title={`${s.jmeno} — pasivní, vždy aktivní`}
+                >
+                  {s.ikona}
+                </span>
+              )
+            }
             if (!SCHOPNOSTI_IMPLEMENTOVANE.has(s.id)) {
               return (
                 <span key={s.id} className="sn-hud-akce-ikona sn-hud-akce-ikona--zamceno" title={`${s.jmeno} (zatím nedostupné)`}>

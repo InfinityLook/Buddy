@@ -4,6 +4,7 @@ import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { VYCHOZI_POSTAVA } from '../data/postavy'
 import { ZBRANE } from '../data/weapons'
 import { SCHOPNOSTI } from '../data/abilities'
+import { SCHOPNOSTI_IMPLEMENTOVANE } from '../engine/engine'
 import { RARITA_BARVA, RARITA_NAZEV } from '../types'
 
 // ==========================================
@@ -121,9 +122,13 @@ export const StartScreen: React.FC<Props> = ({ onHrat, onZpet }) => {
                   <span className="sn-katalog-jmeno">{s.jmeno}</span>
                   <span className="sn-katalog-popis">{s.popis}</span>
                 </div>
+                {s.id === 'vampire' ? (
+                  <span className="sn-katalog-znacka sn-katalog-znacka--pasivni">PASIVNÍ</span>
+                ) : SCHOPNOSTI_IMPLEMENTOVANE.has(s.id) ? (
+                  <span className="sn-katalog-znacka">AKTIVNÍ</span>
+                ) : null}
               </div>
             ))}
-            <p className="sn-panel-pozn">Aktivní používání schopností během běhu se připravuje.</p>
           </div>
         )}
 

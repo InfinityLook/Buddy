@@ -263,6 +263,11 @@
   white-space: nowrap;
 }
 
+.sn-katalog-znacka--pasivni {
+  color: var(--accent-red);
+  border-color: var(--accent-red);
+}
+
 /* --- Výbava: skutečné odemykání/výběr zbraně (bod 10 zadání) --- */
 
 .sn-panel-hlavicka-gold {
@@ -545,6 +550,15 @@ button.sn-hud-akce-ikona {
 
 .sn-hud-akce-ikona--zamceno {
   opacity: 0.4;
+}
+
+/* Vampire (bod 5 zadání, appčino "co dál tam chybí") — plná, ne
+   zešednutá jako --zamceno, a bez cooldown čísla jako --schopnost,
+   protože to není tlačítko: pasivní efekt, vždy aktivní, appka to tu
+   jen ohlašuje. */
+.sn-hud-akce-ikona--pasivni {
+  border-color: var(--accent-red);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
 }
 
 .sn-hud-stit-znacka {
