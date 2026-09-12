@@ -28,8 +28,18 @@ type Obrazovka = 'start' | 'hra' | 'konec'
 export const SurvivalModule: React.FC = () => {
   const navigate = useNavigate()
   const [obrazovka, setObrazovka] = useState<Obrazovka>('start')
-  const { hud, stavRef, nastavSmer, krok, vysledekBehu, restartovat, ukoncitPredcasne, extrahovat, pokracovat } =
-    useSurvivalEngine(VYCHOZI_POSTAVA)
+  const {
+    hud,
+    stavRef,
+    nastavSmer,
+    krok,
+    vysledekBehu,
+    restartovat,
+    ukoncitPredcasne,
+    extrahovat,
+    pokracovat,
+    vyberPerk,
+  } = useSurvivalEngine(VYCHOZI_POSTAVA)
 
   // Jakmile engine zapíše výsledek běhu (smrt nebo "Ukončit" v HUD),
   // appka přejde na Run End obrazovku — přesně jednou za běh.
@@ -70,6 +80,7 @@ export const SurvivalModule: React.FC = () => {
             onUkoncit={ukoncitPredcasne}
             onExtrahovat={extrahovat}
             onPokracovat={pokracovat}
+            onVyberPerk={vyberPerk}
           />
         )}
 

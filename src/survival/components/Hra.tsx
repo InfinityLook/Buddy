@@ -3,6 +3,7 @@ import { useSurvivalScene } from '../scene/useSurvivalScene'
 import { VirtualniJoystick } from '@/game/components/VirtualniJoystick'
 import { HUD } from './HUD'
 import { ExtractionPrompt } from './ExtractionPrompt'
+import { LevelUpPrompt } from './LevelUpPrompt'
 import { SurvivalHerniStav } from '../types'
 
 // ==========================================
@@ -26,11 +27,29 @@ interface Props {
   onUkoncit: () => void
   onExtrahovat: () => void
   onPokracovat: () => void
+  onVyberPerk: (perkId: string) => void
 }
 
-export const Hra: React.FC<Props> = ({ hud, stavRef, nastavSmer, krok, onUkoncit, onExtrahovat, onPokracovat }) => {
+export const Hra: React.FC<Props> = ({
+  hud,
+  stavRef,
+  nastavSmer,
+  krok,
+  onUkoncit,
+  onExtrahovat,
+  onPokracovat,
+  onVyberPerk,
+}) => {
   const scene = useSurvivalScene()
-  const jeExtrakce = hud.faceVlny === 'extrakce' && !hud.konec
+  const jeLevelUp = !!hud.levelUpNabidka && !hud.konec
+  // Level-up má PŘEDNOST před extrakcí (viz krok 1's poznámka
+  // v engine.ts's komentáři nad `levelUpNabidka` — kill na extrakčním
+  // (5., 10., ...) mezníku může ve STEJNÉM ticku nastavit obojí; engine
+  // sám celý souboj pozastaví, dokud levelUpNabidka není `null`, takže
+  // appka tady jen odráží, co je "blokující" — level-up karta je to, co
+  // vyberPerk() skutečně odemyká, extrakční nabídku appka ukáže hned
+  // v příštím snímku, jakmile hráč vybere perk.
+  const jeExtrakce = !jeLevelUp && hud.faceVlny === 'extrakce' && !hud.konec
 
   useEffect(() => {
     let smycka = 0
@@ -61,6 +80,7 @@ export const Hra: React.FC<Props> = ({ hud, stavRef, nastavSmer, krok, onUkoncit
 
       <HUD stav={hud} onUkoncit={onUkoncit} />
 
+      {jeLevelUp && <LevelUpPrompt stav={hud} onVyberPerk={onVyberPerk} />}
       {jeExtrakce && <ExtractionPrompt stav={hud} onExtrahovat={onExtrahovat} onPokracovat={onPokracovat} />}
 
       <VirtualniJoystick onZmena={nastavSmer} />

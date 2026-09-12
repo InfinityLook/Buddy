@@ -553,6 +553,103 @@
   border: 1px solid var(--border-strong);
 }
 
+/* --- Level up (bod 11 zadání, krok 2/4) ---
+   Stejný celoobrazovkový-překryv-nad-arénou tvar jako .sn-extrakce-*
+   výš — appka ho zobrazí, dokud stav.levelUpNabidka není `null` (viz
+   Hra.tsx), a engine sám v tu chvíli CELÝ tik zamrzne (viz engine.ts,
+   krok 1), takže appka tu nic dalšího pauzovat nemusí. Vyšší z-index
+   než extrakce (6 > 5) je jen pojistka pro tu vzácnou stejný-tik
+   kolizi popsanou v Hra.tsx's komentáři — appčino `jeLevelUp`/
+   `jeExtrakce` už samo o sobě zajišťuje, že se obě nikdy nevykreslí
+   zároveň, ale kdyby to Hra.tsx's podmínka někdy přestala hlídat, ať
+   level-up karta vizuálně vyhraje, ne že by ji extrakční překryv
+   zezadu tiše překryl. */
+
+.sn-levelup-prekryv {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(6, 9, 18, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.sn-levelup-karta {
+  width: 100%;
+  max-width: 340px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-strong);
+  border-radius: 1.1rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.sn-levelup-nadpis {
+  margin: 0;
+  font-size: 1.15rem;
+  background: linear-gradient(120deg, var(--accent-orange), var(--accent-magenta));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.sn-levelup-popis {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.sn-levelup-volby {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sn-levelup-volba {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel-raised);
+  cursor: pointer;
+  text-align: left;
+}
+
+.sn-levelup-volba:active {
+  border-color: var(--accent-cyan);
+}
+
+.sn-levelup-volba-ikona {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.sn-levelup-volba-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.sn-levelup-volba-jmeno {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.sn-levelup-volba-popis {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
 /* --- Run End --- */
 
 .sn-konec {
