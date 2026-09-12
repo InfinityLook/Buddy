@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { SurvivalHerniStav } from '../types'
 import { vypocitejVlnu } from '../data/waves'
 import { ZBRANE } from '../data/weapons'
 import { SCHOPNOSTI } from '../data/abilities'
 import { SCHOPNOSTI_IMPLEMENTOVANE } from '../engine/engine'
+import { BuildPanel } from './BuildPanel'
 
 // ==========================================
 // Herní HUD (bod 3 zadání) — čistě prezentační, čte throttlovaný
@@ -14,6 +15,10 @@ import { SCHOPNOSTI_IMPLEMENTOVANE } from '../engine/engine'
 // tu kreslí jako reálná tlačítka s cooldownem, zbylé tři zůstávají jen
 // informativní zamčené ikony. Výběr zbraně (⚔️) pořád není hotový —
 // appka to nepředstírá jako funkční.
+//
+// zobrazBuild je čistě lokální UI přepínač (appka si nic nepersistuje
+// ani nepauzuje) — otevírá BuildPanel.tsx, poslední zbývající kus bodu
+// 12 zadání (viz jeho vlastní komentář).
 // ==========================================
 
 interface Props {
@@ -23,6 +28,7 @@ interface Props {
 }
 
 export const HUD: React.FC<Props> = ({ stav, onUkoncit, onPouzitSchopnost }) => {
+  const [zobrazBuild, setZobrazBuild] = useState(false)
   const config = vypocitejVlnu(stav.vlna)
   const jeBoss = stav.faceVlny === 'boss-boj' || stav.faceVlny === 'boss-spawnuje'
   const boss = jeBoss ? stav.aktivniNepratele.find((n) => n.jeBoss) : null
@@ -45,6 +51,9 @@ export const HUD: React.FC<Props> = ({ stav, onUkoncit, onPouzitSchopnost }) => 
       <div className="sn-hud-top">
         <button className="sn-hud-back" onClick={onUkoncit} aria-label="Ukončit běh">
           ←
+        </button>
+        <button className="sn-hud-build-btn" onClick={() => setZobrazBuild(true)} aria-label="Zobrazit můj build">
+          📊
         </button>
         <div className="sn-hud-wave-wrap">
           <span className="sn-hud-wave-label">{jeBoss ? '👹 BOSS WAVE' : `WAVE ${String(stav.vlna).padStart(2, '0')}`}</span>
@@ -117,6 +126,8 @@ export const HUD: React.FC<Props> = ({ stav, onUkoncit, onPouzitSchopnost }) => 
           })}
         </div>
       </div>
+
+      {zobrazBuild && <BuildPanel stav={stav} onZavrit={() => setZobrazBuild(false)} />}
     </div>
   )
 }
