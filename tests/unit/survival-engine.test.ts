@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   krokHry,
+  vytvorHrace,
   vytvorPocatecniStav,
   ARENA_POLOMER,
   extrahovat,
@@ -14,6 +15,7 @@ import { vypocitejVlnu, jeBossVlna, jeExtrakcniVlna } from '@/survival/data/wave
 import { vyhodnotZabiti } from '@/survival/engine/loot'
 import { MONSTRA } from '@/survival/data/monsters'
 import { VYCHOZI_POSTAVA } from '@/survival/data/postavy'
+import { ZBRANE, VYCHOZI_ZBRAN, zbranPodleId } from '@/survival/data/weapons'
 import { prahXpProUroven } from '@/survival/data/uroven'
 import { PERKY, MAX_KRITICKA_SANCE, POCET_VOLEB_PERKU } from '@/survival/data/perky'
 import { jeSynergieSplnena } from '@/survival/data/synergie'
@@ -944,5 +946,60 @@ describe('engine.ts — pouzitSchopnost: chain_lightning a frost_aura (dvě dal�
     krokHry(stav, 500, { x: 0, z: 0 }, nahodne0)
     const posun = 4 - nepritel.pozice.x
     expect(posun).toBeCloseTo(1, 5) // plná rychlost, appka zpomalení už nepoužije
+  })
+})
+
+describe('engine.ts — vytvorHrace/vytvorPocatecniStav: výběr zbraně (appčino "co dál tam chybí" bod 4)', () => {
+  it('bez druhého argumentu je chování naprosto stejné jako s explicitním VYCHOZI_ZBRAN (nulová regrese)', () => {
+    const bezZbrane = vytvorHrace(VYCHOZI_POSTAVA)
+    const sVychoziZbrani = vytvorHrace(VYCHOZI_POSTAVA, VYCHOZI_ZBRAN)
+    expect(bezZbrane).toEqual(sVychoziZbrani)
+  })
+
+  it('s výchozí zbraní (Iron Sword) appka počítá damage čistě z postavy — přesně jako appka dělala předtím, než zbraně vůbec šlo měnit', () => {
+    const hrac = vytvorHrace(VYCHOZI_POSTAVA, VYCHOZI_ZBRAN)
+    expect(hrac.damage).toBe(VYCHOZI_POSTAVA.damage)
+    expect(hrac.dosahUtoku).toBe(VYCHOZI_ZBRAN.dosah)
+    expect(hrac.utokyZaSekundu).toBe(VYCHOZI_ZBRAN.utokyZaSekundu)
+  })
+
+  it('dosah/rychlost útoku appka bere PŘÍMO ze zbraně, ne z postavy', () => {
+    const frostStaff = zbranPodleId('frost_staff')
+    const hrac = vytvorHrace(VYCHOZI_POSTAVA, frostStaff)
+    expect(hrac.dosahUtoku).toBe(frostStaff.dosah)
+    expect(hrac.utokyZaSekundu).toBe(frostStaff.utokyZaSekundu)
+  })
+
+  it('damage je postavina vlastní hodnota PLUS rozdíl zbraně proti Iron Swordu — silnější zbraň zvýší damage, slabší ho sníží', () => {
+    const voidScythe = zbranPodleId('void_scythe') // damage 34, o 16 víc než Iron Sword (18)
+    const frostStaff = zbranPodleId('frost_staff') // damage 14, o 4 míň než Iron Sword
+
+    const seScythem = vytvorHrace(VYCHOZI_POSTAVA, voidScythe)
+    const sFrostStaffem = vytvorHrace(VYCHOZI_POSTAVA, frostStaff)
+
+    expect(seScythem.damage).toBe(VYCHOZI_POSTAVA.damage + 16)
+    expect(sFrostStaffem.damage).toBe(VYCHOZI_POSTAVA.damage - 4)
+    expect(seScythem.damage).toBeGreaterThan(sFrostStaffem.damage)
+  })
+
+  it('vytvorPocatecniStav předá zbraň dál do vytvorHrace — hráč reálně START s vybranou zbraní, ne s Iron Swordem natvrdo', () => {
+    const voidScythe = zbranPodleId('void_scythe')
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA, voidScythe)
+    expect(stav.hrac.dosahUtoku).toBe(voidScythe.dosah)
+    expect(stav.hrac.utokyZaSekundu).toBe(voidScythe.utokyZaSekundu)
+  })
+
+  it('zbranPodleId vrátí VYCHOZI_ZBRAN pro neznámé/poškozené id, ne že by appka spadla', () => {
+    expect(zbranPodleId('neexistuje')).toBe(VYCHOZI_ZBRAN)
+  })
+
+  it('všech 5 zbraní má platnou raritu a jen Iron Sword nemá odemkovaciCena (appka ho dává zdarma)', () => {
+    expect(ZBRANE).toHaveLength(5)
+    const ironSword = ZBRANE.find((z) => z.id === 'iron_sword')
+    expect(ironSword?.odemkovaciCena).toBeUndefined()
+    for (const z of ZBRANE) {
+      if (z.id === 'iron_sword') continue
+      expect(z.odemkovaciCena).toBeGreaterThan(0)
+    }
   })
 })

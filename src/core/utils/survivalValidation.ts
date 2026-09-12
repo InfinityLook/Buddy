@@ -17,6 +17,7 @@ export const SurvivalSchema = v.object({
   celkemPrezitySekund: v.optional(v.number([v.minValue(0)]), 0),
   odemceneZbrane: v.optional(v.array(v.string()), ['iron_sword']),
   odemcenePostavy: v.optional(v.array(v.string()), ['ranger']),
+  vybranaZbran: v.optional(v.string(), 'iron_sword'),
 })
 
 export const validateSurvivalData = (data: unknown) => {

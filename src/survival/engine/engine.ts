@@ -6,6 +6,7 @@ import {
   PostavaDef,
   ZaznamUdalosti,
   PickupInstance,
+  ZbranDef,
 } from '../types'
 import { MONSTRA } from '../data/monsters'
 import { vypocitejVlnu, jeBossVlna, jeExtrakcniVlna } from '../data/waves'
@@ -15,6 +16,7 @@ import { PERKY, EfektPerku, POCET_VOLEB_PERKU, MAX_KRITICKA_SANCE } from '../dat
 import { prahXpProUroven } from '../data/uroven'
 import { SYNERGIE, jeSynergieSplnena } from '../data/synergie'
 import { SCHOPNOSTI } from '../data/abilities'
+import { VYCHOZI_ZBRAN } from '../data/weapons'
 
 // ==========================================
 // Survival Night — čistý herní tick (bod 26/27 zadání: Game Engine,
@@ -115,16 +117,23 @@ const LEKTVAR_LECIVOST_PODIL_MAXHP = 0.4
 let poradiId = 0
 const dalsiId = (predpona: string): string => `${predpona}-${(poradiId++).toString(36)}`
 
-export const vytvorHrace = (postava: PostavaDef): HracStav => ({
+/** Bod 10 zadání (appčino "co dál tam chybí" bod 4, výběr/přepínání
+ *  zbraní) — appka počítá hráčovy bojové statistiky ze DVOU zdrojů, ne
+ *  jednoho: dosah/rychlost útoku bere PŘÍMO ze zbraně (postava do toho
+ *  nemluví vůbec), zatímco damage je postavina VLASTNÍ hodnota plus
+ *  rozdíl zbraně proti výchozímu Iron Swordu — ne zbraňova hodnota
+ *  natvrdo místo postaviny. Tenhle vzorec je schválně tak postavený,
+ *  aby s VYCHOZI_ZBRAN dal přesně to samé číslo jako appka měla
+ *  natvrdo zadrátované předtím (0 rozdíl proti sobě samé) — nulová
+ *  regrese pro každého, kdo zbraň nikdy nezmění. */
+export const vytvorHrace = (postava: PostavaDef, zbran: ZbranDef = VYCHOZI_ZBRAN): HracStav => ({
   pozice: { x: 0, z: 0 },
   hp: postava.hp,
   maxHp: postava.hp,
   rychlost: postava.rychlost,
-  damage: postava.damage,
-  // Dosah/rychlost útoku výchozí zbraně (Iron Sword, viz data/weapons.ts)
-  // — výběr zbraně přijde v dalším kroku, teď appka rovnou startuje s ní.
-  dosahUtoku: 3.2,
-  utokyZaSekundu: 1.3,
+  damage: postava.damage + (zbran.damage - VYCHOZI_ZBRAN.damage),
+  dosahUtoku: zbran.dosah,
+  utokyZaSekundu: zbran.utokyZaSekundu,
   polomer: HRAC_POLOMER,
   kritickaSance: postava.kritickaSance,
   kritickyNasobic: 1.8,
@@ -135,7 +144,7 @@ export const vytvorHrace = (postava: PostavaDef): HracStav => ({
   stitVyprsiMs: -Infinity,
 })
 
-export const vytvorPocatecniStav = (postava: PostavaDef): SurvivalHerniStav => {
+export const vytvorPocatecniStav = (postava: PostavaDef, zbran: ZbranDef = VYCHOZI_ZBRAN): SurvivalHerniStav => {
   const prvniVlna = vypocitejVlnu(1)
   return {
     cas: 0,
@@ -146,7 +155,7 @@ export const vytvorPocatecniStav = (postava: PostavaDef): SurvivalHerniStav => {
     aktivniNepratele: [],
     pickupy: [],
     posledniPickupSpawnMs: -Infinity,
-    hrac: vytvorHrace(postava),
+    hrac: vytvorHrace(postava, zbran),
     xpZaBeh: 0,
     goldZaBeh: 0,
     krystalZaBeh: 0,

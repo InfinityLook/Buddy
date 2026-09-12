@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
-import { SurvivalHerniStav } from '../types'
+import { SurvivalHerniStav, ZbranDef } from '../types'
 import { vypocitejVlnu } from '../data/waves'
-import { ZBRANE } from '../data/weapons'
+import { VYCHOZI_ZBRAN } from '../data/weapons'
 import { SCHOPNOSTI } from '../data/abilities'
 import { SCHOPNOSTI_IMPLEMENTOVANE } from '../engine/engine'
 import { BuildPanel } from './BuildPanel'
@@ -13,8 +13,10 @@ import { BuildPanel } from './BuildPanel'
 // doopravdy POUŽÍT jen dvě z pěti katalogových schopností
 // (SCHOPNOSTI_IMPLEMENTOVANE, viz engine.ts's vlastní komentář); ty se
 // tu kreslí jako reálná tlačítka s cooldownem, zbylé tři zůstávají jen
-// informativní zamčené ikony. Výběr zbraně (⚔️) pořád není hotový —
-// appka to nepředstírá jako funkční.
+// informativní zamčené ikony. `zbran` (bod 10 zadání, appčino "co dál
+// tam chybí" bod 4) je teď skutečně vybraná/vybavená zbraň, ne natvrdo
+// Iron Sword — StartScreen.tsx/SurvivalModule.tsx/Hra.tsx ji sem
+// posílají jako obyčejný prop, HUD sám nic nepočítá, jen zobrazuje.
 //
 // zobrazBuild je čistě lokální UI přepínač (appka si nic nepersistuje
 // ani nepauzuje) — otevírá BuildPanel.tsx, poslední zbývající kus bodu
@@ -23,11 +25,12 @@ import { BuildPanel } from './BuildPanel'
 
 interface Props {
   stav: SurvivalHerniStav
+  zbran?: ZbranDef
   onUkoncit: () => void
   onPouzitSchopnost: (schopnostId: string) => void
 }
 
-export const HUD: React.FC<Props> = ({ stav, onUkoncit, onPouzitSchopnost }) => {
+export const HUD: React.FC<Props> = ({ stav, zbran = VYCHOZI_ZBRAN, onUkoncit, onPouzitSchopnost }) => {
   const [zobrazBuild, setZobrazBuild] = useState(false)
   const config = vypocitejVlnu(stav.vlna)
   const jeBoss = stav.faceVlny === 'boss-boj' || stav.faceVlny === 'boss-spawnuje'
@@ -96,8 +99,8 @@ export const HUD: React.FC<Props> = ({ stav, onUkoncit, onPouzitSchopnost }) => 
         </div>
 
         <div className="sn-hud-akce">
-          <span className="sn-hud-akce-ikona sn-hud-akce-ikona--aktivni" title={ZBRANE[0].jmeno}>
-            {ZBRANE[0].ikona}
+          <span className="sn-hud-akce-ikona sn-hud-akce-ikona--aktivni" title={zbran.jmeno}>
+            {zbran.ikona}
           </span>
           {SCHOPNOSTI.map((s) => {
             if (!SCHOPNOSTI_IMPLEMENTOVANE.has(s.id)) {

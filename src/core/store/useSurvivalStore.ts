@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { validateSurvivalData } from '@/core/utils/survivalValidation'
+import { ZBRANE } from '@/survival/data/weapons'
 
 // ==========================================
 // Survival Night's TRVALÝ postup — Gold/Crystal, odemčené zbraně/
@@ -34,6 +35,12 @@ interface SurvivalState {
   celkemPrezitySekund: number
   odemceneZbrane: string[]
   odemcenePostavy: string[]
+  /** Bod 10 zadání (appčino "co dál tam chybí" bod 4) — kterou z
+   *  odemčených zbraní hráč vybral pro příští běh. Vždy musí být
+   *  v `odemceneZbrane` (viz vybratZbran níž — funkce si to sama
+   *  hlídá, appka ji nevěří ani vlastnímu UI o nic víc, než engine
+   *  věří appce jinde v týhle hře). */
+  vybranaZbran: string
 
   /** Zavolat po skončení běhu — připočte Gold/Crystal, zaktualizuje
    *  nejvyšší vlnu/skóre/počty. Vrací true, pokud šlo o nový rekord. */
@@ -45,6 +52,14 @@ interface SurvivalState {
     bossPorazeno: number
     prezitySekund: number
   }) => boolean
+
+  /** Trvale odemkne zbraň za Gold — no-op (vrátí false), pokud hráč
+   *  nemá dost, nebo je zbraň už odemčená (appka nechce dvakrát strhnout
+   *  cenu za totéž, stejná "opakovaný požadavek je no-op, ne chyba"
+   *  shovívavost jako jinde v appce). */
+  odemknoutZbran: (zbranId: string) => boolean
+  /** Vybere zbraň pro příští běh — no-op, pokud zbraň není odemčená. */
+  vybratZbran: (zbranId: string) => void
 }
 
 const VYCHOZI = {
@@ -57,6 +72,7 @@ const VYCHOZI = {
   celkemPrezitySekund: 0,
   odemceneZbrane: ['iron_sword'],
   odemcenePostavy: ['ranger'],
+  vybranaZbran: 'iron_sword',
 }
 
 export const useSurvivalStore = create<SurvivalState>()(
@@ -76,6 +92,23 @@ export const useSurvivalStore = create<SurvivalState>()(
           celkemPrezitySekund: state.celkemPrezitySekund + vysledek.prezitySekund,
         }))
         return jeRekord
+      },
+
+      odemknoutZbran: (zbranId) => {
+        const stav = get()
+        if (stav.odemceneZbrane.includes(zbranId)) return false
+        const zbran = ZBRANE.find((z) => z.id === zbranId)
+        if (!zbran?.odemkovaciCena || stav.gold < zbran.odemkovaciCena) return false
+        set((state) => ({
+          gold: state.gold - zbran.odemkovaciCena!,
+          odemceneZbrane: [...state.odemceneZbrane, zbranId],
+        }))
+        return true
+      },
+
+      vybratZbran: (zbranId) => {
+        if (!get().odemceneZbrane.includes(zbranId)) return
+        set({ vybranaZbran: zbranId })
       },
     }),
     {

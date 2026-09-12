@@ -71,6 +71,9 @@ export interface ZbranDef {
   dosah: number
   efekt: string
   ikona: string
+  /** Gold za trvalé odemčení (viz useSurvivalStore.ts) — chybí jen u
+   *  výchozí Iron Sword, kterou appka dává zdarma od prvního běhu. */
+  odemkovaciCena?: number
 }
 
 export interface SchopnostDef {

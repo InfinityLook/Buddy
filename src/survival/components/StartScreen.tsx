@@ -9,12 +9,16 @@ import { RARITA_BARVA, RARITA_NAZEV } from '../types'
 // ==========================================
 // Start screen (bod 4 zadání) — Hrát + reálné statistiky z trvalého
 // storu, plus čtyři podobrazovky (Postava/Výbava/Schopnosti/
-// Statistiky). Výbava/Schopnosti jsou dnes jen ČITELNÉ katalogy
-// (appka má o pěti zbraních/schopnostech skutečná data, viz data/
-// weapons.ts, data/abilities.ts) — výběr zbraně a aktivní používání
-// schopností přijde v dalším kroku, appka to tady neschovává za
-// tlačítko, co nic nedělá, jen otevírá seznam a poctivě říká, co
-// zatím funguje.
+// Statistiky). Schopnosti zůstává jen ČITELNÝ katalog (aktivní
+// používání schopností se řeší v HUD.tsx BĚHEM běhu, ne tady, viz
+// SCHOPNOSTI_IMPLEMENTOVANE) — appka to tady neschovává za tlačítko,
+// co nic nedělá, jen otevírá seznam a poctivě říká, co zatím funguje.
+//
+// Výbava (appčino "co dál tam chybí" bod 4) je teď skutečné odemykání
+// za Gold (useSurvivalStore's odemknoutZbran) plus výběr, kterou z už
+// odemčených zbraní hráč vezme do příštího běhu (vybratZbran) — appka
+// se sama nespoléhá na to, že tlačítko "VYBAVIT" zůstane neaktivní pro
+// zamčenou zbraň jen díky UI; obě akce ve storu si to hlídají znovu.
 // ==========================================
 
 type Podobrazovka = 'menu' | 'postava' | 'vybava' | 'schopnosti' | 'statistiky'
@@ -63,23 +67,47 @@ export const StartScreen: React.FC<Props> = ({ onHrat, onZpet }) => {
 
         {podobrazovka === 'vybava' && (
           <div className="sn-panel">
-            <h2 className="sn-panel-nadpis">Výbava</h2>
-            {ZBRANE.map((z) => (
-              <div key={z.id} className="sn-katalog-radek">
-                <span className="sn-katalog-ikona">{z.ikona}</span>
-                <div className="sn-katalog-info">
-                  <span className="sn-katalog-jmeno">
-                    {z.jmeno}{' '}
-                    <span className="sn-katalog-rarita" style={{ color: RARITA_BARVA[z.rarita] }}>
-                      {RARITA_NAZEV[z.rarita]}
+            <div className="sn-panel-hlavicka-gold">
+              <h2 className="sn-panel-nadpis">Výbava</h2>
+              <span className="sn-panel-gold">🪙 {survival.gold}</span>
+            </div>
+            {ZBRANE.map((z) => {
+              const odemcena = survival.odemceneZbrane.includes(z.id)
+              const vybavena = survival.vybranaZbran === z.id
+              const dostatekGoldu = !!z.odemkovaciCena && survival.gold >= z.odemkovaciCena
+              return (
+                <div key={z.id} className="sn-katalog-radek">
+                  <span className="sn-katalog-ikona">{z.ikona}</span>
+                  <div className="sn-katalog-info">
+                    <span className="sn-katalog-jmeno">
+                      {z.jmeno}{' '}
+                      <span className="sn-katalog-rarita" style={{ color: RARITA_BARVA[z.rarita] }}>
+                        {RARITA_NAZEV[z.rarita]}
+                      </span>
                     </span>
-                  </span>
-                  <span className="sn-katalog-popis">{z.efekt}</span>
+                    <span className="sn-katalog-popis">{z.efekt}</span>
+                    <span className="sn-katalog-staty">
+                      ⚔️ {z.damage} · ⏱️ {z.utokyZaSekundu.toFixed(1)}/s · 🎯 {z.dosah.toFixed(1)}
+                    </span>
+                  </div>
+                  {vybavena ? (
+                    <span className="sn-katalog-znacka">VYBAVENO</span>
+                  ) : odemcena ? (
+                    <button className="sn-katalog-btn" onClick={() => survival.vybratZbran(z.id)}>
+                      VYBAVIT
+                    </button>
+                  ) : (
+                    <button
+                      className="sn-katalog-btn sn-katalog-btn--odemknout"
+                      disabled={!dostatekGoldu}
+                      onClick={() => survival.odemknoutZbran(z.id)}
+                    >
+                      🔒 {z.odemkovaciCena}
+                    </button>
+                  )}
                 </div>
-                {z.id === 'iron_sword' && <span className="sn-katalog-znacka">VYBAVENO</span>}
-              </div>
-            ))}
-            <p className="sn-panel-pozn">Výběr zbraně mimo výchozí Iron Sword se připravuje.</p>
+              )
+            })}
           </div>
         )}
 

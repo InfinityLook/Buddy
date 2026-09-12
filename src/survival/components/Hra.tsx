@@ -4,7 +4,7 @@ import { VirtualniJoystick } from '@/game/components/VirtualniJoystick'
 import { HUD } from './HUD'
 import { ExtractionPrompt } from './ExtractionPrompt'
 import { LevelUpPrompt } from './LevelUpPrompt'
-import { SurvivalHerniStav } from '../types'
+import { SurvivalHerniStav, ZbranDef } from '../types'
 
 // ==========================================
 // Herní obrazovka — JEDNA sdílená requestAnimationFrame smyčka (bod 26
@@ -22,6 +22,7 @@ import { SurvivalHerniStav } from '../types'
 interface Props {
   hud: SurvivalHerniStav
   stavRef: React.RefObject<SurvivalHerniStav>
+  zbran?: ZbranDef
   nastavSmer: (x: number, z: number) => void
   krok: (dtMs: number) => void
   onUkoncit: () => void
@@ -34,6 +35,7 @@ interface Props {
 export const Hra: React.FC<Props> = ({
   hud,
   stavRef,
+  zbran,
   nastavSmer,
   krok,
   onUkoncit,
@@ -80,7 +82,7 @@ export const Hra: React.FC<Props> = ({
         )}
       </div>
 
-      <HUD stav={hud} onUkoncit={onUkoncit} onPouzitSchopnost={onPouzitSchopnost} />
+      <HUD stav={hud} zbran={zbran} onUkoncit={onUkoncit} onPouzitSchopnost={onPouzitSchopnost} />
 
       {jeLevelUp && <LevelUpPrompt stav={hud} onVyberPerk={onVyberPerk} />}
       {jeExtrakce && <ExtractionPrompt stav={hud} onExtrahovat={onExtrahovat} onPokracovat={onPokracovat} />}

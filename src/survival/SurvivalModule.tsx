@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSurvivalEngine } from './useSurvivalEngine'
 import { VYCHOZI_POSTAVA } from './data/postavy'
+import { zbranPodleId } from './data/weapons'
+import { useSurvivalStore } from '@/core/store/useSurvivalStore'
 import { StartScreen } from './components/StartScreen'
 import { Hra } from './components/Hra'
 import { RunEndScreen } from './components/RunEndScreen'
@@ -28,6 +30,15 @@ type Obrazovka = 'start' | 'hra' | 'konec'
 export const SurvivalModule: React.FC = () => {
   const navigate = useNavigate()
   const [obrazovka, setObrazovka] = useState<Obrazovka>('start')
+  // Zbraň appka čte přímo z trvalého storu (vybranaZbran, viz
+  // useSurvivalStore.ts) — StartScreen.tsx ji tam zapisuje přes
+  // vybratZbran, appka tu jen zjistí, jaká postava je aktuálně platná
+  // ZBRAŇ, kterou se sem zapíchne. resolveActiveThemeId-styl "vyhodnoť
+  // při čtení" tady není potřeba (zbraň nemůže "vypršet" jako VIP
+  // motiv), ale stejný princip "jeden zdroj pravdy, appka ho nikdy
+  // nekopíruje jinam" platí i tady.
+  const vybranaZbranId = useSurvivalStore((s) => s.vybranaZbran)
+  const zbran = zbranPodleId(vybranaZbranId)
   const {
     hud,
     stavRef,
@@ -40,7 +51,7 @@ export const SurvivalModule: React.FC = () => {
     pokracovat,
     vyberPerk,
     pouzitSchopnost,
-  } = useSurvivalEngine(VYCHOZI_POSTAVA)
+  } = useSurvivalEngine(VYCHOZI_POSTAVA, zbran)
 
   // Jakmile engine zapíše výsledek běhu (smrt nebo "Ukončit" v HUD),
   // appka přejde na Run End obrazovku — přesně jednou za běh.
@@ -76,6 +87,7 @@ export const SurvivalModule: React.FC = () => {
           <Hra
             hud={hud}
             stavRef={stavRef}
+            zbran={zbran}
             nastavSmer={nastavSmer}
             krok={krok}
             onUkoncit={ukoncitPredcasne}

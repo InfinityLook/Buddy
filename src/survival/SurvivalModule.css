@@ -263,6 +263,55 @@
   white-space: nowrap;
 }
 
+/* --- Výbava: skutečné odemykání/výběr zbraně (bod 10 zadání) --- */
+
+.sn-panel-hlavicka-gold {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.sn-panel-hlavicka-gold .sn-panel-nadpis {
+  margin: 0;
+}
+
+.sn-panel-gold {
+  font-size: 0.85rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent-orange);
+}
+
+.sn-katalog-staty {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.sn-katalog-btn {
+  flex-shrink: 0;
+  padding: 0.4rem 0.7rem;
+  border-radius: 0.6rem;
+  border: 1px solid var(--accent-cyan);
+  background: transparent;
+  color: var(--accent-cyan);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sn-katalog-btn--odemknout {
+  border-color: var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.sn-katalog-btn--odemknout:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
 /* --- Herní obrazovka / aréna --- */
 
 .sn-arena {

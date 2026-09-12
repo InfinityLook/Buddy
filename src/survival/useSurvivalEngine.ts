@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { krokHry, vytvorPocatecniStav, extrahovat, pokracovatVeVlne, vyberPerk, pouzitSchopnost } from './engine/engine'
-import { SurvivalHerniStav, Pozice2D, PostavaDef, DuvodKonceBehu } from './types'
+import { SurvivalHerniStav, Pozice2D, PostavaDef, ZbranDef, DuvodKonceBehu } from './types'
+import { VYCHOZI_ZBRAN } from './data/weapons'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useSurvivalStore } from '@/core/store/useSurvivalStore'
 
@@ -79,20 +80,26 @@ interface UseSurvivalEngineResult {
   pouzitSchopnost: (schopnostId: string) => void
 }
 
-export const useSurvivalEngine = (postava: PostavaDef): UseSurvivalEngineResult => {
-  const stavRef = useRef<SurvivalHerniStav>(vytvorPocatecniStav(postava))
+export const useSurvivalEngine = (postava: PostavaDef, zbran: ZbranDef = VYCHOZI_ZBRAN): UseSurvivalEngineResult => {
+  const stavRef = useRef<SurvivalHerniStav>(vytvorPocatecniStav(postava, zbran))
   const smerRef = useRef<Pozice2D>({ x: 0, z: 0 })
   const [hud, setHud] = useState<SurvivalHerniStav>(stavRef.current)
   const [vysledekBehu, setVysledekBehu] = useState<VysledekBehu | null>(null)
   const poslHudAktualizaceRef = useRef(0)
   const behUzUlozenRef = useRef(false)
+  // Zbraň appka čte přes ref, ne přes uzávěr `restartovat`'s vlastního
+  // `useCallback` — hráč si zbraň vybírá na StartScreen.tsx MEZI běhy,
+  // takže appka potřebuje vidět aktuální hodnotu při KAŽDÉM startu, ne
+  // tu, co platila v okamžiku, kdy hook poprvé namontoval.
+  const zbranRef = useRef(zbran)
+  zbranRef.current = zbran
 
   const nastavSmer = useCallback((x: number, z: number) => {
     smerRef.current = { x, z }
   }, [])
 
   const restartovat = useCallback(() => {
-    stavRef.current = vytvorPocatecniStav(postava)
+    stavRef.current = vytvorPocatecniStav(postava, zbranRef.current)
     smerRef.current = { x: 0, z: 0 }
     poslHudAktualizaceRef.current = 0
     behUzUlozenRef.current = false
