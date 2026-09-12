@@ -13,6 +13,7 @@ import { vyhodnotZabiti } from './loot'
 import { PERKY, EfektPerku, POCET_VOLEB_PERKU, MAX_KRITICKA_SANCE } from '../data/perky'
 import { prahXpProUroven } from '../data/uroven'
 import { SYNERGIE, jeSynergieSplnena } from '../data/synergie'
+import { SCHOPNOSTI } from '../data/abilities'
 
 // ==========================================
 // Survival Night — čistý herní tick (bod 26/27 zadání: Game Engine,
@@ -49,6 +50,31 @@ const MAX_LOG_ZAZNAMU = 6
  *  kosmetický nápis "extrahováno". */
 export const EXTRAKCE_BONUS_NASOBIC = 1.25
 
+// Bod 11/12 zadání (krok 4/4) — appka umí opravdu POUŽÍT jen tyhle dvě
+// z pěti katalogových schopností (data/abilities.ts) zatím; zbylé tři
+// (chain_lightning/frost_aura/vampire) appka nechává v katalogu i v
+// HUDu (jen jako zamčené/informativní ikony) — stejná "appka
+// nepředstírá funkčnost, co ještě nemá" zásada, co CLAUDE.md popisuje
+// u celého bodu 11/12 před krokem 2. Exportováno, ať appka nemá druhou,
+// nezávislou kopii týhle sady v HUD.tsx.
+export const SCHOPNOSTI_IMPLEMENTOVANE = new Set(['fire_nova', 'energy_shield'])
+/** Fire Nova zasáhne vše v tomhle poloměru kolem hráče. */
+const FIRE_NOVA_POLOMER = 4
+/** Poškození Fire Novy appka počítá jako násobek hráčovy VLASTNÍ
+ *  damage staty (ne pevné číslo) — schopnost tak roste s buildem
+ *  (perky/synergie) přesně stejně jako obyčejný auto-útok, místo aby
+ *  se stala buď zbytečnou, nebo přehnaně silnou nezávisle na tom, co
+ *  hráč mezitím nasbíral. */
+const FIRE_NOVA_NASOBIC = 2.5
+/** Kolik poškození dokáže Energy Shield pohltit — základ plus podíl
+ *  hráčova maxHp, ať build se sílenou Vitalitou dostane úměrně
+ *  odolnější štít, ne pořád stejné pevné číslo. */
+const ENERGY_SHIELD_ABSORPCE_ZAKLAD = 40
+const ENERGY_SHIELD_ABSORPCE_Z_MAXHP = 0.2
+/** "Dočasný" (temporary) — štít appka zruší i s nespotřebovanou
+ *  kapacitou, jakmile uplyne tenhle čas od aktivace. */
+const ENERGY_SHIELD_TRVANI_MS = 5000
+
 let poradiId = 0
 const dalsiId = (predpona: string): string => `${predpona}-${(poradiId++).toString(36)}`
 
@@ -67,6 +93,9 @@ export const vytvorHrace = (postava: PostavaDef): HracStav => ({
   kritickyNasobic: 1.8,
   posledniUtokMs: -Infinity,
   uroven: 1,
+  posledniPouzitiSchopnosti: {},
+  stitAbsorpce: 0,
+  stitVyprsiMs: -Infinity,
 })
 
 export const vytvorPocatecniStav = (postava: PostavaDef): SurvivalHerniStav => {
@@ -176,6 +205,31 @@ const posunKCili = (z: Pozice2D, cil: Pozice2D, rychlost: number, dt: number): P
   return { x: z.x + (dx / vzdalenost) * krok, z: z.z + (dz / vzdalenost) * krok }
 }
 
+/** Skutečně sníží hráčovo HP o dané poškození — JEDINÉ místo, co ví o
+ *  Energy Shieldově absorpci (stav.hrac.stitAbsorpce/stitVyprsiMs),
+ *  takže žádné z míst v krokHry, co dřív dělalo `stav.hrac.hp -=
+ *  poskozeni` přímo (kontaktní útok, ranged útok, bossův teleport),
+ *  nemuselo dostat vlastní kopii stejné "je štít ještě aktivní"
+ *  logiky. Štít appka zruší, jakmile uplyne jeho čas (i s
+ *  nespotřebovanou kapacitou), NEBO jakmile appka spotřebuje celou
+ *  kapacitu — cokoliv nastane dřív. */
+const zpusobPoskozeniHraci = (stav: SurvivalHerniStav, poskozeni: number): void => {
+  if (poskozeni <= 0) return
+  let zbyva = poskozeni
+  if (stav.hrac.stitAbsorpce > 0) {
+    if (stav.cas <= stav.hrac.stitVyprsiMs) {
+      const pohlceno = Math.min(stav.hrac.stitAbsorpce, zbyva)
+      stav.hrac.stitAbsorpce -= pohlceno
+      zbyva -= pohlceno
+    } else {
+      // Čas štítu vypršel dřív, než appka stihla spotřebovat celou
+      // kapacitu — appka ho tiše zruší, ať dál "nevisí" bez efektu.
+      stav.hrac.stitAbsorpce = 0
+    }
+  }
+  if (zbyva > 0) stav.hrac.hp -= zbyva
+}
+
 /** Skutečně rozjede další vlnu — sdílené mezi normálním postupem (dole
  *  v `krokHry`, když daná vlna zrovna NENÍ extrakční bod) a
  *  `pokracovatVeVlne` (hráč se rozhodl riskovat dál po extrakční
@@ -259,6 +313,37 @@ const zkontrolujSynergie = (stav: SurvivalHerniStav): void => {
     stav.aplikovaneSynergie.push(synergie.id)
     pridejLog(stav, `${synergie.ikona} Synergie: ${synergie.jmeno}!`)
   }
+}
+
+/** Sdílené mezi hráčovým auto-útokem a Fire Nova (schopnost, viz
+ *  pouzitSchopnost níž) — appka nechce dvě kopie stejné "co se stane,
+ *  když nepřítel/boss padne" logiky (kořist/XP/level-up) jen proto, že
+ *  ho tentokrát nezabil obyčejný auto-útok, ale plošná schopnost.
+ *  Volající už musí mít `nepritel` odstraněného z `stav.aktivniNepratele`
+ *  předtím, než tohle zavolá. */
+const zpracujZabitiNepritele = (stav: SurvivalHerniStav, nepritel: NepritelInstance, nahodne: () => number): void => {
+  if (nepritel.jeBoss) {
+    const boss = bossProVlnu(stav.vlna)
+    stav.xpZaBeh += boss.xp
+    stav.goldZaBeh += boss.gold
+    stav.zabitiCelkem += 1
+    stav.bossPorazenoZaBeh += 1
+    pridejLog(stav, `👑 ${boss.jmeno} poražen! +${boss.xp} XP, +${boss.gold} Gold`)
+    zkontrolujLevelUp(stav, nahodne)
+    return
+  }
+  const def = MONSTRA[nepritel.defId as keyof typeof MONSTRA]
+  if (!def) return
+  const vysledek = vyhodnotZabiti(def, nahodne)
+  stav.xpZaBeh += vysledek.xp
+  stav.goldZaBeh += vysledek.gold
+  stav.krystalZaBeh += vysledek.krystal
+  stav.zabitiCelkem += 1
+  let text = `${def.emoji} ${def.jmeno} poražen +${vysledek.xp} XP +${vysledek.gold} Gold`
+  if (vysledek.krystal > 0) text += ` +${vysledek.krystal} 💎`
+  if (vysledek.vzacnyDrop) text = `✨ RARE DROP! ${text}`
+  pridejLog(stav, text)
+  zkontrolujLevelUp(stav, nahodne)
 }
 
 /** Zkontroluje, jestli aktuální xpZaBeh přeskočilo práh pro DALŠÍ
@@ -351,7 +436,7 @@ export const krokHry = (
           z: stav.hrac.pozice.z + Math.sin(uhel) * vzd,
         }
         nepritel.posledniTeleportMs = stav.cas
-        stav.hrac.hp -= Math.round(nepritel.damage * nasobicPoskozeni)
+        zpusobPoskozeniHraci(stav, Math.round(nepritel.damage * nasobicPoskozeni))
         pridejLog(stav, `👹 ${boss.jmeno} teleportoval a udeřil za ${Math.round(nepritel.damage * nasobicPoskozeni)}!`)
         continue
       }
@@ -362,7 +447,7 @@ export const krokHry = (
     if (nepritel.typ === 'strelec' && vzdKHraci <= nepritel.dosahUtoku) {
       // Střelec zůstává v dosahu a útočí, nedochází až k hráči.
       if (stav.cas - nepritel.posledniUtokMs >= RANGED_COOLDOWN_MS) {
-        stav.hrac.hp -= Math.round(nepritel.damage * nasobicPoskozeni)
+        zpusobPoskozeniHraci(stav, Math.round(nepritel.damage * nasobicPoskozeni))
         nepritel.posledniUtokMs = stav.cas
       }
     } else {
@@ -373,7 +458,7 @@ export const krokHry = (
     // stejně přiblíží (couvání od hráče appka v první verzi neřeší).
     const vzdPoTahu = Math.hypot(nepritel.pozice.x - stav.hrac.pozice.x, nepritel.pozice.z - stav.hrac.pozice.z)
     if (vzdPoTahu < nepritel.polomer + stav.hrac.polomer && stav.cas - nepritel.posledniUtokMs >= KONTAKT_COOLDOWN_MS) {
-      stav.hrac.hp -= Math.round(nepritel.damage * nasobicPoskozeni)
+      zpusobPoskozeniHraci(stav, Math.round(nepritel.damage * nasobicPoskozeni))
       nepritel.posledniUtokMs = stav.cas
     }
   }
@@ -396,32 +481,9 @@ export const krokHry = (
       nejblizsi.hp -= poskozeni
 
       if (nejblizsi.hp <= 0) {
-        const jeBoss = nejblizsi.jeBoss
-        stav.aktivniNepratele = stav.aktivniNepratele.filter((n) => n.id !== nejblizsi!.id)
-
-        if (jeBoss) {
-          const boss = bossProVlnu(stav.vlna)
-          stav.xpZaBeh += boss.xp
-          stav.goldZaBeh += boss.gold
-          stav.zabitiCelkem += 1
-          stav.bossPorazenoZaBeh += 1
-          pridejLog(stav, `👑 ${boss.jmeno} poražen! +${boss.xp} XP, +${boss.gold} Gold`)
-          zkontrolujLevelUp(stav, nahodne)
-        } else {
-          const def = MONSTRA[nejblizsi.defId as keyof typeof MONSTRA]
-          if (def) {
-            const vysledek = vyhodnotZabiti(def, nahodne)
-            stav.xpZaBeh += vysledek.xp
-            stav.goldZaBeh += vysledek.gold
-            stav.krystalZaBeh += vysledek.krystal
-            stav.zabitiCelkem += 1
-            let text = `${def.emoji} ${def.jmeno} poražen +${vysledek.xp} XP +${vysledek.gold} Gold`
-            if (vysledek.krystal > 0) text += ` +${vysledek.krystal} 💎`
-            if (vysledek.vzacnyDrop) text = `✨ RARE DROP! ${text}`
-            pridejLog(stav, text)
-            zkontrolujLevelUp(stav, nahodne)
-          }
-        }
+        const zabity = nejblizsi
+        stav.aktivniNepratele = stav.aktivniNepratele.filter((n) => n.id !== zabity.id)
+        zpracujZabitiNepritele(stav, zabity, nahodne)
       }
     }
   }
@@ -499,4 +561,48 @@ export const vyberPerk = (stav: SurvivalHerniStav, perkId: string): void => {
   pridejLog(stav, `${perk.ikona} Perk: ${perk.jmeno}`)
   zkontrolujSynergie(stav)
   stav.levelUpNabidka = null
+}
+
+/** Bod 11/12 zadání (krok 4/4) — hráč zmáčkl jednu z ikon schopností v
+ *  HUD (HUD.tsx). No-op stejně nedůvěřivě jako vyberPerk/extrahovat/
+ *  pokracovatVeVlne výš: appka schopnost vůbec nezná, appka ji ještě
+ *  neumí (SCHOPNOSTI_IMPLEMENTOVANE — appka ho kontroluje ještě před
+ *  cooldownem, ať nedokončená schopnost nikdy nezačne odpočítávat
+ *  cooldown, co by pak vypadal jako "appka to zkusila a nic se
+ *  nestalo"), cooldown appky ještě neuplynul, běh skončil, nebo appka
+ *  zrovna čeká na level-up rozhodnutí (krokHry ty samé stavy taky
+ *  pozastavuje). */
+export const pouzitSchopnost = (stav: SurvivalHerniStav, schopnostId: string, nahodne: () => number = Math.random): void => {
+  if (stav.konec || stav.levelUpNabidka) return
+  if (!SCHOPNOSTI_IMPLEMENTOVANE.has(schopnostId)) return
+  const schopnost = SCHOPNOSTI.find((s) => s.id === schopnostId)
+  if (!schopnost) return
+  const posledni = stav.hrac.posledniPouzitiSchopnosti[schopnostId] ?? -Infinity
+  if (stav.cas - posledni < schopnost.cooldownMs) return
+
+  if (schopnostId === 'fire_nova') {
+    const poskozeni = Math.round(stav.hrac.damage * FIRE_NOVA_NASOBIC)
+    const zasazeni: NepritelInstance[] = []
+    for (const nepritel of stav.aktivniNepratele) {
+      const vzd = Math.hypot(nepritel.pozice.x - stav.hrac.pozice.x, nepritel.pozice.z - stav.hrac.pozice.z)
+      if (vzd <= FIRE_NOVA_POLOMER) {
+        nepritel.hp -= poskozeni
+        zasazeni.push(nepritel)
+      }
+    }
+    pridejLog(stav, `🔥 Fire Nova! ${zasazeni.length}× zasaženo za ${poskozeni}`)
+    if (zasazeni.length > 0) {
+      stav.aktivniNepratele = stav.aktivniNepratele.filter((n) => n.hp > 0)
+      for (const n of zasazeni) {
+        if (n.hp <= 0) zpracujZabitiNepritele(stav, n, nahodne)
+      }
+    }
+  } else if (schopnostId === 'energy_shield') {
+    const absorpce = Math.round(ENERGY_SHIELD_ABSORPCE_ZAKLAD + stav.hrac.maxHp * ENERGY_SHIELD_ABSORPCE_Z_MAXHP)
+    stav.hrac.stitAbsorpce = absorpce
+    stav.hrac.stitVyprsiMs = stav.cas + ENERGY_SHIELD_TRVANI_MS
+    pridejLog(stav, `🛡️ Energy Shield! +${absorpce} pohlcení`)
+  }
+
+  stav.hrac.posledniPouzitiSchopnosti[schopnostId] = stav.cas
 }

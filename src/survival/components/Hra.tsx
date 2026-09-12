@@ -28,6 +28,7 @@ interface Props {
   onExtrahovat: () => void
   onPokracovat: () => void
   onVyberPerk: (perkId: string) => void
+  onPouzitSchopnost: (schopnostId: string) => void
 }
 
 export const Hra: React.FC<Props> = ({
@@ -39,6 +40,7 @@ export const Hra: React.FC<Props> = ({
   onExtrahovat,
   onPokracovat,
   onVyberPerk,
+  onPouzitSchopnost,
 }) => {
   const scene = useSurvivalScene()
   const jeLevelUp = !!hud.levelUpNabidka && !hud.konec
@@ -78,7 +80,7 @@ export const Hra: React.FC<Props> = ({
         )}
       </div>
 
-      <HUD stav={hud} onUkoncit={onUkoncit} />
+      <HUD stav={hud} onUkoncit={onUkoncit} onPouzitSchopnost={onPouzitSchopnost} />
 
       {jeLevelUp && <LevelUpPrompt stav={hud} onVyberPerk={onVyberPerk} />}
       {jeExtrakce && <ExtractionPrompt stav={hud} onExtrahovat={onExtrahovat} onPokracovat={onPokracovat} />}

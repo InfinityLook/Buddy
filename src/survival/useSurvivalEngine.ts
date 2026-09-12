@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { krokHry, vytvorPocatecniStav, extrahovat, pokracovatVeVlne, vyberPerk } from './engine/engine'
+import { krokHry, vytvorPocatecniStav, extrahovat, pokracovatVeVlne, vyberPerk, pouzitSchopnost } from './engine/engine'
 import { SurvivalHerniStav, Pozice2D, PostavaDef, DuvodKonceBehu } from './types'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useSurvivalStore } from '@/core/store/useSurvivalStore'
@@ -72,6 +72,11 @@ interface UseSurvivalEngineResult {
    *  přijde v dalším kroku). No-op mimo aktivní nabídku (viz
    *  engine.ts's vlastní guard v vyberPerk). */
   vyberPerk: (perkId: string) => void
+  /** Bod 11/12 zadání (krok 4/4) — zavolat s id schopnosti z HUD.tsx's
+   *  tlačítka. No-op pro neimplementovanou schopnost, na cooldownu,
+   *  po konci běhu, nebo v levelUpNabidka (viz engine.ts's vlastní
+   *  guard v pouzitSchopnost). */
+  pouzitSchopnost: (schopnostId: string) => void
 }
 
 export const useSurvivalEngine = (postava: PostavaDef): UseSurvivalEngineResult => {
@@ -194,6 +199,10 @@ export const useSurvivalEngine = (postava: PostavaDef): UseSurvivalEngineResult 
     vyberPerk(stavRef.current, perkId)
   }, [])
 
+  const pouzitSchopnostZBehu = useCallback((schopnostId: string) => {
+    pouzitSchopnost(stavRef.current, schopnostId)
+  }, [])
+
   return {
     hud,
     stavRef,
@@ -205,5 +214,6 @@ export const useSurvivalEngine = (postava: PostavaDef): UseSurvivalEngineResult 
     extrahovat: extrahovatZBehu,
     pokracovat: pokracovatZBehu,
     vyberPerk: vyberPerkZBehu,
+    pouzitSchopnost: pouzitSchopnostZBehu,
   }
 }

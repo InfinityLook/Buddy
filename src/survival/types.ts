@@ -151,6 +151,23 @@ export interface HracStav {
    *  (useGamificationStore). Roste podle stav.xpZaBeh přes
    *  data/uroven.ts's prahXpProUroven, viz engine.ts's zkontrolujLevelUp. */
   uroven: number
+  /** Bod 11/12 zadání (krok 4/4, aktivní používání schopností) — kdy
+   *  (stav.cas) byla naposledy použitá která SchopnostDef.id — appka
+   *  na to potřebuje jen jeden záznam na schopnost, cooldown se počítá
+   *  porovnáním proti stav.cas, stejný vzor jako posledniUtokMs výš. */
+  posledniPouzitiSchopnosti: Record<string, number>
+  /** Jen 'energy_shield' — kolik poškození dokáže štít ještě pohltit,
+   *  než zmizí (viz engine.ts's zpusobPoskozeniHraci). 0 = štít
+   *  neaktivní. */
+  stitAbsorpce: number
+  /** Jen 'energy_shield' — do kdy (stav.cas) štít vůbec platí, i kdyby
+   *  stitAbsorpce ještě neklesla na 0 — "Dočasný štít" (temporary) a
+   *  "pohlcující poškození" (absorbing damage) appka bere jako DVĚ
+   *  nezávislé podmínky konce, ne jednu: appka ho zruší tím, co
+   *  nastane dřív, stejná "lapsed OR consumed" logika jako Souboj's
+   *  vlastní stitAktivni (jednorázový blok), jen s reálnou kapacitou
+   *  místo jednoho úderu. */
+  stitVyprsiMs: number
 }
 
 /** Playable postava (bod 9 zadání) — v první verzi jen Ranger, ale

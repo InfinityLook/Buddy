@@ -39,6 +39,7 @@ export const SurvivalModule: React.FC = () => {
     extrahovat,
     pokracovat,
     vyberPerk,
+    pouzitSchopnost,
   } = useSurvivalEngine(VYCHOZI_POSTAVA)
 
   // Jakmile engine zapíše výsledek běhu (smrt nebo "Ukončit" v HUD),
@@ -81,6 +82,7 @@ export const SurvivalModule: React.FC = () => {
             onExtrahovat={extrahovat}
             onPokracovat={pokracovat}
             onVyberPerk={vyberPerk}
+            onPouzitSchopnost={pouzitSchopnost}
           />
         )}
 

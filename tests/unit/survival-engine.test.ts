@@ -7,6 +7,8 @@ import {
   pokracovatVeVlne,
   EXTRAKCE_BONUS_NASOBIC,
   vyberPerk,
+  pouzitSchopnost,
+  SCHOPNOSTI_IMPLEMENTOVANE,
 } from '@/survival/engine/engine'
 import { vypocitejVlnu, jeBossVlna, jeExtrakcniVlna } from '@/survival/data/waves'
 import { vyhodnotZabiti } from '@/survival/engine/loot'
@@ -15,6 +17,7 @@ import { VYCHOZI_POSTAVA } from '@/survival/data/postavy'
 import { prahXpProUroven } from '@/survival/data/uroven'
 import { PERKY, MAX_KRITICKA_SANCE, POCET_VOLEB_PERKU } from '@/survival/data/perky'
 import { jeSynergieSplnena } from '@/survival/data/synergie'
+import { SCHOPNOSTI } from '@/survival/data/abilities'
 
 // ==========================================
 // Survival Night — engine je čistý (žádný React/prohlížeč), takže jde
@@ -572,5 +575,157 @@ describe('synergie.ts / vyberPerk — build/synergy systém (bod 12 zadání, kr
     stav.levelUpNabidka = ['sila', 'dosah', 'hbitost']
     vyberPerk(stav, 'dosah')
     expect(stav.aplikovaneSynergie).toEqual([])
+  })
+})
+
+describe('engine.ts — pouzitSchopnost (bod 11/12 zadání, krok 4/4: aktivní schopnosti)', () => {
+  const nahodne0 = () => 0
+
+  const nepritelNaPozici = (id: string, hp: number, pozice: { x: number; z: number }, damage = 5) => ({
+    id,
+    defId: 'crawler',
+    jeBoss: false,
+    pozice,
+    hp,
+    maxHp: hp,
+    damage,
+    rychlost: 0,
+    polomer: 0.4,
+    typ: 'pozemni' as const,
+    dosahUtoku: 0,
+    barva: '#000',
+    emoji: '🕷️',
+    posledniUtokMs: -Infinity,
+    fazeIndex: 0,
+    posledniTeleportMs: -Infinity,
+  })
+
+  it('SCHOPNOSTI_IMPLEMENTOVANE obsahuje přesně fire_nova a energy_shield, zbylé tři ne', () => {
+    expect(SCHOPNOSTI_IMPLEMENTOVANE.has('fire_nova')).toBe(true)
+    expect(SCHOPNOSTI_IMPLEMENTOVANE.has('energy_shield')).toBe(true)
+    expect(SCHOPNOSTI_IMPLEMENTOVANE.has('chain_lightning')).toBe(false)
+    expect(SCHOPNOSTI_IMPLEMENTOVANE.has('frost_aura')).toBe(false)
+    expect(SCHOPNOSTI_IMPLEMENTOVANE.has('vampire')).toBe(false)
+  })
+
+  it('neimplementovanou nebo neznámou schopnost appka tiše ignoruje — no-op, žádný cooldown se nezapíše', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    pouzitSchopnost(stav, 'chain_lightning', nahodne0)
+    pouzitSchopnost(stav, 'neexistujici-id', nahodne0)
+    expect(Object.keys(stav.hrac.posledniPouzitiSchopnosti)).toHaveLength(0)
+  })
+
+  it('fire_nova zraní nepřátele v dosahu, nechá bez zásahu ty mimo dosah', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    const blizko = nepritelNaPozici('blizko', 999, { x: 1, z: 0 })
+    const daleko = nepritelNaPozici('daleko', 999, { x: 50, z: 0 })
+    stav.aktivniNepratele.push(blizko, daleko)
+
+    pouzitSchopnost(stav, 'fire_nova', nahodne0)
+
+    expect(blizko.hp).toBeLessThan(999)
+    expect(daleko.hp).toBe(999)
+  })
+
+  it('fire_nova zabití prochází STEJNOU kořist/XP/level-up cestou jako auto-útok', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.aktivniNepratele.push(nepritelNaPozici('slaby', 1, { x: 1, z: 0 }))
+    const xpPred = stav.xpZaBeh
+
+    pouzitSchopnost(stav, 'fire_nova', nahodne0)
+
+    expect(stav.zabitiCelkem).toBe(1)
+    expect(stav.xpZaBeh).toBeGreaterThan(xpPred)
+    expect(stav.aktivniNepratele).toHaveLength(0)
+  })
+
+  it('fire_nova respektuje cooldown — druhé zavolání dřív, než appka uplyne celý cooldown, je no-op', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.aktivniNepratele.push(nepritelNaPozici('cil', 999, { x: 1, z: 0 }))
+
+    pouzitSchopnost(stav, 'fire_nova', nahodne0)
+    const hpPoPrvnimPouziti = stav.aktivniNepratele[0].hp
+
+    stav.cas += 100 // hluboko pod fire_nova's 8000 ms cooldownem
+    pouzitSchopnost(stav, 'fire_nova', nahodne0)
+
+    expect(stav.aktivniNepratele[0].hp).toBe(hpPoPrvnimPouziti)
+  })
+
+  it('fire_nova jde použít znovu, jakmile appka uplyne celý cooldown', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.aktivniNepratele.push(nepritelNaPozici('cil', 999, { x: 1, z: 0 }))
+
+    pouzitSchopnost(stav, 'fire_nova', nahodne0)
+    const hpPoPrvnimPouziti = stav.aktivniNepratele[0].hp
+
+    const cooldown = SCHOPNOSTI.find((s) => s.id === 'fire_nova')!.cooldownMs
+    stav.cas += cooldown + 1
+    pouzitSchopnost(stav, 'fire_nova', nahodne0)
+
+    expect(stav.aktivniNepratele[0].hp).toBeLessThan(hpPoPrvnimPouziti)
+  })
+
+  it('energy_shield nastaví reálnou kapacitu absorpce s časovým vypršením v budoucnosti', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    pouzitSchopnost(stav, 'energy_shield', nahodne0)
+    expect(stav.hrac.stitAbsorpce).toBeGreaterThan(0)
+    expect(stav.hrac.stitVyprsiMs).toBeGreaterThan(stav.cas)
+  })
+
+  it('energy_shield pohltí příchozí poškození místo HP, dokud má kapacitu', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    pouzitSchopnost(stav, 'energy_shield', nahodne0)
+    const absorpcePred = stav.hrac.stitAbsorpce
+    const hpPred = stav.hrac.hp
+
+    stav.aktivniNepratele.push(nepritelNaPozici('utocnik', 999, { x: 0, z: 0 }, 10))
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
+
+    expect(stav.hrac.hp).toBe(hpPred)
+    expect(stav.hrac.stitAbsorpce).toBeLessThan(absorpcePred)
+  })
+
+  it('energy_shield přestane chránit, jakmile appka spotřebuje celou kapacitu — přebytek jde na HP', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    pouzitSchopnost(stav, 'energy_shield', nahodne0)
+    stav.hrac.stitAbsorpce = 5 // appka si uměle sníží kapacitu, ať test nemusí čekat na skutečné vyčerpání
+
+    stav.aktivniNepratele.push(nepritelNaPozici('silny', 999, { x: 0, z: 0 }, 20))
+    const hpPred = stav.hrac.hp
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
+
+    expect(stav.hrac.stitAbsorpce).toBe(0)
+    expect(stav.hrac.hp).toBe(hpPred - 15) // 20 poškození − 5 pohlcených = 15 na HP
+  })
+
+  it('energy_shield appka zruší, jakmile uplyne jeho čas, i kdyby kapacita ještě zbývala', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    pouzitSchopnost(stav, 'energy_shield', nahodne0)
+    expect(stav.hrac.stitAbsorpce).toBeGreaterThan(0)
+
+    stav.cas = stav.hrac.stitVyprsiMs + 1 // appka posune čas těsně ZA vypršení, kapacita zůstala nespotřebovaná
+
+    stav.aktivniNepratele.push(nepritelNaPozici('utocnik', 999, { x: 0, z: 0 }, 10))
+    const hpPred = stav.hrac.hp
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
+
+    expect(stav.hrac.hp).toBe(hpPred - 10) // celé poškození prošlo, appka štít zrušila
+    expect(stav.hrac.stitAbsorpce).toBe(0)
+  })
+
+  it('pouzitSchopnost je no-op, dokud čeká levelUpNabidka, nebo už po konci běhu', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.levelUpNabidka = ['sila', 'dosah', 'hbitost']
+    pouzitSchopnost(stav, 'energy_shield', nahodne0)
+    expect(stav.hrac.stitAbsorpce).toBe(0)
+
+    stav.levelUpNabidka = null
+    stav.konec = true
+    pouzitSchopnost(stav, 'energy_shield', nahodne0)
+    expect(stav.hrac.stitAbsorpce).toBe(0)
   })
 })

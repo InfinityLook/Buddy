@@ -3,21 +3,26 @@ import { SurvivalHerniStav } from '../types'
 import { vypocitejVlnu } from '../data/waves'
 import { ZBRANE } from '../data/weapons'
 import { SCHOPNOSTI } from '../data/abilities'
+import { SCHOPNOSTI_IMPLEMENTOVANE } from '../engine/engine'
 
 // ==========================================
 // Herní HUD (bod 3 zadání) — čistě prezentační, čte throttlovaný
 // snímek stavu (viz useSurvivalEngine.ts's komentář, proč se HUD
-// neaktualizuje 60×/s). Schopnosti (🔮) jsou zatím jen informativní
-// ikony bez cooldownu — aktivní používání schopností a výběr zbraně
-// (⚔️) je až v dalším kroku, appka to nepředstírá jako funkční.
+// neaktualizuje 60×/s). Bod 11/12 zadání (krok 4/4) — appka umí
+// doopravdy POUŽÍT jen dvě z pěti katalogových schopností
+// (SCHOPNOSTI_IMPLEMENTOVANE, viz engine.ts's vlastní komentář); ty se
+// tu kreslí jako reálná tlačítka s cooldownem, zbylé tři zůstávají jen
+// informativní zamčené ikony. Výběr zbraně (⚔️) pořád není hotový —
+// appka to nepředstírá jako funkční.
 // ==========================================
 
 interface Props {
   stav: SurvivalHerniStav
   onUkoncit: () => void
+  onPouzitSchopnost: (schopnostId: string) => void
 }
 
-export const HUD: React.FC<Props> = ({ stav, onUkoncit }) => {
+export const HUD: React.FC<Props> = ({ stav, onUkoncit, onPouzitSchopnost }) => {
   const config = vypocitejVlnu(stav.vlna)
   const jeBoss = stav.faceVlny === 'boss-boj' || stav.faceVlny === 'boss-spawnuje'
   const boss = jeBoss ? stav.aktivniNepratele.find((n) => n.jeBoss) : null
@@ -65,6 +70,9 @@ export const HUD: React.FC<Props> = ({ stav, onUkoncit }) => {
           <div className="sn-hud-hp-wrap">
             <span className="sn-hud-hp-label">
               ❤️ {Math.round(stav.hrac.hp)} / {stav.hrac.maxHp}
+              {stav.hrac.stitAbsorpce > 0 && stav.cas <= stav.hrac.stitVyprsiMs && (
+                <span className="sn-hud-stit-znacka"> 🛡️ +{Math.round(stav.hrac.stitAbsorpce)}</span>
+              )}
             </span>
             <div className="sn-hud-hp-bar">
               <div className="sn-hud-hp-fill" style={{ width: `${hpProcenta}%` }} />
@@ -82,11 +90,31 @@ export const HUD: React.FC<Props> = ({ stav, onUkoncit }) => {
           <span className="sn-hud-akce-ikona sn-hud-akce-ikona--aktivni" title={ZBRANE[0].jmeno}>
             {ZBRANE[0].ikona}
           </span>
-          {SCHOPNOSTI.slice(0, 3).map((s) => (
-            <span key={s.id} className="sn-hud-akce-ikona sn-hud-akce-ikona--zamceno" title={`${s.jmeno} (zatím nedostupné)`}>
-              {s.ikona}
-            </span>
-          ))}
+          {SCHOPNOSTI.map((s) => {
+            if (!SCHOPNOSTI_IMPLEMENTOVANE.has(s.id)) {
+              return (
+                <span key={s.id} className="sn-hud-akce-ikona sn-hud-akce-ikona--zamceno" title={`${s.jmeno} (zatím nedostupné)`}>
+                  {s.ikona}
+                </span>
+              )
+            }
+            const posledni = stav.hrac.posledniPouzitiSchopnosti[s.id] ?? -Infinity
+            const zbyvaMs = Math.max(0, s.cooldownMs - (stav.cas - posledni))
+            const naCooldownu = zbyvaMs > 0
+            return (
+              <button
+                key={s.id}
+                type="button"
+                className={`sn-hud-akce-ikona sn-hud-akce-ikona--schopnost${naCooldownu ? ' sn-hud-akce-ikona--cooldown' : ''}`}
+                title={naCooldownu ? `${s.jmeno} (${Math.ceil(zbyvaMs / 1000)} s)` : s.jmeno}
+                disabled={naCooldownu}
+                onClick={() => onPouzitSchopnost(s.id)}
+              >
+                {s.ikona}
+                {naCooldownu && <span className="sn-hud-akce-cooldown-cislo">{Math.ceil(zbyvaMs / 1000)}</span>}
+              </button>
+            )
+          })}
         </div>
       </div>
     </div>
