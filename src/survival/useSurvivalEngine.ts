@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react'
-import { krokHry, vytvorPocatecniStav } from './engine/engine'
-import { SurvivalHerniStav, Pozice2D, PostavaDef } from './types'
+import { krokHry, vytvorPocatecniStav, extrahovat, pokracovatVeVlne } from './engine/engine'
+import { SurvivalHerniStav, Pozice2D, PostavaDef, DuvodKonceBehu } from './types'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useSurvivalStore } from '@/core/store/useSurvivalStore'
 
@@ -39,6 +39,9 @@ export interface VysledekBehu {
   krystal: number
   bossPorazeno: number
   jeRekord: boolean
+  /** 'extrakce' vs. 'smrt' — RunEndScreen.tsx podle toho ukazuje jiný
+   *  nadpis/barvu (úspěšný odchod, ne prohra). */
+  duvodKonce: DuvodKonceBehu
 }
 
 interface UseSurvivalEngineResult {
@@ -59,6 +62,12 @@ interface UseSurvivalEngineResult {
    *  `konec`, další volání `krok()` (pořád běžící v rAF smyčce)
    *  vyhodnotí a uloží běh úplně stejně jako smrt. */
   ukoncitPredcasne: () => void
+  /** Bod 18 zadání — zavolat z ExtractionPrompt.tsx's "EXTRAHOVAT"
+   *  tlačítka. No-op mimo fázi 'extrakce' (viz engine.ts's vlastní
+   *  guard), appka nevěří UI o nic víc, než engine věří appce. */
+  extrahovat: () => void
+  /** ...a z jejího "POKRAČOVAT" tlačítka. */
+  pokracovat: () => void
 }
 
 export const useSurvivalEngine = (postava: PostavaDef): UseSurvivalEngineResult => {
@@ -152,6 +161,7 @@ export const useSurvivalEngine = (postava: PostavaDef): UseSurvivalEngineResult 
         krystal: stav.krystalZaBeh,
         bossPorazeno: stav.bossPorazenoZaBeh,
         jeRekord,
+        duvodKonce: stav.duvodKonce,
       })
     }
 
@@ -168,5 +178,23 @@ export const useSurvivalEngine = (postava: PostavaDef): UseSurvivalEngineResult 
     stavRef.current.konec = true
   }, [])
 
-  return { hud, stavRef, nastavSmer, krok, vysledekBehu, restartovat, ukoncitPredcasne }
+  const extrahovatZBehu = useCallback(() => {
+    extrahovat(stavRef.current)
+  }, [])
+
+  const pokracovatZBehu = useCallback(() => {
+    pokracovatVeVlne(stavRef.current)
+  }, [])
+
+  return {
+    hud,
+    stavRef,
+    nastavSmer,
+    krok,
+    vysledekBehu,
+    restartovat,
+    ukoncitPredcasne,
+    extrahovat: extrahovatZBehu,
+    pokracovat: pokracovatZBehu,
+  }
 }

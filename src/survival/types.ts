@@ -178,12 +178,16 @@ export interface ZaznamUdalosti {
   cas: number
 }
 
-export type DuvodKonceBehu = 'smrt' | null
+export type DuvodKonceBehu = 'smrt' | 'extrakce' | null
 
 export interface SurvivalHerniStav {
   cas: number
   vlna: number
-  faceVlny: 'spawnuje' | 'boss-spawnuje' | 'boss-boj'
+  /** 'extrakce' — bod 18 zadání ("continue or extract"): vlna je
+   *  hotová, appka čeká na hráčovo rozhodnutí (engine/engine.ts's
+   *  `extrahovat`/`pokracovatVeVlne`), žádní noví nepřátelé se
+   *  nespawnují, dokud appka nedostane odpověď. */
+  faceVlny: 'spawnuje' | 'boss-spawnuje' | 'boss-boj' | 'extrakce'
   zbyvaSpawnovat: number
   posledniSpawnMs: number
   aktivniNepratele: NepritelInstance[]

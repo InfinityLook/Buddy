@@ -28,7 +28,7 @@ type Obrazovka = 'start' | 'hra' | 'konec'
 export const SurvivalModule: React.FC = () => {
   const navigate = useNavigate()
   const [obrazovka, setObrazovka] = useState<Obrazovka>('start')
-  const { hud, stavRef, nastavSmer, krok, vysledekBehu, restartovat, ukoncitPredcasne } =
+  const { hud, stavRef, nastavSmer, krok, vysledekBehu, restartovat, ukoncitPredcasne, extrahovat, pokracovat } =
     useSurvivalEngine(VYCHOZI_POSTAVA)
 
   // Jakmile engine zapíše výsledek běhu (smrt nebo "Ukončit" v HUD),
@@ -62,7 +62,15 @@ export const SurvivalModule: React.FC = () => {
         {obrazovka === 'start' && <StartScreen onHrat={zacniHru} onZpet={() => navigate('/hra')} />}
 
         {obrazovka === 'hra' && (
-          <Hra hud={hud} stavRef={stavRef} nastavSmer={nastavSmer} krok={krok} onUkoncit={ukoncitPredcasne} />
+          <Hra
+            hud={hud}
+            stavRef={stavRef}
+            nastavSmer={nastavSmer}
+            krok={krok}
+            onUkoncit={ukoncitPredcasne}
+            onExtrahovat={extrahovat}
+            onPokracovat={pokracovat}
+          />
         )}
 
         {obrazovka === 'konec' && vysledekBehu && (

@@ -466,6 +466,93 @@
   }
 }
 
+/* --- Extrakce (bod 18 zadání: "continue or extract") ---
+   Celoobrazovkový překryv NAD arénou (viz Hra.tsx — zobrazí se, dokud
+   stav.faceVlny === 'extrakce'), ne modální dialog vysunutý odjinud —
+   engine sám tou dobou nic nespawnuje, appka nechce, aby hráč ztratil
+   ze zřetele, o čem se vlastně rozhoduje. */
+
+.sn-extrakce-prekryv {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  background: rgba(6, 9, 18, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.sn-extrakce-karta {
+  width: 100%;
+  max-width: 340px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-strong);
+  border-radius: 1.1rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.sn-extrakce-nadpis {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.sn-extrakce-popis {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.sn-extrakce-odmena {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 0.75rem;
+  padding: 0.6rem 0.8rem;
+}
+
+.sn-extrakce-radek {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  padding: 0.3rem 0;
+}
+
+.sn-extrakce-radek strong {
+  color: var(--accent-green);
+}
+
+.sn-extrakce-akce {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.sn-extrakce-btn {
+  padding: 0.85rem;
+  border-radius: 1rem;
+  border: none;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.sn-extrakce-btn--extrahovat {
+  color: var(--text-on-accent);
+  background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan));
+  box-shadow: 0 10px 26px rgba(34, 197, 94, 0.3);
+}
+
+.sn-extrakce-btn--pokracovat {
+  color: var(--text-primary);
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-strong);
+}
+
 /* --- Run End --- */
 
 .sn-konec {
@@ -478,6 +565,13 @@
   margin: 0;
   font-size: 1.4rem;
   letter-spacing: 0.06em;
+}
+
+.sn-konec-nadpis--extrakce {
+  background: linear-gradient(120deg, var(--accent-green), var(--accent-cyan));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .sn-konec-rekord {

@@ -6,6 +6,11 @@ import { VysledekBehu } from '../useSurvivalEngine'
 // RECORD", pokud šlo o rekord. `vysledek` přichází z
 // useSurvivalEngine.ts přesně jednou za běh, hned jak je trvalý
 // postup skutečně zapsaný (zapocitatBeh), ne dřív.
+//
+// `vysledek.duvodKonce` (bod 18 zadání — extrakce) rozlišuje úspěšný
+// odchod od smrti — jiný nadpis/barva, čísla samotná (včetně
+// extrakčního bonusu, už započítaného v Gold/Crystal engine.ts's
+// `extrahovat`) jsou stejná pro obě cesty konce běhu.
 // ==========================================
 
 interface Props {
@@ -17,10 +22,13 @@ interface Props {
 export const RunEndScreen: React.FC<Props> = ({ vysledek, onHratZnovu, onHlavniMenu }) => {
   const minuty = Math.floor(vysledek.cas / 60000)
   const vteriny = Math.floor((vysledek.cas % 60000) / 1000)
+  const jeExtrakce = vysledek.duvodKonce === 'extrakce'
 
   return (
     <div className="sn-screen sn-konec">
-      <h1 className="sn-konec-nadpis">RUN ENDED</h1>
+      <h1 className={`sn-konec-nadpis${jeExtrakce ? ' sn-konec-nadpis--extrakce' : ''}`}>
+        {jeExtrakce ? '🚪 EXTRACTED!' : 'RUN ENDED'}
+      </h1>
 
       {vysledek.jeRekord && <div className="sn-konec-rekord">🏆 NEW RECORD!</div>}
 

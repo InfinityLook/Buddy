@@ -2,6 +2,7 @@ import React, { useEffect } from 'react'
 import { useSurvivalScene } from '../scene/useSurvivalScene'
 import { VirtualniJoystick } from '@/game/components/VirtualniJoystick'
 import { HUD } from './HUD'
+import { ExtractionPrompt } from './ExtractionPrompt'
 import { SurvivalHerniStav } from '../types'
 
 // ==========================================
@@ -23,10 +24,13 @@ interface Props {
   nastavSmer: (x: number, z: number) => void
   krok: (dtMs: number) => void
   onUkoncit: () => void
+  onExtrahovat: () => void
+  onPokracovat: () => void
 }
 
-export const Hra: React.FC<Props> = ({ hud, stavRef, nastavSmer, krok, onUkoncit }) => {
+export const Hra: React.FC<Props> = ({ hud, stavRef, nastavSmer, krok, onUkoncit, onExtrahovat, onPokracovat }) => {
   const scene = useSurvivalScene()
+  const jeExtrakce = hud.faceVlny === 'extrakce' && !hud.konec
 
   useEffect(() => {
     let smycka = 0
@@ -56,6 +60,8 @@ export const Hra: React.FC<Props> = ({ hud, stavRef, nastavSmer, krok, onUkoncit
       </div>
 
       <HUD stav={hud} onUkoncit={onUkoncit} />
+
+      {jeExtrakce && <ExtractionPrompt stav={hud} onExtrahovat={onExtrahovat} onPokracovat={onPokracovat} />}
 
       <VirtualniJoystick onZmena={nastavSmer} />
     </div>

@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest'
-import { krokHry, vytvorPocatecniStav, ARENA_POLOMER } from '@/survival/engine/engine'
-import { vypocitejVlnu, jeBossVlna } from '@/survival/data/waves'
+import {
+  krokHry,
+  vytvorPocatecniStav,
+  ARENA_POLOMER,
+  extrahovat,
+  pokracovatVeVlne,
+  EXTRAKCE_BONUS_NASOBIC,
+} from '@/survival/engine/engine'
+import { vypocitejVlnu, jeBossVlna, jeExtrakcniVlna } from '@/survival/data/waves'
 import { vyhodnotZabiti } from '@/survival/engine/loot'
 import { MONSTRA } from '@/survival/data/monsters'
 import { VYCHOZI_POSTAVA } from '@/survival/data/postavy'
@@ -36,6 +43,14 @@ describe('waves.ts — parametrický wave systém', () => {
     const v8 = vypocitejVlnu(8)
     expect(v8.dostupneTypy.length).toBeGreaterThanOrEqual(v1.dostupneTypy.length)
     expect(v1.dostupneTypy).toContain('crawler')
+  })
+
+  it('násobky 5 (včetně boss milníků 10/20/...) jsou extrakční body, ostatní ne', () => {
+    expect(jeExtrakcniVlna(5)).toBe(true)
+    expect(jeExtrakcniVlna(10)).toBe(true)
+    expect(jeExtrakcniVlna(15)).toBe(true)
+    expect(jeExtrakcniVlna(1)).toBe(false)
+    expect(jeExtrakcniVlna(7)).toBe(false)
   })
 })
 
@@ -187,5 +202,112 @@ describe('engine.ts — krokHry', () => {
     boss.hp = Math.round(boss.maxHp * 0.5)
     krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
     expect(stav.aktivniNepratele[0].fazeIndex).toBe(1)
+  })
+})
+
+describe('engine.ts — extrakce (bod 18 zadání: "continue or extract")', () => {
+  const nahodne0 = () => 0
+
+  it('vlna, co je násobkem 5, po dokončení nabídne extrakci místo rovnou další vlny', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.vlna = 5
+    stav.faceVlny = 'spawnuje'
+    stav.zbyvaSpawnovat = 0
+    stav.aktivniNepratele = []
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
+    expect(stav.faceVlny).toBe('extrakce')
+    expect(stav.vlna).toBe(5) // appka ještě neinkrementovala, čeká na rozhodnutí
+    expect(stav.konec).toBe(false)
+  })
+
+  it('vlna, co NENÍ násobkem 5, pokračuje rovnou do další vlny beze změny', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.vlna = 3
+    stav.faceVlny = 'spawnuje'
+    stav.zbyvaSpawnovat = 0
+    stav.aktivniNepratele = []
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
+    expect(stav.faceVlny).toBe('spawnuje')
+    expect(stav.vlna).toBe(4)
+  })
+
+  it('poražení bosse na vlně 10 (násobek 5 i 10) taky nabídne extrakci', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.vlna = 10
+    stav.faceVlny = 'boss-boj'
+    stav.aktivniNepratele = []
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
+    expect(stav.faceVlny).toBe('extrakce')
+    expect(stav.vlna).toBe(10)
+  })
+
+  it('smrt má přednost, i když nastane ve stejném ticku jako dokončení extrakční vlny', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.vlna = 5
+    stav.faceVlny = 'spawnuje'
+    stav.zbyvaSpawnovat = 0
+    stav.aktivniNepratele = []
+    stav.hrac.hp = 0
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
+    expect(stav.konec).toBe(true)
+    expect(stav.duvodKonce).toBe('smrt')
+  })
+
+  it('extrahovat() zabalí odměnu s bonusem a ukončí běh jako úspěch, ne smrt', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.faceVlny = 'extrakce'
+    stav.vlna = 5
+    stav.goldZaBeh = 100
+    stav.krystalZaBeh = 4
+    extrahovat(stav)
+    expect(stav.konec).toBe(true)
+    expect(stav.duvodKonce).toBe('extrakce')
+    expect(stav.goldZaBeh).toBe(Math.round(100 * EXTRAKCE_BONUS_NASOBIC))
+    expect(stav.krystalZaBeh).toBe(Math.round(4 * EXTRAKCE_BONUS_NASOBIC))
+  })
+
+  it('extrahovat() je no-op mimo fázi extrakce', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    expect(stav.faceVlny).toBe('spawnuje')
+    extrahovat(stav)
+    expect(stav.konec).toBe(false)
+    expect(stav.duvodKonce).toBe(null)
+  })
+
+  it('extrahovat() je no-op, pokud běh už skončil', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.faceVlny = 'extrakce'
+    stav.konec = true
+    stav.duvodKonce = 'smrt'
+    stav.goldZaBeh = 50
+    extrahovat(stav)
+    expect(stav.duvodKonce).toBe('smrt') // appka nepřepíše už zapsaný důvod konce
+    expect(stav.goldZaBeh).toBe(50) // ani nepřidá bonus na kořist, co se už neuloží
+  })
+
+  it('pokracovatVeVlne() rozjede další vlnu a vrátí appku z extrakční fáze', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.faceVlny = 'extrakce'
+    stav.vlna = 5
+    pokracovatVeVlne(stav)
+    expect(stav.vlna).toBe(6)
+    expect(stav.faceVlny).toBe('spawnuje')
+    expect(stav.konec).toBe(false)
+  })
+
+  it('pokracovatVeVlne() po vlně 10 (boss milník) rozjede běžnou vlnu 11, ne dalšího bosse', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.faceVlny = 'extrakce'
+    stav.vlna = 10
+    pokracovatVeVlne(stav)
+    expect(stav.vlna).toBe(11)
+    expect(stav.faceVlny).toBe('spawnuje')
+  })
+
+  it('pokracovatVeVlne() je no-op mimo fázi extrakce', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    const vlnaPred = stav.vlna
+    pokracovatVeVlne(stav)
+    expect(stav.vlna).toBe(vlnaPred)
   })
 })

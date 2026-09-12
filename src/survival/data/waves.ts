@@ -14,6 +14,13 @@ export const jeBossVlna = (cislo: number): boolean => cislo % 10 === 0
 /** Milník, ke kterému boss vlna patří (10, 20, 30, ...). */
 export const bossMilnik = (cislo: number): number => cislo
 
+/** Bod 18 zadání ("continue or extract") — appka nabídne "extrahovat,
+ *  nebo pokračovat" po každé páté vlně, VČETNĚ boss milníků (10, 20,
+ *  30, ... jsou taky násobky 5) — poražení bosse je přirozený bod, kde
+ *  se dá bezpečně "vystoupit", ne jen zvláštní případ k ošetření. */
+export const EXTRAKCE_INTERVAL = 5
+export const jeExtrakcniVlna = (cislo: number): boolean => cislo % EXTRAKCE_INTERVAL === 0
+
 export const vypocitejVlnu = (cislo: number): VlnaKonfigurace => {
   if (jeBossVlna(cislo)) {
     return {

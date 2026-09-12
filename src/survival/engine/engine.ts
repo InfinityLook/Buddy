@@ -7,7 +7,7 @@ import {
   ZaznamUdalosti,
 } from '../types'
 import { MONSTRA } from '../data/monsters'
-import { vypocitejVlnu, jeBossVlna } from '../data/waves'
+import { vypocitejVlnu, jeBossVlna, jeExtrakcniVlna } from '../data/waves'
 import { bossProVlnu } from '../data/bosses'
 import { vyhodnotZabiti } from './loot'
 
@@ -40,6 +40,11 @@ const KONTAKT_COOLDOWN_MS = 700
 /** Jak často útočí 'strelec' typ z dálky. */
 const RANGED_COOLDOWN_MS = 1500
 const MAX_LOG_ZAZNAMU = 6
+/** Bod 18 zadání — bezpečná extrakce vyplatí o čtvrtinu víc Gold/
+ *  Crystal, než by hráč měl, kdyby prostě umřel se stejnou kořistí v
+ *  ruce — skutečná odměna za riziko "možná přijdu o všechno", ne jen
+ *  kosmetický nápis "extrahováno". */
+export const EXTRAKCE_BONUS_NASOBIC = 1.25
 
 let poradiId = 0
 const dalsiId = (predpona: string): string => `${predpona}-${(poradiId++).toString(36)}`
@@ -162,6 +167,24 @@ const posunKCili = (z: Pozice2D, cil: Pozice2D, rychlost: number, dt: number): P
   if (vzdalenost < 0.001) return z
   const krok = Math.min(rychlost * dt, vzdalenost)
   return { x: z.x + (dx / vzdalenost) * krok, z: z.z + (dz / vzdalenost) * krok }
+}
+
+/** Skutečně rozjede další vlnu — sdílené mezi normálním postupem (dole
+ *  v `krokHry`, když daná vlna zrovna NENÍ extrakční bod) a
+ *  `pokracovatVeVlne` (hráč se rozhodl riskovat dál po extrakční
+ *  nabídce) — appka nechce dvě kopie stejné "boss, nebo běžná vlna"
+ *  logiky, co by se mohly rozjet jinak. */
+const zahajDalsiVlnu = (stav: SurvivalHerniStav): void => {
+  stav.vlna += 1
+  if (jeBossVlna(stav.vlna)) {
+    stav.faceVlny = 'boss-spawnuje'
+    stav.zbyvaSpawnovat = 0
+  } else {
+    const dalsi = vypocitejVlnu(stav.vlna)
+    stav.faceVlny = 'spawnuje'
+    stav.zbyvaSpawnovat = dalsi.pocetNepratel
+    stav.posledniSpawnMs = -Infinity
+  }
 }
 
 /**
@@ -313,19 +336,23 @@ export const krokHry = (
     (stav.faceVlny === 'boss-boj' && stav.aktivniNepratele.length === 0)
 
   if (vlnaHotova) {
-    stav.vlna += 1
-    if (jeBossVlna(stav.vlna)) {
-      stav.faceVlny = 'boss-spawnuje'
-      stav.zbyvaSpawnovat = 0
+    const dokoncenaVlna = stav.vlna
+    if (jeExtrakcniVlna(dokoncenaVlna)) {
+      // Appka NEinkrementuje `stav.vlna` tady — čeká, dokud appka
+      // nedostane hráčovo rozhodnutí přes `extrahovat`/
+      // `pokracovatVeVlne` (viz níž), stejně jako se `vlnaHotova`
+      // samo o sobě znovu nevyhodnotí, dokud `faceVlny` není zase
+      // 'spawnuje'/'boss-boj'.
+      stav.faceVlny = 'extrakce'
+      pridejLog(stav, `🚪 Vlna ${dokoncenaVlna} hotová — extrahovat, nebo pokračovat?`)
     } else {
-      const dalsi = vypocitejVlnu(stav.vlna)
-      stav.faceVlny = 'spawnuje'
-      stav.zbyvaSpawnovat = dalsi.pocetNepratel
-      stav.posledniSpawnMs = -Infinity
+      zahajDalsiVlnu(stav)
     }
   }
 
-  // --- smrt ---
+  // --- smrt --- (má přednost i nad právě nastavenou 'extrakce' fází —
+  // pokud stejný tik killnul posledního nepřítele I hráče zároveň,
+  // appka hráči nedovolí extrahovat kořist, se kterou už neodešel).
   if (stav.hrac.hp <= 0) {
     stav.hrac.hp = 0
     stav.konec = true
@@ -333,4 +360,26 @@ export const krokHry = (
   }
 
   return stav
+}
+
+/** Hráč se rozhodl vystoupit z extrakční nabídky — bezpečně zabalí
+ *  odměnu běhu (s bonusem, viz EXTRAKCE_BONUS_NASOBIC) a běh skončí
+ *  jako úspěch, ne jako smrt. No-op mimo fázi 'extrakce' nebo když už
+ *  běh skončil — appka volajícímu (React hooku) nevěří o nic víc, než
+ *  Buddyho Trh věří vlastní `koupitPole`/`odmitnoutKoupi`. */
+export const extrahovat = (stav: SurvivalHerniStav): void => {
+  if (stav.faceVlny !== 'extrakce' || stav.konec) return
+  stav.goldZaBeh = Math.round(stav.goldZaBeh * EXTRAKCE_BONUS_NASOBIC)
+  stav.krystalZaBeh = Math.round(stav.krystalZaBeh * EXTRAKCE_BONUS_NASOBIC)
+  pridejLog(stav, `💰 Extrahováno! +${Math.round((EXTRAKCE_BONUS_NASOBIC - 1) * 100)} % bonus na Gold/Crystal`)
+  stav.konec = true
+  stav.duvodKonce = 'extrakce'
+}
+
+/** Hráč se rozhodl riskovat dál — appka rozjede další vlnu úplně
+ *  stejnou cestou (`zahajDalsiVlnu`), jako by tahle vlna vůbec nebyla
+ *  extrakční bod. */
+export const pokracovatVeVlne = (stav: SurvivalHerniStav): void => {
+  if (stav.faceVlny !== 'extrakce' || stav.konec) return
+  zahajDalsiVlnu(stav)
 }
