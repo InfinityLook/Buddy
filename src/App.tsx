@@ -45,6 +45,7 @@ const SurvivalModule = lazy(() => import('@/survival/SurvivalModule'))
 import { BootGate } from '@/components/BootGate'
 import { BiometricLock } from '@/components/BiometricLock'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
+import { FullscreenToggle } from '@/components/FullscreenToggle'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { setupPWAUpdates } from '@/core/utils/registerSW'
 import { setupErrorReporting } from '@/core/utils/errorReporting'
@@ -447,6 +448,10 @@ export default function App() {
 
         {/* Globální indikátor offline připojení */}
         <NetworkStatusBanner />
+        {/* Globální přepínač celoobrazovkového režimu — na každém
+            zařízení (mobil/PC/tablet/TV/notebook), na každé obrazovce
+            appky, viz core/hooks/useFullscreen.ts. */}
+        <FullscreenToggle />
       </BrowserRouter>
       )}
     </BootGate>

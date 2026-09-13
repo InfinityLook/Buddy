@@ -1,0 +1,50 @@
+/* ==========================================
+   Globální přepínač celoobrazovkového režimu — viz komentář v .tsx.
+   Zapuštěný přímo do pravého horního rohu VIEWPORTU (ne do odsazeného
+   kontejneru stránky), ať sedí na každé obrazovce appky stejně, bez
+   ohledu na to, jestli má daná stránka vlastní hlavičku s ikonami.
+   ========================================== */
+
+.fullscreen-toggle-btn {
+  position: fixed;
+  top: env(safe-area-inset-top, 0px);
+  right: env(safe-area-inset-right, 0px);
+  z-index: 150;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 30px;
+  padding: 0;
+
+  background: var(--bg-glass, rgba(18, 20, 38, 0.7));
+  border: 1px solid var(--border-strong, rgba(255, 255, 255, 0.14));
+  border-top: none;
+  border-right: none;
+  border-radius: 0 0 0 14px;
+  color: var(--text-primary, #f2f5fb);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  opacity: 0.55;
+  cursor: pointer;
+  transition: opacity 0.2s ease, background 0.2s ease;
+}
+
+.fullscreen-toggle-btn:hover,
+.fullscreen-toggle-btn:focus-visible {
+  opacity: 1;
+  background: var(--bg-panel-raised, #151f38);
+}
+
+.fullscreen-toggle-btn svg {
+  flex-shrink: 0;
+  margin: 2px -2px 0 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fullscreen-toggle-btn {
+    transition: none;
+  }
+}
