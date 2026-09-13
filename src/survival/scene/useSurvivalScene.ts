@@ -18,22 +18,26 @@ import { ARENA_POLOMER } from '../engine/engine'
 // nejvýš jeden), pozice se každý snímek přepočítávají přímo do matic
 // instancí, ne přes React re-render.
 //
-// Postavy/monstra/boss teď mají SKUTEČNOU grafiku (appčino "co dál
-// tam chybí" bod 3), ne primitivní geometrii — hráč, 8 monster a boss
-// jsou textované billboardy (Kenney sprity, viz public/survival/**,
-// stejný "najdi free asset pack na GitHub mirroru" postup jako Souboj
-// vlastní PostavaGrafika.tsx): jedna THREE.PlaneGeometry na typ
-// (rozměry z předem změřeného poměru stran té konkrétní PNG), textura
-// se ale nikdy nemapuje na SDÍLENOU geometrii dvou různých typů —
-// stejná "jeden InstancedMesh na typ" architektura jako dřív, jen s
-// texturovanou rovinou místo obarvené kapsle. Billboard (roviny se
-// musí vždycky natáčet čelem ke kameře, jinak by z boku zmizely do
-// nuly) appka řeší nejlevnějším možným způsobem — appčina kamera nikdy
-// neobíhá kolem hráče (jen ho sleduje shora/zezadu ve FIXNÍM úhlu, viz
-// VYSKA_KAMERY/ODSTUP_KAMERY), takže appka nepočítá natočení ke kameře
-// per-instanci/per-snímek vůbec: jeden `billboardKvaternion`, spočtený
-// JEDNOU při vytvoření scény (ne v renderovací smyčce), natočí VŠECHNY
-// roviny (hráč/nepřátelé/boss) napořád stejně.
+// Postavy/monstra/boss mají SKUTEČNOU grafiku (Kenney sprity, viz
+// public/survival/**, stejný "najdi free asset pack na GitHub
+// mirroru" postup jako Souboj vlastní PostavaGrafika.tsx): hráč, 8
+// monster a boss jsou textované billboardy — jedna THREE.PlaneGeometry
+// na typ (rozměry ze SDÍLENÉHO ořezu přes celou animační sadu, viz
+// ANIMACE_* níž — appka NEOŘEZÁVÁ každý snímek zvlášť podle jeho
+// vlastního obsahu, protože by pak postava mezi snímky animace mírně
+// "poskočila", jak se u chůze mění rozpětí končetin).
+//
+// KAMERA JE "PŘES RAMENO", NE SHORA A NE PRVNÍ OSOBA (appčino
+// AskUserQuestion rozhodnutí) — appka drží kompromis mezi třemi
+// nabídnutými možnostmi: hráč vidí sám sebe (na rozdíl od skutečné
+// první osoby) a kus prostoru před sebou, ale ne 360° kolem jako u
+// dřívější kamery shora — monstrum mimo zorný úhel prostě není vidět,
+// dokud se k němu appka/hráč nenatočí. Kvůli tomu appka NEMŮŽE mít
+// jeden fixní billboardKvaternion spočtený jednou při vytvoření scény
+// (jako dřív) — kamera teď mění úhel podle toho, kam hráč jde, takže
+// billboardKvaternion appka přepočítává KAŽDÝ SNÍMEK (zkopírováním
+// camera.quaternion, jednou za snímek, sdílené pro VŠECHNY roviny —
+// pořád žádné per-instance/per-objekt natáčení).
 //
 // Kenney sprity jsou vybrané "nejbližší dostupný vzhled, ne doslovná
 // shoda" (stejná zásada jako Souboj kdysi Robot→Bulwark) — appčin mirror
@@ -52,9 +56,39 @@ import { ARENA_POLOMER } from '../engine/engine'
 // odlišnou paletu už ze samotné kresby, druhá vrstva tónování by ji jen
 // kalila.
 //
-// Kamera je "chase cam" shora a mírně zezadu, sleduje HRÁČE (ne první
-// osoba jako Souboj) — hráč musí vidět nepřátele přicházející ze
-// všech stran, což z první osoby nejde.
+// ANIMACE (appčino "co dál" — zkusit najít animované varianty): stejný
+// Kenney zdroj u většiny monster nabízí i druhou/třetí pózu (chůze,
+// útok, rotace) — appka mezi nimi přepíná, ale VŽDY PER TYP, ne per
+// instanci (jeden InstancedMesh sdílí jednu texturu pro VŠECHNY svoje
+// instance najednou — appka nemá per-instance UV/shader, aby dokázala
+// desynchronizovat chůzi každého jedince zvlášť). Menší věrnost než
+// skutečná chůze, ale poctivý kompromis dané architektuře — celý typ
+// "mrská" pózou najednou, s malým fázovým posunem podle pořadí typu, ať
+// aspoň nemrskají všechny typy současně. shambler (slimeBlock) v appčině
+// Kenney zdroji žádnou druhou pózu nemá — zůstává statický, appka si
+// druhou nevymýšlí. Hráč (Ranger) na animaci naopak DOSTAL skutečný
+// běžecký cyklus (3 snímky, Kenney "Male adventurer" run0-2) — appka ho
+// přepíná podle toho, jestli se hráč mezi snímky doopravdy pohnul, jinak
+// drží klidovou pózu.
+//
+// PROSTŘEDÍ: zem/hriště dostaly procedurálně vygenerovanou plátěnou
+// (CanvasTexture) skvrnitou texturu místo ploché barvy — appčin Kenney
+// mirror nemá žádný skutečně bezešvě opakovatelný trávový/hlínový
+// čtverec (jeho izometrické dlaždice jsou nakreslené jako kosočtverečné
+// "kostky" pro jiný typ kamery a jejich RepeatWrapping na kruhové ploše
+// by ukázal viditelné mezery průhlednosti mezi kachlemi) — appka místo
+// riskování špatně padnoucí textury postavila vlastní, zaručeně
+// bezešvě dlaždicovatelnou (okrajové skvrny se zabalují na protější
+// stranu), stejná "žádná knihovna, appka to umí sama a levně" zásada
+// jako appčiny jiné procedurální efekty (konfety, waveform, admin
+// panelu sloupcové grafy). Stromy/kameny naopak DOSTALY skutečné Kenney
+// sprity (izometrický "Nature Pack" balíček) — jako ploché billboardy,
+// stejnou technikou jako postavy/monstra, jen bez animace (appka
+// přidala i dvě nové odrůdy dekorace navíc — keř a hříbky — a staré
+// ploty jako "ruiny" pro víc rozmanitosti, appčino potvrzené zadání).
+// Obloha dostala měsíc + hvězdné pole (appka nemá skutečný skybox
+// asset, obojí je procedurální — koule/Points, `fog: false`, ať appčina
+// mlha, co končí na ARENA_POLOMER * 2.1, oblohu nepohltí).
 //
 // Health Orb/Potion pickupy (appčino "co ještě zbývá" — engine/engine.ts's
 // vlastní spawnujPickupPodleCasu/sebratPickupy) dostaly stejnou "jeden
@@ -66,36 +100,166 @@ import { ARENA_POLOMER } from '../engine/engine'
 
 const KAPACITA_NA_TYP = 40
 const PICKUP_KAPACITA = 4
-// Strmější, vyšší kamera (skoro shora) + širší zorné pole než v první
-// verzi — appka potřebuje, aby hráč viděl monstra přicházející ze
-// VŠECH stran (bod 3/25 zadání), ne jen v úzkém kuželu před sebou.
-const VYSKA_KAMERY = 15
-const ODSTUP_KAMERY = 3
-const ZORNE_POLE = 68
-const RYCHLOST_KAMERY = 5
+
+// Kamera "přes rameno" — appka sleduje hráče ZEZADU VE SMĚRU POHYBU
+// (appčino potvrzené rozhodnutí), ne shora. Blíž a níž než dřívější
+// kamera shora, ať appka doopravdy vypadá "přes rameno", ne jako
+// izometrický pohled.
+const VYSKA_KAMERY_OTS = 2.7
+const ODSTUP_KAMERY_OTS = 4.5
+const VYSKA_POHLEDU = 1.15
+const DOHLED_DOPREDU = 5.5
+const RYCHLOST_KAMERY_OTS = 6
+const RYCHLOST_NATOCENI = 6
+const ZORNE_POLE_OTS = 62
+// Minimální pohyb za snímek, aby appka vůbec přepočítávala natočení —
+// pod touhle hranicí appka drží POSLEDNÍ známý směr (stejný "dívej se,
+// kam jsi šel, ne kam se náhodou chvěješ" idiom jako appčin Souboj's
+// vlastní natoceni z Fáze 14).
+const PRAH_POHYBU = 0.0015
+// Appka přehazuje běžecké snímky hráče, jen když se mezi snímky
+// doopravdy posunul o víc, než tenhle práh — jinak zůstává na klidové
+// póze (viz `ANIMACE_HRACE_BEH` níž).
+const PRAH_BEHU = 0.003
 
 const MONSTRUM_IDS = Object.keys(MONSTRA)
 
-// Poměr stran (šířka/výška) skutečných stažených PNG — appka je nemůže
-// zjistit synchronně před doběhnutím TextureLoaderu, takže je má
-// napevno změřené předem (viz public/survival/**'s vlastní rozměry).
+// Poměr stran (šířka/výška) SDÍLENÉHO ořezu přes celou animační sadu
+// daného typu (idle + všechny alternativní pózy) — appka NEMĚŘÍ každý
+// PNG zvlášť, protože jednotlivé pózy chůze/útoku mají jinak rozložené
+// končetiny a nezávislý ořez by mezi snímky animace vizuálně "poskočil".
 const POMER_STRAN_MONSTRA: Record<string, number> = {
-  crawler: 71 / 45,
+  crawler: 77 / 53,
   wolf: 63 / 23,
-  bat: 70 / 47,
+  bat: 88 / 47,
   shambler: 51 / 50,
   mage: 63 / 62,
   hunter: 45 / 60,
-  demon: 51 / 57,
+  demon: 51 / 58,
   eater: 51 / 73,
 }
 const POMER_STRAN_BOSS = 53 / 147
-const POMER_STRAN_HRACE = 192 / 256
+const POMER_STRAN_HRACE = 190 / 212
 const VYSKA_HRACE = 1.7
 
 /** Výška billboardu z appčina vlastního `polomer` (kapsle to dřív měla
  *  podobně — poloměr + délka), ne z pixelové velikosti PNG. */
 const vyskaZPolomeru = (polomer: number) => Math.max(0.9, polomer * 3)
+
+/** Kolikrát za sekundu appka přepíná animační snímek — společné pro
+ *  hráče/monstra/bosse, ať appka nemá tři nezávisle vyladěné rychlosti
+ *  pro tři různé věci, které dělají v podstatě totéž. */
+const INTERVAL_ANIMACE_S = 0.28
+
+/** Animační sada NA TYP monstra — appka je přepíná po celé skupině
+ *  instancí najednou (viz vysvětlení nahoře v hlavičce souboru), ne
+ *  per instanci. Typ bez záznamu (shambler) zůstává statický. */
+const ANIMACE_MONSTER: Record<string, string[] | undefined> = {
+  crawler: ['crawler.png', 'crawler_walk1.png', 'crawler_walk2.png'],
+  wolf: ['wolf.png', 'wolf_walk.png'],
+  bat: ['bat.png', 'bat_fly.png'],
+  mage: ['mage.png', 'mage_spin.png'],
+  hunter: ['hunter.png', 'hunter_down.png'],
+  demon: ['demon.png', 'demon_bite.png'],
+  eater: ['eater.png', 'eater_normal.png'],
+}
+const ANIMACE_BOSS = ['boss.png', 'boss_ani.png']
+/** Běžecký cyklus hráče (Kenney "Male adventurer" run0-2) — appka ho
+ *  střídá, jen když se hráč mezi snímky doopravdy posunul (PRAH_BEHU),
+ *  jinak drží klidovou pózu `ranger.png`. */
+const ANIMACE_HRACE_BEH = ['ranger_run0.png', 'ranger_run1.png', 'ranger_run2.png']
+
+/** Který snímek animační sady se má právě zobrazit — appka dává
+ *  každému TYPU malý fázový posun (`offsetS`), ať aspoň netrhají pózu
+ *  všechny typy přesně ve stejném okamžiku. */
+const indexAnimace = (cas: number, offsetS: number, pocetSnimku: number) =>
+  Math.floor((cas + offsetS) / INTERVAL_ANIMACE_S) % Math.max(1, pocetSnimku)
+
+/** Druh dekorace prostředí — appčin Kenney "Isometric Nature" balíček
+ *  (viz public/survival/prostredi/**), vybrané "nejbližší dostupný
+ *  vzhled" (appka nenašla popisky, jen prohlédla vzorek souborů):
+ *  strom_a/b/c tři různé stromy, kamen_a/b dva různé balvany, ker keř,
+ *  houba malá hříbková skupinka, plot pozůstatek starého plotu jako
+ *  "ruina". Váhy určují, jak často se který druh vylosuje — appka chce
+ *  hlavně stromy/kameny (jako dřív), zbytek jen jako doplněk pro víc
+ *  rozmanitosti (appčino potvrzené zadání). */
+interface DruhDekorace {
+  id: string
+  vaha: number
+  vyska: number
+}
+const DRUHY_DEKORACI: DruhDekorace[] = [
+  { id: 'strom_a', vaha: 3, vyska: 3.0 },
+  { id: 'strom_b', vaha: 3, vyska: 3.6 },
+  { id: 'strom_c', vaha: 3, vyska: 3.0 },
+  { id: 'kamen_a', vaha: 2, vyska: 1.3 },
+  { id: 'kamen_b', vaha: 2, vyska: 0.9 },
+  { id: 'ker', vaha: 2, vyska: 1.1 },
+  { id: 'houba', vaha: 1, vyska: 0.5 },
+  { id: 'plot', vaha: 1, vyska: 1.0 },
+]
+const POMER_STRAN_DEKORACI: Record<string, number> = {
+  strom_a: 125 / 248,
+  strom_b: 91 / 304,
+  strom_c: 75 / 243,
+  kamen_a: 56 / 101,
+  kamen_b: 42 / 41,
+  ker: 125 / 171,
+  houba: 31 / 31,
+  plot: 97 / 95,
+}
+const CELKOVA_VAHA_DEKORACI = DRUHY_DEKORACI.reduce((s, d) => s + d.vaha, 0)
+const vyberDruhDekorace = (): DruhDekorace => {
+  let r = Math.random() * CELKOVA_VAHA_DEKORACI
+  for (const d of DRUHY_DEKORACI) {
+    if (r < d.vaha) return d
+    r -= d.vaha
+  }
+  return DRUHY_DEKORACI[0]
+}
+
+/** Procedurální, ZARUČENĚ bezešvě dlaždicovatelná skvrnitá textura —
+ *  appka zabaluje skvrny blízko okraje na protější stranu plátna, ať
+ *  RepeatWrapping nikde neukáže viditelný šev. Stejná "žádná knihovna,
+ *  appka to umí sama" zásada jako appčiny jiné procedurální efekty. */
+const vytvorTexturuSumu = (
+  velikost: number,
+  barvaZakladu: string,
+  barvaSkvrny: string,
+  pocetSkvrn: number
+): THREE.CanvasTexture => {
+  const canvas = document.createElement('canvas')
+  canvas.width = velikost
+  canvas.height = velikost
+  const ctx = canvas.getContext('2d')
+  if (ctx) {
+    ctx.fillStyle = barvaZakladu
+    ctx.fillRect(0, 0, velikost, velikost)
+    ctx.fillStyle = barvaSkvrny
+    for (let i = 0; i < pocetSkvrn; i++) {
+      const x = Math.random() * velikost
+      const y = Math.random() * velikost
+      const r = 1.5 + Math.random() * 5
+      ctx.globalAlpha = 0.12 + Math.random() * 0.26
+      const kresliBod = (ox: number, oy: number) => {
+        ctx.beginPath()
+        ctx.arc(ox, oy, r, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      kresliBod(x, y)
+      if (x < r) kresliBod(x + velikost, y)
+      if (x > velikost - r) kresliBod(x - velikost, y)
+      if (y < r) kresliBod(x, y + velikost)
+      if (y > velikost - r) kresliBod(x, y - velikost)
+    }
+    ctx.globalAlpha = 1
+  }
+  const textura = new THREE.CanvasTexture(canvas)
+  textura.wrapS = THREE.RepeatWrapping
+  textura.wrapT = THREE.RepeatWrapping
+  textura.colorSpace = THREE.SRGBColorSpace
+  return textura
+}
 
 interface UseSurvivalSceneResult {
   containerRef: React.RefObject<HTMLDivElement>
@@ -136,23 +300,28 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     scene.background = new THREE.Color('#050810')
     scene.fog = new THREE.Fog('#050810', ARENA_POLOMER * 0.7, ARENA_POLOMER * 2.1)
 
-    const camera = new THREE.PerspectiveCamera(ZORNE_POLE, container.clientWidth / container.clientHeight, 0.1, 200)
-    camera.position.set(0, VYSKA_KAMERY, ODSTUP_KAMERY)
+    const camera = new THREE.PerspectiveCamera(
+      ZORNE_POLE_OTS,
+      container.clientWidth / container.clientHeight,
+      0.1,
+      200
+    )
 
+    // --- textury: appka sbírá VŠECHNY vytvořené (i procedurální
+    // CanvasTexture) do jednoho pole, ať je při odchodu doopravdy
+    // uvolní — material.dispose() texturu, kterou drží, sám NEuvolní,
+    // to je samostatný krok appka dřív dělala jen pro geometrii/
+    // materiál (viz scene.traverse níž), textury unikaly. ---
+    const vsechnyTextury: THREE.Texture[] = []
     const nacitac = new THREE.TextureLoader()
     const nactiTexturu = (url: string) => {
       const t = nacitac.load(url)
       t.colorSpace = THREE.SRGBColorSpace
+      vsechnyTextury.push(t)
       return t
     }
 
     // --- světla — chladné noční ambientní + teplá záře od "měsíce" ---
-    // Zesíleno oproti první verzi (0.55→1.05 ambientní, přidané měkké
-    // "měsíční" bodové světlo shora) — reálný screenshot z ověřovacího
-    // testu ukázal zem prakticky nerozeznatelnou od pozadí/mlhy, což by
-    // hráči znemožnilo VIDĚT přicházející monstra (bod 25 zadání:
-    // appka nesmí být hůř hratelná kvůli vzhledu, i když je "temná
-    // noc" schválně tmavší téma).
     scene.add(new THREE.AmbientLight('#3d5490', 1.05))
     const mesicniSvetlo = new THREE.DirectionalLight('#c3d4f5', 0.85)
     mesicniSvetlo.position.set(-10, 20, -6)
@@ -160,18 +329,77 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     const mesicniZar = new THREE.HemisphereLight('#5a76c2', '#0d1420', 0.6)
     scene.add(mesicniZar)
 
-    // --- země — tmavá tráva, ale rozeznatelná od pozadí/mlhy ---
+    // --- obloha: měsíc + hvězdné pole (appčino "lepší obloha" — appka
+    // dřív měla jen mlhu a směrové světlo, žádný viditelný zdroj) —
+    // `fog: false` na obojím, appčina mlha končí na ARENA_POLOMER * 2.1
+    // ~= 31.5, měsíc ve vzdálenosti ~60+ by v ní úplně zmizel.
+    //
+    // Appčina kamera "přes rameno" se dívá mírně DOLŮ (hledí z výšky
+    // VYSKA_KAMERY_OTS na bod ve výšce VYSKA_POHLEDU, tj. ~16° pod
+    // vodorovnou rovinu), ne nahoru jako klasický pohled na hvězdy —
+    // appka proto drží měsíc i hvězdy NÍZKO nad obzorem (appčin první
+    // pokus je dal příliš vysoko/blízko zenitu a reálný screenshot je
+    // ukázal úplně mimo zorné pole, appka to opravila podle skutečného
+    // úhlu kamery, ne podle odhadu). ---
+    const mesic = new THREE.Mesh(
+      new THREE.SphereGeometry(4.2, 20, 20),
+      new THREE.MeshBasicMaterial({ color: '#e9edf9', fog: false })
+    )
+    mesic.position.set(-30, 15, -52)
+    scene.add(mesic)
+    const zarMesice = new THREE.PointLight('#c3d4f5', 0.5, 260)
+    zarMesice.position.copy(mesic.position)
+    scene.add(zarMesice)
+
+    const pocetHvezd = 420
+    const poziceHvezd = new Float32Array(pocetHvezd * 3)
+    for (let i = 0; i < pocetHvezd; i++) {
+      const theta = Math.random() * Math.PI * 2
+      const r = 70 + Math.random() * 45
+      const vyska = 8 + Math.random() * 28
+      poziceHvezd[i * 3] = Math.cos(theta) * r
+      poziceHvezd[i * 3 + 1] = vyska
+      poziceHvezd[i * 3 + 2] = Math.sin(theta) * r
+    }
+    const geometrieHvezd = new THREE.BufferGeometry()
+    geometrieHvezd.setAttribute('position', new THREE.BufferAttribute(poziceHvezd, 3))
+    const hvezdy = new THREE.Points(
+      geometrieHvezd,
+      new THREE.PointsMaterial({
+        color: '#eef2ff',
+        // sizeAttenuation: false — appka chce KONSTANTNÍ velikost v
+        // pixelech bez ohledu na vzdálenost (appka se ke hvězdám nikdy
+        // "nepřiblíží", jsou efektivně v nekonečnu); s attenuation by na
+        // appčinu vzdálenost ~70-115 jednotek byly hvězdy pod 1px a
+        // prakticky neviditelné.
+        size: 2.2,
+        sizeAttenuation: false,
+        transparent: true,
+        opacity: 0.85,
+        fog: false,
+      })
+    )
+    scene.add(hvezdy)
+
+    // --- země — procedurální skvrnitá tráva, ne plochá barva; appčin
+    // Kenney mirror nemá bezešvě opakovatelný čtverec (jeho izometrické
+    // dlaždice jsou pro jiný typ kamery, RepeatWrapping by ukázal
+    // mezery), tak appka postavila vlastní ---
+    const texturaZeme = vytvorTexturuSumu(256, '#1c2c1a', '#26401f', 900)
+    texturaZeme.repeat.set(9, 9)
     const zem = new THREE.Mesh(
       new THREE.CircleGeometry(ARENA_POLOMER * 1.4, 48),
-      new THREE.MeshStandardMaterial({ color: '#1c2c1a', roughness: 1 })
+      new THREE.MeshStandardMaterial({ map: texturaZeme, roughness: 1 })
     )
     zem.rotation.x = -Math.PI / 2
     scene.add(zem)
 
-    // --- hrací plocha, o trochu odlišená ---
+    // --- hrací plocha, o trochu odlišená texturou i tónem ---
+    const texturaHriste = vytvorTexturuSumu(256, '#243a24', '#2e4a2c', 700)
+    texturaHriste.repeat.set(6, 6)
     const hriste = new THREE.Mesh(
       new THREE.CircleGeometry(ARENA_POLOMER, 48),
-      new THREE.MeshStandardMaterial({ color: '#243a24', roughness: 1 })
+      new THREE.MeshStandardMaterial({ map: texturaHriste, roughness: 1 })
     )
     hriste.rotation.x = -Math.PI / 2
     hriste.position.y = 0.01
@@ -186,46 +414,45 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     hranice.position.y = 0.02
     scene.add(hranice)
 
-    // --- dekorace: stromy/kameny rozeseté kolem, mlha/ohniště/hřbitov
-    // pro atmosféru "temného nočního lesa" (bod 5 zadání) ---
+    // --- dekorace: skutečné texturované billboardy (Kenney "Isometric
+    // Nature"), ne primitivní geometrie — appka drží JEDNU geometrii a
+    // JEDEN materiál na DRUH dekorace (8 druhů), sdílené přes všechny
+    // instance toho druhu; billboardové natočení celé SKUPINY appka
+    // řeší jedním kvaternionem za snímek (`dekorace.quaternion`), ne
+    // per objekt (viz krok() níž). ---
     const dekorace = new THREE.Group()
     scene.add(dekorace)
+    const geometrieDekoraci: Record<string, THREE.PlaneGeometry> = {}
+    const materialyDekoraci: Record<string, THREE.MeshBasicMaterial> = {}
+    for (const druh of DRUHY_DEKORACI) {
+      const sirka = druh.vyska * (POMER_STRAN_DEKORACI[druh.id] ?? 1)
+      geometrieDekoraci[druh.id] = new THREE.PlaneGeometry(sirka, druh.vyska)
+      materialyDekoraci[druh.id] = new THREE.MeshBasicMaterial({
+        map: nactiTexturu(`/survival/prostredi/${druh.id}.png`),
+        transparent: false,
+        alphaTest: 0.5,
+        side: THREE.DoubleSide,
+      })
+    }
     const POCET_DEKORACI = 60
     for (let i = 0; i < POCET_DEKORACI; i++) {
       const uhel = Math.random() * Math.PI * 2
       const polomer = ARENA_POLOMER * (0.75 + Math.random() * 0.6)
       const x = Math.cos(uhel) * polomer
       const z = Math.sin(uhel) * polomer
-      const jeStrom = Math.random() > 0.3
+      const druh = vyberDruhDekorace()
+      const mesh = new THREE.Mesh(geometrieDekoraci[druh.id], materialyDekoraci[druh.id])
+      mesh.position.y = druh.vyska / 2
+      if (Math.random() < 0.5) mesh.scale.x = -1
       const skupina = new THREE.Group()
-
-      if (jeStrom) {
-        const kmen = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.14, 0.2, 1.6, 6),
-          new THREE.MeshStandardMaterial({ color: '#241a12', roughness: 1 })
-        )
-        kmen.position.y = 0.8
-        const koruna = new THREE.Mesh(
-          new THREE.ConeGeometry(1.0, 2.2, 7),
-          new THREE.MeshStandardMaterial({ color: '#122616', roughness: 0.95 })
-        )
-        koruna.position.y = 2.4
-        skupina.add(kmen, koruna)
-      } else {
-        const kamen = new THREE.Mesh(
-          new THREE.DodecahedronGeometry(0.4 + Math.random() * 0.35),
-          new THREE.MeshStandardMaterial({ color: '#2b2f38', roughness: 1 })
-        )
-        kamen.position.y = 0.3
-        kamen.rotation.set(Math.random(), Math.random(), Math.random())
-        skupina.add(kamen)
-      }
-
+      skupina.add(mesh)
       skupina.position.set(x, 0, z)
       dekorace.add(skupina)
     }
 
-    // --- malé ohniště blízko okraje hřiště — teplá bodová záře ---
+    // --- malé ohniště blízko okraje hřiště — teplá bodová záře
+    // (skutečná 3D geometrie, ne billboard — kužel plamene vypadá
+    // správně z libovolného úhlu, nemusí appka natáčet ke kameře) ---
     const ohniste = new THREE.Group()
     const ohnistePlamen = new THREE.Mesh(
       new THREE.ConeGeometry(0.28, 0.6, 8),
@@ -236,7 +463,8 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     ohniste.position.set(ARENA_POLOMER * 0.55, 0, ARENA_POLOMER * 0.3)
     scene.add(ohniste)
 
-    // --- pár náhrobků (hřbitov) opodál na druhé straně ---
+    // --- pár náhrobků (hřbitov) opodál na druhé straně — stejným
+    // důvodem jako ohniště zůstávají skutečná 3D geometrie ---
     const hrbitov = new THREE.Group()
     for (let i = 0; i < 5; i++) {
       const nahrobek = new THREE.Mesh(
@@ -250,37 +478,52 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     hrbitov.position.set(-ARENA_POLOMER * 0.5, 0, -ARENA_POLOMER * 0.45)
     scene.add(hrbitov)
 
-    // --- hráč — texturovaný billboard (Kenney "Toon Characters",
-    // Male adventurer), point light zůstává pro atmosféru kolem hráče ---
+    // --- hráč — texturovaný billboard (Kenney "Toon Characters", Male
+    // adventurer) se skutečným běžeckým cyklem (3 snímky), point light
+    // zůstává pro atmosféru kolem hráče ---
     const hracVyska = VYSKA_HRACE
     const hracSirka = hracVyska * POMER_STRAN_HRACE
+    const hracTexturaIdle = nactiTexturu('/survival/postava/ranger.png')
+    const hracTexturyBeh = ANIMACE_HRACE_BEH.map((f) => nactiTexturu(`/survival/postava/${f}`))
+    const hracMaterial = new THREE.MeshBasicMaterial({
+      map: hracTexturaIdle,
+      transparent: false,
+      alphaTest: 0.5,
+      side: THREE.DoubleSide,
+    })
     const hracSkupina = new THREE.Group()
-    const hracTelo = new THREE.Mesh(
-      new THREE.PlaneGeometry(hracSirka, hracVyska),
-      new THREE.MeshBasicMaterial({
-        map: nactiTexturu('/survival/postava/ranger.png'),
-        transparent: false,
-        alphaTest: 0.5,
-        side: THREE.DoubleSide,
-      })
-    )
+    const hracTelo = new THREE.Mesh(new THREE.PlaneGeometry(hracSirka, hracVyska), hracMaterial)
     hracTelo.position.y = hracVyska / 2
     hracSkupina.add(hracTelo, new THREE.PointLight('#35c4f0', 1.1, 5))
     scene.add(hracSkupina)
 
     // --- nepřátelé: 1 InstancedMesh na typ, kapacita KAPACITA_NA_TYP —
-    // geometrie i textura jsou teď per-typ (poměr stran skutečné PNG),
-    // ne jedna sdílená kapsle obarvená podle MonstrumDef.barva ---
+    // geometrie i výchozí textura jsou per-typ (poměr stran sdíleného
+    // ořezu animační sady); appka navíc pro typy s ANIMACE_MONSTER
+    // předem načte VŠECHNY snímky a v krok() celý InstancedMesh (celou
+    // skupinu instancí najednou, ne po jedné) přepíná mezi nimi ---
     const instanceNepratel: Record<string, THREE.InstancedMesh> = {}
     const vyskaNepratel: Record<string, number> = {}
-    for (const id of MONSTRUM_IDS) {
+    const texturyAnimaceMonster: Record<string, THREE.Texture[]> = {}
+    MONSTRUM_IDS.forEach((id) => {
       const def = MONSTRA[id as keyof typeof MONSTRA]
       const vyska = vyskaZPolomeru(def.polomer)
       const sirka = vyska * (POMER_STRAN_MONSTRA[id] ?? 1)
       vyskaNepratel[id] = vyska
       const geometrie = new THREE.PlaneGeometry(sirka, vyska)
+
+      const snimky = ANIMACE_MONSTER[id]
+      let uvodniTextura: THREE.Texture
+      if (snimky) {
+        const textury = snimky.map((f) => nactiTexturu(`/survival/monstra/${f}`))
+        texturyAnimaceMonster[id] = textury
+        uvodniTextura = textury[0]
+      } else {
+        uvodniTextura = nactiTexturu(`/survival/monstra/${id}.png`)
+      }
+
       const material = new THREE.MeshBasicMaterial({
-        map: nactiTexturu(`/survival/monstra/${id}.png`),
+        map: uvodniTextura,
         transparent: false,
         alphaTest: 0.5,
         side: THREE.DoubleSide,
@@ -289,37 +532,44 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
       mesh.count = 0
       scene.add(mesh)
       instanceNepratel[id] = mesh
-    }
+    })
 
-    // --- boss — samostatný, výrazně větší billboard (vždycky jen jeden) ---
+    // --- boss — samostatný, výrazně větší billboard (vždycky jen
+    // jeden), taky se dvěma animačními snímky ---
     const bossVyska = 3.9
     const bossSirka = bossVyska * POMER_STRAN_BOSS
-    const bossMesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(bossSirka, bossVyska),
-      new THREE.MeshBasicMaterial({
-        map: nactiTexturu('/survival/monstra/boss.png'),
-        transparent: false,
-        alphaTest: 0.5,
-        side: THREE.DoubleSide,
-      })
-    )
+    const bossTextury = ANIMACE_BOSS.map((f) => nactiTexturu(`/survival/monstra/${f}`))
+    const bossMaterial = new THREE.MeshBasicMaterial({
+      map: bossTextury[0],
+      transparent: false,
+      alphaTest: 0.5,
+      side: THREE.DoubleSide,
+    })
+    const bossMesh = new THREE.Mesh(new THREE.PlaneGeometry(bossSirka, bossVyska), bossMaterial)
     bossMesh.visible = false
     const bossHalo = new THREE.PointLight('#ef4444', 1.8, 10)
     bossHalo.visible = false
     scene.add(bossMesh, bossHalo)
 
-    // --- billboard — appčina kamera nikdy neobíhá kolem hráče (jen ho
-    // sleduje shora/zezadu ve FIXNÍM úhlu), takže appka nepočítá
-    // natočení ke kameře zvlášť pro každou instanci/snímek — jeden
-    // společný kvaternion, spočtený jednou předem, natočí VŠECHNY
-    // roviny (hráč/nepřátelé/boss) čelem ke kameře napořád. ---
-    const billboardPomocnik = new THREE.Object3D()
-    billboardPomocnik.lookAt(0, -VYSKA_KAMERY, -ODSTUP_KAMERY)
-    const billboardKvaternion = billboardPomocnik.quaternion.clone()
+    // --- billboard — kvaternion se teď přepočítává KAŽDÝ snímek
+    // (zkopírováním camera.quaternion, viz krok()), protože appčina
+    // kamera "přes rameno" mění úhel podle toho, kam hráč jde. Appka
+    // ale pořád drží JEDEN sdílený THREE.Quaternion (ne nový objekt za
+    // snímek/instanci) a jen ho v krok() přepisuje — hodnota pro úplně
+    // první snímek (než vůbec existuje stav) odpovídá výchozímu směru
+    // pohledu appka nastavuje kameře hned pod tím. ---
+    const billboardKvaternion = new THREE.Quaternion()
+    camera.position.set(0, VYSKA_KAMERY_OTS, ODSTUP_KAMERY_OTS)
+    camera.lookAt(0, VYSKA_POHLEDU, -DOHLED_DOPREDU)
+    billboardKvaternion.copy(camera.quaternion)
     hracTelo.quaternion.copy(billboardKvaternion)
     bossMesh.quaternion.copy(billboardKvaternion)
+    dekorace.quaternion.copy(billboardKvaternion)
 
-    // --- pickupy (Health Orb/Potion) — malé zářící koule, 1 InstancedMesh na typ ---
+    // --- pickupy (Health Orb/Potion) — malé zářící koule, 1 InstancedMesh
+    // na typ; appka je NEBILLBOARDUJE, sféra vypadá stejně z libovolného
+    // úhlu ---
+    const kvaternionIdentita = new THREE.Quaternion()
     const geometriePickup = new THREE.SphereGeometry(0.3, 12, 12)
     const materialOrb = new THREE.MeshStandardMaterial({ color: '#22c55e', emissive: '#22c55e', emissiveIntensity: 1.2 })
     const materialLektvar = new THREE.MeshStandardMaterial({ color: '#a855f7', emissive: '#a855f7', emissiveIntensity: 1.2 })
@@ -345,10 +595,12 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     let bezi = true
     const hodiny = new THREE.Clock()
     const matice = new THREE.Matrix4()
-    const kvaternion = new THREE.Quaternion()
     const meritko = new THREE.Vector3(1, 1, 1)
     let posledniHracX = 0
+    let posledniHracZ = 0
     let smerHrace = 1
+    let smerFacingX = 0
+    let smerFacingZ = -1
 
     const krok = () => {
       if (!bezi) return
@@ -358,21 +610,62 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
       const stav = stavRef.current
 
       if (stav) {
-        // --- hráč ---
+        // --- hráč: pozice + odvození směru pohledu ---
         hracSkupina.position.x = stav.hrac.pozice.x
         hracSkupina.position.z = stav.hrac.pozice.z
 
-        // Billboard místo natáčení k pohybu (appka teď má texturovanou
-        // rovinu, ne kapsli) — appka jen zrcadlí šířku podle směru
-        // pohybu (mrtvá zóna 0.01, ať se hráč netřepe při nulovém
-        // pohybu na hranici zaokrouhlení), zbytek řeší sdílený
-        // billboardKvaternion nastavený jednou při vytvoření.
         const dx = stav.hrac.pozice.x - posledniHracX
-        if (Math.abs(dx) > 0.01) smerHrace = dx < 0 ? -1 : 1
+        const dz = stav.hrac.pozice.z - posledniHracZ
         posledniHracX = stav.hrac.pozice.x
+        posledniHracZ = stav.hrac.pozice.z
+        const delkaPohybu = Math.hypot(dx, dz)
+
+        if (delkaPohybu > PRAH_POHYBU) {
+          if (Math.abs(dx) > 0.005) smerHrace = dx < 0 ? -1 : 1
+          const cilX = dx / delkaPohybu
+          const cilZ = dz / delkaPohybu
+          const lerpN = Math.min(1, RYCHLOST_NATOCENI * dt)
+          smerFacingX += (cilX - smerFacingX) * lerpN
+          smerFacingZ += (cilZ - smerFacingZ) * lerpN
+          const delkaSmeru = Math.hypot(smerFacingX, smerFacingZ) || 1
+          smerFacingX /= delkaSmeru
+          smerFacingZ /= delkaSmeru
+        }
+        // Jinak appka drží poslední smerFacingX/Z beze změny — "dívej
+        // se, kam jsi šel", stejný idiom jako appčin Souboj.
+
+        // --- kamera "přes rameno": pozice za hráčem podle jeho směru
+        // pohledu (plynule dolerpovaná), pohled kus PŘED hráče ---
+        const cilKamX = hracSkupina.position.x - smerFacingX * ODSTUP_KAMERY_OTS
+        const cilKamZ = hracSkupina.position.z - smerFacingZ * ODSTUP_KAMERY_OTS
+        const lerpK = Math.min(1, RYCHLOST_KAMERY_OTS * dt)
+        camera.position.x += (cilKamX - camera.position.x) * lerpK
+        camera.position.z += (cilKamZ - camera.position.z) * lerpK
+        camera.position.y = VYSKA_KAMERY_OTS
+        const cilPohleduX = hracSkupina.position.x + smerFacingX * DOHLED_DOPREDU
+        const cilPohleduZ = hracSkupina.position.z + smerFacingZ * DOHLED_DOPREDU
+        camera.lookAt(cilPohleduX, VYSKA_POHLEDU, cilPohleduZ)
+
+        // Billboard se přepočítává TADY, jednou za snímek, ne per
+        // instanci — appka jen zkopíruje aktuální natočení kamery a
+        // použije ho pro VŠECHNY roviny níž (hráč/nepřátelé/boss/
+        // dekorace), protože appčina kamera teď dynamicky mění úhel.
+        billboardKvaternion.copy(camera.quaternion)
+
+        // Běžecký cyklus, jen když se hráč doopravdy pohnul.
+        const chtenaTexturaHrace =
+          delkaPohybu > PRAH_BEHU
+            ? hracTexturyBeh[indexAnimace(cas, 0, hracTexturyBeh.length)]
+            : hracTexturaIdle
+        if (hracMaterial.map !== chtenaTexturaHrace) {
+          hracMaterial.map = chtenaTexturaHrace
+          hracMaterial.needsUpdate = true
+        }
 
         const pulzHrace = klidnyRezim ? 1 : 1 + Math.sin(cas * 5) * 0.04
         hracTelo.scale.set(smerHrace * pulzHrace, pulzHrace, 1)
+        hracTelo.quaternion.copy(billboardKvaternion)
+        dekorace.quaternion.copy(billboardKvaternion)
 
         // --- nepřátelé podle typu ---
         const podleTypu: Record<string, typeof stav.aktivniNepratele> = {}
@@ -387,31 +680,43 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
           if (podleTypu[nepritel.defId]) podleTypu[nepritel.defId].push(nepritel)
         }
 
-        for (const id of MONSTRUM_IDS) {
+        MONSTRUM_IDS.forEach((id, typIndex) => {
           const mesh = instanceNepratel[id]
           const seznam = podleTypu[id].slice(0, KAPACITA_NA_TYP)
           mesh.count = seznam.length
+
+          const snimky = texturyAnimaceMonster[id]
+          if (snimky && seznam.length > 0) {
+            const chtenaTextura = snimky[indexAnimace(cas, typIndex * 0.37, snimky.length)]
+            const material = mesh.material as THREE.MeshBasicMaterial
+            if (material.map !== chtenaTextura) {
+              material.map = chtenaTextura
+              material.needsUpdate = true
+            }
+          }
+
           const zakladniY = vyskaNepratel[id] / 2
           seznam.forEach((n, i) => {
             const houpani = klidnyRezim ? 0 : Math.sin(cas * 6 + i) * 0.05
-            matice.compose(
-              new THREE.Vector3(n.pozice.x, zakladniY + houpani, n.pozice.z),
-              billboardKvaternion,
-              meritko
-            )
+            matice.compose(new THREE.Vector3(n.pozice.x, zakladniY + houpani, n.pozice.z), billboardKvaternion, meritko)
             mesh.setMatrixAt(i, matice)
           })
           mesh.instanceMatrix.needsUpdate = true
-        }
+        })
 
         if (boss) {
           bossMesh.visible = true
           bossHalo.visible = true
           bossMesh.position.set(boss.pozice.x, bossVyska / 2, boss.pozice.z)
           bossHalo.position.set(boss.pozice.x, bossVyska * 0.3, boss.pozice.z)
-          // Rotace kolem Y neměla u ploché roviny (billboard, ne
-          // icosahedron jako dřív) žádný smysl — plamínek "dýchání"
-          // přes měřítko zůstal, stejně jako u hráče.
+          bossMesh.quaternion.copy(billboardKvaternion)
+
+          const chtenaTexturaBoss = bossTextury[indexAnimace(cas, 0, bossTextury.length)]
+          if (bossMaterial.map !== chtenaTexturaBoss) {
+            bossMaterial.map = chtenaTexturaBoss
+            bossMaterial.needsUpdate = true
+          }
+
           if (!klidnyRezim) {
             bossMesh.scale.setScalar(1 + Math.sin(cas * 3) * 0.05)
           }
@@ -427,26 +732,17 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
         meshOrb.count = orby.length
         orby.forEach((p, i) => {
           const houpani = klidnyRezim ? 0 : Math.sin(cas * 3 + i) * 0.15
-          matice.compose(new THREE.Vector3(p.pozice.x, 0.6 + houpani, p.pozice.z), kvaternion, meritko)
+          matice.compose(new THREE.Vector3(p.pozice.x, 0.6 + houpani, p.pozice.z), kvaternionIdentita, meritko)
           meshOrb.setMatrixAt(i, matice)
         })
         meshOrb.instanceMatrix.needsUpdate = true
         meshLektvar.count = lektvary.length
         lektvary.forEach((p, i) => {
           const houpani = klidnyRezim ? 0 : Math.sin(cas * 3 + i) * 0.15
-          matice.compose(new THREE.Vector3(p.pozice.x, 0.6 + houpani, p.pozice.z), kvaternion, meritko)
+          matice.compose(new THREE.Vector3(p.pozice.x, 0.6 + houpani, p.pozice.z), kvaternionIdentita, meritko)
           meshLektvar.setMatrixAt(i, matice)
         })
         meshLektvar.instanceMatrix.needsUpdate = true
-
-        // --- kamera sleduje hráče shora/zezadu ---
-        const cilKamX = hracSkupina.position.x
-        const cilKamZ = hracSkupina.position.z + ODSTUP_KAMERY
-        const lerpK = Math.min(1, RYCHLOST_KAMERY * dt)
-        camera.position.x += (cilKamX - camera.position.x) * lerpK
-        camera.position.z += (cilKamZ - camera.position.z) * lerpK
-        camera.position.y = VYSKA_KAMERY
-        camera.lookAt(hracSkupina.position.x, 0.6, hracSkupina.position.z)
       }
 
       renderer.render(scene, camera)
@@ -465,6 +761,9 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
         if (Array.isArray(material)) material.forEach((m) => m.dispose())
         else material?.dispose()
       })
+      vsechnyTextury.forEach((t) => t.dispose())
+      texturaZeme.dispose()
+      texturaHriste.dispose()
 
       renderer.dispose()
       renderer.domElement.remove()
