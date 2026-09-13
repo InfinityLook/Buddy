@@ -27,17 +27,44 @@ import { ARENA_POLOMER } from '../engine/engine'
 // vlastního obsahu, protože by pak postava mezi snímky animace mírně
 // "poskočila", jak se u chůze mění rozpětí končetin).
 //
-// KAMERA JE "PŘES RAMENO", NE SHORA A NE PRVNÍ OSOBA (appčino
-// AskUserQuestion rozhodnutí) — appka drží kompromis mezi třemi
-// nabídnutými možnostmi: hráč vidí sám sebe (na rozdíl od skutečné
-// první osoby) a kus prostoru před sebou, ale ne 360° kolem jako u
-// dřívější kamery shora — monstrum mimo zorný úhel prostě není vidět,
-// dokud se k němu appka/hráč nenatočí. Kvůli tomu appka NEMŮŽE mít
-// jeden fixní billboardKvaternion spočtený jednou při vytvoření scény
-// (jako dřív) — kamera teď mění úhel podle toho, kam hráč jde, takže
-// billboardKvaternion appka přepočítává KAŽDÝ SNÍMEK (zkopírováním
-// camera.quaternion, jednou za snímek, sdílené pro VŠECHNY roviny —
-// pořád žádné per-instance/per-objekt natáčení).
+// KAMERA JE SKUTEČNÁ PRVNÍ OSOBA — appčina dřívější "přes rameno"
+// (viz předchozí verze tohohle souboru/CLAUDE.md) byla appčino vlastní
+// AskUserQuestion rozhodnutí, ale uživatel ji po vyzkoušení přímo
+// odmítl ("ovládání hry je na prd... kamera taky radši ať viděl z
+// první osoby") — appka se tentokrát NEPTALA přes AskUserQuestion,
+// žádost byla jednoznačná, rovnou to opravila. Kamera sedí PŘESNĚ
+// v hráčově pozici ve výšce očí (VYSKA_OCI), žádné odsazení dozadu ani
+// lerp na POZICI kamery — appka ji nechává BÝT hráčovýma očima, ne
+// kamerou, co ho z dálky sleduje a dohání. appčino vlastní tělo appka
+// proto vůbec nevykresluje (stejná "v první osobě nevidíš sám sebe"
+// zásada jako appčin Souboj's vlastní Fáze 10) — zůstává jen bodové
+// světlo kolem hráče jako osobní "záře" v tmavém lese.
+//
+// Skutečná oprava "joystick jako pohyb" (appčina druhá výtka) NENÍ ve
+// vstupu samotném (VirtualniJoystick.tsx appka nezměnila — jeho x/z
+// výstup je správně normalizovaný, appka ho ověřila proti tomu, jak
+// stejnou komponentu používá game/explorace/usePlayerWorld.ts) ani
+// v tom, JAK engine vstup aplikuje (pořád přímo na světovou pozici,
+// beze změny, viz engine.ts's krokHry) — je v tom, jak POMALU appčina
+// kamera/natočení dohánělo směr, kterým se hráč zrovna hýbe. Appka
+// odvozuje natočení z poziční delty pohybu (dx/dz mezi snímky), ne
+// z čistého vstupu, a dřívější pomalý lerp (RYCHLOST_NATOCENI = 6,
+// plné otočení ~0.4-0.6s) znamenal, že se natočení "dohání" za
+// pohybem, který appčin engine aplikuje OKAMŽITĚ (appka nemá
+// setrvačnost pohybu) — appka tak viděla jinam, než doopravdy šla, po
+// dobu, než se kamera dotočila. V "přes rameno" to vypadalo jako
+// plovoucí zpoždění, v první osobě (appka nemá druhý, tažením
+// ovládaný pohled — jen jeden joystick) by to byl doslova pocit
+// "appka jde jinam, než se dívá", což appka opravila zrychlením
+// natáčení skoro na okamžité (RYCHLOST_NATOCENI = 24, plné otočení za
+// pár snímků) — appka ho nenechala doslova nulové, ať appka nemá
+// robotické "cuknutí" při každé změně směru, ale žádné znatelné
+// zpoždění mezi pohybem a pohledem už zůstat nesmí.
+//
+// billboardKvaternion appka POŘÁD přepočítává KAŽDÝ SNÍMEK
+// (zkopírováním camera.quaternion) — appčina kamera se pořád otáčí
+// podle toho, kam hráč jde, jen teď sedí přímo v jeho pozici místo
+// za ním.
 //
 // Kenney sprity jsou vybrané "nejbližší dostupný vzhled, ne doslovná
 // shoda" (stejná zásada jako Souboj kdysi Robot→Bulwark) — appčin mirror
@@ -66,10 +93,13 @@ import { ARENA_POLOMER } from '../engine/engine'
 // "mrská" pózou najednou, s malým fázovým posunem podle pořadí typu, ať
 // aspoň nemrskají všechny typy současně. shambler (slimeBlock) v appčině
 // Kenney zdroji žádnou druhou pózu nemá — zůstává statický, appka si
-// druhou nevymýšlí. Hráč (Ranger) na animaci naopak DOSTAL skutečný
-// běžecký cyklus (3 snímky, Kenney "Male adventurer" run0-2) — appka ho
-// přepíná podle toho, jestli se hráč mezi snímky doopravdy pohnul, jinak
-// drží klidovou pózu.
+// druhou nevymýšlí. Hráč (Ranger) svůj běžecký cyklus (3 snímky, Kenney
+// "Male adventurer" run0-2) po přechodu na první osobu ztratil úplně —
+// appka appčino vlastní tělo vůbec nevykresluje (viz komentář u kamery
+// výš), takže ranger*.png soubory zůstávají na disku nepoužité, appka
+// je nemazala (appka je klidně může znovu potřebovat, vrátí-li se
+// někdy appka k třetí osobě — stejná "nech nepoužité pro budoucí
+// návrat" zásada jako appčiny jiné mrtvé CSS třídy jinde v appce).
 //
 // PROSTŘEDÍ: zem/hriště dostaly procedurálně vygenerovanou plátěnou
 // (CanvasTexture) skvrnitou texturu místo ploché barvy — appčin Kenney
@@ -101,26 +131,23 @@ import { ARENA_POLOMER } from '../engine/engine'
 const KAPACITA_NA_TYP = 40
 const PICKUP_KAPACITA = 4
 
-// Kamera "přes rameno" — appka sleduje hráče ZEZADU VE SMĚRU POHYBU
-// (appčino potvrzené rozhodnutí), ne shora. Blíž a níž než dřívější
-// kamera shora, ať appka doopravdy vypadá "přes rameno", ne jako
-// izometrický pohled.
-const VYSKA_KAMERY_OTS = 2.7
-const ODSTUP_KAMERY_OTS = 4.5
-const VYSKA_POHLEDU = 1.15
+// Kamera v první osobě — appka ji drží PŘESNĚ v hráčově pozici ve
+// výšce očí, žádné odsazení dozadu ani samostatná rychlost pro pozici
+// kamery (viz komentář v hlavičce souboru).
+const VYSKA_OCI = 1.55
 const DOHLED_DOPREDU = 5.5
-const RYCHLOST_KAMERY_OTS = 6
-const RYCHLOST_NATOCENI = 6
-const ZORNE_POLE_OTS = 62
+// Appka natáčení zrychlila ze 6 (appčina dřívější "přes rameno"
+// hodnota, plné otočení ~0.4-0.6s) na 24 (plné otočení za pár snímků)
+// — appka natočení chce prakticky OKAMŽITÉ, protože zpoždění mezi
+// "kam appka jde" a "kam appka vidí" je přesně to, na co si uživatel
+// stěžoval (viz komentář v hlavičce souboru).
+const RYCHLOST_NATOCENI = 24
+const ZORNE_POLE_FPS = 70
 // Minimální pohyb za snímek, aby appka vůbec přepočítávala natočení —
 // pod touhle hranicí appka drží POSLEDNÍ známý směr (stejný "dívej se,
 // kam jsi šel, ne kam se náhodou chvěješ" idiom jako appčin Souboj's
 // vlastní natoceni z Fáze 14).
 const PRAH_POHYBU = 0.0015
-// Appka přehazuje běžecké snímky hráče, jen když se mezi snímky
-// doopravdy posunul o víc, než tenhle práh — jinak zůstává na klidové
-// póze (viz `ANIMACE_HRACE_BEH` níž).
-const PRAH_BEHU = 0.003
 
 const MONSTRUM_IDS = Object.keys(MONSTRA)
 
@@ -139,8 +166,6 @@ const POMER_STRAN_MONSTRA: Record<string, number> = {
   eater: 51 / 73,
 }
 const POMER_STRAN_BOSS = 53 / 147
-const POMER_STRAN_HRACE = 190 / 212
-const VYSKA_HRACE = 1.7
 
 /** Výška billboardu z appčina vlastního `polomer` (kapsle to dřív měla
  *  podobně — poloměr + délka), ne z pixelové velikosti PNG. */
@@ -164,10 +189,6 @@ const ANIMACE_MONSTER: Record<string, string[] | undefined> = {
   eater: ['eater.png', 'eater_normal.png'],
 }
 const ANIMACE_BOSS = ['boss.png', 'boss_ani.png']
-/** Běžecký cyklus hráče (Kenney "Male adventurer" run0-2) — appka ho
- *  střídá, jen když se hráč mezi snímky doopravdy posunul (PRAH_BEHU),
- *  jinak drží klidovou pózu `ranger.png`. */
-const ANIMACE_HRACE_BEH = ['ranger_run0.png', 'ranger_run1.png', 'ranger_run2.png']
 
 /** Který snímek animační sady se má právě zobrazit — appka dává
  *  každému TYPU malý fázový posun (`offsetS`), ať aspoň netrhají pózu
@@ -301,7 +322,7 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     scene.fog = new THREE.Fog('#050810', ARENA_POLOMER * 0.7, ARENA_POLOMER * 2.1)
 
     const camera = new THREE.PerspectiveCamera(
-      ZORNE_POLE_OTS,
+      ZORNE_POLE_FPS,
       container.clientWidth / container.clientHeight,
       0.1,
       200
@@ -334,13 +355,13 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     // `fog: false` na obojím, appčina mlha končí na ARENA_POLOMER * 2.1
     // ~= 31.5, měsíc ve vzdálenosti ~60+ by v ní úplně zmizel.
     //
-    // Appčina kamera "přes rameno" se dívá mírně DOLŮ (hledí z výšky
-    // VYSKA_KAMERY_OTS na bod ve výšce VYSKA_POHLEDU, tj. ~16° pod
-    // vodorovnou rovinu), ne nahoru jako klasický pohled na hvězdy —
-    // appka proto drží měsíc i hvězdy NÍZKO nad obzorem (appčin první
-    // pokus je dal příliš vysoko/blízko zenitu a reálný screenshot je
-    // ukázal úplně mimo zorné pole, appka to opravila podle skutečného
-    // úhlu kamery, ne podle odhadu). ---
+    // Appčina kamera v první osobě se dívá VODOROVNĚ (žádný náklon
+    // dolů jako dřívější "přes rameno") — appka proto drží měsíc
+    // i hvězdy NÍZKO nad obzorem (appčin první pokus je dal příliš
+    // vysoko/blízko zenitu a reálný screenshot je ukázal úplně mimo
+    // zorné pole, appka to opravila podle skutečného úhlu kamery, ne
+    // podle odhadu) — appka to při přechodu na první osobu znovu
+    // ověřila screenshotem, ne jen dopočítala. ---
     const mesic = new THREE.Mesh(
       new THREE.SphereGeometry(4.2, 20, 20),
       new THREE.MeshBasicMaterial({ color: '#e9edf9', fog: false })
@@ -478,23 +499,12 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     hrbitov.position.set(-ARENA_POLOMER * 0.5, 0, -ARENA_POLOMER * 0.45)
     scene.add(hrbitov)
 
-    // --- hráč — texturovaný billboard (Kenney "Toon Characters", Male
-    // adventurer) se skutečným běžeckým cyklem (3 snímky), point light
-    // zůstává pro atmosféru kolem hráče ---
-    const hracVyska = VYSKA_HRACE
-    const hracSirka = hracVyska * POMER_STRAN_HRACE
-    const hracTexturaIdle = nactiTexturu('/survival/postava/ranger.png')
-    const hracTexturyBeh = ANIMACE_HRACE_BEH.map((f) => nactiTexturu(`/survival/postava/${f}`))
-    const hracMaterial = new THREE.MeshBasicMaterial({
-      map: hracTexturaIdle,
-      transparent: false,
-      alphaTest: 0.5,
-      side: THREE.DoubleSide,
-    })
+    // --- hráč — v první osobě appka vlastní tělo vůbec nevykresluje
+    // (kamera sedí přímo v jeho pozici, viz komentář v hlavičce
+    // souboru) — zůstává jen bodové světlo jako osobní "záře" kolem
+    // hráče ---
     const hracSkupina = new THREE.Group()
-    const hracTelo = new THREE.Mesh(new THREE.PlaneGeometry(hracSirka, hracVyska), hracMaterial)
-    hracTelo.position.y = hracVyska / 2
-    hracSkupina.add(hracTelo, new THREE.PointLight('#35c4f0', 1.1, 5))
+    hracSkupina.add(new THREE.PointLight('#35c4f0', 1.1, 5))
     scene.add(hracSkupina)
 
     // --- nepřátelé: 1 InstancedMesh na typ, kapacita KAPACITA_NA_TYP —
@@ -559,10 +569,9 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     // první snímek (než vůbec existuje stav) odpovídá výchozímu směru
     // pohledu appka nastavuje kameře hned pod tím. ---
     const billboardKvaternion = new THREE.Quaternion()
-    camera.position.set(0, VYSKA_KAMERY_OTS, ODSTUP_KAMERY_OTS)
-    camera.lookAt(0, VYSKA_POHLEDU, -DOHLED_DOPREDU)
+    camera.position.set(0, VYSKA_OCI, 0)
+    camera.lookAt(0, VYSKA_OCI, -DOHLED_DOPREDU)
     billboardKvaternion.copy(camera.quaternion)
-    hracTelo.quaternion.copy(billboardKvaternion)
     bossMesh.quaternion.copy(billboardKvaternion)
     dekorace.quaternion.copy(billboardKvaternion)
 
@@ -598,7 +607,6 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     const meritko = new THREE.Vector3(1, 1, 1)
     let posledniHracX = 0
     let posledniHracZ = 0
-    let smerHrace = 1
     let smerFacingX = 0
     let smerFacingZ = -1
 
@@ -621,7 +629,6 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
         const delkaPohybu = Math.hypot(dx, dz)
 
         if (delkaPohybu > PRAH_POHYBU) {
-          if (Math.abs(dx) > 0.005) smerHrace = dx < 0 ? -1 : 1
           const cilX = dx / delkaPohybu
           const cilZ = dz / delkaPohybu
           const lerpN = Math.min(1, RYCHLOST_NATOCENI * dt)
@@ -634,37 +641,23 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
         // Jinak appka drží poslední smerFacingX/Z beze změny — "dívej
         // se, kam jsi šel", stejný idiom jako appčin Souboj.
 
-        // --- kamera "přes rameno": pozice za hráčem podle jeho směru
-        // pohledu (plynule dolerpovaná), pohled kus PŘED hráče ---
-        const cilKamX = hracSkupina.position.x - smerFacingX * ODSTUP_KAMERY_OTS
-        const cilKamZ = hracSkupina.position.z - smerFacingZ * ODSTUP_KAMERY_OTS
-        const lerpK = Math.min(1, RYCHLOST_KAMERY_OTS * dt)
-        camera.position.x += (cilKamX - camera.position.x) * lerpK
-        camera.position.z += (cilKamZ - camera.position.z) * lerpK
-        camera.position.y = VYSKA_KAMERY_OTS
+        // --- kamera = hráčovy oči: PŘESNĚ jeho pozice, žádný lerp,
+        // žádné odsazení dozadu (appčina bývalá "přes rameno" tohle
+        // dolerpovávala, což byla přesně ta pomalu dohánějící kamera,
+        // na kterou si uživatel stěžoval) — pohled kus PŘED hráče podle
+        // odvozeného směru pohybu. ---
+        camera.position.set(hracSkupina.position.x, VYSKA_OCI, hracSkupina.position.z)
         const cilPohleduX = hracSkupina.position.x + smerFacingX * DOHLED_DOPREDU
         const cilPohleduZ = hracSkupina.position.z + smerFacingZ * DOHLED_DOPREDU
-        camera.lookAt(cilPohleduX, VYSKA_POHLEDU, cilPohleduZ)
+        camera.lookAt(cilPohleduX, VYSKA_OCI, cilPohleduZ)
 
         // Billboard se přepočítává TADY, jednou za snímek, ne per
         // instanci — appka jen zkopíruje aktuální natočení kamery a
-        // použije ho pro VŠECHNY roviny níž (hráč/nepřátelé/boss/
-        // dekorace), protože appčina kamera teď dynamicky mění úhel.
+        // použije ho pro VŠECHNY roviny níž (nepřátelé/boss/dekorace —
+        // appčino vlastní tělo appka nevykresluje, viz komentář
+        // v hlavičce souboru), protože appčina kamera dynamicky mění
+        // úhel.
         billboardKvaternion.copy(camera.quaternion)
-
-        // Běžecký cyklus, jen když se hráč doopravdy pohnul.
-        const chtenaTexturaHrace =
-          delkaPohybu > PRAH_BEHU
-            ? hracTexturyBeh[indexAnimace(cas, 0, hracTexturyBeh.length)]
-            : hracTexturaIdle
-        if (hracMaterial.map !== chtenaTexturaHrace) {
-          hracMaterial.map = chtenaTexturaHrace
-          hracMaterial.needsUpdate = true
-        }
-
-        const pulzHrace = klidnyRezim ? 1 : 1 + Math.sin(cas * 5) * 0.04
-        hracTelo.scale.set(smerHrace * pulzHrace, pulzHrace, 1)
-        hracTelo.quaternion.copy(billboardKvaternion)
         dekorace.quaternion.copy(billboardKvaternion)
 
         // --- nepřátelé podle typu ---
