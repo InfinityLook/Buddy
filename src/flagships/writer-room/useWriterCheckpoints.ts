@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { validateWriterCheckpointsData } from '@/core/utils/writerCheckpointsValidation'
+import { hasPermissionNow } from '@/core/role'
 
 // ==========================================
 // Ruční záložní verze (checkpointy) celého díla — Kniha/Scénář/Komiks
@@ -35,6 +36,11 @@ export interface WriterCheckpoint {
 }
 
 export const MAX_CHECKPOINTU_NA_DILO = 5
+// VIP výhoda ("vyšší limit záloh") — cosmetics.premium zvedne strop z
+// 5 na 15, počítáno vždycky znovu při ukládání (viz vytvorCheckpoint
+// níž), nikdy neuložené jako vlastnost samotného checkpointu — kdyby
+// se strop uložil, zůstal by po skončení VIP navěky nadsazený.
+export const MAX_CHECKPOINTU_NA_DILO_VIP = 15
 
 interface WriterCheckpointsState {
   checkpointy: WriterCheckpoint[]
@@ -69,8 +75,12 @@ export const useWriterCheckpoints = create<WriterCheckpointsState>()(
           // Nejstarší checkpoint téhož díla zahodíme první, ať se strop
           // drží i po přidání nového — .slice(-N) na poli seřazeném podle
           // vzniku (appka je vždycky přidává na konec) nechá právě
-          // posledních N položek.
-          const zbyle = [...tehoDila, novy].slice(-MAX_CHECKPOINTU_NA_DILO)
+          // posledních N položek. Strop se čte při KAŽDÉM uložení znovu
+          // (hasPermissionNow, ne useHasPermission — akce storu není
+          // komponenta), stejná "vyhodnoť při čtení, nikdy neukládej
+          // vyhodnocený výsledek" zásada jako resolveActiveRoleId.
+          const strop = hasPermissionNow('cosmetics.premium') ? MAX_CHECKPOINTU_NA_DILO_VIP : MAX_CHECKPOINTU_NA_DILO
+          const zbyle = [...tehoDila, novy].slice(-strop)
           return { checkpointy: [...jine, ...zbyle] }
         }),
 

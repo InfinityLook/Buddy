@@ -17,7 +17,13 @@ import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFor
 import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
 import { najdiNaduzivanaSlova } from '@/flagships/writer-room/writerRoomStyl'
-import { useWriterCheckpoints, checkpointyProDilo } from '@/flagships/writer-room/useWriterCheckpoints'
+import {
+  useWriterCheckpoints,
+  checkpointyProDilo,
+  MAX_CHECKPOINTU_NA_DILO,
+  MAX_CHECKPOINTU_NA_DILO_VIP,
+} from '@/flagships/writer-room/useWriterCheckpoints'
+import { useHasPermission } from '@/core/role'
 import './ComicWriter.css'
 
 export const ComicWriter: React.FC = () => {
@@ -44,6 +50,7 @@ export const ComicWriter: React.FC = () => {
   } = useComicWriter()
   const [aktivniId, setAktivniId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
+  const smiVip = useHasPermission('cosmetics.premium')
 
   const aktivni = komiksy.find((k) => k.id === aktivniId) ?? null
 
@@ -89,7 +96,10 @@ export const ComicWriter: React.FC = () => {
           {serazenoPodleUpravy(komiksy).map((k) => (
             <div className="cw-radek" key={k.id}>
               <button className="cw-radek-otevrit" onClick={() => setAktivniId(k.id)}>
-                <strong>{k.nazev}</strong>
+                <strong>
+                  {k.nazev}
+                  {smiVip && <span className="cw-vip-odznak" title="Zlatý spisovatel (VIP)">👑</span>}
+                </strong>
                 <span>
                   {k.strany.length} {plural(k.strany.length, 'strana', 'strany', 'stran')} ·{' '}
                   {celkovyPocetPanelu(k)} {plural(celkovyPocetPanelu(k), 'panel', 'panely', 'panelů')}
@@ -839,6 +849,8 @@ const KomiksZalohy: React.FC<{
   const { checkpointy, vytvorCheckpoint, smazCheckpoint } = useWriterCheckpoints()
   const [novyNazev, setNovyNazev] = useState('')
   const [zprava, setZprava] = useState<string | null>(null)
+  const smiVip = useHasPermission('cosmetics.premium')
+  const strop = smiVip ? MAX_CHECKPOINTU_NA_DILO_VIP : MAX_CHECKPOINTU_NA_DILO
 
   const seznam = checkpointyProDilo(checkpointy, 'komiks', komiks.id)
 
@@ -879,6 +891,11 @@ const KomiksZalohy: React.FC<{
       </div>
 
       {zprava && <p className="cw-prazdno">{zprava}</p>}
+
+      <p className="cw-limit-info">
+        Uchovává se posledních {strop} záloh na komiks.
+        {!smiVip && ` VIP dostane až ${MAX_CHECKPOINTU_NA_DILO_VIP}.`}
+      </p>
 
       <div className="cw-seznam">
         {seznam.length === 0 && <p className="cw-prazdno">Zatím žádná ruční záloha tohohle komiksu.</p>}

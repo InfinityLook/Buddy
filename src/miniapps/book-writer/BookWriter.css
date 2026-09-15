@@ -503,3 +503,25 @@
     page-break-after: always;
   }
 }
+
+/* Zlatý odznak Writer's Roomu pro VIP (u vlastních knih v seznamu i u
+   exkluzivních šablon) — čistě kosmetické, žádná nová funkce. */
+.bw-vip-odznak {
+  display: inline-flex;
+  margin-left: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #f5c451;
+  vertical-align: middle;
+}
+
+.bw-sablona-btn.je-zamceno {
+  opacity: 0.6;
+}
+
+.bw-limit-info {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-align: center;
+}

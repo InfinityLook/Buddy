@@ -248,3 +248,17 @@
   font-size: 0.72rem;
   font-weight: 700;
 }
+
+/* Zlatý odznak Writer's Roomu pro VIP — čistě kosmetické, žádná nová
+   funkce (viz WriterRoomModule.tsx). */
+.wr-vip-odznak {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #f5c451;
+  background: rgba(245, 196, 81, 0.12);
+  border: 1px solid rgba(245, 196, 81, 0.35);
+  border-radius: var(--radius-pill);
+  padding: 0.2rem 0.55rem;
+  white-space: nowrap;
+}

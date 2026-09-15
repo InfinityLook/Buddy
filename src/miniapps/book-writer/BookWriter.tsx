@@ -16,7 +16,13 @@ import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFor
 import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
 import { najdiNaduzivanaSlova } from '@/flagships/writer-room/writerRoomStyl'
-import { useWriterCheckpoints, checkpointyProDilo } from '@/flagships/writer-room/useWriterCheckpoints'
+import {
+  useWriterCheckpoints,
+  checkpointyProDilo,
+  MAX_CHECKPOINTU_NA_DILO,
+  MAX_CHECKPOINTU_NA_DILO_VIP,
+} from '@/flagships/writer-room/useWriterCheckpoints'
+import { useHasPermission } from '@/core/role'
 import './BookWriter.css'
 
 export const BookWriter: React.FC = () => {
@@ -37,6 +43,9 @@ export const BookWriter: React.FC = () => {
   } = useBookWriter()
   const [aktivniKnihaId, setAktivniKnihaId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
+  // Zlatý odznak Writer's Roomu pro VIP — čistě kosmetické, viz komentář
+  // u KnihaZalohy/KnihaEditor níž.
+  const smiVip = useHasPermission('cosmetics.premium')
 
   const aktivniKniha = knihy.find((k) => k.id === aktivniKnihaId) ?? null
 
@@ -82,7 +91,10 @@ export const BookWriter: React.FC = () => {
           {serazenoPodleUpravy(knihy).map((k) => (
             <div className="bw-radek" key={k.id}>
               <button className="bw-radek-otevrit" onClick={() => setAktivniKnihaId(k.id)}>
-                <strong>{k.nazev}</strong>
+                <strong>
+                  {k.nazev}
+                  {smiVip && <span className="bw-vip-odznak" title="Zlatý spisovatel (VIP)">👑</span>}
+                </strong>
                 <span>
                   {k.kapitoly.length} {plural(k.kapitoly.length, 'kapitola', 'kapitoly', 'kapitol')} ·{' '}
                   {celkovyPocetSlov(k)} {plural(celkovyPocetSlov(k), 'slovo', 'slova', 'slov')}
@@ -156,6 +168,8 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
   const [zalohyOtevreny, setZalohyOtevreny] = useState(false)
   const [fokusRezim, setFokusRezim] = useState(false)
   const [sablonyOtevrene, setSablonyOtevrene] = useState(false)
+  const [zpravaSablona, setZpravaSablona] = useState<string | null>(null)
+  const smiVip = useHasPermission('cosmetics.premium')
   const indexAktivni = kniha.kapitoly.findIndex((k) => k.id === aktivniKapitolaId)
   const aktivniKapitola = indexAktivni >= 0 ? kniha.kapitoly[indexAktivni] : null
 
@@ -167,6 +181,19 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
   const pouzitSablonu = (nazvyKapitol: string[]) => {
     pridatSablonu(kniha.id, nazvyKapitol)
     setSablonyOtevrene(false)
+  }
+
+  // Exkluzivní šablony pro VIP — vidí je každý, použije jen VIP účet
+  // (viz SABLONY_KAPITOL v types.ts). Klepnutí na zamčenou šablonu nic
+  // nezaloží, jen krátce vysvětlí proč — stejná "žádná falešná akce"
+  // disciplína jako u zamčeného vzhledu/rámečku v Nastavení.
+  const kliknutoNaSablonu = (sablona: (typeof SABLONY_KAPITOL)[number]) => {
+    if (sablona.vip && !smiVip) {
+      setZpravaSablona('Tahle šablona je jen pro VIP.')
+      return
+    }
+    setZpravaSablona(null)
+    pouzitSablonu(sablona.kapitoly)
   }
 
   const smazatAktivniKapitolu = () => {
@@ -273,12 +300,23 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
 
       {sablonyOtevrene && (
         <div className="bw-sablony-seznam">
-          {SABLONY_KAPITOL.map((sablona) => (
-            <button key={sablona.id} className="bw-sablona-btn" onClick={() => pouzitSablonu(sablona.kapitoly)}>
-              <strong>{sablona.nazev}</strong>
-              <span>{sablona.kapitoly.join(' → ')}</span>
-            </button>
-          ))}
+          {SABLONY_KAPITOL.map((sablona) => {
+            const zamceno = !!sablona.vip && !smiVip
+            return (
+              <button
+                key={sablona.id}
+                className={`bw-sablona-btn${zamceno ? ' je-zamceno' : ''}`}
+                onClick={() => kliknutoNaSablonu(sablona)}
+              >
+                <strong>
+                  {sablona.nazev}
+                  {sablona.vip && <span className="bw-vip-odznak">{zamceno ? '🔒' : '👑'} VIP</span>}
+                </strong>
+                <span>{sablona.kapitoly.join(' → ')}</span>
+              </button>
+            )
+          })}
+          {zpravaSablona && <p className="bw-prazdno">{zpravaSablona}</p>}
         </div>
       )}
 
@@ -569,6 +607,8 @@ const KnihaZalohy: React.FC<{
   const { checkpointy, vytvorCheckpoint, smazCheckpoint } = useWriterCheckpoints()
   const [novyNazev, setNovyNazev] = useState('')
   const [zprava, setZprava] = useState<string | null>(null)
+  const smiVip = useHasPermission('cosmetics.premium')
+  const strop = smiVip ? MAX_CHECKPOINTU_NA_DILO_VIP : MAX_CHECKPOINTU_NA_DILO
 
   const seznam = checkpointyProDilo(checkpointy, 'kniha', kniha.id)
 
@@ -609,6 +649,11 @@ const KnihaZalohy: React.FC<{
       </div>
 
       {zprava && <p className="bw-prazdno">{zprava}</p>}
+
+      <p className="bw-limit-info">
+        Uchovává se posledních {strop} záloh na knihu.
+        {!smiVip && ` VIP dostane až ${MAX_CHECKPOINTU_NA_DILO_VIP}.`}
+      </p>
 
       <div className="bw-seznam">
         {seznam.length === 0 && <p className="bw-prazdno">Zatím žádná ruční záloha téhle knihy.</p>}

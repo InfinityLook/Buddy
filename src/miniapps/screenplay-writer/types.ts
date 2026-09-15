@@ -146,6 +146,9 @@ export interface SablonaScen {
   id: string
   nazev: string
   sceny: { typMista: TypMista; misto: string; cas: string }[]
+  // Nepovinné, stejná role jako Kniha's SablonaKapitol.vip — dvě
+  // propracovanější kostry navíc jsou VIP výhoda (exkluzivní obsah).
+  vip?: boolean
 }
 
 export const SABLONY_SCEN: SablonaScen[] = [
@@ -156,6 +159,28 @@ export const SABLONY_SCEN: SablonaScen[] = [
       { typMista: 'INT', misto: 'AKT I – ÚVOD', cas: 'DEN' },
       { typMista: 'INT', misto: 'AKT II – KONFLIKT', cas: 'DEN' },
       { typMista: 'INT', misto: 'AKT III – ROZUZLENÍ', cas: 'DEN' },
+    ],
+  },
+  {
+    id: 'ansamblove-drama',
+    nazev: 'Ansámblové drama',
+    vip: true,
+    sceny: [
+      { typMista: 'INT', misto: 'PŘEDSTAVENÍ POSTAVY A', cas: 'DEN' },
+      { typMista: 'INT', misto: 'PŘEDSTAVENÍ POSTAVY B', cas: 'DEN' },
+      { typMista: 'EXT', misto: 'PRVNÍ SETKÁNÍ VLÁKEN', cas: 'VEČER' },
+      { typMista: 'INT', misto: 'ROZUZLENÍ VŠECH VLÁKEN', cas: 'NOC' },
+    ],
+  },
+  {
+    id: 'nelinearni-thriller',
+    nazev: 'Nelineární thriller',
+    vip: true,
+    sceny: [
+      { typMista: 'INT', misto: 'PŘÍTOMNOST', cas: 'NOC' },
+      { typMista: 'INT', misto: 'MINULOST – O ROK DŘÍV', cas: 'DEN' },
+      { typMista: 'INT', misto: 'PŘÍTOMNOST – POKRAČOVÁNÍ', cas: 'NOC' },
+      { typMista: 'EXT', misto: 'ODHALENÍ', cas: 'ÚSVIT' },
     ],
   },
 ]

@@ -360,6 +360,17 @@
   line-height: 1.7;
 }
 
+/* Zlatý papír (VIP) — jiná paleta stejné papírové plochy, ne druhá
+   komponenta. "Zestárlý" pergamenový vzhled: teplejší sépiová
+   barevnost, jemná vinětace v rozích (inset stín), tmavší "inkoustová"
+   barva textu místo čisté černé. */
+.sw-script-page--zlaty {
+  background: linear-gradient(135deg, #e9dcc0, #d8c69f);
+  color: #3b2f1e;
+  box-shadow: inset 0 0 40px rgba(120, 90, 40, 0.28);
+  border: 1px solid #b9a274;
+}
+
 .sw-sc-heading {
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -606,4 +617,27 @@
   .sw-script-page {
     page-break-inside: avoid;
   }
+}
+
+/* Zlatý odznak Writer's Roomu pro VIP — čistě kosmetické (u vlastních
+   scénářů v seznamu i u exkluzivních šablon/zlatého papíru). */
+.sw-vip-odznak {
+  display: inline-flex;
+  margin-left: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #f5c451;
+  vertical-align: middle;
+}
+
+.sw-sablona-btn.je-zamceno,
+.sw-nahled-btn.je-zamceno {
+  opacity: 0.6;
+}
+
+.sw-limit-info {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-align: center;
 }

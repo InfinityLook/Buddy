@@ -75,6 +75,12 @@ export interface SablonaKapitol {
   id: string
   nazev: string
   kapitoly: string[]
+  // Nepovinné — chybí u obou původních šablon (volně dostupné od
+  // začátku). Dvě novější, propracovanější kostry jsou VIP výhoda
+  // (exkluzivní obsah, ne vyšší limit ani kosmetika) — appka je i
+  // nevýdělečnému účtu ukáže v seznamu, jen je nenechá použít, stejná
+  // "vidět, ne použít" disciplína jako zamčený vzhled/rámeček.
+  vip?: boolean
 }
 
 export const SABLONY_KAPITOL: SablonaKapitol[] = [
@@ -87,6 +93,18 @@ export const SABLONY_KAPITOL: SablonaKapitol[] = [
     id: 'hrdinova-cesta',
     nazev: 'Hrdinova cesta (zkráceně)',
     kapitoly: ['Obyčejný svět', 'Volání k dobrodružství', 'Zkoušky a spojenci', 'Nejtemnější hodina', 'Návrat proměněný'],
+  },
+  {
+    id: 'nelinearni-vypraveni',
+    nazev: 'Nelineární vyprávění',
+    vip: true,
+    kapitoly: ['Rámec: Přítomnost', 'Skok do minulosti', 'Zpět k rámci', 'Další skok: Odhalení', 'Rámec: Rozuzlení'],
+  },
+  {
+    id: 'denikovy-roman',
+    nazev: 'Deníkový/epistolární román',
+    vip: true,
+    kapitoly: ['Zápis první', 'Zápis druhý', 'Zápis třetí (zvrat)', 'Poslední zápis'],
   },
 ]
 

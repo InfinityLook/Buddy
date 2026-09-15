@@ -1,6 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { useWriterCheckpoints, checkpointyProDilo, MAX_CHECKPOINTU_NA_DILO } from '@/flagships/writer-room/useWriterCheckpoints'
+import {
+  useWriterCheckpoints,
+  checkpointyProDilo,
+  MAX_CHECKPOINTU_NA_DILO,
+  MAX_CHECKPOINTU_NA_DILO_VIP,
+} from '@/flagships/writer-room/useWriterCheckpoints'
 import { validateWriterCheckpointsData } from '@/core/utils/writerCheckpointsValidation'
+import { useRoleStore } from '@/core/role'
 
 // ==========================================
 // src/flagships/writer-room/useWriterCheckpoints.ts — testováno přímo
@@ -10,6 +16,7 @@ import { validateWriterCheckpointsData } from '@/core/utils/writerCheckpointsVal
 
 const resetStore = () => {
   useWriterCheckpoints.setState({ checkpointy: [] })
+  useRoleStore.setState({ assignment: { roleId: 'user', validUntil: null, grantedAt: new Date().toISOString() } })
 }
 
 beforeEach(resetStore)
@@ -45,6 +52,35 @@ describe('vytvorCheckpoint', () => {
     }
     useWriterCheckpoints.getState().vytvorCheckpoint('kniha', 'k2', 'Jiná kniha', {})
     expect(checkpointyProDilo(useWriterCheckpoints.getState().checkpointy, 'kniha', 'k2')).toHaveLength(1)
+  })
+
+  it('VIP účet (cosmetics.premium) drží vyšší strop MAX_CHECKPOINTU_NA_DILO_VIP', () => {
+    useRoleStore.setState({ assignment: { roleId: 'vip', validUntil: null, grantedAt: new Date().toISOString() } })
+    for (let i = 0; i < MAX_CHECKPOINTU_NA_DILO_VIP + 2; i++) {
+      useWriterCheckpoints.getState().vytvorCheckpoint('kniha', 'k1', `Verze ${i}`, { poradi: i })
+    }
+    const teDila = checkpointyProDilo(useWriterCheckpoints.getState().checkpointy, 'kniha', 'k1')
+    expect(teDila).toHaveLength(MAX_CHECKPOINTU_NA_DILO_VIP)
+    expect(teDila.some((c) => c.nazev === 'Verze 0')).toBe(false)
+    expect(teDila.some((c) => c.nazev === `Verze ${MAX_CHECKPOINTU_NA_DILO_VIP + 1}`)).toBe(true)
+  })
+
+  it('strop se čte znovu při každém uložení, ne jednou navěky — VIP vypršené mezi dvěma uloženími se projeví hned', () => {
+    useRoleStore.setState({ assignment: { roleId: 'vip', validUntil: null, grantedAt: new Date().toISOString() } })
+    for (let i = 0; i < MAX_CHECKPOINTU_NA_DILO_VIP; i++) {
+      useWriterCheckpoints.getState().vytvorCheckpoint('scenar', 's1', `V${i}`, {})
+    }
+    expect(checkpointyProDilo(useWriterCheckpoints.getState().checkpointy, 'scenar', 's1')).toHaveLength(
+      MAX_CHECKPOINTU_NA_DILO_VIP
+    )
+    // VIP vyprší (spadne zpátky na user) — další uložení musí okamžitě
+    // uplatnit nižší strop, ne ten předchozí "zamrzlý" z doby, kdy VIP
+    // ještě platilo.
+    useRoleStore.setState({ assignment: { roleId: 'user', validUntil: null, grantedAt: new Date().toISOString() } })
+    useWriterCheckpoints.getState().vytvorCheckpoint('scenar', 's1', 'Poslední', {})
+    expect(checkpointyProDilo(useWriterCheckpoints.getState().checkpointy, 'scenar', 's1')).toHaveLength(
+      MAX_CHECKPOINTU_NA_DILO
+    )
   })
 })
 

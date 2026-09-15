@@ -583,3 +583,21 @@
     page-break-after: always;
   }
 }
+
+/* Zlatý odznak Writer's Roomu pro VIP — čistě kosmetické, viz stejná
+   třída u sesterských appek Kniha/Scénář. */
+.cw-vip-odznak {
+  display: inline-flex;
+  margin-left: 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #f5c451;
+  vertical-align: middle;
+}
+
+.cw-limit-info {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  text-align: center;
+}

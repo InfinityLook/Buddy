@@ -20,7 +20,13 @@ import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFor
 import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
 import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
 import { najdiNaduzivanaSlova } from '@/flagships/writer-room/writerRoomStyl'
-import { useWriterCheckpoints, checkpointyProDilo } from '@/flagships/writer-room/useWriterCheckpoints'
+import {
+  useWriterCheckpoints,
+  checkpointyProDilo,
+  MAX_CHECKPOINTU_NA_DILO,
+  MAX_CHECKPOINTU_NA_DILO_VIP,
+} from '@/flagships/writer-room/useWriterCheckpoints'
+import { useHasPermission } from '@/core/role'
 import './ScreenplayWriter.css'
 
 export const ScreenplayWriter: React.FC = () => {
@@ -46,6 +52,7 @@ export const ScreenplayWriter: React.FC = () => {
   } = useScreenplayWriter()
   const [aktivniId, setAktivniId] = useState<string | null>(null)
   const [novyNazev, setNovyNazev] = useState('')
+  const smiVip = useHasPermission('cosmetics.premium')
 
   const aktivni = scenare.find((s) => s.id === aktivniId) ?? null
 
@@ -91,7 +98,10 @@ export const ScreenplayWriter: React.FC = () => {
           {serazenoPodleUpravy(scenare).map((s) => (
             <div className="sw-radek" key={s.id}>
               <button className="sw-radek-otevrit" onClick={() => setAktivniId(s.id)}>
-                <strong>{s.nazev}</strong>
+                <strong>
+                  {s.nazev}
+                  {smiVip && <span className="sw-vip-odznak" title="Zlatý spisovatel (VIP)">👑</span>}
+                </strong>
                 <span>{s.sceny.length} {plural(s.sceny.length, 'scéna napsána', 'scény napsány', 'scén napsáno')}</span>
                 <span className="sw-radek-cas">{formatujNaposledyUpraveno(s.upravenoAt)}</span>
               </button>
@@ -178,6 +188,12 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
   const [zalohyOtevreny, setZalohyOtevreny] = useState(false)
   const [fokusRezim, setFokusRezim] = useState(false)
   const [sablonyOtevrene, setSablonyOtevrene] = useState(false)
+  const [zpravaVip, setZpravaVip] = useState<string | null>(null)
+  // Zlatý papír pro Scénář (VIP) — čistě vizuální, na relaci (jako
+  // Fokus výš), nepřežije zavření appky. Klepnutí bez VIP nic
+  // nepřepne, jen krátce vysvětlí proč (viz kliknutoNaPergamen níž).
+  const [pergamenRezim, setPergamenRezim] = useState(false)
+  const smiVip = useHasPermission('cosmetics.premium')
 
   const [typMista, setTypMista] = useState<TypMista>('INT')
   const [misto, setMisto] = useState('')
@@ -199,6 +215,25 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
   const pouzitSablonu = (sceny: { typMista: TypMista; misto: string; cas: string }[]) => {
     pridatSablonu(scenar.id, sceny)
     setSablonyOtevrene(false)
+  }
+
+  // Exkluzivní šablony pro VIP — stejná role jako Kniha's
+  // kliknutoNaSablonu vedle.
+  const kliknutoNaSablonu = (sablona: (typeof SABLONY_SCEN)[number]) => {
+    if (sablona.vip && !smiVip) {
+      setZpravaVip('Tahle šablona je jen pro VIP.')
+      return
+    }
+    setZpravaVip(null)
+    pouzitSablonu(sablona.sceny)
+  }
+
+  const kliknutoNaPergamen = () => {
+    if (!smiVip) {
+      setZpravaVip('Zlatý papír je jen pro VIP.')
+      return
+    }
+    setPergamenRezim((p) => !p)
   }
 
   const otevritPridaniSceny = () => {
@@ -353,7 +388,16 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
         <button className="sw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
           {fokusRezim ? '🎯 Zpět z fokusu' : '🎯 Fokus'}
         </button>
+        <button
+          className={`sw-nahled-btn${!smiVip ? ' je-zamceno' : ''}`}
+          onClick={kliknutoNaPergamen}
+          aria-pressed={pergamenRezim}
+        >
+          {smiVip ? '👑' : '🔒'} {pergamenRezim ? 'Zpět z pergamenu' : 'Zlatý papír'}
+        </button>
       </div>
+
+      {zpravaVip && <p className="sw-prazdno">{zpravaVip}</p>}
 
       {cilProcenta !== null && (
         <div className="sw-cil-lista" role="progressbar" aria-valuenow={cilProcenta} aria-valuemin={0} aria-valuemax={100}>
@@ -381,12 +425,22 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
 
       {sablonyOtevrene && (
         <div className="sw-sablony-seznam">
-          {SABLONY_SCEN.map((sablona) => (
-            <button key={sablona.id} className="sw-sablona-btn" onClick={() => pouzitSablonu(sablona.sceny)}>
-              <strong>{sablona.nazev}</strong>
-              <span>{sablona.sceny.map((s) => s.misto).join(' → ')}</span>
-            </button>
-          ))}
+          {SABLONY_SCEN.map((sablona) => {
+            const zamceno = !!sablona.vip && !smiVip
+            return (
+              <button
+                key={sablona.id}
+                className={`sw-sablona-btn${zamceno ? ' je-zamceno' : ''}`}
+                onClick={() => kliknutoNaSablonu(sablona)}
+              >
+                <strong>
+                  {sablona.nazev}
+                  {sablona.vip && <span className="sw-vip-odznak">{zamceno ? '🔒' : '👑'} VIP</span>}
+                </strong>
+                <span>{sablona.sceny.map((s) => s.misto).join(' → ')}</span>
+              </button>
+            )
+          })}
         </div>
       )}
 
@@ -418,7 +472,7 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
         <p className="sw-prazdno">Zatím žádná scéna. Přidej první tlačítkem „+“.</p>
       ) : (
         <>
-          <div className="sw-script-page">
+          <div className={`sw-script-page${pergamenRezim ? ' sw-script-page--zlaty' : ''}`}>
             <div className="sw-sc-heading-radek">
               <div className="sw-sc-heading">{nadpisSceny(aktivniScena, indexAktivni + 1)}</div>
               <div className="sw-posun-btns">
@@ -856,6 +910,8 @@ const ScenarZalohy: React.FC<{
   const { checkpointy, vytvorCheckpoint, smazCheckpoint } = useWriterCheckpoints()
   const [novyNazev, setNovyNazev] = useState('')
   const [zprava, setZprava] = useState<string | null>(null)
+  const smiVip = useHasPermission('cosmetics.premium')
+  const strop = smiVip ? MAX_CHECKPOINTU_NA_DILO_VIP : MAX_CHECKPOINTU_NA_DILO
 
   const seznam = checkpointyProDilo(checkpointy, 'scenar', scenar.id)
 
@@ -896,6 +952,11 @@ const ScenarZalohy: React.FC<{
       </div>
 
       {zprava && <p className="sw-prazdno">{zprava}</p>}
+
+      <p className="sw-limit-info">
+        Uchovává se posledních {strop} záloh na scénář.
+        {!smiVip && ` VIP dostane až ${MAX_CHECKPOINTU_NA_DILO_VIP}.`}
+      </p>
 
       <div className="sw-seznam">
         {seznam.length === 0 && <p className="sw-prazdno">Zatím žádná ruční záloha tohohle scénáře.</p>}

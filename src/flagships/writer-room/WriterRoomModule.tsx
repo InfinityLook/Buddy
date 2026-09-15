@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/core/store/useAppStore'
+import { useHasPermission } from '@/core/role'
 import { useBookWriter } from '@/miniapps/book-writer/useBookWriter'
 import { celkovyPocetSlov, serazenoPodleUpravy as serazenoPodleUpravyKnih } from '@/miniapps/book-writer/types'
 import { useScreenplayWriter } from '@/miniapps/screenplay-writer/useScreenplayWriter'
@@ -33,6 +34,9 @@ export const WriterRoomModule: React.FC = () => {
   const { komiksy } = useComicWriter()
   const [notifOpen, setNotifOpen] = useState(false)
   const [appsOtevrene, setAppsOtevrene] = useState(false)
+  // Zlatý odznak Writer's Roomu pro VIP — čistě kosmetické, žádná nová
+  // funkce; stejné oprávnění appka už používá pro vzhledy/rámečky.
+  const smiVip = useHasPermission('cosmetics.premium')
 
   // Podle poslední ÚPRAVY, ne podle založení — jinak by tenhle panel
   // pořád ukazoval naposledy založenou knihu/scénář/komiks, i když se
@@ -117,6 +121,11 @@ export const WriterRoomModule: React.FC = () => {
         <div className="wr-panel">
           <div className="wr-panel-hlavicka">
             <h2>Moje tvorba</h2>
+            {smiVip && (
+              <span className="wr-vip-odznak" title="Zlatý spisovatel (VIP)">
+                👑 Zlatý spisovatel
+              </span>
+            )}
           </div>
           <div className="wr-staty-mrizka">
             <div className="wr-stat-dlazdice">
