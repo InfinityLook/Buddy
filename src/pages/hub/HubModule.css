@@ -79,7 +79,8 @@
 
 .hub-logo {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
   line-height: 1.05;
   flex-shrink: 0;
 }
@@ -87,6 +88,12 @@
 .hub-logo-mark {
   font-size: 1.05rem;
   color: var(--accent-cyan);
+}
+
+.hub-logo-textwrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
 }
 
 .hub-logo-text {
@@ -97,6 +104,15 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* Podtitul pod jménem appky — appka nemá cizojazyčný text nikde jinde,
+   takže "Your AI Companion" z návrhu zůstalo počeštěné, stejné znění
+   ("Tvůj AI parťák"), jaké dřív stávalo pod koulí samotnou. */
+.hub-logo-tag {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-muted);
 }
 
 .hub-header-actions {
@@ -176,20 +192,76 @@
 }
 
 /* ------------------------------------------
-   ÚROVEŇ
-   Vlastní karta, dřív jen řádek textu v hlavičce — šestiúhelníkový
-   odznak s číslem vlevo, XP + progress uprostřed, série vpravo, ať je
-   čitelná na jeden pohled, ne jeden dlouhý řádek textu.
+   HERO
+   Panel s koulí (appčin dosavadní maskot) uprostřed a úroveň/sérií
+   jako dva rohové odznaky přes něj, stejné rozvržení jako v návrhu
+   (fotomaskot dole, úroveň vlevo dole, série vpravo nahoře) — jen
+   místo fotky atmosférický gradient, viz Hub.tsx's vlastní komentář
+   u téhle sekce pro proč (appka nemá jak fotoreálný maskot vykreslit).
    ------------------------------------------ */
-.hub-level-card {
+.hub-hero {
+  position: relative;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+  min-height: 210px;
   display: flex;
   align-items: center;
-  gap: 0.85rem;
-  background: rgba(10, 14, 28, 0.68);
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Atmosféra místo fotky — teplý "soumrak nad horami" gradient, ať
+   panel nesedí na holém tmavém pozadí appky, ale má vlastní náladu,
+   se kterou budou skutečné obrázky (až budou) sdílet paletu. */
+.hub-hero-atmosfera {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(53, 196, 240, 0.22) 0%, transparent 46%),
+    radial-gradient(circle at 22% 88%, rgba(245, 158, 11, 0.22) 0%, transparent 55%),
+    radial-gradient(circle at 82% 92%, rgba(138, 92, 246, 0.22) 0%, transparent 55%),
+    linear-gradient(180deg, #0a1128 0%, #141d3d 55%, #241a2e 100%);
+}
+
+.hub-hero .hub-orb {
+  position: relative;
+  height: 128px;
+  margin: 1.1rem 0;
+}
+
+/* Odznak úrovně — vlevo dole přes hero panel, stejné rozvržení jako
+   .hub-hero-streak vpravo nahoře, jen v opačném rohu. */
+.hub-hero-level {
+  position: absolute;
+  left: 0.7rem;
+  bottom: 0.7rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  max-width: 62%;
+  background: rgba(8, 12, 26, 0.6);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 0.85rem 1rem;
-  backdrop-filter: blur(14px);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.6rem 0.4rem 0.4rem;
+  backdrop-filter: blur(10px);
+}
+
+.hub-hero-streak {
+  position: absolute;
+  right: 0.7rem;
+  top: 0.7rem;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
+  background: rgba(8, 12, 26, 0.6);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.35rem 0.55rem;
+  backdrop-filter: blur(10px);
 }
 
 /* Šestiúhelník přes clip-path — dvě vrstvy (barevný přechod, tmavá
@@ -255,14 +327,6 @@
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
-}
-
-.hub-streak {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  flex-shrink: 0;
-  gap: 0.05rem;
 }
 
 .hub-streak-flame {
@@ -336,7 +400,7 @@
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.06em;
-  color: var(--accent-magenta);
+  color: var(--accent-orange);
 }
 
 .hub-challenge-title {
@@ -383,9 +447,112 @@
   gap: 0.7rem;
 }
 
+/* Odměny/Obchod — svislé rozvržení karty (ikona/šipka nahoře, text
+   pod nimi), stejné jako v návrhu, odlišné od vodorovného
+   .hub-btn-card níž (ten pořád nese velkou ilustrovanou mřížku), takže
+   vlastní sada tříd, ne přetížení té existující. */
+.hub-action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  background: rgba(12, 18, 36, 0.62);
+  border: 1px solid rgba(99, 132, 241, 0.3);
+  border-radius: var(--radius-md);
+  padding: 0.8rem 0.85rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.hub-action-card:hover {
+  background: rgba(20, 28, 54, 0.8);
+  border-color: rgba(99, 132, 241, 0.6);
+  transform: translateY(-2px);
+}
+
+.hub-action-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 0.15rem;
+}
+
+.hub-action-icon {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: rgba(138, 92, 246, 0.16);
+}
+
+.hub-action-icon--purple {
+  color: var(--accent-violet);
+  background: rgba(138, 92, 246, 0.16);
+}
+
+.hub-action-icon--magenta {
+  color: var(--accent-magenta);
+  background: rgba(236, 72, 153, 0.16);
+}
+
+.hub-action-arrow {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-muted);
+}
+
+.hub-action-arrow svg {
+  transform: rotate(180deg);
+}
+
+.hub-action-title {
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.hub-action-sub {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.hub-action-progress {
+  display: block;
+  width: 100%;
+  height: 3px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  margin-top: 0.25rem;
+}
+
+.hub-action-progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-violet), var(--accent-magenta));
+}
+
+/* Velká ilustrovaná mřížka — 2×2 (Hry/Social Chat/Aplikace/Play), ne
+   3 v řadě jako dřív (Apps/Play/Library) — čtvrtá dlaždice (Social
+   Chat) přibyla, Library kleslo na tenký řádek pod mřížkou, viz
+   Hub.tsx's vlastní komentář. */
 .hub-grid-squares {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 0.7rem;
 }
 
@@ -523,7 +690,6 @@
 
 .hub-square-icon--cyan { color: var(--accent-cyan); }
 .hub-square-icon--purple { color: var(--accent-violet); }
-.hub-square-icon--blue { color: var(--accent-cyan); }
 
 .hub-btn-square .hub-card-title {
   font-size: 0.85rem;
@@ -573,12 +739,19 @@
   background-position: center;
 }
 
-.hub-square-preview--library {
+/* Social Chat — appka nemá vlastní ilustraci chatu, takže náhled je
+   stejná "velká ikona uprostřed barevného gradientu" řeč, jakou appka
+   používá jinde pro cokoli bez vlastní fotky (viz .hub-square-preview
+   --library dřív). */
+.hub-square-preview--social {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.9rem;
-  background: rgba(255, 255, 255, 0.04);
+  color: var(--accent-violet);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(138, 92, 246, 0.35) 0%, transparent 60%),
+    radial-gradient(circle at 80% 80%, rgba(53, 196, 240, 0.25) 0%, transparent 55%),
+    rgba(255, 255, 255, 0.04);
 }
 
 /* Kulaté tlačítko se šipkou v rohu dlaždice — vizuální nápověda "vede
@@ -610,11 +783,6 @@
   box-shadow: 0 0 12px rgba(138, 92, 246, 0.4);
 }
 
-.hub-square-arrow--blue {
-  border-color: var(--accent-cyan);
-  color: var(--accent-cyan);
-}
-
 .hub-square-arrow svg {
   transform: rotate(180deg);
 }
@@ -626,33 +794,11 @@
    PULZUJÍCÍ KRUH
 
    Nahradil maskota, který se na malém displeji mačkal a bral místo
-   dlaždicím. Kruh se přizpůsobí čemukoli: velikost se odvozuje od výšky,
-   kterou mu flexbox nechá, ne od pevného čísla.
+   dlaždicím — teď sedí uvnitř .hub-hero (viz výš), koule se
+   nezvětšuje/nezmenšuje podle volného místa v layoutu jako dřív,
+   protože hero panel má pevnou výšku, jen .hub-hero .hub-orb výš
+   přebíjí rozměry pro tenhle konkrétní kontext.
    ------------------------------------------ */
-
-.hub-orb-section {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  flex: 1 1 auto;
-  /* Sekce smí zmenšit kouli až na jejích 96px (viz .hub-orb min-height
-     níž), ale ne dál — `min-height: 0` tu dřív dovolovalo zmenšit CELOU
-     sekci pod součet toho, co koule + podstavec + popisek doopravdy
-     potřebují. Na krátkém displeji (reálný telefon, víc systémového UI
-     než výchozí testovací viewport) si pak `.hub-orb`'s vlastní
-     min-height 96px vynutilo víc místa, než sekce měla, a přebytek
-     (overflow je tu ve výchozím `visible`) se vykreslil přes sousední
-     karty místo do nich — koule přes Rewards/Cloud nahoře, popisek
-     "Buddy"/"Tvůj AI parťák" zmizel pod řadou Apps/Play/Library, přesně
-     bug nahlášený z reálného zařízení. Číslo níž je skutečné minimum
-     (96px koule + ~6px podstavec + ~40px dvouřádkový popisek): když se
-     ani tohle nevejde, `.hub-container`'s vlastní `overflow-y: auto`
-     přebere štafetu a appka se čestně doroluje, ne přeloží obsah přes
-     sebe. */
-  min-height: 150px;
-  margin: 0.15rem 0;
-}
 
 /* Velikost řídí VÝŠKA, šířku dopočítá poměr stran.
    Strop je taky na výšce, ne na šířce: max-width by šířku uřízl nezávisle
@@ -954,45 +1100,6 @@
 .hub-orb-ucho--leve { left: -3%; }
 .hub-orb-ucho--prave { right: -3%; }
 
-/* Podstavec pod koulí — plochá zářící elipsa, čistě CSS (žádný obrázek
-   navíc), a jméno appky s podtitulem pod ní. Appka je dřív nechávala
-   koule mluvit samu za sebe; bez popisku ale nebylo na první pohled
-   jasné, co/kdo to je. */
-.hub-orb-podstavec {
-  width: min(58%, 150px);
-  height: 14px;
-  margin-top: -8px;
-  border-radius: 50%;
-  background: radial-gradient(ellipse at center, rgba(53, 196, 240, 0.4) 0%, transparent 72%);
-  filter: blur(2px);
-  /* Nesmí se zmenšit pod svou (drobnou) velikost, i když .hub-orb-section
-     nemá dost místa pro plnou výšku koule nahoře — jinak by se spolu
-     s popiskem níž zatlačil pod dlaždice Apps/Play/Library a appka by
-     ho tam vykreslila přes ně (position přebité pořadím v dokumentu),
-     přesně bug nahlášený na reálném telefonu s kratší výškou displeje. */
-  flex-shrink: 0;
-}
-
-.hub-orb-label {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.1rem;
-  margin-top: 0.3rem;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.hub-orb-jmeno {
-  font-size: 1.05rem;
-  font-weight: 800;
-}
-
-.hub-orb-popis {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-}
-
 /* Kdo má vypnuté animace, uvidí kruh v klidu. Pulzování přes celou
    obrazovku je pro část lidí nepříjemné až nesnesitelné. Prstence
    zůstanou nakloněné, aby o hloubku nepřišel ani takový pohled. */
@@ -1061,12 +1168,25 @@
 }
 
 /* ==========================================
-   Připravované funkce (Shop, Play, zvuky, hlasový režim)
-   Zůstávají v rozhraní, ale na první pohled je vidět,
-   že ještě nefungují — jinak na ně uživatel kliká dokola.
+   Připravované funkce (Library)
+   Zůstává v rozhraní jako tenký řádek pod hlavní mřížkou (viz
+   Hub.tsx), ne vlastní velká dlaždice jako dřív — na první pohled je
+   vidět, že ještě nefunguje, jinak na ni uživatel kliká dokola.
    ========================================== */
-.hub-btn-card--soon {
-  opacity: 0.55;
+.hub-library-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(12, 18, 36, 0.5);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-pill);
+  padding: 0.5rem 0.85rem;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0.75;
 }
 
 .hub-badge-soon {
@@ -1096,11 +1216,12 @@
     max-height: min(26vh, 42vw);
   }
 
-  .hub-orb-section {
-    margin: 0;
+  .hub-hero {
+    min-height: 170px;
   }
 
-  .hub-orb-podstavec {
-    display: none;
+  .hub-hero .hub-orb {
+    height: 100px;
+    margin: 0.8rem 0;
   }
 }

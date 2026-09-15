@@ -157,16 +157,19 @@ export const HubModule: React.FC<HubModuleProps> = ({
       <div className="hub-bg-overlay" aria-hidden="true" />
 
       <div className="hub-container" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
-        {/* Header — dřív tu byl textový odznak úrovně a tlačítko odhlášení,
-            teď jen logo a tři akce (hledat/zvonek/avatar), ať hlavička
-            zůstane lehká a úroveň dostane vlastní, čitelnější kartu níž.
-            Odhlášení se přesunulo do Nastavení (settings-danger-btn tam),
-            appka bez toho neměla jinou cestu ven z účtu, ne že by šlo
-            jen o kosmetiku. */}
+        {/* Header — logo + krátký podtitul (appka nemá cizojazyčný text
+            nikde jinde, takže "Your AI Companion" zůstalo počeštěné jako
+            "Tvůj AI parťák", stejné znění, jaké appka už dřív měla pod
+            koulí níž), tři akce (hledat/zvonek/avatar). Odhlášení je
+            v Nastavení (settings-danger-btn tam), appka bez toho neměla
+            jinou cestu ven z účtu. */}
         <header className="hub-header">
           <div className="hub-logo">
             <span className="hub-logo-mark">✦</span>
-            <span className="hub-logo-text">Buddy</span>
+            <span className="hub-logo-textwrap">
+              <span className="hub-logo-text">Buddy</span>
+              <span className="hub-logo-tag">Tvůj AI parťák</span>
+            </span>
           </div>
 
           <div className="hub-header-actions">
@@ -194,111 +197,17 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </div>
         </header>
 
-        {/* Úroveň — vlastní karta, dřív jen řádek textu v hlavičce.
-            Šestiúhelníkový odznak s číslem úrovně (dvě číslice, jako
-            appka vždycky formátovala) a řada s ohněm/dny série vpravo,
-            ať je celá karta čitelná na jeden pohled, ne jen jeden dlouhý
-            řádek. */}
-        <section className="hub-level-card">
-          <span className="hub-level-hex" aria-hidden="true">
-            <span className="hub-level-hex-num">{String(level).padStart(2, '0')}</span>
-          </span>
+        {/* Hero — koule (appčin dosavadní maskot, viz komentář uvnitř)
+            teď sedí ve vlastním velkém, atmosférickém panelu místo
+            samostatné sekce s podstavcem, a úroveň/série jsou přes něj
+            přeložené jako dva rohové odznaky, stejné rozvržení jako
+            v návrhu. Skutečný fotoreálný maskot z návrhu appka zatím
+            nemá čím vykreslit (žádný nástroj na generování obrázků
+            v týhle relaci) — až budou obrázky k dispozici, jde jen
+            o výměnu obsahu tohohle panelu, rozvržení kolem zůstane. */}
+        <section className="hub-hero">
+          <div className="hub-hero-atmosfera" aria-hidden="true" />
 
-          <div className="hub-level-info">
-            <span className="hub-level-title">LEVEL {level}</span>
-            <span className="hub-level-xp">
-              {xp} / {xpDoDalsi} XP
-            </span>
-            <span className="hub-level-progress" aria-hidden="true">
-              <span className="hub-level-progress-fill" style={{ width: `${progressPercent}%` }} />
-            </span>
-          </div>
-
-          <div className="hub-streak">
-            <span className="hub-streak-flame" aria-hidden="true">🔥</span>
-            <span className="hub-streak-num">{streakDays}</span>
-            <span className="hub-streak-label">DAYS STREAK</span>
-          </div>
-        </section>
-
-        {/* Denní výzva — reálné úkoly z Planeru, teď jako karta s vlastní
-            ikonou a odznakem stavu vpravo místo jednořádkového banneru. */}
-        <button className="hub-challenge-card" onClick={handleChallengeClick}>
-          <span className="hub-challenge-icon" aria-hidden="true">🎯</span>
-
-          <span className="hub-challenge-body">
-            <span className="hub-challenge-tag">DAILY CHALLENGE</span>
-            <span className="hub-challenge-title">{dailyChallenge.title}</span>
-            <span className="hub-challenge-sub">{dailyChallenge.subtitle}</span>
-          </span>
-
-          {dailyChallenge.done && (
-            <span className="hub-challenge-pill">
-              <SocialIcon name="check" size={13} /> COMPLETED
-            </span>
-          )}
-
-          <span className="hub-challenge-corner" aria-hidden="true">
-            <SocialIcon name="send" size={13} />
-          </span>
-        </button>
-
-        {/* Horní mřížka — jen Rewards a Shop teď, vedle sebe. Profil má
-            svou vlastní cestu už v hlavičce (kolečko s avatarem), druhé
-            tlačítko na to samé bylo zbytečné; Cloud (zálohování dat) se
-            přesunul do Nastavení, viz settings-zaloha-* v
-            SettingsModule.tsx — appka se tam stejně vrací mnohem méně
-            impulzivně než sem, sedí to tam líp jako jedna z voleb mezi
-            ostatními, ne jako čtvrtá dlaždice tady. Barevný odznak ikony
-            vlevo, šipka vpravo, stejný "dlaždice vede dál" jazyk jako
-            Social's vlastní seznamy (.social-nastaveni-sipka). */}
-        <div className="hub-grid-top">
-          <button className="hub-btn-card" onClick={handleRewardsClick}>
-            <span className="hub-card-icon hub-card-icon--purple">
-              <SocialIcon name="gift" size={24} />
-            </span>
-            <span className="hub-card-text">
-              <span className="hub-card-title">Rewards</span>
-              <span className="hub-card-sub">
-                {unlockedBadges} z {badges.length} odemčeno
-              </span>
-              <span className="hub-card-progress" aria-hidden="true">
-                <span
-                  className="hub-card-progress-fill"
-                  style={{ width: `${badges.length > 0 ? (unlockedBadges / badges.length) * 100 : 0}%` }}
-                />
-              </span>
-            </span>
-            <SocialIcon name="arrow-left" size={14} className="hub-card-arrow" />
-          </button>
-
-          <button className="hub-btn-card" onClick={() => navigate('/obchod')}>
-            <span className="hub-card-icon hub-card-icon--magenta">
-              <SocialIcon name="bag" size={24} />
-            </span>
-            <span className="hub-card-text">
-              <span className="hub-card-title">Shop</span>
-              {/* Dokud nejsou platby, ať dlaždice neslibuje nákup */}
-              <span className="hub-card-sub">Kredity, VIP a doplňky</span>
-            </span>
-            <SocialIcon name="arrow-left" size={14} className="hub-card-arrow" />
-          </button>
-        </div>
-
-        {/* Maskot */}
-        {/* Pulzující kruh na místě, kde dřív seděl maskot.
-            Maskot zůstal na úvodní obrazovce — tam má kolem sebe
-            prostředí a je vidět celý, kdežto tady se na malém displeji
-            mačkal a bral místo dlaždicím.
-
-            Od hlasového Buddyho je to i tlačítko: klepnutím na kolečko
-            (stejně jako na mikrofon dole) se otevře rozhovor a koule
-            dostane třídu podle stavu (poslouchá/přemýšlí/mluví), aby
-            reagovala vizuálně na to, co se právě děje. */}
-        <section className="hub-orb-section">
-          {/* Pořadí v kódu určuje, co je nad čím: zadní dráha stojí před
-              jádrem, a je tedy pod ním, přední až za ním. Z toho vzniká
-              dojem, že tečky obíhají kolem, ne po něm. */}
           <div
             className={`hub-orb ${buddyOtevreny ? `hub-orb--buddy hub-orb--${buddyVoice.stav}` : ''}`}
             role="button"
@@ -309,6 +218,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
               if (e.key === 'Enter' || e.key === ' ') otevritBuddyho()
             }}
           >
+            {/* Pořadí v kódu určuje, co je nad čím: zadní dráha stojí
+                před jádrem, a je tedy pod ním, přední až za ním. Z toho
+                vzniká dojem, že tečky obíhají kolem, ne po něm. */}
             <span className="hub-orb-zare" />
             <span className="hub-orb-vlna" />
             <span className="hub-orb-vlna hub-orb-vlna--druha" />
@@ -332,25 +244,140 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <span className="hub-orb-obezna hub-orb-obezna--pred" />
           </div>
 
-          {/* Podstavec + jméno pod koulí — dřív koule stála sama,
-              bez popisku nebylo na první pohled jasné, co/kdo to je. */}
-          <div className="hub-orb-podstavec" aria-hidden="true" />
-          <div className="hub-orb-label">
-            <span className="hub-orb-jmeno">Buddy</span>
-            <span className="hub-orb-popis">Tvůj AI parťák</span>
+          {/* Rohové odznaky přes hero panel — šestiúhelník s úrovní
+              vlevo dole, ohnivá série vpravo nahoře, přesně rozložení
+              z návrhu, jen bez fotky pod nimi. */}
+          <div className="hub-hero-level" aria-label={`Úroveň ${level}, ${xp} z ${xpDoDalsi} XP`}>
+            <span className="hub-level-hex" aria-hidden="true">
+              <span className="hub-level-hex-num">{String(level).padStart(2, '0')}</span>
+            </span>
+            <div className="hub-level-info">
+              <span className="hub-level-title">LEVEL {level}</span>
+              <span className="hub-level-xp">
+                {xp} / {xpDoDalsi} XP
+              </span>
+              <span className="hub-level-progress" aria-hidden="true">
+                <span className="hub-level-progress-fill" style={{ width: `${progressPercent}%` }} />
+              </span>
+            </div>
+          </div>
+
+          <div className="hub-hero-streak" aria-label={`${streakDays} dní v řadě`}>
+            <span className="hub-streak-flame" aria-hidden="true">🔥</span>
+            <span className="hub-streak-num">{streakDays}</span>
+            <span className="hub-streak-label">DAYS STREAK</span>
           </div>
         </section>
 
         {buddyOtevreny && <BuddyOverlay voice={buddyVoice} onZavrit={zavritBuddyho} />}
 
-        {/* Spodní mřížka (Apps, Play, Library) — kulaté tlačítko se
-            šipkou v pravém dolním rohu každé dlaždice, celá dlaždice
-            zůstává klikatelná jako dřív, šipka je jen vizuální nápověda. */}
+        {/* Denní výzva — reálné úkoly z Planeru. */}
+        <button className="hub-challenge-card" onClick={handleChallengeClick}>
+          <span className="hub-challenge-icon" aria-hidden="true">🎯</span>
+
+          <span className="hub-challenge-body">
+            <span className="hub-challenge-tag">DENNÍ VÝZVA</span>
+            <span className="hub-challenge-title">{dailyChallenge.title}</span>
+            <span className="hub-challenge-sub">{dailyChallenge.subtitle}</span>
+          </span>
+
+          {dailyChallenge.done && (
+            <span className="hub-challenge-pill">
+              <SocialIcon name="check" size={13} /> DOKONČENO
+            </span>
+          )}
+
+          <span className="hub-challenge-corner" aria-hidden="true">
+            <SocialIcon name="send" size={13} />
+          </span>
+        </button>
+
+        {/* Horní mřížka — jen Rewards a Shop teď, vedle sebe. Profil má
+            svou vlastní cestu už v hlavičce (kolečko s avatarem), druhé
+            tlačítko na to samé bylo zbytečné; Cloud (zálohování dat) se
+            přesunul do Nastavení, viz settings-zaloha-* v
+            SettingsModule.tsx. Ikona nahoře vlevo v barevném čtverci,
+            šipka v kolečku nahoře vpravo, titulek/popisek/(progress)
+            pod nimi — stejné rozvržení karty, jaké má návrh. */}
+        <div className="hub-grid-top">
+          <button className="hub-action-card" onClick={handleRewardsClick}>
+            <span className="hub-action-top">
+              <span className="hub-action-icon hub-action-icon--purple">
+                <SocialIcon name="gift" size={22} />
+              </span>
+              <span className="hub-action-arrow hub-action-arrow--purple" aria-hidden="true">
+                <SocialIcon name="arrow-left" size={13} />
+              </span>
+            </span>
+            <span className="hub-action-title">Odměny</span>
+            <span className="hub-action-sub">
+              {unlockedBadges} z {badges.length} obdrženo
+            </span>
+            <span className="hub-action-progress" aria-hidden="true">
+              <span
+                className="hub-action-progress-fill"
+                style={{ width: `${badges.length > 0 ? (unlockedBadges / badges.length) * 100 : 0}%` }}
+              />
+            </span>
+          </button>
+
+          <button className="hub-action-card" onClick={() => navigate('/obchod')}>
+            <span className="hub-action-top">
+              <span className="hub-action-icon hub-action-icon--magenta">
+                <SocialIcon name="bag" size={22} />
+              </span>
+              <span className="hub-action-arrow hub-action-arrow--magenta" aria-hidden="true">
+                <SocialIcon name="arrow-left" size={13} />
+              </span>
+            </span>
+            <span className="hub-action-title">Obchod</span>
+            {/* Dokud nejsou platby, ať dlaždice neslibuje nákup */}
+            <span className="hub-action-sub">Kredity, VIP a doplňky</span>
+          </button>
+        </div>
+
+        {/* Velká ilustrovaná mřížka 2×2 — Hry a Play vedou schválně na
+            stejné místo (/hra, appčin jediný herní rozcestník),
+            "Hry"/"Play" jsou v návrhu dva různé popisky téhož světa
+            (dobrodružství × minihry/výzvy), appka ale nemá dvě různé
+            cílové obrazovky, jen tenhle jeden herní hub — stejná "víc
+            poctivých vstupů, jeden cíl" zásada jako u Economy Roomovy
+            čtveřice Rychlých akcí. Social Chat je nová dlaždice, dřív
+            šel Social z Hubu jen přes lupu/dolní lištu. */}
         <div className="hub-grid-squares">
+          <button className="hub-btn-card hub-btn-square hub-btn-square--play" onClick={() => navigate('/hra')}>
+            <span className="hub-square-head">
+              <SocialIcon name="gamepad" size={17} className="hub-square-icon hub-square-icon--purple" />
+              <span className="hub-card-title">Hry</span>
+            </span>
+            <span className="hub-square-preview hub-square-preview--play" aria-hidden="true" />
+            <span className="hub-card-sub">Svět plný dobrodružství</span>
+            <span className="hub-square-arrow hub-square-arrow--purple" aria-hidden="true">
+              <SocialIcon name="arrow-left" size={14} />
+            </span>
+          </button>
+
+          <button
+            className="hub-btn-card hub-btn-square hub-btn-square--social"
+            onClick={() => prejit('/social?zalozka=chaty')}
+          >
+            <span className="hub-square-head">
+              <SocialIcon name="chat" size={17} className="hub-square-icon hub-square-icon--purple" />
+              <span className="hub-card-title">Social Chat</span>
+            </span>
+            <span className="hub-square-preview hub-square-preview--social" aria-hidden="true">
+              <SocialIcon name="chat" size={34} />
+            </span>
+            <span className="hub-card-sub">Přátelé, chaty, komunita</span>
+            <span className="hub-square-arrow hub-square-arrow--purple" aria-hidden="true">
+              <SocialIcon name="arrow-left" size={14} />
+            </span>
+          </button>
+
           <button className="hub-btn-card hub-btn-square" onClick={handleAppsClick}>
             <span className="hub-square-head">
               <SocialIcon name="grid" size={17} className="hub-square-icon hub-square-icon--cyan" />
-              <span className="hub-card-title">Apps</span>
+              <span className="hub-card-title">Aplikace</span>
             </span>
             <span className="hub-square-preview hub-square-preview--apps" aria-hidden="true">
               <span>💬</span>
@@ -358,7 +385,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
               <span>📝</span>
               <span>⚡</span>
             </span>
-            <span className="hub-card-sub">Tvé aplikace</span>
+            <span className="hub-card-sub">Spusť si libovolnou aplikaci</span>
             <span className="hub-square-arrow hub-square-arrow--cyan" aria-hidden="true">
               <SocialIcon name="arrow-left" size={14} />
             </span>
@@ -370,30 +397,25 @@ export const HubModule: React.FC<HubModuleProps> = ({
               <span className="hub-card-title">Play</span>
             </span>
             <span className="hub-square-preview hub-square-preview--play" aria-hidden="true" />
-            <span className="hub-card-sub">Buddyheim</span>
+            <span className="hub-card-sub">Minihry, výzvy, příběh a víc</span>
             <span className="hub-square-arrow hub-square-arrow--purple" aria-hidden="true">
               <SocialIcon name="arrow-left" size={14} />
             </span>
           </button>
-
-          <button
-            className="hub-btn-card hub-btn-square hub-btn-card--soon"
-            onClick={() => showToast('Library se připravuje — materiály na ni teprve čekají.')}
-          >
-            <span className="hub-square-head">
-              <SocialIcon name="book" size={17} className="hub-square-icon hub-square-icon--blue" />
-              <span className="hub-card-title">
-                Library
-                <span className="hub-badge-soon">BRZY</span>
-              </span>
-            </span>
-            <span className="hub-square-preview hub-square-preview--library" aria-hidden="true">📚</span>
-            <span className="hub-card-sub">Učení a materiály</span>
-            <span className="hub-square-arrow hub-square-arrow--blue" aria-hidden="true">
-              <SocialIcon name="arrow-left" size={14} />
-            </span>
-          </button>
         </div>
+
+        {/* Library — v novém rozvržení nemá vlastní velkou dlaždici
+            (návrh ji nemá), appka ji ale neztrácí, jen zmenšuje na
+            tenký řádek pod hlavní mřížkou — pořád funkční "BRZY" toast,
+            stejný jako dřív. */}
+        <button
+          className="hub-library-radek"
+          onClick={() => showToast('Library se připravuje — materiály na ni teprve čekají.')}
+        >
+          <SocialIcon name="book" size={16} className="hub-square-icon--cyan" />
+          <span>Library</span>
+          <span className="hub-badge-soon">BRZY</span>
+        </button>
 
         {/* Spodní navigace — Fáze 4 Social nav reworku vytáhla tenhle
             blok do sdílené komponenty (src/components/AppBottomNav.tsx),
