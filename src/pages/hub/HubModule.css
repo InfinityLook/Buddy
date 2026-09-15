@@ -742,7 +742,7 @@
 /* Social Chat — appka nemá vlastní ilustraci chatu, takže náhled je
    stejná "velká ikona uprostřed barevného gradientu" řeč, jakou appka
    používá jinde pro cokoli bez vlastní fotky (viz .hub-square-preview
-   --library dřív). */
+   --library níž). */
 .hub-square-preview--social {
   display: flex;
   align-items: center;
@@ -751,6 +751,19 @@
   background:
     radial-gradient(circle at 30% 20%, rgba(138, 92, 246, 0.35) 0%, transparent 60%),
     radial-gradient(circle at 80% 80%, rgba(53, 196, 240, 0.25) 0%, transparent 55%),
+    rgba(255, 255, 255, 0.04);
+}
+
+/* Library — stejná "velká ikona v gradientu" řeč jako Social Chat výš,
+   jen v cyanové barvě appčiny knihovní ikony místo fialové. */
+.hub-square-preview--library {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-cyan);
+  background:
+    radial-gradient(circle at 30% 20%, rgba(53, 196, 240, 0.35) 0%, transparent 60%),
+    radial-gradient(circle at 80% 80%, rgba(138, 92, 246, 0.2) 0%, transparent 55%),
     rgba(255, 255, 255, 0.04);
 }
 
@@ -1169,26 +1182,10 @@
 
 /* ==========================================
    Připravované funkce (Library)
-   Zůstává v rozhraní jako tenký řádek pod hlavní mřížkou (viz
-   Hub.tsx), ne vlastní velká dlaždice jako dřív — na první pohled je
-   vidět, že ještě nefunguje, jinak na ni uživatel kliká dokola.
+   Library je teď zpátky plná dlaždice ve velké mřížce výš (viz
+   Hub.tsx) — .hub-badge-soon níž je jediné, co ji odlišuje od hotové
+   funkce, ať na ni uživatel neklikne s očekáváním, že něco udělá.
    ========================================== */
-.hub-library-radek {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  background: rgba(12, 18, 36, 0.5);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-pill);
-  padding: 0.5rem 0.85rem;
-  font-family: inherit;
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--text-secondary);
-  cursor: pointer;
-  opacity: 0.75;
-}
-
 .hub-badge-soon {
   background: rgba(255, 255, 255, 0.14);
   color: var(--text-secondary);

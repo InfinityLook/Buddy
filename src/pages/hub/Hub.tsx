@@ -336,14 +336,16 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </button>
         </div>
 
-        {/* Velká ilustrovaná mřížka 2×2 — Hry a Play vedou schválně na
-            stejné místo (/hra, appčin jediný herní rozcestník),
-            "Hry"/"Play" jsou v návrhu dva různé popisky téhož světa
-            (dobrodružství × minihry/výzvy), appka ale nemá dvě různé
-            cílové obrazovky, jen tenhle jeden herní hub — stejná "víc
-            poctivých vstupů, jeden cíl" zásada jako u Economy Roomovy
-            čtveřice Rychlých akcí. Social Chat je nová dlaždice, dřív
-            šel Social z Hubu jen přes lupu/dolní lištu. */}
+        {/* Velká ilustrovaná mřížka 2×2 — Hry/Social Chat/Aplikace/Library.
+            Dřív tu byla i druhá dlaždice "Play" mířící na to samé /hra
+            jako "Hry" — zbytečná duplicita, ne druhý poctivý vstup (na
+            rozdíl od Economy Roomovy čtveřice Rychlých akcí, kde všechny
+            čtyři vedou na tutéž Finance z reálně odlišných důvodů). Na
+            jejím místě je teď Library — dřív zmenšená na tenký řádek
+            pod mřížkou, teď zpátky jako plná dlaždice, pořád ale jasně
+            BRZY (appka na ni nemá obsah), ne tvářená jako hotová
+            funkce. Social Chat je nová dlaždice, dřív šel Social
+            z Hubu jen přes lupu/dolní lištu. */}
         <div className="hub-grid-squares">
           <button className="hub-btn-card hub-btn-square hub-btn-square--play" onClick={() => navigate('/hra')}>
             <span className="hub-square-head">
@@ -391,31 +393,26 @@ export const HubModule: React.FC<HubModuleProps> = ({
             </span>
           </button>
 
-          <button className="hub-btn-card hub-btn-square hub-btn-square--play" onClick={() => navigate('/hra')}>
+          <button
+            className="hub-btn-card hub-btn-square hub-btn-square--library"
+            onClick={() => showToast('Library se připravuje — materiály na ni teprve čekají.')}
+          >
             <span className="hub-square-head">
-              <SocialIcon name="gamepad" size={17} className="hub-square-icon hub-square-icon--purple" />
-              <span className="hub-card-title">Play</span>
+              <SocialIcon name="book" size={17} className="hub-square-icon hub-square-icon--cyan" />
+              <span className="hub-card-title">
+                Library
+                <span className="hub-badge-soon">BRZY</span>
+              </span>
             </span>
-            <span className="hub-square-preview hub-square-preview--play" aria-hidden="true" />
-            <span className="hub-card-sub">Minihry, výzvy, příběh a víc</span>
-            <span className="hub-square-arrow hub-square-arrow--purple" aria-hidden="true">
+            <span className="hub-square-preview hub-square-preview--library" aria-hidden="true">
+              <SocialIcon name="book" size={34} />
+            </span>
+            <span className="hub-card-sub">Materiály a zdroje ke studiu</span>
+            <span className="hub-square-arrow hub-square-arrow--cyan" aria-hidden="true">
               <SocialIcon name="arrow-left" size={14} />
             </span>
           </button>
         </div>
-
-        {/* Library — v novém rozvržení nemá vlastní velkou dlaždici
-            (návrh ji nemá), appka ji ale neztrácí, jen zmenšuje na
-            tenký řádek pod hlavní mřížkou — pořád funkční "BRZY" toast,
-            stejný jako dřív. */}
-        <button
-          className="hub-library-radek"
-          onClick={() => showToast('Library se připravuje — materiály na ni teprve čekají.')}
-        >
-          <SocialIcon name="book" size={16} className="hub-square-icon--cyan" />
-          <span>Library</span>
-          <span className="hub-badge-soon">BRZY</span>
-        </button>
 
         {/* Spodní navigace — Fáze 4 Social nav reworku vytáhla tenhle
             blok do sdílené komponenty (src/components/AppBottomNav.tsx),
