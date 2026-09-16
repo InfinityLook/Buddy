@@ -230,12 +230,13 @@
   margin: 1.1rem 0;
 }
 
-/* Odznak úrovně — vlevo dole přes hero panel, stejné rozvržení jako
-   .hub-hero-streak vpravo nahoře, jen v opačném rohu. */
+/* Odznak úrovně — teď nahoře vlevo, ne v dolním rohu jako dřív; oba
+   rohové odznaky (tenhle a .hub-hero-streak) tak sedí v jedné, snáz
+   čitelné řadě u vršku panelu místo diagonálně. */
 .hub-hero-level {
   position: absolute;
   left: 0.7rem;
-  bottom: 0.7rem;
+  top: 0.7rem;
   z-index: 1;
   display: flex;
   align-items: center;
@@ -350,9 +351,11 @@
 }
 
 /* ------------------------------------------
-   DENNÍ VÝZVA
+   PROFIL (stejně velké tlačítko, dřív tu sedělo .hub-challenge-card
+   pro denní výzvu — appka výzvu odebrala, rozměry/tvar karty ale
+   zůstaly stejné, jen s jiným obsahem a vlastní SVG ikonou místo emoji)
    ------------------------------------------ */
-.hub-challenge-card {
+.hub-profile-card {
   position: relative;
   width: 100%;
   background: rgba(10, 14, 28, 0.68);
@@ -370,25 +373,25 @@
   transition: border-color 0.2s ease, transform 0.2s ease;
 }
 
-.hub-challenge-card:hover {
-  border-color: rgba(245, 158, 11, 0.4);
+.hub-profile-card:hover {
+  border-color: rgba(53, 196, 240, 0.4);
   transform: translateY(-1px);
 }
 
-.hub-challenge-icon {
+.hub-profile-icon {
   flex-shrink: 0;
   width: 42px;
   height: 42px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.3rem;
+  color: var(--accent-cyan);
   border-radius: var(--radius-md);
-  background: rgba(138, 92, 246, 0.16);
-  border: 1px solid rgba(138, 92, 246, 0.35);
+  background: rgba(53, 196, 240, 0.16);
+  border: 1px solid rgba(53, 196, 240, 0.35);
 }
 
-.hub-challenge-body {
+.hub-profile-body {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
@@ -396,41 +399,29 @@
   flex: 1;
 }
 
-.hub-challenge-tag {
+.hub-profile-tag {
   font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0.06em;
-  color: var(--accent-orange);
+  color: var(--accent-cyan);
 }
 
-.hub-challenge-title {
+.hub-profile-title {
   font-size: 0.92rem;
   font-weight: 800;
 }
 
-.hub-challenge-sub {
+.hub-profile-sub {
   font-size: 0.72rem;
   color: var(--text-secondary);
-}
-
-.hub-challenge-pill {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
-  color: var(--accent-green);
-  background: rgba(16, 185, 129, 0.14);
-  border: 1px solid rgba(16, 185, 129, 0.4);
-  border-radius: var(--radius-pill);
-  padding: 0.35rem 0.6rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Malá šipka v pravém horním rohu — appka celou kartu bere jako
    klikatelnou, tohle je jen vizuální nápověda "vede to dál". */
-.hub-challenge-corner {
+.hub-profile-corner {
   position: absolute;
   top: 0.6rem;
   right: 0.65rem;

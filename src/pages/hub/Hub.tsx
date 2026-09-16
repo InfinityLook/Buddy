@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
 import { useInbox } from '@/social/inbox'
@@ -10,9 +10,7 @@ import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
-import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { getLevelProgress, getXpForNextLevel } from '@/core/utils/gamificationUtils'
-import { sklonujUkoly } from '@/core/utils/text'
 import './HubModule.css'
 
 interface HubModuleProps {
@@ -21,15 +19,62 @@ interface HubModuleProps {
   onTalk?: () => void
 }
 
-// Druhý pád názvu předmětu ("Matematika" → "matematiky"), ať věta zní přirozeně.
-// Pokrývá běžné školní předměty, u ostatních zůstane název beze změny.
-const predmetVeDruhemPade = (predmet: string) => {
-  const nazev = predmet.trim().toLowerCase()
-  if (!nazev) return nazev
-  if (nazev.endsWith('a')) return `${nazev.slice(0, -1)}y` // matematika → matematiky
-  if (nazev.endsWith('e') || nazev.endsWith('í')) return nazev // chemie → chemie
-  return `${nazev}u` // dějepis → dějepisu
-}
+// Vlastní SVG ikony pro tři hlavní akční karty Hubu (Profil/Achievementy/
+// Obchod) — appčina vlastní kresba přímo v tomhle souboru, ne emoji a ne
+// sdílená SocialIcon (ta zůstává jen pro drobné doprovodné ikony v
+// hlavičce a šipky/fajfky na kartách níž, kde jde jen o obecný "vede to
+// dál"/"hotovo" symbol, ne o identitu tlačítka samotného).
+const IkonaProfil: React.FC<{ size?: number }> = ({ size = 24 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="7" r="4" />
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+  </svg>
+)
+
+const IkonaAchievementy: React.FC<{ size?: number }> = ({ size = 24 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <circle cx="12" cy="8" r="7" />
+    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
+  </svg>
+)
+
+const IkonaObchod: React.FC<{ size?: number }> = ({ size = 24 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+    <line x1="3" y1="6" x2="21" y2="6" />
+    <path d="M16 10a4 4 0 0 1-8 0" />
+  </svg>
+)
 
 export const HubModule: React.FC<HubModuleProps> = ({
   onOpenApps,
@@ -51,9 +96,6 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
   // Store aplikací — používáme pro deep-link do konkrétní miniaplikace
   const { setActiveAppId } = useAppStore()
-
-  // Reálné úkoly z Planeru pro denní výzvu
-  const { tasks } = useStudyPlanner()
 
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<number | null>(null)
@@ -92,30 +134,6 @@ export const HubModule: React.FC<HubModuleProps> = ({
     toastTimer.current = window.setTimeout(() => setToast(null), 2600)
   }
 
-  // Denní výzva — reálné nesplněné úkoly z Planeru (předmět s jejich
-  // nejvyšším počtem). Rozdělené na title/subtitle kvůli dvouřádkové
-  // kartě v novém rozvržení (viz redesign níž), stejná logika/data jako
-  // dřív, jen jinak poskládaná pro zobrazení.
-  const dailyChallenge = useMemo(() => {
-    const pending = tasks.filter((task) => !task.completed)
-    if (pending.length === 0) {
-      return { done: true, title: 'Máš hotovo!', subtitle: 'Dnes tě nečekají žádné úkoly. 🎉' }
-    }
-
-    const bySubject = pending.reduce<Record<string, number>>((acc, task) => {
-      acc[task.subject] = (acc[task.subject] ?? 0) + 1
-      return acc
-    }, {})
-
-    const [subject, count] = Object.entries(bySubject).sort((a, b) => b[1] - a[1])[0]
-    const sloveso = count === 1 ? 'Čeká' : 'Čekají'
-    return {
-      done: false,
-      title: `${count} ${sklonujUkoly(count)}`,
-      subtitle: `${sloveso} z ${predmetVeDruhemPade(subject)}`,
-    }
-  }, [tasks])
-
   const unlockedBadges = badges.filter((badge) => badge.unlockedAt !== null).length
   const progressPercent = getLevelProgress(xp)
   const xpDoDalsi = getXpForNextLevel(level)
@@ -136,13 +154,6 @@ export const HubModule: React.FC<HubModuleProps> = ({
       return
     }
     navigate('/profil')
-  }
-
-  // Denní výzva otevře přímo Planer s úkoly; tlačítko Zpět v aplikaci
-  // pak vrátí uživatele zpátky do Hubu, ne jen do seznamu aplikací.
-  const handleChallengeClick = () => {
-    setActiveAppId('study-planner', '/hub')
-    navigate('/apps')
   }
 
   // Rewards otevře samostatný modul s odměnami (úroveň, série, odznaky)
@@ -238,9 +249,11 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <span className="hub-orb-obezna hub-orb-obezna--pred" />
           </div>
 
-          {/* Rohové odznaky přes hero panel — šestiúhelník s úrovní
-              vlevo dole, ohnivá série vpravo nahoře, přesně rozložení
-              z návrhu, jen bez fotky pod nimi. */}
+          {/* Rohové odznaky přes hero panel — oba teď nahoře (šestiúhelník
+              s úrovní vlevo, ohnivá série vpravo), ne diagonálně jako
+              v původním návrhu — úroveň se z dolního rohu přesunula sem,
+              ať zůstane hned vidět i bez scrollování na krátkých
+              obrazovkách. */}
           <div className="hub-hero-level" aria-label={`Úroveň ${level}, ${xp} z ${xpDoDalsi} XP`}>
             <span className="hub-level-hex" aria-hidden="true">
               <span className="hub-level-hex-num">{String(level).padStart(2, '0')}</span>
@@ -265,31 +278,35 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
         {buddyOtevreny && <BuddyOverlay voice={buddyVoice} onZavrit={zavritBuddyho} />}
 
-        {/* Denní výzva — reálné úkoly z Planeru. */}
-        <button className="hub-challenge-card" onClick={handleChallengeClick}>
-          <span className="hub-challenge-icon" aria-hidden="true">🎯</span>
-
-          <span className="hub-challenge-body">
-            <span className="hub-challenge-tag">DENNÍ VÝZVA</span>
-            <span className="hub-challenge-title">{dailyChallenge.title}</span>
-            <span className="hub-challenge-sub">{dailyChallenge.subtitle}</span>
+        {/* Bývalé místo denní výzvy — appka ji celou odebrala (Planer je
+            pořád v /apps, kdykoli otevřený), a na stejně velké tlačítko
+            teď posadila druhý, rychlejší vstup do Profilu přímo
+            z domovské obrazovky, hned pod hero panelem. Stejná cesta
+            jako avatar/zvonek v hlavičce (handleProfileClick), jen blíž
+            palci na dlouhé stránce. Vlastní SVG ikona (IkonaProfil výš),
+            ne emoji jako bývalá výzva. */}
+        <button className="hub-profile-card" onClick={handleProfileClick}>
+          <span className="hub-profile-icon" aria-hidden="true">
+            <IkonaProfil size={24} />
           </span>
 
-          {dailyChallenge.done && (
-            <span className="hub-challenge-pill">
-              <SocialIcon name="check" size={13} /> DOKONČENO
+          <span className="hub-profile-body">
+            <span className="hub-profile-tag">TVŮJ ÚČET</span>
+            <span className="hub-profile-title">Profil</span>
+            <span className="hub-profile-sub">
+              Úroveň {level} · {profile.name}
             </span>
-          )}
+          </span>
 
-          <span className="hub-challenge-corner" aria-hidden="true">
+          <span className="hub-profile-corner" aria-hidden="true">
             <SocialIcon name="send" size={13} />
           </span>
         </button>
 
-        {/* Horní mřížka — jen Rewards a Shop teď, vedle sebe. Profil má
-            svou vlastní cestu už v hlavičce (kolečko s avatarem), druhé
-            tlačítko na to samé bylo zbytečné; Cloud (zálohování dat) se
-            přesunul do Nastavení, viz settings-zaloha-* v
+        {/* Horní mřížka — jen Rewards a Shop teď, vedle sebe. Vlastní cesta
+            do Profilu je teď na dvou místech (hlavička + karta výš), druhé
+            tlačítko na to samé v týhle mřížce by bylo nadbytečné; Cloud
+            (zálohování dat) se přesunul do Nastavení, viz settings-zaloha-* v
             SettingsModule.tsx. Ikona nahoře vlevo v barevném čtverci,
             šipka v kolečku nahoře vpravo, titulek/popisek/(progress)
             pod nimi — stejné rozvržení karty, jaké má návrh. */}
@@ -297,7 +314,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
           <button className="hub-action-card" onClick={handleRewardsClick}>
             <span className="hub-action-top">
               <span className="hub-action-icon hub-action-icon--purple">
-                <SocialIcon name="gift" size={22} />
+                <IkonaAchievementy size={22} />
               </span>
               <span className="hub-action-arrow hub-action-arrow--purple" aria-hidden="true">
                 <SocialIcon name="arrow-left" size={13} />
@@ -318,7 +335,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
           <button className="hub-action-card" onClick={() => navigate('/obchod')}>
             <span className="hub-action-top">
               <span className="hub-action-icon hub-action-icon--magenta">
-                <SocialIcon name="bag" size={22} />
+                <IkonaObchod size={22} />
               </span>
               <span className="hub-action-arrow hub-action-arrow--magenta" aria-hidden="true">
                 <SocialIcon name="arrow-left" size={13} />
