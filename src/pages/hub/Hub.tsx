@@ -197,14 +197,20 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </div>
         </header>
 
-        {/* Hero — koule (appčin dosavadní maskot, viz komentář uvnitř)
-            teď sedí ve vlastním velkém, atmosférickém panelu místo
-            samostatné sekce s podstavcem, a úroveň/série jsou přes něj
-            přeložené jako dva rohové odznaky, stejné rozvržení jako
-            v návrhu. Skutečný fotoreálný maskot z návrhu appka zatím
-            nemá čím vykreslit (žádný nástroj na generování obrázků
-            v týhle relaci) — až budou obrázky k dispozici, jde jen
-            o výměnu obsahu tohohle panelu, rozvržení kolem zůstane. */}
+        {/* Hero — appčin maskot teď sedí ve vlastním velkém, atmosférickém
+            panelu místo samostatné sekce s podstavcem, a úroveň/série
+            jsou přes něj přeložené jako dva rohové odznaky, stejné
+            rozvržení jako v návrhu. Jádro koule dřív neslo abstraktní
+            SVG tvář (viz git historie) — teď v něm sedí skutečný,
+            uživatelem dodaný obrázek maskota (vlčí štěně, "YOUR AI
+            COMPANION"), oříznutý na hlavu/ramena přesně na kruhový
+            výřez. Ušní boule a plazmový vír zmizely spolu s ní — fotka
+            už svoje uši i výraz nese sama, druhá vrstva by je jen
+            překrývala. Záře/vlny/prstenec/oběžné dráhy zůstaly beze
+            změny, protože na nich visí appčina existující reakce na
+            hlasového Buddyho (.hub-orb--posloucha/--premysli/--mluvi
+            níž v CSS) — ta funguje stejně dobře kolem fotky jako kolem
+            staré abstraktní koule. */}
         <section className="hub-hero">
           <div className="hub-hero-atmosfera" aria-hidden="true" />
 
@@ -225,21 +231,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <span className="hub-orb-vlna" />
             <span className="hub-orb-vlna hub-orb-vlna--druha" />
             <span className="hub-orb-obezna hub-orb-obezna--zad" />
-            {/* "Ušní" boule po stranách — spolu s očima/úsměvem dole dělají
-                z koule přátelskou robotí tvář, ne jen abstraktní kouli. */}
-            <span className="hub-orb-ucho hub-orb-ucho--leve" aria-hidden="true" />
-            <span className="hub-orb-ucho hub-orb-ucho--prave" aria-hidden="true" />
             <span className="hub-orb-prstenec" />
             <span className="hub-orb-jadro">
-              <span className="hub-orb-plazma" />
-              {/* Tvář — stejný pár "očí" jako u malé koule v dolní liště
-                  (hub-nav-orb-oko), jen větší a s úsměvem navíc. */}
-              <svg className="hub-orb-tvar" viewBox="0 0 100 100" aria-hidden="true">
-                <ellipse className="hub-orb-oko" cx="34" cy="42" rx="7" ry="11" />
-                <ellipse className="hub-orb-oko" cx="66" cy="42" rx="7" ry="11" />
-                <path className="hub-orb-usmev" d="M39 63 Q50 72 61 63" />
-              </svg>
-              <span className="hub-orb-lesk" />
+              <img src="/maskot/buddy-vlk.png" alt="Buddy" className="hub-orb-maskot" />
             </span>
             <span className="hub-orb-obezna hub-orb-obezna--pred" />
           </div>

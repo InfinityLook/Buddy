@@ -869,8 +869,7 @@
     0 0 34px rgba(248, 113, 113, 0.4);
 }
 
-.hub-orb--premysli .hub-orb-prstenec,
-.hub-orb--premysli .hub-orb-plazma {
+.hub-orb--premysli .hub-orb-prstenec {
   animation-duration: 3.5s;
 }
 
@@ -1020,98 +1019,34 @@
   to { transform: rotate(360deg); }
 }
 
-/* Jádro. Dřív to byla plná lesklá koule — vypadala jako kulička odjinud,
-   protože zbytek aplikace je tmavé sklo se svítícím okrajem. Tohle je
-   tmavý střed prosvícený zevnitř, tedy stejná řeč jako karty kolem. */
+/* Jádro. Dřív to byla vrstvená vlastní kresba (gradienty + plazmový
+   vír + SVG tvář + odlesk) — teď je to kruhový výřez pro skutečnou
+   fotku maskota (.hub-orb-maskot níž), border/box-shadow zůstaly beze
+   změny, ať fotka pořád čte jako "prosvícené sklo", stejná řeč jako
+   karty kolem, ne jako nalepený obrázek. Tmavé pozadí je jen záložka
+   pro tu jednu chvíli, než se fotka stihne načíst. */
 .hub-orb-jadro {
   position: absolute;
   inset: 22%;
   border-radius: 50%;
   overflow: hidden;
   border: 1px solid rgba(53, 196, 240, 0.45);
-  background:
-    radial-gradient(circle at 34% 28%, rgba(190, 240, 255, 0.6) 0%, rgba(66, 190, 240, 0.34) 30%, transparent 62%),
-    radial-gradient(circle at 74% 74%, rgba(138, 92, 246, 0.45) 0%, transparent 58%),
-    /* Střed je tmavý, okraj prosvícený — díky tomu to čte jako sklo
-       s náplní, ne jako díra v pozadí. */
-    radial-gradient(circle at 50% 50%, rgba(11, 22, 50, 0.9) 0%, rgba(16, 42, 88, 0.9) 68%, rgba(46, 150, 210, 0.55) 100%);
+  background: radial-gradient(circle at 50% 50%, rgba(16, 42, 88, 0.9) 0%, rgba(11, 22, 50, 0.95) 100%);
   box-shadow:
     inset 0 0 20px rgba(120, 220, 255, 0.35),
     inset 0 -8px 26px rgba(6, 14, 38, 0.6),
     0 0 34px rgba(53, 196, 240, 0.4);
 }
 
-/* Pomalu se převalující světlo uvnitř — dává jádru život i ve chvíli,
-   kdy se nic jiného nehýbe. Rozmazané, ať z toho není vrtule. */
-.hub-orb-plazma {
-  position: absolute;
-  inset: -25%;
-  border-radius: 50%;
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg,
-    rgba(53, 196, 240, 0.5) 60deg,
-    transparent 150deg,
-    rgba(138, 92, 246, 0.45) 250deg,
-    transparent 330deg
-  );
-  filter: blur(10px);
-  opacity: 0.75;
-  animation: hub-orb-otoc 14s linear infinite;
-}
-
-/* Odlesk nahoře. Drží dojem, že je střed vypouklý, ne plochý. */
-.hub-orb-lesk {
-  position: absolute;
-  top: 16%;
-  left: 24%;
-  width: 26%;
-  height: 18%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.6) 0%, transparent 70%);
-  filter: blur(2px);
-}
-
-/* Tvář — oči + úsměv nad jádrem, stejný pár "očí" jako u malé koule
-   v dolní liště (.hub-nav-orb-oko), jen kreslené jako SVG (přesnější
-   tvar úsměvu než CSS trik) a společně s .hub-orb-ucho níž dělá
-   z koule přátelskou robotí tvář, ne jen abstraktní svítící kouli. */
-.hub-orb-tvar {
-  position: absolute;
-  inset: 0;
+/* Fotka maskota samotná — vyplní celé kruhové jádro, `cover` ať se
+   nezploští, `center top` ať v kruhovém výřezu zůstane hlavně obličej
+   (zdroj je oříznutý hlava+ramena, ne celá postava). */
+.hub-orb-maskot {
   width: 100%;
   height: 100%;
+  object-fit: cover;
+  object-position: center top;
 }
-
-.hub-orb-oko {
-  fill: #bdf3ff;
-  filter: drop-shadow(0 0 6px rgba(53, 196, 240, 0.85));
-}
-
-.hub-orb-usmev {
-  fill: none;
-  stroke: #bdf3ff;
-  stroke-width: 4;
-  stroke-linecap: round;
-  filter: drop-shadow(0 0 4px rgba(53, 196, 240, 0.7));
-}
-
-/* "Ušní" boule po stranách prstence — malé svítící elipsy, ne obrázek
-   navíc. Umístěné na .hub-orb (ne na .hub-orb-jadro), ať zůstanou
-   u vnějšího okraje bez ohledu na to, jak je jádro zmenšené inset. */
-.hub-orb-ucho {
-  position: absolute;
-  top: 50%;
-  width: 13%;
-  height: 32%;
-  transform: translateY(-50%);
-  border-radius: 50%;
-  background: linear-gradient(180deg, rgba(53, 196, 240, 0.55), rgba(138, 92, 246, 0.45));
-  box-shadow: 0 0 12px rgba(53, 196, 240, 0.4);
-}
-
-.hub-orb-ucho--leve { left: -3%; }
-.hub-orb-ucho--prave { right: -3%; }
 
 /* Kdo má vypnuté animace, uvidí kruh v klidu. Pulzování přes celou
    obrazovku je pro část lidí nepříjemné až nesnesitelné. Prstence
@@ -1120,7 +1055,6 @@
   .hub-orb-zare,
   .hub-orb-vlna,
   .hub-orb-prstenec,
-  .hub-orb-plazma,
   .hub-orb-obezna,
   .hub-orb-obezna::after {
     animation: none;
