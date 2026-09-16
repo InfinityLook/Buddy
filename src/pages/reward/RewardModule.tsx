@@ -74,7 +74,7 @@ export const RewardModule: React.FC = () => {
   const unlockedCount = badges.filter((badge) => badge.unlockedAt !== null).length
 
   // Deep-link do miniaplikace se zpáteční cestou sem, ať tlačítko Zpět
-  // v otevřené aplikaci vrátí uživatele na Odměny, ne jen do seznamu aplikací.
+  // v otevřené aplikaci vrátí uživatele na Achievementy, ne jen do seznamu aplikací.
   const openApp = (appId: string) => {
     setActiveAppId(appId, '/odmeny')
     navigate('/apps')
@@ -87,7 +87,7 @@ export const RewardModule: React.FC = () => {
           <button className="reward-back-btn" onClick={() => navigate('/hub')}>
             ← Zpět do Hubu
           </button>
-          <h1 className="reward-title">Odměny</h1>
+          <h1 className="reward-title">Achievementy</h1>
           <p className="reward-subtitle">
             Tvoje úroveň, série a všechny odznaky — odemčené i ty, co tě teprve čekají.
           </p>

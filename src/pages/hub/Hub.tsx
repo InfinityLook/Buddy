@@ -309,7 +309,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
                 <SocialIcon name="arrow-left" size={13} />
               </span>
             </span>
-            <span className="hub-action-title">Odměny</span>
+            <span className="hub-action-title">Achievementy</span>
             <span className="hub-action-sub">
               {unlockedBadges} z {badges.length} obdrženo
             </span>

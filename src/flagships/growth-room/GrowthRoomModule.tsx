@@ -38,11 +38,11 @@ const BARVA_KATEGORIE: Record<string, string> = {
 // jako Fitness Room (Form Check) a Economy Room (Finance) předtím.
 //
 // Druhý panel ("Úroveň & odznaky") nepřesouvá žádnou appku ani
-// nekopíruje /odmeny — čte skutečná data přímo z useGamificationStore()
-// (stejná xp/level/streakDays/badges, co používá Hub i RewardModule)
-// a "Zobrazit vše" jen naviguje na /odmeny, stejný "dlaždice je jen
-// zkratka, ne druhá kopie obrazovky" vzorec, jaký School Roomova
-// dlaždice "Statistiky" už používá pro tu samou stránku.
+// nekopíruje /odmeny (Achievementy) — čte skutečná data přímo z
+// useGamificationStore() (stejná xp/level/streakDays/badges, co používá
+// Hub i RewardModule) a "Zobrazit vše" jen naviguje na /odmeny, stejný
+// "dlaždice je jen zkratka, ne druhá kopie obrazovky" vzorec, jaký
+// School Roomova dlaždice "Statistiky" už používá pro tu samou stránku.
 // ==========================================
 
 export const GrowthRoomModule: React.FC = () => {
@@ -237,7 +237,7 @@ export const GrowthRoomModule: React.FC = () => {
               <span className="gro-text--purple">
                 <AppIcon name="star-filled" size={22} />
               </span>
-              <span className="gro-akce-nazev">Moje odměny</span>
+              <span className="gro-akce-nazev">Moje Achievementy</span>
             </button>
           </div>
         </div>

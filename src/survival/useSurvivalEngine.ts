@@ -20,7 +20,7 @@ import { useSurvivalStore } from '@/core/store/useSurvivalStore'
 // - recordAction('survival_kill'/'survival_wave'/'boss', ...) níž
 //   přidává malé, PEVNÉ množství XP do SDÍLENÉHO gamifikačního
 //   systému (useGamificationStore) — to je appčin skutečný level/
-//   odznaky, co vidí i Profil/Odměny. Stejná "dvě různé věci, dva
+//   odznaky, co vidí i Profil/Achievementy. Stejná "dvě různé věci, dva
 //   různé účely" zásada jako Pomodoro's completedSessions vs.
 //   counters.pomodoro (viz CLAUDE.md).
 // ==========================================
