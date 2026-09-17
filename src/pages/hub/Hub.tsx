@@ -19,28 +19,11 @@ interface HubModuleProps {
   onTalk?: () => void
 }
 
-// Vlastní SVG ikony pro tři hlavní akční karty Hubu (Profil/Achievementy/
-// Obchod) — appčina vlastní kresba přímo v tomhle souboru, ne emoji a ne
-// sdílená SocialIcon (ta zůstává jen pro drobné doprovodné ikony v
-// hlavičce a šipky/fajfky na kartách níž, kde jde jen o obecný "vede to
-// dál"/"hotovo" symbol, ne o identitu tlačítka samotného).
-const IkonaProfil: React.FC<{ size?: number }> = ({ size = 24 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <circle cx="12" cy="7" r="4" />
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-  </svg>
-)
-
+// Vlastní SVG ikony pro dvě hlavní akční karty Hubu (Achievementy/Obchod) —
+// appčina vlastní kresba přímo v tomhle souboru, ne emoji a ne sdílená
+// SocialIcon (ta zůstává jen pro drobné doprovodné ikony v hlavičce a
+// šipky/fajfky na kartách níž, kde jde jen o obecný "vede to dál"/"hotovo"
+// symbol, ne o identitu tlačítka samotného).
 const IkonaAchievementy: React.FC<{ size?: number }> = ({ size = 24 }) => (
   <svg
     width={size}
@@ -278,38 +261,15 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
         {buddyOtevreny && <BuddyOverlay voice={buddyVoice} onZavrit={zavritBuddyho} />}
 
-        {/* Bývalé místo denní výzvy — appka ji celou odebrala (Planer je
-            pořád v /apps, kdykoli otevřený), a na stejně velké tlačítko
-            teď posadila druhý, rychlejší vstup do Profilu přímo
-            z domovské obrazovky, hned pod hero panelem. Stejná cesta
-            jako avatar/zvonek v hlavičce (handleProfileClick), jen blíž
-            palci na dlouhé stránce. Vlastní SVG ikona (IkonaProfil výš),
-            ne emoji jako bývalá výzva. */}
-        <button className="hub-profile-card" onClick={handleProfileClick}>
-          <span className="hub-profile-icon" aria-hidden="true">
-            <IkonaProfil size={24} />
-          </span>
-
-          <span className="hub-profile-body">
-            <span className="hub-profile-tag">TVŮJ ÚČET</span>
-            <span className="hub-profile-title">Profil</span>
-            <span className="hub-profile-sub">
-              Úroveň {level} · {profile.name}
-            </span>
-          </span>
-
-          <span className="hub-profile-corner" aria-hidden="true">
-            <SocialIcon name="send" size={13} />
-          </span>
-        </button>
-
-        {/* Horní mřížka — jen Rewards a Shop teď, vedle sebe. Vlastní cesta
-            do Profilu je teď na dvou místech (hlavička + karta výš), druhé
-            tlačítko na to samé v týhle mřížce by bylo nadbytečné; Cloud
-            (zálohování dat) se přesunul do Nastavení, viz settings-zaloha-* v
-            SettingsModule.tsx. Ikona nahoře vlevo v barevném čtverci,
-            šipka v kolečku nahoře vpravo, titulek/popisek/(progress)
-            pod nimi — stejné rozvržení karty, jaké má návrh. */}
+        {/* Horní mřížka — jen Rewards a Shop teď, vedle sebe. Bývalá
+            "Profil" karta (dřív tu na jejím místě sedělo tlačítko, ještě
+            dřív denní výzva) je pryč — appka do Profilu i tak vede přes
+            hlavičku (avatar/zvonek), druhý vstup hned pod hero panelem
+            byl nadbytečný. Cloud (zálohování dat) se přesunul do
+            Nastavení, viz settings-zaloha-* v SettingsModule.tsx. Ikona
+            nahoře vlevo v barevném čtverci, šipka v kolečku nahoře
+            vpravo, titulek/popisek/(progress) pod nimi — stejné
+            rozvržení karty, jaké má návrh. */}
         <div className="hub-grid-top">
           <button className="hub-action-card" onClick={handleRewardsClick}>
             <span className="hub-action-top">
