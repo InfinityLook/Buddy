@@ -8,37 +8,36 @@ import { useBuddyVoice } from '@/buddy/useBuddyVoice'
 import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import './AppBottomNav.css'
 
-interface Props {
-  /** Hub.tsx sem posílá svoje vlastní otevření hlasového Buddyho — jeho
-   *  velká koule nad lištou potřebuje tutéž instanci useBuddyVoice, na
-   *  kterou reaguje vizuálně (hub-orb--posloucha/--premysli/--mluvi), a
-   *  ta žije v Hub.tsx samotném (viz jeho vlastní komentář). Kdekoli
-   *  jinde (Apps/Profil/Nastavení, Fáze 4 Social nav reworku) prop
-   *  nepřijde a komponenta si vystačí s vlastní instancí — appka na
-   *  žádné z těch stránek nemá žádnou velkou kouli, se kterou by se
-   *  ta v liště musela synchronizovat. */
-  onTalk?: () => void
-}
-
 // ==========================================
 // Sdílená spodní navigace appky — Fáze 4 Social nav reworku (viz
 // CLAUDE.md). Dřív žila jen v Hub.tsx (hub-bottom-nav); appka teď
-// stejnou lištu (Home/Social/Buddy/Chat/Nastavení) vykresluje i na
-// Apps/Profil/Nastavení, ať se mezi hlavními obrazovkami appky nemusí
-// pokaždé vracet přes Hub. Social má vlastní, jinou spodní lištu
-// (Profil/Chaty/Domů/Vyhledávač — vnitřní záložky obrazovky, ne totéž
-// co appčiny hlavní cíle) a tahle komponenta se jí schválně netýká.
+// stejnou lištu (Home/Hledat/Buddy/Chat/Nastavení) vykresluje na
+// Hub/Apps/Profil/Nastavení, ať se mezi hlavními obrazovkami appky
+// nemusí pokaždé vracet přes Hub. Social má vlastní, jinou spodní
+// lištu (Profil/Chaty/Domů/Vyhledávač — vnitřní záložky obrazovky, ne
+// totéž co appčiny hlavní cíle) a tahle komponenta se jí schválně
+// netýká.
+//
+// "Social" (obyčejný vstup na /social) tu bývalo — nahradilo ho
+// "Hledat" (appka do Socialu pořád vede přes velkou kartu na Hubu
+// a přes "Chat" tady v liště, druhý obecný vstup navíc byl
+// nadbytečný), lupa se sem přestěhovala z Hubovy hlavičky, kde dřív
+// bydlela jako samostatná ikona vedle zvonku.
 //
 // Route-aware: "Home"/"Nastavení" se zvýrazní podle aktuální cesty
 // (useLocation), ne natvrdo — dřív bylo "Home" v Hub.tsx vždycky
 // aktivní, protože se lišta vykreslovala jen tam; teď musí umět
 // zhasnout na každé jiné stránce a naopak vést zpátky na /hub.
+//
+// Appka si vlastní instanci useBuddyVoice bere sama, na každé
+// stránce stejně — žádná z nich už nemá velkou kouli maskota (Hub
+// svou odstranil), se kterou by se muselo sdílet.
 // ==========================================
 
-export const AppBottomNav: React.FC<Props> = ({ onTalk }) => {
+export const AppBottomNav: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
-  // Jen dopředné "→ Social" cesty (Social/Chat) dostávají animovaný
+  // Jen dopředné "→ Social" cesty (Hledat/Chat) dostávají animovaný
   // přechod — stejné omezení jako Hub.tsx's vlastní komentář u
   // prejit(): "Home"/"Nastavení" jsou neutrální/zpětné trasy, CSS má
   // definovaný jen jeden směr pohybu.
@@ -48,12 +47,10 @@ export const AppBottomNav: React.FC<Props> = ({ onTalk }) => {
   const vlastniVoice = useBuddyVoice()
   const [vlastniOtevreny, setVlastniOtevreny] = useState(false)
 
-  const spustitTalk =
-    onTalk ??
-    (() => {
-      vlastniVoice.vycistit()
-      setVlastniOtevreny(true)
-    })
+  const spustitTalk = () => {
+    vlastniVoice.vycistit()
+    setVlastniOtevreny(true)
+  }
 
   const zavritVlastni = () => {
     vlastniVoice.zastavit()
@@ -104,9 +101,9 @@ export const AppBottomNav: React.FC<Props> = ({ onTalk }) => {
           <span>Home</span>
         </button>
 
-        <button className="app-nav-item" onClick={() => prejit('/social')}>
-          <SocialIcon name="users" size={20} />
-          <span>Social</span>
+        <button className="app-nav-item" onClick={() => prejit('/social?zalozka=vyhledavac')}>
+          <SocialIcon name="search" size={20} />
+          <span>Hledat</span>
         </button>
 
         <button className="app-nav-orb" aria-label="Promluvit s Buddym" onClick={spustitTalk}>
@@ -134,7 +131,7 @@ export const AppBottomNav: React.FC<Props> = ({ onTalk }) => {
         </button>
       </nav>
 
-      {!onTalk && vlastniOtevreny && <BuddyOverlay voice={vlastniVoice} onZavrit={zavritVlastni} />}
+      {vlastniOtevreny && <BuddyOverlay voice={vlastniVoice} onZavrit={zavritVlastni} />}
     </>
   )
 }
