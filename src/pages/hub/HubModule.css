@@ -193,11 +193,12 @@
 
 /* ------------------------------------------
    HERO
-   Panel s koulí (appčin dosavadní maskot) uprostřed a úroveň/sérií
-   jako dva rohové odznaky přes něj, stejné rozvržení jako v návrhu
-   (fotomaskot dole, úroveň vlevo dole, série vpravo nahoře) — jen
-   místo fotky atmosférický gradient, viz Hub.tsx's vlastní komentář
-   u téhle sekce pro proč (appka nemá jak fotoreálný maskot vykreslit).
+   Panel jen s koulí (appčin dosavadní maskot) uprostřed — atmosférický
+   gradient místo fotky, viz Hub.tsx's vlastní komentář u téhle sekce
+   pro proč (appka nemá jak fotoreálný maskot vykreslit). Úroveň/série
+   dřív seděly jako dva rohové odznaky přeložené přes horní rohy
+   tohohle panelu; teď jsou to dvě položky v .hub-hero-stats-row,
+   vlastním pruhu POD panelem, ne přes něj.
    ------------------------------------------ */
 .hub-hero {
   position: relative;
@@ -230,18 +231,23 @@
   margin: 1.1rem 0;
 }
 
-/* Odznak úrovně — teď nahoře vlevo, ne v dolním rohu jako dřív; oba
-   rohové odznaky (tenhle a .hub-hero-streak) tak sedí v jedné, snáz
-   čitelné řadě u vršku panelu místo diagonálně. */
+/* Pruh pod hero panelem, ne přes něj — úroveň (šestiúhelník, vlevo)
+   a série (plamínek, vpravo) dřív seděly jako dva rohové odznaky
+   přeložené přes horní rohy .hub-hero; teď je to obyčejná řádka
+   pod panelem, .hub-hero-level/.hub-hero-streak proto ztratily
+   position: absolute a jedou v běžném flow jako dvě flex položky. */
+.hub-hero-stats-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+}
+
 .hub-hero-level {
-  position: absolute;
-  left: 0.7rem;
-  top: 0.7rem;
-  z-index: 1;
   display: flex;
   align-items: center;
   gap: 0.55rem;
-  max-width: 62%;
+  flex: 1;
+  min-width: 0;
   background: rgba(8, 12, 26, 0.6);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
@@ -250,14 +256,12 @@
 }
 
 .hub-hero-streak {
-  position: absolute;
-  right: 0.7rem;
-  top: 0.7rem;
-  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
+  justify-content: center;
   gap: 0.05rem;
+  flex-shrink: 0;
   background: rgba(8, 12, 26, 0.6);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);

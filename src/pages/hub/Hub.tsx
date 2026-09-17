@@ -231,12 +231,13 @@ export const HubModule: React.FC<HubModuleProps> = ({
             </span>
             <span className="hub-orb-obezna hub-orb-obezna--pred" />
           </div>
+        </section>
 
-          {/* Rohové odznaky přes hero panel — oba teď nahoře (šestiúhelník
-              s úrovní vlevo, ohnivá série vpravo), ne diagonálně jako
-              v původním návrhu — úroveň se z dolního rohu přesunula sem,
-              ať zůstane hned vidět i bez scrollování na krátkých
-              obrazovkách. */}
+        {/* Úroveň a série stály jako dva rohové odznaky PŘES hero panel;
+            teď sedí v řadě POD ním jako vlastní pruh — pořád úroveň
+            vlevo/série vpravo, jen mimo panel samotný, ne přeložené
+            přes jeho rohy. */}
+        <div className="hub-hero-stats-row">
           <div className="hub-hero-level" aria-label={`Úroveň ${level}, ${xp} z ${xpDoDalsi} XP`}>
             <span className="hub-level-hex" aria-hidden="true">
               <span className="hub-level-hex-num">{String(level).padStart(2, '0')}</span>
@@ -257,7 +258,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <span className="hub-streak-num">{streakDays}</span>
             <span className="hub-streak-label">DAYS STREAK</span>
           </div>
-        </section>
+        </div>
 
         {buddyOtevreny && <BuddyOverlay voice={buddyVoice} onZavrit={zavritBuddyho} />}
 
