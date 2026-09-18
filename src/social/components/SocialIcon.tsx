@@ -140,6 +140,24 @@ export const SocialIcon: React.FC<SocialIconProps> = ({ name, size = 20, classNa
       return <svg {...common}><path d="M11 5 6 9H3v6h3l5 4Z"/><path d="M16 8a5 5 0 0 1 0 8"/><path d="M19 5a9 9 0 0 1 0 14"/></svg>
     case 'volume-off':
       return <svg {...common}><path d="M11 5 6 9H3v6h3l5 4Z"/><path d="m17 9 5 6"/><path d="m22 9-5 6"/></svg>
+    // Hub — návrat na appčin hlavní modul (/hub) ze Social's spodní
+    // navigace. Záměrně jiný tvar než 'home' (dům, používaný Social's
+    // vlastní "Domů" záložkou hned vedle) — paprsky ze středu, stejná
+    // "hub and spokes" metafora jako appčino jméno appky samotné.
+    case 'hub':
+      return (
+        <svg {...common}>
+          <circle cx="12" cy="12" r="3"/>
+          <circle cx="12" cy="4" r="2"/>
+          <circle cx="12" cy="20" r="2"/>
+          <circle cx="4" cy="12" r="2"/>
+          <circle cx="20" cy="12" r="2"/>
+          <path d="M12 9v-3"/>
+          <path d="M12 15v3"/>
+          <path d="M9 12H5"/>
+          <path d="M15 12h4"/>
+        </svg>
+      )
     default:
       return null
   }

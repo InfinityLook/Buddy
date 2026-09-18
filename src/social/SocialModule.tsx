@@ -140,6 +140,36 @@ export const SocialModule: React.FC = () => {
   // s čtením zpráv, ale běžet klidně může dál.
   const { containerRef: ambientRef } = useAmbientScene()
 
+  // Vytažené z .map() ve spodní navigaci, ať se mezi ZALOZKY položky dá
+  // vložit tlačítko na Hub (viz JSX níž) bez rozbití odznakové logiky.
+  const renderZalozka = (z: (typeof ZALOZKY)[number]) => {
+    // Tajný chat teď žije pod "+ Nový" v Chatech (ChatyPanel.tsx),
+    // ne v Nastavení — čekající pozvánka se proto pro rychlý
+    // pohled zvenčí sčítá do stejného odznaku jako nepřečtené
+    // zprávy, ne že by zůstala neviditelná, dokud uživatel
+    // Chaty sám neotevře.
+    const odznak =
+      z.id === 'vyhledavac'
+        ? cekaZadosti
+        : z.id === 'chaty'
+          ? neprectene + tajnyStav.cekajiciNaMe
+          : 0
+
+    return (
+      <button
+        key={z.id}
+        className={`social-nav-item ${zalozka === z.id ? 'is-aktivni' : ''}`}
+        onClick={() => setZalozka(z.id)}
+      >
+        <span className="social-nav-icon-wrap">
+          <SocialIcon name={z.ikona} size={21} />
+          {odznak > 0 && <span className="social-nav-odznak">{odznak}</span>}
+        </span>
+        {z.popis}
+      </button>
+    )
+  }
+
   return (
     <div className="social-page">
       <div
@@ -217,33 +247,22 @@ export const SocialModule: React.FC = () => {
               Profil
             </button>
 
-            {ZALOZKY.map((z) => {
-              // Tajný chat teď žije pod "+ Nový" v Chatech (ChatyPanel.tsx),
-              // ne v Nastavení — čekající pozvánka se proto pro rychlý
-              // pohled zvenčí sčítá do stejného odznaku jako nepřečtené
-              // zprávy, ne že by zůstala neviditelná, dokud uživatel
-              // Chaty sám neotevře.
-              const odznak =
-                z.id === 'vyhledavac'
-                  ? cekaZadosti
-                  : z.id === 'chaty'
-                    ? neprectene + tajnyStav.cekajiciNaMe
-                    : 0
+            {renderZalozka(ZALOZKY[0])}
 
-              return (
-                <button
-                  key={z.id}
-                  className={`social-nav-item ${zalozka === z.id ? 'is-aktivni' : ''}`}
-                  onClick={() => setZalozka(z.id)}
-                >
-                  <span className="social-nav-icon-wrap">
-                    <SocialIcon name={z.ikona} size={21} />
-                    {odznak > 0 && <span className="social-nav-odznak">{odznak}</span>}
-                  </span>
-                  {z.popis}
-                </button>
-              )
-            })}
+            {/* Hub — stejně jako "Profil" opouští Social úplně, ne
+                záložka. Schválně uprostřed lišty (mezi Chaty a Domů, ne
+                na kraji) — appka ho žádá výslovně "doprostřed", ať se z
+                kterékoli obrazovky Social vrací na appčin hlavní modul
+                jedním klepnutím, stejně jako "Home" v AppBottomNav.tsx
+                na Hub/Apps/Profil/Nastavení. */}
+            <button className="social-nav-item" onClick={() => navigate('/hub')}>
+              <span className="social-nav-icon-wrap">
+                <SocialIcon name="hub" size={21} />
+              </span>
+              Hub
+            </button>
+
+            {ZALOZKY.slice(1).map(renderZalozka)}
           </div>
         </>
       )}
