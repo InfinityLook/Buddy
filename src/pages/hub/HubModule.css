@@ -67,11 +67,11 @@
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(10, 14, 28, 0.72);
+  background: rgba(10, 14, 28, 0.38);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 0.6rem 0.7rem;
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(16px);
 }
 
 .hub-logo {
@@ -105,7 +105,7 @@
 
 .hub-icon-btn {
   position: relative;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.03);
   border: 1px solid var(--border-subtle);
   border-radius: 50%;
   width: 40px;
@@ -116,11 +116,12 @@
   justify-content: center;
   color: var(--text-primary);
   cursor: pointer;
+  backdrop-filter: blur(10px);
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
 .hub-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.09);
   transform: translateY(-1px);
 }
 
@@ -194,11 +195,11 @@
   gap: 0.55rem;
   flex: 1;
   min-width: 0;
-  background: rgba(21, 31, 56, 0.6);
+  background: rgba(21, 31, 56, 0.3);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 0.4rem 0.6rem 0.4rem 0.4rem;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(14px);
 }
 
 .hub-hero-streak {
@@ -208,11 +209,11 @@
   justify-content: center;
   gap: 0.05rem;
   flex-shrink: 0;
-  background: rgba(21, 31, 56, 0.6);
+  background: rgba(21, 31, 56, 0.3);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 0.35rem 0.55rem;
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(14px);
 }
 
 /* Šestiúhelník přes clip-path — dvě vrstvy (barevný přechod, tmavá
@@ -256,11 +257,13 @@
   font-size: 0.85rem;
   font-weight: 800;
   letter-spacing: 0.02em;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
 .hub-level-xp {
   font-size: 0.7rem;
   color: var(--text-secondary);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
 .hub-level-progress {
@@ -289,6 +292,7 @@
   font-weight: 800;
   color: var(--accent-orange);
   line-height: 1.1;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
 .hub-streak-label {
@@ -297,6 +301,7 @@
   letter-spacing: 0.04em;
   color: var(--text-muted);
   white-space: nowrap;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
 /* ------------------------------------------
@@ -324,6 +329,7 @@
   text-transform: uppercase;
   color: var(--text-muted);
   padding-left: 0.1rem;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
 }
 
 .hub-section-body {
@@ -339,19 +345,20 @@
 
 .hub-card {
   position: relative;
-  background: rgba(21, 31, 56, 0.6);
+  background: rgba(21, 31, 56, 0.3);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   font-family: inherit;
   color: var(--text-primary);
   text-align: left;
   cursor: pointer;
-  backdrop-filter: blur(14px);
+  backdrop-filter: blur(18px);
+  box-shadow: 0 1px 14px rgba(0, 0, 0, 0.28);
   transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
 .hub-card:hover {
-  background: rgba(28, 39, 68, 0.75);
+  background: rgba(28, 39, 68, 0.45);
   transform: translateY(-2px);
 }
 
@@ -399,7 +406,7 @@
   align-items: flex-start;
   gap: 0.2rem;
   padding: 0.8rem 0.85rem;
-  background: rgba(21, 31, 56, 0.42);
+  background: rgba(21, 31, 56, 0.2);
 }
 
 .hub-card-secondary-top {
@@ -467,6 +474,7 @@
   font-size: 0.92rem;
   font-weight: 800;
   letter-spacing: -0.01em;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
 }
 
 .hub-card-title--sm {
@@ -477,6 +485,7 @@
   font-size: 0.68rem;
   color: var(--text-secondary);
   line-height: 1.35;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
 .hub-card-arrow {
