@@ -6,6 +6,8 @@ import { useKalendar, naFormatDatumu } from '@/miniapps/kalendar/useKalendar'
 import { usePomodoro } from '@/miniapps/pomodoro/usePomodoro'
 import { useZnamky } from '@/miniapps/znamky/useZnamky'
 import { celkovyVazenyPrumer, soucetKreditu, vazenyPrumerPredmetu } from '@/miniapps/znamky/types'
+import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
+import { PRAH_RIZIKA_DOCHAZKY, spocitejDochazkuPodlePredmetu } from '@/miniapps/rozvrh/types'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import '@/pages/app/AppModule.css'
 import './SchoolRoomModule.css'
@@ -29,6 +31,12 @@ export const SkolaStatistiky: React.FC = () => {
   const { dnySUdalosti, dnes, pocetUdalostiCelkem } = useKalendar()
   const { completedSessions } = usePomodoro()
   const { predmety } = useZnamky()
+  const { hodiny: rozvrhHodiny, dochazka } = useRozvrh()
+  const dochazkaPredmetu = useMemo(
+    () => spocitejDochazkuPodlePredmetu(rozvrhHodiny, dochazka),
+    [rozvrhHodiny, dochazka]
+  )
+  const rizikoveDochazky = dochazkaPredmetu.filter((d) => d.procenta < PRAH_RIZIKA_DOCHAZKY)
 
   // Semestrální přehled — kolik nesplněných úkolů z Planeru patří ke
   // kterému předmětu, spárováno prostým shodným názvem (case-insensitive,
@@ -141,6 +149,33 @@ export const SkolaStatistiky: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Riziko docházky — spocitejDochazkuPodlePredmetu i práh
+          PRAH_RIZIKA_DOCHAZKY už Rozvrh sám počítal, jen se to nikde na
+          téhle obrazovce (ani na "Moje přehled") nikdy neukazovalo.
+          Panel se schválně ukazuje jen tehdy, když je vůbec co hlásit
+          — appka nemá nutit uživatele bez rizika koukat na prázdnou
+          "vše v pořádku" kartu navíc. */}
+      {rizikoveDochazky.length > 0 && (
+        <div className="sr-panel">
+          <div className="sr-panel-hlavicka">
+            <h2>⚠️ Riziko docházky</h2>
+            <button className="sr-otevrit-btn" onClick={() => otevritMiniaplikaci('rozvrh')}>
+              Otevřít Rozvrh ›
+            </button>
+          </div>
+          <ul className="sr-predmety-seznam">
+            {rizikoveDochazky.map((d) => (
+              <li key={d.predmet} className="sr-predmety-radek">
+                <span className="sr-predmety-nazev">{d.predmet}</span>
+                <span className="sr-predmety-prumer sr-predmety-prumer--riziko">
+                  {d.procenta}% ({d.pritomen}/{d.celkem})
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <div className="sr-panel">
         <div className="sr-panel-hlavicka">

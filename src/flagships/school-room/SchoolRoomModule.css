@@ -244,6 +244,10 @@
   font-variant-numeric: tabular-nums;
 }
 
+.sr-predmety-prumer--riziko {
+  color: var(--accent-magenta);
+}
+
 .sr-predmety-ukoly {
   flex-shrink: 0;
   font-size: 0.7rem;

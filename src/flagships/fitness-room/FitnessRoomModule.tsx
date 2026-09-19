@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/core/store/useAppStore'
-import { useFormCheck } from '@/miniapps/form-check/useFormCheck'
+import { useFormCheck, nastavPredvyberCviku } from '@/miniapps/form-check/useFormCheck'
 import { NAZEV_CVIKU, type TypCviku } from '@/miniapps/form-check/types'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { plural } from '@/core/utils/pluralCZ'
@@ -14,6 +14,7 @@ import {
   spocitejSeriiTreninku,
   spocitejTreninkovychDniZaTyden,
   spocitejAktivituPodleDne,
+  tydenniKlic,
 } from './fitnessStats'
 import { useFitnessCil } from './useFitnessCil'
 import { useTelesneMiry } from './useTelesneMiry'
@@ -126,7 +127,12 @@ export const FitnessRoomModule: React.FC = () => {
   const VSECHNY_CVIKY_PLAN: TypCviku[] = ['dřep', 'klik', 'výpad', 'prkno']
   const VSECHNY_DNY: DenVTydnu[] = [1, 2, 3, 4, 5, 6, 7]
 
-  const otevritFormCheck = () => {
+  const otevritFormCheck = (predvybranyCvik?: TypCviku) => {
+    // Nepovinný předvýběr — jen "Spustit dnešní trénink" ho posílá,
+    // všechna ostatní volání (Rychlý trénink, historie, Zobrazit vše…)
+    // zůstávají beze změny a Form Check se otevře na svém obyčejném
+    // výchozím cviku.
+    if (predvybranyCvik) nastavPredvyberCviku(predvybranyCvik)
     setActiveAppId('form-check', '/fitness')
     navigate('/apps')
   }
@@ -137,6 +143,36 @@ export const FitnessRoomModule: React.FC = () => {
   const treninkovychDniZaTyden = spocitejTreninkovychDniZaTyden(sezeni)
   const aktivita = spocitejAktivituPodleDne(sezeni, 14)
   const maxMinutAktivity = Math.max(1, ...aktivita.map((d) => d.minutTreninku))
+
+  // Oslava splnění týdenního cíle — stejný duch jako Form Checkova živá
+  // oslava nového rekordu, jen o úroveň výš (dashboard, ne uprostřed
+  // cvičení). Cíl je "splněný" tenhle týden poprvé, když aktuální ISO
+  // týdenní klíč ještě neodpovídá tomu, co appka naposledy oslavila —
+  // díky tomu se stejná oslava neopakuje při každé návštěvě dashboardu,
+  // ale zase se vrátí, jakmile uživatel cíl splní i v příštím týdnu.
+  const tydenniCilSplnen =
+    cile.cilTreninkuTydne !== null && treninkovychDniZaTyden >= cile.cilTreninkuTydne
+  const [tydenniOslavaViditelna, setTydenniOslavaViditelna] = useState(false)
+  // Deps schválně jen [tydenniCilSplnen] — cile.posledniOslavenyTydenKlic/
+  // setPosledniOslavenyTydenKlic se čtou/volají uvnitř vždycky znovu,
+  // ne z uzavřené hodnoty; zařazení celého "cile" objektu do deps by
+  // efekt spouštělo při jakékoli změně cíle, ne jen při skutečném
+  // přechodu "cíl zrovna splněn".
+  useEffect(() => {
+    if (!tydenniCilSplnen) return
+    const klic = tydenniKlic(new Date())
+    if (cile.posledniOslavenyTydenKlic === klic) return
+    cile.setPosledniOslavenyTydenKlic(klic)
+    setTydenniOslavaViditelna(true)
+  }, [tydenniCilSplnen])
+
+  // Sama zmizí po pár vteřinách, stejný "krátká oslava, žádné trvalé
+  // tlačítko na zavření" tvar jako Souboj's telefonní bannery výsledku.
+  useEffect(() => {
+    if (!tydenniOslavaViditelna) return
+    const timer = window.setTimeout(() => setTydenniOslavaViditelna(false), 4000)
+    return () => window.clearTimeout(timer)
+  }, [tydenniOslavaViditelna])
 
   const cilKcal = cile.cilKcal ?? CIL_KCAL_VYCHOZI
   const cilTreninkMin = cile.cilTreninkMin ?? CIL_TRENINK_MIN_VYCHOZI
@@ -195,7 +231,7 @@ export const FitnessRoomModule: React.FC = () => {
               <h2>Moje přehled</h2>
               <p>Dnes je skvělý den na trénink!</p>
             </div>
-            <button className="fit-historie-btn" aria-label="Historie tréninků" onClick={otevritFormCheck}>
+            <button className="fit-historie-btn" aria-label="Historie tréninků" onClick={() => otevritFormCheck()}>
               <AppIcon name="calendar" size={18} />
             </button>
           </div>
@@ -300,7 +336,7 @@ export const FitnessRoomModule: React.FC = () => {
           </div>
 
           {planDnes && planDnes !== 'odpocinek' && !upravujePlan && (
-            <button className="fit-plan-spustit" onClick={otevritFormCheck}>
+            <button className="fit-plan-spustit" onClick={() => otevritFormCheck(planDnes)}>
               Spustit dnešní trénink ›
             </button>
           )}
@@ -566,6 +602,11 @@ export const FitnessRoomModule: React.FC = () => {
 
           {cile.cilTreninkuTydne !== null && (
             <div className="fit-tydenni-cil">
+              {tydenniOslavaViditelna && (
+                <p className="fit-tydenni-cil-oslava" role="status">
+                  🎉 Týdenní cíl splněn!
+                </p>
+              )}
               <div className="fit-tydenni-cil-hlavicka">
                 <span>Tréninky tento týden</span>
                 <span>
@@ -591,13 +632,13 @@ export const FitnessRoomModule: React.FC = () => {
         <div className="fit-panel">
           <div className="fit-panel-hlavicka">
             <h2>Rychlý trénink</h2>
-            <button className="fit-zobrazit-vse" onClick={otevritFormCheck}>
+            <button className="fit-zobrazit-vse" onClick={() => otevritFormCheck()}>
               Zobrazit vše ›
             </button>
           </div>
 
           <div className="fit-treninky-mrizka">
-            <button className="fit-trenink-dlazdice" onClick={otevritFormCheck}>
+            <button className="fit-trenink-dlazdice" onClick={() => otevritFormCheck()}>
               <span className="fit-text--purple">
                 <AppIcon name="dumbbell" size={22} />
               </span>

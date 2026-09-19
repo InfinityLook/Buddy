@@ -210,3 +210,60 @@
   padding: 0;
   align-self: flex-start;
 }
+
+.znamky-cokdyby-btn {
+  background: transparent;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--accent-cyan);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.45rem 0.7rem;
+  align-self: flex-start;
+}
+
+.znamky-cokdyby {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.8rem;
+}
+
+.znamky-cokdyby-popis {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.znamky-cokdyby-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.znamky-cokdyby-form select,
+.znamky-cokdyby-form input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.znamky-cokdyby-vysledek {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.znamky-cokdyby-vysledek strong {
+  color: var(--accent-cyan);
+  font-variant-numeric: tabular-nums;
+}

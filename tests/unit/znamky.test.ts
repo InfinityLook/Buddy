@@ -3,6 +3,7 @@ import {
   Predmet,
   celkovyVazenyPrumer,
   soucetKreditu,
+  sPridanouHypotetickouZnamkou,
   vazenyPrumerPredmetu,
   znamkaSlovy,
 } from '@/miniapps/znamky/types'
@@ -70,6 +71,43 @@ describe('celkovyVazenyPrumer', () => {
 
   it('žádné předměty vrátí null', () => {
     expect(celkovyVazenyPrumer([])).toBeNull()
+  })
+})
+
+describe('sPridanouHypotetickouZnamkou', () => {
+  it('přidá hypotetickou známku jen do zadaného předmětu, ostatní nechá beze změny', () => {
+    const predmety = [
+      predmet({ id: 'a', znamky: [{ id: 'z1', hodnota: 1, vaha: 1, popis: '', datum: '' }] }),
+      predmet({ id: 'b', znamky: [{ id: 'z2', hodnota: 5, vaha: 1, popis: '', datum: '' }] }),
+    ]
+    const vysledek = sPridanouHypotetickouZnamkou(predmety, 'a', 3, 1)
+    expect(vysledek.find((p) => p.id === 'a')!.znamky).toHaveLength(2)
+    expect(vysledek.find((p) => p.id === 'b')!.znamky).toHaveLength(1)
+  })
+
+  it('projektovaný průměr předmětu se spočítá stejnou funkcí jako reálný, ne druhou kopií', () => {
+    const predmety = [predmet({ id: 'a', znamky: [{ id: 'z1', hodnota: 1, vaha: 1, popis: '', datum: '' }] })]
+    const vysledek = sPridanouHypotetickouZnamkou(predmety, 'a', 3, 1)
+    // (1*1 + 3*1) / (1+1) = 2
+    expect(vazenyPrumerPredmetu(vysledek.find((p) => p.id === 'a')!)).toBe(2)
+  })
+
+  it('projektovaný celkový průměr se posune podle váhy kreditů toho jednoho předmětu', () => {
+    const predmety = [
+      predmet({ id: 'a', kredity: 4, znamky: [{ id: 'z1', hodnota: 1, vaha: 1, popis: '', datum: '' }] }),
+      predmet({ id: 'b', kredity: 1, znamky: [{ id: 'z2', hodnota: 5, vaha: 1, popis: '', datum: '' }] }),
+    ]
+    // Původně (1*4 + 5*1) / 5 = 1.8 (viz test výš). Hypotetická 5 v
+    // předmětu 'a' zvedne jeho vlastní průměr na (1+5)/2 = 3, celkově
+    // (3*4 + 5*1) / 5 = 3.4.
+    const vysledek = sPridanouHypotetickouZnamkou(predmety, 'a', 5, 1)
+    expect(celkovyVazenyPrumer(vysledek)).toBeCloseTo(3.4, 5)
+  })
+
+  it('nezasahuje do skutečného, uloženého seznamu předmětů', () => {
+    const predmety = [predmet({ id: 'a', znamky: [] })]
+    sPridanouHypotetickouZnamkou(predmety, 'a', 3, 1)
+    expect(predmety[0].znamky).toHaveLength(0)
   })
 })
 

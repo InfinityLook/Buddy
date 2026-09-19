@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { serazenoPodleUpravy as serazenoKnih, sestavTextKnihy } from '@/miniapps/book-writer/types'
+import { serazenoPodleUpravy as serazenoKnih, sestavTextKnihy, shrnutiKnihy } from '@/miniapps/book-writer/types'
 import type { Kniha } from '@/miniapps/book-writer/types'
-import { serazenoPodleUpravy as serazenoScenaru, sestavTextScenare } from '@/miniapps/screenplay-writer/types'
+import { serazenoPodleUpravy as serazenoScenaru, sestavTextScenare, shrnutiScenare } from '@/miniapps/screenplay-writer/types'
 import type { Scenar } from '@/miniapps/screenplay-writer/types'
-import { serazenoPodleUpravy as serazenoKomiksu, sestavTextKomiksu } from '@/miniapps/comic-writer/types'
+import { serazenoPodleUpravy as serazenoKomiksu, sestavTextKomiksu, shrnutiKomiksu } from '@/miniapps/comic-writer/types'
 import type { Komiks } from '@/miniapps/comic-writer/types'
 
 // ==========================================
@@ -108,6 +108,82 @@ describe('sestavTextScenare', () => {
       ],
     }
     expect(sestavTextScenare(scenar)).toContain('(scéna zatím nemá žádný text)')
+  })
+})
+
+describe('shrnutiKnihy / shrnutiScenare / shrnutiKomiksu', () => {
+  it('shrnutiKnihy spočítá počet kapitol a celkový počet slov, se správnou českou gramatikou', () => {
+    const kniha: Kniha = {
+      id: 'k',
+      nazev: 'Kniha',
+      cilSlov: null,
+      createdAt: '1',
+      upravenoAt: '1',
+      kapitoly: [
+        { id: '1', nazev: 'A', text: 'Bylo nebylo jednou.', createdAt: '1', stav: 'napad', poznamka: '', stitky: '' },
+        { id: '2', nazev: 'B', text: 'Konec.', createdAt: '1', stav: 'napad', poznamka: '', stitky: '' },
+      ],
+    }
+    expect(shrnutiKnihy(kniha)).toBe('2 kapitoly · 4 slova')
+  })
+
+  it('shrnutiKnihy prázdnou knihu shrne jako 0 kapitol a 0 slov', () => {
+    const kniha: Kniha = { id: 'k', nazev: 'K', cilSlov: null, createdAt: '1', upravenoAt: '1', kapitoly: [] }
+    expect(shrnutiKnihy(kniha)).toBe('0 kapitol · 0 slov')
+  })
+
+  it('shrnutiScenare spočítá počet scén a slov napříč všemi prvky', () => {
+    const scenar: Scenar = {
+      id: 's',
+      nazev: 'S',
+      createdAt: '1',
+      upravenoAt: '1',
+      cilScen: null,
+      postavyPoznamky: {},
+      sceny: [
+        {
+          id: 'sc1',
+          typMista: 'INT',
+          misto: 'kavárna',
+          cas: 'den',
+          createdAt: '1',
+          stav: 'napad',
+          poznamka: '',
+          stitky: '',
+          prvky: [
+            { id: 'p1', typ: 'akce', text: 'Petr vejde dovnitř.' },
+            { id: 'p2', typ: 'dialog', postava: 'Petr', text: 'Ahoj.', poznamka: '' },
+          ],
+        },
+      ],
+    }
+    expect(shrnutiScenare(scenar)).toBe('1 scéna · 4 slova')
+  })
+
+  it('shrnutiKomiksu spočítá počet stran a celkový počet panelů napříč nimi', () => {
+    const komiks: Komiks = {
+      id: 'c',
+      nazev: 'C',
+      createdAt: '1',
+      upravenoAt: '1',
+      cilStran: null,
+      postavyPoznamky: {},
+      strany: [
+        {
+          id: 'str1',
+          cislo: 1,
+          stav: 'napad',
+          poznamka: '',
+          stitky: '',
+          panely: [
+            { id: 'pan1', vizual: 'x', createdAt: '1', zaber: null, radky: [] },
+            { id: 'pan2', vizual: 'y', createdAt: '1', zaber: null, radky: [] },
+          ],
+        },
+        { id: 'str2', cislo: 2, stav: 'napad', poznamka: '', stitky: '', panely: [] },
+      ],
+    }
+    expect(shrnutiKomiksu(komiks)).toBe('2 strany · 2 panely')
   })
 })
 

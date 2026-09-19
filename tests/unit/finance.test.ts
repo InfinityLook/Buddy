@@ -6,11 +6,17 @@ import {
   rozdelPodleKategorie,
   spocitejMesicniTrend,
   spocitejStavRozpoctu,
+  rozpoctyKUpozorneni,
   melaByBytPridanaDnes,
+  datumPristiSplatky,
+  spocitejPredpovedCashflow,
   spocitejStavCile,
   sestavCsvTransakci,
+  sestavPresunTransakci,
+  soucetPocatecnichZustatku,
+  zustatekZTransakci,
 } from '@/miniapps/finance/types'
-import type { Budget, FinanceGoal, RecurringTransaction, Transaction } from '@/miniapps/finance/types'
+import type { Budget, FinanceGoal, RecurringTransaction, Transaction, Wallet } from '@/miniapps/finance/types'
 
 // ==========================================
 // miniapps/finance/useFinance.ts — filtr podle období a rozpad podle
@@ -33,6 +39,7 @@ const transakce = (over: Partial<Transaction>): Transaction => ({
   receiptMime: null,
   updatedAt: 0,
   deletedAt: null,
+  presunId: null,
   ...over,
 })
 
@@ -183,6 +190,65 @@ describe('spocitejStavRozpoctu', () => {
   })
 })
 
+describe('rozpoctyKUpozorneni', () => {
+  const rozpocet = (over: Partial<Budget>): Budget => ({
+    id: 'b1',
+    category: 'Jídlo',
+    limitKc: 100,
+    createdAt: '',
+    updatedAt: 0,
+    deletedAt: null,
+    lastExceededNotifiedMonth: null,
+    ...over,
+  })
+
+  it('vrátí překročený rozpočet, co ještě tenhle měsíc nebyl ohlášený', () => {
+    const vysledek = rozpoctyKUpozorneni(
+      [rozpocet({})],
+      [transakce({ type: 'vydaj', category: 'Jídlo', amount: 150 })],
+      '2026-08'
+    )
+    expect(vysledek).toHaveLength(1)
+    expect(vysledek[0].budget.id).toBe('b1')
+  })
+
+  it('nepřekročený rozpočet se neohlásí', () => {
+    const vysledek = rozpoctyKUpozorneni(
+      [rozpocet({})],
+      [transakce({ type: 'vydaj', category: 'Jídlo', amount: 50 })],
+      '2026-08'
+    )
+    expect(vysledek).toEqual([])
+  })
+
+  it('rozpočet už ohlášený tenhle měsíc se neohlásí znovu', () => {
+    const vysledek = rozpoctyKUpozorneni(
+      [rozpocet({ lastExceededNotifiedMonth: '2026-08' })],
+      [transakce({ type: 'vydaj', category: 'Jídlo', amount: 150 })],
+      '2026-08'
+    )
+    expect(vysledek).toEqual([])
+  })
+
+  it('rozpočet ohlášený MINULÝ měsíc se ohlásí znovu, když je pořád překročený', () => {
+    const vysledek = rozpoctyKUpozorneni(
+      [rozpocet({ lastExceededNotifiedMonth: '2026-07' })],
+      [transakce({ type: 'vydaj', category: 'Jídlo', amount: 150 })],
+      '2026-08'
+    )
+    expect(vysledek).toHaveLength(1)
+  })
+
+  it('smazaný rozpočet se ignoruje, i kdyby byl technicky překročený', () => {
+    const vysledek = rozpoctyKUpozorneni(
+      [rozpocet({ deletedAt: Date.now() })],
+      [transakce({ type: 'vydaj', category: 'Jídlo', amount: 150 })],
+      '2026-08'
+    )
+    expect(vysledek).toEqual([])
+  })
+})
+
 describe('melaByBytPridanaDnes', () => {
   const opakujici = (over: Partial<RecurringTransaction>): RecurringTransaction => ({
     id: 'r1',
@@ -222,6 +288,76 @@ describe('melaByBytPridanaDnes', () => {
     expect(
       melaByBytPridanaDnes(opakujici({ dayOfMonth: 1, lastAddedMonth: '2026-07' }), new Date('2026-08-05'))
     ).toBe(true)
+  })
+})
+
+describe('datumPristiSplatky / spocitejPredpovedCashflow', () => {
+  const opakujici = (over: Partial<RecurringTransaction>): RecurringTransaction => ({
+    id: 'r1',
+    type: 'vydaj',
+    amount: 500,
+    category: 'Škola',
+    note: '',
+    dayOfMonth: 15,
+    active: true,
+    lastAddedMonth: null,
+    createdAt: '',
+    updatedAt: 0,
+    deletedAt: null,
+    ...over,
+  })
+
+  it('ještě nepřidáno tenhle měsíc — příští splátka je tenhle měsíc, i když dayOfMonth už prošel', () => {
+    const datum = datumPristiSplatky(opakujici({ dayOfMonth: 5, lastAddedMonth: null }), new Date('2026-08-20'))
+    expect(datum.getFullYear()).toBe(2026)
+    expect(datum.getMonth()).toBe(7) // srpen (0-indexováno)
+    expect(datum.getDate()).toBe(5)
+  })
+
+  it('už přidáno tenhle měsíc — příští splátka je až měsíc poté', () => {
+    const datum = datumPristiSplatky(
+      opakujici({ dayOfMonth: 15, lastAddedMonth: '2026-08' }),
+      new Date('2026-08-20')
+    )
+    expect(datum.getMonth()).toBe(8) // září
+    expect(datum.getDate()).toBe(15)
+  })
+
+  it('předpověď seřadí platby chronologicky a postupně upravuje běžící zůstatek', () => {
+    const predpoved = spocitejPredpovedCashflow(
+      [
+        opakujici({ id: 'najem', type: 'vydaj', amount: 5000, dayOfMonth: 28 }),
+        opakujici({ id: 'vyplata', type: 'prijem', amount: 20000, dayOfMonth: 5 }),
+      ],
+      10000,
+      new Date('2026-08-01')
+    )
+
+    expect(predpoved).toHaveLength(2)
+    expect(predpoved[0].recurring.id).toBe('vyplata')
+    expect(predpoved[0].zustatekPo).toBe(30000)
+    expect(predpoved[1].recurring.id).toBe('najem')
+    expect(predpoved[1].zustatekPo).toBe(25000)
+  })
+
+  it('neaktivní a smazané platby se do předpovědi nezapočítávají', () => {
+    const predpoved = spocitejPredpovedCashflow(
+      [
+        opakujici({ id: 'r1', active: false }),
+        opakujici({ id: 'r2', deletedAt: Date.now() }),
+      ],
+      1000,
+      new Date('2026-08-01')
+    )
+    expect(predpoved).toEqual([])
+  })
+
+  it('respektuje limit počtu položek', () => {
+    const platby = Array.from({ length: 10 }, (_, i) =>
+      opakujici({ id: `r${i}`, dayOfMonth: (i % 27) + 1 })
+    )
+    const predpoved = spocitejPredpovedCashflow(platby, 1000, new Date('2026-08-01'), 3)
+    expect(predpoved).toHaveLength(3)
   })
 })
 
@@ -274,5 +410,120 @@ describe('sestavCsvTransakci', () => {
   it('poznámka se středníkem nebo uvozovkou se obalí do uvozovek a escapuje', () => {
     const csv = sestavCsvTransakci([transakce({ note: 'Oběd; "u Karla"' })])
     expect(csv).toContain('"Oběd; ""u Karla"""')
+  })
+})
+
+describe('soucetPocatecnichZustatku / zustatekZTransakci', () => {
+  const penezenka = (over: Partial<Wallet>): Wallet => ({
+    id: 'w1',
+    name: 'Hotovost',
+    icon: null,
+    pocatecniZustatek: 0,
+    createdAt: '',
+    updatedAt: 0,
+    deletedAt: null,
+    ...over,
+  })
+
+  it('sečte počáteční zůstatky víc peněženek', () => {
+    const soucet = soucetPocatecnichZustatku([
+      penezenka({ id: 'w1', pocatecniZustatek: 500 }),
+      penezenka({ id: 'w2', pocatecniZustatek: 1200 }),
+    ])
+    expect(soucet).toBe(1700)
+  })
+
+  it('prázdný seznam peněženek dá součet 0', () => {
+    expect(soucetPocatecnichZustatku([])).toBe(0)
+  })
+
+  it('peněženka bez pocatecniZustatek (starší data) se počítá jako 0', () => {
+    const bezPole = { id: 'w1', name: 'Hotovost', icon: null, createdAt: '', updatedAt: 0, deletedAt: null } as Wallet
+    expect(soucetPocatecnichZustatku([bezPole])).toBe(0)
+  })
+
+  it('zůstatek je součet transakcí plus počáteční zůstatek', () => {
+    const zustatek = zustatekZTransakci(
+      [
+        transakce({ type: 'prijem', amount: 1000 }),
+        transakce({ type: 'vydaj', amount: 300 }),
+      ],
+      500
+    )
+    expect(zustatek).toBe(1200)
+  })
+
+  it('bez transakcí je zůstatek přesně počáteční zůstatek', () => {
+    expect(zustatekZTransakci([], 750)).toBe(750)
+  })
+
+  it('nulový počáteční zůstatek se chová jako dřív (jen součet transakcí)', () => {
+    const zustatek = zustatekZTransakci(
+      [transakce({ type: 'prijem', amount: 1000 }), transakce({ type: 'vydaj', amount: 400 })],
+      0
+    )
+    expect(zustatek).toBe(600)
+  })
+})
+
+describe('sestavPresunTransakci', () => {
+  const penezenka = (over: Partial<Wallet>): Wallet => ({
+    id: 'w1',
+    name: 'Hotovost',
+    icon: null,
+    pocatecniZustatek: 0,
+    createdAt: '',
+    updatedAt: 0,
+    deletedAt: null,
+    ...over,
+  })
+
+  it('vrátí výdaj ze zdrojové a příjem do cílové peněženky se stejnou částkou', () => {
+    const z = penezenka({ id: 'w1', name: 'Hotovost' })
+    const doP = penezenka({ id: 'w2', name: 'Spoření' })
+    const [vydaj, prijem] = sestavPresunTransakci(z, doP, 500, '', 'presun-1')
+
+    expect(vydaj.type).toBe('vydaj')
+    expect(vydaj.amount).toBe(500)
+    expect(vydaj.walletId).toBe('w1')
+    expect(prijem.type).toBe('prijem')
+    expect(prijem.amount).toBe(500)
+    expect(prijem.walletId).toBe('w2')
+  })
+
+  it('obě poloviny sdílejí stejné presunId', () => {
+    const [vydaj, prijem] = sestavPresunTransakci(penezenka({ id: 'w1' }), penezenka({ id: 'w2' }), 100, '', 'sdilene-id')
+    expect(vydaj.presunId).toBe('sdilene-id')
+    expect(prijem.presunId).toBe('sdilene-id')
+  })
+
+  it('bez vlastní poznámky vygeneruje popisnou poznámku s názvem druhé peněženky', () => {
+    const [vydaj, prijem] = sestavPresunTransakci(
+      penezenka({ id: 'w1', name: 'Hotovost' }),
+      penezenka({ id: 'w2', name: 'Spoření' }),
+      100,
+      '',
+      'p1'
+    )
+    expect(vydaj.note).toContain('Spoření')
+    expect(prijem.note).toContain('Hotovost')
+  })
+
+  it('vlastní poznámka se použije na obou polovinách beze změny', () => {
+    const [vydaj, prijem] = sestavPresunTransakci(
+      penezenka({ id: 'w1' }),
+      penezenka({ id: 'w2' }),
+      100,
+      '  Na dovolenou  ',
+      'p1'
+    )
+    expect(vydaj.note).toBe('Na dovolenou')
+    expect(prijem.note).toBe('Na dovolenou')
+  })
+
+  it('kategorie jsou vždy sběrné "Ostatní výdaj"/"Ostatní příjem", ne kategorie zvolená uživatelem jinde', () => {
+    const [vydaj, prijem] = sestavPresunTransakci(penezenka({ id: 'w1' }), penezenka({ id: 'w2' }), 100, '', 'p1')
+    expect(vydaj.category).toBe('Ostatní výdaj')
+    expect(prijem.category).toBe('Ostatní příjem')
   })
 })

@@ -51,6 +51,7 @@
   display: flex;
   align-items: center;
   gap: 0.9rem;
+  flex-wrap: wrap;
 }
 
 .ms-play-btn {
@@ -92,6 +93,30 @@
   border-color: var(--accent-cyan);
 }
 
+.ms-tap-tempo-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--accent-cyan);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 0.5rem 0.7rem;
+  cursor: pointer;
+}
+
+.ms-tap-tempo-btn:hover,
+.ms-tap-tempo-btn:focus-visible {
+  border-color: var(--accent-cyan);
+  background: rgba(255, 255, 255, 0.08);
+  outline: none;
+}
+
+.ms-tap-tempo-btn:active {
+  transform: scale(0.95);
+}
+
 .ms-delka-prepinac {
   display: flex;
   gap: 0.25rem;
@@ -116,6 +141,21 @@
 .ms-delka-prepinac button.active {
   background: var(--accent-cyan);
   color: #06232b;
+}
+
+.ms-swing {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.ms-swing input[type='range'] {
+  width: 90px;
+  accent-color: var(--accent-violet);
 }
 
 .ms-seq-grid {
@@ -235,12 +275,45 @@
 
 .ms-ulozit-radek {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
 .ms-ulozit-radek input {
   flex: 1;
   min-width: 0;
+}
+
+/* Upravuješ existující beat — malý pruh nad ukládacím řádkem, appka ho
+   ukazuje jen když je editor "nahraný" z uloženého patternu
+   (nacistPattern), ne při skládání úplně nového beatu. */
+.ms-upravuje-se {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  border-radius: var(--radius-md);
+  padding: 0.45rem 0.65rem;
+  font-size: 0.72rem;
+  color: var(--accent-cyan);
+}
+
+.ms-upravuje-se-zrusit {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ms-ulozit-btn--sekundarni {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
 }
 
 /* ==== sdílené vstupy/tlačítka ==== */
@@ -382,6 +455,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.ms-icon-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .ms-icon-btn.danger {

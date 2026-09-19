@@ -5,6 +5,7 @@
 // ==========================================
 
 import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import { plural } from '@/core/utils/pluralCZ'
 
 export type TypMista = 'INT' | 'EXT' | 'INT/EXT'
 export const TYPY_MIST: TypMista[] = ['INT', 'EXT', 'INT/EXT']
@@ -82,6 +83,15 @@ export const serazenoPodleUpravy = <T extends { upravenoAt: string }>(polozky: T
 export const pocetSlov = (text: string): number => {
   const trimmed = text.trim()
   return trimmed === '' ? 0 : trimmed.split(/\s+/).length
+}
+
+/** Krátké shrnutí obsahu scénáře — appka ho ukazuje u ruční zálohy
+ *  (checkpointu) před obnovením, ať autor vidí, co skutečně obnoví
+ *  (kolik scén/slov ta verze měla), ne jen její název a datum. */
+export const shrnutiScenare = (scenar: Scenar): string => {
+  const scen = scenar.sceny.length
+  const slov = pocetSlov(scenar.sceny.flatMap((s) => s.prvky.map((p) => p.text)).join(' '))
+  return `${scen} ${plural(scen, 'scéna', 'scény', 'scén')} · ${slov} ${plural(slov, 'slovo', 'slova', 'slov')}`
 }
 
 // Jména postav skutečně použitá v dialogu napříč celým scénářem, bez

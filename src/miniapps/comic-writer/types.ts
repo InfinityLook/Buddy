@@ -5,6 +5,7 @@
 // ==========================================
 
 import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import { plural } from '@/core/utils/pluralCZ'
 
 export type TypRadku = 'dialog' | 'popisek'
 
@@ -83,6 +84,15 @@ export interface Komiks {
 
 export const celkovyPocetPanelu = (komiks: Komiks): number =>
   komiks.strany.reduce((soucet, s) => soucet + s.panely.length, 0)
+
+/** Krátké shrnutí obsahu komiksu — appka ho ukazuje u ruční zálohy
+ *  (checkpointu) před obnovením, ať autor vidí, co skutečně obnoví
+ *  (kolik stran/panelů ta verze měla), ne jen její název a datum. */
+export const shrnutiKomiksu = (komiks: Komiks): string => {
+  const stran = komiks.strany.length
+  const panelu = celkovyPocetPanelu(komiks)
+  return `${stran} ${plural(stran, 'strana', 'strany', 'stran')} · ${panelu} ${plural(panelu, 'panel', 'panely', 'panelů')}`
+}
 
 // Stejná "podle poslední úpravy" logika jako u Knihy/Scénáře.
 export const serazenoPodleUpravy = <T extends { upravenoAt: string }>(polozky: T[]): T[] =>

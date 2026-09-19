@@ -600,6 +600,18 @@
   white-space: nowrap;
 }
 
+.fin-penezenka-pocatecni {
+  color: #64748b;
+  font-size: 0.62rem;
+}
+
+.fin-mini-form-nadpis {
+  margin: 0.6rem 0 0.15rem;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #94a3b8;
+}
+
 /* Malý přídavný formulář uvnitř rozbalené sekce — o řád skromnější než
    .fin-form (žádný nadpis, jen vstupy + tlačítko), buď v řádku vedle
    sebe, nebo (--sloupec) pod sebou, když je vstupů víc. */

@@ -48,6 +48,12 @@ export interface BeatPattern {
   // potřebuje — sama appka do dat nikdy nezapíše chybějící hodnotu,
   // jen validace/výchozí stav ji doplňuje.
   hlasitosti: Record<DrumSound, number>
+  // Swing/groove 0–75 % — appka o tolik zpozdí liché ("off-beat")
+  // kroky proti sudým, ať rytmus zní jako shuffle, ne jako mechanicky
+  // přesný metronom (viz swingPosunSekund níž). 0 = appčino původní,
+  // úplně rovné chování — i výchozí hodnota pro starší pattern uložený
+  // předtím, než appka swing měla vůbec (viz musicStudioValidation.ts).
+  swing: number
   createdAt: string
 }
 
@@ -67,7 +73,28 @@ export const prazdnyPattern = (
     boolean[]
   >,
   hlasitosti: vychoziHlasitosti(),
+  swing: 0,
 })
+
+/** Nejvyšší appkou dovolený swing — nad tuhle hranici by se "off-beat"
+ *  krok posunul až skoro na místo dalšího kroku, což by nezněl jako
+ *  groove, ale jako rozbitý rytmus. Stejná appčina konvence jako
+ *  klasické MPC swing rozmezí (tam 50–75 %), jen appka počítá od nuly,
+ *  ne od poloviny, ať 0 vždycky znamená "vypnuto". */
+export const MAX_SWING = 75
+
+/** O kolik vteřin appka posune daný krok kvůli swingu — jen liché
+ *  ("off-beat") kroky se posouvají dozadu, sudé ("on-beat") zůstávají
+ *  přesně na místě, protože to je, co swing/groove vůbec znamená: ne
+ *  "zpomalit celé tempo", jen zpozdit tu "a" mezi dvěma dobami o
+ *  kousek později. Čistá funkce nezávislá na Web Audiu — appka ji volá
+ *  jak při živém přehrávání (useBeatSequencer.ts), tak při offline
+ *  WAV mixdownu (audioEngine.ts's vyrenderujPatternNaBuffer), ať obě
+ *  cesty zní stejně. */
+export const swingPosunSekund = (krok: number, sekundNaKrok: number, swing: number): number => {
+  if (krok % 2 === 0) return 0
+  return (Math.min(MAX_SWING, Math.max(0, swing)) / 100) * sekundNaKrok
+}
 
 /** Zachová dosavadní zapnuté kroky při zvětšení/zmenšení délky patternu
  *  (8↔16) — přidané kroky jsou vypnuté, useknuté kroky se ztratí, appka
@@ -82,6 +109,46 @@ export const zmenPocetKroku = (
       return [buben, Array.from({ length: novyPocet }, (_, i) => puvodni[i] ?? false)]
     })
   ) as Record<DrumSound, boolean[]>
+
+// ==========================================
+// Tap tempo — appka odvodí BPM z rytmu, jakým uživatel klepe na
+// tlačítko, místo aby ho musel znát a zadat ručně. Obě funkce čisté,
+// testovatelné bez Date.now()/komponenty — appka jim časy klepnutí
+// předává jako obyčejná čísla (ms).
+// ==========================================
+
+// Kolik naposledy klepnutých časů appka pro výpočet BPM použije — víc
+// by zprůměrovalo i starší, už neplatnou rychlost, kdyby uživatel
+// tempo uprostřed klepání změnil.
+const MAX_KLEPNUTI_PRO_TEMPO = 8
+
+// Pauza mezi klepnutími delší než tohle appka bere jako "uživatel začal
+// klepat úplně znovu", ne pokračování stejné série — jinak by dlouhá
+// odmlka (zaváhání, přestávka) zprůměrovala dvě nesouvisející tempa
+// do jednoho nesmyslného čísla.
+const MAX_MEZERA_KLEPNUTI_MS = 2000
+
+/** Přidá nové klepnutí (Date.now()) do historie — appka historii sama
+ *  ořízne na posledních MAX_KLEPNUTI_PRO_TEMPO a při moc dlouhé pauze ji
+ *  vynuluje na jediné, právě přijaté klepnutí. */
+export const zpracujKlepnutiTempa = (predchozi: number[], novyCasMs: number): number[] => {
+  const posledni = predchozi[predchozi.length - 1]
+  if (posledni !== undefined && novyCasMs - posledni > MAX_MEZERA_KLEPNUTI_MS) return [novyCasMs]
+  return [...predchozi, novyCasMs].slice(-MAX_KLEPNUTI_PRO_TEMPO)
+}
+
+/** BPM z průměrného intervalu mezi posledními klepnutími — null, dokud
+ *  appka nemá aspoň dvě klepnutí (jedno samo o sobě neurčuje žádný
+ *  interval). Ořízne se na appčino platné rozmezí BPM (40–240, stejné
+ *  jako ruční vstup ve draft.bpm). */
+export const vypocitejBpmZKlepnuti = (casyKlepnutiMs: number[]): number | null => {
+  if (casyKlepnutiMs.length < 2) return null
+  const intervaly: number[] = []
+  for (let i = 1; i < casyKlepnutiMs.length; i++) intervaly.push(casyKlepnutiMs[i] - casyKlepnutiMs[i - 1])
+  const prumer = intervaly.reduce((a, b) => a + b, 0) / intervaly.length
+  if (prumer <= 0) return null
+  return Math.min(240, Math.max(40, Math.round(60000 / prumer)))
+}
 
 // Metadata nahrávky — skutečná zvuková data leží v IndexedDB
 // (core/utils/fileStorage.ts, stejné úložiště jako File Manager, id
@@ -110,6 +177,23 @@ export const priponaPodleMime = (mime: string): string => {
   if (m.includes('wav')) return 'wav'
   if (m.includes('ogg')) return 'ogg'
   return 'webm'
+}
+
+/** Kolikrát se má beat opakovat vedle nahrávky dané délky — appčino
+ *  živé přehrávání skladby umí `pocetOpakovaniBeatu === 0` ("dokud hraje
+ *  nahrávka") řídit průběžně přes onended, ale mixdown do jednoho WAV
+ *  souboru (MusicStudio.tsx's vyrenderujSkladbuNaBuffer) potřebuje
+ *  dopředu znát přesný, konečný počet opakování, protože se celý mix
+ *  renderuje najednou přes OfflineAudioContext, ne krok po kroku živě.
+ *  Čistá funkce, testovatelná bez Web Audia. */
+export const spocitejPocetOpakovaniBeatu = (
+  pocetOpakovaniBeatu: number,
+  delkaJednohoOpakovaniSekund: number,
+  delkaNahravkySekund: number
+): number => {
+  if (pocetOpakovaniBeatu > 0) return pocetOpakovaniBeatu
+  if (delkaJednohoOpakovaniSekund <= 0) return 1
+  return Math.max(1, Math.ceil(delkaNahravkySekund / delkaJednohoOpakovaniSekund))
 }
 
 export interface Song {

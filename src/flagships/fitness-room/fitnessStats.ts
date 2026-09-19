@@ -117,6 +117,25 @@ export const spocitejTreninkovychDniZaTyden = (sezeni: Sezeni[], ted = Date.now(
   return dny.size
 }
 
+/** ISO týdenní klíč (např. "2024-W37") — jediný účel je stabilně
+ *  odlišit "tenhle kalendářní týden" od "minulý/příští", ať appka umí
+ *  poznat, že splnění týdenního tréninkového cíle ještě neoslavila v
+ *  TOMHLE týdnu (viz useFitnessCil.ts's posledniOslavenyTydenKlic).
+ *  Standardní ISO 8601 algoritmus (týden obsahující první čtvrtek
+ *  roku je týden 1, pondělí je první den). */
+export const tydenniKlic = (datum: Date): string => {
+  const d = new Date(Date.UTC(datum.getFullYear(), datum.getMonth(), datum.getDate()))
+  const denOdPondeli = (d.getUTCDay() + 6) % 7
+  d.setUTCDate(d.getUTCDate() - denOdPondeli + 3)
+  const prvniCtvrtek = new Date(Date.UTC(d.getUTCFullYear(), 0, 4))
+  const cislo =
+    1 +
+    Math.round(
+      ((d.getTime() - prvniCtvrtek.getTime()) / 86_400_000 - 3 + ((prvniCtvrtek.getUTCDay() + 6) % 7)) / 7
+    )
+  return `${d.getUTCFullYear()}-W${String(cislo).padStart(2, '0')}`
+}
+
 // ==========================================
 // Aktivita za posledních N dní — malý sloupcový graf v dashboardu, žádná
 // knihovna, stejný "no charting library for a handful of bars" vzorec

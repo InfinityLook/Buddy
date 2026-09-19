@@ -41,7 +41,7 @@ export interface StavOpakovani {
 
 export type StavKamery = 'vypnuto' | 'nacita-se' | 'bezi' | 'chyba'
 
-export type Zpetnavazba = 'v-poradku' | 'narovnej-zada' | null
+export type Zpetnavazba = 'v-poradku' | 'narovnej-zada' | 'jdi-hloubeji' | null
 
 /** Druhy cvičení, co Form Check umí kamerou sledovat a počítat opakování
  *  sám — dřep (úhel v koleně) byl jediný od začátku, klik (úhel v lokti)

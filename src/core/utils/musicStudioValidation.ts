@@ -1,5 +1,11 @@
 import * as v from 'valibot'
-import { DRUM_SOUNDS, KROKU_V_PATTERNU, POCTY_KROKU_NA_VYBER, type PocetKroku } from '@/miniapps/music-studio/types'
+import {
+  DRUM_SOUNDS,
+  KROKU_V_PATTERNU,
+  MAX_SWING,
+  POCTY_KROKU_NA_VYBER,
+  type PocetKroku,
+} from '@/miniapps/music-studio/types'
 
 // ==========================================
 // Ověření dat Music Studia (beaty/nahrávky/skladby) načtených z
@@ -36,6 +42,15 @@ const dorovnejPocetOpakovani = (data: unknown): number => {
   return Math.round(data)
 }
 
+/** Starší pattern bez swingu (uložený předtím, než appka tuhle
+ *  vlastnost měla vůbec) i pattern s neplatnou/mimo-rozsahovou hodnotou
+ *  se čte jako appčino "vypnuto" (0), ne že by kvůli tomu spadla
+ *  validace celého patternu. */
+const dorovnejSwing = (data: unknown): number => {
+  if (typeof data !== 'number' || !Number.isFinite(data)) return 0
+  return Math.min(MAX_SWING, Math.max(0, Math.round(data)))
+}
+
 const sanitizujPattern = (data: unknown) => {
   if (!data || typeof data !== 'object') return null
   const d = data as Record<string, unknown>
@@ -55,7 +70,9 @@ const sanitizujPattern = (data: unknown) => {
     DRUM_SOUNDS.map((buben) => [buben, dorovnejHlasitost(hlasitostiVstup[buben])])
   ) as Record<(typeof DRUM_SOUNDS)[number], number>
 
-  return { id: d.id, name: d.name, bpm: d.bpm, pocetKroku, kroky, hlasitosti, createdAt: d.createdAt }
+  const swing = dorovnejSwing(d.swing)
+
+  return { id: d.id, name: d.name, bpm: d.bpm, pocetKroku, kroky, hlasitosti, swing, createdAt: d.createdAt }
 }
 
 const sanitizujRecording = (data: unknown) => {

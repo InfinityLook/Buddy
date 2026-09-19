@@ -229,6 +229,66 @@
 .eco-text--purple { color: var(--accent-violet); }
 
 /* ------------------------------------------
+   PŘEDPOVĚĎ PLATEB — stejný řádkový tvar jako .eco-stat-radek výš
+   (ikona v barevném čtverci + text + hodnota vpravo), jen s běžícím
+   předpokládaným zůstatkem místo pevného čísla.
+   ------------------------------------------ */
+.eco-predpoved-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.eco-predpoved-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.eco-predpoved-ikona {
+  flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.eco-predpoved-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.eco-predpoved-nazev {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.eco-predpoved-castka {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.eco-predpoved-zustatek {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  text-align: right;
+}
+
+.eco-predpoved-zustatek.je-zaporny {
+  color: var(--accent-red, #ef4444);
+}
+
+/* ------------------------------------------
    RYCHLÉ AKCE
    ------------------------------------------ */
 .eco-akce-mrizka {

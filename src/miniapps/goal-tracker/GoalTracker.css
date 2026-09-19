@@ -334,6 +334,25 @@
   color: #64748b;
 }
 
+/* Heatmapa historie návyku — prostá mřížka čtverečků, žádná knihovna,
+   stejný "appka si graf poskládá z pole divů" vzor jako Writer Roomova
+   14denní aktivita. 14 sloupců × 6 řádků = 84 dní (12 týdnů). */
+.gt-heatmapa {
+  display: grid;
+  grid-template-columns: repeat(14, 1fr);
+  gap: 3px;
+}
+
+.gt-heatmapa-den {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.gt-heatmapa-den.je-oznaceno {
+  background: var(--accent-green, #34d399);
+}
+
 .gt-poznamka-textarea {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);

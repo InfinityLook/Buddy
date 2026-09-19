@@ -68,3 +68,24 @@ export const celkovyVazenyPrumer = (predmety: Predmet[]): number | null => {
 
 export const soucetKreditu = (predmety: Predmet[]): number =>
   predmety.reduce((s, p) => s + p.kredity, 0)
+
+// ==========================================
+// Kalkulačka "co kdyby" — nepřidává druhou kopii výpočtu průměru, jen
+// vrátí kopii seznamu předmětů s jednou hypotetickou známkou navíc u
+// zadaného předmětu. UI pak na výsledku znovu zavolá
+// vazenyPrumerPredmetu/celkovyVazenyPrumer úplně stejně, jako by ta
+// známka byla doopravdy zapsaná — appka si tak nemůže nechat rozejít
+// "co kdyby" číslo se skutečným výpočtem průměru.
+// ==========================================
+
+export const sPridanouHypotetickouZnamkou = (
+  predmety: Predmet[],
+  predmetId: string,
+  hodnota: number,
+  vaha: number
+): Predmet[] =>
+  predmety.map((p) =>
+    p.id === predmetId
+      ? { ...p, znamky: [...p.znamky, { id: '__hypoteza__', hodnota, vaha, popis: '', datum: '' }] }
+      : p
+  )

@@ -40,6 +40,66 @@ export const ohlasNovyRekord = (): void => rekni('Nový rekord!')
 export const ohlasCilSplnen = (): void => rekni('Cíl splněn!')
 export const ohlasZacniSerii = (cisloSerie: number): void => rekni(`Začni sérii ${cisloSerie}!`)
 
+// ==========================================
+// Konec odpočinku mezi sériemi — dřív jediný signál byl hlasové
+// hlášení (ohlasZacniSerii výš), takže s vypnutým hlasem nebo
+// telefonem potichu v kapse uživatel neměl jak poznat, že odpočítávání
+// doběhlo. Vibrace + krátké pípnutí jsou schválně NEZÁVISLÉ na
+// hlasoveHlaseni přepínači — je to jiný signál (skončil časovač), ne
+// mluvené slovo, appka ho volá vždycky.
+//
+// AudioContext se musí vytvořit/odemknout uvnitř skutečného gesta
+// uživatele (klepnutí na "Dokončit sérii"), ne až o desítky vteřin
+// později, kdy odpočítávání doběhne — prohlížeč by jinak kontext
+// vytvořený mimo gesto nechal ve stavu 'suspended' a start() by
+// tiše nic nepřehrál. odemkniOdpocinekZvuk() se proto volá hned při
+// zahájení odpočinku (FormCheck.tsx's handleDokoncitSerii), ne uvnitř
+// samotného ohlasKonecOdpocinku.
+// ==========================================
+let odpocinekAudioCtx: AudioContext | null = null
+
+export const odemkniOdpocinekZvuk = (): void => {
+  if (odpocinekAudioCtx) {
+    void odpocinekAudioCtx.resume()
+    return
+  }
+  try {
+    const Ctor =
+      window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+    if (Ctor) odpocinekAudioCtx = new Ctor()
+  } catch {
+    odpocinekAudioCtx = null
+  }
+}
+
+export const ohlasKonecOdpocinku = (): void => {
+  // Vibrace na telefonu — když prohlížeč neumí, prostě se nic nestane,
+  // stejný vzorec jako Pomodorovo navigator.vibrate?.(...).
+  navigator.vibrate?.([150, 80, 150])
+
+  const master = masterHlasitost()
+  if (master <= 0 || !odpocinekAudioCtx) return
+  try {
+    const ctx = odpocinekAudioCtx
+    const now = ctx.currentTime
+    const gain = ctx.createGain()
+    gain.connect(ctx.destination)
+    gain.gain.setValueAtTime(0.0001, now)
+    gain.gain.exponentialRampToValueAtTime(0.3 * master, now + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5)
+
+    const osc = ctx.createOscillator()
+    osc.type = 'sine'
+    osc.frequency.setValueAtTime(660, now)
+    osc.frequency.setValueAtTime(880, now + 0.15)
+    osc.connect(gain)
+    osc.start(now)
+    osc.stop(now + 0.55)
+  } catch {
+    // Zvuk je bonus, ne podmínka — vibrace výš proběhla tak jako tak.
+  }
+}
+
 // Rozcvička/strečink časovač (RozcvickaCasovac.tsx) je bez kamery, ale
 // hlas dává smysl stejně — ohlásí název dalšího kroku, ať se uživatel
 // nemusí koukat do telefonu mezi jednotlivými cviky.

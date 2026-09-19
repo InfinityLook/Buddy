@@ -32,6 +32,7 @@ export const TransactionSchema = v.object({
   receiptMime: v.optional(v.nullable(v.string()), null),
   updatedAt: v.optional(v.number(), 0),
   deletedAt: v.optional(v.nullable(v.number()), null),
+  presunId: v.optional(v.nullable(v.string()), null),
 })
 
 const sanitizujTransakci = (raw: unknown): Transaction | null => {
@@ -48,6 +49,7 @@ export const WalletSchema = v.object({
   id: v.string(),
   name: v.string(),
   icon: v.optional(v.nullable(v.string()), null),
+  pocatecniZustatek: v.optional(v.number(), 0),
   createdAt: v.optional(v.string(), ''),
   updatedAt: v.optional(v.number(), 0),
   deletedAt: v.optional(v.nullable(v.number()), null),
@@ -57,7 +59,10 @@ const sanitizujPenezenku = (raw: unknown): Wallet | null => {
   const jedna = v.safeParse(WalletSchema, raw)
   if (!jedna.success) return null
   if (!jedna.output.name.trim()) return null
-  return jedna.output
+  return {
+    ...jedna.output,
+    pocatecniZustatek: Number.isFinite(jedna.output.pocatecniZustatek) ? jedna.output.pocatecniZustatek : 0,
+  }
 }
 
 export const BudgetSchema = v.object({
@@ -67,6 +72,7 @@ export const BudgetSchema = v.object({
   createdAt: v.optional(v.string(), ''),
   updatedAt: v.optional(v.number(), 0),
   deletedAt: v.optional(v.nullable(v.number()), null),
+  lastExceededNotifiedMonth: v.optional(v.nullable(v.string()), null),
 })
 
 const sanitizujRozpocet = (raw: unknown): Budget | null => {

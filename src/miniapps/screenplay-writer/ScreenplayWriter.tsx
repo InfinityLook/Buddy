@@ -9,15 +9,17 @@ import {
   serazenoPodleUpravy,
   sestavFountain,
   sestavTextScenare,
+  shrnutiScenare,
   spocitejReplikyPodlePostavy,
   TYPY_MIST,
   TypMista,
   ziskejPostavy,
 } from './types'
+import { sanitizujScenar } from '@/core/utils/screenplayWriterValidation'
 import { plural } from '@/core/utils/pluralCZ'
 import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
-import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky, STAVY_POLOZEK } from '@/flagships/writer-room/writerRoomStav'
 import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
 import { najdiNaduzivanaSlova } from '@/flagships/writer-room/writerRoomStyl'
 import {
@@ -750,6 +752,8 @@ const ScenarOsnova: React.FC<{
   const [vysledekNahrazeni, setVysledekNahrazeni] = useState<number | null>(null)
   const [otevrenaPostava, setOtevrenaPostava] = useState<string | null>(null)
   const [naduzivanaOtevrena, setNaduzivanaOtevrena] = useState(false)
+  // null = "Vše" (bez filtru), stejný postup jako Kniha's KnihaOsnova.
+  const [filtrStav, setFiltrStav] = useState<StavPolozky | null>(null)
   const postavy = ziskejPostavy(scenar)
   const statistikyPostav = spocitejReplikyPodlePostavy(scenar)
 
@@ -764,7 +768,9 @@ const ScenarOsnova: React.FC<{
     obsahujeDotaz(s.stitky, dotaz) ||
     s.prvky.some((p) => obsahujeDotaz(p.text, dotaz) || (p.typ === 'dialog' && obsahujeDotaz(p.postava, dotaz)))
 
-  const polozky = scenar.sceny.map((s, i) => ({ scena: s, poradi: i + 1 })).filter(({ scena }) => najdiProScenu(scena))
+  const polozky = scenar.sceny
+    .map((s, i) => ({ scena: s, poradi: i + 1 }))
+    .filter(({ scena }) => (filtrStav === null || scena.stav === filtrStav) && najdiProScenu(scena))
 
   const naduzivana = najdiNaduzivanaSlova(scenar.sceny.flatMap((s) => s.prvky.map((p) => p.text)))
 
@@ -790,6 +796,26 @@ const ScenarOsnova: React.FC<{
         }}
         autoFocus
       />
+
+      <div className="sw-chip-row" role="group" aria-label="Filtrovat podle stavu">
+        <button
+          type="button"
+          className={`sw-chip${filtrStav === null ? ' active' : ''}`}
+          onClick={() => setFiltrStav(null)}
+        >
+          Vše
+        </button>
+        {STAVY_POLOZEK.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            className={`sw-chip${filtrStav === s.id ? ' active' : ''}`}
+            onClick={() => setFiltrStav(filtrStav === s.id ? null : s.id)}
+          >
+            {s.emoji} {s.label}
+          </button>
+        ))}
+      </div>
 
       <button className="sw-nahled-btn" onClick={() => setNahraditFormOtevren((f) => !f)}>
         🔁 Nahradit
@@ -873,7 +899,7 @@ const ScenarOsnova: React.FC<{
       )}
 
       <div className="sw-seznam">
-        {polozky.length === 0 && <p className="sw-prazdno">{dotaz ? 'Nic se nenašlo.' : 'Scénář zatím nemá žádnou scénu.'}</p>}
+        {polozky.length === 0 && <p className="sw-prazdno">{dotaz || filtrStav ? 'Nic se nenašlo.' : 'Scénář zatím nemá žádnou scénu.'}</p>}
         {polozky.map(({ scena: s, poradi }) => {
           const zasahVMiste = obsahujeDotaz(s.misto, dotaz) || obsahujeDotaz(s.cas, dotaz)
           const prvekSeZasahem = zasahVMiste
@@ -912,6 +938,9 @@ const ScenarZalohy: React.FC<{
   const [zprava, setZprava] = useState<string | null>(null)
   const smiVip = useHasPermission('cosmetics.premium')
   const strop = smiVip ? MAX_CHECKPOINTU_NA_DILO_VIP : MAX_CHECKPOINTU_NA_DILO
+  // Stejný "rozbal a ukaž náhled, teprve pak nabídni skutečné
+  // obnovení" postup jako Kniha's KnihaZalohy vedle.
+  const [rozbalenyId, setRozbalenyId] = useState<string | null>(null)
 
   const seznam = checkpointyProDilo(checkpointy, 'scenar', scenar.id)
 
@@ -924,6 +953,7 @@ const ScenarZalohy: React.FC<{
   const obnovit = (nazev: string, data: unknown) => {
     if (!window.confirm(`Obnovit scénář ze zálohy „${nazev}“? Aktuální stav scén se přepíše.`)) return
     setZprava(obnovZeCheckpointu(scenar.id, data) ? 'Verze obnovena.' : 'Nepovedlo se obnovit — záloha je poškozená.')
+    setRozbalenyId(null)
   }
 
   return (
@@ -960,17 +990,35 @@ const ScenarZalohy: React.FC<{
 
       <div className="sw-seznam">
         {seznam.length === 0 && <p className="sw-prazdno">Zatím žádná ruční záloha tohohle scénáře.</p>}
-        {seznam.map((c) => (
-          <div className="sw-radek" key={c.id}>
-            <button className="sw-radek-otevrit" onClick={() => obnovit(c.nazev, c.data)}>
-              <strong>{c.nazev}</strong>
-              <span>{formatujNaposledyUpraveno(c.createdAt)}</span>
-            </button>
-            <button className="sw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
-              ✕
-            </button>
-          </div>
-        ))}
+        {seznam.map((c) => {
+          const rozbaleno = rozbalenyId === c.id
+          const nahled = sanitizujScenar(c.data)
+          return (
+            <div className="sw-radek-wrap" key={c.id}>
+              <div className="sw-radek">
+                <button
+                  className="sw-radek-otevrit"
+                  onClick={() => setRozbalenyId(rozbaleno ? null : c.id)}
+                  aria-expanded={rozbaleno}
+                >
+                  <strong>{c.nazev}</strong>
+                  <span>{formatujNaposledyUpraveno(c.createdAt)}</span>
+                </button>
+                <button className="sw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
+                  ✕
+                </button>
+              </div>
+              {rozbaleno && (
+                <div className="sw-checkpoint-nahled">
+                  <span>{nahled ? shrnutiScenare(nahled) : 'Tahle záloha je poškozená.'}</span>
+                  <button className="sw-ulozit-btn" disabled={!nahled} onClick={() => obnovit(c.nazev, c.data)}>
+                    ↺ Obnovit tuto verzi
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

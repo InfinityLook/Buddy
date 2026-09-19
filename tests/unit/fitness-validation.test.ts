@@ -7,7 +7,12 @@ describe('validateFitnessCilData', () => {
     const vysledek = validateFitnessCilData({ cilKcal: 400, cilTreninkMin: 30, cilTreninkuTydne: 3 })
     expect(vysledek.success).toBe(true)
     if (vysledek.success) {
-      expect(vysledek.data).toEqual({ cilKcal: 400, cilTreninkMin: 30, cilTreninkuTydne: 3 })
+      expect(vysledek.data).toEqual({
+        cilKcal: 400,
+        cilTreninkMin: 30,
+        cilTreninkuTydne: 3,
+        posledniOslavenyTydenKlic: null,
+      })
     }
   })
 
@@ -15,8 +20,23 @@ describe('validateFitnessCilData', () => {
     const vysledek = validateFitnessCilData({})
     expect(vysledek.success).toBe(true)
     if (vysledek.success) {
-      expect(vysledek.data).toEqual({ cilKcal: null, cilTreninkMin: null, cilTreninkuTydne: null })
+      expect(vysledek.data).toEqual({
+        cilKcal: null,
+        cilTreninkMin: null,
+        cilTreninkuTydne: null,
+        posledniOslavenyTydenKlic: null,
+      })
     }
+  })
+
+  it('platný týdenní klíč (RRRR-Wtt) projde beze změny, neplatný spadne na null', () => {
+    const platny = validateFitnessCilData({ posledniOslavenyTydenKlic: '2024-W37' })
+    expect(platny.success).toBe(true)
+    if (platny.success) expect(platny.data.posledniOslavenyTydenKlic).toBe('2024-W37')
+
+    const neplatny = validateFitnessCilData({ posledniOslavenyTydenKlic: 'nesmysl' })
+    expect(neplatny.success).toBe(true)
+    if (neplatny.success) expect(neplatny.data.posledniOslavenyTydenKlic).toBeNull()
   })
 
   it('záporné nebo nulové číslo spadne na null, ne na chybu', () => {

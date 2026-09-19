@@ -11,6 +11,8 @@ import { NastrojeSheet } from '../shared/NastrojeSheet'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import { useSkolaCil } from './useSkolaCil'
 import { spocitejMinutyDnes, spocitejMinutyTyden } from './skolaCilStats'
+import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
+import { PRAH_RIZIKA_DOCHAZKY, hodinyDnes, spocitejDochazkuPodlePredmetu } from '@/miniapps/rozvrh/types'
 import './SchoolRoomModule.css'
 
 // ==========================================
@@ -61,6 +63,22 @@ export const SchoolRoomModule: React.FC = () => {
   const nadchazejiciUdalosti = useMemo(
     () => [...dnySUdalosti].filter((d) => d >= dnesniStr).length,
     [dnySUdalosti, dnesniStr]
+  )
+
+  // Příští hodina a riziko docházky — Rozvrh už obě čísla sám počítá
+  // (hodinyDnes/spocitejDochazkuPodlePredmetu), jen se nikde v "Moje
+  // přehled" doteď nezobrazovala. Stejné "wire it up, don't invent new
+  // logic" jako zbytek panelu.
+  const { hodiny: rozvrhHodiny, dochazka } = useRozvrh()
+  const dnesniHodiny = useMemo(() => hodinyDnes(rozvrhHodiny, dnes), [rozvrhHodiny, dnes])
+  const dnesniCasStr = `${String(dnes.getHours()).padStart(2, '0')}:${String(dnes.getMinutes()).padStart(2, '0')}`
+  const pristiHodina = useMemo(
+    () => dnesniHodiny.find((h) => h.casOd >= dnesniCasStr) ?? null,
+    [dnesniHodiny, dnesniCasStr]
+  )
+  const pocetRizikovychPredmetu = useMemo(
+    () => spocitejDochazkuPodlePredmetu(rozvrhHodiny, dochazka).filter((d) => d.procenta < PRAH_RIZIKA_DOCHAZKY).length,
+    [rozvrhHodiny, dochazka]
   )
 
   // Studijní cíl — denní/týdenní minuty studia z Pomodorovy skutečné
@@ -338,6 +356,32 @@ export const SchoolRoomModule: React.FC = () => {
                 </span>
               </span>
             </div>
+
+            <div className="sr-stat-radek">
+              <span className="sr-stat-ikona fs-barva--cyan">
+                <AppIcon name="schedule" size={18} />
+              </span>
+              <span className="sr-stat-text">
+                <span className="sr-stat-nazev">Příští hodina</span>
+                <span className="sr-stat-hodnota">
+                  {pristiHodina ? `${pristiHodina.predmet} (${pristiHodina.casOd})` : 'Dnes už žádná další'}
+                </span>
+              </span>
+            </div>
+
+            {pocetRizikovychPredmetu > 0 && (
+              <div className="sr-stat-radek">
+                <span className="sr-stat-ikona fs-barva--pink">
+                  <AppIcon name="schedule" size={18} />
+                </span>
+                <span className="sr-stat-text">
+                  <span className="sr-stat-nazev">Riziko docházky</span>
+                  <span className="sr-stat-hodnota">
+                    {pocetRizikovychPredmetu} {pocetRizikovychPredmetu === 1 ? 'předmět' : 'předměty'} pod {PRAH_RIZIKA_DOCHAZKY}&nbsp;%
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

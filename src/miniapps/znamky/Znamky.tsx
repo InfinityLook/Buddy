@@ -6,6 +6,7 @@ import {
   Predmet,
   celkovyVazenyPrumer,
   soucetKreditu,
+  sPridanouHypotetickouZnamkou,
   vazenyPrumerPredmetu,
   znamkaSlovy,
 } from './types'
@@ -28,8 +29,25 @@ export const Znamky: React.FC = () => {
   const [vaha, setVaha] = useState('1')
   const [popis, setPopis] = useState('')
 
+  // Kalkulačka "co kdyby" — id předmětu, u kterého je otevřená, ne
+  // globální přepínač, aby otevření jinde nezavíralo tu právě
+  // rozjednanou. Hypotetická známka se nikdy neukládá, jen se dočasně
+  // přimíchá do kopie seznamu předmětů (sPridanouHypotetickouZnamkou)
+  // a appka na ní znovu spustí ty úplně stejné výpočty průměru.
+  const [coKdybyOtevreno, setCoKdybyOtevreno] = useState<string | null>(null)
+  const [coKdybyHodnota, setCoKdybyHodnota] = useState(1)
+  const [coKdybyVaha, setCoKdybyVaha] = useState('1')
+
   const celkovyPrumer = celkovyVazenyPrumer(predmety)
   const celkoveKredity = soucetKreditu(predmety)
+
+  const predmetyCoKdyby = coKdybyOtevreno
+    ? sPridanouHypotetickouZnamkou(predmety, coKdybyOtevreno, coKdybyHodnota, Number(coKdybyVaha) || 1)
+    : null
+  const projektovanyPrumerPredmetu = predmetyCoKdyby
+    ? vazenyPrumerPredmetu(predmetyCoKdyby.find((p) => p.id === coKdybyOtevreno)!)
+    : null
+  const projektovanyCelkovyPrumer = predmetyCoKdyby ? celkovyVazenyPrumer(predmetyCoKdyby) : null
 
   const pridatNovyPredmet = (e: React.FormEvent) => {
     e.preventDefault()
@@ -180,6 +198,47 @@ export const Znamky: React.FC = () => {
                       + Známka
                     </button>
                   </form>
+
+                  <button
+                    type="button"
+                    className="znamky-cokdyby-btn"
+                    onClick={() => setCoKdybyOtevreno(coKdybyOtevreno === p.id ? null : p.id)}
+                  >
+                    🔮 {coKdybyOtevreno === p.id ? 'Skrýt' : 'Co kdyby…'}
+                  </button>
+
+                  {coKdybyOtevreno === p.id && (
+                    <div className="znamky-cokdyby">
+                      <p className="znamky-cokdyby-popis">
+                        Jaký dopad by měla další známka na průměr, než ji doopravdy zapíšeš?
+                      </p>
+                      <div className="znamky-cokdyby-form">
+                        <select value={coKdybyHodnota} onChange={(e) => setCoKdybyHodnota(Number(e.target.value))}>
+                          {Array.from({ length: MAX_ZNAMKA - MIN_ZNAMKA + 1 }, (_, i) => MIN_ZNAMKA + i).map((h) => (
+                            <option key={h} value={h}>
+                              {h} — {znamkaSlovy(h)}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="number"
+                          min={0.5}
+                          step={0.5}
+                          placeholder="Váha"
+                          value={coKdybyVaha}
+                          onChange={(e) => setCoKdybyVaha(e.target.value)}
+                        />
+                      </div>
+                      <div className="znamky-cokdyby-vysledek">
+                        <span>
+                          Průměr předmětu: <strong>{projektovanyPrumerPredmetu?.toFixed(2) ?? '—'}</strong>
+                        </span>
+                        <span>
+                          Celkový průměr: <strong>{projektovanyCelkovyPrumer?.toFixed(2) ?? '—'}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   <button className="znamky-predmet-smazat" onClick={() => odebratPredmet(p)}>
                     Smazat celý předmět

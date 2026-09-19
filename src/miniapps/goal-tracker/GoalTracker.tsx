@@ -12,6 +12,7 @@ import {
   SABLONY_CILU,
   formatujTermin,
   jeNavykOznacenDnes,
+  spocitejHeatmapuNavyku,
   spocitejSeriiNavyku,
   spocitejTydenniPokrokNavyku,
 } from './types'
@@ -213,6 +214,21 @@ export const GoalTracker: React.FC = () => {
 
         {jeRozbaleno && (
           <div className="gt-detail">
+            {jeNavyk && (
+              <>
+                <span className="gt-detail-label">Historie posledních 12 týdnů</span>
+                <div className="gt-heatmapa" role="img" aria-label={`Historie splnění návyku ${g.title} za posledních 12 týdnů`}>
+                  {spocitejHeatmapuNavyku(g).map((den) => (
+                    <span
+                      key={den.datum}
+                      className={`gt-heatmapa-den ${den.oznaceno ? 'je-oznaceno' : ''}`}
+                      title={`${den.datum}${den.oznaceno ? ' — splněno' : ''}`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+
             <label className="gt-detail-label" htmlFor={`gt-poznamka-${g.id}`}>
               Poznámka
             </label>

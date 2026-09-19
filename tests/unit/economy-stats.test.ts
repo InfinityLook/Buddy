@@ -12,7 +12,12 @@ const datumPredMesici = (pocetMesicu: number): string => {
   return d.toISOString().slice(0, 10)
 }
 
-const transakce = (type: TransactionType, amount: number, mesicniOffset: number): Transaction => ({
+const transakce = (
+  type: TransactionType,
+  amount: number,
+  mesicniOffset: number,
+  presunId: string | null = null
+): Transaction => ({
   id: `${Math.random()}`,
   type,
   amount,
@@ -25,6 +30,7 @@ const transakce = (type: TransactionType, amount: number, mesicniOffset: number)
   receiptMime: null,
   updatedAt: 0,
   deletedAt: null,
+  presunId,
 })
 
 describe('spocitatMesicniSrovnani', () => {
@@ -43,6 +49,16 @@ describe('spocitatMesicniSrovnani', () => {
 
   it('bez transakcí vrátí nulové srovnání', () => {
     expect(spocitatMesicniSrovnani([])).toEqual({ prijmyMinuly: 0, vydajeMinuly: 0 })
+  })
+
+  it('přesun mezi vlastními peněženkami (presunId) se do srovnání nepočítá', () => {
+    const vysledek = spocitatMesicniSrovnani([
+      transakce('prijem', 300, 1),
+      transakce('vydaj', 5000, 1, 'presun-1'), // přesun — nepočítá se
+      transakce('prijem', 5000, 1, 'presun-1'), // přesun — nepočítá se
+    ])
+    expect(vysledek.prijmyMinuly).toBe(300)
+    expect(vysledek.vydajeMinuly).toBe(0)
   })
 })
 

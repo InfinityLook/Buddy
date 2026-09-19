@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { naplanujBuben, ziskejKontext } from './audioEngine'
-import { DRUM_SOUNDS, KROKU_V_PATTERNU, type BeatPattern } from './types'
+import { DRUM_SOUNDS, KROKU_V_PATTERNU, swingPosunSekund, type BeatPattern } from './types'
 
 // Jak daleko dopředu appka naplánuje noty (sekundy) a jak často se na
 // to podívá (ms) — klasický "look-ahead scheduler" vzor pro Web Audio
@@ -65,15 +65,20 @@ export const useBeatSequencer = (pattern: BeatPattern | null, onOpakovani?: () =
 
       while (dalsiCasRef.current < ctx.currentTime + LOOKAHEAD_S) {
         const krok = dalsiKrokRef.current
+        // Swing posune jen skutečně zahraný zvuk (a s ním i vizuální
+        // playhead níž) o kousek dozadu — samotná dalsiCasRef mřížka
+        // zůstává rovná, ať se posun jednoho kroku nekumuluje do
+        // dalších (viz types.ts's swingPosunSekund).
+        const casSeSwingem = dalsiCasRef.current + swingPosunSekund(krok, sekundNaKrok, p.swing ?? 0)
         for (const buben of DRUM_SOUNDS) {
           if (p.kroky[buben]?.[krok]) {
             const hlasitost = p.hlasitosti?.[buben] ?? 100
-            if (hlasitost > 0) naplanujBuben(ctx, buben, dalsiCasRef.current, hlasitost)
+            if (hlasitost > 0) naplanujBuben(ctx, buben, casSeSwingem, hlasitost)
           }
         }
 
         const zobrazitKrok = krok
-        const zpozdeniMs = Math.max(0, (dalsiCasRef.current - ctx.currentTime) * 1000)
+        const zpozdeniMs = Math.max(0, (casSeSwingem - ctx.currentTime) * 1000)
         setTimeout(() => setAktualniKrok(zobrazitKrok), zpozdeniMs)
 
         dalsiCasRef.current += sekundNaKrok

@@ -5,6 +5,7 @@ import { useFinance } from '@/miniapps/finance/useFinance'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
+import { spocitejPredpovedCashflow } from '@/miniapps/finance/types'
 import { spocitatMesicniSrovnani, formatujRozdilMesic } from './economyStats'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './EconomyRoomModule.css'
@@ -19,6 +20,11 @@ const PALETA_PRSTENCU = ['#38bdf8', '#a855f7', '#f472b6', '#fbbf24']
 // donut ukazuje všechny, ale čtyři prstence vedle sebe jsou strop, kdy
 // se to ještě vejde do jednoho řádku bez zmenšení pod čitelnost.
 const MAX_PRSTENCU = 4
+
+const formatDatumKratce = (iso: string): string => {
+  const [, mesic, den] = iso.split('-')
+  return `${den}.${mesic}.`
+}
 
 // ==========================================
 // Economy Room — třetí vlajková appka (viz FlagshipShell.tsx pro celé
@@ -52,7 +58,7 @@ const MAX_PRSTENCU = 4
 export const EconomyRoomModule: React.FC = () => {
   const navigate = useNavigate()
   const setActiveAppId = useAppStore((s) => s.setActiveAppId)
-  const { zustatek, prijmyObdobi, vydajeObdobi, kategorieVydaje, transactions } = useFinance()
+  const { zustatek, prijmyObdobi, vydajeObdobi, kategorieVydaje, transactions, recurring } = useFinance()
   const [notifOpen, setNotifOpen] = useState(false)
   const [appsOtevrene, setAppsOtevrene] = useState(false)
 
@@ -63,6 +69,7 @@ export const EconomyRoomModule: React.FC = () => {
 
   const { prijmyMinuly, vydajeMinuly } = spocitatMesicniSrovnani(transactions)
   const prstence = kategorieVydaje.slice(0, MAX_PRSTENCU)
+  const predpoved = spocitejPredpovedCashflow(recurring, zustatek)
 
   const nastroje: FlagshipDlazdice[] = [
     {
@@ -191,6 +198,39 @@ export const EconomyRoomModule: React.FC = () => {
                   </div>
                   <span className="eco-krouzek-nazev">{v.category}</span>
                   <span className="eco-krouzek-hodnota">{v.amount.toLocaleString('cs-CZ')} Kč</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="eco-panel">
+          <div className="eco-panel-hlavicka">
+            <h2>Předpověď plateb</h2>
+            <span className="eco-obdobi-znacka">Podle opakujících se plateb</span>
+          </div>
+
+          {predpoved.length === 0 ? (
+            <p className="eco-prazdno">Zatím žádné aktivní opakující se platby, není z čeho předpovídat.</p>
+          ) : (
+            <div className="eco-predpoved-seznam">
+              {predpoved.map((p) => (
+                <div key={p.recurring.id} className="eco-predpoved-radek">
+                  <span className={`eco-predpoved-ikona ${p.recurring.type === 'prijem' ? 'fs-barva--cyan' : 'fs-barva--orange'}`}>
+                    <AppIcon name={p.recurring.type === 'prijem' ? 'plus' : 'minus'} size={16} />
+                  </span>
+                  <span className="eco-predpoved-text">
+                    <span className="eco-predpoved-nazev">
+                      {p.recurring.note || p.recurring.category} · {formatDatumKratce(p.datum)}
+                    </span>
+                    <span className="eco-predpoved-castka">
+                      {p.recurring.type === 'prijem' ? '+' : '−'}
+                      {p.recurring.amount.toLocaleString('cs-CZ')} Kč
+                    </span>
+                  </span>
+                  <span className={`eco-predpoved-zustatek ${p.zustatekPo < 0 ? 'je-zaporny' : ''}`}>
+                    {p.zustatekPo.toLocaleString('cs-CZ')} Kč
+                  </span>
                 </div>
               ))}
             </div>

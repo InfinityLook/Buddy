@@ -3,6 +3,7 @@
 // ==========================================
 
 import { StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import { plural } from '@/core/utils/pluralCZ'
 import JSZip from 'jszip'
 
 export interface Kapitola {
@@ -59,6 +60,15 @@ export const celkovyPocetSlov = (kniha: Kniha): number =>
 const SLOV_ZA_MINUTU_CTENI = 200
 
 export const odhadCteniMinut = (kniha: Kniha): number => Math.round(celkovyPocetSlov(kniha) / SLOV_ZA_MINUTU_CTENI)
+
+/** Krátké shrnutí obsahu knihy — appka ho ukazuje u ruční zálohy
+ *  (checkpointu) před obnovením, ať autor vidí, co skutečně obnoví
+ *  (kolik kapitol/slov ta verze měla), ne jen její název a datum. */
+export const shrnutiKnihy = (kniha: Kniha): string => {
+  const kapitol = kniha.kapitoly.length
+  const slov = celkovyPocetSlov(kniha)
+  return `${kapitol} ${plural(kapitol, 'kapitola', 'kapitoly', 'kapitol')} · ${slov} ${plural(slov, 'slovo', 'slova', 'slov')}`
+}
 
 // Seřadí knihy podle poslední úpravy, ne podle pořadí v poli (to je
 // pořadí založení) — použito jak seznamem knih v appce samotné, tak

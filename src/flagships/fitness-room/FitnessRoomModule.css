@@ -382,6 +382,18 @@
   color: var(--text-secondary);
 }
 
+.fit-tydenni-cil-oslava {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-orange) 18%, transparent);
+  border: 1px solid var(--accent-orange);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: center;
+}
+
 .fit-tydenni-cil-pruh {
   height: 8px;
   border-radius: 999px;

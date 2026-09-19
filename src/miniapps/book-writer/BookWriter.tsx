@@ -9,11 +9,13 @@ import {
   serazenoPodleUpravy,
   sestavEpub,
   sestavTextKnihy,
+  shrnutiKnihy,
 } from './types'
+import { sanitizujKnihu } from '@/core/utils/bookWriterValidation'
 import { plural } from '@/core/utils/pluralCZ'
 import { stahnoutBlob, stahnoutTextovySoubor } from '@/core/utils/download'
 import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
-import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky, STAVY_POLOZEK } from '@/flagships/writer-room/writerRoomStav'
 import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
 import { najdiNaduzivanaSlova } from '@/flagships/writer-room/writerRoomStyl'
 import {
@@ -169,6 +171,12 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
   const [fokusRezim, setFokusRezim] = useState(false)
   const [sablonyOtevrene, setSablonyOtevrene] = useState(false)
   const [zpravaSablona, setZpravaSablona] = useState<string | null>(null)
+  // Zlatý papír pro Knihu (VIP) — stejný mechanismus jako Scénář's
+  // pergamenRezim vedle, jen nad appčinou vlastní psací plochou
+  // (textarea), ne nad "papírem" scénáře. Čistě vizuální, na relaci,
+  // nepřežije zavření appky.
+  const [pergamenRezim, setPergamenRezim] = useState(false)
+  const [zpravaZlatyPapir, setZpravaZlatyPapir] = useState<string | null>(null)
   const smiVip = useHasPermission('cosmetics.premium')
   const indexAktivni = kniha.kapitoly.findIndex((k) => k.id === aktivniKapitolaId)
   const aktivniKapitola = indexAktivni >= 0 ? kniha.kapitoly[indexAktivni] : null
@@ -194,6 +202,14 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
     }
     setZpravaSablona(null)
     pouzitSablonu(sablona.kapitoly)
+  }
+
+  const kliknutoNaPergamen = () => {
+    if (!smiVip) {
+      setZpravaZlatyPapir('Zlatý papír je jen pro VIP.')
+      return
+    }
+    setPergamenRezim((p) => !p)
   }
 
   const smazatAktivniKapitolu = () => {
@@ -272,7 +288,16 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
         <button className="bw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
           {fokusRezim ? '🎯 Zpět z fokusu' : '🎯 Fokus'}
         </button>
+        <button
+          className={`bw-nahled-btn${!smiVip ? ' je-zamceno' : ''}`}
+          onClick={kliknutoNaPergamen}
+          aria-pressed={pergamenRezim}
+        >
+          {smiVip ? '👑' : '🔒'} {pergamenRezim ? 'Zpět z pergamenu' : 'Zlatý papír'}
+        </button>
       </div>
+
+      {zpravaZlatyPapir && <p className="bw-prazdno">{zpravaZlatyPapir}</p>}
 
       {cilProcenta !== null && (
         <div className="bw-cil-lista" role="progressbar" aria-valuenow={cilProcenta} aria-valuemin={0} aria-valuemax={100}>
@@ -359,7 +384,7 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
           </div>
 
           <textarea
-            className="bw-editor"
+            className={`bw-editor${pergamenRezim ? ' bw-editor--zlaty' : ''}`}
             value={aktivniKapitola.text}
             onChange={(e) => updateKapitola(kniha.id, aktivniKapitola.id, { text: e.target.value })}
             placeholder="Piš sem text kapitoly…"
@@ -489,6 +514,10 @@ const KnihaOsnova: React.FC<{
   const [nahraditZa, setNahraditZa] = useState('')
   const [vysledekNahrazeni, setVysledekNahrazeni] = useState<number | null>(null)
   const [naduzivanaOtevrena, setNaduzivanaOtevrena] = useState(false)
+  // null = appka nefiltruje podle stavu vůbec ("Vše") — na rozdíl od
+  // textového dotazu appka nemá jak vyjádřit "žádný stav" jinak než
+  // touhle třetí hodnotou navíc.
+  const [filtrStav, setFiltrStav] = useState<StavPolozky | null>(null)
 
   const provestNahrazeni = () => {
     if (!dotaz.trim()) return
@@ -499,7 +528,8 @@ const KnihaOsnova: React.FC<{
     .map((k, i) => ({ kapitola: k, poradi: i + 1 }))
     .filter(
       ({ kapitola }) =>
-        obsahujeDotaz(kapitola.nazev, dotaz) || obsahujeDotaz(kapitola.text, dotaz) || obsahujeDotaz(kapitola.stitky, dotaz)
+        (filtrStav === null || kapitola.stav === filtrStav) &&
+        (obsahujeDotaz(kapitola.nazev, dotaz) || obsahujeDotaz(kapitola.text, dotaz) || obsahujeDotaz(kapitola.stitky, dotaz))
     )
 
   const naduzivana = najdiNaduzivanaSlova(kniha.kapitoly.map((k) => k.text))
@@ -526,6 +556,26 @@ const KnihaOsnova: React.FC<{
         }}
         autoFocus
       />
+
+      <div className="bw-chip-row" role="group" aria-label="Filtrovat podle stavu">
+        <button
+          type="button"
+          className={`bw-chip${filtrStav === null ? ' active' : ''}`}
+          onClick={() => setFiltrStav(null)}
+        >
+          Vše
+        </button>
+        {STAVY_POLOZEK.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            className={`bw-chip${filtrStav === s.id ? ' active' : ''}`}
+            onClick={() => setFiltrStav(filtrStav === s.id ? null : s.id)}
+          >
+            {s.emoji} {s.label}
+          </button>
+        ))}
+      </div>
 
       <button className="bw-nahled-btn" onClick={() => setNahraditFormOtevren((f) => !f)}>
         🔁 Nahradit
@@ -570,7 +620,7 @@ const KnihaOsnova: React.FC<{
 
       <div className="bw-seznam">
         {polozky.length === 0 && (
-          <p className="bw-prazdno">{dotaz ? 'Nic se nenašlo.' : 'Kniha zatím nemá žádnou kapitolu.'}</p>
+          <p className="bw-prazdno">{dotaz || filtrStav ? 'Nic se nenašlo.' : 'Kniha zatím nemá žádnou kapitolu.'}</p>
         )}
         {polozky.map(({ kapitola: k, poradi }) => {
           const uryvek = obsahujeDotaz(k.nazev, dotaz) ? null : najdiUryvek(k.text, dotaz)
@@ -609,6 +659,12 @@ const KnihaZalohy: React.FC<{
   const [zprava, setZprava] = useState<string | null>(null)
   const smiVip = useHasPermission('cosmetics.premium')
   const strop = smiVip ? MAX_CHECKPOINTU_NA_DILO_VIP : MAX_CHECKPOINTU_NA_DILO
+  // Rozbalený checkpoint ukazuje náhled (kolik kapitol/slov ta verze
+  // měla) a teprve tady je skutečné tlačítko na obnovení — appka
+  // dřív obnovovala rovnou po prvním klepnutí na řádek, jen s
+  // window.confirm ukazujícím pouhý název zálohy, ne co doopravdy
+  // obsahuje.
+  const [rozbalenyId, setRozbalenyId] = useState<string | null>(null)
 
   const seznam = checkpointyProDilo(checkpointy, 'kniha', kniha.id)
 
@@ -621,6 +677,7 @@ const KnihaZalohy: React.FC<{
   const obnovit = (nazev: string, data: unknown) => {
     if (!window.confirm(`Obnovit knihu ze zálohy „${nazev}“? Aktuální stav kapitol se přepíše.`)) return
     setZprava(obnovZeCheckpointu(kniha.id, data) ? 'Verze obnovena.' : 'Nepovedlo se obnovit — záloha je poškozená.')
+    setRozbalenyId(null)
   }
 
   return (
@@ -657,17 +714,35 @@ const KnihaZalohy: React.FC<{
 
       <div className="bw-seznam">
         {seznam.length === 0 && <p className="bw-prazdno">Zatím žádná ruční záloha téhle knihy.</p>}
-        {seznam.map((c) => (
-          <div className="bw-radek" key={c.id}>
-            <button className="bw-radek-otevrit" onClick={() => obnovit(c.nazev, c.data)}>
-              <strong>{c.nazev}</strong>
-              <span>{formatujNaposledyUpraveno(c.createdAt)}</span>
-            </button>
-            <button className="bw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
-              ✕
-            </button>
-          </div>
-        ))}
+        {seznam.map((c) => {
+          const rozbaleno = rozbalenyId === c.id
+          const nahled = sanitizujKnihu(c.data)
+          return (
+            <div className="bw-radek-wrap" key={c.id}>
+              <div className="bw-radek">
+                <button
+                  className="bw-radek-otevrit"
+                  onClick={() => setRozbalenyId(rozbaleno ? null : c.id)}
+                  aria-expanded={rozbaleno}
+                >
+                  <strong>{c.nazev}</strong>
+                  <span>{formatujNaposledyUpraveno(c.createdAt)}</span>
+                </button>
+                <button className="bw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
+                  ✕
+                </button>
+              </div>
+              {rozbaleno && (
+                <div className="bw-checkpoint-nahled">
+                  <span>{nahled ? shrnutiKnihy(nahled) : 'Tahle záloha je poškozená.'}</span>
+                  <button className="bw-ulozit-btn" disabled={!nahled} onClick={() => obnovit(c.nazev, c.data)}>
+                    ↺ Obnovit tuto verzi
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

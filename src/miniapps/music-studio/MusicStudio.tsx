@@ -3,7 +3,7 @@ import { useMusicStudio } from './useMusicStudio'
 import { useBeatSequencer } from './useBeatSequencer'
 import { getFileBlob, putFileBlob } from '@/core/utils/fileStorage'
 import { stahnoutBlob } from '@/core/utils/download'
-import { hrajMetronomKlik, vyrenderujPatternNaBuffer, ziskejKontext } from './audioEngine'
+import { delkaOpakovaniPatternu, hrajMetronomKlik, vyrenderujPatternNaBuffer, ziskejKontext } from './audioEngine'
 import { bufferNaWavBlob } from './wavEncoder'
 import { spocitejVrcholyVlny } from './waveform'
 import {
@@ -11,13 +11,17 @@ import {
   DRUM_LABELS,
   DRUM_SOUNDS,
   DrumSound,
+  MAX_SWING,
   POCTY_KROKU_NA_VYBER,
   PocetKroku,
   Recording,
   Song,
   prazdnyPattern,
   priponaPodleMime,
+  spocitejPocetOpakovaniBeatu,
+  vypocitejBpmZKlepnuti,
   zmenPocetKroku,
+  zpracujKlepnutiTempa,
 } from './types'
 import './MusicStudio.css'
 
@@ -79,6 +83,70 @@ const oriznoutBlob = async (blob: Blob, od: number, doo: number): Promise<AudioB
   return offline.startRendering()
 }
 
+/** Smíchá skutečný beat (vyrenderovaný stejně jako appčino "stáhnout
+ *  beat jako WAV", vyrenderujPatternNaBuffer) s vybranou nahrávkou
+ *  skladby do jednoho společného bufferu, ve stejném vyvážení
+ *  (hlasitostBeatu/hlasitostNahravky), v jakém appka skladbu přehrává
+ *  živě — appčino "stáhnout skladbu jako WAV" (mixdown), poprvé cokoliv
+ *  v Music Studiu skutečně kombinuje dva různé zdroje zvuku do jednoho
+ *  souboru. Nahrávka se dekóduje první, protože appka potřebuje znát
+ *  její přesnou délku dřív, než spočítá, kolikrát se má beat opakovat
+ *  u pocetOpakovaniBeatu === 0 (spocitejPocetOpakovaniBeatu). */
+const vyrenderujSkladbuNaBuffer = async (
+  song: Song,
+  pattern: BeatPattern | null,
+  nahravkaBlob: Blob | null
+): Promise<AudioBuffer> => {
+  let nahravkaBuffer: AudioBuffer | null = null
+  if (nahravkaBlob) {
+    const arrayBuffer = await nahravkaBlob.arrayBuffer()
+    const dekoderCtx = new AudioContext()
+    nahravkaBuffer = await dekoderCtx.decodeAudioData(arrayBuffer)
+    await dekoderCtx.close()
+  }
+
+  let beatBuffer: AudioBuffer | null = null
+  if (pattern) {
+    const pocetOpakovani = spocitejPocetOpakovaniBeatu(
+      song.pocetOpakovaniBeatu,
+      delkaOpakovaniPatternu(pattern),
+      nahravkaBuffer?.duration ?? 0
+    )
+    beatBuffer = await vyrenderujPatternNaBuffer(pattern, pocetOpakovani)
+  }
+
+  const celkovaDelka = Math.max(beatBuffer?.duration ?? 0, nahravkaBuffer?.duration ?? 0, 0.1)
+  const pocetKanalu = Math.max(beatBuffer?.numberOfChannels ?? 1, nahravkaBuffer?.numberOfChannels ?? 1)
+  const vzorkovaciFrekvence = beatBuffer?.sampleRate ?? nahravkaBuffer?.sampleRate ?? 44100
+  const offline = new OfflineAudioContext(
+    pocetKanalu,
+    Math.ceil(celkovaDelka * vzorkovaciFrekvence),
+    vzorkovaciFrekvence
+  )
+
+  if (beatBuffer) {
+    const zdroj = offline.createBufferSource()
+    zdroj.buffer = beatBuffer
+    const gain = offline.createGain()
+    gain.gain.value = (song.hlasitostBeatu ?? 100) / 100
+    zdroj.connect(gain)
+    gain.connect(offline.destination)
+    zdroj.start(0)
+  }
+
+  if (nahravkaBuffer) {
+    const zdroj = offline.createBufferSource()
+    zdroj.buffer = nahravkaBuffer
+    const gain = offline.createGain()
+    gain.gain.value = (song.hlasitostNahravky ?? 100) / 100
+    zdroj.connect(gain)
+    gain.connect(offline.destination)
+    zdroj.start(0)
+  }
+
+  return offline.startRendering()
+}
+
 /** Dekóduje Blob jen kvůli vlnové vizualizaci — appka selhání tiše
  *  ignoruje (vrátí null), vlnovka je bonus, ne podmínka přehrání/uložení. */
 const zkusVypocitatVlnu = async (blob: Blob, pocetSloupcu = 60): Promise<number[] | null> => {
@@ -121,6 +189,7 @@ export const MusicStudio: React.FC = () => {
     recordings,
     songs,
     addPattern,
+    updatePattern,
     deletePattern,
     addRecordingMeta,
     deleteRecording,
@@ -148,7 +217,12 @@ export const MusicStudio: React.FC = () => {
       </div>
 
       {zalozka === 'beat' && (
-        <BeatMakerTab patterns={patterns} addPattern={addPattern} deletePattern={deletePattern} />
+        <BeatMakerTab
+          patterns={patterns}
+          addPattern={addPattern}
+          updatePattern={updatePattern}
+          deletePattern={deletePattern}
+        />
       )}
       {zalozka === 'nahravani' && (
         <NahravaniTab
@@ -171,18 +245,33 @@ export const MusicStudio: React.FC = () => {
 interface BeatMakerTabProps {
   patterns: BeatPattern[]
   addPattern: (name: string, pattern: Omit<BeatPattern, 'id' | 'name' | 'createdAt'>) => void
+  updatePattern: (id: string, name: string, pattern: Omit<BeatPattern, 'id' | 'name' | 'createdAt'>) => void
   deletePattern: (id: string) => void
 }
 
-const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, deletePattern }) => {
+const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, updatePattern, deletePattern }) => {
   const [draft, setDraft] = useState(() => prazdnyPattern())
   const [nazev, setNazev] = useState('')
+  // Id patternu, co se zrovna upravuje (nahraný přes nacistPattern níž) —
+  // appka bez toho nutila při každém doladění beatu založit úplně nový,
+  // ne přepsat ten, ze kterého se vyšlo. null = editor je "nový beat".
+  const [editovanyId, setEditovanyId] = useState<string | null>(null)
   // Mute/sólo jsou jen dočasná pomůcka při skládání beatu — appka je
   // neukládá spolu s patternem, jen `hlasitosti` (viz types.ts) je
   // skutečná, uložená hodnota mixu.
   const [ztlumene, setZtlumene] = useState<Set<DrumSound>>(new Set())
   const [solo, setSolo] = useState<DrumSound | null>(null)
   const [stahujeSeId, setStahujeSeId] = useState<string | null>(null)
+  // Historie časů klepnutí na tlačítko TAP (viz klepnoutTempo níž) —
+  // ref, ne state, protože samotné časy appka nikde nevykresluje, jen
+  // z nich při každém klepnutí dopočítá nové draft.bpm.
+  const klepnutiRef = useRef<number[]>([])
+
+  const klepnoutTempo = () => {
+    klepnutiRef.current = zpracujKlepnutiTempa(klepnutiRef.current, Date.now())
+    const bpm = vypocitejBpmZKlepnuti(klepnutiRef.current)
+    if (bpm !== null) setDraft((d) => ({ ...d, bpm }))
+  }
 
   // Sekvenceru appka dává efektivní hlasitost (po mute/sólu), ne
   // rovnou draft.hlasitosti — jinak by mute/sólo v editoru vůbec nic
@@ -234,14 +323,45 @@ const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, delet
     if (hraje) zastavit()
     setZtlumene(new Set())
     setSolo(null)
-    setDraft({ bpm: p.bpm, pocetKroku: p.pocetKroku, kroky: p.kroky, hlasitosti: { ...p.hlasitosti } })
+    setDraft({
+      bpm: p.bpm,
+      pocetKroku: p.pocetKroku,
+      kroky: p.kroky,
+      hlasitosti: { ...p.hlasitosti },
+      swing: p.swing ?? 0,
+    })
     setNazev(p.name)
+    setEditovanyId(p.id)
+  }
+
+  const novyBeat = () => {
+    if (hraje) zastavit()
+    setZtlumene(new Set())
+    setSolo(null)
+    setDraft(prazdnyPattern())
+    setNazev('')
+    setEditovanyId(null)
   }
 
   const ulozitBeat = () => {
+    if (editovanyId) updatePattern(editovanyId, nazev, draft)
+    else addPattern(nazev, draft)
+    setNazev('')
+    setEditovanyId(null)
+  }
+
+  const ulozitJakoNovy = () => {
     addPattern(nazev, draft)
     setNazev('')
+    setEditovanyId(null)
   }
+
+  // Upravovaný pattern mezitím mohl být smazaný (třeba z druhého panelu
+  // seznamu) — appka pak "Upravuješ…" tichým přepnutím zpátky na "nový
+  // beat" ukončí, ne že by "Uložit změny" beze změny nic neudělalo.
+  useEffect(() => {
+    if (editovanyId && !patterns.some((p) => p.id === editovanyId)) setEditovanyId(null)
+  }, [editovanyId, patterns])
 
   const stahnoutPattern = async (p: BeatPattern) => {
     setStahujeSeId(p.id)
@@ -271,6 +391,15 @@ const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, delet
             }
           />
         </label>
+        <button
+          type="button"
+          className="ms-tap-tempo-btn"
+          onClick={klepnoutTempo}
+          aria-label="Klepni pro odhad tempa (tap tempo)"
+          title="Klepej v rytmu — appka z toho spočítá BPM"
+        >
+          TAP
+        </button>
         <div className="ms-delka-prepinac" role="group" aria-label="Délka patternu">
           {POCTY_KROKU_NA_VYBER.map((pocet) => (
             <button
@@ -283,6 +412,17 @@ const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, delet
             </button>
           ))}
         </div>
+        <label className="ms-swing">
+          Swing {draft.swing}%
+          <input
+            type="range"
+            min={0}
+            max={MAX_SWING}
+            value={draft.swing}
+            onChange={(e) => setDraft((d) => ({ ...d, swing: Number(e.target.value) }))}
+            aria-label="Swing/groove"
+          />
+        </label>
       </div>
 
       <div className="ms-seq-grid">
@@ -342,6 +482,15 @@ const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, delet
         })}
       </div>
 
+      {editovanyId && (
+        <div className="ms-upravuje-se">
+          <span>✏️ Upravuješ existující beat</span>
+          <button type="button" className="ms-upravuje-se-zrusit" onClick={novyBeat}>
+            ✕ Nový beat
+          </button>
+        </div>
+      )}
+
       <div className="ms-ulozit-radek">
         <input
           type="text"
@@ -351,8 +500,13 @@ const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, delet
           maxLength={40}
         />
         <button className="ms-ulozit-btn" onClick={ulozitBeat}>
-          Uložit beat
+          {editovanyId ? 'Uložit změny' : 'Uložit beat'}
         </button>
+        {editovanyId && (
+          <button type="button" className="ms-ulozit-btn ms-ulozit-btn--sekundarni" onClick={ulozitJakoNovy}>
+            Uložit jako nový
+          </button>
+        )}
       </div>
 
       <div className="ms-seznam">
@@ -429,6 +583,16 @@ const NahravaniTab: React.FC<NahravaniTabProps> = ({ patterns, recordings, addRe
   const nahledRef = useRef<Nahled | null>(null)
   nahledRef.current = nahled
   const audioRef = useRef<HTMLAudioElement>(null)
+  // Sleduje URL právě přehrávané (uložené) nahrávky — na rozdíl od
+  // nahledRef (rozepsaná nahrávka před uložením) se dřív uvolňovala jen
+  // v onended, takže přepnutí na jinou záložku uprostřed přehrávání
+  // komponentu odmountovalo a URL zůstala navždy unikat. Stejná
+  // disciplína jako prehravanaUrlRef v MusicRoomModule.tsx.
+  const prehravanaUrlRef = useRef<string | null>(null)
+  const uvolnitPrehravanouUrl = () => {
+    if (prehravanaUrlRef.current) URL.revokeObjectURL(prehravanaUrlRef.current)
+    prehravanaUrlRef.current = null
+  }
 
   const zpracujStop = (delka: number, mime: string, blob: Blob) => {
     setNahled({ blob, mime, delka, url: URL.createObjectURL(blob) })
@@ -543,11 +707,15 @@ const NahravaniTab: React.FC<NahravaniTabProps> = ({ patterns, recordings, addRe
   const prehratNahravku = async (rec: Recording) => {
     const blob = await getFileBlob(rec.id)
     if (!blob || !audioRef.current) return
+    // Uvolní URL toho, co případně hrálo předtím, než vytvoří novou —
+    // přepnutí rovnou na jinou nahrávku jinak tu starou nechá viset.
+    uvolnitPrehravanouUrl()
     const url = URL.createObjectURL(blob)
+    prehravanaUrlRef.current = url
     audioRef.current.src = url
     audioRef.current.onended = () => {
       setHrajeId(null)
-      URL.revokeObjectURL(url)
+      uvolnitPrehravanouUrl()
     }
     audioRef.current.ontimeupdate = () => {
       const a = audioRef.current
@@ -560,13 +728,14 @@ const NahravaniTab: React.FC<NahravaniTabProps> = ({ patterns, recordings, addRe
       setVlnaPrehravane(null)
       void zkusVypocitatVlnu(blob).then((v) => setVlnaPrehravane(v ? { id: rec.id, vrcholy: v } : null))
     } catch {
-      URL.revokeObjectURL(url)
+      uvolnitPrehravanouUrl()
     }
   }
 
   const zastavitPrehravani = () => {
     audioRef.current?.pause()
     setHrajeId(null)
+    uvolnitPrehravanouUrl()
   }
 
   const stahnoutNahravku = async (r: Recording) => {
@@ -584,6 +753,7 @@ const NahravaniTab: React.FC<NahravaniTabProps> = ({ patterns, recordings, addRe
       streamRef.current?.getTracks().forEach((t) => t.stop())
       if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop()
       if (nahledRef.current) URL.revokeObjectURL(nahledRef.current.url)
+      uvolnitPrehravanouUrl()
     },
     []
   )
@@ -752,10 +922,23 @@ const SkladbyTab: React.FC<SkladbyTabProps> = ({ patterns, recordings, songs, ad
   const [hlasitostBeatu, setHlasitostBeatu] = useState(100)
   const [hlasitostNahravky, setHlasitostNahravky] = useState(100)
   const [hrajeSongId, setHrajeSongId] = useState<string | null>(null)
+  // Id skladby, co se zrovna renderuje do WAV — appka tlačítko po dobu
+  // renderu zablokuje, ať dvojklik nespustí mixdown dvakrát najednou.
+  const [stahujeSeId, setStahujeSeId] = useState<string | null>(null)
 
   const audioRef = useRef<HTMLAudioElement>(null)
   const opakovaniRef = useRef(0)
   const zastavitBeatRef = useRef<() => void>(() => {})
+  // Stejný "URL právě hrajícího zvuku se uvolní na všech cestách ven,
+  // ne jen v onended" princip jako NahravaniTab's prehravanaUrlRef —
+  // bez něj přepnutí na jinou záložku uprostřed hrající skladby
+  // unikalo URL navždy, protože se odmountovaná komponenta o vlastní
+  // <audio> element už nestarala.
+  const prehravanaUrlRef = useRef<string | null>(null)
+  const uvolnitPrehravanouUrl = () => {
+    if (prehravanaUrlRef.current) URL.revokeObjectURL(prehravanaUrlRef.current)
+    prehravanaUrlRef.current = null
+  }
 
   const hrajiciSong = songs.find((s) => s.id === hrajeSongId) ?? null
   const hrajiciPattern = patterns.find((p) => p.id === hrajiciSong?.beatPatternId) ?? null
@@ -812,6 +995,7 @@ const SkladbyTab: React.FC<SkladbyTabProps> = ({ patterns, recordings, songs, ad
 
   const prehratSkladbu = async (song: Song) => {
     audioRef.current?.pause()
+    uvolnitPrehravanouUrl()
     setHrajeSongId(song.id)
 
     if (song.recordingId) {
@@ -819,10 +1003,11 @@ const SkladbyTab: React.FC<SkladbyTabProps> = ({ patterns, recordings, songs, ad
       const blob = rec ? await getFileBlob(rec.id) : null
       if (blob && audioRef.current) {
         const url = URL.createObjectURL(blob)
+        prehravanaUrlRef.current = url
         audioRef.current.src = url
         audioRef.current.volume = (song.hlasitostNahravky ?? 100) / 100
         audioRef.current.onended = () => {
-          URL.revokeObjectURL(url)
+          uvolnitPrehravanouUrl()
           setHrajeSongId(null)
         }
         void audioRef.current.play()
@@ -834,9 +1019,31 @@ const SkladbyTab: React.FC<SkladbyTabProps> = ({ patterns, recordings, songs, ad
     setHrajeSongId(null)
     audioRef.current?.pause()
     if (audioRef.current) audioRef.current.currentTime = 0
+    uvolnitPrehravanouUrl()
+  }
+
+  const stahnoutSkladbu = async (song: Song) => {
+    if (stahujeSeId) return
+    const pattern = song.beatPatternId ? (patterns.find((p) => p.id === song.beatPatternId) ?? null) : null
+    const nahravkaMeta = song.recordingId ? recordings.find((r) => r.id === song.recordingId) : undefined
+    if (!pattern && !nahravkaMeta) return
+
+    setStahujeSeId(song.id)
+    try {
+      const nahravkaBlob = nahravkaMeta ? await getFileBlob(nahravkaMeta.id) : null
+      const buffer = await vyrenderujSkladbuNaBuffer(song, pattern, nahravkaBlob)
+      stahnoutBlob(`${song.name || 'skladba'}.wav`, bufferNaWavBlob(buffer))
+    } finally {
+      setStahujeSeId(null)
+    }
   }
 
   useEffect(() => () => zastavit(), [zastavit])
+  // Vlastní, oddělený efekt s prázdnými deps — jen a pouze skutečné
+  // odmountování, ne každá změna zastavit's reference (ta by jinak
+  // mohla uprostřed hrající nahrávky zrušit URL pod už běžícím <audio>
+  // elementem a přehrávání tak nečekaně přerušit).
+  useEffect(() => () => uvolnitPrehravanouUrl(), [])
 
   return (
     <div className="ms-tab">
@@ -921,6 +1128,15 @@ const SkladbyTab: React.FC<SkladbyTabProps> = ({ patterns, recordings, songs, ad
                 aria-label={hrajeSongId === s.id ? `Zastavit ${s.name}` : `Přehrát ${s.name}`}
               >
                 {hrajeSongId === s.id ? '⏹️' : '▶️'}
+              </button>
+              <button
+                className="ms-icon-btn"
+                onClick={() => stahnoutSkladbu(s)}
+                disabled={(!beat && !nahravka) || stahujeSeId === s.id}
+                aria-label={`Stáhnout ${s.name} jako WAV`}
+                title="Stáhnout jako WAV"
+              >
+                {stahujeSeId === s.id ? '⏳' : '⬇️'}
               </button>
               <button className="ms-icon-btn danger" onClick={() => deleteSong(s.id)} aria-label={`Smazat ${s.name}`}>
                 ✕

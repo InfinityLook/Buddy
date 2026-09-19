@@ -19,6 +19,13 @@ interface MusicStudioState {
   recordings: Recording[]
   songs: Song[]
   addPattern: (name: string, pattern: Omit<BeatPattern, 'id' | 'name' | 'createdAt'>) => void
+  /** Přepíše existující pattern na místě (stejné id/createdAt) — appka
+   *  jinak nutila při každém doladění beatu založit úplně nový, ne
+   *  jeden, co roste s tím, jak se skladatel k pattern vrací. Bez XP,
+   *  stejný "úprava existujícího záznamu XP nedává" důvod jako
+   *  Financí updateTransaction — jinak by šlo body vydělávat tím, že
+   *  se ten samý beat dokola jen znovu uloží. */
+  updatePattern: (id: string, name: string, pattern: Omit<BeatPattern, 'id' | 'name' | 'createdAt'>) => void
   deletePattern: (id: string) => void
   addRecordingMeta: (recording: Omit<Recording, 'id' | 'createdAt'>) => string
   deleteRecording: (id: string) => void
@@ -44,6 +51,14 @@ const useMusicStudioStore = create<MusicStudioState>()(
         const novy: BeatPattern = { ...pattern, id: noveId(), name: name.trim() || 'Beat', createdAt: new Date().toISOString() }
         set((state) => ({ patterns: [novy, ...state.patterns] }))
         useGamificationStore.getState().recordAction('music', MUSIC_XP)
+      },
+
+      updatePattern: (id, name, pattern) => {
+        set((state) => ({
+          patterns: state.patterns.map((p) =>
+            p.id === id ? { ...p, ...pattern, name: name.trim() || p.name } : p
+          ),
+        }))
       },
 
       deletePattern: (id) => {

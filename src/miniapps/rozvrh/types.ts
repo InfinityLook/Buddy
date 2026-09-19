@@ -75,6 +75,26 @@ export const hodinyDnes = (hodiny: HodinaRozvrhu[], ted: Date = new Date()): Hod
   return serazenoPodleCasu(hodiny.filter((h) => h.den === den))
 }
 
+/** Přesahují se dva časové úseky stejného dne? Čistý řetězcový
+ *  porovnání funguje díky 'HH:MM' formátu se zarovnáním nulou —
+ *  lexikografické řazení tu je totéž co časové. */
+const casyKoliduji = (aOd: string, aDo: string, bOd: string, bDo: string): boolean => aOd < bDo && bOd < aDo
+
+/** Které už uložené hodiny koliduje se zadaným dnem/časem — vynechává
+ *  vlastní id (úprava existující hodiny proti sobě samotné nikdy
+ *  nekoliduje). Volá appka živě při psaní do formuláře i znovu při
+ *  odeslání, ať uživatel vidí varování dřív, než se rozhodne uložit. */
+export const najdiKolize = (
+  hodiny: HodinaRozvrhu[],
+  den: DenVTydnu,
+  casOd: string,
+  casDo: string,
+  vynechatId: string | null = null
+): HodinaRozvrhu[] =>
+  hodiny.filter(
+    (h) => h.id !== vynechatId && h.den === den && casyKoliduji(casOd, casDo, h.casOd, h.casDo)
+  )
+
 // --- Docházka ---
 
 export interface DochazkaPredmetu {

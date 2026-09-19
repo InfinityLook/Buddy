@@ -11,10 +11,14 @@ import * as v from 'valibot'
 const jePlatnyCil = (x: unknown): x is number | null =>
   x === null || (typeof x === 'number' && Number.isFinite(x) && x > 0)
 
+const jePlatnyTydenniKlic = (x: unknown): x is string | null =>
+  x === null || (typeof x === 'string' && /^\d{4}-W\d{2}$/.test(x))
+
 const FitnessCilSchema = v.object({
   cilKcal: v.optional(v.unknown()),
   cilTreninkMin: v.optional(v.unknown()),
   cilTreninkuTydne: v.optional(v.unknown()),
+  posledniOslavenyTydenKlic: v.optional(v.unknown()),
 })
 
 export const validateFitnessCilData = (data: unknown) => {
@@ -30,6 +34,9 @@ export const validateFitnessCilData = (data: unknown) => {
       cilKcal: jePlatnyCil(result.output.cilKcal) ? result.output.cilKcal : null,
       cilTreninkMin: jePlatnyCil(result.output.cilTreninkMin) ? result.output.cilTreninkMin : null,
       cilTreninkuTydne: jePlatnyCil(result.output.cilTreninkuTydne) ? result.output.cilTreninkuTydne : null,
+      posledniOslavenyTydenKlic: jePlatnyTydenniKlic(result.output.posledniOslavenyTydenKlic)
+        ? result.output.posledniOslavenyTydenKlic
+        : null,
     },
   }
 }

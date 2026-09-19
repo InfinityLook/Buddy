@@ -167,6 +167,38 @@
 }
 
 /* ------------------------------------------
+   NEJDELŠÍ SÉRIE — stejný řádkový tvar jako .gro-cil-text výš, jen
+   místo procentního pruhu ukazuje 🔥 sérii.
+   ------------------------------------------ */
+.gro-navyky-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.gro-navyk-radek {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.gro-navyk-nazev {
+  font-size: 0.85rem;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gro-navyk-serie {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--accent-orange);
+}
+
+/* ------------------------------------------
    ÚROVEŇ & ODZNAKY
    ------------------------------------------ */
 .gro-staty {

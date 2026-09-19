@@ -217,6 +217,12 @@
   padding: 0.5rem 0;
 }
 
+.sw-radek-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 .sw-radek {
   display: flex;
   align-items: center;
@@ -225,6 +231,33 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 0.6rem 0.75rem;
+}
+
+/* Náhled checkpointu před obnovením — appka ho ukáže jen po klepnutí
+   na řádek, ať autor vidí, co skutečně obsahuje (kolik scén/slov), než
+   klepne na skutečné tlačítko obnovení. */
+.sw-checkpoint-nahled {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.sw-checkpoint-nahled .sw-ulozit-btn {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.74rem;
+}
+
+.sw-checkpoint-nahled .sw-ulozit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .sw-radek-otevrit {

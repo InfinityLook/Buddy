@@ -8,9 +8,11 @@ import {
 import {
   PRAHY_OPAKOVANI,
   POCATECNI_STAV,
+  POCATECNI_STAV_MELKEHO_POKUSU,
   bodyStrany,
   jePrknoSpravne,
   jeZadaNarovnana,
+  krokMelkehoPokusu,
   krokOpakovani,
   odklonTrupu,
   uhelVeVrcholu,
@@ -87,6 +89,10 @@ export const usePoseEngine = (cvik: TypCviku = 'dřep'): UsePoseEngineResult => 
   const rafRef = useRef<number | null>(null)
   const drawingRef = useRef<DrawingUtils | null>(null)
   const stavOpakovaniRef = useRef<StavOpakovani>(POCATECNI_STAV)
+  // Sleduje samostatně, jak hluboko se cvičící cestou dolů dostal — viz
+  // poseMath.ts's vlastní komentář u krokMelkehoPokusu, proč je to jiný
+  // stav než stavOpakovaniRef.
+  const melkyPokusRef = useRef(POCATECNI_STAV_MELKEHO_POKUSU)
   const zacatekRef = useRef<number>(0)
   // Prkno (viz JE_CVIK_NA_CAS v types.ts) se počítá jinak než ostatní tři
   // cviky — vydrzMsRef drží celkový čas ve správné poloze, přičítaný jen
@@ -177,14 +183,28 @@ export const usePoseEngine = (cvik: TypCviku = 'dřep'): UsePoseEngineResult => 
             if (novyStav.pocet !== stavOpakovaniRef.current.pocet) setPocetOpakovani(novyStav.pocet)
             stavOpakovaniRef.current = novyStav
 
+            const { stav: novyStavMelkehoPokusu, melkyPokusPraveTed } = krokMelkehoPokusu(
+              melkyPokusRef.current,
+              novyStav.faze,
+              uhel,
+              prahy.dole,
+              prahy.nahore
+            )
+            melkyPokusRef.current = novyStavMelkehoPokusu
+
             // Zpětná vazba na záda dává smysl u dřepu i výpadu (trup má
             // zůstat vzpřímený u obou) — a jen v dolní fázi, na začátku se
             // každý přirozeně předklání a hlásit to jako chybu by jen
             // mátlo (viz komentář u jeZadaNarovnana). U kliku by
             // odklonTrupu na vodorovně natažené tělo hlásilo "narovnej
             // záda" pořád, i při dokonalé technice — appka radši žádnou
-            // zpětnou vazbu než mylnou.
-            if ((cvikNyni === 'dřep' || cvikNyni === 'výpad') && novyStav.faze === 'dole') {
+            // zpětnou vazbu než mylnou. "Jdi hlouběji" má naopak smysl
+            // u všech tří — jde jen o to, jak hluboko se dostali, ne o
+            // konkrétní úhel zad, a má přednost před ostatní zpětnou
+            // vazbou, protože se hlásí jen na jeden krátký okamžik.
+            if (melkyPokusPraveTed) {
+              setZpetnaVazba('jdi-hloubeji')
+            } else if ((cvikNyni === 'dřep' || cvikNyni === 'výpad') && novyStav.faze === 'dole') {
               const odklon = odklonTrupu(body[b.rameno], body[b.bok])
               setZpetnaVazba(jeZadaNarovnana(odklon) ? 'v-poradku' : 'narovnej-zada')
             } else {
@@ -283,6 +303,7 @@ export const usePoseEngine = (cvik: TypCviku = 'dřep'): UsePoseEngineResult => 
         // cokoliv uložilo (viz komentář u prepnoutKameru).
         if (!zachovatPocitadlo) {
           stavOpakovaniRef.current = POCATECNI_STAV
+          melkyPokusRef.current = POCATECNI_STAV_MELKEHO_POKUSU
           setPocetOpakovani(0)
           zacatekRef.current = Date.now()
           vydrzMsRef.current = 0
@@ -321,6 +342,7 @@ export const usePoseEngine = (cvik: TypCviku = 'dřep'): UsePoseEngineResult => 
 
   const resetovatPocitadlo = useCallback(() => {
     stavOpakovaniRef.current = POCATECNI_STAV
+    melkyPokusRef.current = POCATECNI_STAV_MELKEHO_POKUSU
     setPocetOpakovani(0)
     vydrzMsRef.current = 0
     posledniSnimekCasRef.current = null

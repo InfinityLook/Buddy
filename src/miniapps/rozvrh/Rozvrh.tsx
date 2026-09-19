@@ -9,6 +9,7 @@ import {
   dnesniDatumIso,
   hodinyDnes,
   klicDochazky,
+  najdiKolize,
   sestavIcsRozvrhu,
   spocitejDochazkuPodlePredmetu,
 } from './types'
@@ -41,9 +42,19 @@ export const Rozvrh: React.FC = () => {
     setFormOtevreny(true)
   }
 
+  // Živě, ne jen při odeslání — uživatel vidí kolizi dřív, než se
+  // vůbec rozhodne uložit. Vlastní hodina (při úpravě) se sama proti
+  // sobě nikdy nepočítá.
+  const kolize = najdiKolize(hodiny, form.den, form.casOd, form.casDo, upravovanaId)
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.predmet.trim()) return
+
+    if (kolize.length > 0) {
+      const seznam = kolize.map((h) => `„${h.predmet}“ (${h.casOd}–${h.casDo})`).join(', ')
+      if (!window.confirm(`Tahle hodina se překrývá s: ${seznam}. Uložit i tak?`)) return
+    }
 
     if (upravovanaId) {
       updateHodinu(upravovanaId, form)
@@ -163,6 +174,11 @@ export const Rozvrh: React.FC = () => {
                   <input type="time" value={form.casDo} onChange={(e) => setForm({ ...form, casDo: e.target.value })} required />
                 </label>
               </div>
+              {kolize.length > 0 && (
+                <p className="rozvrh-form-kolize" role="alert">
+                  ⚠️ Překrývá se s: {kolize.map((h) => `${h.predmet} (${h.casOd}–${h.casDo})`).join(', ')}
+                </p>
+              )}
               <input
                 placeholder="Předmět"
                 value={form.predmet}

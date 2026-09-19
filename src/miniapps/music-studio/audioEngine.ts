@@ -1,5 +1,5 @@
 import { useZvukStore, ziskejHlasitost } from '@/core/store/useZvukStore'
-import { DRUM_SOUNDS, KROKU_V_PATTERNU, type BeatPattern, type DrumSound } from './types'
+import { DRUM_SOUNDS, KROKU_V_PATTERNU, swingPosunSekund, type BeatPattern, type DrumSound } from './types'
 
 // ==========================================
 // Syntetizované bicí — stejná "Web Audio, žádný knihovna, žádný soubor
@@ -239,6 +239,18 @@ export const hrajMetronomKlik = (ctx: BaseAudioContext, cas: number, prizvuk: bo
  *  appka nechává na volajícím (Beat Maker nabízí pevnou volbu, ne
  *  libovolné číslo) — 4 opakování je rozumná výchozí délka na
  *  poslech/použití mimo appku, ne jediný, moc krátký takt. */
+/** Délka jednoho opakování patternu ve vteřinách — appka ji potřebuje
+ *  zvlášť exportovanou kvůli mixdownu celé skladby (MusicStudio.tsx's
+ *  vyrenderujSkladbuNaBuffer), kde appka musí vědět, jak dlouho jedno
+ *  opakování beatu trvá, aby spočítala, kolikrát ho zopakovat vedle
+ *  nahrávky dané délky (viz types.ts's spocitejPocetOpakovaniBeatu). */
+export const delkaOpakovaniPatternu = (pattern: BeatPattern): number => {
+  const pocetKroku = pattern.pocetKroku ?? KROKU_V_PATTERNU
+  const krokyNaDobu = pocetKroku / 4
+  const sekundNaKrok = 60 / pattern.bpm / krokyNaDobu
+  return sekundNaKrok * pocetKroku
+}
+
 export const vyrenderujPatternNaBuffer = async (
   pattern: BeatPattern,
   pocetOpakovani = 4
@@ -246,7 +258,7 @@ export const vyrenderujPatternNaBuffer = async (
   const pocetKroku = pattern.pocetKroku ?? KROKU_V_PATTERNU
   const krokyNaDobu = pocetKroku / 4
   const sekundNaKrok = 60 / pattern.bpm / krokyNaDobu
-  const delkaOpakovani = sekundNaKrok * pocetKroku
+  const delkaOpakovani = delkaOpakovaniPatternu(pattern)
   const opakovani = Math.max(1, pocetOpakovani)
   // +0.3 s rezerva na dozvuk posledního zahraného zvuku (kick/tom mají
   // obálku delší než jeden krok) — appka bez ní ořízne poslední ránu.
@@ -256,7 +268,10 @@ export const vyrenderujPatternNaBuffer = async (
 
   for (let opak = 0; opak < opakovani; opak++) {
     for (let krok = 0; krok < pocetKroku; krok++) {
-      const cas = opak * delkaOpakovani + krok * sekundNaKrok
+      // Stejný swingPosunSekund posun jako živé přehrávání
+      // (useBeatSequencer.ts) — appka jinak stáhla WAV, co zní jinak
+      // (rovně), než co uživatel v Beat Makeru slyšel a schválil.
+      const cas = opak * delkaOpakovani + krok * sekundNaKrok + swingPosunSekund(krok, sekundNaKrok, pattern.swing ?? 0)
       for (const buben of DRUM_SOUNDS) {
         const hlasitost = pattern.hlasitosti?.[buben] ?? 100
         if (pattern.kroky[buben]?.[krok] && hlasitost > 0) {

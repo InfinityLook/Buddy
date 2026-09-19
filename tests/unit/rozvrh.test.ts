@@ -5,6 +5,7 @@ import {
   denVTydnuZDatumu,
   hodinyDnes,
   klicDochazky,
+  najdiKolize,
   serazenoPodleCasu,
   sestavIcsRozvrhu,
   spocitejDochazkuPodlePredmetu,
@@ -81,6 +82,31 @@ describe('spocitejDochazkuPodlePredmetu', () => {
 
   it('práh rizika docházky je 75 %', () => {
     expect(PRAH_RIZIKA_DOCHAZKY).toBe(75)
+  })
+})
+
+describe('najdiKolize', () => {
+  const existujici = [hodina({ id: 'h1', den: 1, casOd: '08:00', casDo: '09:40' })]
+
+  it('najde kolizi, když se časy stejného dne překrývají', () => {
+    expect(najdiKolize(existujici, 1, '09:00', '10:00').map((h) => h.id)).toEqual(['h1'])
+  })
+
+  it('žádná kolize v jiný den, i se stejným časem', () => {
+    expect(najdiKolize(existujici, 2, '08:00', '09:40')).toEqual([])
+  })
+
+  it('žádná kolize, když se časy jen dotýkají, ale nepřekrývají (konec = začátek)', () => {
+    expect(najdiKolize(existujici, 1, '09:40', '10:30')).toEqual([])
+    expect(najdiKolize(existujici, 1, '07:00', '08:00')).toEqual([])
+  })
+
+  it('vlastní id se vynechá — úprava hodiny sama proti sobě nikdy nekoliduje', () => {
+    expect(najdiKolize(existujici, 1, '08:00', '09:40', 'h1')).toEqual([])
+  })
+
+  it('celý interval obsažený uvnitř existující hodiny je taky kolize', () => {
+    expect(najdiKolize(existujici, 1, '08:30', '09:00').map((h) => h.id)).toEqual(['h1'])
   })
 })
 

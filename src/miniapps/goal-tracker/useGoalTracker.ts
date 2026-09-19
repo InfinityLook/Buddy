@@ -4,6 +4,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { requestNotificationPermission, showAppNotification } from '@/core/utils/notify'
+import { plural } from '@/core/utils/pluralCZ'
 import {
   ALL_GOALS,
   DEMO_GOAL_IDS,
@@ -14,11 +15,13 @@ import {
   GoalTyp,
   Milnik,
   SABLONY_CILU,
+  bylaVyplacenaXpZaNavyk,
   compareGoals,
   dnesniDatum,
   jeHotovyCil,
   jeNavykOznacenDnes,
   sanitizujCil,
+  spocitejTydenniSouhrn,
 } from './types'
 
 // compareGoals/jeHotovyCil/sanitizujCil se dál používají v tomhle
@@ -48,6 +51,15 @@ interface GoalTrackerState {
   // Datum (YYYY-MM-DD), kdy naposledy odešlo upozornění na termíny —
   // nejvýš jedno za den, stejný vzor jako Study Plannerovo lastReminderDate.
   lastReminderDate: string | null
+  // Stejné, ale pro upozornění na neodškrtnuté návyky (checkHabitReminders
+  // níž) — vlastní, nezávislé datum, ať odeslání jednoho upozornění
+  // nezablokuje to druhé jen proto, že sdílí den.
+  lastHabitReminderDate: string | null
+  // ISO týdenní klíč (RRRR-Wtt) týdne, za který appka naposledy poslala
+  // souhrnné upozornění (checkWeeklyDigest níž) — na rozdíl od denních
+  // připomínek výš se porovnává týden, ne den, protože se posílá nejvýš
+  // jednou týdně, ne jednou denně.
+  lastDigestWeekKey: string | null
   changeProgress: (id: string, amount: number) => void
   addGoal: (vstup: NovyCilVstup) => void
   updateGoal: (id: string, vstup: NovyCilVstup) => void
@@ -65,6 +77,8 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
     (set) => ({
       goals: [],
       lastReminderDate: null,
+      lastHabitReminderDate: null,
+      lastDigestWeekKey: null,
 
       // Kladné i záporné kroky — překlep v počtu stránek se musí dát vzít zpět
       changeProgress: (id, amount) => {
@@ -113,10 +127,11 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
 
         set((state) => ({ goals: [...state.goals, newGoal] }))
 
-        // Nastavení termínu je nejpřirozenější chvíle zeptat se na svolení
-        // k notifikacím — stejné gesto jako Study Plannerovo addTask,
-        // jen podmíněné tím, že uživatel termín vůbec zadal.
-        if (vstup.deadline) requestNotificationPermission()
+        // Nastavení termínu, nebo založení návyku (ten bude časem
+        // připomínán checkHabitReminders níž), je nejpřirozenější chvíle
+        // zeptat se na svolení k notifikacím — stejné gesto jako Study
+        // Plannerovo addTask.
+        if (vstup.deadline || vstup.typ === 'navyk') requestNotificationPermission()
       },
 
       updateGoal: (id, vstup) => {
@@ -142,7 +157,7 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
           ),
         }))
 
-        if (vstup.deadline) requestNotificationPermission()
+        if (vstup.deadline || vstup.typ === 'navyk') requestNotificationPermission()
       },
 
       deleteGoal: (id) =>
@@ -172,24 +187,31 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
       },
 
       oznacitNavykDnes: (id) => {
-        let uzOznaceno = false
+        let vyplatitXp = false
 
         set((state) => ({
           goals: state.goals.map((goal) => {
             if (goal.id !== id || goal.typ !== 'navyk') return goal
             const dny = goal.navykDny ?? []
-            uzOznaceno = jeNavykOznacenDnes(goal)
+            const uzOznaceno = jeNavykOznacenDnes(goal)
             const dnesniIso = dnesniDatum()
+            // XP se vyplácí nejvýš jednou za kalendářní den na návyk —
+            // ne podle toho, jestli je dnešek zrovna odškrtnutý (to by
+            // šlo cyklem zaškrtnout/odškrtnout/zaškrtnout vydělávat
+            // donekonečna). navykXpDny se proto při odškrtnutí NIKDY
+            // nemaže, jen navykDny (viditelný, přepínatelný stav).
+            vyplatitXp = !uzOznaceno && !bylaVyplacenaXpZaNavyk(goal, dnesniIso)
             return {
               ...goal,
               // Druhé klepnutí ve stejný den odškrtnutí zase zruší —
               // "splněno dnes" je přepínač, ne jen jednosměrné tlačítko.
               navykDny: uzOznaceno ? dny.filter((d) => d !== dnesniIso) : [...dny, dnesniIso],
+              navykXpDny: vyplatitXp ? [...(goal.navykXpDny ?? []), dnesniIso] : goal.navykXpDny,
             }
           }),
         }))
 
-        if (!uzOznaceno) useGamificationStore.getState().recordAction('navyk', XP_PER_HABIT_CHECKIN)
+        if (vyplatitXp) useGamificationStore.getState().recordAction('navyk', XP_PER_HABIT_CHECKIN)
       },
 
       // Vlastní, jednodušší akce místo volání updateGoal jen kvůli
@@ -239,7 +261,14 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
           // najednou — viz jeho vlastní komentář v types.ts pro to, jaký
           // reálný XP bug tahle jedna funkce zavírá.
           .map(sanitizujCil)
-        return { ...current, ...saved, goals, lastReminderDate: saved?.lastReminderDate ?? null }
+        return {
+          ...current,
+          ...saved,
+          goals,
+          lastReminderDate: saved?.lastReminderDate ?? null,
+          lastHabitReminderDate: saved?.lastHabitReminderDate ?? null,
+          lastDigestWeekKey: saved?.lastDigestWeekKey ?? null,
+        }
       },
       storage: createJSONStorage(() => secureStorage),
     }
@@ -275,18 +304,99 @@ const checkGoalReminders = () => {
   void showAppNotification('🎯 Termíny v Growth Roomu', parts.join(' · '), 'goal-tracker')
 }
 
-/** Zapne kontrolu termínů. Volá se jednou ze startu aplikace (App.tsx). */
+// Připomínka nesplněných návyků se schválně posílá až večer, ne hned
+// při ranním otevření appky — v poledne by ještě mohla přijít pro
+// návyk, co si uživatel plánuje odškrtnout až po večerním tréninku,
+// stejné zdůvodnění jako fitnessReminders.ts's vlastní hodinová hranice.
+const NAVYK_PRIPOMINKA_OD_HODINY = 18
+
+const checkHabitReminders = () => {
+  const state = useGoalTrackerStore.getState()
+  const dnes = new Date()
+  const today = dnesniDatum(dnes)
+  if (state.lastHabitReminderDate === today) return
+  if (dnes.getHours() < NAVYK_PRIPOMINKA_OD_HODINY) return
+
+  const nedokoncene = state.goals.filter((g) => g.typ === 'navyk' && !jeNavykOznacenDnes(g, dnes))
+  if (nedokoncene.length === 0) return
+
+  useGoalTrackerStore.setState({ lastHabitReminderDate: today })
+
+  const zprava =
+    nedokoncene.length === 1
+      ? `Ještě jsi dnes neodškrtl(a) „${nedokoncene[0].title}“.`
+      : `Máš ${nedokoncene.length} nesplněných návyků na dnešek.`
+
+  void showAppNotification('🔁 Návyky čekají', zprava, 'goal-tracker-navyky')
+}
+
+// Stejný ISO týdenní algoritmus jako Fitness Roomovo tydenniKlic
+// (fitnessStats.ts), zkopírovaný sem místo importu napříč vlajkovými
+// appkami — stejná přijatá malá duplikace jako BARVY_UZLU jinde v appce.
+const tydenniKlicGoalTracker = (datum: Date): string => {
+  const d = new Date(Date.UTC(datum.getFullYear(), datum.getMonth(), datum.getDate()))
+  const denVTydnu = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - denVTydnu)
+  const rokZacatku = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  const cisloTydne = Math.ceil(((d.getTime() - rokZacatku.getTime()) / 86400000 + 1) / 7)
+  return `${d.getUTCFullYear()}-W${String(cisloTydne).padStart(2, '0')}`
+}
+
+const checkWeeklyDigest = () => {
+  const state = useGoalTrackerStore.getState()
+  const dnes = new Date()
+  const tydenKlic = tydenniKlicGoalTracker(dnes)
+  if (state.lastDigestWeekKey === tydenKlic) return
+
+  // Poprvé spuštěno — appka si jen zapamatuje aktuální týden jako
+  // výchozí bod, ať se hned při první instalaci neposílá prázdný
+  // souhrn se samými nulami.
+  if (state.lastDigestWeekKey === null) {
+    useGoalTrackerStore.setState({ lastDigestWeekKey: tydenKlic })
+    return
+  }
+
+  useGoalTrackerStore.setState({ lastDigestWeekKey: tydenKlic })
+
+  const { dokoncenoCilu, navykovychOdskrtnuti } = spocitejTydenniSouhrn(state.goals, dnes)
+  if (dokoncenoCilu === 0 && navykovychOdskrtnuti === 0) return
+
+  const { streakDays } = useGamificationStore.getState()
+  const casti: string[] = []
+  if (dokoncenoCilu > 0) casti.push(`${dokoncenoCilu}× splněný cíl`)
+  if (navykovychOdskrtnuti > 0) casti.push(`${navykovychOdskrtnuti}× odškrtnutý návyk`)
+  casti.push(`${streakDays} ${plural(streakDays, 'den v řadě', 'dny v řadě', 'dní v řadě')}`)
+
+  void showAppNotification('📊 Týdenní souhrn Growth Roomu', casti.join(' · '), 'growth-room-tydenni')
+}
+
+/** Zapne kontrolu termínů, nesplněných návyků a týdenního souhrnu.
+ *  Volá se jednou ze startu aplikace (App.tsx). */
 export const setupGoalTrackerReminders = (): void => {
   if (remindersStarted) return
   remindersStarted = true
 
   checkGoalReminders()
+  checkHabitReminders()
+  checkWeeklyDigest()
 
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') checkGoalReminders()
+    if (document.visibilityState === 'visible') {
+      checkGoalReminders()
+      checkHabitReminders()
+      checkWeeklyDigest()
+    }
   })
-  window.addEventListener('focus', checkGoalReminders)
-  window.addEventListener('online', checkGoalReminders)
+  window.addEventListener('focus', () => {
+    checkGoalReminders()
+    checkHabitReminders()
+    checkWeeklyDigest()
+  })
+  window.addEventListener('online', () => {
+    checkGoalReminders()
+    checkHabitReminders()
+    checkWeeklyDigest()
+  })
 }
 
 export const useGoalTracker = () => {

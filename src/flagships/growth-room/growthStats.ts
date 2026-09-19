@@ -1,5 +1,5 @@
 import type { Goal, GoalCategory } from '@/miniapps/goal-tracker/types'
-import { GOAL_CATEGORIES } from '@/miniapps/goal-tracker/types'
+import { GOAL_CATEGORIES, spocitejSeriiNavyku } from '@/miniapps/goal-tracker/types'
 import type { Badge } from '@/core/types/gamification.types'
 
 // ==========================================
@@ -25,6 +25,23 @@ export const nejblizsiCile = (goals: Goal[], max: number): AktivniCil[] =>
     .filter((g) => (g.typ ?? 'cil') === 'cil' && g.current < g.target)
     .map((g) => ({ goal: g, percent: Math.min(100, Math.round((g.current / g.target) * 100)) }))
     .sort((a, b) => b.percent - a.percent)
+    .slice(0, max)
+
+export interface NavykSSerii {
+  goal: Goal
+  serie: number
+}
+
+/** Návykové cíle seřazené podle aktuální série (nejdelší napřed),
+ *  oříznuté na `max` — na rozdíl od nejblizsiCile výš (ty návyky
+ *  záměrně vylučuje, protože se nikdy "nesplní") tenhle panel ukazuje
+ *  právě jen návyky, seřazené podle toho, který se daří držet nejdýl
+ *  právě teď, ne podle blízkosti ke splnění, které u nich nedává smysl. */
+export const nejlepsiNavyky = (goals: Goal[], max: number, dnes = new Date()): NavykSSerii[] =>
+  goals
+    .filter((g) => g.typ === 'navyk')
+    .map((g) => ({ goal: g, serie: spocitejSeriiNavyku(g, dnes) }))
+    .sort((a, b) => b.serie - a.serie)
     .slice(0, max)
 
 /** Kolik odznaků je skutečně odemčeno — `unlockedAt` je jediný zdroj

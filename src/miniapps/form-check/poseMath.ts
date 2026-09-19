@@ -147,3 +147,57 @@ const PRAH_NAROVNANI = 45 // stupňů od svislice; nad tím = "narovnej záda"
  *  na začátku dřepu se každý přirozeně předklání víc a hlásit to jako
  *  chybu by uživatele akorát mátlo. */
 export const jeZadaNarovnana = (odklon: number): boolean => odklon <= PRAH_NAROVNANI
+
+// ==========================================
+// "Jdi hlouběji" — appka dřív dávala zpětnou vazbu jen na držení zad,
+// a ani slovo, když opakování prostě nedosáhlo dost hluboko (úhel se
+// nikdy nedostal pod prahDole) — cvičící neměl jak poznat, PROČ se mu
+// opakování nezapočítalo, jestli vůbec zkusil, nebo se mýlí v technice.
+// Odděleně od StavOpakovani (faze/pocet) schválně: sleduje jinou věc
+// (jak hluboko se cvičící doopravdy DOSTAL, ne jestli přešel přes
+// práh) a měnit kvůli tomu už otestovaný, appkou jinde používaný tvar
+// StavOpakovani by nemělo smysl.
+// ==========================================
+
+export interface StavMelkehoPokusu {
+  /** Nejnižší (tj. nejhlubší) úhel naměřený od chvíle, co je cvičící
+   *  naposledy nahoře — null, dokud se do dřepnutí/pokrčení ještě
+   *  vůbec nepustil. */
+  nejnizsiUhel: number | null
+}
+
+export const POCATECNI_STAV_MELKEHO_POKUSU: StavMelkehoPokusu = { nejnizsiUhel: null }
+
+// Kolik stupňů nad prahDole appka ještě počítá jako "skoro, ale ne
+// úplně" — čím menší číslo, tím přísnější kritérium (musí se opravdu
+// přiblížit, ne jen o kousek odsednout).
+const TOLERANCE_MELKEHO_POKUSU = 20
+
+/** Jeden krok samostatného sledování mělkého pokusu — volá se vedle
+ *  krokOpakovani, ne místo něj, se stejným uhlem a prahy. Vrací nový
+ *  stav a melkyPokusPraveTed: true přesně v tom jednom kroku, kdy se
+ *  cvičící vrátil skoro celý nahoru poté, co se cestou dolů přiblížil
+ *  k prahu, ale nepřekročil ho — appka o tom má dát vědět jen jednou
+ *  za pokus, ne každý snímek, dokud se nedokončí. */
+export const krokMelkehoPokusu = (
+  stav: StavMelkehoPokusu,
+  faze: FazePohybu,
+  uhel: number,
+  prahDole: number,
+  prahNahore: number
+): { stav: StavMelkehoPokusu; melkyPokusPraveTed: boolean } => {
+  // Skutečně dokončený pokus (úhel přešel přes práh dole) už appka
+  // hlásí normálním počítadlem opakování — tady se o něj nezajímá.
+  if (faze === 'dole') return { stav: POCATECNI_STAV_MELKEHO_POKUSU, melkyPokusPraveTed: false }
+
+  const nejnizsiUhel = stav.nejnizsiUhel === null ? uhel : Math.min(stav.nejnizsiUhel, uhel)
+
+  if (uhel >= prahNahore) {
+    // Vrátil se skoro celý nahoru a cestou se přiblížil k prahu dole,
+    // aniž by ho překročil — jeden mělký pokus právě skončil.
+    const bylBlizkoPrahu = nejnizsiUhel < prahDole + TOLERANCE_MELKEHO_POKUSU && nejnizsiUhel >= prahDole
+    return { stav: POCATECNI_STAV_MELKEHO_POKUSU, melkyPokusPraveTed: bylBlizkoPrahu }
+  }
+
+  return { stav: { nejnizsiUhel }, melkyPokusPraveTed: false }
+}

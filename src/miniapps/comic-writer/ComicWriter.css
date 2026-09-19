@@ -219,6 +219,12 @@
   padding: 0.5rem 0;
 }
 
+.cw-radek-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
 .cw-radek {
   display: flex;
   align-items: center;
@@ -227,6 +233,33 @@
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 0.6rem 0.75rem;
+}
+
+/* Náhled checkpointu před obnovením — appka ho ukáže jen po klepnutí
+   na řádek, ať autor vidí, co skutečně obsahuje (kolik stran/panelů),
+   než klepne na skutečné tlačítko obnovení. */
+.cw-checkpoint-nahled {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.76rem;
+  color: var(--text-secondary);
+}
+
+.cw-checkpoint-nahled .cw-ulozit-btn {
+  padding: 0.35rem 0.7rem;
+  font-size: 0.74rem;
+}
+
+.cw-checkpoint-nahled .cw-ulozit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .cw-radek-otevrit {
@@ -341,6 +374,26 @@
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
+}
+
+/* Zlatý papír (VIP) — stejná paleta jako Scénář's sw-script-page--zlaty
+   a Knihy bw-editor--zlaty, jen nad Komiksovou panelovou kartou. Jiná
+   paleta stejné komponenty, ne druhá komponenta. */
+.cw-panel-card--zlaty {
+  background: linear-gradient(135deg, #e9dcc0, #d8c69f);
+  color: #3b2f1e;
+  box-shadow: inset 0 0 40px rgba(120, 90, 40, 0.28);
+  border-color: #b9a274;
+}
+
+.cw-panel-card--zlaty .cw-panel-label,
+.cw-panel-card--zlaty .cw-panel-visual,
+.cw-panel-card--zlaty .cw-panel-line {
+  color: #3b2f1e;
+}
+
+.cw-nahled-btn.je-zamceno {
+  opacity: 0.6;
 }
 
 .cw-panel-head {

@@ -176,6 +176,27 @@ export const navrhniCilNaPriste = (sezeni: Sezeni[], cvik: TypCviku): number | n
   return posledni.pocetOpakovani + 1
 }
 
+// ==========================================
+// Předvýběr cviku pro příští otevření Form Checku — plain proměnná na
+// úrovni modulu, ne persistovaný store: appka (Fitness Roomovo
+// "Spustit dnešní trénink" podle cvičebního plánu) ji nastaví těsně
+// před navigate() do /apps, a FormCheck.tsx ji při vlastním mountu
+// jednou přečte přes vezmiPredvyberCviku, co ji hned zase zahodí —
+// platí jen pro tohle jedno otevření, ne navždy, a normální otevření
+// Form Checku z hlavní mřížky appek (bez předvýběru) se nezmění vůbec.
+// ==========================================
+let predvyberCviku: TypCviku | null = null
+
+export const nastavPredvyberCviku = (cvik: TypCviku) => {
+  predvyberCviku = cvik
+}
+
+export const vezmiPredvyberCviku = (): TypCviku | null => {
+  const hodnota = predvyberCviku
+  predvyberCviku = null
+  return hodnota
+}
+
 export const useFormCheck = () => {
   const { sezeni, hlasoveHlaseni, ulozitSezeni, nastavPoznamkuSezeni, setHlasoveHlaseni } = useFormCheckStore()
 

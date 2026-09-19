@@ -5,11 +5,13 @@ import {
   formatujTermin,
   jeNavykOznacenDnes,
   sanitizujCil,
+  spocitejHeatmapuNavyku,
   spocitejSeriiNavyku,
   spocitejTydenniPokrokNavyku,
+  spocitejTydenniSouhrn,
   Goal,
 } from '@/miniapps/goal-tracker/types'
-import { nejblizsiCile, pocetOdemcenych, spocitejPodleKategorie } from '@/flagships/growth-room/growthStats'
+import { nejblizsiCile, nejlepsiNavyky, pocetOdemcenych, spocitejPodleKategorie } from '@/flagships/growth-room/growthStats'
 import type { Badge } from '@/core/types/gamification.types'
 
 // ==========================================
@@ -112,6 +114,61 @@ describe('spocitejSeriiNavyku', () => {
 
   it('žádná historie vrátí sérii 0', () => {
     expect(spocitejSeriiNavyku(cil({ navykDny: [] }), dnes)).toBe(0)
+  })
+})
+
+describe('spocitejHeatmapuNavyku', () => {
+  const dnes = new Date('2026-08-15T12:00:00')
+
+  it('vrátí přesně požadovaný počet dní, chronologicky seřazený, dnešek poslední', () => {
+    const dny = spocitejHeatmapuNavyku(cil({ navykDny: [] }), dnes, 10)
+    expect(dny).toHaveLength(10)
+    expect(dny[dny.length - 1].datum).toBe('2026-08-15')
+    expect(dny[0].datum).toBe('2026-08-06')
+  })
+
+  it('den v navykDny se označí jako oznaceno: true, ostatní false', () => {
+    const dny = spocitejHeatmapuNavyku(cil({ navykDny: ['2026-08-14', '2026-08-12'] }), dnes, 5)
+    const podleData = Object.fromEntries(dny.map((d) => [d.datum, d.oznaceno]))
+    expect(podleData['2026-08-14']).toBe(true)
+    expect(podleData['2026-08-12']).toBe(true)
+    expect(podleData['2026-08-15']).toBe(false)
+    expect(podleData['2026-08-13']).toBe(false)
+  })
+
+  it('výchozí okno je 84 dní (12 týdnů)', () => {
+    expect(spocitejHeatmapuNavyku(cil({ navykDny: [] }), dnes)).toHaveLength(84)
+  })
+
+  it('prázdná historie navykDny se počítá jako žádný den označený', () => {
+    const dny = spocitejHeatmapuNavyku(cil({ navykDny: undefined }), dnes, 5)
+    expect(dny.every((d) => !d.oznaceno)).toBe(true)
+  })
+})
+
+describe('spocitejTydenniSouhrn', () => {
+  const dnes = new Date('2026-08-15T12:00:00')
+
+  it('spočítá jen cíle dokončené v posledních 7 dnech', () => {
+    const goals = [
+      cil({ id: 'a', typ: 'cil', completedAt: '2026-08-15T10:00:00.000Z' }), // dnes
+      cil({ id: 'b', typ: 'cil', completedAt: '2026-08-09T10:00:00.000Z' }), // přesně před 7 dny — v okně
+      cil({ id: 'c', typ: 'cil', completedAt: '2026-08-01T10:00:00.000Z' }), // moc dávno
+      cil({ id: 'd', typ: 'cil', completedAt: null }), // nedokončený
+    ]
+    expect(spocitejTydenniSouhrn(goals, dnes).dokoncenoCilu).toBe(2)
+  })
+
+  it('sečte odškrtnutí návyků napříč VŠEMI návykovými cíli za posledních 7 dní', () => {
+    const goals = [
+      cil({ id: 'a', typ: 'navyk', navykDny: ['2026-08-15', '2026-08-14'] }),
+      cil({ id: 'b', typ: 'navyk', navykDny: ['2026-08-13', '2026-08-01'] }), // 08-01 mimo okno
+    ]
+    expect(spocitejTydenniSouhrn(goals, dnes).navykovychOdskrtnuti).toBe(3)
+  })
+
+  it('bez cílů/návyků vrátí samé nuly', () => {
+    expect(spocitejTydenniSouhrn([], dnes)).toEqual({ dokoncenoCilu: 0, navykovychOdskrtnuti: 0 })
   })
 })
 
@@ -238,6 +295,32 @@ describe('nejblizsiCile', () => {
     ]
     const vysledek = nejblizsiCile(goals, 2)
     expect(vysledek.map((v) => v.goal.id)).toEqual(['b', 'c'])
+  })
+})
+
+describe('nejlepsiNavyky', () => {
+  const dnes = new Date('2026-08-15T12:00:00')
+
+  it('vyřadí číselné (ne návykové) cíle', () => {
+    const cisleny = cil({ id: 'a', typ: 'cil', current: 5, target: 10 })
+    const navyk = cil({ id: 'b', typ: 'navyk', navykDny: ['2026-08-15'] })
+    const vysledek = nejlepsiNavyky([cisleny, navyk], 5, dnes)
+    expect(vysledek.map((v) => v.goal.id)).toEqual(['b'])
+  })
+
+  it('seřadí od nejdelší série a ořízne na max', () => {
+    const goals = [
+      cil({ id: 'a', typ: 'navyk', navykDny: ['2026-08-15'] }), // série 1
+      cil({ id: 'b', typ: 'navyk', navykDny: ['2026-08-15', '2026-08-14', '2026-08-13'] }), // série 3
+      cil({ id: 'c', typ: 'navyk', navykDny: [] }), // série 0
+    ]
+    const vysledek = nejlepsiNavyky(goals, 2, dnes)
+    expect(vysledek.map((v) => v.goal.id)).toEqual(['b', 'a'])
+    expect(vysledek[0].serie).toBe(3)
+  })
+
+  it('žádný návyk vrátí prázdný seznam', () => {
+    expect(nejlepsiNavyky([cil({ typ: 'cil' })], 5, dnes)).toEqual([])
   })
 })
 

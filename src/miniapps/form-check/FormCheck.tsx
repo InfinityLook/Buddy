@@ -1,8 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { usePoseEngine } from './usePoseEngine'
-import { useFormCheck, nejlepsiOpakovaniProCvik, navrhniCilNaPriste } from './useFormCheck'
+import { useFormCheck, nejlepsiOpakovaniProCvik, navrhniCilNaPriste, vezmiPredvyberCviku } from './useFormCheck'
 import { NAZEV_CVIKU, NAROCNOST_LABEL, JE_CVIK_NA_CAS, formatPocetCviku, sestavCsvSezeni, Narocnost, TypCviku } from './types'
-import { ohlasOpakovani, ohlasNovyRekord, ohlasCilSplnen, ohlasZacniSerii } from './hlaseni'
+import {
+  ohlasOpakovani,
+  ohlasNovyRekord,
+  ohlasCilSplnen,
+  ohlasZacniSerii,
+  odemkniOdpocinekZvuk,
+  ohlasKonecOdpocinku,
+} from './hlaseni'
 import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { requestNotificationPermission } from '@/core/utils/notify'
 import { sdilejText } from '@/core/utils/sdileni'
@@ -28,7 +35,12 @@ const noveOkruhId = () => `okruh-${Date.now()}-${Math.random().toString(36).slic
 export const FormCheck: React.FC = () => {
   // Cvik se smí měnit, jen dokud kamera neběží — engine.stav === 'vypnuto'
   // (viz usePoseEngine.ts's vlastní komentář o tom, kdy se cvikRef čte).
-  const [cvik, setCvik] = useState<TypCviku>('dřep')
+  // Výchozí hodnota je předvýběr z cvičebního plánu (Fitness Roomovo
+  // "Spustit dnešní trénink"), pokud nějaký čeká — jinak obyčejné 'dřep'
+  // jako doteď. Funkce se volá jen jednou při prvním renderu (lazy
+  // initializer), ať se předvýběr nesnaží znovu přečíst při každém
+  // dalším překreslení (vezmiPredvyberCviku ho navíc hned zahazuje).
+  const [cvik, setCvik] = useState<TypCviku>(() => vezmiPredvyberCviku() ?? 'dřep')
   const engine = usePoseEngine(cvik)
   const {
     sezeni,
@@ -227,6 +239,10 @@ export const FormCheck: React.FC = () => {
     cisloDalsiSerieRef.current = dalsi
     setAktualniSerie(dalsi)
     setZbyvaOdpocinekS(odpocinekSekund)
+    // Musí se stát uvnitř tohohle klepnutí (skutečné gesto uživatele),
+    // ne až o desítky vteřin později, kdy odpočítávání doběhne — viz
+    // hlaseni.ts's vlastní komentář u odemkniOdpocinekZvuk.
+    odemkniOdpocinekZvuk()
   }
 
   const handlePreskocitOdpocinek = () => {
@@ -243,6 +259,9 @@ export const FormCheck: React.FC = () => {
     if (zbyvaOdpocinekS === null) return
     if (zbyvaOdpocinekS <= 0) {
       setZbyvaOdpocinekS(null)
+      // Vibrace/pípnutí nezávisle na hlasoveHlaseni — jiný signál (konec
+      // časovače), ne mluvené slovo, viz hlaseni.ts's vlastní komentář.
+      ohlasKonecOdpocinku()
       if (hlasoveHlaseni) ohlasZacniSerii(cisloDalsiSerieRef.current)
       return
     }
@@ -362,7 +381,11 @@ export const FormCheck: React.FC = () => {
             {novyRekord && <div className="fc-rekord-banner">🎉 Nový rekord!</div>}
             {engine.zpetnaVazba && (
               <div className={`fc-feedback fc-feedback--${engine.zpetnaVazba}`}>
-                {engine.zpetnaVazba === 'v-poradku' ? '✓ Záda rovně' : '⚠ Narovnej záda'}
+                {engine.zpetnaVazba === 'v-poradku'
+                  ? '✓ Záda rovně'
+                  : engine.zpetnaVazba === 'jdi-hloubeji'
+                    ? '↓ Jdi hlouběji'
+                    : '⚠ Narovnej záda'}
               </div>
             )}
             <div className="fc-controls">
@@ -666,7 +689,7 @@ export const FormCheck: React.FC = () => {
                 </span>
                 <div className="fc-row-mid">
                   <span className="fc-row-title">
-                    {s.pocetOpakovani}× {NAZEV_CVIKU[s.cvik]}
+                    {formatPocetCviku(s.pocetOpakovani, s.cvik)} {NAZEV_CVIKU[s.cvik]}
                   </span>
                   <span className="fc-row-sub">
                     {formatDatum(s.createdAt)} · {formatTrvani(s.trvaniSekund)}

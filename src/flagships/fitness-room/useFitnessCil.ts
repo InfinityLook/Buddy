@@ -26,9 +26,15 @@ interface FitnessCilState {
   cilKcal: number | null
   cilTreninkMin: number | null
   cilTreninkuTydne: number | null
+  // Klíč týdne (např. "2024-W37"), za který už appka oslavila splnění
+  // týdenního tréninkového cíle — bez tohohle by se oslava opakovala
+  // při každé návštěvě dashboardu poté, co byl cíl jednou splněný, ne
+  // jen tu jednu chvíli, kdy se to doopravdy stalo.
+  posledniOslavenyTydenKlic: string | null
   setCilKcal: (kcal: number | null) => void
   setCilTreninkMin: (minut: number | null) => void
   setCilTreninkuTydne: (pocet: number | null) => void
+  setPosledniOslavenyTydenKlic: (klic: string) => void
 }
 
 export const useFitnessCil = create<FitnessCilState>()(
@@ -37,9 +43,11 @@ export const useFitnessCil = create<FitnessCilState>()(
       cilKcal: null,
       cilTreninkMin: null,
       cilTreninkuTydne: null,
+      posledniOslavenyTydenKlic: null,
       setCilKcal: (kcal) => set({ cilKcal: kcal !== null && kcal > 0 ? kcal : null }),
       setCilTreninkMin: (minut) => set({ cilTreninkMin: minut !== null && minut > 0 ? minut : null }),
       setCilTreninkuTydne: (pocet) => set({ cilTreninkuTydne: pocet !== null && pocet > 0 ? pocet : null }),
+      setPosledniOslavenyTydenKlic: (klic) => set({ posledniOslavenyTydenKlic: klic }),
     }),
     {
       name: 'schoolbuddy-fitness-cil-storage',

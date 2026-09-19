@@ -59,6 +59,13 @@ export interface Goal {
   // Dny (YYYY-MM-DD), kdy byl návyk odškrtnutý — celá historie, ne jen
   // aktuální okno, ať jde dopočítat i delší série zpětně.
   navykDny?: string[]
+  // Dny, za které už bylo vyplaceno XP — permanentní, append-only záznam,
+  // nikdy se z něj nic neodebírá (ani při odškrtnutí zpátky). Bez něj by
+  // odškrtnutí-zrušení-odškrtnutí ve stejný den vyplatilo XP tolikrát,
+  // kolikrát to uživatel stihne přepnout — stejná "vydělaný pokrok nikdy
+  // nejde zpátky" zásada jako u BACKUP_STORES's gamification
+  // restorable: false, jen na úrovni jednoho dne místo celého účtu.
+  navykXpDny?: string[]
 }
 
 // Ukázkové cíle tu schválně nejsou — každý si zakládá svoje.
@@ -173,6 +180,66 @@ export const spocitejSeriiNavyku = (goal: Goal, dnes = new Date()): number => {
   return serie
 }
 
+export interface HeatmapDen {
+  /** 'YYYY-MM-DD' — stejný zápis jako navykDny samotné. */
+  datum: string
+  oznaceno: boolean
+}
+
+// 84 dní = 12 týdnů — dost dlouhé okno na to, aby byl vidět skutečný
+// vzorec (víkendy, přestávky), a pořád se vejde do malé mřížky na
+// telefonu bez zmenšení pod čitelnost jednoho čtverečku.
+const POCET_DNI_HEATMAPY = 84
+
+/** Posledních `pocetDni` dní (včetně dneška) jako plochý, chronologicky
+ *  seřazený seznam — appka si je v komponentě sama poskládá do mřížky
+ *  (GoalTracker.tsx's .gt-heatmapa), stejný "appka si mřížku poskládá
+ *  z pole, žádná knihovna" vzor jako Writer Roomova 14denní aktivita.
+ *  Čistá funkce, testovatelná bez store. */
+export const spocitejHeatmapuNavyku = (
+  goal: Goal,
+  dnes = new Date(),
+  pocetDni: number = POCET_DNI_HEATMAPY
+): HeatmapDen[] => {
+  const oznacene = new Set(goal.navykDny ?? [])
+  const dny: HeatmapDen[] = []
+  for (let i = pocetDni - 1; i >= 0; i--) {
+    const d = new Date(dnes)
+    d.setDate(d.getDate() - i)
+    const iso = dnesniDatum(d)
+    dny.push({ datum: iso, oznaceno: oznacene.has(iso) })
+  }
+  return dny
+}
+
+export interface TydenniSouhrn {
+  dokoncenoCilu: number
+  navykovychOdskrtnuti: number
+}
+
+/** Kolik číselných cílů bylo dokončeno a kolikrát se za posledních 7
+ *  dní (včetně dneška) odškrtl nějaký návyk — vstup pro týdenní
+ *  souhrnné upozornění (checkWeeklyDigest v useGoalTracker.ts). Čistá
+ *  funkce, testovatelná bez store/notifikace. */
+export const spocitejTydenniSouhrn = (goals: Goal[], dnes = new Date()): TydenniSouhrn => {
+  const hranice = new Date(dnes)
+  hranice.setDate(hranice.getDate() - 6)
+  const hraniceIso = dnesniDatum(hranice)
+  const dnesniIso = dnesniDatum(dnes)
+
+  const dokoncenoCilu = goals.filter((g) => {
+    if ((g.typ ?? 'cil') !== 'cil' || !g.completedAt) return false
+    const den = g.completedAt.slice(0, 10)
+    return den >= hraniceIso && den <= dnesniIso
+  }).length
+
+  const navykovychOdskrtnuti = goals
+    .filter((g) => g.typ === 'navyk')
+    .reduce((sum, g) => sum + (g.navykDny ?? []).filter((d) => d >= hraniceIso && d <= dnesniIso).length, 0)
+
+  return { dokoncenoCilu, navykovychOdskrtnuti }
+}
+
 // ==========================================
 // Sanitizace, řazení — čisté funkce nad Goal, žít musí tady, ne v
 // useGoalTracker.ts. useGoalTracker.ts od téhle relace poprvé
@@ -197,6 +264,13 @@ const sanitizujMilniky = (raw: unknown): Milnik[] => {
 
 const sanitizujNavykDny = (raw: unknown): string[] =>
   Array.isArray(raw) ? raw.filter((d): d is string => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d)) : []
+
+/** Bylo za zadaný den u tohohle návyku už vyplaceno XP? Chybějící pole
+ *  (cíl uložený před touto opravou) se bere jako "ne" — o nic to
+ *  neošidí, jen se první další odškrtnutí znovu započítá, což je
+ *  bezpečnější než tvářit se, že XP za starou historii už bylo dané. */
+export const bylaVyplacenaXpZaNavyk = (goal: Goal, den: string): boolean =>
+  (goal.navykXpDny ?? []).includes(den)
 
 /** Doplní chybějící/poškozená pole na bezpečné výchozí hodnoty —
  *  stejný hand-rolled přístup jako Mind Mapovo sanitizeNode(), Goal
@@ -224,6 +298,7 @@ export const sanitizujCil = (goal: Goal): Goal => ({
   milniky: sanitizujMilniky(goal.milniky),
   typ: goal.typ === 'navyk' ? 'navyk' : 'cil',
   navykDny: sanitizujNavykDny(goal.navykDny),
+  navykXpDny: sanitizujNavykDny(goal.navykXpDny),
   deadline: typeof goal.deadline === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(goal.deadline) ? goal.deadline : null,
 })
 

@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest'
-import { zmenPocetKroku, priponaPodleMime, prazdnyPattern, DRUM_SOUNDS } from '@/miniapps/music-studio/types'
+import {
+  zmenPocetKroku,
+  priponaPodleMime,
+  prazdnyPattern,
+  spocitejPocetOpakovaniBeatu,
+  zpracujKlepnutiTempa,
+  vypocitejBpmZKlepnuti,
+  swingPosunSekund,
+  MAX_SWING,
+  DRUM_SOUNDS,
+} from '@/miniapps/music-studio/types'
 import { bufferNaWavBlob, type ZvukovaData } from '@/miniapps/music-studio/wavEncoder'
 import { spocitejVrcholyVlny } from '@/miniapps/music-studio/waveform'
 import { validateMusicStudioData } from '@/core/utils/musicStudioValidation'
@@ -51,6 +61,99 @@ describe('prazdnyPattern', () => {
       expect(p.kroky[buben].every((v) => v === false)).toBe(true)
       expect(p.hlasitosti[buben]).toBe(100)
     }
+  })
+})
+
+describe('spocitejPocetOpakovaniBeatu', () => {
+  it('kladný pocetOpakovaniBeatu se použije beze změny, i kdyby nesouhlasil s délkou nahrávky', () => {
+    expect(spocitejPocetOpakovaniBeatu(3, 2, 100)).toBe(3)
+  })
+
+  it('nulový pocetOpakovaniBeatu (appčino "dokud hraje nahrávka") dopočítá počet opakování z délky nahrávky', () => {
+    // Jedno opakování 4 s, nahrávka 10 s → potřeba aspoň 3 opakování (12 s ≥ 10 s)
+    expect(spocitejPocetOpakovaniBeatu(0, 4, 10)).toBe(3)
+  })
+
+  it('nahrávka přesně dělitelná délkou opakování nepřidá zbytečné opakování navíc', () => {
+    expect(spocitejPocetOpakovaniBeatu(0, 5, 15)).toBe(3)
+  })
+
+  it('nulová/záporná délka opakování se ošetří jako 1 opakování, ne dělení nulou', () => {
+    expect(spocitejPocetOpakovaniBeatu(0, 0, 10)).toBe(1)
+  })
+
+  it('nulová délka nahrávky (žádná nahrávka) vrátí aspoň 1 opakování', () => {
+    expect(spocitejPocetOpakovaniBeatu(0, 4, 0)).toBe(1)
+  })
+})
+
+describe('zpracujKlepnutiTempa / vypocitejBpmZKlepnuti', () => {
+  it('jedno klepnutí neurčuje žádné BPM (chybí interval)', () => {
+    const historie = zpracujKlepnutiTempa([], 1000)
+    expect(historie).toEqual([1000])
+    expect(vypocitejBpmZKlepnuti(historie)).toBeNull()
+  })
+
+  it('dvě klepnutí po 500 ms dají 120 BPM', () => {
+    let historie = zpracujKlepnutiTempa([], 0)
+    historie = zpracujKlepnutiTempa(historie, 500)
+    expect(vypocitejBpmZKlepnuti(historie)).toBe(120)
+  })
+
+  it('čtyři pravidelná klepnutí po 250 ms dají 240 BPM (průměr intervalů)', () => {
+    let historie: number[] = []
+    for (const cas of [0, 250, 500, 750]) historie = zpracujKlepnutiTempa(historie, cas)
+    expect(vypocitejBpmZKlepnuti(historie)).toBe(240)
+  })
+
+  it('dlouhá pauza (> 2000 ms) vynuluje historii na jediné nové klepnutí', () => {
+    let historie = zpracujKlepnutiTempa([], 0)
+    historie = zpracujKlepnutiTempa(historie, 500)
+    historie = zpracujKlepnutiTempa(historie, 3000)
+    expect(historie).toEqual([3000])
+    expect(vypocitejBpmZKlepnuti(historie)).toBeNull()
+  })
+
+  it('appka drží nejvýš posledních 8 klepnutí, starší zahodí', () => {
+    let historie: number[] = []
+    for (let i = 0; i <= 10; i++) historie = zpracujKlepnutiTempa(historie, i * 100)
+    expect(historie).toHaveLength(8)
+    expect(historie[0]).toBe(300)
+    expect(historie[historie.length - 1]).toBe(1000)
+  })
+
+  it('BPM se ořízne na appčino platné rozmezí 40–240', () => {
+    // Interval 3000 ms -> 20 BPM, appka ořízne na 40
+    let historie = zpracujKlepnutiTempa([], 0)
+    historie = zpracujKlepnutiTempa(historie, 3000 - 1) // těsně pod hranicí dlouhé pauzy
+    // Použij menší mezeru, co pauzu nespustí, ale pořád dá extrémní BPM
+    historie = [0, 1999]
+    expect(vypocitejBpmZKlepnuti(historie)).toBe(40)
+  })
+})
+
+describe('swingPosunSekund', () => {
+  it('sudý (on-beat) krok se nikdy neposune, ať je swing jakýkoli', () => {
+    expect(swingPosunSekund(0, 0.5, 75)).toBe(0)
+    expect(swingPosunSekund(2, 0.5, 50)).toBe(0)
+  })
+
+  it('nulový swing neposune ani lichý krok', () => {
+    expect(swingPosunSekund(1, 0.5, 0)).toBe(0)
+  })
+
+  it('lichý krok se posune o odpovídající procento délky kroku', () => {
+    // 50 % swingu z 0.5 s kroku = 0.25 s posun
+    expect(swingPosunSekund(1, 0.5, 50)).toBeCloseTo(0.25)
+    expect(swingPosunSekund(3, 0.2, 25)).toBeCloseTo(0.05)
+  })
+
+  it('swing nad appčino maximum (75) se ořízne', () => {
+    expect(swingPosunSekund(1, 1, 200)).toBeCloseTo(MAX_SWING / 100)
+  })
+
+  it('záporný swing se ořízne na 0 (žádný posun)', () => {
+    expect(swingPosunSekund(1, 1, -20)).toBe(0)
   })
 })
 
@@ -124,6 +227,45 @@ describe('validateMusicStudioData', () => {
     expect(p.kroky.tom).toEqual(Array(8).fill(false))
     expect(p.hlasitosti.kick).toBe(100)
     expect(p.hlasitosti.clap).toBe(100)
+  })
+
+  it('starší pattern bez swingu appka doplní na 0 (vypnuto, appčino původní chování)', () => {
+    const vysledek = validateMusicStudioData({
+      patterns: [
+        {
+          id: 'a',
+          name: 'Starý beat',
+          bpm: 100,
+          createdAt: '2024-01-01',
+          kroky: { kick: Array(8).fill(true), snare: Array(8).fill(false), hihat: Array(8).fill(false) },
+        },
+      ],
+      recordings: [],
+      songs: [],
+    })
+    expect(vysledek.success).toBe(true)
+    if (!vysledek.success) return
+    expect(vysledek.data.patterns[0].swing).toBe(0)
+  })
+
+  it('swing mimo rozsah 0–75 se ořízne', () => {
+    const vysledek = validateMusicStudioData({
+      patterns: [
+        {
+          id: 'a',
+          name: 'B',
+          bpm: 100,
+          createdAt: '2024-01-01',
+          kroky: { kick: Array(8).fill(false), snare: Array(8).fill(false), hihat: Array(8).fill(false), clap: Array(8).fill(false), tom: Array(8).fill(false) },
+          swing: 999,
+        },
+      ],
+      recordings: [],
+      songs: [],
+    })
+    expect(vysledek.success).toBe(true)
+    if (!vysledek.success) return
+    expect(vysledek.data.patterns[0].swing).toBe(75)
   })
 
   it('neplatný pocetKroku (mimo 8/16) spadne na 8, hlasitost mimo rozsah se ořízne', () => {

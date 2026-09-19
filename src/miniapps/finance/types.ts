@@ -67,6 +67,13 @@ export interface Transaction {
    *  ještě nestáhlo, nikdy neprojevilo. Stejný důvod jako
    *  messages.deleted_at v Social. null = není smazáno. */
   deletedAt: number | null
+  /** Společné id obou polovin přesunu mezi vlastními peněženkami
+   *  (viz presunMeziPenezenkami v useFinance.ts) — null u běžné,
+   *  ručně zadané transakce. Obě poloviny sdílejí stejné presunId, ať
+   *  appka pozná, že patří k sobě (kaskádové smazání druhé poloviny,
+   *  vyloučení ze statistik "kolik jsem vydělal/utratil" — přesun mezi
+   *  vlastními penězi není skutečný příjem ani výdaj). */
+  presunId: string | null
 }
 
 export type NewTransaction = Pick<Transaction, 'type' | 'amount' | 'category' | 'note' | 'date'> & {
@@ -197,9 +204,73 @@ export interface Wallet {
   id: string
   name: string
   icon: string | null
+  // Kolik už v peněžence reálně je v okamžiku založení — dřív každá
+  // peněženka začínala nutně od nuly a rostla jen z transakcí zadaných
+  // v appce, takže hotovost/účet, co uživatel měl už předtím, se nikdy
+  // nedalo zapsat jinak než falešnou "počáteční" transakcí. Zůstatek
+  // peněženky (useFinance.ts's zustatek/zustatekCelkem) se pak počítá
+  // jako součet transakcí PLUS tohle číslo, nikdy zvlášť ukazované.
+  pocatecniZustatek: number
   createdAt: string
   updatedAt: number
   deletedAt: number | null
+}
+
+/** Součet počátečních zůstatků všech předaných (typicky už
+ *  nesmazaných) peněženek — vlastní čistá funkce kvůli testovatelnosti
+ *  bez Zustandu, stejný důvod jako spocitejStavRozpoctu/
+ *  rozpoctyKUpozorneni vedle. */
+export const soucetPocatecnichZustatku = (penezenky: Wallet[]): number =>
+  penezenky.reduce((s, w) => s + (w.pocatecniZustatek ?? 0), 0)
+
+/** Zůstatek = součet transakcí (příjem kladně, výdaj záporně) plus
+ *  počáteční zůstatek — čistá funkce vytažená z useFinance.ts's
+ *  zustatek/zustatekCelkem přesně proto, aby šla ověřit testem bez
+ *  store. Volající si sám vybere, jaké počáteční číslo předá — buď
+ *  jedné konkrétní peněženky (filtr aktivní), nebo soucetPocatecnichZustatku
+ *  napříč všemi (souhrnný pohled). */
+export const zustatekZTransakci = (transakce: Transaction[], pocatecniZustatek: number): number =>
+  transakce.reduce((sum, t) => sum + (t.type === 'prijem' ? t.amount : -t.amount), 0) + pocatecniZustatek
+
+/** Jedna polovina přesunu mezi peněženkami — appka z ní ve store dopočítá
+ *  zbytek Transaction (id/createdAt/date/…), stejný "čistá funkce vrátí
+ *  vstupní tvar, store doplní zbytek" vzor jako NewTransaction výš. */
+export type PresunPolovina = Pick<Transaction, 'type' | 'amount' | 'category' | 'note' | 'walletId' | 'presunId'>
+
+/** Sestaví obě poloviny přesunu mezi vlastními peněženkami — výdaj ze
+ *  zdrojové, příjem do cílové, se sdíleným presunId. Kategorie jsou
+ *  schválně "Ostatní výdaj"/"Ostatní příjem" (existující sběrné
+ *  kategorie), ne nová vlastní — přesun stejně appka všude vylučuje ze
+ *  statistik podle kategorie i z rozpočtů (viz useFinance.ts's
+ *  skutecneTransakce), takže by nová kategorie jen rozšiřovala pevný
+ *  výčet FinanceCategory bez skutečného přínosu. Čistá funkce,
+ *  testovatelná bez store. */
+export const sestavPresunTransakci = (
+  zPenezenky: Wallet,
+  doPenezenky: Wallet,
+  castka: number,
+  poznamka: string,
+  presunId: string
+): [PresunPolovina, PresunPolovina] => {
+  const vlastniPoznamka = poznamka.trim()
+  return [
+    {
+      type: 'vydaj',
+      amount: castka,
+      category: 'Ostatní výdaj',
+      note: vlastniPoznamka || `Přesun do „${doPenezenky.name}“`,
+      walletId: zPenezenky.id,
+      presunId,
+    },
+    {
+      type: 'prijem',
+      amount: castka,
+      category: 'Ostatní příjem',
+      note: vlastniPoznamka || `Přesun z „${zPenezenky.name}“`,
+      walletId: doPenezenky.id,
+      presunId,
+    },
+  ]
 }
 
 // Prefix pro klíč do sdíleného IndexedDB souborového úložiště
@@ -227,6 +298,12 @@ export interface Budget {
   createdAt: string
   updatedAt: number
   deletedAt: number | null
+  // Měsíc (YYYY-MM), za který appka už poslala upozornění na
+  // překročení limitu — stejný "posledniPridanoMesic" tvar jako
+  // RecurringTransaction's lastAddedMonth níž, jen pro upozornění
+  // místo přidání platby. Bez něj by každá další utracená koruna po
+  // překročení poslala další notifikaci znovu.
+  lastExceededNotifiedMonth?: string | null
 }
 
 export interface BudgetStav {
@@ -255,6 +332,21 @@ export const spocitejStavRozpoctu = (
     return { budget, utraceno, procenta, jePrekrocen: utraceno > budget.limitKc }
   })
 }
+
+/** Rozpočty, co jsou PRÁVĚ TEĎ překročené a appka o tom ještě tenhle
+ *  měsíc neposlala upozornění (Budget.lastExceededNotifiedMonth) —
+ *  volá se po každé nové výdajové transakci (ruční i automatické
+ *  opakující se platbě), ne na časovač, stejná "reaguj na skutečnou
+ *  změnu, ne na hodiny" zásada jako melaByBytPridanaDnes vedle. */
+export const rozpoctyKUpozorneni = (
+  budgets: Budget[],
+  transakceTohotoMesice: Transaction[],
+  dnesniMesicStr: string
+): BudgetStav[] =>
+  spocitejStavRozpoctu(
+    budgets.filter((b) => !b.deletedAt),
+    transakceTohotoMesice
+  ).filter((s) => s.jePrekrocen && s.budget.lastExceededNotifiedMonth !== dnesniMesicStr)
 
 // ==========================================
 // Opakující se transakce — nájem/předplatné/výplata se přidají samy
@@ -290,6 +382,59 @@ export const melaByBytPridanaDnes = (r: RecurringTransaction, dnes: Date): boole
   const dnesniMesicStr = `${dnes.getFullYear()}-${String(dnes.getMonth() + 1).padStart(2, '0')}`
   if (r.lastAddedMonth === dnesniMesicStr) return false
   return dnes.getDate() >= r.dayOfMonth
+}
+
+/** Kdy tahle opakující se platba příště doopravdy pohne penězi — stejná
+ *  úvaha jako melaByBytPridanaDnes (lastAddedMonth rozhoduje, ne
+ *  porovnání dnešního data proti dayOfMonth samotnému): pokud appka
+ *  tenhle měsíc platbu ještě nepřidala, "příště" je tenhle měsíc
+ *  (ať už dayOfMonth teprve přijde, nebo už prošel a appka to jen ještě
+ *  nestihla zaznamenat — v obou případech je to ta samá, ještě
+ *  nezaúčtovaná splátka). Jinak už je jistě zaúčtovaná a příští je až
+ *  měsíc poté. */
+export const datumPristiSplatky = (r: RecurringTransaction, dnes: Date): Date => {
+  const rok = dnes.getFullYear()
+  const mesic = dnes.getMonth()
+  const dnesniMesicStr = `${rok}-${String(mesic + 1).padStart(2, '0')}`
+  if (r.lastAddedMonth !== dnesniMesicStr) return new Date(rok, mesic, r.dayOfMonth)
+  return new Date(rok, mesic + 1, r.dayOfMonth)
+}
+
+export interface PredpovedPolozka {
+  recurring: RecurringTransaction
+  /** 'YYYY-MM-DD' — stejný zápis data jako Transaction.date, ne Date
+   *  objekt, ať appka nikde nemusí řešit časové pásmo při zobrazení. */
+  datum: string
+  /** Odhadovaný zůstatek PO tom, co tahle platba proběhne — postupně
+   *  narůstá/klesá napříč seřazenou předpovědí, ne nezávisle počítaný
+   *  od nuly, ať se každá další položka počítá od skutečnosti té
+   *  předchozí. */
+  zustatekPo: number
+}
+
+/** Předpověď zůstatku podle nadcházejících AKTIVNÍCH opakujících se
+ *  plateb, seřazená chronologicky od nejbližší — kolik peněz zbyde po
+ *  každé z nich, počínaje skutečným aktuálním zůstatkem. Čistá funkce,
+ *  testovatelná bez store; appka jí musí předat aktuální zůstatek sama
+ *  (useFinance.ts's zustatek/zustatekCelkem), stejné dělení
+ *  zodpovědnosti jako spocitejStavCile o pár řádků výš. */
+export const spocitejPredpovedCashflow = (
+  recurring: RecurringTransaction[],
+  aktualniZustatek: number,
+  dnes: Date = new Date(),
+  pocetPolozek: number = 5
+): PredpovedPolozka[] => {
+  const serazene = recurring
+    .filter((r) => r.active && !r.deletedAt)
+    .map((r) => ({ r, datum: datumPristiSplatky(r, dnes) }))
+    .sort((a, b) => a.datum.getTime() - b.datum.getTime())
+    .slice(0, pocetPolozek)
+
+  let bezici = aktualniZustatek
+  return serazene.map(({ r, datum }) => {
+    bezici += r.type === 'prijem' ? r.amount : -r.amount
+    return { recurring: r, datum: datum.toISOString().slice(0, 10), zustatekPo: bezici }
+  })
 }
 
 // ==========================================

@@ -31,6 +31,25 @@ describe('nahradVTextu', () => {
   it('nahrazení za prázdný text výskyty jen odstraní', () => {
     expect(nahradVTextu('a-b-a-c', 'a', '')).toEqual({ text: '-b--c', pocet: 2 })
   })
+
+  it('hledá bez ohledu na velikost písmen, stejně jako Osnovino vlastní hledání', () => {
+    // Regresní test na reálný bug: hledání v Osnově je case-insensitive
+    // (obsahujeDotaz), takže dotaz "petr" najde "Petr" — ale nahradit
+    // vše dřív hledalo přesnou shodu a tiše nenahradilo nic.
+    const { text, pocet } = nahradVTextu('Petr a PETR a petr.', 'petr', 'Karel')
+    expect(pocet).toBe(3)
+    expect(text).toBe('Karel a Karel a Karel.')
+  })
+
+  it('ořízne jen hledaný výraz (stejně jako Osnovino hledání), ne to, čím se nahrazuje', () => {
+    // Omylem přidaná mezera na konci hledaného výrazu (typický "stray
+    // trailing space" z popisu bugu) pořád najde shodu, protože se
+    // hledat ořezává stejně jako u obsahujeDotaz. Nahradit se neořezává
+    // vůbec — jeho vlastní mezery projdou beze změny.
+    const { text, pocet } = nahradVTextu('kočka', ' kočka ', '  pes  ')
+    expect(pocet).toBe(1)
+    expect(text).toBe('  pes  ')
+  })
 })
 
 describe('odhadCteniMinut (Kniha)', () => {

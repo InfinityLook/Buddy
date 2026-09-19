@@ -6,15 +6,17 @@ import {
   oznaceniZaberu,
   serazenoPodleUpravy,
   sestavTextKomiksu,
+  shrnutiKomiksu,
   TYPY_ZABERU,
   TypRadku,
   TypZaberu,
   ziskejPostavy,
 } from './types'
+import { sanitizujKomiks } from '@/core/utils/comicWriterValidation'
 import { plural } from '@/core/utils/pluralCZ'
 import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { formatujNaposledyUpraveno } from '@/flagships/writer-room/writerRoomFormat'
-import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky } from '@/flagships/writer-room/writerRoomStav'
+import { dalsiStav, emojiStavu, oznaceniStavu, StavPolozky, STAVY_POLOZEK } from '@/flagships/writer-room/writerRoomStav'
 import { najdiUryvek, obsahujeDotaz } from '@/flagships/writer-room/writerRoomSearch'
 import { najdiNaduzivanaSlova } from '@/flagships/writer-room/writerRoomStyl'
 import {
@@ -198,6 +200,13 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
   const [osnovaOtevrena, setOsnovaOtevrena] = useState(false)
   const [zalohyOtevreny, setZalohyOtevreny] = useState(false)
   const [fokusRezim, setFokusRezim] = useState(false)
+  // Zlatý papír pro Komiks (VIP) — stejný mechanismus jako Kniha's/
+  // Scénář's vlastní pergamenRezim, jen nad Komiksovými panelovými
+  // kartami aktivní strany, ne nad textarea/"papírem". Čistě vizuální,
+  // na relaci, nepřežije zavření appky.
+  const [pergamenRezim, setPergamenRezim] = useState(false)
+  const [zpravaZlatyPapir, setZpravaZlatyPapir] = useState<string | null>(null)
+  const smiVip = useHasPermission('cosmetics.premium')
 
   // Úprava existujícího panelu/řádku sdílí stejný formulář jako
   // přidávání nového — tahle dvě id říkají, jestli je aktuálně otevřený
@@ -212,6 +221,14 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
 
   const pridatStranu = () => {
     addStrana(komiks.id)
+  }
+
+  const kliknutoNaPergamen = () => {
+    if (!smiVip) {
+      setZpravaZlatyPapir('Zlatý papír je jen pro VIP.')
+      return
+    }
+    setPergamenRezim((p) => !p)
   }
 
   const pridatPanel = () => {
@@ -347,7 +364,16 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
         <button className="cw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
           {fokusRezim ? '🎯 Zpět z fokusu' : '🎯 Fokus'}
         </button>
+        <button
+          className={`cw-nahled-btn${!smiVip ? ' je-zamceno' : ''}`}
+          onClick={kliknutoNaPergamen}
+          aria-pressed={pergamenRezim}
+        >
+          {smiVip ? '👑' : '🔒'} {pergamenRezim ? 'Zpět z pergamenu' : 'Zlatý papír'}
+        </button>
       </div>
+
+      {zpravaZlatyPapir && <p className="cw-prazdno">{zpravaZlatyPapir}</p>}
 
       {cilProcenta !== null && (
         <div className="cw-cil-lista" role="progressbar" aria-valuenow={cilProcenta} aria-valuemin={0} aria-valuemax={100}>
@@ -444,7 +470,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
           {aktivniStrana.panely.length === 0 && <p className="cw-prazdno">Strana zatím nemá žádný panel.</p>}
 
           {aktivniStrana.panely.map((p, i) => (
-            <div className="cw-panel-card" key={p.id}>
+            <div className={`cw-panel-card${pergamenRezim ? ' cw-panel-card--zlaty' : ''}`} key={p.id}>
               <div className="cw-panel-head">
                 <span>
                   <span className="cw-panel-num">{i + 1}</span>
@@ -687,6 +713,10 @@ const KomiksOsnova: React.FC<{
   const [vysledekNahrazeni, setVysledekNahrazeni] = useState<number | null>(null)
   const [otevrenaPostava, setOtevrenaPostava] = useState<string | null>(null)
   const [naduzivanaOtevrena, setNaduzivanaOtevrena] = useState(false)
+  // null = "Vše" (bez filtru), stejný postup jako Kniha's KnihaOsnova/
+  // Scénář's ScenarOsnova — appka filtruje podle stavu STRANY, ne
+  // jednotlivého panelu (stav žádný panel sám o sobě nemá).
+  const [filtrStav, setFiltrStav] = useState<StavPolozky | null>(null)
   const postavy = ziskejPostavy(komiks)
 
   const provestNahrazeni = () => {
@@ -706,7 +736,7 @@ const KomiksOsnova: React.FC<{
         : []
       return { strana: s, panelySeZasahem, odpovida: dotaz === '' || panelySeZasahem.length > 0 || obsahujeDotaz(s.stitky, dotaz) }
     })
-    .filter(({ odpovida }) => odpovida)
+    .filter(({ odpovida, strana }) => odpovida && (filtrStav === null || strana.stav === filtrStav))
 
   const naduzivana = najdiNaduzivanaSlova(
     komiks.strany.flatMap((s) => s.panely.flatMap((p) => [p.vizual, ...p.radky.map((r) => r.text)]))
@@ -740,6 +770,26 @@ const KomiksOsnova: React.FC<{
         }}
         autoFocus
       />
+
+      <div className="cw-chip-row" role="group" aria-label="Filtrovat podle stavu">
+        <button
+          type="button"
+          className={`cw-chip${filtrStav === null ? ' active' : ''}`}
+          onClick={() => setFiltrStav(null)}
+        >
+          Vše
+        </button>
+        {STAVY_POLOZEK.map((s) => (
+          <button
+            key={s.id}
+            type="button"
+            className={`cw-chip${filtrStav === s.id ? ' active' : ''}`}
+            onClick={() => setFiltrStav(filtrStav === s.id ? null : s.id)}
+          >
+            {s.emoji} {s.label}
+          </button>
+        ))}
+      </div>
 
       <button className="cw-nahled-btn" onClick={() => setNahraditFormOtevren((f) => !f)}>
         🔁 Nahradit
@@ -812,7 +862,7 @@ const KomiksOsnova: React.FC<{
 
       <div className="cw-seznam">
         {stranyKZobrazeni.length === 0 && (
-          <p className="cw-prazdno">{dotaz ? 'Nic se nenašlo.' : 'Komiks zatím nemá žádnou stranu.'}</p>
+          <p className="cw-prazdno">{dotaz || filtrStav ? 'Nic se nenašlo.' : 'Komiks zatím nemá žádnou stranu.'}</p>
         )}
         {stranyKZobrazeni.map(({ strana: s, panelySeZasahem }) => (
           <div key={s.id}>
@@ -851,6 +901,9 @@ const KomiksZalohy: React.FC<{
   const [zprava, setZprava] = useState<string | null>(null)
   const smiVip = useHasPermission('cosmetics.premium')
   const strop = smiVip ? MAX_CHECKPOINTU_NA_DILO_VIP : MAX_CHECKPOINTU_NA_DILO
+  // Stejný "rozbal a ukaž náhled, teprve pak nabídni skutečné
+  // obnovení" postup jako Kniha's KnihaZalohy/Scénář's ScenarZalohy.
+  const [rozbalenyId, setRozbalenyId] = useState<string | null>(null)
 
   const seznam = checkpointyProDilo(checkpointy, 'komiks', komiks.id)
 
@@ -863,6 +916,7 @@ const KomiksZalohy: React.FC<{
   const obnovit = (nazev: string, data: unknown) => {
     if (!window.confirm(`Obnovit komiks ze zálohy „${nazev}“? Aktuální stav stran se přepíše.`)) return
     setZprava(obnovZeCheckpointu(komiks.id, data) ? 'Verze obnovena.' : 'Nepovedlo se obnovit — záloha je poškozená.')
+    setRozbalenyId(null)
   }
 
   return (
@@ -899,17 +953,35 @@ const KomiksZalohy: React.FC<{
 
       <div className="cw-seznam">
         {seznam.length === 0 && <p className="cw-prazdno">Zatím žádná ruční záloha tohohle komiksu.</p>}
-        {seznam.map((c) => (
-          <div className="cw-radek" key={c.id}>
-            <button className="cw-radek-otevrit" onClick={() => obnovit(c.nazev, c.data)}>
-              <strong>{c.nazev}</strong>
-              <span>{formatujNaposledyUpraveno(c.createdAt)}</span>
-            </button>
-            <button className="cw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
-              ✕
-            </button>
-          </div>
-        ))}
+        {seznam.map((c) => {
+          const rozbaleno = rozbalenyId === c.id
+          const nahled = sanitizujKomiks(c.data)
+          return (
+            <div className="cw-radek-wrap" key={c.id}>
+              <div className="cw-radek">
+                <button
+                  className="cw-radek-otevrit"
+                  onClick={() => setRozbalenyId(rozbaleno ? null : c.id)}
+                  aria-expanded={rozbaleno}
+                >
+                  <strong>{c.nazev}</strong>
+                  <span>{formatujNaposledyUpraveno(c.createdAt)}</span>
+                </button>
+                <button className="cw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
+                  ✕
+                </button>
+              </div>
+              {rozbaleno && (
+                <div className="cw-checkpoint-nahled">
+                  <span>{nahled ? shrnutiKomiksu(nahled) : 'Tahle záloha je poškozená.'}</span>
+                  <button className="cw-ulozit-btn" disabled={!nahled} onClick={() => obnovit(c.nazev, c.data)}>
+                    ↺ Obnovit tuto verzi
+                  </button>
+                </div>
+              )}
+            </div>
+          )
+        })}
       </div>
     </div>
   )

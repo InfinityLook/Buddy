@@ -6,6 +6,7 @@ import {
   spocitejSeriiTreninku,
   spocitejTreninkovychDniZaTyden,
   spocitejAktivituPodleDne,
+  tydenniKlic,
 } from '@/flagships/fitness-room/fitnessStats'
 import { KCAL_ZA_OPAKOVANI, sestavCsvSezeni } from '@/miniapps/form-check/types'
 import type { Sezeni, TypCviku } from '@/miniapps/form-check/types'
@@ -157,6 +158,27 @@ describe('spocitejAktivituPodleDne', () => {
     const dnes = new Date()
     const dny = spocitejAktivituPodleDne([sezeni(5, 120, dnes)], 3)
     expect(dny[dny.length - 1].minutTreninku).toBe(2)
+  })
+})
+
+describe('tydenniKlic', () => {
+  it('vrátí stejný klíč pro dva dny stejného ISO týdne', () => {
+    // Pondělí a pátek stejného týdne (10.–14. června 2024).
+    expect(tydenniKlic(new Date('2024-06-10T08:00:00'))).toBe(tydenniKlic(new Date('2024-06-14T20:00:00')))
+  })
+
+  it('vrátí jiný klíč pro sousední týdny', () => {
+    expect(tydenniKlic(new Date('2024-06-10T12:00:00'))).not.toBe(tydenniKlic(new Date('2024-06-17T12:00:00')))
+  })
+
+  it('má tvar RRRR-Wtt', () => {
+    expect(tydenniKlic(new Date('2024-06-10T12:00:00'))).toMatch(/^\d{4}-W\d{2}$/)
+  })
+
+  it('přelom roku patří správnému týdnu podle ISO 8601 (první čtvrtek)', () => {
+    // 1. leden 2024 je pondělí, takže patří do týdne 1 roku 2024, ne
+    // do posledního týdne roku 2023.
+    expect(tydenniKlic(new Date('2024-01-01T12:00:00'))).toBe('2024-W01')
   })
 })
 

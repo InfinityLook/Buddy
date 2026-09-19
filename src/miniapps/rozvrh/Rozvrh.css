@@ -159,6 +159,17 @@
   font-size: 0.85rem;
 }
 
+.rozvrh-form-kolize {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-magenta) 16%, transparent);
+  border: 1px solid var(--accent-magenta);
+  color: var(--text-primary);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
 .rozvrh-form-akce {
   display: flex;
   gap: 0.6rem;

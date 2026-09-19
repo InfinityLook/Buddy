@@ -24,9 +24,13 @@ import {
   minulyMesic as minulyMesicZTypu,
   patriDoObdobi as patriDoObdobiZTypu,
   rozdelPodleKategorie as rozdelPodleKategorieZTypu,
+  rozpoctyKUpozorneni,
+  sestavPresunTransakci,
+  soucetPocatecnichZustatku as soucetPocatecnichZustatkuZTypu,
   spocitejMesicniTrend,
   spocitejStavCile,
   spocitejStavRozpoctu,
+  zustatekZTransakci,
 } from './types'
 
 // Re-exportováno pro zpětnou kompatibilitu volajících uvnitř appky
@@ -56,7 +60,13 @@ interface FinanceState {
   updateTransaction: (id: string, input: NewTransaction) => void
   deleteTransaction: (id: string) => void
 
-  addWallet: (name: string, icon: string | null) => void
+  /** Přesun peněz mezi dvěma vlastními peněženkami — zapíše se jako
+   *  dvě propojené transakce (viz sestavPresunTransakci v types.ts),
+   *  ne jako přímá úprava zůstatku, ať appka nemusí mít druhou,
+   *  paralelní cestu k tomu, jak se zůstatek peněženky vůbec mění. */
+  presunMeziPenezenkami: (zPenezenkyId: string, doPenezenkyId: string, castka: number, poznamka: string) => void
+
+  addWallet: (name: string, icon: string | null, pocatecniZustatek?: number) => void
   updateWallet: (id: string, name: string, icon: string | null) => void
   deleteWallet: (id: string) => void
 
@@ -84,7 +94,37 @@ interface FinanceState {
 
 const useFinanceStore = create<FinanceState>()(
   persist(
-    (set, get) => ({
+    (set, get) => {
+      // Sdílená kontrola po přidání výdajové transakce (ruční i
+      // automatické opakující se platbě) — jedna funkce, ne zkopírovaná
+      // logika na obou volajících místech, ať se náhodou nerozejdou.
+      const zkontrolujPrekroceneRozpocty = () => {
+        const state = get()
+        const dnesniMesicStr = dnesniMesicZTypu()
+        const transakceTohotoMesice = state.transactions.filter(
+          (t) => !t.deletedAt && !t.presunId && t.date.slice(0, 7) === dnesniMesicStr
+        )
+        const prekrocene = rozpoctyKUpozorneni(state.budgets, transakceTohotoMesice, dnesniMesicStr)
+        if (prekrocene.length === 0) return
+
+        set((s) => ({
+          budgets: s.budgets.map((b) =>
+            prekrocene.some((p) => p.budget.id === b.id)
+              ? { ...b, lastExceededNotifiedMonth: dnesniMesicStr }
+              : b
+          ),
+        }))
+
+        prekrocene.forEach((p) => {
+          void showAppNotification(
+            '⚠️ Rozpočet překročen',
+            `${p.budget.category}: ${p.utraceno.toLocaleString('cs-CZ')} Kč z ${p.budget.limitKc.toLocaleString('cs-CZ')} Kč limitu.`,
+            `finance-budget-${p.budget.id}`
+          )
+        })
+      }
+
+      return {
       transactions: [],
       wallets: [],
       budgets: [],
@@ -104,6 +144,7 @@ const useFinanceStore = create<FinanceState>()(
               receiptMime: input.receiptMime ?? null,
               updatedAt: Date.now(),
               deletedAt: null,
+              presunId: null,
             },
           ],
         }))
@@ -112,6 +153,8 @@ const useFinanceStore = create<FinanceState>()(
         // šlo, aby se rozešly a odznak "Rozpočtář" se odemkl v jiný
         // okamžik, než kolik transakcí uživatel doopravdy zapsal.
         useGamificationStore.getState().recordAction('transaction', XP_PER_TRANSACTION)
+
+        zkontrolujPrekroceneRozpocty()
       },
 
       // Úprava záznamu XP nedává — jinak by šlo body vydělávat tím, že se
@@ -127,20 +170,62 @@ const useFinanceStore = create<FinanceState>()(
       // Měkké smazání — viz types.ts's komentář u Transaction.deletedAt.
       // Skutečné odstranění z pole by cloudové synchronizaci nedalo nic,
       // co by mohla poslat ostatním zařízením jako "tohle je pryč".
+      // Smazání jedné poloviny přesunu (presunId) smaže i tu druhou —
+      // jinak by ve druhé peněžence zůstal osamocený "příjem"/"výdaj"
+      // bez páru, který jí ve skutečnosti nikdy nepatřil.
       deleteTransaction: (id) => {
-        set((state) => ({
-          transactions: state.transactions.map((t) =>
-            t.id === id ? { ...t, deletedAt: Date.now(), updatedAt: Date.now() } : t
-          ),
-        }))
+        set((state) => {
+          const mazana = state.transactions.find((t) => t.id === id)
+          const ted = Date.now()
+          return {
+            transactions: state.transactions.map((t) => {
+              const jePar = mazana?.presunId && t.presunId === mazana.presunId
+              if (t.id === id || jePar) return { ...t, deletedAt: ted, updatedAt: ted }
+              return t
+            }),
+          }
+        })
       },
 
-      addWallet: (name, icon) => {
+      presunMeziPenezenkami: (zPenezenkyId, doPenezenkyId, castka, poznamka) => {
+        if (!Number.isFinite(castka) || castka <= 0) return
+        if (zPenezenkyId === doPenezenkyId) return
+        const state = get()
+        const zPenezenky = state.wallets.find((w) => w.id === zPenezenkyId && !w.deletedAt)
+        const doPenezenky = state.wallets.find((w) => w.id === doPenezenkyId && !w.deletedAt)
+        if (!zPenezenky || !doPenezenky) return
+
+        const presunId = noveId()
+        const [vydaj, prijem] = sestavPresunTransakci(zPenezenky, doPenezenky, Math.round(castka), poznamka, presunId)
+        const ted = new Date().toISOString()
+        const spolecne = {
+          date: ted.slice(0, 10),
+          createdAt: ted,
+          receiptId: null,
+          receiptMime: null,
+          updatedAt: Date.now(),
+          deletedAt: null,
+        }
+        set((s) => ({
+          transactions: [
+            ...s.transactions,
+            { ...vydaj, ...spolecne, id: noveId() },
+            { ...prijem, ...spolecne, id: noveId() },
+          ],
+        }))
+        // Přesun se schválně nepočítá jako "napsaná transakce" pro XP/
+        // odznak Rozpočtář (recordAction('transaction', …)) — přehazování
+        // peněz mezi vlastními peněženkami dokola by jinak byl snadný
+        // způsob, jak farmit XP bez jediné skutečné finanční aktivity.
+      },
+
+      addWallet: (name, icon, pocatecniZustatek = 0) => {
         if (!name.trim()) return
         const nova: Wallet = {
           id: noveId(),
           name: name.trim(),
           icon,
+          pocatecniZustatek: Number.isFinite(pocatecniZustatek) ? pocatecniZustatek : 0,
           createdAt: new Date().toISOString(),
           updatedAt: Date.now(),
           deletedAt: null,
@@ -292,6 +377,7 @@ const useFinanceStore = create<FinanceState>()(
           receiptMime: null,
           updatedAt: Date.now(),
           deletedAt: null,
+          presunId: null,
         }))
 
         set((s) => ({
@@ -314,8 +400,13 @@ const useFinanceStore = create<FinanceState>()(
             : `${dueRecurring.length} plateb přidáno automaticky.`,
           'finance-recurring'
         )
+
+        // Automaticky přidaná platba může rozpočet překročit stejně
+        // jako ručně zadaná — appka kontroluje na obou místech.
+        zkontrolujPrekroceneRozpocty()
       },
-    }),
+      }
+    },
     {
       name: 'schoolbuddy-finance-storage',
       // IndexedDB, ne secureStorage — viz core/utils/indexedDbStorage.ts's
@@ -377,6 +468,7 @@ export const useFinance = () => {
     addTransaction,
     updateTransaction,
     deleteTransaction,
+    presunMeziPenezenkami,
     addWallet,
     updateWallet,
     deleteWallet,
@@ -427,43 +519,68 @@ export const useFinance = () => {
       .sort((a, b) => (a.date === b.date ? b.createdAt.localeCompare(a.createdAt) : b.date.localeCompare(a.date)))
   }, [obdobiTransactions, typFiltr])
 
-  // Skutečný zůstatek se počítá ze VŠECH transakcí zvolené peněženky,
-  // bez ohledu na zvolené období — jinak by "Minulý měsíc" ukazoval
-  // zůstatek, který nikdy doopravdy neplatil.
-  const zustatek = useMemo(
-    () =>
-      penezenkoveTransactions.reduce((sum, t) => sum + (t.type === 'prijem' ? t.amount : -t.amount), 0),
-    [penezenkoveTransactions]
+  // Přesuny mezi vlastními peněženkami (Transaction.presunId) appka dál
+  // ukazuje v seznamu (seznam výš) — uživatel je má vidět a jít smazat —
+  // ale nesmí se počítat do "kolik jsem vydělal/utratil", grafu podle
+  // kategorie ani rozpočtů, jinak by přeložení peněz ze spoření na běžný
+  // účet vypadalo jako dalších pár tisíc příjmů i výdajů zároveň. Na
+  // zůstatek peněženky (zustatek/zustatekCelkem výš) naopak vliv MÍT
+  // musí — peníze doopravdy z jedné peněženky zmizely a v druhé přibyly.
+  const obdobiTransactionsBezPresunu = useMemo(
+    () => obdobiTransactions.filter((t) => !t.presunId),
+    [obdobiTransactions]
   )
 
+  // Součet počátečních zůstatků všech (nesmazaných) peněženek — kolik
+  // appka "zdědila" už při založení, ne z vlastních transakcí. Bez
+  // téhle hodnoty by hotovost/účet, co uživatel měl už před tím, než
+  // appku vůbec začal používat, nikdy nešla zapsat jinak než falešnou
+  // "počáteční" transakcí.
+  const soucetPocatecnich = useMemo(() => soucetPocatecnichZustatkuZTypu(wallets), [wallets])
+
+  // Skutečný zůstatek se počítá ze VŠECH transakcí zvolené peněženky,
+  // bez ohledu na zvolené období — jinak by "Minulý měsíc" ukazoval
+  // zůstatek, který nikdy doopravdy neplatil. K součtu transakcí se
+  // připočítá i počáteční zůstatek — buď jen vybrané peněženky (filtr
+  // aktivní), nebo součet za všechny (souhrnný pohled).
+  const zustatek = useMemo(() => {
+    const pocatecni = aktivniPenezenkaId
+      ? (wallets.find((w) => w.id === aktivniPenezenkaId)?.pocatecniZustatek ?? 0)
+      : soucetPocatecnich
+    return zustatekZTransakci(penezenkoveTransactions, pocatecni)
+  }, [penezenkoveTransactions, aktivniPenezenkaId, wallets, soucetPocatecnich])
+
   const prijmyObdobi = useMemo(
-    () => obdobiTransactions.filter((t) => t.type === 'prijem').reduce((s, t) => s + t.amount, 0),
-    [obdobiTransactions]
+    () => obdobiTransactionsBezPresunu.filter((t) => t.type === 'prijem').reduce((s, t) => s + t.amount, 0),
+    [obdobiTransactionsBezPresunu]
   )
   const vydajeObdobi = useMemo(
-    () => obdobiTransactions.filter((t) => t.type === 'vydaj').reduce((s, t) => s + t.amount, 0),
-    [obdobiTransactions]
+    () => obdobiTransactionsBezPresunu.filter((t) => t.type === 'vydaj').reduce((s, t) => s + t.amount, 0),
+    [obdobiTransactionsBezPresunu]
   )
 
   const kategorieVydaje = useMemo(
-    () => rozdelPodleKategorie(obdobiTransactions.filter((t) => t.type === 'vydaj')),
-    [obdobiTransactions]
+    () => rozdelPodleKategorie(obdobiTransactionsBezPresunu.filter((t) => t.type === 'vydaj')),
+    [obdobiTransactionsBezPresunu]
   )
   const kategoriePrijmy = useMemo(
-    () => rozdelPodleKategorie(obdobiTransactions.filter((t) => t.type === 'prijem')),
-    [obdobiTransactions]
+    () => rozdelPodleKategorie(obdobiTransactionsBezPresunu.filter((t) => t.type === 'prijem')),
+    [obdobiTransactionsBezPresunu]
   )
 
   const mesicniTrend = useMemo(
-    () => spocitejMesicniTrend(penezenkoveTransactions),
+    () => spocitejMesicniTrend(penezenkoveTransactions.filter((t) => !t.presunId)),
     [penezenkoveTransactions]
   )
 
   // Rozpočty se vždycky porovnávají proti AKTUÁLNÍMU měsíci, napříč
   // všemi peněženkami — rozpočet je koncept "kolik utrácím na jídlo
-  // celkem", ne "kolik utrácím z týhle jedné peněženky".
+  // celkem", ne "kolik utrácím z týhle jedné peněženky". Přesuny mezi
+  // peněženkami se nepočítají (viz komentář u obdobiTransactionsBezPresunu
+  // výš) — jinak by přesun 2000 Kč zaúčtovaný jako "Ostatní výdaj" mohl
+  // sám o sobě spustit upozornění na překročený rozpočet.
   const tentoMesicVsechnyPenezenky = useMemo(
-    () => transactions.filter((t) => patriDoObdobi(t, 'tento-mesic')),
+    () => transactions.filter((t) => patriDoObdobi(t, 'tento-mesic') && !t.presunId),
     [transactions]
   )
   const budgetStavy = useMemo(
@@ -472,8 +589,8 @@ export const useFinance = () => {
   )
 
   const zustatekCelkem = useMemo(
-    () => transactions.reduce((sum, t) => sum + (t.type === 'prijem' ? t.amount : -t.amount), 0),
-    [transactions]
+    () => zustatekZTransakci(transactions, soucetPocatecnich),
+    [transactions, soucetPocatecnich]
   )
   const goalStavy = useMemo(
     (): GoalStav[] => goals.map((g) => spocitejStavCile(g, zustatekCelkem)),
@@ -496,6 +613,15 @@ export const useFinance = () => {
     obdobiFiltr,
     setObdobiFiltr,
     zustatek,
+    // Zůstatek napříč všemi peněženkami, ne jen tou právě vybranou —
+    // goalStavy (cíle) je z něj záměrně počítá, protože jeden finanční
+    // cíl nemá smysl škálovat podle toho, jestli má uživatel zrovna
+    // vybraný filtr na jednu konkrétní peněženku. Exportováno navíc k
+    // zustatek, ať si Finance.tsx u cílů může zobrazit přesně to samé
+    // číslo, ze kterého je počítaný progress bar (spocitejStavCile),
+    // ne to filtrované — jinak by se text a výplň pruhu u aktivního
+    // filtru mohly rozejít.
+    zustatekCelkem,
     prijmyObdobi,
     vydajeObdobi,
     kategorieVydaje,
@@ -512,6 +638,7 @@ export const useFinance = () => {
     addWallet,
     updateWallet,
     deleteWallet,
+    presunMeziPenezenkami,
 
     // Rozpočty
     budgets,

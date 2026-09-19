@@ -178,6 +178,7 @@ export const Finance: React.FC = () => {
     obdobiFiltr,
     setObdobiFiltr,
     zustatek,
+    zustatekCelkem,
     prijmyObdobi,
     vydajeObdobi,
     kategorieVydaje,
@@ -191,6 +192,7 @@ export const Finance: React.FC = () => {
     setAktivniPenezenkaId,
     addWallet,
     deleteWallet,
+    presunMeziPenezenkami,
     budgets,
     budgetStavy,
     addBudget,
@@ -218,6 +220,13 @@ export const Finance: React.FC = () => {
   const [receiptMime, setReceiptMime] = useState<string | null>(null)
   const [nahravaSeUctenka, setNahravaSeUctenka] = useState(false)
   const uctenkaInputRef = useRef<HTMLInputElement>(null)
+  // Účtenka, co je opravdu uložená na transakci v okamžik otevření
+  // formuláře (null pro nový záznam) — na rozdíl od receiptId (co jen
+  // odráží, co zrovna ukazuje formulář) se nemění, dokud se formulář
+  // nezavře. Díky tomu appka umí rozlišit "tohle nahrání ještě nikam
+  // neukazuje, klidně ho smaž hned" od "tohle je pořád ta skutečně
+  // uložená účtenka, nesahat na ni, dokud se úprava opravdu neuloží".
+  const povodniReceiptRef = useRef<string | null>(null)
 
   // Které z profesionálních sekcí (Peněženky/Rozpočty/Opakující se
   // platby/Cíle) je zrovna rozbalené — nezávislé accordiony, ne
@@ -228,6 +237,8 @@ export const Finance: React.FC = () => {
   const [otevrenoCile, setOtevrenoCile] = useState(false)
 
   const [novaPenezenka, setNovaPenezenka] = useState('')
+  const [novaPenezenkaZustatek, setNovaPenezenkaZustatek] = useState('')
+  const [presunForm, setPresunForm] = useState({ z: '', do_: '', castka: '', poznamka: '' })
   const [novyRozpocetKategorie, setNovyRozpocetKategorie] = useState<ExpenseCategory>(EXPENSE_CATEGORIES[0])
   const [novyRozpocetLimit, setNovyRozpocetLimit] = useState('')
   const [opakujiciForm, setOpakujiciForm] = useState({
@@ -252,6 +263,7 @@ export const Finance: React.FC = () => {
     setWalletId(aktivniPenezenkaId)
     setReceiptId(null)
     setReceiptMime(null)
+    povodniReceiptRef.current = null
     setEditingId('')
   }
 
@@ -264,10 +276,22 @@ export const Finance: React.FC = () => {
     setWalletId(t.walletId)
     setReceiptId(t.receiptId)
     setReceiptMime(t.receiptMime)
+    povodniReceiptRef.current = t.receiptId
     setEditingId(t.id)
   }
 
   const closeForm = () => setEditingId(null)
+
+  // Zahodí rozepsanou úpravu (zrušení, ne uložení) — jediné bezpečné
+  // místo pro smazání nahrání, co zrovna ukazuje formulář, JEN pokud
+  // se od skutečně uložené účtenky liší (= appka ho sama zrovna
+  // nahrála a nikam ho nepřipojila). Skutečně uloženou účtenku
+  // (povodniReceiptRef.current) tady appka nikdy nemaže — ta pořád
+  // patří k transakci přesně tak, jak byla predtím.
+  const handleCancelForm = () => {
+    if (receiptId && receiptId !== povodniReceiptRef.current) void deleteFileBlob(receiptId)
+    closeForm()
+  }
 
   const zmenType = (novy: TransactionType) => {
     setType(novy)
@@ -301,9 +325,15 @@ export const Finance: React.FC = () => {
         await putFileBlob(novaId, soubor)
       }
 
-      // Stará účtenka (pokud se právě nahrazuje) se uvolní, ať v
-      // IndexedDB nezůstane osiřelý blob, na který už nic neukazuje.
-      if (receiptId) void deleteFileBlob(receiptId)
+      // Předchozí nahrání (pokud se právě nahrazuje podruhé ve stejné
+      // úpravě) se uvolní hned, jen když ještě nikam skutečně
+      // neukazuje — appka ho sama nahrála o chvíli dřív a nic jiného
+      // na něj neodkazuje. Skutečně uloženou účtenku appka nemaže tady
+      // vůbec — ta se uvolní teprve po opravdovém uložení (handleSubmit)
+      // nebo zůstane beze změny při zrušení (handleCancelForm), jinak
+      // by zavření formuláře bez uložení nechalo transakci ukazovat na
+      // právě smazaný blob.
+      if (receiptId && receiptId !== povodniReceiptRef.current) void deleteFileBlob(receiptId)
 
       setReceiptId(novaId)
       setReceiptMime(soubor.type || null)
@@ -315,7 +345,7 @@ export const Finance: React.FC = () => {
   }
 
   const odebratUctenku = () => {
-    if (receiptId) void deleteFileBlob(receiptId)
+    if (receiptId && receiptId !== povodniReceiptRef.current) void deleteFileBlob(receiptId)
     setReceiptId(null)
     setReceiptMime(null)
   }
@@ -328,14 +358,26 @@ export const Finance: React.FC = () => {
     const input = { type, amount: castka, category, note: note.trim(), date, walletId, receiptId, receiptMime }
     if (editingId) updateTransaction(editingId, input)
     else addTransaction(input)
+    // Uložení je teď potvrzené — teprve teď je bezpečné uvolnit
+    // skutečně nahrazenou/odebranou původní účtenku.
+    if (povodniReceiptRef.current && povodniReceiptRef.current !== receiptId) {
+      void deleteFileBlob(povodniReceiptRef.current)
+    }
     closeForm()
   }
 
   const handleDelete = (t: Transaction) => {
-    if (window.confirm(`Smazat záznam „${t.note || t.category}“?`)) {
+    const potvrzeni = t.presunId
+      ? 'Smazat přesun? Zmizí obě jeho poloviny (výdaj i příjem) z obou peněženek.'
+      : `Smazat záznam „${t.note || t.category}“?`
+    if (window.confirm(potvrzeni)) {
       // Účtenka je čistě lokální soubor — smazáním transakce zmizí
       // i ona, ne že by v IndexedDB zůstal osiřelý blob navždy.
       if (t.receiptId) void deleteFileBlob(t.receiptId)
+      // Pokud se zrovna upravovala tahle transakce a formulář mezitím
+      // stihl nahrát novou, ještě neuloženou účtenku, ta by jinak
+      // zůstala osiřelá — transakce, ke které měla patřit, právě mizí.
+      if (editingId === t.id && receiptId && receiptId !== t.receiptId) void deleteFileBlob(receiptId)
       deleteTransaction(t.id)
       if (editingId === t.id) closeForm()
     }
@@ -349,8 +391,19 @@ export const Finance: React.FC = () => {
   const pridatPenezenku = (e: React.FormEvent) => {
     e.preventDefault()
     if (!novaPenezenka.trim()) return
-    addWallet(novaPenezenka, null)
+    const zustatek = Number(novaPenezenkaZustatek)
+    addWallet(novaPenezenka, null, Number.isFinite(zustatek) ? zustatek : 0)
     setNovaPenezenka('')
+    setNovaPenezenkaZustatek('')
+  }
+
+  const provestPresun = (e: React.FormEvent) => {
+    e.preventDefault()
+    const castka = Number(presunForm.castka)
+    if (!presunForm.z || !presunForm.do_ || presunForm.z === presunForm.do_) return
+    if (!Number.isFinite(castka) || castka <= 0) return
+    presunMeziPenezenkami(presunForm.z, presunForm.do_, castka, presunForm.poznamka)
+    setPresunForm({ z: '', do_: '', castka: '', poznamka: '' })
   }
 
   const pridatRozpocet = (e: React.FormEvent) => {
@@ -401,7 +454,7 @@ export const Finance: React.FC = () => {
           <button className="fin-csv-btn" onClick={exportCsv} disabled={seznam.length === 0} aria-label="Export do CSV">
             ⬇ CSV
           </button>
-          <button className="fin-add-btn" onClick={isFormOpen ? closeForm : openAdd}>
+          <button className="fin-add-btn" onClick={isFormOpen ? handleCancelForm : openAdd}>
             {isFormOpen ? '✕' : '+ Záznam'}
           </button>
         </div>
@@ -530,20 +583,84 @@ export const Finance: React.FC = () => {
             {wallets.length === 0 && <p className="fin-empty fin-empty--mala">Zatím žádné peněženky.</p>}
             {wallets.map((w) => (
               <div key={w.id} className="fin-sprava-radek">
-                <span>{w.name}</span>
+                <span>
+                  {w.name}
+                  {w.pocatecniZustatek !== 0 && (
+                    <span className="fin-penezenka-pocatecni">
+                      {' '}
+                      (počáteční {formatKc(w.pocatecniZustatek)})
+                    </span>
+                  )}
+                </span>
                 <button className="fin-icon-btn danger" onClick={() => deleteWallet(w.id)} aria-label={`Smazat peněženku ${w.name}`}>
                   ✕
                 </button>
               </div>
             ))}
-            <form className="fin-mini-form" onSubmit={pridatPenezenku}>
+            <form className="fin-mini-form fin-mini-form--sloupec" onSubmit={pridatPenezenku}>
               <input
                 placeholder="Název (Hotovost, Účet…)"
                 value={novaPenezenka}
                 onChange={(e) => setNovaPenezenka(e.target.value)}
               />
+              <input
+                type="number"
+                placeholder="Počáteční zůstatek (Kč)"
+                value={novaPenezenkaZustatek}
+                onChange={(e) => setNovaPenezenkaZustatek(e.target.value)}
+              />
               <button type="submit">+ Přidat</button>
             </form>
+
+            {wallets.length >= 2 && (
+              <>
+                <p className="fin-mini-form-nadpis">🔁 Přesun mezi peněženkami</p>
+                <form className="fin-mini-form fin-mini-form--sloupec" onSubmit={provestPresun}>
+                  <div className="fin-form-row">
+                    <select
+                      value={presunForm.z}
+                      onChange={(e) => setPresunForm((f) => ({ ...f, z: e.target.value }))}
+                      aria-label="Z peněženky"
+                    >
+                      <option value="">Odkud…</option>
+                      {wallets.map((w) => (
+                        <option key={w.id} value={w.id}>
+                          {w.name}
+                        </option>
+                      ))}
+                    </select>
+                    <select
+                      value={presunForm.do_}
+                      onChange={(e) => setPresunForm((f) => ({ ...f, do_: e.target.value }))}
+                      aria-label="Do peněženky"
+                    >
+                      <option value="">Kam…</option>
+                      {wallets
+                        .filter((w) => w.id !== presunForm.z)
+                        .map((w) => (
+                          <option key={w.id} value={w.id}>
+                            {w.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                  <input
+                    type="number"
+                    placeholder="Částka (Kč)"
+                    value={presunForm.castka}
+                    onChange={(e) => setPresunForm((f) => ({ ...f, castka: e.target.value }))}
+                  />
+                  <input
+                    placeholder="Poznámka (nepovinné)"
+                    value={presunForm.poznamka}
+                    onChange={(e) => setPresunForm((f) => ({ ...f, poznamka: e.target.value }))}
+                  />
+                  <button type="submit" disabled={!presunForm.z || !presunForm.do_}>
+                    Přesunout
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         )}
       </section>
@@ -727,7 +844,9 @@ export const Finance: React.FC = () => {
                   />
                 </div>
                 <span className="fin-rozpocet-text">
-                  {formatKc(Math.max(0, zustatek))} z {formatKc(goal.targetAmount)} ({procenta} %)
+                  {/* zustatekCelkem, ne zustatek (peněženkou filtrovaný) — cíl je
+                      napříč peněženkami, stejné číslo jako progress bar výš (procenta). */}
+                  {formatKc(Math.max(0, zustatekCelkem))} z {formatKc(goal.targetAmount)} ({procenta} %)
                 </span>
               </div>
             ))}
@@ -881,7 +1000,7 @@ export const Finance: React.FC = () => {
         {seznam.map((t) => (
           <div key={t.id} className="fin-row">
             <span className="fin-row-icon" aria-hidden="true">
-              {CATEGORY_ICONS[t.category]}
+              {t.presunId ? '🔁' : CATEGORY_ICONS[t.category]}
             </span>
             <div className="fin-row-mid">
               <span className="fin-row-title">
@@ -889,7 +1008,7 @@ export const Finance: React.FC = () => {
                 {t.receiptId && <span className="fin-row-uctenka-znacka" aria-label="Má přiloženou účtenku"> 📎</span>}
               </span>
               <span className="fin-row-sub">
-                {t.category} · {formatDatum(t.date)}
+                {t.presunId ? 'Přesun mezi peněženkami' : t.category} · {formatDatum(t.date)}
                 {t.walletId && wallets.find((w) => w.id === t.walletId) && ` · ${wallets.find((w) => w.id === t.walletId)!.name}`}
               </span>
             </div>
@@ -898,9 +1017,15 @@ export const Finance: React.FC = () => {
               {formatKc(t.amount)}
             </span>
             <div className="fin-row-actions">
-              <button className="fin-icon-btn" onClick={() => openEdit(t)} aria-label={`Upravit ${t.category}`}>
-                ✏️
-              </button>
+              {/* Editace jedné poloviny přesunu by rozbila druhou, párovou
+                  polovinu (jiná částka na obou stranách by porušila
+                  "peníze jen přesunuté, ne vzniklé/zmizelé") — přesun jde
+                  jen smazat (obě poloviny naráz, viz deleteTransaction). */}
+              {!t.presunId && (
+                <button className="fin-icon-btn" onClick={() => openEdit(t)} aria-label={`Upravit ${t.category}`}>
+                  ✏️
+                </button>
+              )}
               <button
                 className="fin-icon-btn danger"
                 onClick={() => handleDelete(t)}

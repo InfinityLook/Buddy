@@ -3,9 +3,11 @@ import {
   bodyStrany,
   jePrknoSpravne,
   jeZadaNarovnana,
+  krokMelkehoPokusu,
   krokOpakovani,
   odklonTrupu,
   POCATECNI_STAV,
+  POCATECNI_STAV_MELKEHO_POKUSU,
   PRAHY_OPAKOVANI,
   uhelVeVrcholu,
   vyberViditelnejsiStranu,
@@ -126,5 +128,52 @@ describe('jeZadaNarovnana / odklonTrupu', () => {
   it('výrazný předklon narovnaný není', () => {
     // dx=2, dy=1 → atan2(2,1) ≈ 63,4°, jasně nad PRAH_NAROVNANI (45°).
     expect(jeZadaNarovnana(odklonTrupu(bod(2, 0), bod(0, 1)))).toBe(false)
+  })
+})
+
+describe('krokMelkehoPokusu', () => {
+  const DOLE = PRAHY_OPAKOVANI.dřep.dole // 110
+  const NAHORE = PRAHY_OPAKOVANI.dřep.nahore // 160
+
+  it('odsednutí blízko prahu dole (ale bez jeho překročení) a návrat nahoru se ohlásí jako mělký pokus', () => {
+    let stav = POCATECNI_STAV_MELKEHO_POKUSU
+    // 120 je v toleranci (110–130), nikdy nepřekročí 110.
+    ;({ stav } = krokMelkehoPokusu(stav, 'nahore', 120, DOLE, NAHORE))
+    const vysledek = krokMelkehoPokusu(stav, 'nahore', NAHORE, DOLE, NAHORE)
+    expect(vysledek.melkyPokusPraveTed).toBe(true)
+  })
+
+  it('mírné odsednutí, co se vůbec nepřiblíží prahu, se mělkým pokusem neohlásí', () => {
+    let stav = POCATECNI_STAV_MELKEHO_POKUSU
+    ;({ stav } = krokMelkehoPokusu(stav, 'nahore', 140, DOLE, NAHORE)) // daleko nad 110+20
+    const vysledek = krokMelkehoPokusu(stav, 'nahore', NAHORE, DOLE, NAHORE)
+    expect(vysledek.melkyPokusPraveTed).toBe(false)
+  })
+
+  it('skutečně dokončené opakování (faze dole) se nikdy neohlásí jako mělký pokus', () => {
+    const vysledek = krokMelkehoPokusu(POCATECNI_STAV_MELKEHO_POKUSU, 'dole', DOLE - 5, DOLE, NAHORE)
+    expect(vysledek.melkyPokusPraveTed).toBe(false)
+    expect(vysledek.stav).toEqual(POCATECNI_STAV_MELKEHO_POKUSU)
+  })
+
+  it('po skutečně dokončeném opakování se návrat nahoru neohlásí jako mělký pokus', () => {
+    // Dole (skutečné opakování), pak zpátky nahoru.
+    const poDole = krokMelkehoPokusu(POCATECNI_STAV_MELKEHO_POKUSU, 'dole', DOLE - 5, DOLE, NAHORE)
+    const vysledek = krokMelkehoPokusu(poDole.stav, 'nahore', NAHORE, DOLE, NAHORE)
+    expect(vysledek.melkyPokusPraveTed).toBe(false)
+  })
+
+  it('obyčejné stání nahoře (bez jakéhokoli odsednutí) se neohlásí', () => {
+    const vysledek = krokMelkehoPokusu(POCATECNI_STAV_MELKEHO_POKUSU, 'nahore', NAHORE, DOLE, NAHORE)
+    expect(vysledek.melkyPokusPraveTed).toBe(false)
+  })
+
+  it('sleduje nejnižší úhel napříč víc snímky, ne jen ten poslední', () => {
+    let stav = POCATECNI_STAV_MELKEHO_POKUSU
+    ;({ stav } = krokMelkehoPokusu(stav, 'nahore', 150, DOLE, NAHORE))
+    ;({ stav } = krokMelkehoPokusu(stav, 'nahore', 120, DOLE, NAHORE)) // nejhlubší bod
+    ;({ stav } = krokMelkehoPokusu(stav, 'nahore', 145, DOLE, NAHORE)) // cestou zpátky nahoru
+    const vysledek = krokMelkehoPokusu(stav, 'nahore', NAHORE, DOLE, NAHORE)
+    expect(vysledek.melkyPokusPraveTed).toBe(true)
   })
 })

@@ -22,7 +22,12 @@ export interface MesicniSrovnani {
  *  (ty jsou vždy za aktuálně zvolené období — v Economy Roomu vždy
  *  "tento měsíc", protože se `useFinance()` volá s výchozím filtrem). */
 export const spocitatMesicniSrovnani = (transactions: Transaction[]): MesicniSrovnani => {
-  const minuly = transactions.filter((t) => patriDoObdobi(t, 'minuly-mesic'))
+  // Přesuny mezi vlastními peněženkami (Transaction.presunId) nejsou
+  // skutečný příjem ani výdaj — bez tohohle filtru by přeložení peněz
+  // ze spoření na běžný účet minulý měsíc vypadalo jako další tisíce
+  // příjmů i výdajů zároveň, stejný důvod jako useFinance.ts's
+  // obdobiTransactionsBezPresunu.
+  const minuly = transactions.filter((t) => patriDoObdobi(t, 'minuly-mesic') && !t.presunId)
   return {
     prijmyMinuly: minuly.filter((t) => t.type === 'prijem').reduce((s, t) => s + t.amount, 0),
     vydajeMinuly: minuly.filter((t) => t.type === 'vydaj').reduce((s, t) => s + t.amount, 0),

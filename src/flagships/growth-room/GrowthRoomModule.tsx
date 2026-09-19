@@ -8,7 +8,7 @@ import { plural } from '@/core/utils/pluralCZ'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
-import { nejblizsiCile, pocetOdemcenych, spocitejPodleKategorie } from './growthStats'
+import { nejblizsiCile, nejlepsiNavyky, pocetOdemcenych, spocitejPodleKategorie } from './growthStats'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './GrowthRoomModule.css'
 
@@ -16,6 +16,10 @@ import './GrowthRoomModule.css'
 // Tracker sám, tohle je jen "co je nejblíž hotové", stejná mez jako
 // MAX_PRSTENCU v Economy Roomu vedle.
 const MAX_NAHLED_CILU = 3
+
+// Kolik návyků se ukáže v přehledu podle nejdelší série — stejná mez
+// jako MAX_NAHLED_CILU výš, jen pro jiný panel.
+const MAX_NAHLED_NAVYKU = 3
 
 // Barva pruhu podle kategorie — tři pevné akcentové barvy appky, stejná
 // "no charting library for a handful of bars" úspora jako u Writer's
@@ -61,6 +65,7 @@ export const GrowthRoomModule: React.FC = () => {
   const xpDoDalsi = getXpForNextLevel(level)
   const progres = getLevelProgress(xp)
   const nahledCilu = nejblizsiCile(goals, MAX_NAHLED_CILU)
+  const nahledNavyku = nejlepsiNavyky(goals, MAX_NAHLED_NAVYKU)
   const odemcenoOdznaku = pocetOdemcenych(badges)
   const kategorie = spocitejPodleKategorie(goals)
   const maxVKategorii = Math.max(1, ...kategorie.map((k) => k.count))
@@ -163,6 +168,25 @@ export const GrowthRoomModule: React.FC = () => {
                     />
                   </div>
                   <span className="gro-kat-pocet">{k.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {nahledNavyku.length > 0 && (
+          <div className="gro-panel">
+            <div className="gro-panel-hlavicka">
+              <h2>Nejdelší série</h2>
+            </div>
+
+            <div className="gro-navyky-seznam">
+              {nahledNavyku.map(({ goal, serie }) => (
+                <div key={goal.id} className="gro-navyk-radek">
+                  <span className="gro-navyk-nazev">{goal.title}</span>
+                  <span className="gro-navyk-serie">
+                    🔥 {serie} {plural(serie, 'den', 'dny', 'dní')}
+                  </span>
                 </div>
               ))}
             </div>

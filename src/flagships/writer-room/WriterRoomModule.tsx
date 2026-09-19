@@ -12,6 +12,7 @@ import { plural } from '@/core/utils/pluralCZ'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
 import { spocitejDnesniTvorbu, spocitejTvorbuPodleDne } from './writerRoomStats'
+import { hledejNaprocVsim } from './writerRoomHledaniNaprocVsim'
 import { useWriterRoomCil } from './useWriterRoomCil'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './WriterRoomModule.css'
@@ -34,6 +35,7 @@ export const WriterRoomModule: React.FC = () => {
   const { komiksy } = useComicWriter()
   const [notifOpen, setNotifOpen] = useState(false)
   const [appsOtevrene, setAppsOtevrene] = useState(false)
+  const [hledaniDotaz, setHledaniDotaz] = useState('')
   // Zlatý odznak Writer's Roomu pro VIP — čistě kosmetické, žádná nová
   // funkce; stejné oprávnění appka už používá pro vzhledy/rámečky.
   const smiVip = useHasPermission('cosmetics.premium')
@@ -66,6 +68,9 @@ export const WriterRoomModule: React.FC = () => {
     dnesniCasti.push(`${dnesniTvorba.panelu} ${plural(dnesniTvorba.panelu, 'panel', 'panely', 'panelů')}`)
   }
 
+  const vysledkyHledani = hledejNaprocVsim(hledaniDotaz, knihy, scenare, komiksy)
+  const EMOJI_DRUHU: Record<'kniha' | 'scenar' | 'komiks', string> = { kniha: '📖', scenar: '🎬', komiks: '💥' }
+
   const otevritKnihu = () => {
     setActiveAppId('book-writer', '/spisovatel')
     navigate('/apps')
@@ -77,6 +82,14 @@ export const WriterRoomModule: React.FC = () => {
   const otevritKomiksy = () => {
     setActiveAppId('comic-writer', '/spisovatel')
     navigate('/apps')
+  }
+  // Křížové hledání jen ukazuje, KDE zásah padl — otevře celou appku,
+  // ne konkrétní kapitolu/scénu/panel (appka žádný meziappkový skok na
+  // jednu konkrétní položku nemá, viz writerRoomHledaniNaprocVsim.ts).
+  const otevritDilo = (druh: 'kniha' | 'scenar' | 'komiks') => {
+    if (druh === 'kniha') otevritKnihu()
+    else if (druh === 'scenar') otevritScenare()
+    else otevritKomiksy()
   }
 
   const nastroje: FlagshipDlazdice[] = [
@@ -144,6 +157,42 @@ export const WriterRoomModule: React.FC = () => {
           <p className="wr-dnes">
             {dnesniCasti.length === 0 ? 'Dnes jsi ještě nic nenapsal(a).' : `✍️ Dnes: ${dnesniCasti.join(', ')}`}
           </p>
+        </div>
+
+        <div className="wr-panel">
+          <div className="wr-panel-hlavicka">
+            <h2>🔍 Hledat napříč vším</h2>
+          </div>
+          <input
+            type="text"
+            className="wr-hledani-input"
+            placeholder="Hledej ve všech knihách, scénářích i komiksech…"
+            value={hledaniDotaz}
+            onChange={(e) => setHledaniDotaz(e.target.value)}
+          />
+          {hledaniDotaz.trim() !== '' && (
+            <div className="wr-hledani-seznam">
+              {vysledkyHledani.length === 0 ? (
+                <p className="wr-prazdno">Nic se nenašlo.</p>
+              ) : (
+                vysledkyHledani.map((v, i) => (
+                  <button
+                    key={`${v.druh}-${v.dilaId}-${i}`}
+                    className="wr-hledani-radek"
+                    onClick={() => otevritDilo(v.druh)}
+                  >
+                    <span className="wr-hledani-ikona">{EMOJI_DRUHU[v.druh]}</span>
+                    <span className="wr-hledani-text">
+                      <strong>
+                        {v.dilaNazev} · {v.polozka}
+                      </strong>
+                      <span className="wr-hledani-uryvek">„{v.uryvek}“</span>
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         <div className="wr-panel">
