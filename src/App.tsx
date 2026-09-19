@@ -55,6 +55,7 @@ import { isSupabaseConfigured } from '@/core/supabase/client'
 import { useAuthStore } from '@/core/store/useAuthStore'
 import { setupRoleDevTools, startRoleSync, useHasPermission } from '@/core/role'
 import { useAppliedTheme } from '@/core/theme'
+import { useAutoFullscreen } from '@/core/hooks/useAutoFullscreen'
 import { startInbox } from '@/social/inbox'
 import { startPresence } from '@/social/presence'
 import { startLoginNotify } from '@/core/security/loginNotify'
@@ -89,6 +90,13 @@ export default function App() {
   // uživatel zrovna kouká jinam. Běží bez ohledu na přihlášení, ať je
   // zvolený vzhled vidět i na přihlašovací obrazovce.
   useAppliedTheme()
+
+  // Automatický vstup do fullscreenu při prvním gestu uživatele
+  // (viz core/hooks/useAutoFullscreen.ts) — stejně jako vzhled výš
+  // běží bez ohledu na přihlášení, ať appka zabere celou obrazovku
+  // zařízení hned od přihlašovací obrazovky, ne až po prvním vstupu
+  // do Hubu.
+  useAutoFullscreen()
 
   // Do aplikace se vejde jen se skutečným účtem. Jedinou výjimkou je
   // build bez nastaveného cloudu: tam nemá jak účet vzniknout a zamčené

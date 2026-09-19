@@ -68,6 +68,35 @@ export function jeFullscreenPodporovan(): boolean {
   )
 }
 
+/** Je PRÁVĚ TEĎ nějaký prvek v dokumentu ve fullscreenu (mimo React)? */
+export function jeAktualneFullscreen(): boolean {
+  return !!ziskejFullscreenPrvek()
+}
+
+/**
+ * Požádá o fullscreen nad daným prvkem — sdílená implementace pro
+ * useFullscreen()'s vlastní zapnout() i pro useAutoFullscreen.ts
+ * (automatický vstup při prvním gestu, viz tam), ať existuje jen
+ * jedna kopie řetězce vendor-prefixovaných variant k vyzkoušení.
+ *
+ * Prohlížeč tohle tiše odmítne, pokud nejde o skutečné gesto
+ * uživatele (klik/dotyk/klávesa) — volající za to nemůže, appka
+ * na to nic nepředstírá, jen se tiše nic nestane.
+ */
+export async function pozadejOFullscreen(elBazovy: HTMLElement): Promise<void> {
+  const el = elBazovy as PrvekSFullscreenem
+  try {
+    if (el.requestFullscreen) await el.requestFullscreen()
+    else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen()
+    else if (el.mozRequestFullScreen) await el.mozRequestFullScreen()
+    else if (el.msRequestFullscreen) await el.msRequestFullscreen()
+  } catch {
+    // Prohlížeč odmítl (např. appka to nezavolala uvnitř skutečného
+    // gesta uživatele, nebo to zařízení fullscreen prostě zakazuje) —
+    // appka nic nepředstírá, zůstane, jak je.
+  }
+}
+
 interface UseFullscreenVysledek {
   /** Umí to tenhle prohlížeč vůbec (viz iOS Safari výš)? */
   podporovano: boolean
@@ -90,17 +119,7 @@ export function useFullscreen(): UseFullscreenVysledek {
   }, [podporovano])
 
   const zapnout = useCallback(async () => {
-    const el = document.documentElement as PrvekSFullscreenem
-    try {
-      if (el.requestFullscreen) await el.requestFullscreen()
-      else if (el.webkitRequestFullscreen) await el.webkitRequestFullscreen()
-      else if (el.mozRequestFullScreen) await el.mozRequestFullScreen()
-      else if (el.msRequestFullscreen) await el.msRequestFullscreen()
-    } catch {
-      // Prohlížeč odmítl (např. appka to nezavolala uvnitř skutečného
-      // gesta uživatele, nebo to zařízení fullscreen prostě zakazuje) —
-      // appka nic nepředstírá, tlačítko zůstane v "vypnutém" stavu.
-    }
+    await pozadejOFullscreen(document.documentElement)
   }, [])
 
   const vypnout = useCallback(async () => {
