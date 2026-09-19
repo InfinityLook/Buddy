@@ -45,7 +45,8 @@ export const AppCard: React.FC<AppCardProps> = ({
 
   return (
     <div
-      className={`app-card ${app.active ? '' : 'is-hidden'} ${menuOpen ? 'has-menu-open' : ''}`}
+      className={`app-card ${app.active ? '' : 'is-hidden'} ${menuOpen ? 'has-menu-open' : ''} ${app.nahled ? 'has-nahled' : ''}`}
+      style={app.nahled ? ({ '--app-card-nahled': `url(${app.nahled})` } as React.CSSProperties) : undefined}
       role="button"
       tabIndex={0}
       onClick={() => onClick?.(app)}

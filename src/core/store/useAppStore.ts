@@ -56,6 +56,12 @@ export interface AppItem {
   // příznak nekouká vůbec. Stejně jako `route` nikdy nepatří uživatelovu
   // uloženému stavu, jen katalogu appky.
   jenVeVlajkoveAppce?: boolean
+  // Volitelný náhledový obrázek dlaždice (cesta do public/) — na rozdíl
+  // od icon/color, co dostává úplně každá appka, tohle je jen pro tu
+  // hrstku, co má opravdovou ilustraci místo obecné barevné ikony.
+  // Stejně jako route/jenVeVlajkoveAppce výš patří appce, ne uživatelovu
+  // uloženému stavu — mergeApps níž ho bere vždycky z DEFAULT_APPS.
+  nahled?: string
 }
 
 interface AppState {
@@ -134,7 +140,7 @@ const DEFAULT_APPS: AppItem[] = [
   // School Roomu/Fitness Roomu chodí; schovat by je šlo úplně stejně
   // jako kteroukoli jinou (toggleAppVisible), appka jim v tom nijak
   // nebrání.
-  { id: 'school-room', title: 'School Room', category: 'Vzdělávání', icon: 'layers', color: 'cyan', active: true, favorite: false, route: '/skola' },
+  { id: 'school-room', title: 'School Room', category: 'Vzdělávání', icon: 'layers', color: 'cyan', active: true, favorite: false, route: '/skola', nahled: '/backgrounds/school-room.png' },
   { id: 'fitness-room', title: 'Fitness Room', category: 'Nástroje', icon: 'dumbbell', color: 'purple', active: true, favorite: false, route: '/fitness' },
   { id: 'economy-room', title: 'Economy Room', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false, route: '/economy' },
   { id: 'growth-room', title: 'Growth Room', category: 'Produktivita', icon: 'goal-tracker', color: 'pink', active: true, favorite: false, route: '/growth' },

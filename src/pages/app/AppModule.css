@@ -653,6 +653,57 @@
 }
 
 /* ------------------------------------------
+   DLAŽDICE S OPRAVDOVOU ILUSTRACÍ (zatím jen School Room)
+   Fotka jako pozadí karty místo ploché barevné ikony, s tmavým
+   přechodem dole pro čitelnost textu. Přechod je součástí
+   background-image (víc vrstev v jedné vlastnosti), ne samostatný
+   pseudo-element — karta tak nezakládá novou vrstvu jen kvůli
+   přechodu a děti (text, patička) nad ním stackují bez řešení z-indexu.
+   URL obrázku appka posílá přes vlastní CSS proměnnou nastavenou
+   inline v AppCard.tsx, ať zůstane jediné místo, které vrstvy skládá.
+   ------------------------------------------ */
+.app-card.has-nahled {
+  background-image: linear-gradient(
+      180deg,
+      rgba(8, 10, 20, 0.05) 0%,
+      rgba(8, 10, 20, 0.35) 45%,
+      rgba(8, 10, 20, 0.92) 100%
+    ),
+    var(--app-card-nahled);
+  background-size: cover;
+  background-position: center 35%;
+}
+
+/* Barevná ikona vedle skutečné ilustrace jen překáží — appka na téhle
+   dlaždici sází identitu na fotku a titulek pod ní. */
+.app-card.has-nahled .app-card-icon-wrap {
+  display: none;
+}
+
+.app-card.has-nahled .app-card-title,
+.app-card.has-nahled .app-card-category {
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.65);
+}
+
+.app-card.has-nahled .app-card-footer {
+  border-top-color: rgba(255, 255, 255, 0.14);
+}
+
+.app-card.has-nahled .app-card-status {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.app-card.has-nahled .app-card-options {
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+}
+
+.app-card.has-nahled .app-card-options:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* ------------------------------------------
    SEZNAMOVÝ REŽIM
    Dřív se měnil jen počet sloupců na jeden, takže "seznam" vypadal
    jako řada obřích vycentrovaných karet. Tady se dlaždice skutečně
@@ -699,6 +750,30 @@
   right: auto;
   order: 4;
   flex-shrink: 0;
+}
+
+/* V seznamu by celoplošná fotka přebila čitelnost celého úzkého řádku
+   i sousedů pod ním — ilustrace tam zůstává jako malá čtvercová
+   miniatura přesně na místě, kde jinak sedí barevná ikona. */
+.app-grid-container.list .app-card.has-nahled {
+  background-image: none;
+}
+
+.app-grid-container.list .app-card.has-nahled .app-card-icon-wrap {
+  display: flex;
+  background-image: var(--app-card-nahled);
+  background-size: cover;
+  background-position: center;
+}
+
+.app-grid-container.list .app-card.has-nahled .app-card-title,
+.app-grid-container.list .app-card.has-nahled .app-card-category {
+  color: inherit;
+  text-shadow: none;
+}
+
+.app-grid-container.list .app-card.has-nahled .app-card-options {
+  background: transparent;
 }
 
 /* ------------------------------------------

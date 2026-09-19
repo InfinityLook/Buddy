@@ -19,6 +19,8 @@ export const AppItemSchema = v.object({
   route: v.optional(v.string()),
   // Nepovinné: appky přesunuté výhradně pod vlajkovou appku.
   jenVeVlajkoveAppce: v.optional(v.boolean()),
+  // Nepovinné: jen dlaždice s opravdovou ilustrací místo obecné ikony.
+  nahled: v.optional(v.string()),
 })
 
 // Schéma pro pole aplikací
