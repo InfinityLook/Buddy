@@ -59,3 +59,13 @@ export const sestavCitaci = (c: Citace): string => {
     .filter(Boolean)
     .join(' ')
 }
+
+/** Sestaví celou bibliografii jako čistý text — jedna citace na
+ *  odstavec, seřazeno abecedně podle autora (case-insensitive; bez
+ *  autora podle názvu), stejné pořadí jako skutečná ISO 690/APA
+ *  bibliografie na konci práce, ne pořadí přidání. */
+export const sestavBibliografii = (citace: Citace[]): string =>
+  [...citace]
+    .sort((a, b) => (a.autor.trim() || a.nazev).localeCompare(b.autor.trim() || b.nazev, 'cs'))
+    .map((c) => sestavCitaci(c))
+    .join('\n\n')

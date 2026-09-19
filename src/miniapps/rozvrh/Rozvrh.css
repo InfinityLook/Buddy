@@ -73,6 +73,55 @@
   color: var(--accent-cyan);
 }
 
+.rozvrh-den-hlavicka {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.rozvrh-den-hlavicka h3 {
+  margin: 0;
+}
+
+.rozvrh-kopirovat-btn {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.rozvrh-kopirovat-nabidka {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  background: var(--bg-panel);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
+  margin: 0.4rem 0 0.5rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.rozvrh-kopirovat-cil-btn {
+  background: var(--accent-cyan);
+  color: #04121a;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0.25rem 0.55rem;
+  font-weight: 700;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
 .rozvrh-seznam {
   list-style: none;
   margin: 0;
@@ -250,11 +299,27 @@
   color: #1a0410;
 }
 
+.rozvrh-dochazka-procenta-blok {
+  margin-bottom: 0.6rem;
+}
+
 .rozvrh-dochazka-procenta-radek {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.2rem;
+}
+
+.rozvrh-dochazka-absence {
+  margin: 0;
+  padding-left: calc(30% + 0.6rem);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.rozvrh-dochazka-absence.je-riziko {
+  color: var(--accent-magenta);
+  font-weight: 700;
 }
 
 .rozvrh-dochazka-procenta-nazev {

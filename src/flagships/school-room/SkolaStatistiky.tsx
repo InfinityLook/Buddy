@@ -8,6 +8,7 @@ import { useZnamky } from '@/miniapps/znamky/useZnamky'
 import { celkovyVazenyPrumer, soucetKreditu, vazenyPrumerPredmetu } from '@/miniapps/znamky/types'
 import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
 import { PRAH_RIZIKA_DOCHAZKY, spocitejDochazkuPodlePredmetu } from '@/miniapps/rozvrh/types'
+import { spocitejTrendZnamek } from './skolaStats'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import '@/pages/app/AppModule.css'
 import './SchoolRoomModule.css'
@@ -37,6 +38,12 @@ export const SkolaStatistiky: React.FC = () => {
     [rozvrhHodiny, dochazka]
   )
   const rizikoveDochazky = dochazkaPredmetu.filter((d) => d.procenta < PRAH_RIZIKA_DOCHAZKY)
+
+  // Trend známek za posledních 6 měsíců — malý sloupcový graf bez
+  // knihovny, stejný "no charting library for a handful of bars" idiom
+  // jako Fitness/Writer Roomova vlastní aktivita.
+  const trendZnamek = useMemo(() => spocitejTrendZnamek(predmety), [predmety])
+  const jeVidetTrend = trendZnamek.some((m) => m.prumer !== null)
 
   // Semestrální přehled — kolik nesplněných úkolů z Planeru patří ke
   // kterému předmětu, spárováno prostým shodným názvem (case-insensitive,
@@ -254,6 +261,35 @@ export const SkolaStatistiky: React.FC = () => {
               )
             })}
           </ul>
+        )}
+      </div>
+
+      {/* Trend známek — jak šel vážený průměr napříč všemi předměty za
+          posledních 6 měsíců, ne jak je na tom právě teď (to už ukazuje
+          "Celkový průměr" výš). Sloupec bez jediné zapsané známky
+          zůstane šedý, ne prázdný — vidět, že měsíc prostě chybí, je
+          taky informace. */}
+      <div className="sr-panel">
+        <div className="sr-panel-hlavicka">
+          <h2>Trend známek</h2>
+          <p>Vážený průměr napříč předměty za posledních 6 měsíců</p>
+        </div>
+
+        {jeVidetTrend ? (
+          <div className="sr-graf" role="img" aria-label="Sloupcový graf trendu známek za posledních 6 měsíců">
+            {trendZnamek.map((m) => (
+              <div key={m.klic} className="sr-graf-sloupec-wrap">
+                <div
+                  className={`sr-graf-sloupec ${m.prumer !== null ? 'sr-graf-sloupec--aktivni' : ''}`}
+                  style={{ height: `${m.prumer !== null ? Math.max(6, ((5 - m.prumer) / 4) * 100) : 6}%` }}
+                  title={m.prumer !== null ? `${m.popisek}: ${m.prumer.toFixed(2)}` : `${m.popisek}: žádná známka`}
+                />
+                <span className="sr-graf-popisek">{m.popisek}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="sr-prazdno-text">Zatím žádné známky za posledních 6 měsíců.</p>
         )}
       </div>
     </div>

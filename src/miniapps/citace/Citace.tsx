@@ -1,15 +1,21 @@
 import React, { useMemo, useState } from 'react'
+import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { useCitace } from './useCitace'
-import { Citace as CitaceZaznam, TYPY_ZDROJE, TypZdroje, sestavCitaci } from './types'
+import { Citace as CitaceZaznam, TYPY_ZDROJE, TypZdroje, sestavBibliografii, sestavCitaci } from './types'
 import './Citace.css'
 
 const PRAZDNY_FORM = { autor: '', nazev: '', rok: '', vydavatelNeboWeb: '', url: '', datumCitace: '' }
+const CELY_SEZNAM_ID = '__cely-seznam__'
 
 export const Citace: React.FC = () => {
-  const { citace, pridatCitaci, smazatCitaci } = useCitace()
+  const { citace, pridatCitaci, upravitCitaci, smazatCitaci } = useCitace()
   const [typ, setTyp] = useState<TypZdroje>('kniha')
   const [form, setForm] = useState(PRAZDNY_FORM)
   const [zkopirovanoId, setZkopirovanoId] = useState<string | null>(null)
+  // Úprava existující citace na místě, ne jen smazat-a-přidat-znovu —
+  // stejný "formulář je dvouúčelový, jen ho poznáš podle upravovanaId"
+  // vzor jako Rozvrhovo přidávání/úprava hodiny vedle.
+  const [upravovanaId, setUpravovanaId] = useState<string | null>(null)
 
   // Živý náhled ještě neuložené citace — vidí, co vznikne, dřív než
   // klikne "Přidat do seznamu".
@@ -42,13 +48,42 @@ export const Citace: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.nazev.trim()) return
-    pridatCitaci(typ, form.autor, form.nazev, form.rok, form.vydavatelNeboWeb, form.url, form.datumCitace)
+    if (upravovanaId) {
+      upravitCitaci(upravovanaId, { typ, ...form })
+    } else {
+      pridatCitaci(typ, form.autor, form.nazev, form.rok, form.vydavatelNeboWeb, form.url, form.datumCitace)
+    }
+    setForm(PRAZDNY_FORM)
+    setUpravovanaId(null)
+  }
+
+  const otevritUpravu = (c: CitaceZaznam) => {
+    setUpravovanaId(c.id)
+    setTyp(c.typ)
+    setForm({
+      autor: c.autor,
+      nazev: c.nazev,
+      rok: c.rok,
+      vydavatelNeboWeb: c.vydavatelNeboWeb,
+      url: c.url,
+      datumCitace: c.datumCitace,
+    })
+  }
+
+  const zrusitUpravu = () => {
+    setUpravovanaId(null)
     setForm(PRAZDNY_FORM)
   }
 
   const odebrat = (c: CitaceZaznam) => {
     if (!window.confirm(`Smazat citaci „${c.nazev}“?`)) return
     smazatCitaci(c.id)
+    if (upravovanaId === c.id) zrusitUpravu()
+  }
+
+  const stahnoutVse = () => {
+    if (citace.length === 0) return
+    stahnoutTextovySoubor('bibliografie.txt', sestavBibliografii(citace))
   }
 
   return (
@@ -120,23 +155,45 @@ export const Citace: React.FC = () => {
           <button type="button" className="citace-kopirovat-btn" onClick={() => kopirovat(nahled, 'nahled')}>
             {zkopirovanoId === 'nahled' ? 'Zkopírováno ✓' : '📋 Kopírovat'}
           </button>
+          {upravovanaId && (
+            <button type="button" className="citace-zrusit-btn" onClick={zrusitUpravu}>
+              Zrušit úpravu
+            </button>
+          )}
           <button type="submit" className="citace-ulozit-btn">
-            + Přidat do seznamu
+            {upravovanaId ? 'Uložit změny' : '+ Přidat do seznamu'}
           </button>
         </div>
       </form>
 
       {citace.length === 0 && <p className="citace-prazdno">Zatím žádné uložené citace.</p>}
 
+      {citace.length > 0 && (
+        <div className="citace-hromadne-akce">
+          <button
+            className="citace-kopirovat-btn"
+            onClick={() => kopirovat(sestavBibliografii(citace), CELY_SEZNAM_ID)}
+          >
+            {zkopirovanoId === CELY_SEZNAM_ID ? 'Zkopírováno ✓' : '📋 Kopírovat vše'}
+          </button>
+          <button className="citace-stahnout-btn" onClick={stahnoutVse}>
+            ⬇ Stáhnout bibliografii (.txt)
+          </button>
+        </div>
+      )}
+
       <ul className="citace-seznam">
         {citace.map((c) => {
           const text = sestavCitaci(c)
           return (
-            <li key={c.id} className="citace-polozka">
+            <li key={c.id} className={`citace-polozka ${upravovanaId === c.id ? 'je-upravovana' : ''}`}>
               <p className="citace-polozka-text">{text}</p>
               <div className="citace-polozka-akce">
                 <button className="citace-kopirovat-btn" onClick={() => kopirovat(text, c.id)}>
                   {zkopirovanoId === c.id ? 'Zkopírováno ✓' : '📋 Kopírovat'}
+                </button>
+                <button className="citace-upravit-btn" aria-label={`Upravit citaci ${c.nazev}`} onClick={() => otevritUpravu(c)}>
+                  ✏️
                 </button>
                 <button className="citace-smazat-btn" aria-label={`Smazat citaci ${c.nazev}`} onClick={() => odebrat(c)}>
                   ✕

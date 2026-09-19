@@ -1,6 +1,8 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { naFormatDatumu, NAZVY_MESICU, rozlozeniMesice, useKalendar } from './useKalendar'
 import { BARVY_DNE, BarvaDne } from './types'
+import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
+import { denVTydnuZDatumu } from '@/miniapps/rozvrh/types'
 import './Kalendar.css'
 
 const DNY_V_TYDNU = ['Po', 'Út', 'St', 'Čt', 'Pá', 'So', 'Ne']
@@ -49,6 +51,18 @@ export const Kalendar: React.FC = () => {
 
   const { posunOdPondeli, pocetDni } = rozlozeniMesice(rok, mesic)
   const dnesniStr = naFormatDatumu(dnes.getFullYear(), dnes.getMonth(), dnes.getDate())
+
+  // Dnešní hodiny podle Rozvrhu — jen jak vybraný den, ne dnešek appky.
+  // O víkendu (denVTydnu === null) nebo bez jediné hodiny se sekce
+  // vůbec nevykreslí, ne prázdný nadpis navíc.
+  const { hodiny: rozvrhHodiny } = useRozvrh()
+  const hodinyVybraneho = useMemo(() => {
+    if (!vybranyDen) return []
+    const [rokD, mesicD, denD] = vybranyDen.split('-').map(Number)
+    const denVTydnu = denVTydnuZDatumu(new Date(rokD, mesicD - 1, denD))
+    if (denVTydnu === null) return []
+    return rozvrhHodiny.filter((h) => h.den === denVTydnu)
+  }, [vybranyDen, rozvrhHodiny])
 
   const bunky: (number | null)[] = [
     ...Array(posunOdPondeli).fill(null),
@@ -141,6 +155,22 @@ export const Kalendar: React.FC = () => {
               />
             ))}
           </div>
+
+          {hodinyVybraneho.length > 0 && (
+            <div className="kalendar-rozvrh-radek">
+              <span className="kalendar-rozvrh-popisek">📚 Podle rozvrhu</span>
+              <ul className="kalendar-rozvrh-seznam">
+                {hodinyVybraneho.map((h) => (
+                  <li key={h.id}>
+                    <span className="kalendar-rozvrh-cas">
+                      {h.casOd}–{h.casDo}
+                    </span>
+                    <span className="kalendar-rozvrh-predmet">{h.predmet}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           {udalostiDne.length === 0 && !formOtevreny && (
             <p className="kalendar-prazdno">Žádné události — přidej první.</p>

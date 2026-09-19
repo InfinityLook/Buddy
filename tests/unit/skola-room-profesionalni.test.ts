@@ -1,6 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { PomodoroSession, spocitejSouhrnPodlePredmetu } from '@/miniapps/pomodoro/types'
-import { spocitejMinutyDnes, spocitejMinutyTyden } from '@/flagships/school-room/skolaCilStats'
+import {
+  spocitejMinutyDnes,
+  spocitejMinutyTyden,
+  spocitejProcentaCileProumeru,
+} from '@/flagships/school-room/skolaCilStats'
 import { validateSkolaCilData } from '@/core/utils/skolaCilValidation'
 
 // ==========================================
@@ -64,28 +68,61 @@ describe('spocitejMinutyTyden', () => {
   })
 })
 
+describe('spocitejProcentaCileProumeru', () => {
+  it('bez nastaveného cíle nebo bez žádné známky vrátí null', () => {
+    expect(spocitejProcentaCileProumeru(2, null)).toBeNull()
+    expect(spocitejProcentaCileProumeru(null, 1.5)).toBeNull()
+  })
+
+  it('cíl už dosažený nebo překonaný ukáže 100 %', () => {
+    expect(spocitejProcentaCileProumeru(1.5, 1.5)).toBe(100)
+    expect(spocitejProcentaCileProumeru(1.2, 1.5)).toBe(100)
+  })
+
+  it('spočítá progres jako podíl ušlé vzdálenosti od nejhorší známky (5) k cíli', () => {
+    // Aktuální 2, cíl 1.5: (5-2)/(5-1.5) = 3/3.5 ≈ 85.7 % → 86.
+    expect(spocitejProcentaCileProumeru(2, 1.5)).toBe(86)
+  })
+
+  it('daleko od cíle ukáže nízké, ale kladné procento', () => {
+    // Aktuální 4.5, cíl 1.5: (5-4.5)/3.5 = 0.5/3.5 ≈ 14 %.
+    expect(spocitejProcentaCileProumeru(4.5, 1.5)).toBe(14)
+  })
+})
+
 describe('validateSkolaCilData', () => {
   it('projde platná kladná čísla beze změny', () => {
-    const vysledek = validateSkolaCilData({ cilDenniMinut: 60, cilTydenniMinut: 300 })
+    const vysledek = validateSkolaCilData({ cilDenniMinut: 60, cilTydenniMinut: 300, cilPrumeru: 1.5 })
     expect(vysledek.success).toBe(true)
-    if (vysledek.success) expect(vysledek.data).toEqual({ cilDenniMinut: 60, cilTydenniMinut: 300 })
+    if (vysledek.success)
+      expect(vysledek.data).toEqual({ cilDenniMinut: 60, cilTydenniMinut: 300, cilPrumeru: 1.5 })
   })
 
   it('null zůstává null (žádný cíl nastaven)', () => {
-    const vysledek = validateSkolaCilData({ cilDenniMinut: null, cilTydenniMinut: null })
+    const vysledek = validateSkolaCilData({ cilDenniMinut: null, cilTydenniMinut: null, cilPrumeru: null })
     expect(vysledek.success).toBe(true)
-    if (vysledek.success) expect(vysledek.data).toEqual({ cilDenniMinut: null, cilTydenniMinut: null })
+    if (vysledek.success)
+      expect(vysledek.data).toEqual({ cilDenniMinut: null, cilTydenniMinut: null, cilPrumeru: null })
   })
 
   it('záporné nebo neplatné číslo spadne na null, ne na shozený celý stav', () => {
-    const vysledek = validateSkolaCilData({ cilDenniMinut: -10, cilTydenniMinut: 'sto' })
+    const vysledek = validateSkolaCilData({ cilDenniMinut: -10, cilTydenniMinut: 'sto', cilPrumeru: 'nedostatečně' })
     expect(vysledek.success).toBe(true)
-    if (vysledek.success) expect(vysledek.data).toEqual({ cilDenniMinut: null, cilTydenniMinut: null })
+    if (vysledek.success)
+      expect(vysledek.data).toEqual({ cilDenniMinut: null, cilTydenniMinut: null, cilPrumeru: null })
   })
 
   it('chybějící pole spadnou na null', () => {
     const vysledek = validateSkolaCilData({})
     expect(vysledek.success).toBe(true)
-    if (vysledek.success) expect(vysledek.data).toEqual({ cilDenniMinut: null, cilTydenniMinut: null })
+    if (vysledek.success)
+      expect(vysledek.data).toEqual({ cilDenniMinut: null, cilTydenniMinut: null, cilPrumeru: null })
+  })
+
+  it('cíl průměru mimo klasifikační stupnici 1–5 spadne na null', () => {
+    const prilisNizky = validateSkolaCilData({ cilPrumeru: 0.5 })
+    const prilisVysoky = validateSkolaCilData({ cilPrumeru: 5.5 })
+    expect(prilisNizky.success && prilisNizky.data.cilPrumeru).toBeNull()
+    expect(prilisVysoky.success && prilisVysoky.data.cilPrumeru).toBeNull()
   })
 })

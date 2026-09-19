@@ -10,9 +10,11 @@ import { MujWidgetPanel } from '../shared/MujWidgetPanel'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import { useSkolaCil } from './useSkolaCil'
-import { spocitejMinutyDnes, spocitejMinutyTyden } from './skolaCilStats'
+import { spocitejMinutyDnes, spocitejMinutyTyden, spocitejProcentaCileProumeru } from './skolaCilStats'
 import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
 import { PRAH_RIZIKA_DOCHAZKY, hodinyDnes, spocitejDochazkuPodlePredmetu } from '@/miniapps/rozvrh/types'
+import { useZnamky } from '@/miniapps/znamky/useZnamky'
+import { celkovyVazenyPrumer } from '@/miniapps/znamky/types'
 import './SchoolRoomModule.css'
 
 // ==========================================
@@ -85,7 +87,8 @@ export const SchoolRoomModule: React.FC = () => {
   // historie (sessionLog), stejný "wire it up, don't invent new logic"
   // duch jako "Moje přehled" panel výš. Cíl samotný je uživatelovo
   // číslo (useSkolaCil), splněné minuty appka nikdy sama nevymýšlí.
-  const { cilDenniMinut, cilTydenniMinut, setCilDenniMinut, setCilTydenniMinut } = useSkolaCil()
+  const { cilDenniMinut, cilTydenniMinut, cilPrumeru, setCilDenniMinut, setCilTydenniMinut, setCilPrumeru } =
+    useSkolaCil()
   const minutyDnes = useMemo(() => spocitejMinutyDnes(sessionLog), [sessionLog])
   const minutyTyden = useMemo(() => spocitejMinutyTyden(sessionLog), [sessionLog])
   const cilDenniProcenta =
@@ -94,6 +97,16 @@ export const SchoolRoomModule: React.FC = () => {
     cilTydenniMinut && cilTydenniMinut > 0
       ? Math.min(100, Math.round((minutyTyden / cilTydenniMinut) * 100))
       : null
+
+  // Cíl průměru — na klasifikační škále je NIŽŠÍ číslo lepší, viz
+  // spocitejProcentaCileProumeru's vlastní komentář, proč progres
+  // není prostý poměr aktuálni/cíl.
+  const { predmety } = useZnamky()
+  const aktualniPrumer = useMemo(() => celkovyVazenyPrumer(predmety), [predmety])
+  const cilPrumeruProcenta = useMemo(
+    () => spocitejProcentaCileProumeru(aktualniPrumer, cilPrumeru),
+    [aktualniPrumer, cilPrumeru]
+  )
 
   // Deep-link do miniaplikace stejným vzorem jako Hub.tsx's
   // setActiveAppId('study-planner', '/hub') — returnPath přivede
@@ -414,6 +427,17 @@ export const SchoolRoomModule: React.FC = () => {
                 onChange={(e) => setCilTydenniMinut(e.target.value ? Number(e.target.value) : null)}
               />
             </label>
+            <label>
+              Cílový průměr
+              <input
+                type="number"
+                min={1}
+                max={5}
+                step={0.1}
+                value={cilPrumeru ?? ''}
+                onChange={(e) => setCilPrumeru(e.target.value ? Number(e.target.value) : null)}
+              />
+            </label>
           </div>
 
           {cilDenniProcenta !== null && (
@@ -449,6 +473,26 @@ export const SchoolRoomModule: React.FC = () => {
               </span>
             </div>
           )}
+
+          {cilPrumeru !== null &&
+            (cilPrumeruProcenta !== null ? (
+              <div className="sr-cil-progres">
+                <div
+                  className="sr-cil-lista"
+                  role="progressbar"
+                  aria-valuenow={cilPrumeruProcenta}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                >
+                  <div className="sr-cil-vypln sr-cil-vypln--prumer" style={{ width: `${cilPrumeruProcenta}%` }} />
+                </div>
+                <span className="sr-cil-popisek">
+                  {aktualniPrumer!.toFixed(2)} / cíl {cilPrumeru.toFixed(1)}
+                </span>
+              </div>
+            ) : (
+              <p className="sr-cil-bez-znamek">Zatím žádné známky ve Známkách — cíl se ukáže, jakmile nějakou zapíšeš.</p>
+            ))}
         </div>
 
         <MujWidgetPanel id="school-room" dlazdice={dlazdice} dalsiMoznostiProSloty={dalsiMoznostiProSloty} />

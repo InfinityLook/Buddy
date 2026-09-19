@@ -62,6 +62,12 @@ export const Znamky: React.FC = () => {
     if (!window.confirm(`Smazat předmět „${p.nazev}“ i se všemi známkami?`)) return
     smazatPredmet(p.id)
     if (rozbalenyPredmet === p.id) setRozbalenyPredmet(null)
+    // Bez tohohle by "co kdyby" panel zůstal ukazovat na smazaný předmět
+    // — projektovanyPrumerPredmetu se počítá na každém renderu bez
+    // ohledu na to, jestli je rozbalovací panel vůbec vidět, takže
+    // sPridanouHypotetickouZnamkou by vrátila seznam bez téhle položky
+    // a .find(...)! by spadl na undefined (viz CLAUDE.md).
+    if (coKdybyOtevreno === p.id) setCoKdybyOtevreno(null)
   }
 
   const pridatNovouZnamku = (e: React.FormEvent, predmetId: string) => {

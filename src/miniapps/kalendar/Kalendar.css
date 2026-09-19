@@ -187,6 +187,47 @@
   transform: scale(1.15);
 }
 
+/* Podle rozvrhu — malý informační řádek propojující Kalendář s
+   Rozvrhem, jen pro všední den, co má aspoň jednu hodinu. */
+.kalendar-rozvrh-radek {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.7rem;
+}
+
+.kalendar-rozvrh-popisek {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.kalendar-rozvrh-seznam {
+  list-style: none;
+  margin: 0.3rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.kalendar-rozvrh-seznam li {
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+}
+
+.kalendar-rozvrh-cas {
+  flex-shrink: 0;
+  color: var(--accent-cyan);
+  font-variant-numeric: tabular-nums;
+}
+
+.kalendar-rozvrh-predmet {
+  color: var(--text-primary);
+}
+
 .kalendar-seznam {
   list-style: none;
   margin: 0;

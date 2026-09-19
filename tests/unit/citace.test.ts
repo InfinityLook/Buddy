@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { Citace, sestavCitaci } from '@/miniapps/citace/types'
+import { Citace, sestavBibliografii, sestavCitaci } from '@/miniapps/citace/types'
 import { validateCitaceData } from '@/core/utils/citaceValidation'
 
 // ==========================================
@@ -49,6 +49,33 @@ describe('sestavCitaci', () => {
     expect(text).toContain('Neuvedený autor')
     expect(text).toContain('Bez názvu')
     expect(text).toContain('b.r.')
+  })
+})
+
+describe('sestavBibliografii', () => {
+  it('seřadí citace abecedně podle autora, ne podle pořadí přidání', () => {
+    const text = sestavBibliografii([
+      citace({ id: 'a', autor: 'Zima, Petr', nazev: 'Poslední kniha' }),
+      citace({ id: 'b', autor: 'Adam, Eva', nazev: 'První kniha' }),
+    ])
+    expect(text.indexOf('Adam, Eva')).toBeLessThan(text.indexOf('Zima, Petr'))
+  })
+
+  it('citaci bez autora seřadí podle názvu', () => {
+    const text = sestavBibliografii([
+      citace({ id: 'a', autor: '', nazev: 'Zeta' }),
+      citace({ id: 'b', autor: '', nazev: 'Alfa' }),
+    ])
+    expect(text.indexOf('Alfa')).toBeLessThan(text.indexOf('Zeta'))
+  })
+
+  it('odděluje jednotlivé citace prázdným řádkem', () => {
+    const text = sestavBibliografii([citace({ id: 'a' }), citace({ id: 'b', nazev: 'Druhá kniha' })])
+    expect(text).toContain('\n\n')
+  })
+
+  it('prázdný seznam vrátí prázdný řetězec', () => {
+    expect(sestavBibliografii([])).toBe('')
   })
 })
 

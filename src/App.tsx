@@ -64,6 +64,7 @@ import { setupFinanceRecurringCheck } from '@/miniapps/finance/useFinance'
 import { setupGoalTrackerReminders } from '@/miniapps/goal-tracker/useGoalTracker'
 import { startFinanceSync } from '@/miniapps/finance/financeSync'
 import { setupFitnessReminders } from '@/flagships/fitness-room/fitnessReminders'
+import { setupRozvrhReminders } from '@/miniapps/rozvrh/rozvrhReminders'
 
 export default function App() {
   const { isAuthed, login } = useAuthStore()
@@ -164,6 +165,10 @@ export default function App() {
     // Připomenutí tréninku ve Fitness Roomu — stejný vzor ještě jednou,
     // tentokrát nad Form Checkovou historií sezení.
     setupFitnessReminders()
+    // Připomínka "za 10 minut máš hodinu" nad Rozvrhem — na rozdíl od
+    // ostatních reminderů výš plánuje jeden přesný časovač na
+    // nejbližší dnešní hodinu, ne jen jednou denní kontrolu.
+    setupRozvrhReminders()
     // Cloudová synchronizace Financí (IndexedDB lokálně, Supabase jako
     // zrcadlo pro přenos mezi zařízeními) — stejný "doplněk, ne
     // podmínka" tichý no-op bez nastaveného cloudu jako startCloudSync.

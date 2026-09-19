@@ -24,7 +24,10 @@ interface RozvrhState {
   oznacitDochazku: (hodinaId: string, datum: string, byl: boolean | null) => void
 }
 
-const useRozvrhStore = create<RozvrhState>()(
+// Exportovaný přímo (ne jen skrz useRozvrh() níž) — rozvrhReminders.ts
+// potřebuje .getState() mimo React, stejný důvod, proč useFormCheckStore/
+// useWriterCheckpoints jsou taky exportované napřímo.
+export const useRozvrhStore = create<RozvrhState>()(
   persist(
     (set) => ({
       hodiny: [],

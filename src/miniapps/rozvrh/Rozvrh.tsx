@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { stahnoutBlob } from '@/core/utils/download'
+import { requestNotificationPermission } from '@/core/utils/notify'
 import { useRozvrh } from './useRozvrh'
 import {
   DNY_V_TYDNU,
@@ -10,9 +11,11 @@ import {
   hodinyDnes,
   klicDochazky,
   najdiKolize,
+  nazevDne,
   sestavIcsRozvrhu,
   spocitejDochazkuPodlePredmetu,
 } from './types'
+import { plural } from '@/core/utils/pluralCZ'
 import './Rozvrh.css'
 
 type Zalozka = 'rozvrh' | 'dochazka'
@@ -25,6 +28,11 @@ export const Rozvrh: React.FC = () => {
   const [formOtevreny, setFormOtevreny] = useState(false)
   const [upravovanaId, setUpravovanaId] = useState<string | null>(null)
   const [form, setForm] = useState(PRAZDNY_FORM)
+  // Kopírovat den — id dne, u kterého je zrovna otevřená nabídka
+  // cílových dnů (null = zavřená). Jen jedna může být otevřená
+  // najednou, stejná "jedno id, ne pole otevřených" úspora jako
+  // Znamkovo rozbalenyPredmet vedle.
+  const [kopirovanyDen, setKopirovanyDen] = useState<DenVTydnu | null>(null)
 
   const dnesniIso = dnesniDatumIso()
   const dnesek = hodinyDnes(hodiny)
@@ -59,6 +67,10 @@ export const Rozvrh: React.FC = () => {
     if (upravovanaId) {
       updateHodinu(upravovanaId, form)
     } else {
+      // Notifikace se vyžádá jen u NOVÉ hodiny, ne u úpravy — přidání
+      // je nejjasnější "chci tohle sledovat" gesto, stejný důvod jako
+      // Planerovo addTask/Growth Roomovy termíny cílů.
+      requestNotificationPermission()
       pridatHodinu(form.den, form.casOd, form.casDo, form.predmet, form.mistnost, form.vyucujici)
     }
     setFormOtevreny(false)
@@ -77,6 +89,35 @@ export const Rozvrh: React.FC = () => {
   }
 
   const hodinyPodleDne = (den: DenVTydnu) => hodiny.filter((h) => h.den === den)
+
+  // Kopírovat den — kolize se řeší úplně stejně jako ruční přidání
+  // (najdiKolize, jedno souhrnné potvrzení), jen se počítá pro
+  // KAŽDOU kopírovanou hodinu najednou. Znovupoužívá pridatHodinu
+  // pro každou položku zvlášť, ne novou store akci — appka tak
+  // nemusí druhou cestou znovu řešit id/gamifikaci/validaci.
+  const provestKopii = (zeDne: DenVTydnu, doDne: DenVTydnu) => {
+    const kopirovane = hodinyPodleDne(zeDne)
+    if (kopirovane.length === 0) return
+
+    const vsechnyKolize = kopirovane.flatMap((h) => najdiKolize(hodiny, doDne, h.casOd, h.casDo))
+    const pocetHodin = plural(kopirovane.length, 'hodinu', 'hodiny', 'hodin')
+    if (vsechnyKolize.length > 0) {
+      const seznam = [...new Set(vsechnyKolize.map((h) => `„${h.predmet}“ (${h.casOd}–${h.casDo})`))].join(', ')
+      if (
+        !window.confirm(
+          `Zkopírovat ${kopirovane.length} ${pocetHodin} ze dne ${nazevDne(zeDne)} do ${nazevDne(doDne)}? Překrývá se s: ${seznam}.`
+        )
+      )
+        return
+    } else if (
+      !window.confirm(`Zkopírovat ${kopirovane.length} ${pocetHodin} ze dne ${nazevDne(zeDne)} do ${nazevDne(doDne)}?`)
+    ) {
+      return
+    }
+
+    kopirovane.forEach((h) => pridatHodinu(doDne, h.casOd, h.casDo, h.predmet, h.mistnost, h.vyucujici))
+    setKopirovanyDen(null)
+  }
 
   return (
     <div className="rozvrh">
@@ -122,7 +163,27 @@ export const Rozvrh: React.FC = () => {
             if (hodinyDne.length === 0) return null
             return (
               <div key={den.id} className="rozvrh-den-blok">
-                <h3>{den.nazev}</h3>
+                <div className="rozvrh-den-hlavicka">
+                  <h3>{den.nazev}</h3>
+                  <button
+                    className="rozvrh-kopirovat-btn"
+                    onClick={() => setKopirovanyDen(kopirovanyDen === den.id ? null : den.id)}
+                  >
+                    📋 Kopírovat den
+                  </button>
+                </div>
+
+                {kopirovanyDen === den.id && (
+                  <div className="rozvrh-kopirovat-nabidka" role="group" aria-label={`Kopírovat ${den.nazev} do`}>
+                    <span>Zkopírovat do:</span>
+                    {DNY_V_TYDNU.filter((cil) => cil.id !== den.id).map((cil) => (
+                      <button key={cil.id} className="rozvrh-kopirovat-cil-btn" onClick={() => provestKopii(den.id, cil.id)}>
+                        {cil.zkratka}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <ul className="rozvrh-seznam">
                   {hodinyDne.map((h) => (
                     <li key={h.id} className="rozvrh-polozka">
@@ -253,17 +314,24 @@ export const Rozvrh: React.FC = () => {
               <p className="rozvrh-prazdno">Zatím žádné záznamy — označuj docházku výš.</p>
             )}
             {dochazkaPredmetu.map((d) => (
-              <div key={d.predmet} className="rozvrh-dochazka-procenta-radek">
-                <span className="rozvrh-dochazka-procenta-nazev">{d.predmet}</span>
-                <div className="rozvrh-dochazka-lista">
-                  <div
-                    className={`rozvrh-dochazka-vypln ${d.procenta < PRAH_RIZIKA_DOCHAZKY ? 'je-riziko' : ''}`}
-                    style={{ width: `${d.procenta}%` }}
-                  />
+              <div key={d.predmet} className="rozvrh-dochazka-procenta-blok">
+                <div className="rozvrh-dochazka-procenta-radek">
+                  <span className="rozvrh-dochazka-procenta-nazev">{d.predmet}</span>
+                  <div className="rozvrh-dochazka-lista">
+                    <div
+                      className={`rozvrh-dochazka-vypln ${d.procenta < PRAH_RIZIKA_DOCHAZKY ? 'je-riziko' : ''}`}
+                      style={{ width: `${d.procenta}%` }}
+                    />
+                  </div>
+                  <span className="rozvrh-dochazka-procenta-cislo">
+                    {d.procenta}% ({d.pritomen}/{d.celkem})
+                  </span>
                 </div>
-                <span className="rozvrh-dochazka-procenta-cislo">
-                  {d.procenta}% ({d.pritomen}/{d.celkem})
-                </span>
+                <p className={`rozvrh-dochazka-absence ${d.pocetDovolenychAbsenci === 0 ? 'je-riziko' : ''}`}>
+                  {d.pocetDovolenychAbsenci === 0
+                    ? 'Žádnou další absenci si už nemůžeš dovolit'
+                    : `Můžeš zameškat ještě ${d.pocetDovolenychAbsenci} ${plural(d.pocetDovolenychAbsenci, 'hodinu', 'hodiny', 'hodin')}`}
+                </p>
               </div>
             ))}
           </div>

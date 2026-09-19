@@ -9,6 +9,7 @@ import {
   serazenoPodleCasu,
   sestavIcsRozvrhu,
   spocitejDochazkuPodlePredmetu,
+  spocitejDovolenychAbsenci,
 } from '@/miniapps/rozvrh/types'
 import { validateRozvrhData } from '@/core/utils/rozvrhValidation'
 
@@ -70,8 +71,8 @@ describe('spocitejDochazkuPodlePredmetu', () => {
     }
     const vysledek = spocitejDochazkuPodlePredmetu(hodiny, dochazka)
     expect(vysledek).toEqual([
-      { predmet: 'Matematika', celkem: 2, pritomen: 1, procenta: 50 },
-      { predmet: 'Fyzika', celkem: 1, pritomen: 1, procenta: 100 },
+      { predmet: 'Matematika', celkem: 2, pritomen: 1, procenta: 50, pocetDovolenychAbsenci: 0 },
+      { predmet: 'Fyzika', celkem: 1, pritomen: 1, procenta: 100, pocetDovolenychAbsenci: 0 },
     ])
   })
 
@@ -82,6 +83,26 @@ describe('spocitejDochazkuPodlePredmetu', () => {
 
   it('práh rizika docházky je 75 %', () => {
     expect(PRAH_RIZIKA_DOCHAZKY).toBe(75)
+  })
+})
+
+describe('spocitejDovolenychAbsenci', () => {
+  it('spočítá, kolik dalších absencí předmět ještě snese, než klesne pod práh', () => {
+    // 18/20 = 90 %. Sneseme 4 další absence: 18/24 = 75 % (přesně na prahu).
+    expect(spocitejDovolenychAbsenci(20, 18)).toBe(4)
+  })
+
+  it('předmět už pod prahem nesnese žádnou další absenci', () => {
+    expect(spocitejDovolenychAbsenci(4, 1)).toBe(0)
+  })
+
+  it('nikdy nevrátí záporné číslo', () => {
+    expect(spocitejDovolenychAbsenci(10, 1)).toBe(0)
+  })
+
+  it('perfektní docházka s jedinou hodinou nesnese žádnou další absenci', () => {
+    // 1/1 = 100 %, ale 1/2 = 50 % už je pod prahem.
+    expect(spocitejDovolenychAbsenci(1, 1)).toBe(0)
   })
 })
 
@@ -129,6 +150,15 @@ describe('sestavIcsRozvrhu', () => {
     expect(ics).toContain('BEGIN:VCALENDAR')
     expect(ics).toContain('END:VCALENDAR')
     expect(ics).not.toContain('BEGIN:VEVENT')
+  })
+
+  it('escapuje čárku, středník a zpětné lomítko v textových polích (RFC 5545)', () => {
+    const ics = sestavIcsRozvrhu([
+      hodina({ predmet: 'Dějiny, filozofie; úvod\\pokročilý', mistnost: 'A1, patro 2', vyucujici: 'Dr. X; Y' }),
+    ])
+    expect(ics).toContain('SUMMARY:Dějiny\\, filozofie\\; úvod\\\\pokročilý')
+    expect(ics).toContain('LOCATION:A1\\, patro 2')
+    expect(ics).toContain('DESCRIPTION:Dr. X\\; Y')
   })
 })
 

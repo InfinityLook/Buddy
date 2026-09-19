@@ -12,9 +12,17 @@ import * as v from 'valibot'
 const jePlatnyCil = (x: unknown): x is number | null =>
   x === null || (typeof x === 'number' && Number.isFinite(x) && x >= 0)
 
+// Cílový průměr žije na stejné škále jako Známky (1 výborně–5
+// nedostatečně) — mimo ten rozsah by "cíl" nedával žádný smysl, tak se
+// stejně jako u ostatních polí tiše vrátí null, poškozená stará data
+// nemají shodit celý store.
+const jePlatnyCilPrumeru = (x: unknown): x is number | null =>
+  x === null || (typeof x === 'number' && Number.isFinite(x) && x >= 1 && x <= 5)
+
 const SkolaCilSchema = v.object({
   cilDenniMinut: v.optional(v.unknown()),
   cilTydenniMinut: v.optional(v.unknown()),
+  cilPrumeru: v.optional(v.unknown()),
 })
 
 export const validateSkolaCilData = (data: unknown) => {
@@ -29,6 +37,7 @@ export const validateSkolaCilData = (data: unknown) => {
     data: {
       cilDenniMinut: jePlatnyCil(result.output.cilDenniMinut) ? result.output.cilDenniMinut : null,
       cilTydenniMinut: jePlatnyCil(result.output.cilTydenniMinut) ? result.output.cilTydenniMinut : null,
+      cilPrumeru: jePlatnyCilPrumeru(result.output.cilPrumeru) ? result.output.cilPrumeru : null,
     },
   }
 }

@@ -84,7 +84,9 @@
 }
 
 .citace-kopirovat-btn,
-.citace-ulozit-btn {
+.citace-ulozit-btn,
+.citace-zrusit-btn,
+.citace-stahnout-btn {
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.8rem;
   font-weight: 700;
@@ -92,7 +94,8 @@
   cursor: pointer;
 }
 
-.citace-kopirovat-btn {
+.citace-kopirovat-btn,
+.citace-stahnout-btn {
   background: transparent;
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
@@ -104,11 +107,25 @@
   color: #04121a;
 }
 
+.citace-zrusit-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
 .citace-prazdno {
   color: var(--text-secondary);
   font-size: 0.85rem;
   text-align: center;
   padding: 1rem;
+}
+
+/* Hromadné akce nad celým seznamem — kopírovat/stáhnout celou
+   bibliografii najednou, ne citaci po citaci. */
+.citace-hromadne-akce {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
 }
 
 .citace-seznam {
@@ -128,6 +145,17 @@
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+}
+
+.citace-polozka.je-upravovana {
+  border-color: var(--accent-cyan);
+}
+
+.citace-upravit-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
 }
 
 .citace-polozka-text {

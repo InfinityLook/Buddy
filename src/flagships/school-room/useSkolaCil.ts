@@ -15,8 +15,12 @@ import { validateSkolaCilData } from '@/core/utils/skolaCilValidation'
 interface SkolaCilState {
   cilDenniMinut: number | null
   cilTydenniMinut: number | null
+  /** Cílový vážený průměr (1 výborně–5 nedostatečně, stejná škála jako
+   *  Známky) — null znamená "nenastaveno", appka žádné číslo nevymýšlí. */
+  cilPrumeru: number | null
   setCilDenniMinut: (minut: number | null) => void
   setCilTydenniMinut: (minut: number | null) => void
+  setCilPrumeru: (prumer: number | null) => void
 }
 
 export const useSkolaCil = create<SkolaCilState>()(
@@ -24,8 +28,11 @@ export const useSkolaCil = create<SkolaCilState>()(
     (set) => ({
       cilDenniMinut: null,
       cilTydenniMinut: null,
+      cilPrumeru: null,
       setCilDenniMinut: (minut) => set({ cilDenniMinut: minut !== null && minut > 0 ? minut : null }),
       setCilTydenniMinut: (minut) => set({ cilTydenniMinut: minut !== null && minut > 0 ? minut : null }),
+      setCilPrumeru: (prumer) =>
+        set({ cilPrumeru: prumer !== null && prumer >= 1 && prumer <= 5 ? prumer : null }),
     }),
     {
       name: 'schoolbuddy-skola-cil-storage',
