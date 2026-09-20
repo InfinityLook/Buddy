@@ -1,25 +1,48 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/core/store/useAppStore'
-import { useFormCheck, nastavPredvyberCviku } from '@/miniapps/form-check/useFormCheck'
+import { useFormCheck, nastavPredvyberCviku, nastavPredvyberOkruhu } from '@/miniapps/form-check/useFormCheck'
 import { NAZEV_CVIKU, type TypCviku } from '@/miniapps/form-check/types'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { plural } from '@/core/utils/pluralCZ'
+import { useHasPermission } from '@/core/role'
+import { sdilejText } from '@/core/utils/sdileni'
+import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
 import {
   spocitatFitnessPrehled,
   formatujRozdil,
+  formatujRozdilMesic,
   spocitejOsobniRekordy,
   spocitejSeriiTreninku,
   spocitejTreninkovychDniZaTyden,
   spocitejAktivituPodleDne,
+  soucetOdhadKcalZaPosledniDni,
+  sestavTydenniShrnutiText,
+  sestavFitnessReport,
+  spocitatMesicniSrovnaniFitness,
   tydenniKlic,
 } from './fitnessStats'
 import { useFitnessCil } from './useFitnessCil'
 import { useTelesneMiry } from './useTelesneMiry'
-import { spocitejGrafVahy, serazenoPodleData, formatujRozdilVahy, vypocitejBmi, popisBmiKategorie } from './telesneMiryStats'
+import {
+  spocitejGrafVahy,
+  serazenoPodleData,
+  formatujRozdilVahy,
+  vypocitejBmi,
+  popisBmiKategorie,
+  castiZaznamu,
+} from './telesneMiryStats'
 import { useCvicebniPlan, dnesniDenVTydnu, NAZEV_DNE, type HodnotaPlanu, type DenVTydnu } from './useCvicebniPlan'
+import { useJidelnicek } from './useJidelnicek'
+import { spocitejKalorieDne } from './jidelnicekStats'
+import { POTRAVINY } from './data/potraviny'
+import { usePitnyRezim } from './usePitnyRezim'
+import { RUTINY, type Rutina } from './data/rutiny'
+import { useFitnessPripomenuti } from './useFitnessPripomenuti'
+import { DOPORUCENE_JIDELNICKY, nejblizsiJidelnicek } from './data/doporuceneJidelnicky'
+import { KOUCOVACI_TIPY } from './data/koucovaciTipy'
 import { RozcvickaCasovac } from './RozcvickaCasovac'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './FitnessRoomModule.css'
@@ -51,6 +74,14 @@ const dnesniDatumIso = (): string => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+/** Deterministický "tip dne" podle dne v roce — appka ho nevybírá
+ *  náhodně, ať se ve stejný den nikdy neukáže jiný VIP uživatelům. */
+const tipDne = (): string => {
+  const zacatekRoku = new Date(new Date().getFullYear(), 0, 0)
+  const denRoku = Math.floor((Date.now() - zacatekRoku.getTime()) / 86_400_000)
+  return KOUCOVACI_TIPY[denRoku % KOUCOVACI_TIPY.length]
+}
+
 // ==========================================
 // Fitness Room — druhá vlajková appka (viz FlagshipShell.tsx pro celé
 // zdůvodnění rozděleného pláště). Na rozdíl od School Roomu nemá
@@ -71,6 +102,12 @@ const dnesniDatumIso = (): string => {
 // "Kalorie" je výslovně označený odhad (fitnessStats.ts), "Trénink"
 // jediný skutečně přesný údaj (součet trvaniSekund dnešních sezení
 // Form Checku).
+//
+// Třetí kolo vylepšení přidalo Jídelníček/Pitný režim/Cvičební rutiny/
+// rozšířené tělesné míry/víc odznaků/sdílení/report/víc připomenutí a
+// čtyři VIP panely (doporučené jídelníčky/měsíční trend/zlatý vzhled/
+// denní tip), všechny za cosmetics.premium — stejná brána jako
+// Writer's Roomův Zlatý papír a Vzhled aplikace jinde v appce.
 // ==========================================
 
 export const FitnessRoomModule: React.FC = () => {
@@ -80,6 +117,10 @@ export const FitnessRoomModule: React.FC = () => {
   const cile = useFitnessCil()
   const miry = useTelesneMiry()
   const cvicebniPlan = useCvicebniPlan()
+  const jidelnicek = useJidelnicek()
+  const pitnyRezim = usePitnyRezim()
+  const pripomenuti = useFitnessPripomenuti()
+  const smiVip = useHasPermission('cosmetics.premium')
   const [notifOpen, setNotifOpen] = useState(false)
   const [appsOtevrene, setAppsOtevrene] = useState(false)
   const [upravujeCile, setUpravujeCile] = useState(false)
@@ -98,14 +139,33 @@ export const FitnessRoomModule: React.FC = () => {
   const [novyDatumMiry, setNovyDatumMiry] = useState(dnesniDatumIso)
   const [novaVahaText, setNovaVahaText] = useState('')
   const [novyObvodText, setNovyObvodText] = useState('')
+  const [novyHrudnikText, setNovyHrudnikText] = useState('')
+  const [novyBokyText, setNovyBokyText] = useState('')
+  const [novyPazeText, setNovyPazeText] = useState('')
+  const [novyTukText, setNovyTukText] = useState('')
 
   const handleUlozitZaznamMiry = () => {
-    const vaha = novaVahaText.trim() === '' ? null : Number(novaVahaText)
-    const obvod = novyObvodText.trim() === '' ? null : Number(novyObvodText)
-    if ((vaha === null || vaha <= 0) && (obvod === null || obvod <= 0)) return
-    miry.pridatZaznam(novyDatumMiry, vaha && vaha > 0 ? vaha : null, obvod && obvod > 0 ? obvod : null)
+    const cislo = (text: string): number | null => {
+      if (text.trim() === '') return null
+      const n = Number(text)
+      return n > 0 ? n : null
+    }
+    const hodnoty = {
+      vahaKg: cislo(novaVahaText),
+      obvodPasuCm: cislo(novyObvodText),
+      hrudnikCm: cislo(novyHrudnikText),
+      bokyCm: cislo(novyBokyText),
+      pazeCm: cislo(novyPazeText),
+      tukProcent: cislo(novyTukText),
+    }
+    if (Object.values(hodnoty).every((v) => v === null)) return
+    miry.pridatZaznam(novyDatumMiry, hodnoty)
     setNovaVahaText('')
     setNovyObvodText('')
+    setNovyHrudnikText('')
+    setNovyBokyText('')
+    setNovyPazeText('')
+    setNovyTukText('')
     setPridavaZaznamMiry(false)
   }
 
@@ -133,6 +193,15 @@ export const FitnessRoomModule: React.FC = () => {
     // zůstávají beze změny a Form Check se otevře na svém obyčejném
     // výchozím cviku.
     if (predvybranyCvik) nastavPredvyberCviku(predvybranyCvik)
+    setActiveAppId('form-check', '/fitness')
+    navigate('/apps')
+  }
+
+  const otevritRutinu = (rutina: Rutina) => {
+    // Cvičební rutiny nespouštějí druhý, nový mechanismus — jen
+    // předvyplní Form Checkův už existující okruhový builder (viz
+    // useFormCheck.ts's nastavPredvyberOkruhu).
+    nastavPredvyberOkruhu(rutina.kroky)
     setActiveAppId('form-check', '/fitness')
     navigate('/apps')
   }
@@ -181,6 +250,95 @@ export const FitnessRoomModule: React.FC = () => {
   const treninkProgres = Math.min(100, Math.round((dnes.minutTreninku / cilTreninkMin) * 100))
   const pocetDokoncenychCilu = [kcalProgres, treninkProgres].filter((p) => p >= 100).length
 
+  // ------------------------------------------
+  // Jídelníček — deník snězených jídel s kaloriemi (viz useJidelnicek.ts).
+  // ------------------------------------------
+  const dnesniDatumJidlo = dnesniDatumIso()
+  const jidlaDnes = jidelnicek.zaznamy.filter((z) => z.datum === dnesniDatumJidlo)
+  const kalorieSnezeno = spocitejKalorieDne(jidelnicek.zaznamy, dnesniDatumJidlo)
+  const [vybranaPotravinaId, setVybranaPotravinaId] = useState(POTRAVINY[0].id)
+  const [pridavaJidloVlastni, setPridavaJidloVlastni] = useState(false)
+  const [vlastniJidloNazev, setVlastniJidloNazev] = useState('')
+  const [vlastniJidloKcalText, setVlastniJidloKcalText] = useState('')
+
+  const handlePridatZeSeznamu = () => {
+    const potravina = POTRAVINY.find((p) => p.id === vybranaPotravinaId)
+    if (!potravina) return
+    jidelnicek.pridatJidlo(dnesniDatumJidlo, potravina.nazev, potravina.kcal)
+  }
+
+  const handlePridatVlastniJidlo = () => {
+    const kcal = Number(vlastniJidloKcalText)
+    if (!vlastniJidloNazev.trim() || !(kcal > 0)) return
+    jidelnicek.pridatJidlo(dnesniDatumJidlo, vlastniJidloNazev, kcal)
+    setVlastniJidloNazev('')
+    setVlastniJidloKcalText('')
+    setPridavaJidloVlastni(false)
+  }
+
+  // ------------------------------------------
+  // Pitný režim — denní počet vypitých sklenic (viz usePitnyRezim.ts).
+  // ------------------------------------------
+  const sklenicDnes = pitnyRezim.pocty[dnesniDatumJidlo] ?? 0
+  const cilSklenic = pitnyRezim.cilSklenic ?? 8
+  const vodaProgres = Math.min(100, Math.round((sklenicDnes / cilSklenic) * 100))
+
+  // ------------------------------------------
+  // Víc časů připomenutí (viz useFitnessPripomenuti.ts).
+  // ------------------------------------------
+  const [novyPripomenutiCas, setNovyPripomenutiCas] = useState('12:00')
+
+  // ------------------------------------------
+  // VIP: zlatý vzhled — session-only, stejný "smí se dívat, ne trvale
+  // uložit" tvar jako Writer's Roomův pergamenRezim. Zpráva se sama
+  // schová po pár vteřinách, stejná krátká-oslava-bez-tlačítka logika
+  // jako u tydenniOslavaViditelna výš.
+  // ------------------------------------------
+  const [zlatyRezim, setZlatyRezim] = useState(false)
+  const [vipZprava, setVipZprava] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!vipZprava) return
+    const timer = window.setTimeout(() => setVipZprava(null), 3500)
+    return () => window.clearTimeout(timer)
+  }, [vipZprava])
+
+  const handleTogglZlaty = () => {
+    if (!smiVip) {
+      setVipZprava('Zlatý vzhled je jen pro VIP.')
+      return
+    }
+    setZlatyRezim((v) => !v)
+  }
+
+  const panelClass = smiVip && zlatyRezim ? 'fit-panel fit-panel--zlaty' : 'fit-panel'
+
+  const doporucenyJidelnicek = nejblizsiJidelnicek(cile.cilKcal)
+  const mesicniSrovnani = spocitatMesicniSrovnaniFitness(sezeni)
+
+  const handleSdiletTyden = () => {
+    void sdilejText(
+      sestavTydenniShrnutiText(treninkovychDniZaTyden, serie, soucetOdhadKcalZaPosledniDni(sezeni)),
+      'Fitness Room'
+    )
+  }
+
+  const handleStahnoutReport = () => {
+    stahnoutTextovySoubor(
+      'fitness-room-report.txt',
+      sestavFitnessReport({
+        dnesniKcal: dnes.odhadKcal,
+        dnesniMin: dnes.minutTreninku,
+        tydenniTreninkovychDni: treninkovychDniZaTyden,
+        cilTreninkuTydne: cile.cilTreninkuTydne,
+        serieDni: serie,
+        nejdelsiSezeniSekund: rekordy.nejdelsiSezeniSekund,
+        nejvicOpakovaniZaDen: rekordy.nejvicOpakovaniZaDen,
+        posledniVahaKg: posledniVaha,
+      })
+    )
+  }
+
   const nastroje: FlagshipDlazdice[] = [
     {
       id: 'form-check',
@@ -225,16 +383,28 @@ export const FitnessRoomModule: React.FC = () => {
         onOpenNotifications={() => setNotifOpen(true)}
         onCloseNotifications={() => setNotifOpen(false)}
       >
-        <div className="fit-panel">
+        <div className={panelClass}>
           <div className="fit-panel-hlavicka">
             <div>
               <h2>Moje přehled</h2>
               <p>Dnes je skvělý den na trénink!</p>
             </div>
-            <button className="fit-historie-btn" aria-label="Historie tréninků" onClick={() => otevritFormCheck()}>
-              <AppIcon name="calendar" size={18} />
-            </button>
+            <div className="fit-panel-hlavicka-akce">
+              <button
+                className={`fit-historie-btn ${smiVip && zlatyRezim ? 'fit-historie-btn--zlaty-aktivni' : ''}`}
+                aria-label="Zlatý vzhled (VIP)"
+                aria-pressed={zlatyRezim}
+                onClick={handleTogglZlaty}
+              >
+                <AppIcon name="sparkles" size={18} />
+              </button>
+              <button className="fit-historie-btn" aria-label="Historie tréninků" onClick={() => otevritFormCheck()}>
+                <AppIcon name="calendar" size={18} />
+              </button>
+            </div>
           </div>
+
+          {vipZprava && <p className="fit-vip-zprava">{vipZprava}</p>}
 
           <div className="fit-prehled-telo">
             <div className="fit-postava" aria-hidden="true">
@@ -292,7 +462,7 @@ export const FitnessRoomModule: React.FC = () => {
         </div>
 
         {sezeni.length > 0 && (
-          <div className="fit-panel">
+          <div className={panelClass}>
             <div className="fit-panel-hlavicka">
               <h2>🏆 Osobní rekordy</h2>
             </div>
@@ -314,7 +484,143 @@ export const FitnessRoomModule: React.FC = () => {
           </div>
         )}
 
-        <div className="fit-panel">
+        <div className={panelClass}>
+          <div className="fit-panel-hlavicka">
+            <div>
+              <h2>🍽️ Jídelníček</h2>
+              <p>
+                Dnes snězeno: <strong>{kalorieSnezeno} kcal</strong> · spáleno cvičením: {dnes.odhadKcal} kcal
+              </p>
+            </div>
+            <button
+              className="fit-historie-btn"
+              aria-label="Přidat vlastní jídlo"
+              onClick={() => setPridavaJidloVlastni((v) => !v)}
+            >
+              <AppIcon name="plus" size={18} />
+            </button>
+          </div>
+
+          <div className="fit-jidlo-rychle">
+            <select value={vybranaPotravinaId} onChange={(e) => setVybranaPotravinaId(e.target.value)}>
+              {POTRAVINY.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nazev} — {p.kcal} kcal
+                </option>
+              ))}
+            </select>
+            <button className="fit-jidlo-pridat-btn" onClick={handlePridatZeSeznamu}>
+              Přidat
+            </button>
+          </div>
+
+          {pridavaJidloVlastni && (
+            <div className="fit-jidlo-vlastni-form">
+              <input
+                type="text"
+                placeholder="Název jídla"
+                value={vlastniJidloNazev}
+                onChange={(e) => setVlastniJidloNazev(e.target.value)}
+              />
+              <input
+                type="number"
+                min={1}
+                inputMode="numeric"
+                placeholder="kcal"
+                value={vlastniJidloKcalText}
+                onChange={(e) => setVlastniJidloKcalText(e.target.value)}
+              />
+              <button className="fit-jidlo-pridat-btn" onClick={handlePridatVlastniJidlo}>
+                Přidat vlastní
+              </button>
+            </div>
+          )}
+
+          {jidlaDnes.length > 0 ? (
+            <div className="fit-jidlo-seznam">
+              {jidlaDnes.map((j) => (
+                <div key={j.id} className="fit-jidlo-radek">
+                  <span className="fit-jidlo-nazev">{j.nazev}</span>
+                  <span className="fit-jidlo-kcal">{j.kcal} kcal</span>
+                  <button
+                    className="fit-miry-smazat"
+                    aria-label="Smazat jídlo"
+                    onClick={() => jidelnicek.smazatJidlo(j.id)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="fit-miry-prazdno">Dnes zatím nic nezaznamenáno.</p>
+          )}
+        </div>
+
+        <div className={panelClass}>
+          <div className="fit-panel-hlavicka">
+            <div>
+              <h2>💧 Pitný režim</h2>
+              <p>
+                {sklenicDnes} z {cilSklenic} {plural(cilSklenic, 'sklenice', 'sklenic', 'sklenic')} dnes
+              </p>
+            </div>
+          </div>
+
+          <div className="fit-voda-radek">
+            <div
+              className="fit-krouzek fit-barva-krouzek--cyan"
+              style={{ '--fit-progres': `${vodaProgres}%` } as React.CSSProperties}
+            >
+              <AppIcon name="droplet" size={20} />
+            </div>
+            <div className="fit-voda-ovladani">
+              <button
+                className="fit-voda-btn"
+                aria-label="Ubrat sklenici"
+                onClick={() => pitnyRezim.odebratSklenici(dnesniDatumJidlo)}
+              >
+                −
+              </button>
+              <button className="fit-voda-btn fit-voda-btn--pridat" onClick={() => pitnyRezim.pridatSklenici(dnesniDatumJidlo)}>
+                + Sklenice
+              </button>
+            </div>
+          </div>
+
+          <label className="fit-voda-cil-pole">
+            Denní cíl (sklenic)
+            <input
+              type="number"
+              min={1}
+              inputMode="numeric"
+              value={pitnyRezim.cilSklenic ?? ''}
+              onChange={(e) => pitnyRezim.setCilSklenic(e.target.value === '' ? null : Number(e.target.value))}
+            />
+          </label>
+        </div>
+
+        <div className={panelClass}>
+          <div className="fit-panel-hlavicka">
+            <h2>📋 Cvičební rutiny</h2>
+          </div>
+
+          <div className="fit-rutiny-seznam">
+            {RUTINY.map((r) => (
+              <div key={r.id} className="fit-rutina-radek">
+                <div className="fit-rutina-text">
+                  <span className="fit-rutina-nazev">{r.nazev}</span>
+                  <span className="fit-rutina-popis">{r.popis}</span>
+                </div>
+                <button className="fit-rutina-spustit" onClick={() => otevritRutinu(r)}>
+                  ▶ Spustit
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className={panelClass}>
           <div className="fit-panel-hlavicka">
             <div>
               <h2>📅 Cvičební plán</h2>
@@ -366,7 +672,31 @@ export const FitnessRoomModule: React.FC = () => {
           )}
         </div>
 
-        <div className="fit-panel">
+        <div className={panelClass}>
+          <div className="fit-panel-hlavicka">
+            <h2>🔔 Připomenutí tréninku</h2>
+          </div>
+
+          <div className="fit-pripomenuti-seznam">
+            {pripomenuti.casy.map((c) => (
+              <span key={c} className="fit-pripomenuti-chip">
+                {c}
+                <button aria-label={`Odebrat čas ${c}`} onClick={() => pripomenuti.odebratCas(c)}>
+                  ✕
+                </button>
+              </span>
+            ))}
+          </div>
+
+          <div className="fit-pripomenuti-pridat">
+            <input type="time" value={novyPripomenutiCas} onChange={(e) => setNovyPripomenutiCas(e.target.value)} />
+            <button className="fit-jidlo-pridat-btn" onClick={() => pripomenuti.pridatCas(novyPripomenutiCas)}>
+              + Přidat čas
+            </button>
+          </div>
+        </div>
+
+        <div className={panelClass}>
           <div className="fit-panel-hlavicka">
             <div>
               <h2>📏 Tělesné míry</h2>
@@ -421,6 +751,52 @@ export const FitnessRoomModule: React.FC = () => {
                   placeholder="nepovinné"
                 />
               </label>
+              <label>
+                Hrudník (cm, nepovinné)
+                <input
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={novyHrudnikText}
+                  onChange={(e) => setNovyHrudnikText(e.target.value)}
+                  placeholder="nepovinné"
+                />
+              </label>
+              <label>
+                Boky (cm, nepovinné)
+                <input
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={novyBokyText}
+                  onChange={(e) => setNovyBokyText(e.target.value)}
+                  placeholder="nepovinné"
+                />
+              </label>
+              <label>
+                Paže (cm, nepovinné)
+                <input
+                  type="number"
+                  min={1}
+                  inputMode="numeric"
+                  value={novyPazeText}
+                  onChange={(e) => setNovyPazeText(e.target.value)}
+                  placeholder="nepovinné"
+                />
+              </label>
+              <label>
+                Tělesný tuk (%, nepovinné)
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  step="0.1"
+                  inputMode="decimal"
+                  value={novyTukText}
+                  onChange={(e) => setNovyTukText(e.target.value)}
+                  placeholder="nepovinné"
+                />
+              </label>
               <button className="fit-miry-ulozit" onClick={handleUlozitZaznamMiry}>
                 Uložit záznam
               </button>
@@ -466,11 +842,7 @@ export const FitnessRoomModule: React.FC = () => {
                 .map((z) => (
                   <div key={z.id} className="fit-miry-radek">
                     <span className="fit-miry-datum">{formatDatumMiry(z.datum)}</span>
-                    <span className="fit-miry-hodnoty">
-                      {z.vahaKg !== null && `${z.vahaKg} kg`}
-                      {z.vahaKg !== null && z.obvodPasuCm !== null && ' · '}
-                      {z.obvodPasuCm !== null && `${z.obvodPasuCm} cm pas`}
-                    </span>
+                    <span className="fit-miry-hodnoty">{castiZaznamu(z)}</span>
                     <button
                       className="fit-miry-smazat"
                       aria-label="Smazat záznam"
@@ -488,7 +860,7 @@ export const FitnessRoomModule: React.FC = () => {
           )}
         </div>
 
-        <div className="fit-panel">
+        <div className={panelClass}>
           <div className="fit-panel-hlavicka">
             <h2>Aktivita za 14 dní</h2>
           </div>
@@ -504,9 +876,18 @@ export const FitnessRoomModule: React.FC = () => {
               </div>
             ))}
           </div>
+
+          <div className="fit-akce-radek">
+            <button className="fit-sdilet-btn" onClick={handleSdiletTyden}>
+              📤 Sdílet týden
+            </button>
+            <button className="fit-stahnout-btn" onClick={handleStahnoutReport}>
+              ⬇ Stáhnout report
+            </button>
+          </div>
         </div>
 
-        <div className="fit-panel">
+        <div className={panelClass}>
           <div className="fit-panel-hlavicka">
             <div>
               <h2>Dnešní cíl</h2>
@@ -629,7 +1010,7 @@ export const FitnessRoomModule: React.FC = () => {
           )}
         </div>
 
-        <div className="fit-panel">
+        <div className={panelClass}>
           <div className="fit-panel-hlavicka">
             <h2>Rychlý trénink</h2>
             <button className="fit-zobrazit-vse" onClick={() => otevritFormCheck()}>
@@ -669,6 +1050,101 @@ export const FitnessRoomModule: React.FC = () => {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className={panelClass}>
+          <div className="fit-panel-hlavicka">
+            <div>
+              <h2>👑 VIP: Doporučené jídelníčky</h2>
+              <p>Podle tvého kalorického cíle</p>
+            </div>
+          </div>
+
+          {smiVip ? (
+            <div className="fit-jidelnicky-seznam">
+              {DOPORUCENE_JIDELNICKY.map((j) => (
+                <div
+                  key={j.id}
+                  className={`fit-jidelnicek-karta ${j.id === doporucenyJidelnicek.id ? 'fit-jidelnicek-karta--doporuceny' : ''}`}
+                >
+                  <div className="fit-jidelnicek-hlavicka">
+                    <span>
+                      {j.nazev}
+                      {j.id === doporucenyJidelnicek.id && <span className="fit-jidelnicek-znacka"> · pro tebe</span>}
+                    </span>
+                    <span>{j.cilovaKcal} kcal</span>
+                  </div>
+                  <ul className="fit-jidelnicek-polozky">
+                    {j.polozky.map((p, i) => (
+                      <li key={i}>
+                        <span>{p.nazev}</span>
+                        <span>{p.kcal} kcal</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <button
+              className="fit-vip-zamceno"
+              onClick={() => setVipZprava('Doporučené jídelníčky jsou jen pro VIP.')}
+            >
+              🔒 Odemkni doporučené jídelníčky s VIP
+            </button>
+          )}
+        </div>
+
+        <div className={panelClass}>
+          <div className="fit-panel-hlavicka">
+            <h2>👑 VIP: Měsíční trend</h2>
+          </div>
+
+          {smiVip ? (
+            <div className="fit-mesicni-srovnani">
+              <div className="fit-mesicni-radek">
+                <span>Kalorie (odhad)</span>
+                <span>
+                  {mesicniSrovnani.tentoMesicKcal} kcal{' '}
+                  <small>({formatujRozdilMesic(mesicniSrovnani.tentoMesicKcal, mesicniSrovnani.minulyMesicKcal)})</small>
+                </span>
+              </div>
+              <div className="fit-mesicni-radek">
+                <span>Trénink</span>
+                <span>
+                  {mesicniSrovnani.tentoMesicMin} min{' '}
+                  <small>({formatujRozdilMesic(mesicniSrovnani.tentoMesicMin, mesicniSrovnani.minulyMesicMin)})</small>
+                </span>
+              </div>
+              <div className="fit-mesicni-radek">
+                <span>Tréninkové dny</span>
+                <span>
+                  {mesicniSrovnani.tentoMesicDni}{' '}
+                  <small>({formatujRozdilMesic(mesicniSrovnani.tentoMesicDni, mesicniSrovnani.minulyMesicDni)})</small>
+                </span>
+              </div>
+            </div>
+          ) : (
+            <button className="fit-vip-zamceno" onClick={() => setVipZprava('Měsíční trend je jen pro VIP.')}>
+              🔒 Odemkni měsíční trend s VIP
+            </button>
+          )}
+        </div>
+
+        <div className={panelClass}>
+          <div className="fit-panel-hlavicka">
+            <h2>👑 VIP: Trenérský tip dne</h2>
+          </div>
+
+          {smiVip ? (
+            <p className="fit-tip-dne">
+              <AppIcon name="lightbulb" size={16} /> {tipDne()}
+            </p>
+          ) : (
+            <button className="fit-vip-zamceno" onClick={() => setVipZprava('Denní trenérský tip je jen pro VIP.')}>
+              🔒 Odemkni denní tip s VIP
+            </button>
+          )}
         </div>
       </FlagshipShell>
 

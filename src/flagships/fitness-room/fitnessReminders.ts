@@ -3,6 +3,7 @@ import { useFormCheckStore } from '@/miniapps/form-check/useFormCheck'
 import { NAZEV_CVIKU } from '@/miniapps/form-check/types'
 import { useFitnessCil } from './useFitnessCil'
 import { useCvicebniPlan, dnesniDenVTydnu } from './useCvicebniPlan'
+import { useFitnessPripomenuti } from './useFitnessPripomenuti'
 
 // ==========================================
 // Připomenutí tréninku — stejný "modulový" vzor jako Planerovo
@@ -23,17 +24,14 @@ let remindersStarted = false
 
 const todayIso = (): string => new Date().toISOString().slice(0, 10)
 
+const nynejsiCasHHMM = (): string => {
+  const d = new Date()
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+}
+
 const checkFitnessReminder = (): void => {
   const formState = useFormCheckStore.getState()
   const today = todayIso()
-  // Nejvýš jedno upozornění za den — bez týhle podmínky by se kontrola
-  // spouštěla při každém návratu do appky.
-  if (formState.lastReminderDate === today) return
-
-  // Nechceme otravovat hned ráno — připomenutí dává smysl až večer, kdy
-  // je jasné, že se dnešní trénink ještě nestihl, ne v poledne, kdy na
-  // něj ještě může dojít.
-  if (new Date().getHours() < 17) return
 
   const trenovalDnes = formState.sezeni.some((s) => new Date(s.createdAt).toISOString().slice(0, 10) === today)
   if (trenovalDnes) return
@@ -44,7 +42,19 @@ const checkFitnessReminder = (): void => {
   const planDnes = useCvicebniPlan.getState().plan[dnesniDenVTydnu()]
   if (planDnes === 'odpocinek') return
 
-  useFormCheckStore.setState({ lastReminderDate: today })
+  // Víc časů připomenutí za den (viz useFitnessPripomenuti.ts) — appka
+  // pošle NEJDŘÍVĚJŠÍ ještě neodeslaný čas, co už uplynul, ne první v
+  // pořadí ani všechny najednou. Bez konfigurace tady zůstává přesně
+  // jediný čas '17:00', co appka posílala odjakživa.
+  const pripomenuti = useFitnessPripomenuti.getState()
+  const odeslaneDnes = pripomenuti.odeslaneDatum === today ? pripomenuti.odeslaneCasy : []
+  const ted = nynejsiCasHHMM()
+  const dalsiCas = pripomenuti.casy
+    .filter((c) => !odeslaneDnes.includes(c) && c <= ted)
+    .sort()[0]
+  if (!dalsiCas) return
+
+  pripomenuti.oznacOdeslano(today, dalsiCas)
 
   const cilMin = useFitnessCil.getState().cilTreninkMin
   const zprava = planDnes

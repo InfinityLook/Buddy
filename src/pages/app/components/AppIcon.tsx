@@ -136,6 +136,18 @@ export const AppIcon: React.FC<AppIconProps> = ({ name, size = 20, className }) 
     // Citace — School Roomův nový nástroj, uvozovky (dva stejné bloky).
     case 'quote':
       return <svg {...common}><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.008V21z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v4z"/></svg>
+    // Fitness Roomovo třetí kolo vylepšení — Pitný režim (kapka),
+    // Jídelníček (příbor), a tři VIP panely (jiskřičky/trend/žárovka).
+    case 'droplet':
+      return <svg {...common}><path d="M12 2.69 17.66 8.34a8 8 0 1 1-11.31 0z"/></svg>
+    case 'utensils':
+      return <svg {...common}><path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2"/><path d="M6 2v20"/><path d="M18 2c-2.21 0-4 2.24-4 5v6c0 1.1.9 2 2 2h2v7"/></svg>
+    case 'sparkles':
+      return <svg {...common}><path d="m12 3-1.9 5.8a2 2 0 0 1-1.29 1.29L3 12l5.81 1.91a2 2 0 0 1 1.29 1.29L12 21l1.9-5.8a2 2 0 0 1 1.29-1.29L21 12l-5.81-1.91a2 2 0 0 1-1.29-1.29Z"/></svg>
+    case 'trending-up':
+      return <svg {...common}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+    case 'lightbulb':
+      return <svg {...common}><path d="M15 14c.2-1 .7-1.7 1.5-2.5A6 6 0 1 0 7.5 11.5c.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
     default:
       return null
   }

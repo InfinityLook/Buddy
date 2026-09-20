@@ -76,3 +76,17 @@ export const popisBmiKategorie = (bmi: number): string => {
   if (bmi < 30) return 'Nadváha'
   return 'Obezita'
 }
+
+/** Krátký textový souhrn jednoho záznamu — jen ty hodnoty, co má
+ *  doopravdy vyplněné, spojené " · ", ať se v seznamu neukazuje
+ *  "0 cm boky" pro nikdy nezadaný rozměr. */
+export const castiZaznamu = (z: ZaznamMiry): string => {
+  const casti: string[] = []
+  if (z.vahaKg !== null) casti.push(`${z.vahaKg} kg`)
+  if (z.obvodPasuCm !== null) casti.push(`${z.obvodPasuCm} cm pas`)
+  if (z.hrudnikCm !== null) casti.push(`${z.hrudnikCm} cm hrudník`)
+  if (z.bokyCm !== null) casti.push(`${z.bokyCm} cm boky`)
+  if (z.pazeCm !== null) casti.push(`${z.pazeCm} cm paže`)
+  if (z.tukProcent !== null) casti.push(`${z.tukProcent} % tuku`)
+  return casti.join(' · ')
+}

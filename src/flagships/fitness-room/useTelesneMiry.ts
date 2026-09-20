@@ -19,6 +19,18 @@ import { validateTelesneMiryData, type ZaznamMiry } from '@/core/utils/telesneMi
 
 const noveId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
+/** Nové rozměry (hrudník/boky/paže/% tuku) jsou volitelné, jednotlivě —
+ *  appka nevynucuje vyplnění všech najednou, stejná volnost jako u
+ *  vahaKg/obvodPasuCm, co appka měřila od začátku. */
+export interface NoveHodnotyMiry {
+  vahaKg?: number | null
+  obvodPasuCm?: number | null
+  hrudnikCm?: number | null
+  bokyCm?: number | null
+  pazeCm?: number | null
+  tukProcent?: number | null
+}
+
 interface TelesneMiryState {
   zaznamy: ZaznamMiry[]
   // Výška je jedna hodnota pro celý účet, ne pole u každého záznamu —
@@ -27,7 +39,7 @@ interface TelesneMiryState {
   // BMI (telesneMiryStats.ts's vypocitejBmi) — appka jinde výšku
   // nepoužívá ani neodhaduje.
   vyskaCm: number | null
-  pridatZaznam: (datum: string, vahaKg: number | null, obvodPasuCm: number | null) => void
+  pridatZaznam: (datum: string, hodnoty: NoveHodnotyMiry) => void
   smazatZaznam: (id: string) => void
   setVyska: (vyskaCm: number | null) => void
 }
@@ -38,9 +50,21 @@ export const useTelesneMiry = create<TelesneMiryState>()(
       zaznamy: [],
       vyskaCm: null,
 
-      pridatZaznam: (datum, vahaKg, obvodPasuCm) => {
+      pridatZaznam: (datum, hodnoty) => {
         set((state) => ({
-          zaznamy: [...state.zaznamy, { id: noveId(), datum, vahaKg, obvodPasuCm }],
+          zaznamy: [
+            ...state.zaznamy,
+            {
+              id: noveId(),
+              datum,
+              vahaKg: hodnoty.vahaKg ?? null,
+              obvodPasuCm: hodnoty.obvodPasuCm ?? null,
+              hrudnikCm: hodnoty.hrudnikCm ?? null,
+              bokyCm: hodnoty.bokyCm ?? null,
+              pazeCm: hodnoty.pazeCm ?? null,
+              tukProcent: hodnoty.tukProcent ?? null,
+            },
+          ],
         }))
       },
 

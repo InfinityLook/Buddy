@@ -27,7 +27,7 @@ const PLATNE_NAROCNOSTI: Narocnost[] = ['lehka', 'stredni', 'tezka']
  *  — ne import odtamtud, appka nesmí dovolit miniapce importovat
  *  z vlajkové appky (jen naopak), takže tahle drobná duplikace je
  *  přijatá, stejná jako u BARVY_UZLU jinde v appce. Potřebná jen tady,
- *  pro odznak "Tréninkový bojovník" níž. */
+ *  pro odznaky "Tréninkový bojovník"/"Železná série"/"Legenda fitness" níž. */
 const spocitejTreninkovouSerii = (sezeni: Sezeni[]): number => {
   const dny = new Set(sezeni.map((s) => new Date(s.createdAt).toDateString()))
   const kurzor = new Date()
@@ -38,6 +38,32 @@ const spocitejTreninkovouSerii = (sezeni: Sezeni[]): number => {
     kurzor.setDate(kurzor.getDate() - 1)
   }
   return serie
+}
+
+/** Sezení začaté před 8. hodinou ranní — appka ho počítá jako "ranní
+ *  trénink" pro odznak "Ranní pták" níž. */
+const RANNI_PRAH_HODIN = 8
+const jeRannihoTreninku = (createdAt: string): boolean => new Date(createdAt).getHours() < RANNI_PRAH_HODIN
+
+/** Trénoval uživatel aspoň jednou o sobotě A aspoň jednou o neděli
+ *  STEJNÉHO víkendu? Skupinuje podle data soboty (neděle patří k sobotě
+ *  o den dřív), ne podle dne v týdnu samotného, ať sobotní a nedělní
+ *  trénink patřící ke dvěma různým víkendům omylem nespadly do jedné
+ *  skupiny. Používá se jen pro odznak "Víkendový bojovník" níž. */
+const jeVikendovyBojovnik = (sezeni: Sezeni[]): boolean => {
+  const dnyPodleVikendu = new Map<string, Set<number>>()
+  sezeni.forEach((s) => {
+    const d = new Date(s.createdAt)
+    const den = d.getDay() // 0=neděle..6=sobota
+    if (den !== 0 && den !== 6) return
+    const sobota = new Date(d)
+    if (den === 0) sobota.setDate(sobota.getDate() - 1)
+    const klic = sobota.toDateString()
+    const mnozina = dnyPodleVikendu.get(klic) ?? new Set<number>()
+    mnozina.add(den)
+    dnyPodleVikendu.set(klic, mnozina)
+  })
+  return [...dnyPodleVikendu.values()].some((mnozina) => mnozina.has(0) && mnozina.has(6))
 }
 
 /** Poškozená položka historie se tiše vyřadí, ne celý seznam — stejné
@@ -117,9 +143,15 @@ export const useFormCheckStore = create<FormCheckState>()(
         const pouziteCviky = new Set(noveSezeniSeznam.map((z) => z.cvik))
         if (pouziteCviky.size >= PLATNE_CVIKY.length) gamifikace.unlockBadge('vsestranny')
 
-        if (spocitejTreninkovouSerii(noveSezeniSeznam) >= 7) {
-          gamifikace.unlockBadge('treninkovy_bojovnik')
-        }
+        const treninkovaSerie = spocitejTreninkovouSerii(noveSezeniSeznam)
+        if (treninkovaSerie >= 7) gamifikace.unlockBadge('treninkovy_bojovnik')
+        if (treninkovaSerie >= 30) gamifikace.unlockBadge('zeleza_serie')
+        if (treninkovaSerie >= 100) gamifikace.unlockBadge('legenda_fitness')
+
+        const rannichTreninku = noveSezeniSeznam.filter((z) => jeRannihoTreninku(z.createdAt)).length
+        if (rannichTreninku >= 3) gamifikace.unlockBadge('ranni_ptak')
+
+        if (jeVikendovyBojovnik(noveSezeniSeznam)) gamifikace.unlockBadge('vikendovy_bojovnik')
 
         return id
       },
@@ -194,6 +226,33 @@ export const nastavPredvyberCviku = (cvik: TypCviku) => {
 export const vezmiPredvyberCviku = (): TypCviku | null => {
   const hodnota = predvyberCviku
   predvyberCviku = null
+  return hodnota
+}
+
+// ==========================================
+// Předvýběr celého okruhu pro příští otevření Form Checku — stejný
+// modulový vzor jako predvyberCviku výš, jen pro víc kroků najednou
+// (Fitness Roomovy Cvičební rutiny, viz FitnessRoomModule.tsx a
+// data/rutiny.ts). Form Check si ho při vlastním mountu jednou přečte
+// a rovnou předvyplní svůj už existující okruhový builder (rezimOkruh/
+// okruhKroky v FormCheck.tsx) — appka žádný druhý, nový mechanismus pro
+// spuštění víc cviků za sebou nepřidává, jen znovu použije ten, co už
+// existuje. Uživatel pak stačí klepnout "Spustit okruh" sám.
+// ==========================================
+export interface KrokPredvyberuOkruhu {
+  cvik: TypCviku
+  cil: number
+}
+
+let predvyberOkruhu: KrokPredvyberuOkruhu[] | null = null
+
+export const nastavPredvyberOkruhu = (kroky: KrokPredvyberuOkruhu[]) => {
+  predvyberOkruhu = kroky
+}
+
+export const vezmiPredvyberOkruhu = (): KrokPredvyberuOkruhu[] | null => {
+  const hodnota = predvyberOkruhu
+  predvyberOkruhu = null
   return hodnota
 }
 

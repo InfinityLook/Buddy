@@ -2,10 +2,15 @@ import { describe, it, expect } from 'vitest'
 import {
   spocitatFitnessPrehled,
   formatujRozdil,
+  formatujRozdilMesic,
   spocitejOsobniRekordy,
   spocitejSeriiTreninku,
   spocitejTreninkovychDniZaTyden,
   spocitejAktivituPodleDne,
+  soucetOdhadKcalZaPosledniDni,
+  sestavTydenniShrnutiText,
+  sestavFitnessReport,
+  spocitatMesicniSrovnaniFitness,
   tydenniKlic,
 } from '@/flagships/fitness-room/fitnessStats'
 import { KCAL_ZA_OPAKOVANI, sestavCsvSezeni } from '@/miniapps/form-check/types'
@@ -202,5 +207,119 @@ describe('sestavCsvSezeni', () => {
     s.poznamka = 'lehké; v pohodě'
     const csv = sestavCsvSezeni([s])
     expect(csv).toContain('"lehké; v pohodě"')
+  })
+})
+
+describe('formatujRozdilMesic', () => {
+  it('má vlastní "vs minulý měsíc" větu, ne formatujRozdilovo "vs včera"', () => {
+    expect(formatujRozdilMesic(120, 100)).toBe('+20 vs minulý měsíc')
+    expect(formatujRozdilMesic(80, 100)).toBe('-20 vs minulý měsíc')
+    expect(formatujRozdilMesic(100, 100)).toBe('stejně jako minulý měsíc')
+  })
+})
+
+describe('soucetOdhadKcalZaPosledniDni', () => {
+  it('sečte jen sezení v posledních N dnech, ne starší', () => {
+    const ted = new Date('2024-06-15T12:00:00').getTime()
+    const vPosledniTyden = new Date(ted - 2 * 24 * 60 * 60 * 1000)
+    const predTydnem = new Date(ted - 10 * 24 * 60 * 60 * 1000)
+    const soucet = soucetOdhadKcalZaPosledniDni(
+      [sezeni(10, 60, vPosledniTyden), sezeni(100, 60, predTydnem)],
+      7,
+      ted
+    )
+    expect(soucet).toBe(Math.round(10 * KCAL_ZA_OPAKOVANI.dřep))
+  })
+})
+
+describe('sestavTydenniShrnutiText', () => {
+  it('obsahuje počet tréninkových dní a odhad kcal', () => {
+    const text = sestavTydenniShrnutiText(4, 6, 850)
+    expect(text).toContain('4×')
+    expect(text).toContain('série 6 dní v řadě')
+    expect(text).toContain('850 kcal')
+  })
+
+  it('bez série (0 dní) větu o sérii vynechá', () => {
+    const text = sestavTydenniShrnutiText(2, 0, 300)
+    expect(text).not.toContain('série')
+  })
+})
+
+describe('sestavFitnessReport', () => {
+  it('obsahuje všechny hlavní hodnoty přehledně, jedna na řádek', () => {
+    const report = sestavFitnessReport({
+      dnesniKcal: 250,
+      dnesniMin: 30,
+      tydenniTreninkovychDni: 3,
+      cilTreninkuTydne: 4,
+      serieDni: 5,
+      nejdelsiSezeniSekund: 125,
+      nejvicOpakovaniZaDen: 42,
+      posledniVahaKg: 78.5,
+    })
+    expect(report).toContain('250 kcal')
+    expect(report).toContain('30 min')
+    expect(report).toContain('3 z cíle 4')
+    expect(report).toContain('5 dní v řadě')
+    expect(report).toContain('2 min 5 s')
+    expect(report).toContain('42')
+    expect(report).toContain('78.5 kg')
+  })
+
+  it('bez zaznamenané váhy ukáže poctivou hlášku, ne "null kg"', () => {
+    const report = sestavFitnessReport({
+      dnesniKcal: 0,
+      dnesniMin: 0,
+      tydenniTreninkovychDni: 0,
+      cilTreninkuTydne: null,
+      serieDni: 0,
+      nejdelsiSezeniSekund: 0,
+      nejvicOpakovaniZaDen: 0,
+      posledniVahaKg: null,
+    })
+    expect(report).toContain('Váha zatím nezaznamenána')
+    expect(report).not.toContain('null')
+  })
+})
+
+describe('spocitatMesicniSrovnaniFitness', () => {
+  it('rozdělí sezení podle měsíce a sečte kcal/min/dny zvlášť pro každý', () => {
+    const ted = new Date('2024-06-15T12:00:00')
+    const tentoMesic = new Date('2024-06-05T10:00:00')
+    const minulyMesic = new Date('2024-05-20T10:00:00')
+    const davnoPredtim = new Date('2024-04-01T10:00:00')
+
+    const srovnani = spocitatMesicniSrovnaniFitness(
+      [sezeni(10, 120, tentoMesic), sezeni(20, 300, minulyMesic), sezeni(999, 999, davnoPredtim)],
+      ted
+    )
+
+    expect(srovnani.tentoMesicKcal).toBe(Math.round(10 * KCAL_ZA_OPAKOVANI.dřep))
+    expect(srovnani.minulyMesicKcal).toBe(Math.round(20 * KCAL_ZA_OPAKOVANI.dřep))
+    expect(srovnani.tentoMesicMin).toBe(2)
+    expect(srovnani.minulyMesicMin).toBe(5)
+    expect(srovnani.tentoMesicDni).toBe(1)
+    expect(srovnani.minulyMesicDni).toBe(1)
+  })
+
+  it('leden správně počítá minulý měsíc jako prosinec předchozího roku', () => {
+    const ted = new Date('2024-01-10T12:00:00')
+    const prosinec = new Date('2023-12-20T10:00:00')
+    const srovnani = spocitatMesicniSrovnaniFitness([sezeni(10, 60, prosinec)], ted)
+    expect(srovnani.minulyMesicKcal).toBe(Math.round(10 * KCAL_ZA_OPAKOVANI.dřep))
+    expect(srovnani.tentoMesicKcal).toBe(0)
+  })
+
+  it('bez žádných sezení vrátí samé nuly, ne chybu', () => {
+    const srovnani = spocitatMesicniSrovnaniFitness([], new Date('2024-06-15'))
+    expect(srovnani).toEqual({
+      tentoMesicKcal: 0,
+      minulyMesicKcal: 0,
+      tentoMesicMin: 0,
+      minulyMesicMin: 0,
+      tentoMesicDni: 0,
+      minulyMesicDni: 0,
+    })
   })
 })

@@ -124,4 +124,83 @@ describe('useFormCheckStore.ulozitSezeni — odznaky', () => {
     expect(id).toBe('')
     expect(useFormCheckStore.getState().sezeni).toHaveLength(0)
   })
+
+  it('"Ranní pták" se odemkne po 3 sezeních začatých před 8. hodinou ranní', () => {
+    vi.setSystemTime(new Date('2026-08-19T06:30:00'))
+    useFormCheckStore.getState().ulozitSezeni(5, 30, 'dřep')
+    vi.setSystemTime(new Date('2026-08-20T07:00:00'))
+    useFormCheckStore.getState().ulozitSezeni(5, 30, 'dřep')
+    expect(jeOdemcen('ranni_ptak')).toBe(false)
+
+    vi.setSystemTime(new Date('2026-08-21T07:45:00'))
+    useFormCheckStore.getState().ulozitSezeni(5, 30, 'dřep')
+    expect(jeOdemcen('ranni_ptak')).toBe(true)
+  })
+
+  it('sezení odpoledne se do "Ranního ptáka" nepočítá', () => {
+    vi.setSystemTime(new Date('2026-08-19T14:00:00'))
+    useFormCheckStore.getState().ulozitSezeni(5, 30, 'dřep')
+    vi.setSystemTime(new Date('2026-08-20T14:00:00'))
+    useFormCheckStore.getState().ulozitSezeni(5, 30, 'dřep')
+    vi.setSystemTime(new Date('2026-08-21T14:00:00'))
+    useFormCheckStore.getState().ulozitSezeni(5, 30, 'dřep')
+    expect(jeOdemcen('ranni_ptak')).toBe(false)
+  })
+
+  it('"Víkendový bojovník" se odemkne, až uživatel trénuje sobotu I neděli STEJNÉHO víkendu', () => {
+    const sobota: Sezeni = {
+      id: 'sobota',
+      cvik: 'dřep',
+      pocetOpakovani: 5,
+      trvaniSekund: 30,
+      createdAt: new Date(2024, 0, 6, 10, 0).toISOString(), // sobota 6. 1. 2024
+    }
+    useFormCheckStore.setState({ sezeni: [sobota] })
+    expect(jeOdemcen('vikendovy_bojovnik')).toBe(false)
+
+    vi.setSystemTime(new Date(2024, 0, 7, 10, 0)) // neděle 7. 1. — stejný víkend
+    useFormCheckStore.getState().ulozitSezeni(5, 30, 'dřep')
+    expect(jeOdemcen('vikendovy_bojovnik')).toBe(true)
+  })
+
+  it('sobota a neděle DVOU RŮZNÝCH víkendů "Víkendového bojovníka" neodemknou', () => {
+    const sobota: Sezeni = {
+      id: 'sobota',
+      cvik: 'dřep',
+      pocetOpakovani: 5,
+      trvaniSekund: 30,
+      createdAt: new Date(2024, 0, 6, 10, 0).toISOString(), // sobota 6. 1.
+    }
+    useFormCheckStore.setState({ sezeni: [sobota] })
+
+    vi.setSystemTime(new Date(2024, 0, 14, 10, 0)) // neděle 14. 1. — jiný víkend
+    useFormCheckStore.getState().ulozitSezeni(5, 30, 'dřep')
+    expect(jeOdemcen('vikendovy_bojovnik')).toBe(false)
+  })
+
+  const denRadyKonci = (posledniDen: Date, pocetDni: number): Sezeni[] =>
+    Array.from({ length: pocetDni }, (_, i) => ({
+      id: `serie-${i}`,
+      cvik: 'dřep' as const,
+      pocetOpakovani: 5,
+      trvaniSekund: 30,
+      createdAt: new Date(posledniDen.getTime() - (pocetDni - 1 - i) * 86_400_000).toISOString(),
+    }))
+
+  it('"Železná série" se odemkne při 30denní sérii, "Legenda fitness" ještě ne', () => {
+    useFormCheckStore.setState({ sezeni: denRadyKonci(new Date(2026, 7, 20, 12, 0), 29) })
+    expect(jeOdemcen('zeleza_serie')).toBe(false)
+
+    useFormCheckStore.getState().ulozitSezeni(5, 30, 'dřep')
+    expect(jeOdemcen('zeleza_serie')).toBe(true)
+    expect(jeOdemcen('legenda_fitness')).toBe(false)
+  })
+
+  it('"Legenda fitness" se odemkne při 100denní sérii', () => {
+    useFormCheckStore.setState({ sezeni: denRadyKonci(new Date(2026, 7, 20, 12, 0), 99) })
+    expect(jeOdemcen('legenda_fitness')).toBe(false)
+
+    useFormCheckStore.getState().ulozitSezeni(5, 30, 'dřep')
+    expect(jeOdemcen('legenda_fitness')).toBe(true)
+  })
 })

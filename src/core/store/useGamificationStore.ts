@@ -112,6 +112,15 @@ export const DEFAULT_BADGES: Badge[] = [
   { id: 'stovkar', title: 'Stovkař', description: 'Napočítej dohromady 100 opakování ve Form Checku.', icon: '💯', unlockedAt: null },
   { id: 'vsestranny', title: 'Všestranný', description: 'Vyzkoušej ve Form Checku všechny cviky — dřep, klik i výpad.', icon: '🤸', unlockedAt: null },
   { id: 'treninkovy_bojovnik', title: 'Tréninkový bojovník', description: 'Udrž si 7denní tréninkovou sérii ve Form Checku.', icon: '🏅', unlockedAt: null },
+  // Fitness Roomovo třetí kolo vylepšení — další čtyři odznaky mimo
+  // COUNT_BADGES's jednoduchý tvar, ze stejného důvodu jako trojice výš:
+  // "ranní trénink"/"oba víkendové dny"/"30denní a 100denní série" se
+  // nedají vyjádřit jako "kolikáté volání téhož kindu" — ruční kontrola
+  // v useFormCheck.ts's ulozitSezeni.
+  { id: 'ranni_ptak', title: 'Ranní pták', description: 'Odcvič 3 sezení ve Form Checku před 8. hodinou ranní.', icon: '🌅', unlockedAt: null },
+  { id: 'vikendovy_bojovnik', title: 'Víkendový bojovník', description: 'Trénuj ve Form Checku o sobotě i neděli stejného víkendu.', icon: '🎽', unlockedAt: null },
+  { id: 'zeleza_serie', title: 'Železná série', description: 'Udrž si 30denní tréninkovou sérii ve Form Checku.', icon: '🔥', unlockedAt: null },
+  { id: 'legenda_fitness', title: 'Legenda fitness', description: 'Udrž si 100denní tréninkovou sérii ve Form Checku.', icon: '👑', unlockedAt: null },
   // Survival Night — 'Monster Hunter' se počtem hodí do COUNT_BADGES
   // (viz níž), 'First Blood'/'Survivor'/'Impossible'/'Night Legend' ne:
   // "za první zabití vůbec" a "přežít X vln V JEDNOM běhu" nejsou

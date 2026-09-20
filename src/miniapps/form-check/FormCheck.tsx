@@ -1,6 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { usePoseEngine } from './usePoseEngine'
-import { useFormCheck, nejlepsiOpakovaniProCvik, navrhniCilNaPriste, vezmiPredvyberCviku } from './useFormCheck'
+import {
+  useFormCheck,
+  nejlepsiOpakovaniProCvik,
+  navrhniCilNaPriste,
+  vezmiPredvyberCviku,
+  vezmiPredvyberOkruhu,
+} from './useFormCheck'
 import { NAZEV_CVIKU, NAROCNOST_LABEL, JE_CVIK_NA_CAS, formatPocetCviku, sestavCsvSezeni, Narocnost, TypCviku } from './types'
 import {
   ohlasOpakovani,
@@ -41,6 +47,14 @@ export const FormCheck: React.FC = () => {
   // initializer), ať se předvýběr nesnaží znovu přečíst při každém
   // dalším překreslení (vezmiPredvyberCviku ho navíc hned zahazuje).
   const [cvik, setCvik] = useState<TypCviku>(() => vezmiPredvyberCviku() ?? 'dřep')
+
+  // Předvyplněný okruh z Fitness Roomovy Cvičební rutiny (viz
+  // useFormCheck.ts's vezmiPredvyberOkruhu) — přečte se jednou při
+  // prvním renderu, ať appka rovnou otevře okruhový builder s už
+  // vyplněnými kroky místo prázdného "Jednotlivý cvik". Bez čekající
+  // rutiny se chová úplně stejně jako dřív (rezimOkruh: false,
+  // okruhKroky: []).
+  const [predvyplnenyOkruh] = useState(() => vezmiPredvyberOkruhu())
   const engine = usePoseEngine(cvik)
   const {
     sezeni,
@@ -93,8 +107,10 @@ export const FormCheck: React.FC = () => {
   // počítadlo a přepne cvik, bez odpočinku (skutečné okruhy bez
   // odpočinku mezi RŮZNÝMI cviky jsou běžné — odpočinek zůstává
   // vyhrazený pro víc sérií STEJNÉHO cviku výš).
-  const [rezimOkruh, setRezimOkruh] = useState(false)
-  const [okruhKroky, setOkruhKroky] = useState<{ cvik: TypCviku; cil: number }[]>([])
+  const [rezimOkruh, setRezimOkruh] = useState(() => predvyplnenyOkruh !== null)
+  const [okruhKroky, setOkruhKroky] = useState<{ cvik: TypCviku; cil: number }[]>(
+    () => predvyplnenyOkruh ?? []
+  )
   const [novyOkruhCvik, setNovyOkruhCvik] = useState<TypCviku>('dřep')
   const [novyOkruhCilText, setNovyOkruhCilText] = useState('')
   const [okruhBezi, setOkruhBezi] = useState(false)

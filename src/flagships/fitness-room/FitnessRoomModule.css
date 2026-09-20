@@ -618,3 +618,388 @@
   padding: 0.3rem 0.5rem;
   font-size: 0.78rem;
 }
+
+/* ------------------------------------------
+   ZLATÝ VZHLED (VIP) — reskin sdílený všemi panely, viz
+   FitnessRoomModule.tsx's panelClass. Stejná sepia/gold paleta jako
+   Writer's Roomovo vlastní --zlaty (Zlatý papír).
+   ------------------------------------------ */
+.fit-panel--zlaty {
+  background: linear-gradient(135deg, rgba(233, 220, 192, 0.12), rgba(216, 198, 159, 0.05));
+  border-color: rgba(216, 198, 159, 0.4);
+}
+
+.fit-panel--zlaty h2 {
+  color: #e9dcc0;
+}
+
+.fit-panel-hlavicka-akce {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.fit-historie-btn--zlaty-aktivni {
+  border-color: #d8c69f;
+  color: #d8c69f;
+  background: rgba(216, 198, 159, 0.15);
+}
+
+.fit-vip-zprava {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: rgba(216, 198, 159, 0.12);
+  border: 1px solid rgba(216, 198, 159, 0.4);
+  color: #e9dcc0;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.fit-vip-zamceno {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed var(--border-subtle);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 0.6rem;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* ------------------------------------------
+   JÍDELNÍČEK
+   ------------------------------------------ */
+.fit-jidlo-rychle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fit-jidlo-rychle select {
+  flex: 1;
+  min-width: 0;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--text-primary);
+  padding: 0.4rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.fit-jidlo-pridat-btn {
+  flex-shrink: 0;
+  background: rgba(52, 211, 153, 0.18);
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  color: #6ee7b7;
+  font-weight: 700;
+  font-size: 0.76rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.fit-jidlo-vlastni-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.fit-jidlo-vlastni-form input {
+  flex: 1;
+  min-width: 90px;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--text-primary);
+  padding: 0.4rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+.fit-jidlo-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.fit-jidlo-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 0.4rem 0.6rem;
+}
+
+.fit-jidlo-nazev {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.fit-jidlo-kcal {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+/* ------------------------------------------
+   PITNÝ REŽIM
+   ------------------------------------------ */
+.fit-barva-krouzek--cyan { --fit-ring-barva: var(--accent-cyan); }
+
+.fit-voda-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.fit-voda-ovladani {
+  flex: 1;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fit-voda-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-weight: 800;
+  font-size: 0.95rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.fit-voda-btn--pridat {
+  flex: 1;
+  background: rgba(53, 196, 240, 0.15);
+  border-color: rgba(53, 196, 240, 0.45);
+  color: var(--accent-cyan);
+  font-size: 0.78rem;
+}
+
+.fit-voda-cil-pole {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.fit-voda-cil-pole input {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--text-primary);
+  padding: 0.4rem 0.5rem;
+  font-size: 0.8rem;
+  max-width: 100px;
+}
+
+/* ------------------------------------------
+   CVIČEBNÍ RUTINY
+   ------------------------------------------ */
+.fit-rutiny-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.fit-rutina-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+}
+
+.fit-rutina-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.fit-rutina-nazev {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.fit-rutina-popis {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.fit-rutina-spustit {
+  flex-shrink: 0;
+  background: rgba(138, 92, 246, 0.18);
+  border: 1px solid rgba(138, 92, 246, 0.5);
+  color: var(--accent-violet);
+  font-weight: 700;
+  font-size: 0.72rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ------------------------------------------
+   PŘIPOMENUTÍ
+   ------------------------------------------ */
+.fit-pripomenuti-seznam {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.fit-pripomenuti-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: 0.25rem 0.4rem 0.25rem 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
+.fit-pripomenuti-chip button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.7rem;
+  padding: 0.1rem 0.2rem;
+}
+
+.fit-pripomenuti-pridat {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fit-pripomenuti-pridat input {
+  flex: 1;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  color: var(--text-primary);
+  padding: 0.4rem 0.5rem;
+  font-size: 0.8rem;
+}
+
+/* ------------------------------------------
+   SDÍLENÍ / REPORT
+   ------------------------------------------ */
+.fit-akce-radek {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fit-sdilet-btn,
+.fit-stahnout-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 0.74rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* ------------------------------------------
+   VIP: DOPORUČENÉ JÍDELNÍČKY
+   ------------------------------------------ */
+.fit-jidelnicky-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.fit-jidelnicek-karta {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.7rem;
+}
+
+.fit-jidelnicek-karta--doporuceny {
+  border-color: rgba(216, 198, 159, 0.5);
+  background: rgba(216, 198, 159, 0.08);
+}
+
+.fit-jidelnicek-znacka {
+  color: #d8c69f;
+  font-weight: 700;
+}
+
+.fit-jidelnicek-hlavicka {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 800;
+  margin-bottom: 0.4rem;
+}
+
+.fit-jidelnicek-polozky {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.fit-jidelnicek-polozky li {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------
+   VIP: MĚSÍČNÍ TREND
+   ------------------------------------------ */
+.fit-mesicni-srovnani {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fit-mesicni-radek {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 0.5rem 0.7rem;
+}
+
+.fit-mesicni-radek small {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------
+   VIP: TRENÉRSKÝ TIP DNE
+   ------------------------------------------ */
+.fit-tip-dne {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+}

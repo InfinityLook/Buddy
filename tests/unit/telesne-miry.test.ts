@@ -5,6 +5,7 @@ import {
   formatujRozdilVahy,
   vypocitejBmi,
   popisBmiKategorie,
+  castiZaznamu,
 } from '@/flagships/fitness-room/telesneMiryStats'
 import { validateTelesneMiryData } from '@/core/utils/telesneMiryValidation'
 import type { ZaznamMiry } from '@/flagships/fitness-room/useTelesneMiry'
@@ -14,6 +15,10 @@ const zaznam = (id: string, datum: string, vahaKg: number | null, obvodPasuCm: n
   datum,
   vahaKg,
   obvodPasuCm,
+  hrudnikCm: null,
+  bokyCm: null,
+  pazeCm: null,
+  tukProcent: null,
 })
 
 describe('serazenoPodleData', () => {
@@ -137,5 +142,66 @@ describe('validateTelesneMiryData', () => {
   it('úplně neplatný tvar dat (ne pole) se odmítne', () => {
     expect(validateTelesneMiryData('nesmysl').success).toBe(false)
     expect(validateTelesneMiryData(undefined).success).toBe(false)
+  })
+
+  it('rozšířené rozměry (hrudník/boky/paže/tuk) projdou, když jsou platné', () => {
+    const vysledek = validateTelesneMiryData([
+      { id: 'a', datum: '2024-01-01', vahaKg: 75, obvodPasuCm: 80, hrudnikCm: 100, bokyCm: 95, pazeCm: 32, tukProcent: 18.5 },
+    ])
+    expect(vysledek.success).toBe(true)
+    if (vysledek.success) {
+      expect(vysledek.data[0].hrudnikCm).toBe(100)
+      expect(vysledek.data[0].bokyCm).toBe(95)
+      expect(vysledek.data[0].pazeCm).toBe(32)
+      expect(vysledek.data[0].tukProcent).toBe(18.5)
+    }
+  })
+
+  it('tělesný tuk nad 100 % nebo záporný spadne na null, položka se nevyřadí', () => {
+    const vysledek = validateTelesneMiryData([
+      { id: 'a', datum: '2024-01-01', vahaKg: 75, obvodPasuCm: null, tukProcent: 150 },
+      { id: 'b', datum: '2024-01-02', vahaKg: 75, obvodPasuCm: null, tukProcent: -5 },
+    ])
+    expect(vysledek.success).toBe(true)
+    if (vysledek.success) {
+      expect(vysledek.data[0].tukProcent).toBeNull()
+      expect(vysledek.data[1].tukProcent).toBeNull()
+    }
+  })
+
+  it('chybějící rozšířené rozměry (starší záznam) spadnou na null, ne na chybu', () => {
+    const vysledek = validateTelesneMiryData([{ id: 'a', datum: '2024-01-01', vahaKg: 75, obvodPasuCm: 80 }])
+    expect(vysledek.success).toBe(true)
+    if (vysledek.success) {
+      expect(vysledek.data[0].hrudnikCm).toBeNull()
+      expect(vysledek.data[0].bokyCm).toBeNull()
+      expect(vysledek.data[0].pazeCm).toBeNull()
+      expect(vysledek.data[0].tukProcent).toBeNull()
+    }
+  })
+})
+
+describe('castiZaznamu', () => {
+  it('spojí jen skutečně vyplněné hodnoty, oddělené " · "', () => {
+    const z = zaznam('a', '2024-01-01', 75, 80)
+    expect(castiZaznamu(z)).toBe('75 kg · 80 cm pas')
+  })
+
+  it('prázdný záznam (nic vyplněné) dá prázdný řetězec', () => {
+    expect(castiZaznamu(zaznam('a', '2024-01-01', null))).toBe('')
+  })
+
+  it('rozšířené rozměry se přidají za váhu/pas ve svém pořadí', () => {
+    const z: ZaznamMiry = {
+      id: 'a',
+      datum: '2024-01-01',
+      vahaKg: 75,
+      obvodPasuCm: null,
+      hrudnikCm: 100,
+      bokyCm: null,
+      pazeCm: 32,
+      tukProcent: 18,
+    }
+    expect(castiZaznamu(z)).toBe('75 kg · 100 cm hrudník · 32 cm paže · 18 % tuku')
   })
 })
