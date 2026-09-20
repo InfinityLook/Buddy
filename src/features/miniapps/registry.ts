@@ -52,6 +52,9 @@ export const MINI_APP_REGISTRY: Record<string, LazyExoticComponent<React.Compone
   'behani': lazy(() =>
     import('../../miniapps/behani/Behani').then((m) => ({ default: m.Behani }))
   ),
+  'posilovna': lazy(() =>
+    import('../../miniapps/posilovna/Posilovna').then((m) => ({ default: m.Posilovna }))
+  ),
   'music-studio': lazy(() =>
     import('../../miniapps/music-studio/MusicStudio').then((m) => ({ default: m.MusicStudio }))
   ),

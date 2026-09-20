@@ -1,0 +1,319 @@
+.posilovna-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 480px;
+  margin: 0 auto;
+  color: var(--text-primary);
+  padding-bottom: 1rem;
+}
+
+.posilovna-nadpis {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.posilovna-podtitul {
+  margin: -0.6rem 0 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.posilovna-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1rem;
+  border-radius: 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+}
+
+.posilovna-panel-nadpis {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.posilovna-prazdno {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.posilovna-cvik-karta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.7rem;
+  border-radius: 12px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+}
+
+.posilovna-cvik-hlavicka {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.95rem;
+}
+
+.posilovna-cvik-odebrat {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+}
+
+.posilovna-serie-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.posilovna-serie-cislo {
+  width: 1.3rem;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.posilovna-serie-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.posilovna-serie-krat {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.posilovna-serie-odebrat {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 0.2rem 0.3rem;
+}
+
+.posilovna-pridat-serii {
+  align-self: flex-start;
+  padding: 0.35rem 0.7rem;
+  border-radius: 8px;
+  border: 1px dashed var(--border-subtle);
+  background: transparent;
+  color: var(--accent-cyan);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.posilovna-novy-cvik {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.posilovna-cviky-chipy {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.posilovna-chip {
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-glass);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.posilovna-novy-cvik-radek {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.posilovna-novy-cvik-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.6rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+.posilovna-pridat-cvik {
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  border: none;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-cyan);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.posilovna-pridat-cvik:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.posilovna-poznamka {
+  padding: 0.6rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-glass);
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.posilovna-ulozit-btn {
+  width: 100%;
+  padding: 0.9rem;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  color: #04121a;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.posilovna-ulozit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.posilovna-rekordy-seznam {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.posilovna-rekord-radek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.posilovna-rekord-radek:last-child {
+  border-bottom: none;
+}
+
+.posilovna-historie-nadpis {
+  margin: 0.4rem 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.posilovna-celkovy-objem {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.posilovna-historie-seznam {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.posilovna-historie-radek {
+  border-radius: 12px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.posilovna-historie-hlavicka {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.8rem;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.posilovna-historie-info {
+  flex: 1;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.posilovna-historie-datum {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.posilovna-historie-sipka {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.posilovna-historie-detail {
+  padding: 0 0.8rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.posilovna-detail-cvik {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.85rem;
+}
+
+.posilovna-detail-serie {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.posilovna-detail-poznamka {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.posilovna-smazat-btn {
+  align-self: flex-start;
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  font-size: 0.8rem;
+  cursor: pointer;
+}

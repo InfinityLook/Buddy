@@ -120,6 +120,10 @@ const DEFAULT_APPS: AppItem[] = [
   // žádné sledování pohybu v prostoru vůbec, jenVeVlajkoveAppce: true
   // od prvního commitu stejně jako Kalendář/Music Studio výš.
   { id: 'behani', title: 'Běhání', category: 'Nástroje', icon: 'footprints', color: 'green', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  // Fitness Roomova pátá fáze vylepšení — Posilovna (deník vah a
+  // opakování pro cviky, co kamera ověřit neumí). jenVeVlajkoveAppce:
+  // true od prvního commitu stejně jako Běhání výš.
+  { id: 'posilovna', title: 'Posilovna', category: 'Nástroje', icon: 'dumbbell', color: 'purple', active: true, favorite: false, jenVeVlajkoveAppce: true },
   // Nová, Music Roomu vlastní (viz src/flagships/music-room/) — appka
   // do teď neměla žádnou tvorbu hudby vůbec, takže na rozdíl od
   // Kalendáře výš nejde o žádnou předchozí verzi jinde v appce. Rovnou

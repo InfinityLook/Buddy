@@ -46,6 +46,8 @@ import { KOUCOVACI_TIPY } from './data/koucovaciTipy'
 import { RozcvickaCasovac } from './RozcvickaCasovac'
 import { useBehani } from '@/miniapps/behani/useBehani'
 import { NAZEV_AKTIVITY, IKONA_AKTIVITY, formatujVzdalenost, soucetVzdalenostiM } from '@/miniapps/behani/types'
+import { usePosilovna } from '@/miniapps/posilovna/usePosilovna'
+import { celkovyObjem, formatujObjem } from '@/miniapps/posilovna/types'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './FitnessRoomModule.css'
 
@@ -121,6 +123,7 @@ export const FitnessRoomModule: React.FC = () => {
   const cvicebniPlan = useCvicebniPlan()
   const jidelnicek = useJidelnicek()
   const behani = useBehani()
+  const posilovna = usePosilovna()
   const pitnyRezim = usePitnyRezim()
   const pripomenuti = useFitnessPripomenuti()
   const smiVip = useHasPermission('cosmetics.premium')
@@ -202,6 +205,11 @@ export const FitnessRoomModule: React.FC = () => {
 
   const otevritBehani = () => {
     setActiveAppId('behani', '/fitness')
+    navigate('/apps')
+  }
+
+  const otevritPosilovnu = () => {
+    setActiveAppId('posilovna', '/fitness')
     navigate('/apps')
   }
 
@@ -364,6 +372,14 @@ export const FitnessRoomModule: React.FC = () => {
       barva: 'green',
       onClick: otevritBehani,
     },
+    {
+      id: 'posilovna',
+      nazev: 'Posilovna',
+      popis: 'Deník vah a opakování',
+      ikona: 'dumbbell',
+      barva: 'purple',
+      onClick: otevritPosilovnu,
+    },
   ]
 
   const velkeKarty: FlagshipVelkaKarta[] = [
@@ -518,6 +534,22 @@ export const FitnessRoomModule: React.FC = () => {
           )}
           <button className="fit-behani-spustit" onClick={otevritBehani}>
             ▶ Spustit Běhání
+          </button>
+        </div>
+
+        <div className={panelClass}>
+          <div className="fit-panel-hlavicka">
+            <div>
+              <h2>🏋️ Posilovna</h2>
+              <p>
+                {posilovna.sezeni.length > 0
+                  ? `Celkem ${formatujObjem(celkovyObjem(posilovna.sezeni))} objem · ${posilovna.sezeni.length} ${plural(posilovna.sezeni.length, 'trénink', 'tréninky', 'tréninků')}`
+                  : 'Zatím žádný trénink — deník vah a opakování pro cviky, co kamera neověří.'}
+              </p>
+            </div>
+          </div>
+          <button className="fit-behani-spustit" onClick={otevritPosilovnu}>
+            ▶ Otevřít Posilovnu
           </button>
         </div>
 

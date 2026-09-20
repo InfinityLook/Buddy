@@ -47,6 +47,11 @@ export type ActivityKind =
   // (GPS vzdálenost vs. opakování před kamerou), stejná zásada jako
   // 'souboj' vs. 'battle' výš.
   | 'behani'
+  // Posilovna (src/miniapps/posilovna/) — Fitness Roomova pátá fáze
+  // vylepšení, vlastní kind od 'workout'/'behani': appka tady neměří
+  // vůbec nic sama (žádná kamera, žádné GPS), uživatel si série zapíše
+  // ručně, stejná "dvě různé appky, dva různé kindy" zásada jako výš.
+  | 'posilovna'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -143,6 +148,14 @@ export const DEFAULT_BADGES: Badge[] = [
   // exam_master jinde v appce — ruční kontrola přímo v useBehani.ts.
   { id: 'vytrvalec', title: 'Vytrvalec', description: 'Dokonči 10 tréninků v Běhání/Kardio.', icon: '🏃', unlockedAt: null },
   { id: 'maratonec', title: 'Maratonec', description: 'Naběhej nebo najeď celkem 42,2 km v Běhání/Kardio.', icon: '🏅', unlockedAt: null },
+  // Fitness Roomova pátá fáze vylepšení — Posilovna (deník vah a
+  // opakování). 'posilak' se hodí do COUNT_BADGES (počet uložených
+  // tréninků, viz níž); 'silak' ne — je to nejtěžší JEDNA série kdy
+  // zaznamenaná napříč historií, ne "kolikáté volání", stejný problém
+  // jako maratonec/stovkar jinde v appce — ruční kontrola přímo
+  // v usePosilovna.ts.
+  { id: 'posilak', title: 'Posilač', description: 'Zapiš si 10 tréninků v Posilovně.', icon: '🏋️‍♂️', unlockedAt: null },
+  { id: 'silak', title: 'Silák', description: 'Zvedni v jedné sérii 100 kg nebo víc v Posilovně.', icon: '💪', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti. 'souboj'
@@ -183,6 +196,7 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   // vlastní, needed odpovídá "Monster Hunter" (bod 21 zadání).
   survival_kill: { badgeId: 'monster_hunter', needed: 100 },
   behani: { badgeId: 'vytrvalec', needed: 10 },
+  posilovna: { badgeId: 'posilak', needed: 10 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není
