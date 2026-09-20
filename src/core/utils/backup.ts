@@ -75,6 +75,7 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-vybaveni-storage', storage: 'secure', label: 'Herní vybavení' },
   { key: 'schoolbuddy-souboj-statistiky-storage', storage: 'secure', label: 'Statistiky Souboje' },
   { key: 'schoolbuddy-kalendar-storage', storage: 'secure', label: 'Kalendář' },
+  { key: 'schoolbuddy-behani-storage', storage: 'secure', label: 'Běhání' },
   // Které widgety má kdo připnuté nahoře v které vlajkové appce (School
   // Room a případné budoucí) — viz src/flagships/shared/useFlagshipWidgets.ts.
   { key: 'schoolbuddy-flagship-widgets-storage', storage: 'secure', label: 'Widgety vlajkových appek' },

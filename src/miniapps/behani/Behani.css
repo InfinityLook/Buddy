@@ -1,0 +1,250 @@
+.behani-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 480px;
+  margin: 0 auto;
+  color: var(--text-primary);
+  padding-bottom: 1rem;
+}
+
+.behani-nadpis {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 800;
+}
+
+.behani-chyba {
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  border-radius: 10px;
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #fca5a5;
+  font-size: 0.85rem;
+}
+
+.behani-mapa {
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+/* Leaflet's own tile images have max-width: 100% from the app's global
+   img rule fighting its own internal sizing — override back to Leaflet's
+   own expectation, or tiles render squashed. */
+.behani-mapa img {
+  max-width: none;
+}
+
+.behani-vyber-aktivity {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.behani-aktivita-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.75rem 0.5rem;
+  border-radius: 12px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.behani-aktivita-btn.is-vybrana {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+  background: rgba(34, 211, 238, 0.1);
+}
+
+.behani-aktivita-ikona {
+  font-size: 1.6rem;
+}
+
+.behani-spustit-btn {
+  width: 100%;
+  padding: 0.9rem;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  color: #04121a;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.behani-spustit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.behani-zive-karta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  padding: 1rem;
+  border-radius: 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+}
+
+.behani-zive-radek {
+  text-align: center;
+}
+
+.behani-zive-cislo {
+  font-size: 2.4rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.behani-zive-cislo--male {
+  font-size: 1.4rem;
+}
+
+.behani-zive-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.behani-zive-mrizka {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.behani-zive-tlacitka,
+.behani-souhrn-tlacitka {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.behani-btn {
+  flex: 1;
+  padding: 0.75rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--bg-glass);
+  color: var(--text-primary);
+}
+
+.behani-btn--stop {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.4);
+  color: #fca5a5;
+}
+
+.behani-btn--ulozit {
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  border: none;
+  color: #04121a;
+}
+
+.behani-souhrn-mrizka {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.8rem;
+  text-align: center;
+  padding: 1rem;
+  border-radius: 14px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+}
+
+.behani-souhrn-cislo {
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.behani-historie-nadpis {
+  margin: 0.4rem 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.behani-prazdno {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.behani-historie-seznam {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.behani-historie-radek {
+  border-radius: 12px;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.behani-historie-hlavicka {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.7rem 0.8rem;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.behani-historie-ikona {
+  font-size: 1.4rem;
+}
+
+.behani-historie-info {
+  flex: 1;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.behani-historie-datum {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.behani-historie-sipka {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.behani-historie-detail {
+  padding: 0 0.8rem 0.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.behani-smazat-btn {
+  align-self: flex-start;
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+  color: #fca5a5;
+  font-size: 0.8rem;
+  cursor: pointer;
+}

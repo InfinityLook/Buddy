@@ -218,6 +218,22 @@ export default defineConfig(({ command }) => {
                 cacheName: 'survival-runtime',
                 expiration: { maxEntries: 15, maxAgeSeconds: 60 * 60 * 24 * 365 }
               }
+            },
+            // Mapové dlaždice OpenStreetMap pro Běhání/Kardio (src/miniapps/
+            // behani/TrasaMapa.tsx) — cizí origin, ne tento web, proto url.
+            // hostname místo pathname jako u ostatních pravidel výš. Server
+            // dlaždic nevrací CORS hlavičky, takže odpověď je "opaque"
+            // (status 0) — bez cacheableResponse by je Workbox mlčky
+            // přeskočil, tile server by se tak volal znovu při každém
+            // otevření appky místo jednou.
+            {
+              urlPattern: ({ url }) => url.hostname === 'tile.openstreetmap.org',
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'osm-dlazdice-runtime',
+                expiration: { maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 30 },
+                cacheableResponse: { statuses: [0, 200] }
+              }
             }
           ],
           // Fotka pozadí Hubu má přes 2 MB a výchozí limit Workboxu (2 MiB)

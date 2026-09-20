@@ -42,6 +42,11 @@ export type ActivityKind =
   // nepřidávej druhý paralelní systém).
   | 'survival_kill'
   | 'survival_wave'
+  // Běhání/Kardio (src/miniapps/behani/) — vlastní kind, ne sdílení s
+  // Form Checkovým 'workout': dvě různé appky měřící dvě různé věci
+  // (GPS vzdálenost vs. opakování před kamerou), stejná zásada jako
+  // 'souboj' vs. 'battle' výš.
+  | 'behani'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -131,6 +136,13 @@ export const DEFAULT_BADGES: Badge[] = [
   { id: 'survivor', title: 'Survivor', description: 'Přežij 10 vln v jednom běhu Survival Night.', icon: '🌙', unlockedAt: null },
   { id: 'impossible', title: 'Impossible', description: 'Přežij 50 vln v jednom běhu Survival Night.', icon: '💀', unlockedAt: null },
   { id: 'night_legend', title: 'Night Legend', description: 'Přežij 100 vln v jednom běhu Survival Night.', icon: '🌌', unlockedAt: null },
+  // Fitness Roomova čtvrtá fáze — Běhání/Kardio (GPS tracker). 'vytrvalec'
+  // se hodí do COUNT_BADGES (počet uložených sezení, viz níž);
+  // 'maratonec' ne — je to celková nauběhaná/najetá vzdálenost napříč
+  // historií, ne "kolikáté volání", stejný problém jako stovkar/
+  // exam_master jinde v appce — ruční kontrola přímo v useBehani.ts.
+  { id: 'vytrvalec', title: 'Vytrvalec', description: 'Dokonči 10 tréninků v Běhání/Kardio.', icon: '🏃', unlockedAt: null },
+  { id: 'maratonec', title: 'Maratonec', description: 'Naběhej nebo najeď celkem 42,2 km v Běhání/Kardio.', icon: '🏅', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti. 'souboj'
@@ -170,6 +182,7 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   // Buddyheimem (viz komentář u ActivityKind výš), 'survival_kill' je
   // vlastní, needed odpovídá "Monster Hunter" (bod 21 zadání).
   survival_kill: { badgeId: 'monster_hunter', needed: 100 },
+  behani: { badgeId: 'vytrvalec', needed: 10 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není

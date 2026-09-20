@@ -44,6 +44,8 @@ import { useFitnessPripomenuti } from './useFitnessPripomenuti'
 import { DOPORUCENE_JIDELNICKY, nejblizsiJidelnicek } from './data/doporuceneJidelnicky'
 import { KOUCOVACI_TIPY } from './data/koucovaciTipy'
 import { RozcvickaCasovac } from './RozcvickaCasovac'
+import { useBehani } from '@/miniapps/behani/useBehani'
+import { NAZEV_AKTIVITY, IKONA_AKTIVITY, formatujVzdalenost, soucetVzdalenostiM } from '@/miniapps/behani/types'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './FitnessRoomModule.css'
 
@@ -118,6 +120,7 @@ export const FitnessRoomModule: React.FC = () => {
   const miry = useTelesneMiry()
   const cvicebniPlan = useCvicebniPlan()
   const jidelnicek = useJidelnicek()
+  const behani = useBehani()
   const pitnyRezim = usePitnyRezim()
   const pripomenuti = useFitnessPripomenuti()
   const smiVip = useHasPermission('cosmetics.premium')
@@ -194,6 +197,11 @@ export const FitnessRoomModule: React.FC = () => {
     // výchozím cviku.
     if (predvybranyCvik) nastavPredvyberCviku(predvybranyCvik)
     setActiveAppId('form-check', '/fitness')
+    navigate('/apps')
+  }
+
+  const otevritBehani = () => {
+    setActiveAppId('behani', '/fitness')
     navigate('/apps')
   }
 
@@ -348,6 +356,14 @@ export const FitnessRoomModule: React.FC = () => {
       barva: 'orange',
       onClick: otevritFormCheck,
     },
+    {
+      id: 'behani',
+      nazev: 'Běhání',
+      popis: 'GPS sledování běhu, chůze a kola',
+      ikona: 'footprints',
+      barva: 'green',
+      onClick: otevritBehani,
+    },
   ]
 
   const velkeKarty: FlagshipVelkaKarta[] = [
@@ -483,6 +499,27 @@ export const FitnessRoomModule: React.FC = () => {
             </div>
           </div>
         )}
+
+        <div className={panelClass}>
+          <div className="fit-panel-hlavicka">
+            <div>
+              <h2>🏃 Běhání a kardio</h2>
+              <p>
+                {behani.sezeni.length > 0
+                  ? `Celkem ${formatujVzdalenost(soucetVzdalenostiM(behani.sezeni))} · ${behani.sezeni.length} ${plural(behani.sezeni.length, 'sezení', 'sezení', 'sezení')}`
+                  : 'Zatím žádné sezení — GPS sledování běhu, chůze a kola.'}
+              </p>
+            </div>
+          </div>
+          {behani.sezeni.length > 0 && (
+            <p className="fit-behani-posledni">
+              Poslední: {IKONA_AKTIVITY[behani.sezeni[0].typ]} {NAZEV_AKTIVITY[behani.sezeni[0].typ]} — {formatujVzdalenost(behani.sezeni[0].vzdalenostM)}
+            </p>
+          )}
+          <button className="fit-behani-spustit" onClick={otevritBehani}>
+            ▶ Spustit Běhání
+          </button>
+        </div>
 
         <div className={panelClass}>
           <div className="fit-panel-hlavicka">

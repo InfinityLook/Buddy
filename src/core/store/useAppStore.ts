@@ -115,6 +115,11 @@ const DEFAULT_APPS: AppItem[] = [
   // Nová, School Roomu vlastní (appka do teď neměla vůbec) — stejné
   // zacházení jako s přesunutými výš.
   { id: 'kalendar', title: 'Kalendář', category: 'Produktivita', icon: 'calendar', color: 'cyan', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  // Fitness Roomova čtvrtá fáze vylepšení — Běhání/Kardio (GPS tracker
+  // pro běh/chůzi/kolo, viz src/miniapps/behani/). Appka do teď neměla
+  // žádné sledování pohybu v prostoru vůbec, jenVeVlajkoveAppce: true
+  // od prvního commitu stejně jako Kalendář/Music Studio výš.
+  { id: 'behani', title: 'Běhání', category: 'Nástroje', icon: 'footprints', color: 'green', active: true, favorite: false, jenVeVlajkoveAppce: true },
   // Nová, Music Roomu vlastní (viz src/flagships/music-room/) — appka
   // do teď neměla žádnou tvorbu hudby vůbec, takže na rozdíl od
   // Kalendáře výš nejde o žádnou předchozí verzi jinde v appce. Rovnou
