@@ -1103,7 +1103,7 @@ export const FitnessRoomModule: React.FC = () => {
                 <AppIcon name="moon" size={22} />
               </span>
               <span className="fit-trenink-nazev">Mobilita</span>
-              <span className="fit-trenink-popis">Rozcvička / strečink</span>
+              <span className="fit-trenink-popis">Rozcvička / strečink / jóga</span>
             </button>
             {[
               { nazev: 'Kardio', popis: '20 min', ikona: 'flame', barva: 'orange' },

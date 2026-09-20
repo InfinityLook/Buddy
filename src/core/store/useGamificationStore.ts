@@ -52,6 +52,16 @@ export type ActivityKind =
   // vůbec nic sama (žádná kamera, žádné GPS), uživatel si série zapíše
   // ručně, stejná "dvě různé appky, dva různé kindy" zásada jako výš.
   | 'posilovna'
+  // Rozcvička/strečink/jóga (RozcvickaCasovac.tsx, Fitness Roomova
+  // Fáze 3) — na rozdíl od jídelníčku/pitného režimu (žádné XP vůbec,
+  // appka je nemá jak omezit proti spamu) tenhle kind XP dostává,
+  // protože ho volá useRozcvickaStore.ts's oznacDokonceni() nejvýš
+  // jednou za skutečný kalendářní den bez ohledu na to, kolikrát
+  // program ten den doběhne nebo se "Přeskočit krok" naklikává —
+  // stejné "checked once per day" hlídání jako fitnessReminders.ts/
+  // checkWeeklyDigest jinde v appce, jen tady brání farmění XP, ne
+  // opakovanému oznámení.
+  | 'mobilita'
 
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
@@ -156,6 +166,14 @@ export const DEFAULT_BADGES: Badge[] = [
   // v usePosilovna.ts.
   { id: 'posilak', title: 'Posilač', description: 'Zapiš si 10 tréninků v Posilovně.', icon: '🏋️‍♂️', unlockedAt: null },
   { id: 'silak', title: 'Silák', description: 'Zvedni v jedné sérii 100 kg nebo víc v Posilovně.', icon: '💪', unlockedAt: null },
+  // Fitness Roomova šestá fáze vylepšení — Jóga a mobilita s hlasovým
+  // průvodcem. 'harmonie' se hodí do COUNT_BADGES (viz níž) — protože
+  // useRozcvickaStore.ts's oznacDokonceni() volá recordAction('mobilita', …)
+  // nejvýš jednou za skutečný den, counters.mobilita ve skutečnosti počítá
+  // "v kolika různých dnech", ne "kolikrát celkem" — přesně to, co needed
+  // hlídá, žádné ruční ověřování tu na rozdíl od maratonec/silak/stovkar
+  // nepotřeba.
+  { id: 'harmonie', title: 'Harmonie', description: 'Dokonči rozcvičku, strečink nebo jógu v 10 různých dnech.', icon: '🧘', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti. 'souboj'
@@ -197,6 +215,7 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   survival_kill: { badgeId: 'monster_hunter', needed: 100 },
   behani: { badgeId: 'vytrvalec', needed: 10 },
   posilovna: { badgeId: 'posilak', needed: 10 },
+  mobilita: { badgeId: 'harmonie', needed: 10 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není

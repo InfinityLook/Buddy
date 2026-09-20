@@ -1,51 +1,29 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useFormCheckStore } from '@/miniapps/form-check/useFormCheck'
 import { ohlasKrokRozcvicky, ohlasHotovoRozcvicka } from '@/miniapps/form-check/hlaseni'
+import { PROGRAMY_ROZCVICKY, NAZEV_KATEGORIE, type ProgramRozcvicky } from './data/programyRozcvicky'
+import { useRozcvickaStore } from './useRozcvickaStore'
 import './RozcvickaCasovac.css'
 
 // ==========================================
-// Rozcvička/strečink časovač — na rozdíl od Form Checku BEZ kamery,
+// Rozcvička/strečink/jóga časovač — na rozdíl od Form Checku BEZ kamery,
 // jde jen o odpočítávání pevně dané sady kroků s hlasovým ohlášením
-// dalšího kroku. Pevná sada, ne libovolný vstup uživatele — stejná
-// "pevná sada, ne libovolný vstup" zásada jako appčiny barevné palety/
-// ikonové sady jinde (Kalendářovy BARVY_DNE, Socialovy IKONY_SKUPIN).
+// dalšího kroku (u jógy i s krátkým pokynem, jak pozici udělat — viz
+// data/programyRozcvicky.ts). Pevná sada programů, ne libovolný vstup
+// uživatele.
 //
 // Otevírá se z Fitness Roomova dashboardu (dlaždice "Mobilita", dřív
 // natvrdo "Brzy" — tohle je to, co ji doopravdy naplňuje).
+//
+// Fáze 3 Fitness Roomova rozšiřování ("Jóga a mobilita s hlasovým
+// průvodcem") sem přidala čtyři jógové/mobilitní programy vedle
+// původních dvou a XP za dokončení — nejvýš jednou denně
+// (useRozcvickaStore.ts), ať appka neodmění opakované "Přeskočit krok"
+// naklikávání.
 // ==========================================
 
-interface KrokRozcvicky {
-  nazev: string
-  sekund: number
-}
-
-const ROZCVICKA_KROKY: KrokRozcvicky[] = [
-  { nazev: 'Kroužení pažemi', sekund: 20 },
-  { nazev: 'Rotace trupu', sekund: 20 },
-  { nazev: 'Vysoké kroky na místě', sekund: 30 },
-  { nazev: 'Dřepy naprázdno', sekund: 20 },
-  { nazev: 'Protažení lýtek v předklonu', sekund: 20 },
-]
-
-const STRECINK_KROKY: KrokRozcvicky[] = [
-  { nazev: 'Protažení čtyřhlavého svalu', sekund: 30 },
-  { nazev: 'Protažení hamstringů', sekund: 30 },
-  { nazev: 'Protažení lýtek', sekund: 30 },
-  { nazev: 'Protažení zad (kočka)', sekund: 30 },
-  { nazev: 'Protažení ramen', sekund: 30 },
-]
-
-type RezimRozcvicky = 'rozcvicka' | 'strecink'
-
-const KROKY_PODLE_REZIMU: Record<RezimRozcvicky, KrokRozcvicky[]> = {
-  rozcvicka: ROZCVICKA_KROKY,
-  strecink: STRECINK_KROKY,
-}
-
-const NAZEV_REZIMU: Record<RezimRozcvicky, string> = {
-  rozcvicka: 'Rozcvička',
-  strecink: 'Strečink',
-}
+const RYCHLE_PROGRAMY = PROGRAMY_ROZCVICKY.filter((p) => p.kategorie !== 'joga')
+const JOGA_PROGRAMY = PROGRAMY_ROZCVICKY.filter((p) => p.kategorie === 'joga')
 
 interface RozcvickaCasovacProps {
   onZavrit: () => void
@@ -53,19 +31,28 @@ interface RozcvickaCasovacProps {
 
 export const RozcvickaCasovac: React.FC<RozcvickaCasovacProps> = ({ onZavrit }) => {
   const hlasoveHlaseni = useFormCheckStore((s) => s.hlasoveHlaseni)
-  const [rezim, setRezim] = useState<RezimRozcvicky | null>(null)
+  const pocetDokoncenychCelkem = useRozcvickaStore((s) => s.pocetDokoncenychCelkem)
+  const oznacDokonceni = useRozcvickaStore((s) => s.oznacDokonceni)
+
+  const [vybranyId, setVybranyId] = useState<string | null>(null)
   const [krokIndex, setKrokIndex] = useState(0)
   const [zbyvaS, setZbyvaS] = useState(0)
   const [hotovo, setHotovo] = useState(false)
+  const [ziskanaXpDnes, setZiskanaXpDnes] = useState(false)
   const ohlasenoRef = useRef(-1)
 
-  const kroky = rezim ? KROKY_PODLE_REZIMU[rezim] : []
+  const program: ProgramRozcvicky | null =
+    PROGRAMY_ROZCVICKY.find((p) => p.id === vybranyId) ?? null
+  const kroky = program?.kroky ?? []
 
-  const spustitRezim = (novyRezim: RezimRozcvicky) => {
-    setRezim(novyRezim)
+  const spustitProgram = (id: string) => {
+    const vybrany = PROGRAMY_ROZCVICKY.find((p) => p.id === id)
+    if (!vybrany) return
+    setVybranyId(id)
     setKrokIndex(0)
-    setZbyvaS(KROKY_PODLE_REZIMU[novyRezim][0].sekund)
+    setZbyvaS(vybrany.kroky[0].sekund)
     setHotovo(false)
+    setZiskanaXpDnes(false)
     ohlasenoRef.current = -1
   }
 
@@ -74,6 +61,7 @@ export const RozcvickaCasovac: React.FC<RozcvickaCasovacProps> = ({ onZavrit }) 
     if (dalsi >= kroky.length) {
       setHotovo(true)
       if (hlasoveHlaseni) ohlasHotovoRozcvicka()
+      setZiskanaXpDnes(oznacDokonceni())
       return
     }
     setKrokIndex(dalsi)
@@ -83,7 +71,7 @@ export const RozcvickaCasovac: React.FC<RozcvickaCasovacProps> = ({ onZavrit }) 
   // Odpočítávání po vteřinách — stejný "1s tik, vlastní cleanup" princip
   // jako FormCheck.tsx's odpočinek mezi sériemi.
   useEffect(() => {
-    if (!rezim || hotovo) return
+    if (!program || hotovo) return
     if (zbyvaS <= 0) {
       dalsiKrok()
       return
@@ -91,46 +79,84 @@ export const RozcvickaCasovac: React.FC<RozcvickaCasovacProps> = ({ onZavrit }) 
     const timer = window.setTimeout(() => setZbyvaS((s) => s - 1), 1000)
     return () => window.clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [zbyvaS, rezim, hotovo])
+  }, [zbyvaS, program, hotovo])
 
-  // Ohlásit jméno kroku hlasem, jakmile na něj appka přejde — jednou za
-  // krok, ne při každém odtikání vteřiny (ohlasenoRef hlídá index
-  // posledně ohlášeného kroku).
+  // Ohlásit jméno kroku (a u jógy i krátký pokyn) hlasem, jakmile na něj
+  // appka přejde — jednou za krok, ne při každém odtikání vteřiny
+  // (ohlasenoRef hlídá index posledně ohlášeného kroku).
   useEffect(() => {
-    if (!rezim || hotovo) return
+    if (!program || hotovo) return
     if (ohlasenoRef.current === krokIndex) return
     ohlasenoRef.current = krokIndex
-    if (hlasoveHlaseni) ohlasKrokRozcvicky(kroky[krokIndex].nazev)
+    if (hlasoveHlaseni) ohlasKrokRozcvicky(kroky[krokIndex].nazev, kroky[krokIndex].popis)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [krokIndex, rezim, hotovo])
+  }, [krokIndex, program, hotovo])
 
   return (
-    <div className="rc-overlay" role="dialog" aria-modal="true" aria-label="Rozcvička a strečink">
+    <div className="rc-overlay" role="dialog" aria-modal="true" aria-label="Rozcvička, strečink a jóga">
       <div className="rc-karta">
         <button type="button" className="rc-zavrit" onClick={onZavrit} aria-label="Zavřít">
           ✕
         </button>
 
-        {rezim === null && (
+        {program === null && (
           <div className="rc-vyber">
-            <h2>Rozcvička &amp; strečink</h2>
-            <p>Krátký, pevně daný sled cviků — bez kamery, jen odpočítávání a hlasové ohlášení dalšího kroku.</p>
-            <button type="button" className="rc-vyber-btn" onClick={() => spustitRezim('rozcvicka')}>
-              🔥 Rozcvička před tréninkem
-            </button>
-            <button type="button" className="rc-vyber-btn" onClick={() => spustitRezim('strecink')}>
-              🧘 Strečink po tréninku
-            </button>
+            <h2>Rozcvička, strečink &amp; jóga</h2>
+            <p>Krátké, pevně dané sledy cviků — bez kamery, jen odpočítávání a hlasové vedení.</p>
+            {pocetDokoncenychCelkem > 0 && (
+              <span className="rc-celkem">Celkem dokončeno: {pocetDokoncenychCelkem}×</span>
+            )}
+
+            <span className="rc-skupina-nadpis">Rychlé</span>
+            <div className="rc-program-seznam">
+              {RYCHLE_PROGRAMY.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className="rc-program-radek"
+                  onClick={() => spustitProgram(p.id)}
+                >
+                  <span className="rc-program-ikona" aria-hidden="true">
+                    {p.ikona}
+                  </span>
+                  <span className="rc-program-text">
+                    <span className="rc-program-nazev">{p.nazev}</span>
+                    <span className="rc-program-popis">{p.popis}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <span className="rc-skupina-nadpis">Jóga a mobilita</span>
+            <div className="rc-program-seznam">
+              {JOGA_PROGRAMY.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  className="rc-program-radek"
+                  onClick={() => spustitProgram(p.id)}
+                >
+                  <span className="rc-program-ikona" aria-hidden="true">
+                    {p.ikona}
+                  </span>
+                  <span className="rc-program-text">
+                    <span className="rc-program-nazev">{p.nazev}</span>
+                    <span className="rc-program-popis">{p.popis}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
-        {rezim !== null && !hotovo && (
+        {program !== null && !hotovo && (
           <div className="rc-bezi">
-            <span className="rc-nadpis-rezimu">{NAZEV_REZIMU[rezim]}</span>
+            <span className="rc-nadpis-rezimu">{NAZEV_KATEGORIE[program.kategorie]}</span>
             <span className="rc-krok-pocet">
               Krok {krokIndex + 1} z {kroky.length}
             </span>
             <span className="rc-krok-nazev">{kroky[krokIndex].nazev}</span>
+            {kroky[krokIndex].popis && <span className="rc-krok-popis">{kroky[krokIndex].popis}</span>}
             <span className="rc-cas">{zbyvaS}s</span>
             <div className="rc-ovladani">
               <button type="button" className="rc-preskocit" onClick={dalsiKrok}>
@@ -149,7 +175,8 @@ export const RozcvickaCasovac: React.FC<RozcvickaCasovacProps> = ({ onZavrit }) 
               🎉
             </span>
             <p>Hotovo! Skvělá práce.</p>
-            <button type="button" className="rc-vyber-btn" onClick={() => setRezim(null)}>
+            {ziskanaXpDnes && <span className="rc-hotovo-xp">+15 XP</span>}
+            <button type="button" className="rc-vyber-btn" onClick={() => setVybranyId(null)}>
               Zpět na výběr
             </button>
             <button type="button" className="rc-ukoncit" onClick={onZavrit}>

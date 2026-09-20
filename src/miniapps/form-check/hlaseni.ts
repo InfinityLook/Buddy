@@ -102,6 +102,11 @@ export const ohlasKonecOdpocinku = (): void => {
 
 // Rozcvička/strečink časovač (RozcvickaCasovac.tsx) je bez kamery, ale
 // hlas dává smysl stejně — ohlásí název dalšího kroku, ať se uživatel
-// nemusí koukat do telefonu mezi jednotlivými cviky.
-export const ohlasKrokRozcvicky = (nazevKroku: string): void => rekni(nazevKroku)
+// nemusí koukat do telefonu mezi jednotlivými cviky. Volitelný druhý
+// argument (popis) je Fáze 3's přídavek pro jógové/mobilitní programy —
+// appka za jméno pozice přečte i krátký pokyn, jak ji přesně udělat
+// (data/programyRozcvicky.ts's KrokProgramu.popis). Rozcvička/strečink
+// popis nemají, takže jejich volání zůstává bit-přesně stejné jako dřív.
+export const ohlasKrokRozcvicky = (nazevKroku: string, popis?: string): void =>
+  rekni(popis ? `${nazevKroku}. ${popis}` : nazevKroku)
 export const ohlasHotovoRozcvicka = (): void => rekni('Hotovo! Skvělá práce.')
