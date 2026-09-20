@@ -63,6 +63,15 @@ export type ActivityKind =
   // opakovanému oznámení.
   | 'mobilita'
 
+// Které ActivityKindy se počítají do fitnessXp (Fitness Roomův
+// žebříček, Fáze 4) — 'workout' je Form Check, zbytek jsou tři další
+// fitness nástroje v místnosti. Sečteno tady, ne odvozeno zpětně z
+// counters: 'workout' dává proměnlivou částku (podle počtu opakování,
+// stropovanou), takže counters['workout'] × pevná částka by dalo
+// špatné číslo — jen recordAction v okamžiku připsání XP ví, kolik
+// to doopravdy bylo.
+const FITNESS_KINDY: ReadonlySet<ActivityKind> = new Set(['workout', 'behani', 'posilovna', 'mobilita'])
+
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
   counters: Record<string, number>
@@ -80,6 +89,7 @@ interface GamificationState extends UserStats {
     lastActiveDate: string | null
     badges: Record<string, string>
     counters: Record<string, number>
+    fitnessXp: number
   }) => void
 }
 
@@ -243,6 +253,7 @@ export const useGamificationStore = create<GamificationState>()(
       lastActiveDate: null,
       badges: DEFAULT_BADGES,
       counters: {},
+      fitnessXp: 0,
 
       // Přidá XP a automaticky přepočítá Level
       addXp: (amount: number) => {
@@ -298,6 +309,12 @@ export const useGamificationStore = create<GamificationState>()(
 
         get().addXp(xpAmount)
 
+        // fitnessXp se počítá tady, ne odvozeně z counters — viz
+        // FITNESS_KINDY's komentář výš.
+        if (FITNESS_KINDY.has(kind)) {
+          set((state) => ({ fitnessXp: state.fitnessXp + xpAmount }))
+        }
+
         const rule = COUNT_BADGES[kind]
         if (rule && (get().counters[kind] ?? 0) >= rule.needed) {
           get().unlockBadge(rule.badgeId)
@@ -311,6 +328,7 @@ export const useGamificationStore = create<GamificationState>()(
           streakDays: snapshot.streakDays,
           lastActiveDate: snapshot.lastActiveDate,
           counters: snapshot.counters,
+          fitnessXp: snapshot.fitnessXp,
           // Popisky a ikony zůstávají z definic v kódu, z cloudu se bere
           // jen datum odemčení — stejný princip jako v mergeBadges.
           badges: state.badges.map((badge) =>
@@ -349,6 +367,7 @@ export const useGamificationStore = create<GamificationState>()(
             lastActiveDate: null,
             badges: DEFAULT_BADGES,
             counters: {},
+            fitnessXp: 0,
           } as GamificationState
         }
         return persistedState as GamificationState

@@ -29,6 +29,10 @@ export interface CloudSnapshot {
   badges: Record<string, string>
   // druh činnosti → počet
   counters: Record<string, number>
+  // Součet XP jen z fitness ActivityKindů — Fitness Roomův žebříček
+  // (Fáze 4). Stejné "higher wins" sloučení jako xp/streakDays výš, viz
+  // merge.ts.
+  fitnessXp: number
 }
 
 export type SyncStatus = 'off' | 'connecting' | 'synced' | 'error' | 'offline'

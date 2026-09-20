@@ -38,7 +38,9 @@ export const fetchSnapshot = async (userId: string): Promise<CloudSnapshot | nul
   const [profile, badges, counters] = await Promise.all([
     supabase
       .from('profiles')
-      .select('display_name, motto, bio, frame_id, pinned_badges, xp, level, streak_days, last_active_date')
+      .select(
+        'display_name, motto, bio, frame_id, pinned_badges, xp, level, streak_days, last_active_date, fitness_xp'
+      )
       .eq('id', userId)
       .maybeSingle(),
     supabase.from('user_badges').select('badge_id, unlocked_at').eq('user_id', userId),
@@ -67,6 +69,7 @@ export const fetchSnapshot = async (userId: string): Promise<CloudSnapshot | nul
     lastActiveDate: profile.data.last_active_date ?? null,
     badges: badgeMap,
     counters: counterMap,
+    fitnessXp: profile.data.fitness_xp ?? 0,
   }
 }
 
@@ -85,6 +88,7 @@ export const pushSnapshot = async (userId: string, snapshot: CloudSnapshot): Pro
       level: snapshot.level,
       streak_days: snapshot.streakDays,
       last_active_date: snapshot.lastActiveDate,
+      fitness_xp: snapshot.fitnessXp,
     },
     { onConflict: 'id' }
   )

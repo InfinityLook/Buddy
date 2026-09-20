@@ -914,6 +914,19 @@
   cursor: pointer;
 }
 
+.fit-otevrit-zebricek-btn {
+  width: 100%;
+  margin-top: 0.75rem;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-weight: 800;
+  font-size: 0.85rem;
+  padding: 0.7rem;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
 /* ------------------------------------------
    VIP: DOPORUČENÉ JÍDELNÍČKY
    ------------------------------------------ */

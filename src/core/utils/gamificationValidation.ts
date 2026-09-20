@@ -17,6 +17,11 @@ export const GamificationSchema = v.object({
   // Počítadla činností přibyla až později — u starších uložených stavů
   // chybí, a jejich absence nesmí shodit validaci a smazat uživateli postup.
   counters: v.optional(v.record(v.number())),
+  // fitnessXp přibylo s Fitness Roomovým žebříčkem (Fáze 4) — stejná
+  // zpětná kompatibilita jako counters výš, chybějící pole appku
+  // nezhroutí, jen se dopočítá jako 0 (useGamificationStore.ts's
+  // initial state).
+  fitnessXp: v.optional(v.number()),
 })
 
 // Pomocná funkce pro bezpečné ověření gamifikačních dat načtených ze storage

@@ -25,6 +25,7 @@ const resetStore = () => {
     lastActiveDate: null,
     badges: vychoziStav.badges.map((b) => ({ ...b, unlockedAt: null })),
     counters: {},
+    fitnessXp: 0,
   })
 }
 
@@ -130,6 +131,42 @@ describe('recordAction (počítadla + XP + count-badge v jednom kroku)', () => {
     const c = useGamificationStore.getState().counters
     expect(c.flashcard).toBe(1)
     expect(c.note).toBe(1)
+  })
+})
+
+// fitnessXp — Fitness Roomův žebříček (Fáze 4). Počítá se přímo v
+// recordAction, ne odvozeně z counters, protože 'workout' (Form Check)
+// dává proměnlivou XP částku podle počtu opakování, ne pevnou — jen
+// recordAction v okamžiku připsání ví, kolik to doopravdy bylo.
+describe('recordAction — fitnessXp (Fitness Roomův žebříček)', () => {
+  it('fitness ActivityKind (workout/behani/posilovna/mobilita) připočte i do fitnessXp', () => {
+    useGamificationStore.getState().recordAction('workout', 12)
+    expect(useGamificationStore.getState().fitnessXp).toBe(12)
+    expect(useGamificationStore.getState().xp).toBe(12)
+  })
+
+  it('nefitness ActivityKind fitnessXp nemění', () => {
+    useGamificationStore.getState().recordAction('flashcard', 5)
+    expect(useGamificationStore.getState().fitnessXp).toBe(0)
+    expect(useGamificationStore.getState().xp).toBe(5)
+  })
+
+  it('sčítá napříč všemi čtyřmi fitness kindy', () => {
+    useGamificationStore.getState().recordAction('workout', 10)
+    useGamificationStore.getState().recordAction('behani', 20)
+    useGamificationStore.getState().recordAction('posilovna', 20)
+    useGamificationStore.getState().recordAction('mobilita', 15)
+    expect(useGamificationStore.getState().fitnessXp).toBe(65)
+    // Celkové xp musí zahrnovat i fitness XP — dva různé součty ze
+    // stejných čtyř volání, ne jeden odvozený z druhého.
+    expect(useGamificationStore.getState().xp).toBe(65)
+  })
+
+  it('míchá fitness a nefitness činnosti bez ovlivnění jedna druhou', () => {
+    useGamificationStore.getState().recordAction('workout', 10)
+    useGamificationStore.getState().recordAction('flashcard', 100)
+    expect(useGamificationStore.getState().fitnessXp).toBe(10)
+    expect(useGamificationStore.getState().xp).toBe(110)
   })
 })
 

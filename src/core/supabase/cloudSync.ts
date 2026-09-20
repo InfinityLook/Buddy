@@ -56,6 +56,7 @@ const localSnapshot = (): CloudSnapshot => {
     lastActiveDate: game.lastActiveDate,
     badges,
     counters: game.counters,
+    fitnessXp: game.fitnessXp,
   }
 }
 
@@ -68,6 +69,7 @@ const applyLocally = (snapshot: CloudSnapshot) => {
     lastActiveDate: snapshot.lastActiveDate,
     badges: snapshot.badges,
     counters: snapshot.counters,
+    fitnessXp: snapshot.fitnessXp,
   })
 
   const { profile, updateProfile } = useProfileStore.getState()

@@ -44,6 +44,7 @@ import { useFitnessPripomenuti } from './useFitnessPripomenuti'
 import { DOPORUCENE_JIDELNICKY, nejblizsiJidelnicek } from './data/doporuceneJidelnicky'
 import { KOUCOVACI_TIPY } from './data/koucovaciTipy'
 import { RozcvickaCasovac } from './RozcvickaCasovac'
+import { Zebricek } from './Zebricek'
 import { useBehani } from '@/miniapps/behani/useBehani'
 import { NAZEV_AKTIVITY, IKONA_AKTIVITY, formatujVzdalenost, soucetVzdalenostiM } from '@/miniapps/behani/types'
 import { usePosilovna } from '@/miniapps/posilovna/usePosilovna'
@@ -112,6 +113,12 @@ const tipDne = (): string => {
 // čtyři VIP panely (doporučené jídelníčky/měsíční trend/zlatý vzhled/
 // denní tip), všechny za cosmetics.premium — stejná brána jako
 // Writer's Roomův Zlatý papír a Vzhled aplikace jinde v appce.
+//
+// Naplánovaný "další appky do fitness roomu" postup (Fáze 1-4, viz
+// CLAUDE.md) přidal Běhání/Kardio (miniapps/behani), Posilovnu
+// (miniapps/posilovna), Jógu/mobilitu (RozcvickaCasovac.tsx) a nakonec
+// Žebříček (Zebricek.tsx) — jediná fáze s vlastní Supabase tabulkou,
+// viz Zebricek.tsx/zebricekApi.ts pro celé zdůvodnění.
 // ==========================================
 
 export const FitnessRoomModule: React.FC = () => {
@@ -132,6 +139,7 @@ export const FitnessRoomModule: React.FC = () => {
   const [upravujeCile, setUpravujeCile] = useState(false)
   const [upravujePlan, setUpravujePlan] = useState(false)
   const [rozcvickaOtevrena, setRozcvickaOtevrena] = useState(false)
+  const [zebricekOtevren, setZebricekOtevren] = useState(false)
   const [novaVyskaText, setNovaVyskaText] = useState('')
 
   const handleUlozitVysku = () => {
@@ -515,6 +523,18 @@ export const FitnessRoomModule: React.FC = () => {
             </div>
           </div>
         )}
+
+        <div className={panelClass}>
+          <div className="fit-panel-hlavicka">
+            <div>
+              <h2>🏆 Žebříček</h2>
+              <p>Porovnej si celkové fitness XP s ostatními</p>
+            </div>
+          </div>
+          <button type="button" className="fit-otevrit-zebricek-btn" onClick={() => setZebricekOtevren(true)}>
+            Otevřít žebříček →
+          </button>
+        </div>
 
         <div className={panelClass}>
           <div className="fit-panel-hlavicka">
@@ -1219,6 +1239,7 @@ export const FitnessRoomModule: React.FC = () => {
 
       {appsOtevrene && <NastrojeSheet nadpis="Apps" nastroje={nastroje} onZavrit={() => setAppsOtevrene(false)} />}
       {rozcvickaOtevrena && <RozcvickaCasovac onZavrit={() => setRozcvickaOtevrena(false)} />}
+      {zebricekOtevren && <Zebricek onZavrit={() => setZebricekOtevren(false)} />}
     </>
   )
 }

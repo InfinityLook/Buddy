@@ -35,6 +35,11 @@ export const mergeSnapshots = (local: CloudSnapshot, remote: CloudSnapshot | nul
     counters[kind] = higher(count, counters[kind] ?? 0)
   }
 
+  // Stejné "vyšší vyhrává" jako xp výš — fitnessXp je taky vydřený
+  // postup (Fitness Roomův žebříček, Fáze 4), nesmí se synchronizací
+  // vrátit zpátky.
+  const fitnessXp = higher(local.fitnessXp, remote.fitnessXp)
+
   // Datum posledního použití je ve tvaru YYYY-MM-DD, takže stačí porovnat
   // řetězce — pozdější datum je i lexikograficky větší.
   const lastActiveDate =
@@ -59,6 +64,7 @@ export const mergeSnapshots = (local: CloudSnapshot, remote: CloudSnapshot | nul
     lastActiveDate: lastActiveDate ?? null,
     badges,
     counters,
+    fitnessXp,
   }
 }
 
@@ -74,4 +80,5 @@ export const snapshotsEqual = (a: CloudSnapshot, b: CloudSnapshot): boolean =>
   a.streakDays === b.streakDays &&
   a.lastActiveDate === b.lastActiveDate &&
   JSON.stringify(a.badges) === JSON.stringify(b.badges) &&
-  JSON.stringify(a.counters) === JSON.stringify(b.counters)
+  JSON.stringify(a.counters) === JSON.stringify(b.counters) &&
+  a.fitnessXp === b.fitnessXp
