@@ -14,7 +14,6 @@ import { ProfilNotifications, useNotificationItems } from './components/ProfilNo
 import { ProfilIcon } from './components/ProfilIcon'
 import { ProfilToast } from './components/ProfilToast'
 import { AppBottomNav } from '@/components/AppBottomNav'
-import { useModulovySwipe } from '@/core/navigation/useModulovySwipe'
 import './ProfilModule.css'
 
 // Lazy — viz komentář nahoře v ProfilSocialniSekce.tsx: tenhle soubor
@@ -24,9 +23,6 @@ const ProfilSocialniSekce = lazy(() => import('./components/ProfilSocialniSekce'
 
 export const ProfilModule: React.FC = () => {
   const navigate = useNavigate()
-  // Fáze 5 Social nav reworku — vodorovný swipe mezi Hub/Apps/Profil/
-  // Nastavení.
-  const swipe = useModulovySwipe()
   const { level, xp, streakDays } = useGamificationStore()
   const { profile, updateProfile, markNotificationRead } = useProfileData()
   // Vyprší-li VIP, resolveActiveRoleId za tímhle hookem tiše spadne
@@ -111,7 +107,7 @@ export const ProfilModule: React.FC = () => {
   const progressPercent = getLevelProgress(xp)
 
   return (
-    <div className="profil-page" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
+    <div className="profil-page">
       {/* Top Bar — ikony místo emoji (🔔/⚙️), stejná kruhová tlačítka
           jako Apps/Social, ne napůl hotový inline styl na textovém
           odkazu jak dřív mělo zpět tlačítko. */}

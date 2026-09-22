@@ -1,8 +1,8 @@
 import type { ModulovaStranka } from './moduloveStranky'
 
 // ==========================================
-// Šipky/swipe mezi vlajkovými Roomy (School/Fitness/Economy/Growth/
-// Music/Writer's Room) — samostatná řada, oddělená od
+// Šipky mezi vlajkovými Roomy (School/Fitness/Economy/Growth/Music/
+// Writer's Room) — samostatná řada, oddělená od
 // moduloveStranky.ts's Hub/Apps/Profil/Nastavení (uživatelovo
 // rozhodnutí přes AskUserQuestion: Roomy jsou navzájem rovnocenné
 // destinace bez přirozeného "začátku"/"konce", takže na rozdíl od

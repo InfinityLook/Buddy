@@ -24,7 +24,6 @@ import {
   saveSnapshot,
 } from '@/core/utils/backupHistory'
 import { AppBottomNav } from '@/components/AppBottomNav'
-import { useModulovySwipe } from '@/core/navigation/useModulovySwipe'
 import { OsobniUdajeSekce } from './components/OsobniUdajeSekce'
 import { ZvukSekce } from './components/ZvukSekce'
 import { VzhledARamecekSekce } from './components/VzhledARamecekSekce'
@@ -82,9 +81,6 @@ const CLOUD_LABELS: Record<string, string> = {
 
 export const SettingsModule: React.FC = () => {
   const navigate = useNavigate()
-  // Fáze 5 Social nav reworku — vodorovný swipe mezi Hub/Apps/Profil/
-  // Nastavení.
-  const swipe = useModulovySwipe()
   const { logout } = useAuthStore()
   const smiAdmin = useHasPermission('admin.panel')
   const smiModerovat = useHasPermission('moderation.content')
@@ -241,7 +237,7 @@ export const SettingsModule: React.FC = () => {
 
   if (sekce) {
     return (
-      <div className="settings-page" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
+      <div className="settings-page">
         <div className="settings-top-bar">
           <button className="settings-back-btn" onClick={() => setSekce(null)}>
             ← Zpět do nastavení
@@ -262,7 +258,7 @@ export const SettingsModule: React.FC = () => {
   }
 
   return (
-    <div className="settings-page" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
+    <div className="settings-page">
       <div className="settings-top-bar">
         <button className="settings-back-btn" onClick={() => navigate('/profil')}>
           ← Zpět na profil

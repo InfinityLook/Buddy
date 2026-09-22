@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
-import { useModulovySwipe } from '@/core/navigation/useModulovySwipe'
 import { sousedniRoom } from '@/core/navigation/roomStranky'
 import {
   ProfilNotifications,
@@ -64,18 +63,15 @@ interface Props {
 // dvě různé stránky na jednu sdílenou komponentu, co by musela nosit
 // props obou.
 //
-// Swipe/šipky mezi Roomy (uživatelovo přání, ať jde "menu roomek"
-// posouvat šipkama nebo protažením) žijí přesně tady, v jediném místě,
-// co všech šest vlajkových appek sdílí — každá Room dostává vodorovný
-// swipe na svém vlastním kořeni (stejný touchstart/touchend mechanismus
-// jako Hub/Apps/Profil/Nastavení, viz useModulovySwipe.ts, jen s jinou,
-// zacyklující řadou přes core/navigation/roomStranky.ts) a stejnou
-// dvojici šipek v AppBottomNav, co appka tady stejně vykresluje.
-// Přechod je animovaný (useModulovyPrechod's `smer` argument, viz jeho
-// vlastní komentář) — appčin starší jednoduchý swipe mezi hlavními
-// čtyřmi obrazovkami zůstává beze změny (obyčejný navigate(), žádná
-// animace), tohle je nová, uživatelem výslovně potvrzená volba jen
-// pro Roomy.
+// Šipky mezi Roomy žijí přesně tady, v jediném místě, co všech šest
+// vlajkových appek sdílí — AppBottomNav dostává sousedniRoom() (řada,
+// co zacykluje) a jitNaRoom (animovaný přechod, useModulovyPrechod's
+// `smer` argument, viz jeho vlastní komentář). Vodorovný touch-swipe
+// mezi Roomy (a stejně tak appčin starší swipe mezi Hub/Apps/Profil/
+// Nastavení) appka záměrně nemá — swipe gestem se teď dál posouvá jen
+// carousel Roomů na /apps (RoomCarousel.tsx), ne otevřená vlajková
+// appka ani hlavní čtveřice obrazovek; přepínání mezi Roomy/moduly jde
+// jen přes tyhle šipky nebo dlaždice/menu.
 // ==========================================
 
 export const FlagshipShell: React.FC<Props> = ({
@@ -95,10 +91,9 @@ export const FlagshipShell: React.FC<Props> = ({
 
   const prejit = useModulovyPrechod()
   const jitNaRoom = (cesta: string, smer: 'vpravo' | 'vlevo') => prejit(cesta, undefined, smer)
-  const swipe = useModulovySwipe({ sousedni: sousedniRoom, onPrejit: jitNaRoom })
 
   return (
-    <div className="app-container fs-page" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
+    <div className="app-container fs-page">
       <header className="app-header">
         <button className="app-back-btn" aria-label="Zpět" onClick={() => navigate('/apps')}>
           <AppIcon name="arrow-left" size={18} />

@@ -103,11 +103,15 @@
   box-shadow: 0 0 6px rgba(53, 196, 240, 0.8);
 }
 
-/* Šipky pro přechod mezi Hub/Apps/Profil/Nastavení bez dotyku (Fáze 5
-   Social nav reworku, viz CLAUDE.md) — na dotykovém zařízení appka
-   místo nich nabízí vodorovný swipe (useModulovySwipe.ts), takže tu
-   tlačítka jen zabírala místo a duplikovala stejnou akci. Skryté
-   defaultně, zobrazené jen s jemným ukazatelem (myš). */
+/* Šipky pro přechod mezi Hub/Apps/Profil/Nastavení (a mezi vlajkovými
+   Roomy, viz FlagshipShell.tsx) — appka dřív na dotykovém zařízení
+   místo nich nabízela vodorovný swipe, ten je ale dnes pryč
+   (uživatel si výslovně přál, ať swipe gesto zůstane jen u carouselu
+   Roomů na /apps, ne u přepínání mezi obrazovkami/moduly). Tlačítka
+   přesto zůstávají skrytá na dotykovém zařízení a vidět jen s jemným
+   ukazatelem (myš) — appka je jinak nemá čím na dotyku nahradit,
+   takže tam sekvenční "předchozí/další" navigace tímhle směrem dnes
+   chybí úplně, jen hlavní pětice tlačítek/avatar v hlavičce. */
 .modul-sipka {
   display: none;
 }

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import { AppBottomNav } from '@/components/AppBottomNav'
-import { useModulovySwipe } from '@/core/navigation/useModulovySwipe'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
@@ -72,9 +71,6 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // Jen tenhle jeden volání (Hub -> Social) — viz jeho vlastní komentář
   // a global.css's ::view-transition-*(root) pro proč jen dopředu.
   const prejit = useModulovyPrechod()
-  // Fáze 5 Social nav reworku — vodorovný swipe mezi Hub/Apps/Profil/
-  // Nastavení, viz useModulovySwipe.ts's vlastní komentář.
-  const swipe = useModulovySwipe()
   const { profile, markNotificationRead } = useProfileData()
 
   // Skutečný náhled upozornění pod zvonkem — stejný sdílený panel a
@@ -134,7 +130,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
       <div className="hub-bg" aria-hidden="true" />
       <div className="hub-bg-overlay" aria-hidden="true" />
 
-      <div className="hub-container" onTouchStart={swipe.onTouchStart} onTouchEnd={swipe.onTouchEnd}>
+      <div className="hub-container">
         {/* Header — logo ("BuddyZone", appka dřív pod ním měla ještě
             podtitul "Tvůj AI parťák", ten je pryč) + dvě akce (zvonek/
             avatar). Lupa, co tu dřív byla jako třetí ikona, se

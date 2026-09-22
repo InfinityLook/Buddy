@@ -1,9 +1,11 @@
 // ==========================================
 // Fáze 5 Social nav reworku (viz CLAUDE.md) — jediný zdroj pravdy pro
 // pořadí čtyř stránek se sdílenou lištou (AppBottomNav, Fáze 4), mezi
-// kterými appka umí swipovat/šipkovat. Social se schválně nezapočítává
-// — má vlastní lištu a Domů's vlastní svislý scroll-snap feed, se
-// kterým by se vodorovné gesto jen prala.
+// kterými appka umí šipkovat (AppBottomNav's `modul-sipka` tlačítka,
+// jen na zařízení s myší — touch swipe appka mezi hlavními obrazovkami
+// dnes nemá, viz AppBottomNav.tsx's vlastní komentář). Social se
+// schválně nezapočítává — má vlastní lištu a Domů's vlastní svislý
+// scroll-snap feed, se kterým by se vodorovné gesto jen prala.
 // ==========================================
 
 export interface ModulovaStranka {

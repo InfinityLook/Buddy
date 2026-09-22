@@ -21,10 +21,11 @@ export const zacykliIndex = (index: number, delka: number): number => {
 }
 
 /** Skutečně přejet dost daleko, aby to appka brala jako gesto, ne
- *  nedopatření — porovnává jen absolutní vzdálenost, appka nerozlišuje
- *  rychlost (na rozdíl od poměru os v core/navigation/useModulovySwipe.ts,
- *  tenhle carousel je čistě vodorovný, žádné svislé scrollování s ním
- *  nesoupeří). */
+ *  nedopatření — porovnává jen absolutní vzdálenost, žádný poměr os.
+ *  Tenhle carousel je čistě vodorovný, žádné svislé scrollování s ním
+ *  nesoupeří, takže appka na rozdíl od appčiných jiných swipe-jako
+ *  mechanismů nepotřebuje ověřovat, že tažení vodorovnou dráhou
+ *  výrazně převažuje nad svislou. */
 export const melByPotvrditTazeni = (deltaX: number, prah: number = DRAG_PRAH_PX): boolean =>
   Math.abs(deltaX) >= prah
 

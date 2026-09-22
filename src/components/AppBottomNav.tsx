@@ -33,12 +33,19 @@ import './AppBottomNav.css'
 // stránce stejně — žádná z nich už nemá velkou kouli maskota (Hub
 // svou odstranil), se kterou by se muselo sdílet.
 //
-// `sousedniFn`/`onSipkaKlik` jsou nové, oba nepovinné — výchozí
-// hodnoty (sousedniStranky() + obyčejný navigate()) drží appčino
-// dosavadní chování na Hub/Apps/Profil/Nastavení beze změny.
-// FlagshipShell.tsx (šipky mezi vlajkovými Roomy) posílá sousedniRoom()
-// (zacykluje) a onSipkaKlik volající useModulovyPrechod() (animovaný
-// slide), ať šipka i swipe na Roomech vypadají stejně.
+// `sousedniFn`/`onSipkaKlik` jsou nepovinné — výchozí hodnoty
+// (sousedniStranky() + obyčejný navigate()) drží appčino dosavadní
+// chování na Hub/Apps/Profil/Nastavení beze změny. FlagshipShell.tsx
+// (šipky mezi vlajkovými Roomy) posílá sousedniRoom() (zacyklující
+// řadu) a onSipkaKlik volající useModulovyPrechod() (animovaný slide).
+//
+// Odpovídající vodorovný touch-swipe appka dřív měla (useModulovySwipe.ts,
+// dnes smazaný) — uživatel si ho výslovně nepřál mimo carousel Roomů na
+// /apps (RoomCarousel.tsx, vlastní pointer-drag mechanismus, nesouvisí
+// s tímhle souborem vůbec), takže tyhle šipky teď zůstávají jediným
+// gestem/tlačítkem pro sekvenční "předchozí/další" navigaci mezi
+// hlavními obrazovkami i mezi Roomy — a jsou schválně vidět jen na
+// zařízení s myší (viz níž), ne na dotykové obrazovce.
 // ==========================================
 
 interface Props {
@@ -71,13 +78,13 @@ export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
 
   const jeAktivni = (cesta: string) => location.pathname === cesta
 
-  // Fáze 5 Social nav reworku — šipky doplňují touch swipe (viz
-  // useModulovySwipe.ts) pro myš/klávesnici bez dotykové obrazovky;
-  // appka je schovává přes @media (pointer: fine) v CSS, ne JS
-  // detekcí zařízení, stejný vzor jako VirtualniJoystick.tsx (jen
-  // obráceně — tady se skrývají NA dotykovém zařízení, joystick se
-  // schovává BEZ něj). Nezobrazí se na konci seznamu (Hub nemá
-  // "předchozí", Nastavení nemá "další").
+  // Šipky se zobrazují jen na zařízení s myší, přes @media (pointer: fine)
+  // v CSS, ne JS detekcí zařízení — stejný vzor jako VirtualniJoystick.tsx
+  // (jen obráceně — tady se skrývají NA dotykovém zařízení, joystick se
+  // schovává BEZ něj). Appka na dotykové obrazovce žádnou swipe/gesto
+  // náhradu za tyhle šipky nemá; Profil zůstává dosažitelný přes
+  // avatarové tlačítko v hlavičce každé stránky. Nezobrazí se na konci
+  // seznamu (Hub nemá "předchozí", Nastavení nemá "další").
   const { predchozi, dalsi } = (sousedniFn ?? sousedniStranky)(location.pathname)
   const jitNa = (cesta: string, smer: 'vpravo' | 'vlevo') => {
     if (onSipkaKlik) onSipkaKlik(cesta, smer)

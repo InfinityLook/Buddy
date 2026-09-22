@@ -5,7 +5,7 @@ import { useNavigate, type NavigateOptions } from 'react-router-dom'
 // ==========================================
 // Fáze 2 Social nav reworku — sdílený hook pro přechod mezi hlavními
 // moduly appky (dnes Hub → Social/Chat, viz Hub.tsx, a od tohohle
-// commitu i swipe/šipky mezi vlajkovými Roomy, viz FlagshipShell.tsx).
+// commitu i šipky mezi vlajkovými Roomy, viz FlagshipShell.tsx).
 // Postaveno na View Transitions API (document.startViewTransition), ne
 // na knihovně — prohlížeč to umí sám zdarma, appka jen zabalí
 // navigate() dovnitř. Samotný vzhled ("Posun", vybraný z náhledu se 6
@@ -14,8 +14,8 @@ import { useNavigate, type NavigateOptions } from 'react-router-dom'
 // vypadá, vůbec nestará, jen ho spustí.
 //
 // Třetí argument, `smer`, je nový — Hub → Social zůstává jednosměrný
-// (výchozí 'vpravo', beze změny), ale Room-to-Room swipe/šipka musí
-// umět obě strany (další Room najede zprava, předchozí zleva). Appka
+// (výchozí 'vpravo', beze změny), ale Room-to-Room šipka musí umět
+// obě strany (další Room najede zprava, předchozí zleva). Appka
 // to řeší jedním atributem na <html> (`data-prechod-smer`), který CSS
 // čte přes `:root[data-prechod-smer="vlevo"]::view-transition-*(root)`
 // — atributové selektory fungují i na tenhle speciální pseudo-strom
