@@ -144,17 +144,22 @@ const DEFAULT_APPS: AppItem[] = [
   { id: 'rozvrh', title: 'Rozvrh', category: 'Produktivita', icon: 'schedule', color: 'cyan', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'znamky', title: 'Známky', category: 'Vzdělávání', icon: 'grades', color: 'pink', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'citace', title: 'Citace', category: 'Vzdělávání', icon: 'quote', color: 'purple', active: true, favorite: false, jenVeVlajkoveAppce: true },
-  // Vlajkové appky — viz AppItem.route výš a FlagshipShell.tsx. Zůstávají
-  // active: true, protože tohle JSOU ty dlaždice, přes které se do
-  // School Roomu/Fitness Roomu chodí; schovat by je šlo úplně stejně
-  // jako kteroukoli jinou (toggleAppVisible), appka jim v tom nijak
-  // nebrání.
-  { id: 'school-room', title: 'School Room', category: 'Vzdělávání', icon: 'layers', color: 'cyan', active: true, favorite: false, route: '/skola', nahled: '/backgrounds/school-room.png' },
-  { id: 'fitness-room', title: 'Fitness Room', category: 'Nástroje', icon: 'dumbbell', color: 'purple', active: true, favorite: false, route: '/fitness' },
-  { id: 'economy-room', title: 'Economy Room', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false, route: '/economy' },
-  { id: 'growth-room', title: 'Growth Room', category: 'Produktivita', icon: 'goal-tracker', color: 'pink', active: true, favorite: false, route: '/growth' },
-  { id: 'music-room', title: 'Music Room', category: 'Kreativita', icon: 'music', color: 'orange', active: true, favorite: false, route: '/music' },
-  { id: 'writer-room', title: "Writer's Room", category: 'Kreativita', icon: 'book', color: 'gold', active: true, favorite: false, route: '/spisovatel' },
+  // Vlajkové appky — viz AppItem.route výš a FlagshipShell.tsx. Do
+  // schválené doby (viz CLAUDE.md, RoomCarousel.tsx) byly tyhle dlaždice
+  // jediná cesta dovnitř a proto zůstávaly v hlavní mřížce jako kterákoli
+  // jiná appka. Teď mají vlastní carousel nad mřížkou /apps (jeden Room
+  // uprostřed, swipe/šipky mezi nimi) — jenVeVlajkoveAppce: true je
+  // stejné zacházení jako u appek přesunutých DOVNITŘ Roomu výš, jen
+  // teď se týká samotných šesti Roomů, co se z ploché mřížky přesouvají
+  // do svého vlastního carouselu. `active`/`favorite` zůstávají beze
+  // změny (appky jsou dál plně funkční, jen mimo plochou mřížku) —
+  // stejná "hide, don't touch the fields nobody reads any more" logika.
+  { id: 'school-room', title: 'School Room', category: 'Vzdělávání', icon: 'layers', color: 'cyan', active: true, favorite: false, route: '/skola', nahled: '/backgrounds/school-room.png', jenVeVlajkoveAppce: true },
+  { id: 'fitness-room', title: 'Fitness Room', category: 'Nástroje', icon: 'dumbbell', color: 'purple', active: true, favorite: false, route: '/fitness', jenVeVlajkoveAppce: true },
+  { id: 'economy-room', title: 'Economy Room', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false, route: '/economy', jenVeVlajkoveAppce: true },
+  { id: 'growth-room', title: 'Growth Room', category: 'Produktivita', icon: 'goal-tracker', color: 'pink', active: true, favorite: false, route: '/growth', jenVeVlajkoveAppce: true },
+  { id: 'music-room', title: 'Music Room', category: 'Kreativita', icon: 'music', color: 'orange', active: true, favorite: false, route: '/music', jenVeVlajkoveAppce: true },
+  { id: 'writer-room', title: "Writer's Room", category: 'Kreativita', icon: 'book', color: 'gold', active: true, favorite: false, route: '/spisovatel', jenVeVlajkoveAppce: true },
 ]
 
 // Katalog dlaždic patří kódu, uživateli jen jeho příznaky (oblíbené,

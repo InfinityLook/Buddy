@@ -5,6 +5,7 @@ import { AppToolbar, ALL_CATEGORIES, FAVORITES_CATEGORY } from './components/App
 import { AppCard } from './components/AppCard'
 import { AppBanner } from './components/AppBanner'
 import { AppIcon } from './components/AppIcon'
+import { RoomCarousel } from './components/RoomCarousel'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import { useModulovySwipe } from '@/core/navigation/useModulovySwipe'
@@ -80,6 +81,11 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   // vlastní přepínač. Kategorie/počty/banner se proto počítají odsud,
   // ne přímo z `apps`.
   const appyProMrizku = useMemo(() => apps.filter((app) => !app.jenVeVlajkoveAppce), [apps])
+
+  // Šest Roomů (route nastavené, viz useAppStore.ts's AppItem.route) —
+  // vlastní carousel nad mřížkou, schválený mockup (viz CLAUDE.md).
+  // Pořadí bere appka rovnou z `apps`, co zachovává pořadí DEFAULT_APPS.
+  const roomy = useMemo(() => apps.filter((app) => !!app.route), [apps])
 
   // Kategorie bereme ze skutečných dlaždic. Napevno psaný seznam obsahoval
   // i "Zábava" a "Ostatní", pod kterými nikdy nic nebylo — kliknutí vedlo
@@ -191,6 +197,10 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
         unreadCount={unreadCount}
         avatarSrc={profile.avatar}
       />
+
+      {roomy.length > 0 && (
+        <RoomCarousel rooms={roomy} onEnter={(room) => room.route && navigate(room.route)} />
+      )}
 
       <AppToolbar
         searchQuery={searchQuery}
