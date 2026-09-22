@@ -151,16 +151,27 @@ a {
    useModulovyPrechod.ts hlídá prefers-reduced-motion sám v JS dřív, než
    se startViewTransition() vůbec zavolá (viz jeho komentář).
 
-   Zatím jen jeden směr (Hub → Social/Chat, Fáze 2 plánu) — nová
-   obrazovka najede zprava naplno, stará jen částečně ucouvne a ztmavne.
-   Cesta zpět zatím animaci nemá (viz komentář u volajících v Hub.tsx) —
-   směrová verze (dopředu/zpět) je práce až pro sdílenou navigaci
-   z pozdější fáze, ne pro tenhle jednosměrný krok. */
+   Hub → Social/Chat (Fáze 2 plánu) zůstává jednosměrný — nová obrazovka
+   najede zprava naplno, stará jen částečně ucouvne a ztmavne. Roomy
+   (FlagshipShell.tsx's swipe/šipky mezi vlajkovými appkami) potřebují
+   obě strany — appka to řeší atributem `data-prechod-smer="vlevo"` na
+   <html>, který useModulovyPrechod.ts nastaví/smaže kolem
+   startViewTransition(); bez atributu (výchozí, jako doteď) platí
+   dopředná verze níž, s ním platí zrcadlená "-vlevo" varianta —
+   atributový selektor jde napsat i na tenhle speciální pseudo-strom
+   mimo běžný DOM. */
 ::view-transition-old(root) {
   animation: buddy-prechod-stara 420ms cubic-bezier(0.32, 0.08, 0.24, 1) both;
 }
 ::view-transition-new(root) {
   animation: buddy-prechod-nova 420ms cubic-bezier(0.32, 0.08, 0.24, 1) both;
+}
+
+:root[data-prechod-smer='vlevo']::view-transition-old(root) {
+  animation-name: buddy-prechod-stara-vlevo;
+}
+:root[data-prechod-smer='vlevo']::view-transition-new(root) {
+  animation-name: buddy-prechod-nova-vlevo;
 }
 
 @keyframes buddy-prechod-stara {
@@ -177,6 +188,26 @@ a {
 @keyframes buddy-prechod-nova {
   from {
     transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes buddy-prechod-stara-vlevo {
+  from {
+    transform: translateX(0);
+    filter: brightness(1);
+  }
+  to {
+    transform: translateX(26%);
+    filter: brightness(0.55);
+  }
+}
+
+@keyframes buddy-prechod-nova-vlevo {
+  from {
+    transform: translateX(-100%);
   }
   to {
     transform: translateX(0);

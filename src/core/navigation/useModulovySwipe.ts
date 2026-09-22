@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { sousedniStranky } from './moduloveStranky'
+import { sousedniStranky, type ModulovaStranka } from './moduloveStranky'
 
 // ==========================================
 // Fáze 5 Social nav reworku (viz CLAUDE.md) — vodorovný swipe mezi
@@ -14,15 +14,31 @@ import { sousedniStranky } from './moduloveStranky'
 // pozná od svislého scrollování stránky (Profil/Apps/Nastavení se
 // samy posouvají nahoru/dolů) tím, že vodorovná dráha musí výrazně
 // převažovat nad svislou, ne jen být nenulová.
+//
+// `moznosti.sousedni` a `moznosti.onPrejit` jsou nové — appka je
+// dřív vůbec neměla, protože jediný volající (Hub/Apps/Profil/
+// Nastavení) vždycky chtěl sousedniStranky() a obyčejný navigate().
+// FlagshipShell.tsx (swipe mezi vlajkovými Roomy) potřebuje jinou
+// řadu (sousedniRoom(), zacyklující) a animovaný přechod
+// (useModulovyPrechod()) místo obyčejného navigate() — proto obojí
+// jde přepsat, s výchozími hodnotami, co drží appčino už dřív
+// existující chování beze změny pro všechny čtyři starší volající.
 // ==========================================
 
 const PRAH_PX = 70
 const POMER_SMERU = 1.5
 
-export const useModulovySwipe = () => {
+interface Moznosti {
+  sousedni?: (pathname: string) => { predchozi: ModulovaStranka | null; dalsi: ModulovaStranka | null }
+  onPrejit?: (cesta: string, smer: 'vpravo' | 'vlevo') => void
+}
+
+export const useModulovySwipe = (moznosti?: Moznosti) => {
   const location = useLocation()
   const navigate = useNavigate()
   const zacatek = useRef<{ x: number; y: number } | null>(null)
+  const sousedniFn = moznosti?.sousedni ?? sousedniStranky
+  const onPrejit = moznosti?.onPrejit
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
     const t = e.touches[0]
@@ -40,11 +56,16 @@ export const useModulovySwipe = () => {
       const dy = t.clientY - zac.y
       if (Math.abs(dx) < PRAH_PX || Math.abs(dx) < Math.abs(dy) * POMER_SMERU) return
 
-      const { predchozi, dalsi } = sousedniStranky(location.pathname)
-      if (dx < 0 && dalsi) navigate(dalsi.cesta)
-      else if (dx > 0 && predchozi) navigate(predchozi.cesta)
+      const { predchozi, dalsi } = sousedniFn(location.pathname)
+      if (dx < 0 && dalsi) {
+        if (onPrejit) onPrejit(dalsi.cesta, 'vpravo')
+        else navigate(dalsi.cesta)
+      } else if (dx > 0 && predchozi) {
+        if (onPrejit) onPrejit(predchozi.cesta, 'vlevo')
+        else navigate(predchozi.cesta)
+      }
     },
-    [location.pathname, navigate]
+    [location.pathname, navigate, sousedniFn, onPrejit]
   )
 
   return { onTouchStart, onTouchEnd }

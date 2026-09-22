@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
-import { sousedniStranky } from '@/core/navigation/moduloveStranky'
+import { sousedniStranky, type ModulovaStranka } from '@/core/navigation/moduloveStranky'
 import { useInbox } from '@/social/inbox'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import { useBuddyVoice } from '@/buddy/useBuddyVoice'
@@ -32,9 +32,21 @@ import './AppBottomNav.css'
 // Appka si vlastní instanci useBuddyVoice bere sama, na každé
 // stránce stejně — žádná z nich už nemá velkou kouli maskota (Hub
 // svou odstranil), se kterou by se muselo sdílet.
+//
+// `sousedniFn`/`onSipkaKlik` jsou nové, oba nepovinné — výchozí
+// hodnoty (sousedniStranky() + obyčejný navigate()) drží appčino
+// dosavadní chování na Hub/Apps/Profil/Nastavení beze změny.
+// FlagshipShell.tsx (šipky mezi vlajkovými Roomy) posílá sousedniRoom()
+// (zacykluje) a onSipkaKlik volající useModulovyPrechod() (animovaný
+// slide), ať šipka i swipe na Roomech vypadají stejně.
 // ==========================================
 
-export const AppBottomNav: React.FC = () => {
+interface Props {
+  sousedniFn?: (pathname: string) => { predchozi: ModulovaStranka | null; dalsi: ModulovaStranka | null }
+  onSipkaKlik?: (cesta: string, smer: 'vpravo' | 'vlevo') => void
+}
+
+export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
   const location = useLocation()
   const navigate = useNavigate()
   // Jen dopředné "→ Social" cesty (Hledat/Chat) dostávají animovaný
@@ -66,7 +78,11 @@ export const AppBottomNav: React.FC = () => {
   // obráceně — tady se skrývají NA dotykovém zařízení, joystick se
   // schovává BEZ něj). Nezobrazí se na konci seznamu (Hub nemá
   // "předchozí", Nastavení nemá "další").
-  const { predchozi, dalsi } = sousedniStranky(location.pathname)
+  const { predchozi, dalsi } = (sousedniFn ?? sousedniStranky)(location.pathname)
+  const jitNa = (cesta: string, smer: 'vpravo' | 'vlevo') => {
+    if (onSipkaKlik) onSipkaKlik(cesta, smer)
+    else navigate(cesta)
+  }
 
   return (
     <>
@@ -74,7 +90,7 @@ export const AppBottomNav: React.FC = () => {
         <button
           className="modul-sipka modul-sipka--vlevo"
           aria-label={`Přejít na ${predchozi.popis}`}
-          onClick={() => navigate(predchozi.cesta)}
+          onClick={() => jitNa(predchozi.cesta, 'vlevo')}
         >
           <SocialIcon name="arrow-left" size={18} />
         </button>
@@ -83,7 +99,7 @@ export const AppBottomNav: React.FC = () => {
         <button
           className="modul-sipka modul-sipka--vpravo"
           aria-label={`Přejít na ${dalsi.popis}`}
-          onClick={() => navigate(dalsi.cesta)}
+          onClick={() => jitNa(dalsi.cesta, 'vpravo')}
         >
           <SocialIcon name="arrow-left" size={18} />
         </button>
