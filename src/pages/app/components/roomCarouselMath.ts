@@ -45,3 +45,36 @@ export const dragNaklonStupnu = (
   sirkaPlochy: number,
   maxNaklon: number = MAX_NAKLON_STUPNU
 ): number => -tazeniProcento(deltaX, sirkaPlochy) * maxNaklon
+
+/** Text živého štítku "naposledy navštíveno" na kartě Roomu —
+ *  useAppStore.ts's `markAppOpened` (volané z RoomCarousel.tsx's
+ *  onEnter) je appčin první skutečný zápis tohohle času pro Room, ne
+ *  jen pro obyčejnou miniaplikaci přes setActiveAppId, takže
+ *  chybějící/nulová hodnota je poctivý stav "appka to zatím nezná",
+ *  ne 0 nebo vymyšlené číslo. Denní zrnitost, stejný důvod jako
+ *  writerRoomFormat.ts's formatujNaposledyUpraveno (samostatná kopie,
+ *  ne import odtamtud — appka do vlajkové appky z /apps stránky
+ *  schválně nesahá, malá přijatá duplikace jako jinde u BARVY_UZLU). */
+export const formatujNaposledyNavstiveno = (
+  timestamp: number | null | undefined,
+  ted: number = Date.now()
+): string => {
+  if (!timestamp) return 'Zatím nenavštíveno'
+
+  const kdy = new Date(timestamp)
+  const kdyDen = new Date(kdy.getFullYear(), kdy.getMonth(), kdy.getDate())
+  const tedDatum = new Date(ted)
+  const tedDen = new Date(tedDatum.getFullYear(), tedDatum.getMonth(), tedDatum.getDate())
+  const rozdilDni = Math.round((tedDen.getTime() - kdyDen.getTime()) / 86_400_000)
+
+  if (rozdilDni <= 0) return 'Dnes'
+  if (rozdilDni === 1) return 'Včera'
+  if (rozdilDni <= 6) return `Před ${rozdilDni} dny`
+
+  const stejnyRok = kdy.getFullYear() === tedDatum.getFullYear()
+  return kdy.toLocaleDateString('cs-CZ', {
+    day: 'numeric',
+    month: 'numeric',
+    year: stejnyRok ? undefined : 'numeric',
+  })
+}

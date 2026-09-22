@@ -1,16 +1,13 @@
 import React, { useMemo, useState, Suspense } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { AppHeader } from './components/AppHeader'
-import { AppToolbar, ALL_CATEGORIES, FAVORITES_CATEGORY } from './components/AppToolbar'
-import { AppCard } from './components/AppCard'
-import { AppBanner } from './components/AppBanner'
 import { AppIcon } from './components/AppIcon'
 import { RoomCarousel } from './components/RoomCarousel'
+import { RychleSpusteni } from './components/RychleSpusteni'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import { MINI_APP_REGISTRY } from '@/features/miniapps/registry'
-import { useAppStore, AppItem } from '@/core/store/useAppStore'
-import { normalizeText } from '@/core/utils/text'
+import { useAppStore } from '@/core/store/useAppStore'
 import {
   ProfilNotifications,
   useNotificationItems,
@@ -30,30 +27,10 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   const navigate = useNavigate()
 
   // Načtení globálního stavu ze Zustand storu
-  const {
-    apps,
-    activeAppId,
-    returnPath,
-    sortMode,
-    viewMode,
-    setActiveAppId,
-    toggleFavorite,
-    toggleAppVisible,
-    setSortMode,
-    setViewMode,
-  } = useAppStore()
+  const { apps, activeAppId, returnPath, setActiveAppId, markAppOpened } = useAppStore()
 
   const { profile, markNotificationRead } = useProfileData()
 
-  // Hub umí odkázat rovnou na konkrétní kategorii (např. Library → Vzdělávání)
-  const [searchParams] = useSearchParams()
-
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activeCategory, setActiveCategory] = useState(
-    () => searchParams.get('kategorie') ?? ALL_CATEGORIES
-  )
-  const [showHidden, setShowHidden] = useState(false)
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [notifOpen, setNotifOpen] = useState(false)
 
   const activeApp = apps.find((app) => app.id === activeAppId)
@@ -69,90 +46,19 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
     if (returnPath) navigate(returnPath)
   }
 
-  // Appky vyhrazené výhradně pro vlajkovou appku (School Room a další,
-  // viz AppItem.jenVeVlajkoveAppce) se z mřížky /apps vylučují úplně
-  // natvrdo, ne jako "active: false" — "Zobrazit skryté" tenhle příznak
-  // schválně neobchází, je to appčino rozhodnutí, ne uživatelův
-  // vlastní přepínač. Kategorie/počty/banner se proto počítají odsud,
-  // ne přímo z `apps`.
-  const appyProMrizku = useMemo(() => apps.filter((app) => !app.jenVeVlajkoveAppce), [apps])
-
   // Šest Roomů (route nastavené, viz useAppStore.ts's AppItem.route) —
-  // vlastní carousel nad mřížkou, schválený mockup (viz CLAUDE.md).
-  // Pořadí bere appka rovnou z `apps`, co zachovává pořadí DEFAULT_APPS.
+  // vlastní carousel nad zbytkem stránky, schválený mockup (viz
+  // CLAUDE.md). Pořadí bere appka rovnou z `apps`, co zachovává
+  // pořadí DEFAULT_APPS.
   const roomy = useMemo(() => apps.filter((app) => !!app.route), [apps])
 
-  // Kategorie bereme ze skutečných dlaždic. Napevno psaný seznam obsahoval
-  // i "Zábava" a "Ostatní", pod kterými nikdy nic nebylo — kliknutí vedlo
-  // na prázdnou stránku.
-  const categories = useMemo(
-    () => [...new Set(appyProMrizku.map((app) => app.category))].sort((a, b) => a.localeCompare(b, 'cs')),
-    [appyProMrizku]
-  )
-
-  const hiddenCount = useMemo(() => appyProMrizku.filter((app) => !app.active).length, [appyProMrizku])
-  const favoriteCount = useMemo(() => appyProMrizku.filter((app) => app.favorite).length, [appyProMrizku])
-
-  // Poslední otevřená miniaplikace pro banner — skryté sem nepatří
-  const lastApp = useMemo<AppItem | null>(() => {
-    const opened = appyProMrizku.filter((app) => app.active && app.lastOpenedAt)
-    if (opened.length === 0) return null
-    return opened.reduce((best, app) =>
-      (app.lastOpenedAt ?? 0) > (best.lastOpenedAt ?? 0) ? app : best
-    )
-  }, [appyProMrizku])
-
-  const visibleApps = useMemo(
-    () => appyProMrizku.filter((app) => showHidden || app.active),
-    [appyProMrizku, showHidden]
-  )
-
-  const filteredApps = useMemo(() => {
-    const query = normalizeText(searchQuery.trim())
-
-    const matching = visibleApps.filter((app) => {
-      const matchesSearch =
-        query === '' ||
-        normalizeText(app.title).includes(query) ||
-        normalizeText(app.category).includes(query)
-
-      const matchesCategory =
-        activeCategory === ALL_CATEGORIES
-          ? true
-          : activeCategory === FAVORITES_CATEGORY
-            ? app.favorite
-            : app.category === activeCategory
-
-      return matchesSearch && matchesCategory
-    })
-
-    const byTitle = (a: AppItem, b: AppItem) => a.title.localeCompare(b.title, 'cs')
-
-    switch (sortMode) {
-      case 'name':
-        return [...matching].sort(byTitle)
-      case 'category':
-        return [...matching].sort(
-          (a, b) => a.category.localeCompare(b.category, 'cs') || byTitle(a, b)
-        )
-      case 'recent':
-        return [...matching].sort(
-          (a, b) => (b.lastOpenedAt ?? 0) - (a.lastOpenedAt ?? 0) || byTitle(a, b)
-        )
-      case 'favorites':
-      default:
-        return [...matching].sort(
-          (a, b) => Number(b.favorite) - Number(a.favorite) || byTitle(a, b)
-        )
-    }
-  }, [visibleApps, searchQuery, activeCategory, sortMode])
-
-  const hasActiveFilters = searchQuery.trim() !== '' || activeCategory !== ALL_CATEGORIES
-
-  const resetFilters = () => {
-    setSearchQuery('')
-    setActiveCategory(ALL_CATEGORIES)
-  }
+  // Appky bez vlastní route jsou ty, co appka umí otevřít jen
+  // deep-linkem dovnitř nějakého Roomu (setActiveAppId) — po tom, co
+  // úplně každá appka v DEFAULT_APPS dostala jenVeVlajkoveAppce: true,
+  // je tohle (ne appyProMrizku filtrovaná na `!jenVeVlajkoveAppce`,
+  // co by dnes vždycky vyšla prázdná) skutečný zdroj obsahu pro
+  // Rychlé spuštění pod carouselem.
+  const miniaplikace = useMemo(() => apps.filter((app) => !app.route), [apps])
 
   // Číslo u zvonku počítáme ze stejného seznamu, jaký panel vykreslí
   const notifications = useNotificationItems()
@@ -194,68 +100,16 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
       />
 
       {roomy.length > 0 && (
-        <RoomCarousel rooms={roomy} onEnter={(room) => room.route && navigate(room.route)} />
+        <RoomCarousel
+          rooms={roomy}
+          onEnter={(room) => {
+            markAppOpened(room.id)
+            if (room.route) navigate(room.route)
+          }}
+        />
       )}
 
-      <AppToolbar
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        activeCategory={activeCategory}
-        setActiveCategory={setActiveCategory}
-        categories={categories}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
-        sortMode={sortMode}
-        setSortMode={setSortMode}
-        hiddenCount={hiddenCount}
-        showHidden={showHidden}
-        toggleShowHidden={() => setShowHidden((v) => !v)}
-        resultCount={filteredApps.length}
-        totalCount={visibleApps.length}
-      />
-
-      {filteredApps.length === 0 ? (
-        <div className="app-empty-state">
-          <AppIcon name="search-off" size={38} />
-          <h3>Nic tu není</h3>
-          <p>
-            {hasActiveFilters
-              ? 'Žádná aplikace neodpovídá tomu, co hledáš.'
-              : 'Všechny aplikace máš schované. Vrať si je zpátky přes nabídku u dlaždice.'}
-          </p>
-          {hasActiveFilters && (
-            <button className="app-empty-btn" onClick={resetFilters}>
-              Zrušit filtry
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className={`app-grid-container ${viewMode}`}>
-          {filteredApps.map((app) => (
-            <AppCard
-              key={app.id}
-              app={app}
-              menuOpen={openMenuId === app.id}
-              onMenuToggle={setOpenMenuId}
-              // Vlajková appka (route nastavené, viz useAppStore.ts's
-              // AppItem.route) je vlastní stránka, ne obsah do
-              // MINI_APP_REGISTRY fullscreen wrapperu — klepnutí proto
-              // rovnou naviguje tam, místo aby otvíralo aktivní appku.
-              onClick={(selectedApp) =>
-                selectedApp.route ? navigate(selectedApp.route) : setActiveAppId(selectedApp.id)
-              }
-              onToggleFavorite={(id) => toggleFavorite(id)}
-              onToggleVisible={(id) => toggleAppVisible(id)}
-            />
-          ))}
-        </div>
-      )}
-
-      <AppBanner
-        lastApp={lastApp}
-        onOpen={(id) => setActiveAppId(id)}
-        favoriteCount={favoriteCount}
-      />
+      <RychleSpusteni miniaplikace={miniaplikace} onOpen={(id) => setActiveAppId(id)} />
 
       {/* Fáze 4 Social nav reworku (viz CLAUDE.md) — appka teď navigaci
           mezi hlavními obrazovkami nabízí i tady, ne jen na Hubu. */}

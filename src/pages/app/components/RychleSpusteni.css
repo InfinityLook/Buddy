@@ -1,0 +1,167 @@
+/* RychleSpusteni.tsx — vlastní CSS, appka to tak dělá pro každou
+   obrazovku (viz CLAUDE.md's poznámka u GameModule.css). Barvy čtou
+   appčiny globální tokeny (--accent-*) z styles/global.css přímo, ne
+   AppModule.css's lokální --app-* aliasy — ty zůstaly zredukované jen
+   na to, co doopravdy potřebuje hlavička/fullscreen zobrazení. */
+
+.rs-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.rs-nadpis {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin: 0;
+  color: var(--text-primary);
+}
+
+.rs-popis {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin: -0.3rem 0 0.2rem;
+}
+
+.rs-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  border-radius: 12px;
+  padding: 0.6rem 0.85rem;
+}
+
+.rs-search-icon {
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.rs-search-box:focus-within {
+  border-color: rgba(53, 196, 240, 0.5);
+}
+
+.rs-search-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.rs-search-clear {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.rs-search-clear:hover {
+  color: var(--text-primary);
+}
+
+.rs-prazdno {
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  padding: 1.5rem 0.5rem;
+  margin: 0;
+}
+
+.rs-skupina {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rs-skupina-nadpis {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.rs-mrizka {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 0.6rem;
+}
+
+.rs-dlazdice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: 14px;
+  padding: 0.75rem 0.4rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.rs-dlazdice:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.rs-dlazdice-ikona {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+}
+
+/* Stejná šestice hex dvojic jako RoomCarousel.tsx's GRADIENTY — malá
+   přijatá duplikace mezi dvěma nezávislými komponentami stejná jako
+   BARVY_UZLU jinde v appce, ne sdílený import. */
+.rs-dlazdice-ikona.purple { background: linear-gradient(135deg, #7c3aed, #a855f7); }
+.rs-dlazdice-ikona.cyan { background: linear-gradient(135deg, #0284c7, #38bdf8); }
+.rs-dlazdice-ikona.orange { background: linear-gradient(135deg, #d97706, #fbbf24); }
+.rs-dlazdice-ikona.green { background: linear-gradient(135deg, #059669, #34d399); }
+.rs-dlazdice-ikona.pink { background: linear-gradient(135deg, #db2777, #f472b6); }
+.rs-dlazdice-ikona.gold { background: linear-gradient(135deg, #a16207, #eab308); }
+
+.rs-dlazdice-nazev {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media (max-width: 380px) {
+  .rs-mrizka {
+    grid-template-columns: repeat(auto-fill, minmax(66px, 1fr));
+    gap: 0.5rem;
+  }
+
+  .rs-dlazdice-ikona {
+    width: 36px;
+    height: 36px;
+  }
+}

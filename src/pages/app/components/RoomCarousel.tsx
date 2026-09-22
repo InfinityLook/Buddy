@@ -1,7 +1,13 @@
 import React, { useMemo, useRef, useState } from 'react'
 import { AppIcon } from './AppIcon'
 import type { AppItem } from '@/core/store/useAppStore'
-import { zacykliIndex, melByPotvrditTazeni, dragNaklonStupnu, tazeniProcento } from './roomCarouselMath'
+import {
+  zacykliIndex,
+  melByPotvrditTazeni,
+  dragNaklonStupnu,
+  tazeniProcento,
+  formatujNaposledyNavstiveno,
+} from './roomCarouselMath'
 import './RoomCarousel.css'
 
 interface RoomCarouselProps {
@@ -179,6 +185,10 @@ export const RoomCarousel: React.FC<RoomCarouselProps> = ({ rooms, onEnter }) =>
                   ))}
                 </h2>
                 <p className="rc-desc">{room.category}</p>
+                <span className="rc-naposledy">
+                  <AppIcon name="clock" size={12} />
+                  {formatujNaposledyNavstiveno(room.lastOpenedAt)}
+                </span>
                 <button className="rc-enter-btn" onClick={() => onEnter(room)}>
                   <span className="rc-enter-label">Vstoupit</span>
                   <AppIcon name="arrow-right" size={16} />

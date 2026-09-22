@@ -32,6 +32,16 @@ export interface AppItem {
   // false = uživatel si dlaždici schoval z přehledu. Miniaplikace tím
   // nemizí ani nepřichází o data, jen se nezobrazuje, dokud si skryté
   // nevyvolá zpátky.
+  //
+  // Od chvíle, kdy úplně každá appka v DEFAULT_APPS dostala
+  // jenVeVlajkoveAppce: true, nemá `active`/`favorite` (ani
+  // sortMode/viewMode/toggleFavorite/toggleAppVisible níž) žádného
+  // UI čtenáře — patřily staré mřížce na /apps (AppCard/AppToolbar),
+  // kterou nahradilo RychleSpusteni.tsx (viz CLAUDE.md). Pole zůstávají
+  // v datovém modelu i v backupu záměrně, ne jako plán je brzy použít
+  // znovu, ale protože smazat je by znamenalo migraci uloženého tvaru
+  // AppItem u každého uživatele — reálná, samostatná práce, co
+  // dokončení /apps modulu vůbec nepotřebovalo.
   active: boolean
   favorite: boolean
   // Čas posledního otevření. Podklad pro řazení "naposledy použité"
@@ -79,6 +89,13 @@ interface AppState {
   toggleAppVisible: (id: string) => void
   setSortMode: (mode: SortMode) => void
   setViewMode: (mode: ViewMode) => void
+  // Zaznamená čas otevření bez vedlejších účinků setActiveAppId
+  // (activeAppId/returnPath) — Room nikdy neotvírá fullscreen wrapper,
+  // vede na svou vlastní route (viz RoomCarousel.tsx's onEnter), takže
+  // by bylo zavádějící appku "aktivovat" přes stejnou akci jako
+  // obyčejnou miniaplikaci. Stejné pole (lastOpenedAt), jiná, čistší
+  // cesta k jeho aktualizaci.
+  markAppOpened: (id: string) => void
 }
 
 const DEFAULT_APPS: AppItem[] = [
@@ -221,6 +238,13 @@ export const useAppStore = create<AppState>()(
 
       setSortMode: (mode) => set({ sortMode: mode }),
       setViewMode: (mode) => set({ viewMode: mode }),
+
+      markAppOpened: (id) =>
+        set((state) => ({
+          apps: state.apps.map((app) =>
+            app.id === id ? { ...app, lastOpenedAt: Date.now() } : app
+          ),
+        })),
     }),
     {
       name: 'schoolbuddy-app-storage',

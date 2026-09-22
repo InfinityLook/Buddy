@@ -148,6 +148,11 @@ export const AppIcon: React.FC<AppIconProps> = ({ name, size = 20, className }) 
       return <svg {...common}><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
     case 'lightbulb':
       return <svg {...common}><path d="M15 14c.2-1 .7-1.7 1.5-2.5A6 6 0 1 0 7.5 11.5c.8.8 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+    // Živý štítek "naposledy navštíveno" na kartě carouselu Roomů
+    // (RoomCarousel.tsx) — appka na tenhle konkrétní tvar (kruh + dvě
+    // ručičky) dřív nikde nesáhla.
+    case 'clock':
+      return <svg {...common}><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg>
     default:
       return null
   }

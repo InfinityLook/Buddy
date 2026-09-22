@@ -4,6 +4,7 @@ import {
   melByPotvrditTazeni,
   tazeniProcento,
   dragNaklonStupnu,
+  formatujNaposledyNavstiveno,
   DRAG_PRAH_PX,
   MAX_NAKLON_STUPNU,
 } from '@/pages/app/components/roomCarouselMath'
@@ -84,5 +85,42 @@ describe('dragNaklonStupnu', () => {
 
   it('respektuje vlastní maximální náklon', () => {
     expect(dragNaklonStupnu(-300, 300, 20)).toBeCloseTo(20)
+  })
+})
+
+describe('formatujNaposledyNavstiveno', () => {
+  const DEN_MS = 86_400_000
+  // 22. září 2026, poledne UTC — appka v testech běží s pinnutým
+  // TZ=UTC (tests/setup.ts), takže lokální i UTC den vychází stejně.
+  const TED = Date.UTC(2026, 8, 22, 12, 0, 0)
+
+  it('chybějící čas hlásí jako poctivě "zatím nenavštíveno", ne 0/vymyšlené datum', () => {
+    expect(formatujNaposledyNavstiveno(null, TED)).toBe('Zatím nenavštíveno')
+    expect(formatujNaposledyNavstiveno(undefined, TED)).toBe('Zatím nenavštíveno')
+  })
+
+  it('dnešní návštěva', () => {
+    expect(formatujNaposledyNavstiveno(TED - 2 * 3_600_000, TED)).toBe('Dnes')
+  })
+
+  it('včerejší návštěva', () => {
+    expect(formatujNaposledyNavstiveno(TED - DEN_MS, TED)).toBe('Včera')
+  })
+
+  it('pár dní zpátky', () => {
+    expect(formatujNaposledyNavstiveno(TED - 3 * DEN_MS, TED)).toBe('Před 3 dny')
+  })
+
+  it('hranice: 6 dní zpátky je ještě relativní, 7 už přejde na datum', () => {
+    expect(formatujNaposledyNavstiveno(TED - 6 * DEN_MS, TED)).toBe('Před 6 dny')
+    expect(formatujNaposledyNavstiveno(TED - 7 * DEN_MS, TED)).not.toMatch(/^(Dnes|Včera|Před)/)
+  })
+
+  it('starší než týden ukáže datum — beze roku ve stejném roce, s rokem v jiném', () => {
+    const stejnyRok = formatujNaposledyNavstiveno(TED - 30 * DEN_MS, TED)
+    expect(stejnyRok).not.toContain('2026')
+
+    const jinyRok = formatujNaposledyNavstiveno(Date.UTC(2025, 0, 1), TED)
+    expect(jinyRok).toContain('2025')
   })
 })
