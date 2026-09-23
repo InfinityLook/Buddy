@@ -75,7 +75,12 @@
 
 /* Prostřední kolečko — vyvýšené nad ostatní, žádný popisek pod sebou
    (stejná role jako "shutter" tlačítko uprostřed lišty v appkách typu
-   TikTok/Snapchat). */
+   TikTok/Snapchat). Dřív kreslilo dvě "oči" (.app-nav-orb-oko), teď
+   uvnitř nese skutečnou fotku maskota (.app-nav-orb-maskot níž) —
+   background/box-shadow zůstaly beze změny, ať kolečko pořád čte jako
+   "prosvícené sklo", ne jako nalepený obrázek; tmavý gradient je jen
+   záložka na tu jednu chvíli, než se fotka stihne načíst, a `overflow:
+   hidden` je to, co fotku doopravdy ořízne do kruhu. */
 .app-nav-orb {
   position: relative;
   flex-shrink: 0;
@@ -85,22 +90,20 @@
   border-radius: 50%;
   border: none;
   cursor: pointer;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
   background:
     radial-gradient(circle at 35% 30%, rgba(190, 240, 255, 0.5) 0%, rgba(66, 190, 240, 0.3) 30%, transparent 60%),
     radial-gradient(circle at 50% 50%, rgba(16, 42, 88, 0.95) 0%, rgba(46, 150, 210, 0.65) 100%);
   box-shadow: 0 0 0 4px var(--bg-base), 0 0 22px rgba(53, 196, 240, 0.55);
 }
 
-.app-nav-orb-oko {
-  width: 5px;
-  height: 8px;
-  border-radius: var(--radius-pill);
-  background: #bdf3ff;
-  box-shadow: 0 0 6px rgba(53, 196, 240, 0.8);
+.app-nav-orb-maskot {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 /* Šipky pro přechod mezi Hub/Apps/Profil/Nastavení (a mezi vlajkovými

@@ -129,9 +129,12 @@ export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
           <span>Hledat</span>
         </button>
 
+        {/* Skutečná fotka maskota (public/maskot/buddy-vlk.png), ne dřív
+            kreslené oči — appka ho stejně eagerly precachuje jako dřív
+            pro Hubův (dnes zrušený) hero panel, viz vite.config.ts's
+            globPatterns/globIgnores. */}
         <button className="app-nav-orb" aria-label="Promluvit s Buddym" onClick={spustitTalk}>
-          <span className="app-nav-orb-oko" />
-          <span className="app-nav-orb-oko" />
+          <img src="/maskot/buddy-vlk.png" alt="" className="app-nav-orb-maskot" />
         </button>
 
         <button className="app-nav-item" onClick={() => prejit('/social?zalozka=chaty')}>
