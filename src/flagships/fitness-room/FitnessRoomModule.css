@@ -52,6 +52,39 @@
   color: var(--accent-violet);
 }
 
+.fit-panel:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+/* Tenký zářící pruh pod hlavičkou — Fitness Roomova vlastní barevná
+   identita (appka je v useAppStore.ts vedená jako 'purple'), stejný
+   trik jako School Roomovo vlastní .sr-accent-pruh, jen jinou barvou —
+   hlavička sama (FlagshipShell.tsx) se schválně nemění, je sdílená
+   všemi šesti Roomy stejně jako dřív. */
+.fit-accent-pruh {
+  height: 3px;
+  border-radius: 999px;
+  margin-top: -0.3rem;
+  background: linear-gradient(90deg, var(--accent-violet), transparent 85%);
+  box-shadow: 0 0 14px rgba(138, 92, 246, 0.55);
+}
+
+/* Jedna skupina panelů — grafický dotah/přeskupení (viz
+   FitnessRoomModule.tsx's vlastní hlavičkový komentář pro celé
+   zdůvodnění). Menší mezera MEZI panely UVNITŘ jedné skupiny (0.85rem)
+   než appčin obecný .app-container gap MEZI skupinami samotnými
+   (1.25rem, sdílené, nedotčené) — přesně tenhle rozdíl je to, co opticky
+   odliší jednu skupinu od druhé, ne barva ani rám. Hlavička skupiny
+   (.fs-dlazdice-sekce-hlavicka/-ikona) je School Roomova/MujWidgetPanelova
+   vlastní třída, znovupoužitá tady beze změny — je už načtená přes
+   FlagshipShell.css (importovaná transitivně přes FlagshipShell
+   komponentu výš), žádná nová definice tu není potřeba. */
+.fit-sekce {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
 /* ------------------------------------------
    MOJE PŘEHLED
    ------------------------------------------ */

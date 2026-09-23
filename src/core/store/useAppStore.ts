@@ -172,7 +172,7 @@ const DEFAULT_APPS: AppItem[] = [
   // změny (appky jsou dál plně funkční, jen mimo plochou mřížku) —
   // stejná "hide, don't touch the fields nobody reads any more" logika.
   { id: 'school-room', title: 'School Room', category: 'Vzdělávání', icon: 'layers', color: 'cyan', active: true, favorite: false, route: '/skola', nahled: '/backgrounds/school-room.png', jenVeVlajkoveAppce: true },
-  { id: 'fitness-room', title: 'Fitness Room', category: 'Nástroje', icon: 'dumbbell', color: 'purple', active: true, favorite: false, route: '/fitness', jenVeVlajkoveAppce: true },
+  { id: 'fitness-room', title: 'Fitness Room', category: 'Nástroje', icon: 'dumbbell', color: 'purple', active: true, favorite: false, route: '/fitness', nahled: '/backgrounds/fitness-room.png', jenVeVlajkoveAppce: true },
   { id: 'economy-room', title: 'Economy Room', category: 'Nástroje', icon: 'finance', color: 'green', active: true, favorite: false, route: '/economy', jenVeVlajkoveAppce: true },
   { id: 'growth-room', title: 'Growth Room', category: 'Produktivita', icon: 'goal-tracker', color: 'pink', active: true, favorite: false, route: '/growth', jenVeVlajkoveAppce: true },
   { id: 'music-room', title: 'Music Room', category: 'Kreativita', icon: 'music', color: 'orange', active: true, favorite: false, route: '/music', jenVeVlajkoveAppce: true },
