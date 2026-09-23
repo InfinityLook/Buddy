@@ -94,6 +94,24 @@
   gap: 1rem;
 }
 
+/* Podsekce "Dnešní cíl" uvnitř téže karty jako "Moje přehled" (viz
+   FitnessRoomModule.tsx's komentář nad fit-vnitrni-oddil) — tenký
+   horní okraj místo druhého celého .fit-panel je to, co ji opticky
+   odliší od stat-řádků nad ní, bez duplikace hlavičky/rámu karty. */
+.fit-vnitrni-oddil {
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.fit-panel-hlavicka--vnitrni h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
 .fit-postava {
   flex-shrink: 0;
   width: 96px;
@@ -491,7 +509,13 @@
 
 .fit-krouzky {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Tři sloupce, ne čtyři — "Kroky" kruh s natvrdo "Brzy" tu bejval
+     čtvrtý, jenže po sloučení Moje přehled + Dnešní cíl do jedné karty
+     (viz FitnessRoomModule.tsx) by se stejná "appka to nesleduje" věta
+     objevila dvakrát v jedné kartě (jednou tady jako kruh, jednou o
+     pár řádků výš jako stat-radek) — kruh je pryč, řádek zůstal jako
+     jediné místo, co to říká. */
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.5rem;
 }
 
@@ -536,18 +560,6 @@
 .fit-barva-krouzek--orange { --fit-ring-barva: var(--accent-orange); }
 .fit-barva-krouzek--purple { --fit-ring-barva: var(--accent-violet); }
 
-.fit-krouzek--brzy {
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.fit-krouzek--brzy::before {
-  inset: 5px;
-}
-
-.fit-krouzek--brzy svg {
-  color: var(--text-secondary);
-}
-
 .fit-krouzek-nazev {
   font-size: 0.68rem;
   color: var(--text-secondary);
@@ -558,10 +570,6 @@
   font-size: 0.72rem;
   font-weight: 700;
   color: var(--text-secondary);
-}
-
-.fit-krouzek-wrap--brzy {
-  opacity: 0.6;
 }
 
 /* ------------------------------------------
@@ -609,11 +617,6 @@
   font-family: inherit;
 }
 
-.fit-trenink-dlazdice--brzy {
-  opacity: 0.5;
-  cursor: default;
-}
-
 .fit-trenink-nazev {
   font-size: 0.75rem;
   font-weight: 700;
@@ -622,19 +625,6 @@
 .fit-trenink-popis {
   font-size: 0.65rem;
   color: var(--text-secondary);
-}
-
-.fit-trenink-brzy {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  font-size: 0.55rem;
-  font-weight: 800;
-  letter-spacing: 0.4px;
-  color: var(--accent-orange);
-  background: rgba(217, 119, 6, 0.15);
-  padding: 0.1rem 0.3rem;
-  border-radius: 6px;
 }
 
 @media (max-width: 680px) {

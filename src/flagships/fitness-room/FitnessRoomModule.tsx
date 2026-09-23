@@ -149,6 +149,32 @@ const tipDne = (): string => {
 // patří o dost víc. Barevný pruh pod hlavičkou je stejný trik jako
 // School Roomovo .sr-accent-pruh, jen appčinou vlastní fialovou (viz
 // useAppStore.ts's DEFAULT_APPS — 'purple').
+//
+// Šesté kolo reagovalo na to, že páté kolo samo o sobě obsah pořád
+// neopravilo, jen ho obalilo — uživatel to popsal jako "pořád
+// nepřehledné". Skutečný problém byl dvojí: (1) "Moje přehled" a
+// "Dnešní cíl" ukazovaly TYTÉŽ čtyři metriky (kalorie/trénink/kroky/
+// spánek) dvakrát hned vedle sebe, jen jednou jako řádky s deltou vůči
+// včerejšku a podruhé jako kruhy s cílem — appka řekla "jak jsem na
+// tom dnes" dvakrát dvěma různými způsoby. Teď je to jedna karta:
+// "Dnešní cíl" žije jako podsekce (.fit-vnitrni-oddil, tenký horní
+// okraj místo druhého celého .fit-panel) uvnitř "Moje přehled", ne
+// jako druhá karta hned pod ní. Kroky kruh s natvrdo "Brzy" v Dnešní
+// cíli navíc zmizel úplně — poté, co appka nesledovaný krokoměr už
+// jednou řekla v řádku výš (fit-stat-radek--nesledujeme), by ho ve
+// sloučené kartě řekla potřetí. (2) "Rychlý trénink" měl čtyři
+// dlaždice, ale jen dvě skutečné (Síla/Mobilita) — zbylé dvě
+// ("Kardio"/"Core") natvrdo tvrdily "Brzy", přestože appka kousek níž
+// ve stejné sekci má plně funkční Běhání a Posilovnu. Dlaždice vedle
+// pracujícího panelu, co říká "tohle ještě neumíme" o něčem, co appka
+// umí, je přesně ten typ nesouladu, co dělá appku nedůvěryhodnou.
+// Obě fake dlaždice nahradily skutečné zkratky na Běhání/Posilovnu —
+// teď je "Rychlý trénink" čtveřice reálných, hned spustitelných
+// možností, přesně to, co sekce vlastní hlavička ("🚀 Spustit
+// trénink") slibuje. Čtyři panelové nadpisy, co dřív postrádaly emoji
+// jinak konzistentně přítomné u zbylých 13 (Moje přehled/Rychlý
+// trénink/Aktivita za 14 dní — Dnešní cíl teď žije jako h3 podsekce se
+// svým vlastním 🎯), dostaly stejný vizuální jazyk.
 // ==========================================
 
 export const FitnessRoomModule: React.FC = () => {
@@ -496,7 +522,7 @@ export const FitnessRoomModule: React.FC = () => {
           <div className={panelClass}>
             <div className="fit-panel-hlavicka">
               <div>
-                <h2>Moje přehled</h2>
+                <h2>📊 Moje přehled</h2>
                 <p>Dnes je skvělý den na trénink!</p>
               </div>
               <div className="fit-panel-hlavicka-akce">
@@ -585,24 +611,30 @@ export const FitnessRoomModule: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
 
-          <div className={panelClass}>
-            <div className="fit-panel-hlavicka">
-              <div>
-                <h2>Dnešní cíl</h2>
-                <span className="fit-cile-pocet">{pocetDokoncenychCilu} z 3 dokončeno</span>
+            {/* Dnešní cíl — dřív vlastní panel hned vedle, kde
+                duplikoval přesně tytéž čtyři metriky (kalorie/trénink/
+                kroky/spánek) jen v jiném vizuálním stylu (kruhy místo
+                řádků), hned vedle sebe. Teď žije jako podsekce téže
+                karty (.fit-vnitrni-oddil, tenký horní okraj místo
+                druhého celého panelu), ať appka jednu věc ("jak jsem
+                na tom dnes") neřekne dvakrát dvěma různými způsoby. */}
+            <div className="fit-vnitrni-oddil">
+              <div className="fit-panel-hlavicka fit-panel-hlavicka--vnitrni">
+                <div>
+                  <h3>🎯 Dnešní cíl</h3>
+                  <span className="fit-cile-pocet">{pocetDokoncenychCilu} z 3 dokončeno</span>
+                </div>
+                <button
+                  className="fit-historie-btn"
+                  aria-label="Upravit cíle"
+                  onClick={() => setUpravujeCile((v) => !v)}
+                >
+                  ✏️
+                </button>
               </div>
-              <button
-                className="fit-historie-btn"
-                aria-label="Upravit cíle"
-                onClick={() => setUpravujeCile((v) => !v)}
-              >
-                ✏️
-              </button>
-            </div>
 
-            {upravujeCile && (
+              {upravujeCile && (
               <div className="fit-cile-editace">
                 <label>
                   Cíl kalorií
@@ -675,14 +707,6 @@ export const FitnessRoomModule: React.FC = () => {
                 </span>
               </div>
 
-              <div className="fit-krouzek-wrap fit-krouzek-wrap--brzy">
-                <div className="fit-krouzek fit-krouzek--brzy">
-                  <AppIcon name="footprints" size={20} />
-                </div>
-                <span className="fit-krouzek-nazev">Kroky</span>
-                <span className="fit-krouzek-hodnota">Brzy</span>
-              </div>
-
               <div className="fit-krouzek-wrap">
                 <div
                   className="fit-krouzek fit-barva-krouzek--cyan"
@@ -724,6 +748,7 @@ export const FitnessRoomModule: React.FC = () => {
                 </div>
               </div>
             )}
+            </div>
           </div>
 
           {sezeni.length > 0 && (
@@ -763,12 +788,20 @@ export const FitnessRoomModule: React.FC = () => {
 
           <div className={panelClass}>
             <div className="fit-panel-hlavicka">
-              <h2>Rychlý trénink</h2>
+              <h2>⚡ Rychlý trénink</h2>
               <button className="fit-zobrazit-vse" onClick={() => otevritFormCheck()}>
                 Zobrazit vše ›
               </button>
             </div>
 
+            {/* Čtyři skutečné, hned spustitelné možnosti — dřív tu byly
+                jen dvě (Síla/Mobilita) a zbylé dvě dlaždice ("Kardio"/
+                "Core") natvrdo říkaly "Brzy", i když appka kus dál ve
+                stejné sekci má plně funkční Běhání a Posilovnu. Ta
+                dlaždice pak vedle sebe se skutečným panelem tvrdila
+                "tohle ještě neumíme" o něčem, co appka umí — teď je tu
+                jen čtveřice reálných zkratek na to, co sekce sama
+                slibuje, žádná vymyšlená "Brzy" nálepka. */}
             <div className="fit-treninky-mrizka">
               <button className="fit-trenink-dlazdice" onClick={() => otevritFormCheck()}>
                 <span className="fit-text--purple">
@@ -787,19 +820,20 @@ export const FitnessRoomModule: React.FC = () => {
                 <span className="fit-trenink-nazev">Mobilita</span>
                 <span className="fit-trenink-popis">Rozcvička / strečink / jóga</span>
               </button>
-              {[
-                { nazev: 'Kardio', popis: '20 min', ikona: 'flame', barva: 'orange' },
-                { nazev: 'Core', popis: '10 min', ikona: 'bar-chart', barva: 'green' },
-              ].map((t) => (
-                <button key={t.nazev} className="fit-trenink-dlazdice fit-trenink-dlazdice--brzy" disabled>
-                  <span className={`fit-text--${t.barva}`}>
-                    <AppIcon name={t.ikona} size={22} />
-                  </span>
-                  <span className="fit-trenink-nazev">{t.nazev}</span>
-                  <span className="fit-trenink-popis">{t.popis}</span>
-                  <span className="fit-trenink-brzy">Brzy</span>
-                </button>
-              ))}
+              <button className="fit-trenink-dlazdice" onClick={otevritBehani}>
+                <span className="fit-text--green">
+                  <AppIcon name="footprints" size={22} />
+                </span>
+                <span className="fit-trenink-nazev">Běhání</span>
+                <span className="fit-trenink-popis">GPS běh / chůze / kolo</span>
+              </button>
+              <button className="fit-trenink-dlazdice" onClick={otevritPosilovnu}>
+                <span className="fit-text--orange">
+                  <AppIcon name="dumbbell" size={22} />
+                </span>
+                <span className="fit-trenink-nazev">Posilovna</span>
+                <span className="fit-trenink-popis">Deník vah a opakování</span>
+              </button>
             </div>
           </div>
 
@@ -1320,7 +1354,7 @@ export const FitnessRoomModule: React.FC = () => {
 
           <div className={panelClass}>
             <div className="fit-panel-hlavicka">
-              <h2>Aktivita za 14 dní</h2>
+              <h2>📈 Aktivita za 14 dní</h2>
             </div>
 
             <div className="fit-graf" role="img" aria-label="Sloupcový graf tréninkových minut za posledních 14 dní">
