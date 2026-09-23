@@ -104,6 +104,30 @@
 
 .sp-details { flex: 1; }
 
+/* .sp-details je teď tlačítko (rozbaluje podúkoly), ne obyčejný div —
+   potřebuje reset výchozího vzhledu tlačítka, ať vypadá stejně jako dřív. */
+.sp-details-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  color: inherit;
+}
+
+.sp-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sp-podukoly-badge {
+  font-size: 0.58rem;
+  color: #a855f7;
+  font-weight: 700;
+}
+
 .sp-card-head {
   display: flex;
   justify-content: space-between;
@@ -165,6 +189,82 @@
 
 .sp-icon-btn:hover { background: rgba(255, 255, 255, 0.08); }
 .sp-icon-btn.danger { color: #f87171; }
+
+.sp-card-wrap { display: flex; flex-direction: column; }
+
+.sp-podukoly {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin: 0.3rem 0 0 1.6rem;
+  padding: 0.4rem 0.5rem;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.sp-podukol-radek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.sp-podukol-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.sp-podukol-label input { accent-color: #a855f7; }
+
+.sp-podukol-label .je-hotovo {
+  text-decoration: line-through;
+  color: #64748b;
+}
+
+.sp-podukol-smazat {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 0.65rem;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sp-podukol-smazat:hover { color: #f87171; }
+
+.sp-podukol-form {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+
+.sp-podukol-form input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.72rem;
+  font-family: inherit;
+}
+
+.sp-podukol-form button {
+  background: #a855f7;
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.sp-podukol-form button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 .sp-summary {
   display: flex;

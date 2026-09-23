@@ -4,7 +4,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { validateKalendarData } from '@/core/utils/kalendarValidation'
-import { BarvaDne, Udalost } from './types'
+import { BarvaDne, Opakovani, Udalost, udalostSeVyskytujeVDen } from './types'
 
 const XP_ZA_UDALOST = 5
 
@@ -14,7 +14,7 @@ interface KalendarState {
   // types.ts's vlastní komentář u BARVY_DNE, proč je to vlastní mapa,
   // ne pole na Udalost.
   barvyDni: Record<string, BarvaDne>
-  pridatUdalost: (datum: string, nazev: string, popis: string) => void
+  pridatUdalost: (datum: string, nazev: string, popis: string, opakovani: Opakovani) => void
   smazatUdalost: (id: string) => void
   /** null smaže barvu dne (návrat na "bez barvy"). */
   nastavBarvuDne: (datum: string, barva: BarvaDne | null) => void
@@ -44,7 +44,7 @@ const useKalendarStore = create<KalendarState>()(
           return { barvyDni }
         }),
 
-      pridatUdalost: (datum, nazev, popis) => {
+      pridatUdalost: (datum, nazev, popis, opakovani) => {
         if (!nazev.trim()) return
 
         const nova: Udalost = {
@@ -53,6 +53,7 @@ const useKalendarStore = create<KalendarState>()(
           nazev: nazev.trim(),
           popis: popis.trim(),
           createdAt: Date.now(),
+          opakovani,
         }
 
         set((state) => ({ udalosti: [...state.udalosti, nova] }))
@@ -107,12 +108,25 @@ export const useKalendar = () => {
     setMesic(novy.getMonth())
   }
 
-  // Množina dní s alespoň jednou událostí — konstantní vyhledání ve
-  // vykreslování mřížky místo .some() přes celé pole na každou buňku.
-  const dnySUdalosti = useMemo(() => new Set(udalosti.map((u) => u.datum)), [udalosti])
+  // Množina dní ZOBRAZOVANÉHO měsíce s alespoň jedním výskytem události
+  // (jednorázové i opakující se) — appka ji počítá jen pro dny, co grid
+  // vůbec vykresluje (rok/mesic), ne pro celou historii/budoucnost, což
+  // by u opakující se události ani nešlo (nekonečně mnoho výskytů).
+  const dnySUdalosti = useMemo(() => {
+    const mnozina = new Set<string>()
+    const { pocetDni } = rozlozeniMesice(rok, mesic)
+    for (let den = 1; den <= pocetDni; den++) {
+      const datumStr = naFormatDatumu(rok, mesic, den)
+      if (udalosti.some((u) => udalostSeVyskytujeVDen(u, datumStr))) mnozina.add(datumStr)
+    }
+    return mnozina
+  }, [udalosti, rok, mesic])
 
   const udalostiDne = useMemo(
-    () => (vybranyDen ? udalosti.filter((u) => u.datum === vybranyDen).sort((a, b) => a.createdAt - b.createdAt) : []),
+    () =>
+      vybranyDen
+        ? udalosti.filter((u) => udalostSeVyskytujeVDen(u, vybranyDen)).sort((a, b) => a.createdAt - b.createdAt)
+        : [],
     [udalosti, vybranyDen]
   )
 
@@ -125,6 +139,11 @@ export const useKalendar = () => {
     jitMesicem,
     dnySUdalosti,
     udalostiDne,
+    // Syrové pole — School Roomovo "Moje přehled" z něj počítá
+    // nadcházející události vlastním, pravidelně obnovovaným "teď"
+    // (viz CLAUDE.md), ne appčiným dnes tady, co se počítá jen jednou
+    // při prvním vykreslení a School Room se dlouho neodmountuje.
+    udalosti,
     barvyDni,
     nastavBarvuDne,
     pocetUdalostiCelkem: udalosti.length,

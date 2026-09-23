@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useFlashcards } from './useFlashcards'
-import { ALL_DECKS, DEFAULT_DECK } from './types'
+import { ALL_DECKS, DEFAULT_DECK, MAX_KRABICE } from './types'
 import './Flashcards.css'
 
 type FormMode = { kind: 'closed' } | { kind: 'add' } | { kind: 'edit' }
@@ -12,10 +12,12 @@ export const Flashcards: React.FC = () => {
     totalCards,
     deckTotal,
     knownCount,
+    dueTodayCount,
     progressPercent,
     decks,
     activeDeck,
     onlyUnknown,
+    onlyDueToday,
     isFlipped,
     isShuffled,
     hasAnyCard,
@@ -27,6 +29,7 @@ export const Flashcards: React.FC = () => {
     clearShuffle,
     changeDeck,
     toggleOnlyUnknown,
+    toggleOnlyDueToday,
     addCard,
     updateCard,
     removeCurrent,
@@ -116,6 +119,11 @@ export const Flashcards: React.FC = () => {
           <div className="fc-progress-bg">
             <div className="fc-progress-fill" style={{ width: `${progressPercent}%` }} />
           </div>
+          {/* Opakování s rozestupy (Leitnerovy krabice) — kolik kartiček
+              appka podle rozvrhu opakování chce ukázat právě dnes,
+              nezávisle na tom, jestli je uživatel dřív označil jako
+              "umím". */}
+          <p className="fc-due-today">📅 K opakování dnes: {dueTodayCount}</p>
         </div>
       )}
 
@@ -127,6 +135,13 @@ export const Flashcards: React.FC = () => {
             onClick={toggleOnlyUnknown}
           >
             {onlyUnknown ? '✓ Jen neznámé' : 'Jen neznámé'}
+          </button>
+          <button
+            className={`fc-tool-btn ${onlyDueToday ? 'active' : ''}`}
+            onClick={toggleOnlyDueToday}
+            title="Ukáže jen kartičky, co má appka podle rozestupu opakování nabídnout právě dnes"
+          >
+            {onlyDueToday ? '✓ K opakování dnes' : 'K opakování dnes'}
           </button>
           <button
             className={`fc-tool-btn ${isShuffled ? 'active' : ''}`}
@@ -152,6 +167,9 @@ export const Flashcards: React.FC = () => {
           <div className="fc-counter-row">
             <span className="fc-counter">
               {currentIndex + 1} / {totalCards}
+            </span>
+            <span className="fc-box-tag" title="Leitnerova krabice — čím výš, tím delší interval do dalšího opakování">
+              📦 {currentCard.box}/{MAX_KRABICE}
             </span>
             {currentCard.known && <span className="fc-known-tag">✓ Umím</span>}
           </div>
@@ -226,6 +244,18 @@ export const Flashcards: React.FC = () => {
               <p>V tomhle balíčku už umíš všechno. Můžeš si ho projít znovu.</p>
               <button className="fc-btn main" onClick={() => resetDeckProgress(activeDeck)}>
                 ⟳ Projít znovu
+              </button>
+            </>
+          ) : onlyDueToday ? (
+            <>
+              <span className="fc-empty-icon">📅</span>
+              <h3>Na dnešek nic nezbylo</h3>
+              <p>
+                Podle rozestupu opakování nemá appka pro dnešek žádnou kartičku připravenou —
+                zbytek přijde na řadu později.
+              </p>
+              <button className="fc-btn main" onClick={toggleOnlyDueToday}>
+                Zobrazit všechny
               </button>
             </>
           ) : (

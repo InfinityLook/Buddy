@@ -8,6 +8,7 @@ import {
   DEMO_TASK_IDS,
   DEMO_TASK_TOPICS,
   INITIAL_TASKS,
+  Podukol,
   StudyTask,
   TaskFilter,
   TaskPriority,
@@ -32,6 +33,9 @@ interface StudyPlannerState {
     priority: TaskPriority
   ) => void
   deleteTask: (id: string) => void
+  pridatPodukol: (taskId: string, text: string) => void
+  prepnoutPodukol: (taskId: string, podukolId: string) => void
+  smazatPodukol: (taskId: string, podukolId: string) => void
 }
 
 const isDemoTask = (task: StudyTask) =>
@@ -99,6 +103,39 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
 
       deleteTask: (id) =>
         set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) })),
+
+      // Podúkoly jsou jen checklist bez vlastní odměny — dokončení
+      // úkolu samo dál nese XP (toggleTask výš), přidávat/škrtat
+      // podúkoly by šlo mačkat dokola bez skutečné práce navíc.
+      pridatPodukol: (taskId, text) => {
+        if (!text.trim()) return
+        const novy: Podukol = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          text: text.trim(),
+          hotovo: false,
+        }
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId ? { ...t, podukoly: [...(t.podukoly ?? []), novy] } : t
+          ),
+        }))
+      },
+
+      prepnoutPodukol: (taskId, podukolId) =>
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? { ...t, podukoly: (t.podukoly ?? []).map((p) => (p.id === podukolId ? { ...p, hotovo: !p.hotovo } : p)) }
+              : t
+          ),
+        })),
+
+      smazatPodukol: (taskId, podukolId) =>
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId ? { ...t, podukoly: (t.podukoly ?? []).filter((p) => p.id !== podukolId) } : t
+          ),
+        })),
     }),
     {
       name: 'schoolbuddy-study-planner-storage',
@@ -178,7 +215,8 @@ const compareTasks = (a: StudyTask, b: StudyTask) => {
 }
 
 export const useStudyPlanner = () => {
-  const { tasks, toggleTask, addTask, updateTask, deleteTask } = useStudyPlannerStore()
+  const { tasks, toggleTask, addTask, updateTask, deleteTask, pridatPodukol, prepnoutPodukol, smazatPodukol } =
+    useStudyPlannerStore()
   const [filter, setFilter] = useState<TaskFilter>('Vše')
 
   // POZOR: `tasks` se vrací nesetříděné a nefiltrované schválně — čte je
@@ -210,5 +248,8 @@ export const useStudyPlanner = () => {
     addTask,
     updateTask,
     deleteTask,
+    pridatPodukol,
+    prepnoutPodukol,
+    smazatPodukol,
   }
 }

@@ -6,6 +6,7 @@ import {
   Predmet,
   celkovyVazenyPrumer,
   soucetKreditu,
+  spocitejProcentaCileProumeru,
   sPridanouHypotetickouZnamkou,
   vazenyPrumerPredmetu,
   znamkaSlovy,
@@ -18,7 +19,7 @@ const dnesniDatumIso = (): string => {
 }
 
 export const Znamky: React.FC = () => {
-  const { predmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku } = useZnamky()
+  const { predmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku, nastavCilPredmetu } = useZnamky()
 
   const [formPredmetOtevreny, setFormPredmetOtevreny] = useState(false)
   const [nazevPredmetu, setNazevPredmetu] = useState('')
@@ -37,6 +38,15 @@ export const Znamky: React.FC = () => {
   const [coKdybyOtevreno, setCoKdybyOtevreno] = useState<string | null>(null)
   const [coKdybyHodnota, setCoKdybyHodnota] = useState(1)
   const [coKdybyVaha, setCoKdybyVaha] = useState('1')
+
+  // Cíl průměru pro jeden konkrétní předmět — stejný "otevřený formulář
+  // je id předmětu, ne globální přepínač" vzor jako coKdybyOtevreno výš,
+  // aby otevření cíle u jednoho předmětu nezavíralo rozjednaný cíl u
+  // jiného. cilHodnota se naplní při otevření formuláře, ne live z p.cil,
+  // takže psaní do inputu nepřepisuje uložený cíl dřív, než appka
+  // dostane "Nastavit".
+  const [cilFormOtevreny, setCilFormOtevreny] = useState<string | null>(null)
+  const [cilHodnota, setCilHodnota] = useState('')
 
   const celkovyPrumer = celkovyVazenyPrumer(predmety)
   const celkoveKredity = soucetKreditu(predmety)
@@ -68,6 +78,25 @@ export const Znamky: React.FC = () => {
     // sPridanouHypotetickouZnamkou by vrátila seznam bez téhle položky
     // a .find(...)! by spadl na undefined (viz CLAUDE.md).
     if (coKdybyOtevreno === p.id) setCoKdybyOtevreno(null)
+    if (cilFormOtevreny === p.id) setCilFormOtevreny(null)
+  }
+
+  const otevritCilForm = (p: Predmet) => {
+    setCilHodnota(p.cil != null ? String(p.cil) : '')
+    setCilFormOtevreny(cilFormOtevreny === p.id ? null : p.id)
+  }
+
+  const ulozitCilPredmetu = (e: React.FormEvent, predmetId: string) => {
+    e.preventDefault()
+    const hodnota = Number(cilHodnota)
+    if (!cilHodnota.trim() || !Number.isFinite(hodnota)) return
+    nastavCilPredmetu(predmetId, Math.max(MIN_ZNAMKA, Math.min(MAX_ZNAMKA, hodnota)))
+    setCilFormOtevreny(null)
+  }
+
+  const zrusitCilPredmetu = (predmetId: string) => {
+    nastavCilPredmetu(predmetId, null)
+    setCilFormOtevreny(null)
   }
 
   const pridatNovouZnamku = (e: React.FormEvent, predmetId: string) => {
@@ -148,6 +177,67 @@ export const Znamky: React.FC = () => {
 
               {rozbaleno && (
                 <div className="znamky-predmet-detail">
+                  <div className="znamky-cil-panel">
+                    {(() => {
+                      const cilProcenta = spocitejProcentaCileProumeru(prumer, p.cil ?? null)
+                      return cilProcenta !== null && p.cil != null ? (
+                        <div className="znamky-cil-progres-wrap">
+                          <div className="znamky-cil-progres-hlavicka">
+                            <span>
+                              {prumer!.toFixed(2)} / cíl {p.cil.toFixed(1)}
+                            </span>
+                            <button
+                              type="button"
+                              className="znamky-cil-upravit"
+                              onClick={() => otevritCilForm(p)}
+                            >
+                              ✎ Upravit
+                            </button>
+                          </div>
+                          <div
+                            className="znamky-cil-progres-bar"
+                            role="progressbar"
+                            aria-valuenow={cilProcenta}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                          >
+                            <div
+                              className="znamky-cil-progres-vypln"
+                              style={{ width: `${cilProcenta}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <button type="button" className="znamky-cil-nastavit-btn" onClick={() => otevritCilForm(p)}>
+                          🎯 Nastavit cíl průměru
+                        </button>
+                      )
+                    })()}
+
+                    {cilFormOtevreny === p.id && (
+                      <form className="znamky-cil-form" onSubmit={(e) => ulozitCilPredmetu(e, p.id)}>
+                        <input
+                          type="number"
+                          min={MIN_ZNAMKA}
+                          max={MAX_ZNAMKA}
+                          step={0.1}
+                          placeholder={`Cíl (${MIN_ZNAMKA}–${MAX_ZNAMKA})`}
+                          value={cilHodnota}
+                          onChange={(e) => setCilHodnota(e.target.value)}
+                          autoFocus
+                        />
+                        <button type="submit" className="znamky-cil-ulozit">
+                          Uložit
+                        </button>
+                        {p.cil != null && (
+                          <button type="button" className="znamky-cil-zrusit" onClick={() => zrusitCilPredmetu(p.id)}>
+                            Zrušit cíl
+                          </button>
+                        )}
+                      </form>
+                    )}
+                  </div>
+
                   {p.znamky.length === 0 && <p className="znamky-prazdno">Zatím žádná známka.</p>}
                   <ul className="znamky-znamky-seznam">
                     {p.znamky.map((z) => (
@@ -161,7 +251,9 @@ export const Znamky: React.FC = () => {
                         <button
                           className="znamky-znamka-smazat"
                           aria-label="Smazat známku"
-                          onClick={() => smazatZnamku(p.id, z.id)}
+                          onClick={() => {
+                            if (window.confirm(`Smazat známku ${z.hodnota} z ${p.nazev}?`)) smazatZnamku(p.id, z.id)
+                          }}
                         >
                           ✕
                         </button>

@@ -436,6 +436,9 @@
 
 .ep-row .ep-input:not(.ep-input-num) { flex: 1; }
 
+.ep-target-grade-row { justify-content: flex-start; gap: 0.6rem; }
+.ep-target-grade-row > span { font-size: 0.8rem; color: #94a3b8; }
+
 .ep-btn {
   padding: 0.5rem 0.9rem;
   border-radius: 8px;
@@ -478,6 +481,17 @@
 }
 
 .ep-topics-count { margin: -0.4rem 0 0.75rem; font-size: 0.75rem; }
+
+.ep-target-grade-badge {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+  white-space: nowrap;
+}
 
 .ep-topic-list {
   display: flex;

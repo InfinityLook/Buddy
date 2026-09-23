@@ -7,6 +7,7 @@ import {
   TaskFilter,
   TaskPriority,
   formatDueDate,
+  spocitejPodukoly,
   todayIso,
 } from './types'
 import { sklonujUkoly, zbyvaSloveso } from '@/core/utils/text'
@@ -24,6 +25,9 @@ export const StudyPlanner: React.FC = () => {
     addTask,
     updateTask,
     deleteTask,
+    pridatPodukol,
+    prepnoutPodukol,
+    smazatPodukol,
   } = useStudyPlanner()
 
   // null = zavřeno, '' = zakládá se nový, jinak id upravovaného úkolu
@@ -32,6 +36,11 @@ export const StudyPlanner: React.FC = () => {
   const [topic, setTopic] = useState('')
   const [dueDate, setDueDate] = useState('')
   const [priority, setPriority] = useState<TaskPriority>('Střední')
+
+  // Jen jeden úkol najednou má rozbalený seznam podúkolů — stejná
+  // "jedno id, ne sada otevřených" úspora jako Rozvrhovo kopirovanyDen.
+  const [rozbalenyTaskId, setRozbalenyTaskId] = useState<string | null>(null)
+  const [novyPodukol, setNovyPodukol] = useState('')
 
   const isFormOpen = editingId !== null
 
@@ -164,48 +173,108 @@ export const StudyPlanner: React.FC = () => {
 
         {visibleTasks.map((t) => {
           const due = formatDueDate(t.dueDate)
+          const { hotovo, celkem } = spocitejPodukoly(t)
+          const jeRozbaleny = rozbalenyTaskId === t.id
 
           return (
-            <div key={t.id} className={`sp-card ${t.completed ? 'completed' : ''}`}>
-              <input
-                type="checkbox"
-                className="sp-checkbox"
-                checked={t.completed}
-                onChange={() => toggleTask(t.id)}
-                aria-label={`Splněno: ${t.topic}`}
-              />
+            <div key={t.id} className="sp-card-wrap">
+              <div className={`sp-card ${t.completed ? 'completed' : ''}`}>
+                <input
+                  type="checkbox"
+                  className="sp-checkbox"
+                  checked={t.completed}
+                  onChange={() => toggleTask(t.id)}
+                  aria-label={`Splněno: ${t.topic}`}
+                />
 
-              <div className="sp-details">
-                <div className="sp-card-head">
-                  <span className="sp-subject">{t.subject}</span>
-                  <span className={`sp-priority ${t.priority.toLowerCase()}`}>{t.priority}</span>
+                <button
+                  className="sp-details sp-details-btn"
+                  onClick={() => {
+                    setRozbalenyTaskId(jeRozbaleny ? null : t.id)
+                    setNovyPodukol('')
+                  }}
+                >
+                  <div className="sp-card-head">
+                    <span className="sp-subject">{t.subject}</span>
+                    <span className={`sp-priority ${t.priority.toLowerCase()}`}>{t.priority}</span>
+                  </div>
+
+                  <p className="sp-topic">{t.topic}</p>
+
+                  <div className="sp-card-meta">
+                    {/* Termín se barví podle naléhavosti — po termínu červeně,
+                        dnes oranžově. Dřív to byl jen šedý text s ISO datem. */}
+                    <span className={`sp-date ${t.completed ? '' : `is-${due.tone}`}`}>
+                      {due.label}
+                    </span>
+                    {celkem > 0 && (
+                      <span className="sp-podukoly-badge">
+                        ☑ {hotovo}/{celkem}
+                      </span>
+                    )}
+                  </div>
+                </button>
+
+                <div className="sp-card-actions">
+                  <button
+                    className="sp-icon-btn"
+                    onClick={() => openEdit(t)}
+                    aria-label={`Upravit ${t.topic}`}
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    className="sp-icon-btn danger"
+                    onClick={() => handleDelete(t)}
+                    aria-label={`Smazat ${t.topic}`}
+                  >
+                    ✕
+                  </button>
                 </div>
-
-                <p className="sp-topic">{t.topic}</p>
-
-                {/* Termín se barví podle naléhavosti — po termínu červeně,
-                    dnes oranžově. Dřív to byl jen šedý text s ISO datem. */}
-                <span className={`sp-date ${t.completed ? '' : `is-${due.tone}`}`}>
-                  {due.label}
-                </span>
               </div>
 
-              <div className="sp-card-actions">
-                <button
-                  className="sp-icon-btn"
-                  onClick={() => openEdit(t)}
-                  aria-label={`Upravit ${t.topic}`}
-                >
-                  ✏️
-                </button>
-                <button
-                  className="sp-icon-btn danger"
-                  onClick={() => handleDelete(t)}
-                  aria-label={`Smazat ${t.topic}`}
-                >
-                  ✕
-                </button>
-              </div>
+              {jeRozbaleny && (
+                <div className="sp-podukoly">
+                  {(t.podukoly ?? []).map((p) => (
+                    <div key={p.id} className="sp-podukol-radek">
+                      <label className="sp-podukol-label">
+                        <input
+                          type="checkbox"
+                          checked={p.hotovo}
+                          onChange={() => prepnoutPodukol(t.id, p.id)}
+                        />
+                        <span className={p.hotovo ? 'je-hotovo' : ''}>{p.text}</span>
+                      </label>
+                      <button
+                        className="sp-podukol-smazat"
+                        aria-label={`Smazat podúkol ${p.text}`}
+                        onClick={() => smazatPodukol(t.id, p.id)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+
+                  <form
+                    className="sp-podukol-form"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      pridatPodukol(t.id, novyPodukol)
+                      setNovyPodukol('')
+                    }}
+                  >
+                    <input
+                      type="text"
+                      placeholder="+ Přidat krok"
+                      value={novyPodukol}
+                      onChange={(e) => setNovyPodukol(e.target.value)}
+                    />
+                    <button type="submit" disabled={!novyPodukol.trim()}>
+                      Přidat
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
           )
         })}

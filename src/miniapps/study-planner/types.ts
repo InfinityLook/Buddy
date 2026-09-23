@@ -6,6 +6,12 @@ export type TaskFilter = 'Vše' | 'Nesplněné' | 'Splněné'
 
 export const TASK_FILTERS: TaskFilter[] = ['Vše', 'Nesplněné', 'Splněné']
 
+export interface Podukol {
+  id: string
+  text: string
+  hotovo: boolean
+}
+
 export interface StudyTask {
   id: string
   subject: string
@@ -16,6 +22,18 @@ export interface StudyTask {
   dueDate: string
   priority: TaskPriority
   completed: boolean
+  // Nepovinné — starší úkol tohle pole vůbec nemá (žádná valibot
+  // validace tenhle store nemá, appka to tak čte defenzivně všude jako
+  // (task.podukoly ?? [])), appka funguje úplně stejně bez jediného
+  // podúkolu, dokončení úkolu samo o sobě žádný podúkol nevyžaduje.
+  podukoly?: Podukol[]
+}
+
+/** Kolik podúkolů je hotovo z celkového počtu — čistá pomocná funkce,
+ *  appka ji používá jak v seznamu úkolů, tak v detailu jednoho úkolu. */
+export const spocitejPodukoly = (task: StudyTask): { hotovo: number; celkem: number } => {
+  const podukoly = task.podukoly ?? []
+  return { hotovo: podukoly.filter((p) => p.hotovo).length, celkem: podukoly.length }
 }
 
 // Nový uživatel začíná s prázdným plánem — viz DEMO_TASK_IDS níž.

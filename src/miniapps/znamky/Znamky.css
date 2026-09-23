@@ -267,3 +267,99 @@
   color: var(--accent-cyan);
   font-variant-numeric: tabular-nums;
 }
+
+.znamky-cil-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.znamky-cil-nastavit-btn {
+  background: transparent;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--accent-orange);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.45rem 0.7rem;
+  align-self: flex-start;
+}
+
+.znamky-cil-progres-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.znamky-cil-progres-hlavicka {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.znamky-cil-upravit {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-size: 0.72rem;
+  cursor: pointer;
+  padding: 0;
+}
+
+.znamky-cil-progres-bar {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.znamky-cil-progres-vypln {
+  height: 100%;
+  background: var(--accent-orange);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.znamky-cil-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.znamky-cil-form input {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.znamky-cil-ulozit,
+.znamky-cil-zrusit {
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.8rem;
+  font-weight: 700;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.znamky-cil-ulozit {
+  background: var(--accent-cyan);
+  border: none;
+  color: #04121a;
+}
+
+.znamky-cil-zrusit {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-red);
+}

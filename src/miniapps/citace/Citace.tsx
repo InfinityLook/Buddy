@@ -1,14 +1,21 @@
 import React, { useMemo, useState } from 'react'
 import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { useCitace } from './useCitace'
-import { Citace as CitaceZaznam, TYPY_ZDROJE, TypZdroje, sestavBibliografii, sestavCitaci } from './types'
+import {
+  Citace as CitaceZaznam,
+  STYLY_CITACI,
+  TYPY_ZDROJE,
+  TypZdroje,
+  sestavBibliografii,
+  sestavCitaci,
+} from './types'
 import './Citace.css'
 
 const PRAZDNY_FORM = { autor: '', nazev: '', rok: '', vydavatelNeboWeb: '', url: '', datumCitace: '' }
 const CELY_SEZNAM_ID = '__cely-seznam__'
 
 export const Citace: React.FC = () => {
-  const { citace, pridatCitaci, upravitCitaci, smazatCitaci } = useCitace()
+  const { citace, aktivniStyl, pridatCitaci, upravitCitaci, smazatCitaci, nastavStyl } = useCitace()
   const [typ, setTyp] = useState<TypZdroje>('kniha')
   const [form, setForm] = useState(PRAZDNY_FORM)
   const [zkopirovanoId, setZkopirovanoId] = useState<string | null>(null)
@@ -18,21 +25,25 @@ export const Citace: React.FC = () => {
   const [upravovanaId, setUpravovanaId] = useState<string | null>(null)
 
   // Živý náhled ještě neuložené citace — vidí, co vznikne, dřív než
-  // klikne "Přidat do seznamu".
+  // klikne "Přidat do seznamu". Přeformátuje se hned, jak uživatel
+  // přepne styl — appka totiž styl nikdy neukládá do citace samotné.
   const nahled = useMemo(
     () =>
-      sestavCitaci({
-        id: 'nahled',
-        typ,
-        autor: form.autor,
-        nazev: form.nazev,
-        rok: form.rok,
-        vydavatelNeboWeb: form.vydavatelNeboWeb,
-        url: form.url,
-        datumCitace: form.datumCitace,
-        createdAt: '',
-      }),
-    [typ, form]
+      sestavCitaci(
+        {
+          id: 'nahled',
+          typ,
+          autor: form.autor,
+          nazev: form.nazev,
+          rok: form.rok,
+          vydavatelNeboWeb: form.vydavatelNeboWeb,
+          url: form.url,
+          datumCitace: form.datumCitace,
+          createdAt: '',
+        },
+        aktivniStyl
+      ),
+    [typ, form, aktivniStyl]
   )
 
   const kopirovat = async (text: string, id: string) => {
@@ -83,11 +94,23 @@ export const Citace: React.FC = () => {
 
   const stahnoutVse = () => {
     if (citace.length === 0) return
-    stahnoutTextovySoubor('bibliografie.txt', sestavBibliografii(citace))
+    stahnoutTextovySoubor('bibliografie.txt', sestavBibliografii(citace, aktivniStyl))
   }
 
   return (
     <div className="citace">
+      <div className="citace-styl-radek" role="group" aria-label="Citační styl">
+        {STYLY_CITACI.map((s) => (
+          <button
+            key={s.id}
+            className={`citace-styl-btn ${aktivniStyl === s.id ? 'je-vybrany' : ''}`}
+            onClick={() => nastavStyl(s.id)}
+          >
+            {s.nazev}
+          </button>
+        ))}
+      </div>
+
       <div className="citace-typ-radek" role="group" aria-label="Typ zdroje">
         {TYPY_ZDROJE.map((t) => (
           <button
@@ -172,7 +195,7 @@ export const Citace: React.FC = () => {
         <div className="citace-hromadne-akce">
           <button
             className="citace-kopirovat-btn"
-            onClick={() => kopirovat(sestavBibliografii(citace), CELY_SEZNAM_ID)}
+            onClick={() => kopirovat(sestavBibliografii(citace, aktivniStyl), CELY_SEZNAM_ID)}
           >
             {zkopirovanoId === CELY_SEZNAM_ID ? 'Zkopírováno ✓' : '📋 Kopírovat vše'}
           </button>
@@ -184,7 +207,7 @@ export const Citace: React.FC = () => {
 
       <ul className="citace-seznam">
         {citace.map((c) => {
-          const text = sestavCitaci(c)
+          const text = sestavCitaci(c, aktivniStyl)
           return (
             <li key={c.id} className={`citace-polozka ${upravovanaId === c.id ? 'je-upravovana' : ''}`}>
               <p className="citace-polozka-text">{text}</p>

@@ -5,6 +5,30 @@
   padding: 1rem;
 }
 
+.citace-styl-radek {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.citace-styl-btn {
+  flex: 1;
+  background: transparent;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.citace-styl-btn.je-vybrany {
+  background: var(--accent-orange);
+  color: #2b1400;
+  border-color: var(--accent-orange);
+  border-style: solid;
+}
+
 .citace-typ-radek {
   display: flex;
   gap: 0.5rem;

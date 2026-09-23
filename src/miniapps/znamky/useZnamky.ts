@@ -13,6 +13,10 @@ interface ZnamkyState {
   smazatPredmet: (id: string) => void
   pridatZnamku: (predmetId: string, hodnota: number, vaha: number, popis: string, datum: string) => void
   smazatZnamku: (predmetId: string, znamkaId: string) => void
+  // Nastavení cíle je jen zápis čísla, ne skutečná studijní akce — na
+  // rozdíl od pridatZnamku se tu proto XP neuděluje, stejná zdrženlivost
+  // jako u School Roomova useSkolaCil.
+  nastavCilPredmetu: (predmetId: string, cil: number | null) => void
 }
 
 const useZnamkyStore = create<ZnamkyState>()(
@@ -56,6 +60,11 @@ const useZnamkyStore = create<ZnamkyState>()(
             p.id === predmetId ? { ...p, znamky: p.znamky.filter((z) => z.id !== znamkaId) } : p
           ),
         })),
+
+      nastavCilPredmetu: (predmetId, cil) =>
+        set((state) => ({
+          predmety: state.predmety.map((p) => (p.id === predmetId ? { ...p, cil } : p)),
+        })),
     }),
     {
       name: 'schoolbuddy-znamky-storage',
@@ -71,6 +80,7 @@ const useZnamkyStore = create<ZnamkyState>()(
 )
 
 export const useZnamky = () => {
-  const { predmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku } = useZnamkyStore()
-  return { predmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku }
+  const { predmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku, nastavCilPredmetu } =
+    useZnamkyStore()
+  return { predmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku, nastavCilPredmetu }
 }

@@ -1,5 +1,5 @@
 import * as v from 'valibot'
-import { Citace, TYPY_ZDROJE } from '@/miniapps/citace/types'
+import { Citace, STYLY_CITACI_ID, TYPY_ZDROJE } from '@/miniapps/citace/types'
 
 // ==========================================
 // Ověření uložených Citací — stejný "poškozená položka se tiše
@@ -22,6 +22,10 @@ export const CitaceSchema = v.object({
 
 export const CitaceDataSchema = v.object({
   citace: v.optional(v.array(v.unknown()), []),
+  // Nepovinné — starší uložený stav druhý styl vůbec neznal, což pro
+  // něj znamená přesně to samé, co dřív jediné existující chování
+  // (ISO 690/APA výstup).
+  aktivniStyl: v.optional(v.picklist(STYLY_CITACI_ID), 'iso690'),
 })
 
 const sanitizujCitaci = (raw: unknown): Citace | null => {
@@ -43,5 +47,5 @@ export const validateCitaceData = (data: unknown) => {
     .map(sanitizujCitaci)
     .filter((c): c is Citace => c !== null)
 
-  return { success: true as const, data: { citace } }
+  return { success: true as const, data: { citace, aktivniStyl: result.output.aktivniStyl } }
 }

@@ -1,5 +1,5 @@
 import * as v from 'valibot'
-import { BARVY_DNE } from '@/miniapps/kalendar/types'
+import { BARVY_DNE, MOZNOSTI_OPAKOVANI } from '@/miniapps/kalendar/types'
 
 // ==========================================
 // Ověření uložených událostí Kalendáře — stejný "nedůvěřuj uloženým
@@ -12,6 +12,10 @@ export const UdalostSchema = v.object({
   nazev: v.string(),
   popis: v.optional(v.string(), ''),
   createdAt: v.optional(v.number(), 0),
+  // Nepovinné a s výchozí hodnotou 'zadne' — starší uložená událost
+  // tohle pole vůbec neměla, opakování tedy nikdy nevzniklo, dokud pro
+  // ni odpovídá to samé, co dřív dělala jediná existující chování.
+  opakovani: v.optional(v.picklist(MOZNOSTI_OPAKOVANI), 'zadne'),
 })
 
 export const KalendarSchema = v.object({

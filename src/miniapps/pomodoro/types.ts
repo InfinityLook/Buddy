@@ -8,6 +8,12 @@ export interface TimerSettings {
   // Po kolika soustředěních přijde dlouhá pauza
   cycleLength: number
   soundEnabled: boolean
+  // Další fáze (pauza po soustředění, další soustředění po pauze) se
+  // spustí sama, bez čekání na Start. Vypnuto ve výchozím stavu — appka
+  // dřív měla stejnou plnou logiku (switchMode's autoStart parametr)
+  // hotovou, jen ji nikdy nic v appce nezavolalo s true, takže vlastně
+  // nikdy nešla zapnout.
+  autoStartNextPhase: boolean
 }
 
 export const DEFAULT_SETTINGS: TimerSettings = {
@@ -16,6 +22,7 @@ export const DEFAULT_SETTINGS: TimerSettings = {
   longBreak: 15,
   cycleLength: 4,
   soundEnabled: true,
+  autoStartNextPhase: false,
 }
 
 // Meze pro nastavení. Bez horní hranice by šlo zadat nesmysl, bez dolní

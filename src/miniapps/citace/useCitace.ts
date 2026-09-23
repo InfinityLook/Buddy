@@ -3,12 +3,18 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { validateCitaceData } from '@/core/utils/citaceValidation'
-import { Citace, TypZdroje } from './types'
+import { Citace, TypCitacnihoStylu, TypZdroje } from './types'
 
 const XP_ZA_CITACI = 4
 
 interface CitaceState {
   citace: Citace[]
+  // Zvolený citační styl — vykreslovací volba, ne vlastnost jednotlivé
+  // citace (viz vlastní komentář u TypCitacnihoStylu v types.ts).
+  // Přetrvává mezi otevřeními appky, stejně jako Math Solverovo
+  // angleMode — kdo píše práci v jednom stylu, chce ho mít nastavený
+  // příště zas.
+  aktivniStyl: TypCitacnihoStylu
   pridatCitaci: (
     typ: TypZdroje,
     autor: string,
@@ -22,12 +28,14 @@ interface CitaceState {
    *  volající pošle jen pole, co doopravdy mění. */
   upravitCitaci: (id: string, patch: Partial<Omit<Citace, 'id' | 'createdAt'>>) => void
   smazatCitaci: (id: string) => void
+  nastavStyl: (styl: TypCitacnihoStylu) => void
 }
 
-const useCitaceStore = create<CitaceState>()(
+export const useCitaceStore = create<CitaceState>()(
   persist(
     (set) => ({
       citace: [],
+      aktivniStyl: 'iso690',
 
       pridatCitaci: (typ, autor, nazev, rok, vydavatelNeboWeb, url, datumCitace) => {
         if (!nazev.trim()) return
@@ -55,6 +63,8 @@ const useCitaceStore = create<CitaceState>()(
 
       smazatCitaci: (id) =>
         set((state) => ({ citace: state.citace.filter((c) => c.id !== id) })),
+
+      nastavStyl: (styl) => set({ aktivniStyl: styl }),
     }),
     {
       name: 'schoolbuddy-citace-storage',
@@ -70,6 +80,6 @@ const useCitaceStore = create<CitaceState>()(
 )
 
 export const useCitace = () => {
-  const { citace, pridatCitaci, upravitCitaci, smazatCitaci } = useCitaceStore()
-  return { citace, pridatCitaci, upravitCitaci, smazatCitaci }
+  const { citace, aktivniStyl, pridatCitaci, upravitCitaci, smazatCitaci, nastavStyl } = useCitaceStore()
+  return { citace, aktivniStyl, pridatCitaci, upravitCitaci, smazatCitaci, nastavStyl }
 }

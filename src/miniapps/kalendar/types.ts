@@ -10,14 +10,62 @@
 // zůstane "15. května" i po obnově zálohy na jiném telefonu.
 // ==========================================
 
+// Opakování — appka nikdy neukládá jednotlivé budoucí výskyty zvlášť,
+// jen první datum (Udalost.datum) a typ opakování; kdy přesně se
+// událost objeví dál, se spočítá za běhu (viz udalostSeVyskytujeVDen),
+// stejný "spočítej při čtení, neukládej odvozený stav" duch jako
+// appčina Rozvrhova týdenní šablona.
+export const MOZNOSTI_OPAKOVANI = ['zadne', 'tydne', 'mesicne'] as const
+export type Opakovani = (typeof MOZNOSTI_OPAKOVANI)[number]
+
+export const NAZEV_OPAKOVANI: Record<Opakovani, string> = {
+  zadne: 'Jednorázově',
+  tydne: 'Každý týden',
+  mesicne: 'Každý měsíc',
+}
+
 export interface Udalost {
   id: string
-  /** 'YYYY-MM-DD', vždy místní datum, nikdy ne UTC posunuté. */
+  /** 'YYYY-MM-DD', vždy místní datum, nikdy ne UTC posunuté. První (u
+   *  jednorázové jediný) výskyt události. */
   datum: string
   nazev: string
   popis: string
   createdAt: number
+  opakovani: Opakovani
 }
+
+/** Vyskytuje se událost v daný den? Počítáno vždy znovu z prvního data
+ *  a typu opakování, nikdy z uloženého seznamu budoucích výskytů — ten
+ *  appka nikdy nedrží. Den PŘED prvním výskytem se nikdy nepočítá, i
+ *  kdyby náhodou vyšel na stejný den v týdnu/měsíci. */
+export const udalostSeVyskytujeVDen = (udalost: Udalost, datumStr: string): boolean => {
+  if (datumStr < udalost.datum) return false
+  if (datumStr === udalost.datum) return true
+  if (udalost.opakovani === 'zadne') return false
+
+  const [rokU, mesicU, denU] = udalost.datum.split('-').map(Number)
+  const [rokD, mesicD, denD] = datumStr.split('-').map(Number)
+
+  // Měsíční opakování na den, co daný měsíc vůbec nemá (např. 31. v
+  // dubnu), ten měsíc prostě přeskočí — appka nevymýšlí náhradní den,
+  // stejná opatrnost jako appčiny recurring platby v Economy Roomu.
+  if (udalost.opakovani === 'mesicne') return denD === denU
+
+  // 'tydne' — stejný den v týdnu A rozdíl je celý násobek 7 dní.
+  const prvni = new Date(rokU, mesicU - 1, denU)
+  const kontrolovany = new Date(rokD, mesicD - 1, denD)
+  if (kontrolovany.getDay() !== prvni.getDay()) return false
+  const rozdilDni = Math.round((kontrolovany.getTime() - prvni.getTime()) / 86_400_000)
+  return rozdilDni % 7 === 0
+}
+
+/** Kolik RŮZNÝCH událostí (ne jednotlivých výskytů) je ještě "před
+ *  námi" — opakující se událost počítá vždycky, protože se objeví
+ *  znovu bez ohledu na to, kolikrát už proběhla; jednorázová jen
+ *  pokud její jediné datum ještě nenastalo. */
+export const pocetNadchazejicichUdalosti = (udalosti: Udalost[], dnesniStr: string): number =>
+  udalosti.filter((u) => u.opakovani !== 'zadne' || u.datum >= dnesniStr).length
 
 // Pevná paleta barev pro označení dne — appka má přesně šest hlavních
 // akcentových barev (viz styles/global.css's --accent-*), stejná sada se

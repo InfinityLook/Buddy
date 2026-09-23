@@ -10,6 +10,10 @@ import {
   DEMO_CARD_QUESTIONS,
   Flashcard,
   INITIAL_CARDS,
+  MIN_KRABICE,
+  dalsiKrabice,
+  jeKOpakovaniDnes,
+  vypocitejDalsiTermin,
 } from './types'
 
 const XP_PER_NEW_CARD = 5
@@ -28,18 +32,22 @@ interface FlashcardsState {
 
 // Doplní pole, která starší uložené kartičky ještě nemají. Bez toho by
 // se po aktualizaci tvářily jako kartičky bez balíčku a filtr by je
-// nikde nenašel.
+// nikde nenašel. Krabice/termín u starší kartičky appka nezná — radši
+// ji rovnou ukáže (krabice 1, dueAt null = "k opakování hned"), než by
+// tiše předstírala termín, který nikdy nebyl spočítaný.
 const normalizeCard = (card: Flashcard): Flashcard => ({
   ...card,
   deck: card.deck?.trim() || DEFAULT_DECK,
   known: card.known ?? false,
   learnedAt: card.learnedAt ?? null,
+  box: card.box ?? MIN_KRABICE,
+  dueAt: card.dueAt ?? null,
 })
 
 const isDemoCard = (card: Flashcard) =>
   DEMO_CARD_IDS.includes(card.id) && DEMO_CARD_QUESTIONS.includes(card.question)
 
-const useFlashcardsStore = create<FlashcardsState>()(
+export const useFlashcardsStore = create<FlashcardsState>()(
   persist(
     (set) => ({
       cards: INITIAL_CARDS,
@@ -54,6 +62,8 @@ const useFlashcardsStore = create<FlashcardsState>()(
           deck: deck.trim() || DEFAULT_DECK,
           known: false,
           learnedAt: null,
+          box: MIN_KRABICE,
+          dueAt: null,
         }
 
         set((state) => ({ cards: [...state.cards, newCard] }))
@@ -82,17 +92,26 @@ const useFlashcardsStore = create<FlashcardsState>()(
 
       setKnown: (id, known) => {
         let firstTime = false
+        const ted = new Date()
 
         set((state) => ({
           cards: state.cards.map((card) => {
             if (card.id !== id) return card
             if (known && !card.learnedAt) firstTime = true
 
+            // Leitnerova krabice se posune podle stejného hodnocení, co
+            // appka odesílá k tomuhle jedinému místu, co kartičky mění —
+            // špatná odpověď spadne zpátky na začátek, dobrá o krabici
+            // výš a s tím i další termín opakování dál do budoucna.
+            const box = dalsiKrabice(card.box, known)
+
             return {
               ...card,
               known,
               // learnedAt se jednou nastaví a už zůstane
-              learnedAt: card.learnedAt ?? (known ? new Date().toISOString() : null),
+              learnedAt: card.learnedAt ?? (known ? ted.toISOString() : null),
+              box,
+              dueAt: vypocitejDalsiTermin(box, ted),
             }
           }),
         }))
@@ -104,11 +123,16 @@ const useFlashcardsStore = create<FlashcardsState>()(
       },
 
       // Vrátí celý balíček zpátky mezi neznámé, ať se dá projít znovu.
-      // learnedAt zůstává — XP se za druhé kolo znovu nedává.
+      // learnedAt zůstává — XP se za druhé kolo znovu nedává. Krabice a
+      // termín opakování se resetují spolu s known — jinak by appka
+      // "znovu neznámou" kartičku dál nabízela až za měsíc podle
+      // starého rozestupu.
       resetDeckProgress: (deck) =>
         set((state) => ({
           cards: state.cards.map((card) =>
-            deck === ALL_DECKS || card.deck === deck ? { ...card, known: false } : card
+            deck === ALL_DECKS || card.deck === deck
+              ? { ...card, known: false, box: MIN_KRABICE, dueAt: null }
+              : card
           ),
         })),
     }),
@@ -133,6 +157,10 @@ export const useFlashcards = () => {
 
   const [activeDeck, setActiveDeck] = useState<string>(ALL_DECKS)
   const [onlyUnknown, setOnlyUnknown] = useState(false)
+  // Nezávislý filtr na "Jen neznámé" — kartička může být "umím", a
+  // přesto podle Leitnerovy krabice zrovna dnes na řadu, nebo naopak
+  // "neumím" a čekat, protože se ukázala teprve před chvílí.
+  const [onlyDueToday, setOnlyDueToday] = useState(false)
   const [index, setIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
   // Zamíchané pořadí držíme jako seznam id. Kdybychom míchali rovnou pole
@@ -150,7 +178,14 @@ export const useFlashcards = () => {
   )
 
   const visibleCards = useMemo(() => {
-    const filtered = onlyUnknown ? deckCards.filter((card) => !card.known) : deckCards
+    let filtered = onlyUnknown ? deckCards.filter((card) => !card.known) : deckCards
+    // "ted" se spočítá jednou za renderu, ne uvnitř .filter — jinak by
+    // hraniční kartička mezi dvěma voláními Date.now() mohla v jednom
+    // průchodu vypadat jinak vpředu než na konci seznamu.
+    if (onlyDueToday) {
+      const ted = new Date()
+      filtered = filtered.filter((card) => jeKOpakovaniDnes(card.dueAt, ted))
+    }
     if (!shuffledIds) return filtered
 
     // Kartičky, které v zamíchaném pořadí nejsou (přibyly později),
@@ -159,7 +194,7 @@ export const useFlashcards = () => {
     return [...filtered].sort(
       (a, b) => (position.get(a.id) ?? Number.MAX_SAFE_INTEGER) - (position.get(b.id) ?? Number.MAX_SAFE_INTEGER)
     )
-  }, [deckCards, onlyUnknown, shuffledIds])
+  }, [deckCards, onlyUnknown, onlyDueToday, shuffledIds])
 
   // Index se drží v mezích i po smazání kartičky nebo změně filtru
   const safeIndex = visibleCards.length === 0 ? 0 : Math.min(index, visibleCards.length - 1)
@@ -168,6 +203,10 @@ export const useFlashcards = () => {
   const knownCount = deckCards.filter((card) => card.known).length
   const progressPercent =
     deckCards.length === 0 ? 0 : Math.round((knownCount / deckCards.length) * 100)
+  const dueTodayCount = useMemo(() => {
+    const ted = new Date()
+    return deckCards.filter((card) => jeKOpakovaniDnes(card.dueAt, ted)).length
+  }, [deckCards])
 
   const goTo = (nextIndex: number) => {
     if (visibleCards.length === 0) return
@@ -203,9 +242,12 @@ export const useFlashcards = () => {
     if (!currentCard) return
     setKnown(currentCard.id, known)
 
-    // Při filtru "jen neznámé" kartička ze seznamu po označení zmizí,
-    // takže se na stejném indexu objeví rovnou další.
-    if (known && onlyUnknown) {
+    // Při filtru "jen neznámé" i "jen k opakování dnes" kartička po
+    // správné odpovědi ze seznamu zmizí sama (buď je teď "umím", nebo
+    // ji Leitnerova krabice odsunula na pozdější termín) — na stejném
+    // indexu se tak objeví rovnou další a druhé volání handleNext by
+    // jednu kartičku přeskočilo.
+    if (known && (onlyUnknown || onlyDueToday)) {
       setIsFlipped(false)
       return
     }
@@ -230,6 +272,12 @@ export const useFlashcards = () => {
     setIsFlipped(false)
   }
 
+  const toggleOnlyDueToday = () => {
+    setOnlyDueToday((value) => !value)
+    setIndex(0)
+    setIsFlipped(false)
+  }
+
   return {
     // data
     currentCard,
@@ -237,10 +285,12 @@ export const useFlashcards = () => {
     totalCards: visibleCards.length,
     deckTotal: deckCards.length,
     knownCount,
+    dueTodayCount,
     progressPercent,
     decks,
     activeDeck,
     onlyUnknown,
+    onlyDueToday,
     isFlipped,
     isShuffled: shuffledIds !== null,
     hasAnyCard: cards.length > 0,
@@ -254,6 +304,7 @@ export const useFlashcards = () => {
     clearShuffle,
     changeDeck,
     toggleOnlyUnknown,
+    toggleOnlyDueToday,
 
     // správa kartiček
     addCard,

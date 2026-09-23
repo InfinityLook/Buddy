@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { DocumentState } from './types'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
+import { validateDocumentEditorData } from '@/core/utils/documentEditorValidation'
 
 // XP jen za první uložení dokumentu — přepsat už uložený text
 // není nová práce a nemá se odměňovat pokaždé znovu
@@ -15,7 +16,11 @@ const MIN_AUTOSAVE_CHARS = 15
 
 const DEFAULT_TITLE = 'Nový dokument'
 
-const toPlainText = (html: string): string =>
+// Exportovaná i pro StatusBar.tsx — ten měl dřív vlastní, neúplnou
+// kopii (jen &nbsp;, ne &amp;/&lt;/&gt;), takže dokument s "R&D" (co
+// contentEditable ukládá jako "R&amp;D") počítal počet znaků/slov
+// nafouknutý o délku neodkódovaných entit místo skutečného textu.
+export const toPlainText = (html: string): string =>
   html
     .replace(/<(br|\/p|\/div|\/h[1-6]|\/li)\s*\/?>/gi, '\n')
     .replace(/<[^>]*>/g, '')
@@ -177,6 +182,15 @@ export const useDocumentStore = create<DocumentStore>()(
     {
       name: 'schoolbuddy-document-editor-storage',
       storage: createJSONStorage(() => secureStorage),
+
+      // Jediný store v appce dřív bez vlastní ověřovací vrstvy — viz
+      // documentEditorValidation.ts's vlastní komentář, co konkrétně
+      // tenhle merge chránil.
+      merge: (persisted, current) => {
+        const validace = validateDocumentEditorData(persisted)
+        if (!validace.success) return current
+        return { ...current, ...validace.data }
+      },
     }
   )
 )

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { useKalendar, naFormatDatumu } from '@/miniapps/kalendar/useKalendar'
+import { pocetNadchazejicichUdalosti } from '@/miniapps/kalendar/types'
 import { usePomodoro } from '@/miniapps/pomodoro/usePomodoro'
 import { useZnamky } from '@/miniapps/znamky/useZnamky'
 import { celkovyVazenyPrumer, soucetKreditu, vazenyPrumerPredmetu } from '@/miniapps/znamky/types'
@@ -29,7 +30,7 @@ export const SkolaStatistiky: React.FC = () => {
   const setActiveAppId = useAppStore((s) => s.setActiveAppId)
 
   const { pendingCount, overdueCount, totalCount, tasks } = useStudyPlanner()
-  const { dnySUdalosti, dnes, pocetUdalostiCelkem } = useKalendar()
+  const { udalosti, dnes, pocetUdalostiCelkem } = useKalendar()
   const { completedSessions } = usePomodoro()
   const { predmety } = useZnamky()
   const { hodiny: rozvrhHodiny, dochazka } = useRozvrh()
@@ -60,9 +61,14 @@ export const SkolaStatistiky: React.FC = () => {
   }, [tasks])
 
   const dnesniStr = naFormatDatumu(dnes.getFullYear(), dnes.getMonth(), dnes.getDate())
+  // Počítáno z RŮZNÝCH událostí (viz kalendar/types.ts's vlastní
+  // komentář u pocetNadchazejicichUdalosti), ne z dnySUdalosti — ta je
+  // teď schválně jen pro zobrazovaný měsíc mřížky Kalendáře, ne pro
+  // celou historii/budoucnost, což by u opakující se události ani
+  // nešlo spočítat jako množinu dní.
   const nadchazejiciUdalosti = useMemo(
-    () => [...dnySUdalosti].filter((d) => d >= dnesniStr).length,
-    [dnySUdalosti, dnesniStr]
+    () => pocetNadchazejicichUdalosti(udalosti, dnesniStr),
+    [udalosti, dnesniStr]
   )
 
   const otevritMiniaplikaci = (id: string) => {

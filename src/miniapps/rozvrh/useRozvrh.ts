@@ -50,10 +50,21 @@ export const useRozvrhStore = create<RozvrhState>()(
         useGamificationStore.getState().recordAction('rozvrh', XP_ZA_HODINU)
       },
 
-      updateHodinu: (id, patch) =>
+      updateHodinu: (id, patch) => {
+        // Stejný ořez jako pridatHodinu výš — bez něj šlo úpravou
+        // hodiny (na rozdíl od jejího založení) propašovat do
+        // předmětu/místnosti/vyučujícího nadbytečné mezery na začátku
+        // nebo konci, protože updateHodinu patch dřív jen slepě
+        // sloučilo se stávající hodinou.
+        const orezanyPatch = { ...patch }
+        if (orezanyPatch.predmet !== undefined) orezanyPatch.predmet = orezanyPatch.predmet.trim()
+        if (orezanyPatch.mistnost !== undefined) orezanyPatch.mistnost = orezanyPatch.mistnost.trim()
+        if (orezanyPatch.vyucujici !== undefined) orezanyPatch.vyucujici = orezanyPatch.vyucujici.trim()
+
         set((state) => ({
-          hodiny: state.hodiny.map((h) => (h.id === id ? { ...h, ...patch } : h)),
-        })),
+          hodiny: state.hodiny.map((h) => (h.id === id ? { ...h, ...orezanyPatch } : h)),
+        }))
+      },
 
       smazatHodinu: (id) =>
         set((state) => {

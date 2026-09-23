@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { Citace, sestavBibliografii, sestavCitaci } from '@/miniapps/citace/types'
 import { validateCitaceData } from '@/core/utils/citaceValidation'
+import { useCitaceStore } from '@/miniapps/citace/useCitace'
 
 // ==========================================
 // Sestavení citace (ISO 690/APA-blízký formát) a ověření uložených dat
@@ -52,6 +53,47 @@ describe('sestavCitaci', () => {
   })
 })
 
+describe('sestavCitaci — styl MLA', () => {
+  it('kniha: název zůstává bez uvozovek, stejně jako u ISO 690', () => {
+    const text = sestavCitaci(citace(), 'mla')
+    expect(text).toBe('Novák, Jan. Základy fyziky. Academia, 2020.')
+    expect(text).not.toContain('„')
+  })
+
+  it('článek: název v uvozovkách — MLA rozlišuje část celku od samostatného díla', () => {
+    const text = sestavCitaci(citace({ typ: 'clanek', vydavatelNeboWeb: 'Vesmír' }), 'mla')
+    expect(text).toContain('„Základy fyziky“')
+    expect(text).toContain('Vesmír, 2020.')
+  })
+
+  it('web: přístup jde na konec jako věta, ne do hranaté závorky uprostřed', () => {
+    const text = sestavCitaci(
+      citace({
+        typ: 'web',
+        vydavatelNeboWeb: 'Wikipedia',
+        url: 'https://cs.wikipedia.org',
+        datumCitace: '2024-01-01',
+      }),
+      'mla'
+    )
+    expect(text).toContain('„Základy fyziky“')
+    expect(text).toContain('https://cs.wikipedia.org')
+    expect(text).toContain('Přístup 2024-01-01.')
+    expect(text).not.toContain('[cit.')
+    expect(text).not.toContain('Dostupné z:')
+  })
+
+  it('chybějící pole mají stejný čitelný náhradní text jako ISO 690', () => {
+    const text = sestavCitaci(citace({ autor: '', nazev: '', rok: '', vydavatelNeboWeb: '' }), 'mla')
+    expect(text).toContain('Neuvedený autor')
+    expect(text).toContain('b.r.')
+  })
+
+  it('bez druhého argumentu appka pořád vykreslí ISO 690, ne MLA', () => {
+    expect(sestavCitaci(citace({ typ: 'clanek' }))).not.toContain('„')
+  })
+})
+
 describe('sestavBibliografii', () => {
   it('seřadí citace abecedně podle autora, ne podle pořadí přidání', () => {
     const text = sestavBibliografii([
@@ -94,5 +136,31 @@ describe('validateCitaceData', () => {
 
   it('data, co vůbec neodpovídají tvaru, se odmítnou', () => {
     expect(validateCitaceData('nesmysl').success).toBe(false)
+  })
+
+  describe('aktivniStyl', () => {
+    it('platný styl projde beze změny', () => {
+      const vysledek = validateCitaceData({ citace: [], aktivniStyl: 'mla' })
+      expect(vysledek.success).toBe(true)
+      if (vysledek.success) expect(vysledek.data.aktivniStyl).toBe('mla')
+    })
+
+    it('chybějící styl se doplní jako "iso690" — starší uložený stav druhý styl neznal', () => {
+      const vysledek = validateCitaceData({ citace: [] })
+      expect(vysledek.success).toBe(true)
+      if (vysledek.success) expect(vysledek.data.aktivniStyl).toBe('iso690')
+    })
+
+    it('neplatný styl strhne celá data, ne že by se tiše nahradil defaultem', () => {
+      expect(validateCitaceData({ citace: [], aktivniStyl: 'chicago' }).success).toBe(false)
+    })
+  })
+})
+
+describe('useCitaceStore.nastavStyl', () => {
+  it('přepne aktivní styl a zůstane persistentní hodnota ve storu', () => {
+    useCitaceStore.setState({ aktivniStyl: 'iso690' })
+    useCitaceStore.getState().nastavStyl('mla')
+    expect(useCitaceStore.getState().aktivniStyl).toBe('mla')
   })
 })

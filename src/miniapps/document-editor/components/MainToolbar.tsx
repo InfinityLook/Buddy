@@ -108,13 +108,13 @@ export const MainToolbar: React.FC<MainToolbarProps> = ({ showMore, setShowMore 
 
       <div className="toolbar-divider" />
 
-      <button className={cls('justifyLeft')} onMouseDown={preventBlur} onClick={() => exec('justifyLeft')} aria-label="Zarovnat vlevo">
+      <button className={cls('justifyLeft')} onMouseDown={preventBlur} onClick={() => exec('justifyLeft')} aria-label="Zarovnat vlevo" aria-pressed={!!active.justifyLeft}>
         ⯇
       </button>
-      <button className={cls('justifyCenter')} onMouseDown={preventBlur} onClick={() => exec('justifyCenter')} aria-label="Zarovnat na střed">
+      <button className={cls('justifyCenter')} onMouseDown={preventBlur} onClick={() => exec('justifyCenter')} aria-label="Zarovnat na střed" aria-pressed={!!active.justifyCenter}>
         ▭
       </button>
-      <button className={cls('justifyRight')} onMouseDown={preventBlur} onClick={() => exec('justifyRight')} aria-label="Zarovnat vpravo">
+      <button className={cls('justifyRight')} onMouseDown={preventBlur} onClick={() => exec('justifyRight')} aria-label="Zarovnat vpravo" aria-pressed={!!active.justifyRight}>
         ⯈
       </button>
 

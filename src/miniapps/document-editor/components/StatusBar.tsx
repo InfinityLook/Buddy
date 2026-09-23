@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react'
+import { toPlainText } from '../useDocumentStore'
 
 interface StatusBarProps {
   content: string
@@ -13,10 +14,11 @@ const sklonuj = (pocet: number, jeden: string, malo: string, hodne: string) => {
 
 export const StatusBar: React.FC<StatusBarProps> = ({ content }) => {
   const { words, chars } = useMemo(() => {
-    const plainText = content
-      .replace(/<[^>]*>/g, ' ')
-      .replace(/&nbsp;/g, ' ')
-      .trim()
+    // Sdílená funkce se storem (ne vlastní kopie) — ta dřív odkódovala
+    // jen &nbsp;, takže dokument s escapovaným &, < nebo > (typicky
+    // "R&D" uložené contentEditable jako "R&amp;D") ukázal nafouknutý
+    // počet znaků/slov o délku neodkódovaných entit.
+    const plainText = toPlainText(content).trim()
     const wordCount = plainText.length === 0 ? 0 : plainText.split(/\s+/).length
     return { words: wordCount, chars: plainText.length }
   }, [content])

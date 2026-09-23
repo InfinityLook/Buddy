@@ -23,6 +23,7 @@ export const SubjectsTab: React.FC = () => {
   const [subName, setSubName] = useState('')
   const [subColor, setSubColor] = useState('#a855f7')
   const [subDate, setSubDate] = useState('')
+  const [subTargetGrade, setSubTargetGrade] = useState(1)
 
   // Totéž pro okruh
   const [topicFormId, setTopicFormId] = useState<string | null>(null)
@@ -50,6 +51,7 @@ export const SubjectsTab: React.FC = () => {
     setSubName('')
     setSubColor('#a855f7')
     setSubDate('')
+    setSubTargetGrade(1)
     setSubjectFormId('')
   }
 
@@ -58,6 +60,7 @@ export const SubjectsTab: React.FC = () => {
     setSubName(activeSubject.name)
     setSubColor(activeSubject.color)
     setSubDate(activeSubject.examDate)
+    setSubTargetGrade(activeSubject.targetGrade)
     setSubjectFormId(activeSubject.id)
   }
 
@@ -70,9 +73,10 @@ export const SubjectsTab: React.FC = () => {
         name: subName.trim(),
         color: subColor,
         examDate: subDate,
+        targetGrade: subTargetGrade,
       })
     } else {
-      addSubject({ name: subName.trim(), color: subColor, examDate: subDate, targetGrade: 1 })
+      addSubject({ name: subName.trim(), color: subColor, examDate: subDate, targetGrade: subTargetGrade })
     }
 
     setSubjectFormId(null)
@@ -136,6 +140,15 @@ export const SubjectsTab: React.FC = () => {
     }
   }
 
+  // Zavření křížkem/klepnutím mimo dřív rozepsané výpisky beze slova
+  // zahodilo — jediná cesta, jak je uložit, bylo "Uložit výpisky".
+  // Potvrzuje se jen, když se text od otevření modálu skutečně změnil.
+  const closeNotes = () => {
+    const topic = topics.find((t) => t.id === editingTopicId)
+    if (topic && topicNotes !== topic.notes && !window.confirm('Zahodit neuložené výpisky?')) return
+    setEditingTopicId(null)
+  }
+
   return (
     <div className="ep-tab">
       {/* Výběr předmětu */}
@@ -184,8 +197,21 @@ export const SubjectsTab: React.FC = () => {
               value={subDate}
               onChange={(e) => setSubDate(e.target.value)}
               aria-label="Datum zkoušky"
+              required
             />
           </div>
+          <label className="ep-row ep-target-grade-row">
+            <span>Cílová známka</span>
+            <input
+              type="number"
+              min={1}
+              max={5}
+              className="ep-input ep-input-num"
+              value={subTargetGrade}
+              onChange={(e) => setSubTargetGrade(Math.min(5, Math.max(1, Number(e.target.value) || 1)))}
+              aria-label="Cílová známka"
+            />
+          </label>
           <div className="ep-row">
             <button type="submit" className="ep-btn ep-btn-primary">
               {subjectFormId ? 'Uložit změny' : 'Uložit'}
@@ -209,6 +235,9 @@ export const SubjectsTab: React.FC = () => {
           <div className="ep-topics-head">
             <div className="ep-topics-head-left">
               <h3>{activeSubject.name}</h3>
+              <span className="ep-target-grade-badge" title="Cílová známka">
+                🎯 {activeSubject.targetGrade}
+              </span>
               <button
                 className="ep-icon-btn"
                 onClick={openEditSubject}
@@ -336,7 +365,7 @@ export const SubjectsTab: React.FC = () => {
 
       {/* Editor výpisků */}
       {editingTopicId && (
-        <div className="ep-modal-backdrop" onClick={() => setEditingTopicId(null)}>
+        <div className="ep-modal-backdrop" onClick={closeNotes}>
           <div className="ep-modal" onClick={(e) => e.stopPropagation()}>
             <h3>Editor výpisků</h3>
             <textarea
@@ -350,10 +379,7 @@ export const SubjectsTab: React.FC = () => {
               <button className="ep-btn ep-btn-primary" onClick={handleSaveNotes}>
                 Uložit výpisky
               </button>
-              <button
-                className="ep-btn ep-btn-ghost"
-                onClick={() => setEditingTopicId(null)}
-              >
+              <button className="ep-btn ep-btn-ghost" onClick={closeNotes}>
                 Zavřít
               </button>
             </div>

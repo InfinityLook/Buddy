@@ -153,4 +153,36 @@ describe('validateZnamkyData', () => {
   it('data, co vůbec neodpovídají tvaru, se odmítnou', () => {
     expect(validateZnamkyData(42).success).toBe(false)
   })
+
+  describe('cil (cíl průměru pro předmět)', () => {
+    it('platná hodnota cíle projde beze změny', () => {
+      const vysledek = validateZnamkyData({ predmety: [predmet({ cil: 1.5 })] })
+      expect(vysledek.success).toBe(true)
+      if (vysledek.success) expect(vysledek.data.predmety[0].cil).toBe(1.5)
+    })
+
+    it('chybějící cil se doplní jako null — starší uložený předmět žádný cíl neměl', () => {
+      const { cil: _cil, ...bezCile } = predmet()
+      const vysledek = validateZnamkyData({ predmety: [bezCile] })
+      expect(vysledek.success).toBe(true)
+      if (vysledek.success) expect(vysledek.data.predmety[0].cil).toBeNull()
+    })
+
+    it('explicitní null se zachová jako null (zrušený cíl)', () => {
+      const vysledek = validateZnamkyData({ predmety: [predmet({ cil: null })] })
+      expect(vysledek.success).toBe(true)
+      if (vysledek.success) expect(vysledek.data.predmety[0].cil).toBeNull()
+    })
+
+    it('cíl mimo stupnici 1–5 strhne celý předmět, ne jen to jedno pole — v.optional() doplní default jen za undefined, ne za neplatnou přítomnou hodnotu', () => {
+      const vysledek = validateZnamkyData({
+        predmety: [predmet({ id: 'a', cil: 6 }), predmet({ id: 'b', cil: 3 })],
+      })
+      expect(vysledek.success).toBe(true)
+      if (vysledek.success) {
+        expect(vysledek.data.predmety).toHaveLength(1)
+        expect(vysledek.data.predmety[0].id).toBe('b')
+      }
+    })
+  })
 })

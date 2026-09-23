@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { naFormatDatumu, NAZVY_MESICU, rozlozeniMesice, useKalendar } from './useKalendar'
-import { BARVY_DNE, BarvaDne } from './types'
+import { BARVY_DNE, BarvaDne, MOZNOSTI_OPAKOVANI, NAZEV_OPAKOVANI, Opakovani } from './types'
 import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
 import { denVTydnuZDatumu } from '@/miniapps/rozvrh/types'
 import './Kalendar.css'
@@ -48,6 +48,19 @@ export const Kalendar: React.FC = () => {
   const [formOtevreny, setFormOtevreny] = useState(false)
   const [nazev, setNazev] = useState('')
   const [popis, setPopis] = useState('')
+  const [opakovani, setOpakovani] = useState<Opakovani>('zadne')
+
+  // Přepnutí na jiný den se schválně chová stejně jako appčino "spustit
+  // znovu" jinde — rozepsaný formulář se zavře a smaže, ať se napůl
+  // napsaný název tiše nepřilepí k jinému dni, než pro který byl
+  // psaný. Bez tohohle šlo otevřít formulář na 5., napsat kus názvu,
+  // klepnout na 12. a odeslat by ho potichu uložilo tam.
+  useEffect(() => {
+    setFormOtevreny(false)
+    setNazev('')
+    setPopis('')
+    setOpakovani('zadne')
+  }, [vybranyDen])
 
   const { posunOdPondeli, pocetDni } = rozlozeniMesice(rok, mesic)
   const dnesniStr = naFormatDatumu(dnes.getFullYear(), dnes.getMonth(), dnes.getDate())
@@ -72,9 +85,10 @@ export const Kalendar: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!vybranyDen || !nazev.trim()) return
-    pridatUdalost(vybranyDen, nazev, popis)
+    pridatUdalost(vybranyDen, nazev, popis, opakovani)
     setNazev('')
     setPopis('')
+    setOpakovani('zadne')
     setFormOtevreny(false)
   }
 
@@ -182,11 +196,16 @@ export const Kalendar: React.FC = () => {
                 <li key={u.id} className="kalendar-polozka">
                   <div className="kalendar-polozka-text">
                     <strong>{u.nazev}</strong>
+                    {u.opakovani !== 'zadne' && (
+                      <span className="kalendar-polozka-opakovani">🔁 {NAZEV_OPAKOVANI[u.opakovani]}</span>
+                    )}
                     {u.popis && <p>{u.popis}</p>}
                   </div>
                   <button
                     className="kalendar-smazat-btn"
-                    onClick={() => smazatUdalost(u.id)}
+                    onClick={() => {
+                      if (window.confirm(`Smazat událost „${u.nazev}“?`)) smazatUdalost(u.id)
+                    }}
                     aria-label={`Smazat ${u.nazev}`}
                   >
                     ✕
@@ -211,6 +230,18 @@ export const Kalendar: React.FC = () => {
                 onChange={(e) => setPopis(e.target.value)}
                 rows={2}
               />
+              <select
+                className="kalendar-form-opakovani"
+                value={opakovani}
+                onChange={(e) => setOpakovani(e.target.value as Opakovani)}
+                aria-label="Opakování"
+              >
+                {MOZNOSTI_OPAKOVANI.map((o) => (
+                  <option key={o} value={o}>
+                    {NAZEV_OPAKOVANI[o]}
+                  </option>
+                ))}
+              </select>
               <div className="kalendar-form-akce">
                 <button type="button" className="kalendar-form-zrusit" onClick={() => setFormOtevreny(false)}>
                   Zrušit

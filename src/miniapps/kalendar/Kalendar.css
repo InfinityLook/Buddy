@@ -258,6 +258,13 @@
   color: var(--text-secondary);
 }
 
+.kalendar-polozka-opakovani {
+  display: inline-block;
+  margin-left: 0.4rem;
+  font-size: 0.68rem;
+  color: var(--accent-cyan);
+}
+
 .kalendar-smazat-btn {
   flex-shrink: 0;
   background: transparent;
@@ -278,7 +285,8 @@
 }
 
 .kalendar-form input,
-.kalendar-form textarea {
+.kalendar-form textarea,
+.kalendar-form-opakovani {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
@@ -290,7 +298,8 @@
 }
 
 .kalendar-form input:focus,
-.kalendar-form textarea:focus {
+.kalendar-form textarea:focus,
+.kalendar-form-opakovani:focus {
   outline: none;
   border-color: var(--accent-cyan);
 }

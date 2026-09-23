@@ -12,6 +12,11 @@ export const FileManager: React.FC<FileManagerProps> = ({ onOpenDoc }) => {
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
+    // Stejný reset jako MenuNav.tsx's handleImageSelected — bez něj
+    // vybrání úplně téhož souboru podruhé za sebou nevyvolá žádnou
+    // change událost (prohlížeč si "stejnou hodnotu" pamatuje), takže
+    // import vypadal, jako by potichu selhal.
+    e.target.value = ''
     if (!file) return
 
     const reader = new FileReader()

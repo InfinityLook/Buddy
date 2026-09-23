@@ -210,6 +210,15 @@ export const Pomodoro: React.FC = () => {
             />
           </label>
 
+          <label className="pomo-field pomo-field--switch">
+            <span>Spustit další fázi automaticky</span>
+            <input
+              type="checkbox"
+              checked={settings.autoStartNextPhase}
+              onChange={(e) => updateSettings({ autoStartNextPhase: e.target.checked })}
+            />
+          </label>
+
           <span className="pomo-settings-hint">
             Za dokončené soustředění dostaneš {xpPerBlock} XP — odměna se odvíjí od
             délky bloku.

@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest'
 import { PomodoroSession, spocitejSouhrnPodlePredmetu } from '@/miniapps/pomodoro/types'
-import {
-  spocitejMinutyDnes,
-  spocitejMinutyTyden,
-  spocitejProcentaCileProumeru,
-} from '@/flagships/school-room/skolaCilStats'
+import { spocitejMinutyDnes, spocitejMinutyTyden } from '@/flagships/school-room/skolaCilStats'
+// spocitejProcentaCileProumeru se přesunula do znamky/types.ts — je to
+// obecná funkce o klasifikační známce, ne o School Roomu samotném, a
+// miniaplikace nesmí importovat z vlajkové appky (viz jeho vlastní
+// komentář v znamky/types.ts).
+import { spocitejProcentaCileProumeru } from '@/miniapps/znamky/types'
 import { validateSkolaCilData } from '@/core/utils/skolaCilValidation'
 
 // ==========================================

@@ -23,6 +23,13 @@ export interface Predmet {
   /** Kredity/ECTS — 0, pokud si uživatel nechce vůbec vyplňovat. */
   kredity: number
   znamky: Znamka[]
+  // Cílová (chtěná) známka pro TENHLE předmět — na rozdíl od School
+  // Roomova celkového cíle průměru (viz spocitejProcentaCileProumeru
+  // níž, appka je obě strany počítá stejnou funkcí) je tohle cíl jen
+  // pro jeden konkrétní předmět. null/nevyplněné = appka žádný cíl
+  // nezobrazuje, stejná "null znamená nenastaveno" konvence jako
+  // School Roomovo cilPrumeru.
+  cil?: number | null
 }
 
 export const MIN_ZNAMKA = 1
@@ -68,6 +75,27 @@ export const celkovyVazenyPrumer = (predmety: Predmet[]): number | null => {
 
 export const soucetKreditu = (predmety: Predmet[]): number =>
   predmety.reduce((s, p) => s + p.kredity, 0)
+
+/** Progres cíle průměru — na klasifikační škále je NIŽŠÍ známka lepší,
+ *  takže prostý poměr aktuální/cíl by ukazoval opačný směr než
+ *  skutečný pokrok. Appka místo toho měří, kolik z cesty od nejhorší
+ *  možné známky (5) k cíli je už ušlé — cíl už dosažený nebo
+ *  překonaný (aktuální <= cíl) vždycky ukáže 100 %, žádný cíl nebo
+ *  žádná zapsaná známka vrátí null (žádný progres bar, ne 0 %, co by
+ *  vypadalo jako "vůbec žádný pokrok"). Přesunuto sem ze School
+ *  Roomova skolaCilStats.ts — appka ji používá pro CELKOVÝ i pro
+ *  jednotlivý (Predmet.cil) cíl průměru, a miniaplikace nesmí
+ *  importovat z vlajkové appky, jen naopak, takže funkce patří sem. */
+export const spocitejProcentaCileProumeru = (
+  aktualniPrumer: number | null,
+  cil: number | null
+): number | null => {
+  if (cil === null || cil <= 0 || aktualniPrumer === null) return null
+  if (aktualniPrumer <= cil) return 100
+  const rozpeti = MAX_ZNAMKA - cil
+  if (rozpeti <= 0) return 100
+  return Math.max(0, Math.min(100, Math.round(((MAX_ZNAMKA - aktualniPrumer) / rozpeti) * 100)))
+}
 
 // ==========================================
 // Kalkulačka "co kdyby" — nepřidává druhou kopii výpočtu průměru, jen

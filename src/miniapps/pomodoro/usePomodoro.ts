@@ -232,10 +232,16 @@ const usePomodoroStore = create<PomodoroState>()(
         )
 
         if (finishedMode === 'work') {
+          // Ořez až tady, ne v setAktivniPredmet — ten se dřív volal
+          // přímo z onChange na každé stisknutí klávesy (Pomodoro.tsx),
+          // takže trim() po každém znaku smazal i mezeru, kterou
+          // uživatel právě dopsal, a víceslovný předmět s mezerou
+          // uprostřed se prostě nedal napsat (mezera zmizela dřív, než
+          // stihla "zůstat" pro další znak).
           const zaznam: PomodoroSession = {
             at: Date.now(),
             minuty: state.settings.work,
-            predmet: state.aktivniPredmet,
+            predmet: state.aktivniPredmet?.trim() || null,
           }
           set((s) => ({
             completedSessions: s.completedSessions + 1,
@@ -246,14 +252,15 @@ const usePomodoroStore = create<PomodoroState>()(
           useGamificationStore.getState().recordAction('pomodoro', xpForWorkBlock(state.settings.work))
 
           // Po nastaveném počtu soustředění přijde dlouhá pauza. Další
-          // úsek se ale nespouští sám — switchMode bez autoStart jen
-          // připraví novou délku, start čeká na uživatele.
+          // úsek se spustí sám jen s autoStartNextPhase zapnutým —
+          // switchMode bez autoStart (výchozí stav) jen připraví novou
+          // délku, start čeká na uživatele.
           const nextPosition = state.cyclePosition + 1
           const cycleDone = nextPosition >= state.settings.cycleLength
           set({ cyclePosition: cycleDone ? 0 : nextPosition })
-          get().switchMode(cycleDone ? 'longBreak' : 'shortBreak')
+          get().switchMode(cycleDone ? 'longBreak' : 'shortBreak', state.settings.autoStartNextPhase)
         } else {
-          get().switchMode('work')
+          get().switchMode('work', state.settings.autoStartNextPhase)
         }
       },
 
@@ -276,9 +283,17 @@ const usePomodoroStore = create<PomodoroState>()(
         })
       },
 
-      resetStats: () => set({ completedSessions: 0 }),
+      // sessionLog se maže spolu s completedSessions — dřív mazal jen
+      // počítadlo, takže "Vynulovat" ukázalo 0 dokončených soustředění,
+      // zatímco "Podle předmětu" pod tím (i School Roomův Studijní cíl,
+      // co čte ze stejné historie) dál ukazovaly staré minuty, jako by
+      // se vůbec nic nevynulovalo.
+      resetStats: () => set({ completedSessions: 0, sessionLog: [] }),
 
-      setAktivniPredmet: (predmet) => set({ aktivniPredmet: predmet?.trim() || null }),
+      // Bez ořezu tady — ten by na každé stisknutí klávesy smazal i
+      // právě napsanou mezeru (viz komentář u complete() výš). Uloží se
+      // syrová hodnota, ořízne se až při skutečném zápisu do historie.
+      setAktivniPredmet: (predmet) => set({ aktivniPredmet: predmet }),
     }),
     {
       name: 'schoolbuddy-pomodoro-storage',

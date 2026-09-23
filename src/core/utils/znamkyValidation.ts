@@ -21,6 +21,10 @@ export const PredmetSchema = v.object({
   nazev: v.string(),
   kredity: v.optional(v.number([v.minValue(0)]), 0),
   znamky: v.optional(v.array(v.unknown()), []),
+  // Nepovinné — starší uložený předmět žádný cíl neměl, což pro něj
+  // znamená přesně to samé, co dřív jediné existující chování (žádný
+  // progres bar cíle se nezobrazuje).
+  cil: v.optional(v.nullable(v.number([v.minValue(MIN_ZNAMKA), v.maxValue(MAX_ZNAMKA)])), null),
 })
 
 export const ZnamkyDataSchema = v.object({
@@ -39,13 +43,14 @@ const sanitizujZnamku = (raw: unknown): Znamka | null => {
 const sanitizujPredmet = (raw: unknown): Predmet | null => {
   const jedna = v.safeParse(PredmetSchema, raw)
   if (!jedna.success) return null
-  const { id, nazev, kredity, znamky } = jedna.output
+  const { id, nazev, kredity, znamky, cil } = jedna.output
   if (!nazev.trim()) return null
   return {
     id,
     nazev,
     kredity,
     znamky: znamky.map(sanitizujZnamku).filter((z): z is Znamka => z !== null),
+    cil,
   }
 }
 

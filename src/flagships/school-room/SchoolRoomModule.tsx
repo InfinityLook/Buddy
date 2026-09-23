@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { useKalendar, naFormatDatumu } from '@/miniapps/kalendar/useKalendar'
+import { pocetNadchazejicichUdalosti } from '@/miniapps/kalendar/types'
 import { usePomodoro } from '@/miniapps/pomodoro/usePomodoro'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { FlagshipShell } from '../shared/FlagshipShell'
@@ -10,11 +11,11 @@ import { MujWidgetPanel } from '../shared/MujWidgetPanel'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import { useSkolaCil } from './useSkolaCil'
-import { spocitejMinutyDnes, spocitejMinutyTyden, spocitejProcentaCileProumeru } from './skolaCilStats'
+import { spocitejMinutyDnes, spocitejMinutyTyden } from './skolaCilStats'
 import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
 import { PRAH_RIZIKA_DOCHAZKY, hodinyDnes, spocitejDochazkuPodlePredmetu } from '@/miniapps/rozvrh/types'
 import { useZnamky } from '@/miniapps/znamky/useZnamky'
-import { celkovyVazenyPrumer } from '@/miniapps/znamky/types'
+import { celkovyVazenyPrumer, spocitejProcentaCileProumeru } from '@/miniapps/znamky/types'
 import './SchoolRoomModule.css'
 
 // ==========================================
@@ -56,15 +57,32 @@ export const SchoolRoomModule: React.FC = () => {
   // dlaždici, ne vymyšlená data. Stejný "browse what's already loaded"
   // duch jako Growth Roomovy "Moje cíle" — čte přímo store hooky, žádný
   // nový store ani zvláštní stats.ts modul, protože všechny tři hodnoty
-  // (pendingCount, dnySUdalosti, completedSessions) už appky samy počítají.
+  // (pendingCount, udalosti, completedSessions) už appky samy počítají.
   const { pendingCount } = useStudyPlanner()
-  const { dnySUdalosti, dnes } = useKalendar()
+  const { udalosti } = useKalendar()
   const { completedSessions, sessionLog } = usePomodoro()
 
-  const dnesniStr = naFormatDatumu(dnes.getFullYear(), dnes.getMonth(), dnes.getDate())
+  // Vlastní, pravidelně obnovovaný "teď" — useKalendar()'s dnes se
+  // počítá jen jednou při prvním vykreslení (useMemo(() => new Date(),
+  // [])), což samotnému Kalendáři stačí (appka se při otevření/zavření
+  // pokaždé odmountuje a přemountuje), ale School Roomova obrazovka se
+  // při běžném používání vůbec neodmountuje — "Příští hodina" i
+  // "Nadcházející události" by tak zůstaly navždy zamrzlé na čas
+  // prvního otevření /skola, i po hodinách stráveného v appce.
+  const [ted, setTed] = useState(() => new Date())
+  useEffect(() => {
+    const id = window.setInterval(() => setTed(new Date()), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
+
+  const dnesniStr = naFormatDatumu(ted.getFullYear(), ted.getMonth(), ted.getDate())
+  // Počítáno z RŮZNÝCH událostí, ne z jednotlivých dní — od zavedení
+  // opakujících se událostí (viz kalendar/types.ts) může jedna událost
+  // mít nekonečně mnoho budoucích výskytů, takže appka počítá "kolik
+  // událostí je ještě před námi", ne "kolik dní má aspoň jednu".
   const nadchazejiciUdalosti = useMemo(
-    () => [...dnySUdalosti].filter((d) => d >= dnesniStr).length,
-    [dnySUdalosti, dnesniStr]
+    () => pocetNadchazejicichUdalosti(udalosti, dnesniStr),
+    [udalosti, dnesniStr]
   )
 
   // Příští hodina a riziko docházky — Rozvrh už obě čísla sám počítá
@@ -72,8 +90,8 @@ export const SchoolRoomModule: React.FC = () => {
   // přehled" doteď nezobrazovala. Stejné "wire it up, don't invent new
   // logic" jako zbytek panelu.
   const { hodiny: rozvrhHodiny, dochazka } = useRozvrh()
-  const dnesniHodiny = useMemo(() => hodinyDnes(rozvrhHodiny, dnes), [rozvrhHodiny, dnes])
-  const dnesniCasStr = `${String(dnes.getHours()).padStart(2, '0')}:${String(dnes.getMinutes()).padStart(2, '0')}`
+  const dnesniHodiny = useMemo(() => hodinyDnes(rozvrhHodiny, ted), [rozvrhHodiny, ted])
+  const dnesniCasStr = `${String(ted.getHours()).padStart(2, '0')}:${String(ted.getMinutes()).padStart(2, '0')}`
   const pristiHodina = useMemo(
     () => dnesniHodiny.find((h) => h.casOd >= dnesniCasStr) ?? null,
     [dnesniHodiny, dnesniCasStr]

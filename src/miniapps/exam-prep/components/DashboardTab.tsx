@@ -16,10 +16,14 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ onGoToSubjects }) =>
     return new Date(t.nextRevisionAt) <= new Date()
   })
 
-  // Výpočet nejbližší zkoušky
-  const closestExam = [...subjects].sort(
-    (a, b) => new Date(a.examDate).getTime() - new Date(b.examDate).getTime()
-  )[0]
+  // Výpočet nejbližší zkoušky — jen mezi předměty se skutečně platným
+  // datumem. Bez tyhle filtrace by prázdný/poškozený examDate (starší
+  // předmět uložený před tím, než datum bylo povinné pole) spočítal
+  // new Date('').getTime() jako NaN a countdown karta dole by ukázala
+  // doslova "NaN dní".
+  const closestExam = [...subjects]
+    .filter((s) => Number.isFinite(new Date(s.examDate).getTime()))
+    .sort((a, b) => new Date(a.examDate).getTime() - new Date(b.examDate).getTime())[0]
 
   const getDaysUntil = (dateStr: string) => {
     const diff = new Date(dateStr).getTime() - new Date().getTime()
