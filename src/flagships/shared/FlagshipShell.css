@@ -137,6 +137,50 @@
   gap: 0.7rem;
 }
 
+/* ------------------------------------------
+   SKUPINY DLAŽDIC ("sekce" prop) — School Room byl první, kdo místo
+   jedné neroztříděné mřížky rozdělil svých osm dlaždic do popsaných
+   skupin (Organizace/Studium/Přehled). Malý barevný odznak + nadpis
+   nad každou skupinou, stejný odznakový jazyk jako .fs-dlazdice-ikona
+   níž, jen menší a bez pozadí kolem textu.
+   ------------------------------------------ */
+.fs-dlazdice-sekce-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.fs-dlazdice-sekce {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.fs-dlazdice-sekce-hlavicka {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fs-dlazdice-sekce-hlavicka h3 {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.fs-dlazdice-sekce-ikona {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .fs-dlazdice {
   display: flex;
   flex-direction: column;
@@ -148,12 +192,18 @@
   padding: 1rem 0.5rem;
   text-align: center;
   cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .fs-dlazdice:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-3px);
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 22px rgba(5, 8, 16, 0.4);
+}
+
+.fs-dlazdice:active {
+  transform: translateY(-1px);
 }
 
 .fs-dlazdice-nazev {

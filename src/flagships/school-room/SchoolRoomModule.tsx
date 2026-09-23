@@ -7,7 +7,7 @@ import { pocetNadchazejicichUdalosti } from '@/miniapps/kalendar/types'
 import { usePomodoro } from '@/miniapps/pomodoro/usePomodoro'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { FlagshipShell } from '../shared/FlagshipShell'
-import { MujWidgetPanel } from '../shared/MujWidgetPanel'
+import { MujWidgetPanel, type SekceDlazdic } from '../shared/MujWidgetPanel'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import { useSkolaCil } from './useSkolaCil'
@@ -20,9 +20,20 @@ import './SchoolRoomModule.css'
 
 // ==========================================
 // School Room — první "vlajková appka" appky (viz FlagshipShell.tsx
-// pro celé zdůvodnění sdíleného pláště). Sama definuje jen svých šest
+// pro celé zdůvodnění sdíleného pláště). Sama definuje jen svých osm
 // dlaždic, dvě velké karty a rozbalovací seznam Nástrojů, zbytek
 // (hlavička, sloty "Můj widget", spodní lišta) je společný.
+//
+// Osm dlaždic už dávno přerostlo jednu neroztříděnou mřížku — appka
+// je proto od téhle chvíle kreslí seskupené do tří popsaných sekcí
+// (viz `sekceDlazdic` níž a MujWidgetPanel.tsx's nepovinný `sekce`
+// prop, co tenhle vzorec umožňuje kterékoli budoucí appce, ne jen
+// School Roomu): Organizace (Rozvrh/Známky/Kalendář), Studium
+// (Pomodoro/Poznámky/Úkoly), Přehled (Statistiky/Upozornění). `dlazdice`
+// samotné zůstává jeden plochý seznam beze změny pořadí — výběr do
+// slotů "Můj widget" totiž pořád čte dohromady `dlazdice` +
+// `dalsiMoznostiProSloty`, bez ohledu na to, jak se to samé kreslí do
+// sekcí; sekce jsou čistě způsob zobrazení, ne druhý zdroj dat.
 //
 // Pomodoro/Poznámky/Úkoly/Soubory/Nástroje jsou přesunuté, ne nové
 // miniaplikace — mají v useAppStore.ts's DEFAULT_APPS teď
@@ -213,6 +224,34 @@ export const SchoolRoomModule: React.FC = () => {
     },
   ]
 
+  // Tři skupiny nad osmi dlaždicemi — viz komentář nahoře. Filtrujeme
+  // ze stejných objektů jako `dlazdice`, ne z druhé, kopírované sady
+  // dat, ať se popisek/barva/onClick nikdy nemůže rozejít mezi plochou
+  // a seskupenou verzí.
+  const sekceDlazdic: SekceDlazdic[] = [
+    {
+      id: 'organizace',
+      nazev: 'Organizace',
+      ikona: 'schedule',
+      barva: 'cyan',
+      dlazdice: dlazdice.filter((d) => ['rozvrh', 'znamky', 'kalendar'].includes(d.id)),
+    },
+    {
+      id: 'studium',
+      nazev: 'Studium',
+      ikona: 'pomodoro',
+      barva: 'orange',
+      dlazdice: dlazdice.filter((d) => ['pomodoro', 'poznamky', 'ukoly'].includes(d.id)),
+    },
+    {
+      id: 'prehled',
+      nazev: 'Přehled',
+      ikona: 'bar-chart',
+      barva: 'purple',
+      dlazdice: dlazdice.filter((d) => ['statistiky', 'upozorneni'].includes(d.id)),
+    },
+  ]
+
   const velkeKarty: FlagshipVelkaKarta[] = [
     {
       id: 'soubory',
@@ -337,6 +376,12 @@ export const SchoolRoomModule: React.FC = () => {
         onOpenNotifications={() => navigate('/skola/upozorneni')}
         onCloseNotifications={() => {}}
       >
+        {/* Barevný pruh pod hlavičkou — School Roomova vlastní identita
+            (jeho barva z useAppStore.ts's DEFAULT_APPS je 'cyan'), ne
+            sdílená přebarvená hlavička pro všech šest Roomů — ta zůstává
+            záměrně stejná jako dřív, FlagshipShell.tsx se nemění. */}
+        <div className="sr-accent-pruh" aria-hidden="true" />
+
         {/* "Moje přehled" — School Room je poslední z pokojů, co dostal
             vlastní panel s reálnými daty (Fitness/Economy/Growth/Music
             Room ho měly od začátku); dřív tu bylo jen "Statistiky" jako
@@ -408,7 +453,9 @@ export const SchoolRoomModule: React.FC = () => {
                 <span className="sr-stat-text">
                   <span className="sr-stat-nazev">Riziko docházky</span>
                   <span className="sr-stat-hodnota">
-                    {pocetRizikovychPredmetu} {pocetRizikovychPredmetu === 1 ? 'předmět' : 'předměty'} pod {PRAH_RIZIKA_DOCHAZKY}&nbsp;%
+                    <span className="sr-riziko-pilulka">
+                      {pocetRizikovychPredmetu} {pocetRizikovychPredmetu === 1 ? 'předmět' : 'předměty'} pod {PRAH_RIZIKA_DOCHAZKY}&nbsp;%
+                    </span>
                   </span>
                 </span>
               </div>
@@ -419,7 +466,7 @@ export const SchoolRoomModule: React.FC = () => {
         {/* Studijní cíl — denní/týdenní minuty studia z Pomodorovy
             skutečné historie soustředění, stejný "kladné číslo nebo
             žádný cíl" tvar jako Writer Roomův psací cíl. Bez cíle se
-            nezobrazí žádný progres bar, jen prázdná pole na zadání. */}
+            nezobrazí žádný prstenec, jen prázdná pole na zadání. */}
         <div className="sr-panel">
           <div className="sr-panel-hlavicka">
             <h2>🎯 Studijní cíl</h2>
@@ -458,62 +505,86 @@ export const SchoolRoomModule: React.FC = () => {
             </label>
           </div>
 
-          {cilDenniProcenta !== null && (
-            <div className="sr-cil-progres">
-              <div
-                className="sr-cil-lista"
-                role="progressbar"
-                aria-valuenow={cilDenniProcenta}
-                aria-valuemin={0}
-                aria-valuemax={100}
-              >
-                <div className="sr-cil-vypln" style={{ width: `${cilDenniProcenta}%` }} />
-              </div>
-              <span className="sr-cil-popisek">
-                {minutyDnes} z {cilDenniMinut} min dnes
-              </span>
-            </div>
-          )}
-
-          {cilTydenniProcenta !== null && (
-            <div className="sr-cil-progres">
-              <div
-                className="sr-cil-lista"
-                role="progressbar"
-                aria-valuenow={cilTydenniProcenta}
-                aria-valuemin={0}
-                aria-valuemax={100}
-              >
-                <div className="sr-cil-vypln" style={{ width: `${cilTydenniProcenta}%` }} />
-              </div>
-              <span className="sr-cil-popisek">
-                {minutyTyden} z {cilTydenniMinut} min tento týden
-              </span>
-            </div>
-          )}
-
-          {cilPrumeru !== null &&
-            (cilPrumeruProcenta !== null ? (
-              <div className="sr-cil-progres">
-                <div
-                  className="sr-cil-lista"
-                  role="progressbar"
-                  aria-valuenow={cilPrumeruProcenta}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                >
-                  <div className="sr-cil-vypln sr-cil-vypln--prumer" style={{ width: `${cilPrumeruProcenta}%` }} />
+          {/* Kruhové progres prstence místo dřívějších plochých lišt —
+              stejný conic-gradient trik jako Fitness Roomův kalorický
+              prstenec (.fit-krouzek), jen s .sr- předponou. Chování se
+              nemění ani o řádek: prstenec se pořád ukáže jen tehdy, kdy
+              je daný cíl doopravdy zadaný, přesně jako dřív lišta. */}
+          {(cilDenniProcenta !== null || cilTydenniProcenta !== null || cilPrumeru !== null) && (
+            <div className="sr-krouzky">
+              {cilDenniProcenta !== null && (
+                <div className="sr-krouzek-wrap">
+                  <div
+                    className="sr-krouzek sr-barva-krouzek--cyan"
+                    style={{ '--sr-progres': `${cilDenniProcenta}%` } as React.CSSProperties}
+                    role="progressbar"
+                    aria-label="Studijní cíl — dnes"
+                    aria-valuenow={cilDenniProcenta}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <AppIcon name="clock" size={18} />
+                  </div>
+                  <span className="sr-krouzek-nazev">Dnes</span>
+                  <span className="sr-krouzek-hodnota sr-text--cyan">
+                    {minutyDnes} / {cilDenniMinut} min
+                  </span>
                 </div>
-                <span className="sr-cil-popisek">
-                  {aktualniPrumer!.toFixed(2)} / cíl {cilPrumeru.toFixed(1)}
-                </span>
-              </div>
-            ) : (
-              <p className="sr-cil-bez-znamek">Zatím žádné známky ve Známkách — cíl se ukáže, jakmile nějakou zapíšeš.</p>
-            ))}
+              )}
+
+              {cilTydenniProcenta !== null && (
+                <div className="sr-krouzek-wrap">
+                  <div
+                    className="sr-krouzek sr-barva-krouzek--violet"
+                    style={{ '--sr-progres': `${cilTydenniProcenta}%` } as React.CSSProperties}
+                    role="progressbar"
+                    aria-label="Studijní cíl — tento týden"
+                    aria-valuenow={cilTydenniProcenta}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <AppIcon name="calendar" size={18} />
+                  </div>
+                  <span className="sr-krouzek-nazev">Tento týden</span>
+                  <span className="sr-krouzek-hodnota sr-text--violet">
+                    {minutyTyden} / {cilTydenniMinut} min
+                  </span>
+                </div>
+              )}
+
+              {cilPrumeru !== null && cilPrumeruProcenta !== null && (
+                <div className="sr-krouzek-wrap">
+                  <div
+                    className="sr-krouzek sr-barva-krouzek--magenta"
+                    style={{ '--sr-progres': `${cilPrumeruProcenta}%` } as React.CSSProperties}
+                    role="progressbar"
+                    aria-label="Studijní cíl — průměr"
+                    aria-valuenow={cilPrumeruProcenta}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <AppIcon name="grades" size={18} />
+                  </div>
+                  <span className="sr-krouzek-nazev">Průměr</span>
+                  <span className="sr-krouzek-hodnota sr-text--magenta">
+                    {aktualniPrumer!.toFixed(2)} / {cilPrumeru.toFixed(1)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {cilPrumeru !== null && cilPrumeruProcenta === null && (
+            <p className="sr-cil-bez-znamek">Zatím žádné známky ve Známkách — cíl se ukáže, jakmile nějakou zapíšeš.</p>
+          )}
         </div>
 
-        <MujWidgetPanel id="school-room" dlazdice={dlazdice} dalsiMoznostiProSloty={dalsiMoznostiProSloty} />
+        <MujWidgetPanel
+          id="school-room"
+          dlazdice={dlazdice}
+          dalsiMoznostiProSloty={dalsiMoznostiProSloty}
+          sekce={sekceDlazdic}
+        />
       </FlagshipShell>
 
       {nastrojeOtevrene && (

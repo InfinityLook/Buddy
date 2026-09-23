@@ -4,6 +4,15 @@ import { useFlagshipSloty, useFlagshipWidgetsStore } from './useFlagshipWidgets'
 import { WidgetPickerSheet } from './WidgetPickerSheet'
 import type { FlagshipDlazdice } from './types'
 
+/** Jedna skupina dlaždic s vlastním nadpisem — viz `sekce` prop níž. */
+export interface SekceDlazdic {
+  id: string
+  nazev: string
+  ikona: string
+  barva: FlagshipDlazdice['barva']
+  dlazdice: FlagshipDlazdice[]
+}
+
 interface Props {
   /** Krátké, stabilní id appky — klíč do useFlagshipWidgets. Nikdy se
    *  nemění, i kdyby se změnil zobrazený název appky. */
@@ -16,6 +25,14 @@ interface Props {
    *  (NastrojeSheet.tsx), ne místo v šestici nahoře, ale pořád mají jít
    *  připnout stejně jako kterákoli z ní. */
   dalsiMoznostiProSloty?: FlagshipDlazdice[]
+  /** Nepovinné rozdělení `dlazdice` do popsaných skupin s vlastním
+   *  nadpisem a barvou — School Room s osmi dlaždicemi v jedné
+   *  neroztříděné mřížce z toho profitoval jako první. Bez tohohle
+   *  propu appka kreslí `dlazdice` jako dřív, jednu neroztříděnou
+   *  mřížku — sekce jsou čistě volitelný způsob zobrazení, ne druhý
+   *  zdroj dat (výběr do slotu pořád čte `dlazdice`+
+   *  `dalsiMoznostiProSloty` dohromady, bez ohledu na sekce). */
+  sekce?: SekceDlazdic[]
 }
 
 // ==========================================
@@ -26,7 +43,7 @@ interface Props {
 // obecnost dělá až podle druhého skutečného případu, ne dopředu.
 // ==========================================
 
-export const MujWidgetPanel: React.FC<Props> = ({ id, dlazdice, dalsiMoznostiProSloty }) => {
+export const MujWidgetPanel: React.FC<Props> = ({ id, dlazdice, dalsiMoznostiProSloty, sekce }) => {
   const [otevrenySlot, setOtevrenySlot] = useState<number | null>(null)
 
   const sloty = useFlagshipSloty(id)
@@ -100,17 +117,43 @@ export const MujWidgetPanel: React.FC<Props> = ({ id, dlazdice, dalsiMoznostiPro
         })}
       </div>
 
-      <div className="fs-dlazdice-mrizka">
-        {dlazdice.map((d) => (
-          <button key={d.id} className="fs-dlazdice" onClick={d.onClick}>
-            <span className={`fs-dlazdice-ikona fs-barva--${d.barva}`}>
-              <AppIcon name={d.ikona} size={24} />
-            </span>
-            <span className="fs-dlazdice-nazev">{d.nazev}</span>
-            <span className="fs-dlazdice-popis">{d.popis}</span>
-          </button>
-        ))}
-      </div>
+      {sekce ? (
+        <div className="fs-dlazdice-sekce-seznam">
+          {sekce.map((s) => (
+            <div key={s.id} className="fs-dlazdice-sekce">
+              <div className="fs-dlazdice-sekce-hlavicka">
+                <span className={`fs-dlazdice-sekce-ikona fs-barva--${s.barva}`}>
+                  <AppIcon name={s.ikona} size={14} />
+                </span>
+                <h3>{s.nazev}</h3>
+              </div>
+              <div className="fs-dlazdice-mrizka">
+                {s.dlazdice.map((d) => (
+                  <button key={d.id} className="fs-dlazdice" onClick={d.onClick}>
+                    <span className={`fs-dlazdice-ikona fs-barva--${d.barva}`}>
+                      <AppIcon name={d.ikona} size={24} />
+                    </span>
+                    <span className="fs-dlazdice-nazev">{d.nazev}</span>
+                    <span className="fs-dlazdice-popis">{d.popis}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="fs-dlazdice-mrizka">
+          {dlazdice.map((d) => (
+            <button key={d.id} className="fs-dlazdice" onClick={d.onClick}>
+              <span className={`fs-dlazdice-ikona fs-barva--${d.barva}`}>
+                <AppIcon name={d.ikona} size={24} />
+              </span>
+              <span className="fs-dlazdice-nazev">{d.nazev}</span>
+              <span className="fs-dlazdice-popis">{d.popis}</span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {otevrenySlot !== null && (
         <WidgetPickerSheet

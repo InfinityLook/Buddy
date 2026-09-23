@@ -17,6 +17,19 @@
   backdrop-filter: blur(10px);
 }
 
+/* Tenký zářící pruh pod hlavičkou — School Roomova vlastní barevná
+   identita (appka je v useAppStore.ts vedená jako 'cyan'), první
+   viditelná věc na obrazovce po hlavičce samotné, co ostatní Roomy
+   nemají — hlavička sama (FlagshipShell.tsx) se schválně nemění, je
+   sdílená všemi šesti Roomy stejně jako dřív. */
+.sr-accent-pruh {
+  height: 3px;
+  border-radius: 999px;
+  margin-top: -0.3rem;
+  background: linear-gradient(90deg, var(--accent-cyan), transparent 85%);
+  box-shadow: 0 0 14px rgba(53, 196, 240, 0.55);
+}
+
 .sr-panel-hlavicka h2 {
   margin: 0;
   font-size: 1.1rem;
@@ -43,12 +56,13 @@
 
 .sr-stat-ikona {
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 4px 14px rgba(5, 8, 16, 0.4);
 }
 
 .sr-stat-text {
@@ -64,8 +78,22 @@
 }
 
 .sr-stat-hodnota {
-  font-size: 0.95rem;
+  font-size: 0.98rem;
   font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+}
+
+/* Vizuální odznak rizika docházky — na rozdíl od ostatních tří řádků
+   výš (holá čísla) dostává vlastní zvýrazněnou pilulku, ať je vidět na
+   první pohled, ne jen z toho, že se řádek vůbec zobrazil. */
+.sr-riziko-pilulka {
+  display: inline-block;
+  background: rgba(219, 39, 119, 0.16);
+  color: var(--accent-magenta);
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
 }
 
 /* Odkaz "Otevřít X ›" v hlavičce panelu na SkolaStatistiky.tsx — stejný
@@ -145,10 +173,9 @@
 }
 
 /* ------------------------------------------
-   Studijní cíl — SchoolRoomModule.tsx's panel se dvěma vstupy a dvěma
-   progres bary, stejný .wr-cil-* tvar jako Writer Roomův psací cíl,
-   jen s vlastní .sr- předponou (School Room má svoje vlastní CSS,
-   nesdílí soubor s Writer's Roomem).
+   Studijní cíl — SchoolRoomModule.tsx's panel se třemi vstupy
+   (denní/týdenní minuty, cílový průměr) a kruhovými progres prstenci
+   (viz .sr-krouzky níž) místo dřívějších plochých lišt.
    ------------------------------------------ */
 .sr-cil-radek {
   display: flex;
@@ -175,36 +202,72 @@
   font-size: 0.85rem;
 }
 
-.sr-cil-progres {
+/* ------------------------------------------
+   KRUHOVÉ PROGRES PRSTENCE — nahradily dřívější ploché lišty
+   (.sr-cil-lista/.sr-cil-vypln), stejný conic-gradient trik jako
+   Fitness Roomův .fit-krouzek (vnější prstenec, vystřižený vnitřní
+   kruh podložený pozadím panelu, ikona uprostřed).
+   ------------------------------------------ */
+.sr-krouzky {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1.1rem;
+  padding-top: 0.2rem;
+}
+
+.sr-krouzek-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  text-align: center;
+}
+
+.sr-krouzek {
+  --sr-progres: 0%;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  justify-content: center;
+  position: relative;
+  background: conic-gradient(var(--sr-ring-barva, var(--accent-cyan)) var(--sr-progres), rgba(255, 255, 255, 0.08) 0);
 }
 
-.sr-cil-lista {
-  flex: 1;
-  height: 8px;
-  border-radius: 4px;
-  background: var(--bg-panel);
-  overflow: hidden;
+.sr-krouzek::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: var(--bg-panel-raised);
 }
 
-.sr-cil-vypln {
-  height: 100%;
-  background: var(--accent-cyan);
-  border-radius: 4px;
+.sr-krouzek svg {
+  position: relative;
+  z-index: 1;
+  color: var(--sr-ring-barva, var(--accent-cyan));
 }
 
-.sr-cil-vypln--prumer {
-  background: var(--accent-magenta);
-}
+.sr-barva-krouzek--violet { --sr-ring-barva: var(--accent-violet); }
+.sr-barva-krouzek--magenta { --sr-ring-barva: var(--accent-magenta); }
 
-.sr-cil-popisek {
-  flex-shrink: 0;
-  font-size: 0.7rem;
+.sr-krouzek-nazev {
+  font-size: 0.68rem;
   color: var(--text-secondary);
-  white-space: nowrap;
+  font-weight: 600;
 }
+
+.sr-krouzek-hodnota {
+  font-size: 0.72rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-text--cyan { color: var(--accent-cyan); }
+.sr-text--violet { color: var(--accent-violet); }
+.sr-text--magenta { color: var(--accent-magenta); }
 
 .sr-cil-bez-znamek {
   margin: 0;
