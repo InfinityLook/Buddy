@@ -76,4 +76,10 @@ export const MINI_APP_REGISTRY: Record<string, LazyExoticComponent<React.Compone
   'citace': lazy(() =>
     import('../../miniapps/citace/Citace').then((m) => ({ default: m.Citace }))
   ),
+  'sporici-simulator': lazy(() =>
+    import('../../miniapps/sporici-simulator/SporiciSimulator').then((m) => ({ default: m.SporiciSimulator }))
+  ),
+  'uver-kalkulacka': lazy(() =>
+    import('../../miniapps/uver-kalkulacka/UverKalkulacka').then((m) => ({ default: m.UverKalkulacka }))
+  ),
 }

@@ -161,6 +161,13 @@ const DEFAULT_APPS: AppItem[] = [
   { id: 'rozvrh', title: 'Rozvrh', category: 'Produktivita', icon: 'schedule', color: 'cyan', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'znamky', title: 'Známky', category: 'Vzdělávání', icon: 'grades', color: 'pink', active: true, favorite: false, jenVeVlajkoveAppce: true },
   { id: 'citace', title: 'Citace', category: 'Vzdělávání', icon: 'quote', color: 'purple', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  // Economy Roomovo první kolo nových appek — Spořicí simulátor a
+  // Splátkový kalkulátor. Appka do teď neměla ani jedno (žádnou "co
+  // kdybych spořil"/amortizační kalkulačku), jenVeVlajkoveAppce: true
+  // od prvního commitu stejně jako Kalendář/Music Studio výš — nikdy
+  // se v hlavní mřížce neobjevily.
+  { id: 'sporici-simulator', title: 'Spořicí simulátor', category: 'Nástroje', icon: 'trending-up', color: 'green', active: true, favorite: false, jenVeVlajkoveAppce: true },
+  { id: 'uver-kalkulacka', title: 'Splátkový kalkulátor', category: 'Nástroje', icon: 'finance', color: 'orange', active: true, favorite: false, jenVeVlajkoveAppce: true },
   // Vlajkové appky — viz AppItem.route výš a FlagshipShell.tsx. Do
   // schválené doby (viz CLAUDE.md, RoomCarousel.tsx) byly tyhle dlaždice
   // jediná cesta dovnitř a proto zůstávaly v hlavní mřížce jako kterákoli

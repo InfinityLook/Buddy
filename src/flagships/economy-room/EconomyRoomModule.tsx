@@ -1,14 +1,25 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useHasPermission } from '@/core/role'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useFinance } from '@/miniapps/finance/useFinance'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
 import { spocitejPredpovedCashflow } from '@/miniapps/finance/types'
-import { spocitatMesicniSrovnani, formatujRozdilMesic } from './economyStats'
+import { spocitatMesicniSrovnani, formatujRozdilMesic, spocitejGrafCistehoJmeni, VYCHOZI_MESICU_JMENI } from './economyStats'
+import { FINANCNI_TIPY } from './data/financniTipy'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import './EconomyRoomModule.css'
+
+/** Deterministický "tip dne" podle dne v roce — appka ho nevybírá
+ *  náhodně, ať se ve stejný den nikdy neukáže jiný VIP účtům. Stejná
+ *  úvaha jako Fitness Roomovo tipDne. */
+const financniTipDne = (): string => {
+  const zacatekRoku = new Date(new Date().getFullYear(), 0, 0)
+  const denRoku = Math.floor((Date.now() - zacatekRoku.getTime()) / 86_400_000)
+  return FINANCNI_TIPY[denRoku % FINANCNI_TIPY.length]
+}
 
 // Barvy prstenců "Výdaje podle kategorie" — stejná paleta jako Finance's
 // vlastní PALETA v Finance.tsx (pět z jejích sedmi barev), ať appka
@@ -58,7 +69,7 @@ const formatDatumKratce = (iso: string): string => {
 export const EconomyRoomModule: React.FC = () => {
   const navigate = useNavigate()
   const setActiveAppId = useAppStore((s) => s.setActiveAppId)
-  const { zustatek, prijmyObdobi, vydajeObdobi, kategorieVydaje, transactions, recurring } = useFinance()
+  const { zustatek, prijmyObdobi, vydajeObdobi, kategorieVydaje, transactions, wallets, recurring } = useFinance()
   const [notifOpen, setNotifOpen] = useState(false)
   const [appsOtevrene, setAppsOtevrene] = useState(false)
 
@@ -67,9 +78,40 @@ export const EconomyRoomModule: React.FC = () => {
     navigate('/apps')
   }
 
+  const otevritKalkulacky = (id: string) => {
+    setActiveAppId(id, '/economy')
+    navigate('/apps')
+  }
+
   const { prijmyMinuly, vydajeMinuly } = spocitatMesicniSrovnani(transactions)
   const prstence = kategorieVydaje.slice(0, MAX_PRSTENCU)
   const predpoved = spocitejPredpovedCashflow(recurring, zustatek)
+  const grafJmeni = spocitejGrafCistehoJmeni(transactions, wallets)
+
+  // ------------------------------------------
+  // VIP: zlatý vzhled — session-only, stejný "smí se dívat, ne trvale
+  // uložit" tvar jako Fitness Roomův zlatyRezim/Writer's Roomův
+  // pergamenRezim. Zpráva se sama schová po pár vteřinách.
+  // ------------------------------------------
+  const smiVip = useHasPermission('cosmetics.premium')
+  const [zlatyRezim, setZlatyRezim] = useState(false)
+  const [vipZprava, setVipZprava] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!vipZprava) return
+    const timer = window.setTimeout(() => setVipZprava(null), 3500)
+    return () => window.clearTimeout(timer)
+  }, [vipZprava])
+
+  const handleTogglZlaty = () => {
+    if (!smiVip) {
+      setVipZprava('Zlatý vzhled je jen pro VIP.')
+      return
+    }
+    setZlatyRezim((v) => !v)
+  }
+
+  const panelClass = smiVip && zlatyRezim ? 'eco-panel eco-panel--zlaty' : 'eco-panel'
 
   const nastroje: FlagshipDlazdice[] = [
     {
@@ -79,6 +121,22 @@ export const EconomyRoomModule: React.FC = () => {
       ikona: 'finance',
       barva: 'green',
       onClick: otevritFinance,
+    },
+    {
+      id: 'sporici-simulator',
+      nazev: 'Spořicí simulátor',
+      popis: 'Kolik naspoříš se složeným úrokem',
+      ikona: 'trending-up',
+      barva: 'green',
+      onClick: () => otevritKalkulacky('sporici-simulator'),
+    },
+    {
+      id: 'uver-kalkulacka',
+      nazev: 'Splátkový kalkulátor',
+      popis: 'Amortizace půjčky a plán splácení víc dluhů',
+      ikona: 'finance',
+      barva: 'orange',
+      onClick: () => otevritKalkulacky('uver-kalkulacka'),
     },
   ]
 
@@ -115,16 +173,28 @@ export const EconomyRoomModule: React.FC = () => {
         onOpenNotifications={() => setNotifOpen(true)}
         onCloseNotifications={() => setNotifOpen(false)}
       >
-        <div className="eco-panel">
+        <div className={panelClass}>
           <div className="eco-panel-hlavicka">
             <div>
               <h2>Moje finance</h2>
               <p>Zůstatek a pohyby tohoto měsíce</p>
             </div>
-            <button className="eco-historie-btn" aria-label="Otevřít Finance" onClick={otevritFinance}>
-              <AppIcon name="finance" size={18} />
-            </button>
+            <div className="eco-panel-hlavicka-akce">
+              <button
+                className={`eco-historie-btn ${smiVip && zlatyRezim ? 'eco-historie-btn--zlaty-aktivni' : ''}`}
+                aria-label="Zlatý vzhled (VIP)"
+                aria-pressed={zlatyRezim}
+                onClick={handleTogglZlaty}
+              >
+                <AppIcon name="sparkles" size={18} />
+              </button>
+              <button className="eco-historie-btn" aria-label="Otevřít Finance" onClick={otevritFinance}>
+                <AppIcon name="finance" size={18} />
+              </button>
+            </div>
           </div>
+
+          {vipZprava && <p className="eco-vip-zprava">{vipZprava}</p>}
 
           <div className="eco-prehled-telo">
             <div className="eco-postava" aria-hidden="true">
@@ -173,7 +243,27 @@ export const EconomyRoomModule: React.FC = () => {
           </div>
         </div>
 
-        <div className="eco-panel">
+        <div className={panelClass}>
+          <div className="eco-panel-hlavicka">
+            <h2>Vývoj čistého jmění</h2>
+            <span className="eco-obdobi-znacka">Posledních {VYCHOZI_MESICU_JMENI} měsíců</span>
+          </div>
+
+          <div className="eco-graf" role="img" aria-label="Sloupcový graf čistého jmění za posledních 6 měsíců">
+            {grafJmeni.map((b) => (
+              <div key={b.mesic} className="eco-graf-sloupec-wrap">
+                <div
+                  className="eco-graf-sloupec"
+                  style={{ height: `${b.vyskaProcent}%` }}
+                  title={`${b.label}: ${b.hodnota.toLocaleString('cs-CZ')} Kč`}
+                />
+                <span className="eco-graf-popisek">{b.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className={panelClass}>
           <div className="eco-panel-hlavicka">
             <h2>Výdaje podle kategorie</h2>
             <span className="eco-obdobi-znacka">Tento měsíc</span>
@@ -204,7 +294,7 @@ export const EconomyRoomModule: React.FC = () => {
           )}
         </div>
 
-        <div className="eco-panel">
+        <div className={panelClass}>
           <div className="eco-panel-hlavicka">
             <h2>Předpověď plateb</h2>
             <span className="eco-obdobi-znacka">Podle opakujících se plateb</span>
@@ -237,7 +327,7 @@ export const EconomyRoomModule: React.FC = () => {
           )}
         </div>
 
-        <div className="eco-panel">
+        <div className={panelClass}>
           <div className="eco-panel-hlavicka">
             <h2>Rychlé akce</h2>
           </div>
@@ -268,6 +358,51 @@ export const EconomyRoomModule: React.FC = () => {
               <span className="eco-akce-nazev">Kategorie</span>
             </button>
           </div>
+        </div>
+
+        <div className={panelClass}>
+          <div className="eco-panel-hlavicka">
+            <h2>Finanční kalkulačky</h2>
+            <span className="eco-obdobi-znacka">Nové nástroje</span>
+          </div>
+
+          <div className="eco-akce-mrizka eco-akce-mrizka--dva">
+            <button className="eco-akce-dlazdice" onClick={() => otevritKalkulacky('sporici-simulator')}>
+              <span className="eco-text--green">
+                <AppIcon name="trending-up" size={22} />
+              </span>
+              <span className="eco-akce-nazev">Spořicí simulátor</span>
+            </button>
+            <button className="eco-akce-dlazdice" onClick={() => otevritKalkulacky('uver-kalkulacka')}>
+              <span className="eco-text--orange">
+                <AppIcon name="finance" size={22} />
+              </span>
+              <span className="eco-akce-nazev">Splátkový kalkulátor</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="fs-dlazdice-sekce-hlavicka">
+          <span className="fs-dlazdice-sekce-ikona fs-barva--gold">
+            <AppIcon name="sparkles" size={14} />
+          </span>
+          <h3>VIP</h3>
+        </div>
+
+        <div className={panelClass}>
+          <div className="eco-panel-hlavicka">
+            <h2>👑 VIP: Finanční tip dne</h2>
+          </div>
+
+          {smiVip ? (
+            <p className="eco-tip-dne">
+              <AppIcon name="lightbulb" size={16} /> {financniTipDne()}
+            </p>
+          ) : (
+            <button className="eco-vip-zamceno" onClick={() => setVipZprava('Denní finanční tip je jen pro VIP.')}>
+              🔒 Odemkni denní finanční tip s VIP
+            </button>
+          )}
         </div>
       </FlagshipShell>
 

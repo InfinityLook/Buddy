@@ -62,6 +62,13 @@ export type ActivityKind =
   // checkWeeklyDigest jinde v appce, jen tady brání farmění XP, ne
   // opakovanému oznámení.
   | 'mobilita'
+  // Spořicí simulátor (Economy Roomova nová appka) — uložení scénáře
+  // je "vytvořil jsem něco" akce stejného druhu jako Citace/dokument,
+  // ne opakovaná drobná činnost bez přirozeného limitu (na rozdíl od
+  // toho appka Splátkovému kalkulátoru žádné XP nedává vůbec — přidání
+  // dluhu do seznamu je čistě datový vstup bez přirozeného stropu,
+  // stejná úvaha jako u Jídelníčku/Pitného režimu).
+  | 'sporeni'
 
 // Které ActivityKindy se počítají do fitnessXp (Fitness Roomův
 // žebříček, Fáze 4) — 'workout' je Form Check, zbytek jsou tři další
@@ -184,6 +191,8 @@ export const DEFAULT_BADGES: Badge[] = [
   // hlídá, žádné ruční ověřování tu na rozdíl od maratonec/silak/stovkar
   // nepotřeba.
   { id: 'harmonie', title: 'Harmonie', description: 'Dokonči rozcvičku, strečink nebo jógu v 10 různých dnech.', icon: '🧘', unlockedAt: null },
+  // Economy Roomova nová appka — Spořicí simulátor.
+  { id: 'sporitel', title: 'Spořitel', description: 'Ulož 10 scénářů ve Spořicím simulátoru.', icon: '💹', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti. 'souboj'
@@ -226,6 +235,7 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   behani: { badgeId: 'vytrvalec', needed: 10 },
   posilovna: { badgeId: 'posilak', needed: 10 },
   mobilita: { badgeId: 'harmonie', needed: 10 },
+  sporeni: { badgeId: 'sporitel', needed: 10 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není

@@ -1,0 +1,289 @@
+.spsim {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.spsim-disclaimer {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.65rem;
+  line-height: 1.4;
+}
+
+.spsim-panel {
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.spsim-panel h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.spsim-panel-popis {
+  margin: -0.4rem 0 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.spsim-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.7rem;
+}
+
+.spsim-form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.spsim-form-grid input,
+.spsim-cil-input input {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+  font-family: inherit;
+}
+
+.spsim-souhrn {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+}
+
+.spsim-souhrn-polozka {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.5rem;
+  text-align: center;
+}
+
+.spsim-souhrn-polozka span {
+  font-size: 0.66rem;
+  color: var(--text-secondary);
+}
+
+.spsim-souhrn-polozka strong {
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.spsim-souhrn-polozka--zisk strong {
+  color: var(--accent-green);
+}
+
+.spsim-souhrn-polozka--celkem strong {
+  color: var(--accent-cyan);
+}
+
+/* ------------------------------------------
+   GRAF RŮSTU ÚSPOR — stohovaný sloupcový graf (vloženo + úrok), žádná
+   knihovna, stejný "výška v procentech z pevné výšky kontejneru" trik
+   jako Fitness Roomovo .fit-graf/Economy Roomovo .eco-graf.
+   ------------------------------------------ */
+.spsim-graf {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.35rem;
+  height: 100px;
+  overflow-x: auto;
+}
+
+.spsim-graf-sloupec-wrap {
+  flex: 1;
+  min-width: 14px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.spsim-graf-sloupec {
+  width: 100%;
+  display: flex;
+  flex-direction: column-reverse;
+  justify-content: flex-start;
+}
+
+.spsim-graf-segment {
+  width: 100%;
+  min-height: 2px;
+}
+
+.spsim-graf-segment--vlozeno {
+  background: var(--accent-cyan);
+  border-radius: 3px 3px 0 0;
+}
+
+.spsim-graf-segment--urok {
+  background: var(--accent-green);
+}
+
+.spsim-graf-popisek {
+  font-size: 0.62rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.spsim-legenda {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.spsim-legenda-tecka {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  margin-right: 0.3rem;
+}
+
+.spsim-legenda-tecka--vlozeno {
+  background: var(--accent-cyan);
+}
+
+.spsim-legenda-tecka--urok {
+  background: var(--accent-green);
+}
+
+.spsim-ulozit-btn {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem;
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.spsim-mini-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.spsim-mini-form input {
+  flex: 1;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.6rem;
+  color: var(--text-primary);
+  font-family: inherit;
+}
+
+.spsim-mini-form button {
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.7rem;
+  font-weight: 700;
+  font-size: 0.78rem;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.spsim-mini-form button[type='submit'] {
+  background: var(--accent-green);
+  color: #04250f;
+}
+
+.spsim-mini-form button[type='button'] {
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
+.spsim-cil-input {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+.spsim-vysledek-vkladu {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.spsim-scenare-seznam {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.spsim-scenar-radek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.65rem;
+}
+
+.spsim-scenar-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.spsim-scenar-text strong {
+  font-size: 0.84rem;
+}
+
+.spsim-scenar-text span {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+}
+
+.spsim-scenar-akce {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.spsim-scenar-akce button {
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.spsim-smazat-btn {
+  color: var(--accent-red, #ef4444) !important;
+}

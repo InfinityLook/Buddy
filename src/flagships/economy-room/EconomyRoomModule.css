@@ -332,3 +332,106 @@
     font-size: 2.6rem;
   }
 }
+
+/* ------------------------------------------
+   FINANČNÍ KALKULAČKY — dvoudlaždicová varianta .eco-akce-mrizka
+   (výchozí je repeat(4, 1fr) výš, tady jen dva nové nástroje).
+   ------------------------------------------ */
+.eco-akce-mrizka--dva {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* ------------------------------------------
+   VÝVOJ ČISTÉHO JMĚNÍ — malý sloupcový graf, žádná knihovna, stejný
+   tvar jako Fitness Roomův .fit-graf.
+   ------------------------------------------ */
+.eco-graf {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  height: 72px;
+}
+
+.eco-graf-sloupec-wrap {
+  flex: 1;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.eco-graf-sloupec {
+  width: 100%;
+  min-height: 4px;
+  border-radius: 3px 3px 0 0;
+  background: linear-gradient(0deg, var(--accent-green), var(--accent-cyan));
+}
+
+.eco-graf-popisek {
+  font-size: 0.66rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ------------------------------------------
+   VIP — zlatý reskin panelů (.eco-panel--zlaty) a zamčený obsah,
+   stejná paleta jako Fitness Roomovo .fit-panel--zlaty/.fit-vip-zamceno.
+   .fs-dlazdice-sekce-hlavicka/.fs-barva--gold jsou sdílené třídy, už
+   načtené přes FlagshipShell.css — žádná nová definice tu není potřeba.
+   ------------------------------------------ */
+.eco-panel--zlaty {
+  background: linear-gradient(135deg, rgba(233, 220, 192, 0.12), rgba(216, 198, 159, 0.05));
+  border-color: rgba(216, 198, 159, 0.4);
+}
+
+.eco-panel--zlaty h2 {
+  color: #e9dcc0;
+}
+
+.eco-panel-hlavicka-akce {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.eco-historie-btn--zlaty-aktivni {
+  border-color: #d8c69f;
+  color: #d8c69f;
+  background: rgba(216, 198, 159, 0.15);
+}
+
+.eco-vip-zprava {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: rgba(216, 198, 159, 0.12);
+  border: 1px solid rgba(216, 198, 159, 0.4);
+  color: #e9dcc0;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.eco-tip-dne {
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.eco-vip-zamceno {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed var(--border-subtle);
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 0.6rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+}

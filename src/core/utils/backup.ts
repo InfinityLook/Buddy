@@ -98,6 +98,9 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-rozvrh-storage', storage: 'secure', label: 'Rozvrh' },
   { key: 'schoolbuddy-znamky-storage', storage: 'secure', label: 'Známky' },
   { key: 'schoolbuddy-citace-storage', storage: 'secure', label: 'Citace' },
+  // Economy Roomovo první kolo nových appek.
+  { key: 'schoolbuddy-sporici-simulator-storage', storage: 'secure', label: 'Spořicí simulátor' },
+  { key: 'schoolbuddy-uver-kalkulacka-storage', storage: 'secure', label: 'Splátkový kalkulátor' },
   { key: 'schoolbuddy-skola-cil-storage', storage: 'secure', label: 'Studijní cíl School Roomu' },
   { key: 'schoolbuddy-profile-storage', storage: 'secure', label: 'Profil' },
   // Na rozdíl od role/kreditů níž je restorable: true bezpečné i pro
