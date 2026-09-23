@@ -60,7 +60,10 @@ interface GoalTrackerState {
   // připomínek výš se porovnává týden, ne den, protože se posílá nejvýš
   // jednou týdně, ne jednou denně.
   lastDigestWeekKey: string | null
-  changeProgress: (id: string, amount: number) => void
+  // Vrací, jestli tenhle konkrétní krok cíl PRÁVĚ TEĎ poprvé dokončil —
+  // GoalTracker.tsx to čte synchronně po zavolání, ať ví, jestli má
+  // spustit oslavu, aniž by musel sám znovu propočítávat totéž.
+  changeProgress: (id: string, amount: number) => boolean
   addGoal: (vstup: NovyCilVstup) => void
   updateGoal: (id: string, vstup: NovyCilVstup) => void
   deleteGoal: (id: string) => void
@@ -104,6 +107,8 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
         // recordAction, ne holé addXp — počítadlo splněných cílů a XP se
         // tak nemůžou rozejít, stejně jako u ostatních miniapek.
         if (justCompleted) useGamificationStore.getState().recordAction('goal', XP_PER_COMPLETED_GOAL)
+
+        return justCompleted
       },
 
       addGoal: (vstup) => {
@@ -184,6 +189,14 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
         }
 
         set((state) => ({ goals: [...state.goals, newGoal] }))
+
+        // Skutečný bug: addGoal/updateGoal se svolení k notifikacím ptají
+        // vždycky, když vzniká/upravuje se návyk — pridatZeSablony (např.
+        // šablony "Cvičit 5× týdně"/"Meditovat každý den") ale tenhle krok
+        // přeskakovala úplně, takže návyk založený ze šablony nikdy
+        // nedostal svolení a checkHabitReminders pro něj tak nemohl nikdy
+        // nic poslat, tiše a bez varování.
+        if (sablona.typ === 'navyk') requestNotificationPermission()
       },
 
       oznacitNavykDnes: (id) => {
@@ -430,6 +443,11 @@ export const useGoalTracker = () => {
 
   return {
     goals: filteredGoals,
+    // Nefiltrovaný seznam napříč VŠEMI kategoriemi — export do CSV má
+    // exportovat úplně všechno, ne jen to, na co je zrovna nastavený
+    // filtr kategorií na obrazovce (stejná zásada jako Form Checkovo
+    // CSV, co exportuje celou historii bez ohledu na aktuální náhled).
+    allGoals: goals,
     activeGoals,
     archivedGoals,
     totalCount: goals.length,

@@ -295,3 +295,41 @@
   font-size: 0.75rem;
   font-weight: 700;
 }
+
+/* ------------------------------------------
+   ZLATÝ VZHLED (VIP) — reskin sdílený všemi panely, viz
+   GrowthRoomModule.tsx's panelClass. Stejná sepia/gold paleta jako
+   Writer's Roomovo vlastní --zlaty (Zlatý papír) a Fitness Roomovo
+   fit-panel--zlaty.
+   ------------------------------------------ */
+.gro-panel--zlaty {
+  background: linear-gradient(135deg, rgba(233, 220, 192, 0.12), rgba(216, 198, 159, 0.05));
+  border-color: rgba(216, 198, 159, 0.4);
+}
+
+.gro-panel--zlaty h2 {
+  color: #e9dcc0;
+}
+
+.gro-panel-hlavicka-akce {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.gro-historie-btn--zlaty-aktivni {
+  border-color: #d8c69f;
+  color: #d8c69f;
+  background: rgba(216, 198, 159, 0.15);
+}
+
+.gro-vip-zprava {
+  margin: 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: var(--radius-sm);
+  background: rgba(216, 198, 159, 0.12);
+  border: 1px solid rgba(216, 198, 159, 0.4);
+  color: #e9dcc0;
+  font-size: 0.76rem;
+  font-weight: 600;
+}

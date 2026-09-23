@@ -259,6 +259,11 @@
   line-height: 1;
 }
 
+.gt-sablony-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
 /* ------------------------------------------
    META ŘÁDEK — priorita/termín/typ/milníky vedle kategorie
    ------------------------------------------ */
@@ -530,3 +535,77 @@
 
 .gt-sablona-nazev { font-size: 0.75rem; font-weight: 700; }
 .gt-sablona-popis { font-size: 0.65rem; color: #94a3b8; }
+
+.gt-sablona-radek.je-zamceno { opacity: 0.75; }
+
+.gt-vip-odznak {
+  display: inline-flex;
+  margin-left: 0.35rem;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #f5c451;
+  vertical-align: middle;
+}
+
+/* ------------------------------------------
+   VLASTNÍ MNOŽSTVÍ POKROKU — malé pole vedle ±1 tlačítek, pro cíle
+   s velkým target (peníze, stránky), kde by přidávání po jedné bylo
+   nepoužitelné.
+   ------------------------------------------ */
+.gt-vlastni-row {
+  display: flex;
+  gap: 0.35rem;
+  margin-top: 0.2rem;
+}
+
+.gt-vlastni-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.68rem;
+}
+
+.gt-vlastni-btn {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #cbd5e1;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.gt-vlastni-btn:hover { border-color: rgba(168, 85, 247, 0.4); color: #c084fc; }
+
+/* ------------------------------------------
+   OSLAVA PŘI SPLNĚNÍ CÍLE — krátký banner nahoře v kartě, sám zmizí po
+   pár vteřinách (viz oslavaTimerRef v GoalTracker.tsx), žádné tlačítko
+   na zavření.
+   ------------------------------------------ */
+.gt-oslava {
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.25), rgba(52, 211, 153, 0.1));
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  color: #34d399;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-align: center;
+  padding: 0.4rem;
+  border-radius: 8px;
+  margin-bottom: 0.4rem;
+  animation: gtOslavaPop 0.35s ease;
+}
+
+@keyframes gtOslavaPop {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gt-oslava { animation: none; }
+}

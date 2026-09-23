@@ -89,6 +89,10 @@ export interface SablonaCile {
   target: number
   unit: string
   category: GoalCategory
+  // Vidí ji každý (appka nikdy neschovává, co existuje), použije jen
+  // VIP účet — stejná "vidět, ne použít" zásada jako u Writer's Roomova
+  // SablonaKapitol.vip. Chybějící pole = volně dostupná šablona.
+  vip?: boolean
 }
 
 export const SABLONY_CILU: SablonaCile[] = [
@@ -98,6 +102,12 @@ export const SABLONY_CILU: SablonaCile[] = [
   { id: 'cviceni', nazev: 'Cvičit 5× týdně', popis: 'Pravidelný pohyb', typ: 'navyk', target: 5, unit: '', category: 'Návyky' },
   { id: 'meditace', nazev: 'Meditovat každý den', popis: 'Krátká denní meditace', typ: 'navyk', target: 7, unit: '', category: 'Návyky' },
   { id: 'diplomka', nazev: 'Napsat 100 stran diplomky', popis: 'Rozdělené na zvládnutelné kroky', typ: 'cil', target: 100, unit: 'stran', category: 'Studium' },
+  // Exkluzivní VIP šablony — záměrně o řád náročnější verze existujících
+  // (100 000 Kč místo 20 000, cvičení každý den místo 5×), ne dvě
+  // vymyšlené kategorie navíc, ať je rozdíl od volných šablon na první
+  // pohled jasný.
+  { id: 'usporit-velky', nazev: 'Ušetřit 100 000 Kč', popis: 'Velký finanční cíl na rok', typ: 'cil', target: 100000, unit: 'Kč', category: 'Osobní', vip: true },
+  { id: 'cviceni-kazdyden', nazev: 'Cvičit každý den', popis: 'Náročnější verze pravidelného pohybu', typ: 'navyk', target: 7, unit: '', category: 'Návyky', vip: true },
 ]
 
 // ==========================================
@@ -318,4 +328,58 @@ export const compareGoals = (a: Goal, b: Goal): number => {
   if (aTermin !== bTermin) return aTermin.localeCompare(bTermin)
 
   return PRIORITA_VAHA[a.priority ?? 'stredni'] - PRIORITA_VAHA[b.priority ?? 'stredni']
+}
+
+// ==========================================
+// Sdílení pokroku — čistý stavební blok textu, appka sama nikdy
+// nepošle nic přímo (core/utils/sdileni.ts's sdilejText to udělá),
+// tady jen skládá, CO se pošle, ať je to testovatelné bez Web Share
+// API. Číselný cíl posílá procenta, návyk posílá aktuální sérii —
+// stejné dvě různé věci, co appka jinde ukazuje odděleně.
+// ==========================================
+export const sestavTextSdileniCile = (goal: Goal, dnes = new Date()): string => {
+  if ((goal.typ ?? 'cil') === 'navyk') {
+    const serie = spocitejSeriiNavyku(goal, dnes)
+    return `🔁 „${goal.title}“ — ${serie} ${serie === 1 ? 'den' : serie >= 2 && serie <= 4 ? 'dny' : 'dní'} v řadě! 💪`
+  }
+  const percent = goal.target > 0 ? Math.min(100, Math.round((goal.current / goal.target) * 100)) : 0
+  return `🎯 „${goal.title}“ — ${goal.current}/${goal.target}${goal.unit ? ` ${goal.unit}` : ''} (${percent} %)`
+}
+
+// ==========================================
+// Export do CSV — stejná česká Excel konvence (středník, BOM) jako
+// Form Checkova sestavCsvSezeni, samostatná kopie csvEscape místo
+// importu odtamtud — nezávislé miniapky, stejná přijatá duplikace jako
+// BARVY_UZLU jinde v appce.
+// ==========================================
+const csvEscape = (hodnota: string): string => {
+  if (/[";\n]/.test(hodnota)) return `"${hodnota.replace(/"/g, '""')}"`
+  return hodnota
+}
+
+export const sestavCsvCilu = (goals: Goal[], dnes = new Date()): string => {
+  const hlavicka = ['Název', 'Typ', 'Kategorie', 'Priorita', 'Termín', 'Pokrok', 'Stav', 'Datum splnění', 'Poznámka'].join(
+    ';'
+  )
+  const radky = goals.map((g) => {
+    const jeNavyk = (g.typ ?? 'cil') === 'navyk'
+    const pokrok = jeNavyk
+      ? `${spocitejTydenniPokrokNavyku(g, dnes)}/${g.target}× týdně, série ${spocitejSeriiNavyku(g, dnes)}`
+      : `${g.current}/${g.target}${g.unit ? ` ${g.unit}` : ''}`
+    return [
+      csvEscape(g.title),
+      jeNavyk ? 'Návyk' : 'Cíl',
+      g.category,
+      PRIORITA_LABEL[g.priority ?? 'stredni'],
+      g.deadline ?? '',
+      csvEscape(pokrok),
+      jeHotovyCil(g) ? 'Splněno' : 'Aktivní',
+      g.completedAt ? new Date(g.completedAt).toLocaleDateString('cs-CZ') : '',
+      csvEscape(g.poznamka ?? ''),
+    ].join(';')
+  })
+  // BOM na začátku, ať Excel český text (diakritiku) rozpozná jako
+  // UTF-8 a nezobrazí ho jako změť — bez něj Excel často naslepo
+  // předpokládá Windows-1250.
+  return `﻿${[hlavicka, ...radky].join('\r\n')}`
 }

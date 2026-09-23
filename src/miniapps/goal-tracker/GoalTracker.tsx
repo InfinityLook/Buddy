@@ -1,5 +1,8 @@
-import React, { useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useGoalTracker } from './useGoalTracker'
+import { useHasPermission } from '@/core/role'
+import { sdilejText } from '@/core/utils/sdileni'
+import { stahnoutTextovySoubor } from '@/core/utils/download'
 import {
   ALL_GOALS,
   GOAL_CATEGORIES,
@@ -10,8 +13,11 @@ import {
   GoalTyp,
   PRIORITA_LABEL,
   SABLONY_CILU,
+  SablonaCile,
   formatujTermin,
   jeNavykOznacenDnes,
+  sestavCsvCilu,
+  sestavTextSdileniCile,
   spocitejHeatmapuNavyku,
   spocitejSeriiNavyku,
   spocitejTydenniPokrokNavyku,
@@ -22,6 +28,7 @@ export const GoalTracker: React.FC = () => {
   const {
     activeGoals,
     archivedGoals,
+    allGoals,
     totalCount,
     doneCount,
     filter,
@@ -37,6 +44,8 @@ export const GoalTracker: React.FC = () => {
     prepnoutMilnik,
     smazatMilnik,
   } = useGoalTracker()
+
+  const smiVip = useHasPermission('cosmetics.premium')
 
   // null = zavřeno, '' = zakládá se nový, jinak id upravovaného cíle
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -116,6 +125,82 @@ export const GoalTracker: React.FC = () => {
     setNovyMilnikCilId(null)
   }
 
+  // ------------------------------------------
+  // Vlastní množství pokroku — ±1 tlačítka zůstávají na jemné doladění,
+  // tohle je pro cíle s velkým target (např. "Ušetřit 20 000 Kč" by
+  // jinak čekalo 20 000 kliknutí). changeProgress přijímá libovolné
+  // celé číslo (kladné i záporné) beze změny — jen UI k tomu chybělo.
+  // Stejný "jedno aktivní pole napříč kartami" tvar jako
+  // novyMilnikCilId/novyMilnikText výš.
+  // ------------------------------------------
+  const [vlastniMnozstviCilId, setVlastniMnozstviCilId] = useState<string | null>(null)
+  const [vlastniMnozstviText, setVlastniMnozstviText] = useState('')
+
+  // Oslava při dokončení cíle — krátký banner uvnitř karty, co se sám
+  // po chvíli schová, stejný "self-clearing banner" vzor jako Fitness
+  // Roomova týdenní oslava/Souboj's phone-výsledek. changeProgress teď
+  // vrací, jestli tenhle konkrétní krok cíl PRÁVĚ dokončil, takže se to
+  // dá spustit synchronně po volání, ne dohledávat zpětně z props.
+  const [oslavaCilId, setOslavaCilId] = useState<string | null>(null)
+  const oslavaTimerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (oslavaTimerRef.current !== null) window.clearTimeout(oslavaTimerRef.current)
+    }
+  }, [])
+
+  const zmenPokrokASlavit = (goalId: string, amount: number) => {
+    const dokonceno = changeProgress(goalId, amount)
+    if (dokonceno) {
+      setOslavaCilId(goalId)
+      if (oslavaTimerRef.current !== null) window.clearTimeout(oslavaTimerRef.current)
+      oslavaTimerRef.current = window.setTimeout(() => setOslavaCilId(null), 3000)
+    }
+  }
+
+  const handlePridatVlastniMnozstvi = (goalId: string) => {
+    const amount = Math.trunc(Number(vlastniMnozstviText))
+    // !amount zachytí prázdný vstup i NaN zároveň (obojí je falsy) —
+    // druhá samostatná NaN kontrola by tu byla mrtvý kód.
+    if (!amount) return
+    zmenPokrokASlavit(goalId, amount)
+    setVlastniMnozstviText('')
+    setVlastniMnozstviCilId(null)
+  }
+
+  // ------------------------------------------
+  // Sdílení a export — obojí čte hotový text/CSV z types.ts, appka jen
+  // pošle výsledek dál (core/utils/sdileni.ts/download.ts, stejné
+  // sdílené mechanismy jako Souboj/Fitness Room/Form Check).
+  // ------------------------------------------
+  const handleSdiletCil = (goal: Goal) => {
+    void sdilejText(sestavTextSdileniCile(goal), 'Goal Tracker')
+  }
+
+  const handleExportCsv = () => {
+    if (allGoals.length === 0) return
+    stahnoutTextovySoubor('cile.csv', sestavCsvCilu(allGoals))
+  }
+
+  // ------------------------------------------
+  // VIP šablony — vidí je každý (appka nic neschovává), založí jen VIP
+  // účet. Klepnutí na zamčenou šablonu nic nezaloží, jen krátce vysvětlí
+  // proč — stejná "žádná falešná akce" disciplína jako Writer's Roomovy
+  // exkluzivní šablony kapitol/scén.
+  // ------------------------------------------
+  const [zpravaSablona, setZpravaSablona] = useState<string | null>(null)
+
+  const handleKliknutiNaSablonu = (sablona: SablonaCile) => {
+    if (sablona.vip && !smiVip) {
+      setZpravaSablona('Tahle šablona je jen pro VIP.')
+      return
+    }
+    setZpravaSablona(null)
+    pridatZeSablony(sablona.id)
+    setSablonyOtevrene(false)
+  }
+
   const renderCard = (g: Goal) => {
     const jeNavyk = (g.typ ?? 'cil') === 'navyk'
     const isDone = !jeNavyk && g.current >= g.target
@@ -129,9 +214,14 @@ export const GoalTracker: React.FC = () => {
 
     return (
       <div key={g.id} className={`gt-card ${isDone ? 'is-done' : ''}`}>
+        {oslavaCilId === g.id && <div className="gt-oslava">🎉 Cíl splněn! +25 XP</div>}
+
         <div className="gt-card-head">
           <span className="gt-title">{g.title}</span>
           <div className="gt-card-actions">
+            <button className="gt-icon-btn" onClick={() => handleSdiletCil(g)} aria-label={`Sdílet pokrok ${g.title}`}>
+              📤
+            </button>
             <button
               className="gt-icon-btn"
               onClick={() => setExpandedId(jeRozbaleno ? null : g.id)}
@@ -198,15 +288,42 @@ export const GoalTracker: React.FC = () => {
                   než smazáním celého cíle. */}
               <button
                 className="gt-step-btn"
-                onClick={() => changeProgress(g.id, -1)}
+                onClick={() => zmenPokrokASlavit(g.id, -1)}
                 disabled={g.current === 0}
                 aria-label="Ubrat pokrok"
               >
                 −
               </button>
 
-              <button className="gt-inc-btn" onClick={() => changeProgress(g.id, 1)} disabled={isDone}>
+              <button className="gt-inc-btn" onClick={() => zmenPokrokASlavit(g.id, 1)} disabled={isDone}>
                 {isDone ? 'Splněno 🎉' : '+ Přidat pokrok'}
+              </button>
+            </div>
+
+            {/* Bez isDone podmínky schválně — i hotový cíl smí dostat
+                záporné vlastní množství, stejně jako ho smí ubrat i
+                tlačítko "−" výš, jen po jedné. */}
+            <div className="gt-vlastni-row">
+              <input
+                type="number"
+                className="gt-vlastni-input"
+                placeholder="Vlastní množství (+ / −)"
+                aria-label="Vlastní množství pokroku"
+                value={vlastniMnozstviCilId === g.id ? vlastniMnozstviText : ''}
+                onFocus={() => setVlastniMnozstviCilId(g.id)}
+                onChange={(e) => {
+                  setVlastniMnozstviCilId(g.id)
+                  setVlastniMnozstviText(e.target.value)
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handlePridatVlastniMnozstvi(g.id)
+                  }
+                }}
+              />
+              <button type="button" className="gt-vlastni-btn" onClick={() => handlePridatVlastniMnozstvi(g.id)}>
+                Přidat
               </button>
             </div>
           </>
@@ -298,9 +415,19 @@ export const GoalTracker: React.FC = () => {
         <h2>Goal Tracker</h2>
         <div className="gt-header-actions">
           {!isFormOpen && (
-            <button className="gt-sablony-btn" onClick={() => setSablonyOtevrene(true)} aria-label="Vybrat ze šablony">
-              📐
-            </button>
+            <>
+              <button
+                className="gt-sablony-btn"
+                onClick={handleExportCsv}
+                disabled={allGoals.length === 0}
+                aria-label="Exportovat cíle do CSV"
+              >
+                ⬇
+              </button>
+              <button className="gt-sablony-btn" onClick={() => setSablonyOtevrene(true)} aria-label="Vybrat ze šablony">
+                📐
+              </button>
+            </>
           )}
           <button className="gt-add-btn" onClick={isFormOpen ? closeForm : openAdd}>
             {isFormOpen ? '✕' : '+ Nový Cíl'}
@@ -446,21 +573,23 @@ export const GoalTracker: React.FC = () => {
                 ✕
               </button>
             </div>
-            {SABLONY_CILU.map((s) => (
-              <button
-                key={s.id}
-                className="gt-sablona-radek"
-                onClick={() => {
-                  pridatZeSablony(s.id)
-                  setSablonyOtevrene(false)
-                }}
-              >
-                <span className="gt-sablona-nazev">
-                  {s.typ === 'navyk' ? '🔁' : '🎯'} {s.nazev}
-                </span>
-                <span className="gt-sablona-popis">{s.popis}</span>
-              </button>
-            ))}
+            {SABLONY_CILU.map((s) => {
+              const zamceno = !!s.vip && !smiVip
+              return (
+                <button
+                  key={s.id}
+                  className={`gt-sablona-radek${zamceno ? ' je-zamceno' : ''}`}
+                  onClick={() => handleKliknutiNaSablonu(s)}
+                >
+                  <span className="gt-sablona-nazev">
+                    {s.typ === 'navyk' ? '🔁' : '🎯'} {s.nazev}
+                    {s.vip && <span className="gt-vip-odznak">{zamceno ? '🔒' : '👑'} VIP</span>}
+                  </span>
+                  <span className="gt-sablona-popis">{s.popis}</span>
+                </button>
+              )
+            })}
+            {zpravaSablona && <p className="gt-milniky-prazdno">{zpravaSablona}</p>}
           </div>
         </div>
       )}

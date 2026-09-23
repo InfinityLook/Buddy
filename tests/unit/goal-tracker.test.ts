@@ -5,6 +5,9 @@ import {
   formatujTermin,
   jeNavykOznacenDnes,
   sanitizujCil,
+  SABLONY_CILU,
+  sestavCsvCilu,
+  sestavTextSdileniCile,
   spocitejHeatmapuNavyku,
   spocitejSeriiNavyku,
   spocitejTydenniPokrokNavyku,
@@ -350,5 +353,101 @@ describe('spocitejPodleKategorie', () => {
     const vysledek = spocitejPodleKategorie(goals)
     expect(vysledek.find((k) => k.category === 'Studium')?.count).toBe(1)
     expect(vysledek.find((k) => k.category === 'Návyky')?.count).toBe(1)
+  })
+})
+
+describe('sestavTextSdileniCile', () => {
+  const dnes = new Date('2026-08-15T12:00:00')
+
+  it('u číselného cíle sdílí pokrok a procenta', () => {
+    const goal = cil({ title: 'Přečíst 12 knih', current: 3, target: 12, unit: 'knih' })
+    const text = sestavTextSdileniCile(goal, dnes)
+    expect(text).toContain('Přečíst 12 knih')
+    expect(text).toContain('3/12 knih')
+    expect(text).toContain('25 %')
+  })
+
+  it('u návyku sdílí aktuální sérii, ne current/target', () => {
+    const goal = cil({
+      title: 'Cvičit',
+      typ: 'navyk',
+      navykDny: ['2026-08-15', '2026-08-14', '2026-08-13'],
+    })
+    const text = sestavTextSdileniCile(goal, dnes)
+    expect(text).toContain('Cvičit')
+    expect(text).toContain('3 dny v řadě')
+  })
+
+  it('sérii 1 den skloňuje jednotně, 5+ dní genitivem množným', () => {
+    expect(sestavTextSdileniCile(cil({ typ: 'navyk', navykDny: ['2026-08-15'] }), dnes)).toContain('1 den v řadě')
+    expect(
+      sestavTextSdileniCile(
+        cil({
+          typ: 'navyk',
+          navykDny: ['2026-08-15', '2026-08-14', '2026-08-13', '2026-08-12', '2026-08-11'],
+        }),
+        dnes
+      )
+    ).toContain('5 dní v řadě')
+  })
+
+  it('cíl s target 0 nespadne dělením nulou', () => {
+    const goal = cil({ current: 0, target: 0 })
+    expect(() => sestavTextSdileniCile(goal, dnes)).not.toThrow()
+  })
+})
+
+describe('sestavCsvCilu', () => {
+  it('obsahuje UTF-8 BOM a hlavičku se středníkem jako oddělovačem', () => {
+    const csv = sestavCsvCilu([])
+    expect(csv.charCodeAt(0)).toBe(0xfeff)
+    expect(csv).toContain('Název;Typ;Kategorie;Priorita;Termín;Pokrok;Stav;Datum splnění;Poznámka')
+  })
+
+  it('číselný cíl exportuje pokrok jako current/target a jednotku', () => {
+    const goal = cil({ title: 'Ušetřit', current: 500, target: 20000, unit: 'Kč', category: 'Osobní' })
+    const csv = sestavCsvCilu([goal])
+    expect(csv).toContain('Ušetřit')
+    expect(csv).toContain('500/20000 Kč')
+    expect(csv).toContain('Cíl')
+    expect(csv).toContain('Aktivní')
+  })
+
+  it('splněný cíl exportuje "Splněno" a skutečné datum splnění', () => {
+    const goal = cil({ current: 10, target: 10, completedAt: '2026-01-15T10:00:00.000Z' })
+    const csv = sestavCsvCilu([goal])
+    expect(csv).toContain('Splněno')
+    expect(csv).toContain('15. 1. 2026')
+  })
+
+  it('návykový cíl exportuje týdenní pokrok a sérii, ne current/target', () => {
+    const dnes = new Date('2026-08-15T12:00:00')
+    const goal = cil({ typ: 'navyk', target: 5, navykDny: ['2026-08-15', '2026-08-14'] })
+    const csv = sestavCsvCilu([goal], dnes)
+    expect(csv).toContain('Návyk')
+    expect(csv).toContain('2/5× týdně, série 2')
+  })
+
+  it('poznámka s uvozovkou/středníkem/zalomením řádku se escapuje jako v CSV', () => {
+    const goal = cil({ poznamka: 'Obsahuje; středník a "uvozovky"' })
+    const csv = sestavCsvCilu([goal])
+    expect(csv).toContain('"Obsahuje; středník a ""uvozovky"""')
+  })
+})
+
+describe('SABLONY_CILU — exkluzivní VIP šablony', () => {
+  it('obsahuje aspoň dvě VIP šablony, vidět je má každý (žádná se neschovává)', () => {
+    const vipSablony = SABLONY_CILU.filter((s) => s.vip)
+    expect(vipSablony.length).toBeGreaterThanOrEqual(2)
+  })
+
+  it('volné šablony (bez vip) zůstávají beze změny dostupné', () => {
+    const volne = SABLONY_CILU.filter((s) => !s.vip)
+    expect(volne.length).toBeGreaterThanOrEqual(6)
+  })
+
+  it('každá šablona má unikátní id', () => {
+    const ids = SABLONY_CILU.map((s) => s.id)
+    expect(new Set(ids).size).toBe(ids.length)
   })
 })

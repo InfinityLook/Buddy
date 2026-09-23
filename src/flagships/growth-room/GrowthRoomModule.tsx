@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useGoalTracker } from '@/miniapps/goal-tracker/useGoalTracker'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { getLevelProgress, getXpForNextLevel } from '@/core/utils/gamificationUtils'
 import { plural } from '@/core/utils/pluralCZ'
+import { useHasPermission } from '@/core/role'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
@@ -56,6 +57,33 @@ export const GrowthRoomModule: React.FC = () => {
   const { level, xp, streakDays, badges } = useGamificationStore()
   const [notifOpen, setNotifOpen] = useState(false)
   const [appsOtevrene, setAppsOtevrene] = useState(false)
+
+  // ------------------------------------------
+  // Zlatý vzhled (VIP) — stejný panelClass reskin sdílený všemi panely
+  // jako Fitness Roomovo vlastní fit-panel--zlaty, jen nad
+  // gro-panel/gro-panel--zlaty. Session-only, nepřežije zavření appky;
+  // vipZprava se sama po chvíli schová, stejná krátká-oslava-bez-
+  // tlačítka logika jako u Fitness Roomovy týdenní oslavy.
+  // ------------------------------------------
+  const smiVip = useHasPermission('cosmetics.premium')
+  const [zlatyRezim, setZlatyRezim] = useState(false)
+  const [vipZprava, setVipZprava] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!vipZprava) return
+    const timer = window.setTimeout(() => setVipZprava(null), 3500)
+    return () => window.clearTimeout(timer)
+  }, [vipZprava])
+
+  const handleTogglZlaty = () => {
+    if (!smiVip) {
+      setVipZprava('Zlatý vzhled je jen pro VIP.')
+      return
+    }
+    setZlatyRezim((v) => !v)
+  }
+
+  const panelClass = smiVip && zlatyRezim ? 'gro-panel gro-panel--zlaty' : 'gro-panel'
 
   const otevritGoalTracker = () => {
     setActiveAppId('goal-tracker', '/growth')
@@ -114,16 +142,28 @@ export const GrowthRoomModule: React.FC = () => {
         onOpenNotifications={() => setNotifOpen(true)}
         onCloseNotifications={() => setNotifOpen(false)}
       >
-        <div className="gro-panel">
+        <div className={panelClass}>
           <div className="gro-panel-hlavicka">
             <div>
               <h2>Moje cíle</h2>
               <p>{doneCount} z {totalCount} splněno</p>
             </div>
-            <button className="gro-historie-btn" aria-label="Otevřít Goal Tracker" onClick={otevritGoalTracker}>
-              <AppIcon name="goal-tracker" size={18} />
-            </button>
+            <div className="gro-panel-hlavicka-akce">
+              <button
+                className={`gro-historie-btn ${smiVip && zlatyRezim ? 'gro-historie-btn--zlaty-aktivni' : ''}`}
+                aria-label="Zlatý vzhled (VIP)"
+                aria-pressed={zlatyRezim}
+                onClick={handleTogglZlaty}
+              >
+                <AppIcon name="sparkles" size={18} />
+              </button>
+              <button className="gro-historie-btn" aria-label="Otevřít Goal Tracker" onClick={otevritGoalTracker}>
+                <AppIcon name="goal-tracker" size={18} />
+              </button>
+            </div>
           </div>
+
+          {vipZprava && <p className="gro-vip-zprava">{vipZprava}</p>}
 
           {totalCount === 0 ? (
             <p className="gro-prazdno">Zatím nemáš žádný cíl. Založ první v Goal Trackeru.</p>
@@ -149,7 +189,7 @@ export const GrowthRoomModule: React.FC = () => {
         </div>
 
         {kategorie.length > 0 && (
-          <div className="gro-panel">
+          <div className={panelClass}>
             <div className="gro-panel-hlavicka">
               <h2>Cíle podle kategorie</h2>
             </div>
@@ -175,7 +215,7 @@ export const GrowthRoomModule: React.FC = () => {
         )}
 
         {nahledNavyku.length > 0 && (
-          <div className="gro-panel">
+          <div className={panelClass}>
             <div className="gro-panel-hlavicka">
               <h2>Nejdelší série</h2>
             </div>
@@ -193,7 +233,7 @@ export const GrowthRoomModule: React.FC = () => {
           </div>
         )}
 
-        <div className="gro-panel">
+        <div className={panelClass}>
           <div className="gro-panel-hlavicka">
             <h2>Úroveň &amp; odznaky</h2>
             <button className="gro-zobrazit-vse" onClick={() => navigate('/odmeny')}>
@@ -245,7 +285,7 @@ export const GrowthRoomModule: React.FC = () => {
           </div>
         </div>
 
-        <div className="gro-panel">
+        <div className={panelClass}>
           <div className="gro-panel-hlavicka">
             <h2>Rychlé akce</h2>
           </div>
