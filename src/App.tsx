@@ -64,6 +64,7 @@ import { setupFinanceRecurringCheck } from '@/miniapps/finance/useFinance'
 import { setupGoalTrackerReminders } from '@/miniapps/goal-tracker/useGoalTracker'
 import { startFinanceSync } from '@/miniapps/finance/financeSync'
 import { setupFitnessReminders } from '@/flagships/fitness-room/fitnessReminders'
+import { setupPitnyRezimReminders } from '@/flagships/fitness-room/pitnyRezimReminders'
 import { setupRozvrhReminders } from '@/miniapps/rozvrh/rozvrhReminders'
 
 export default function App() {
@@ -165,6 +166,9 @@ export default function App() {
     // Připomenutí tréninku ve Fitness Roomu — stejný vzor ještě jednou,
     // tentokrát nad Form Checkovou historií sezení.
     setupFitnessReminders()
+    // Připomenutí pitného režimu — stejný jednou-denně vzor, jen s
+    // pevným odpoledním časem místo tréninkových více nastavitelných.
+    setupPitnyRezimReminders()
     // Připomínka "za 10 minut máš hodinu" nad Rozvrhem — na rozdíl od
     // ostatních reminderů výš plánuje jeden přesný časovač na
     // nejbližší dnešní hodinu, ne jen jednou denní kontrolu.

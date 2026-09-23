@@ -25,8 +25,15 @@ export const PosilovaciSezeniSchema = v.object({
   createdAt: v.string(),
 })
 
+export const SablonaTreninkuSchema = v.object({
+  id: v.string(),
+  nazev: v.string(),
+  cviky: v.array(v.string()),
+})
+
 export const PosilovnaStateSchema = v.object({
   sezeni: v.optional(v.array(v.unknown()), []),
+  sablony: v.optional(v.array(v.unknown()), []),
 })
 
 export const validatePosilovnaData = (data: unknown) => {
@@ -43,5 +50,12 @@ export const validatePosilovnaData = (data: unknown) => {
     })
     .filter((s): s is v.Output<typeof PosilovaciSezeniSchema> => s !== null)
 
-  return { success: true as const, data: { sezeni } }
+  const sablony = result.output.sablony
+    .map((s) => {
+      const jedna = v.safeParse(SablonaTreninkuSchema, s)
+      return jedna.success ? jedna.output : null
+    })
+    .filter((s): s is v.Output<typeof SablonaTreninkuSchema> => s !== null)
+
+  return { success: true as const, data: { sezeni, sablony } }
 }

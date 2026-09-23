@@ -1,4 +1,5 @@
 import { showAppNotification } from '@/core/utils/notify'
+import { mistniDatum } from '@/core/utils/date'
 import { useFormCheckStore } from '@/miniapps/form-check/useFormCheck'
 import { NAZEV_CVIKU } from '@/miniapps/form-check/types'
 import { useFitnessCil } from './useFitnessCil'
@@ -22,8 +23,6 @@ import { useFitnessPripomenuti } from './useFitnessPripomenuti'
 
 let remindersStarted = false
 
-const todayIso = (): string => new Date().toISOString().slice(0, 10)
-
 const nynejsiCasHHMM = (): string => {
   const d = new Date()
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
@@ -31,9 +30,15 @@ const nynejsiCasHHMM = (): string => {
 
 const checkFitnessReminder = (): void => {
   const formState = useFormCheckStore.getState()
-  const today = todayIso()
+  // mistniDatum(), ne new Date().toISOString().slice(0, 10) — ISO
+  // řetězec je vždycky v UTC, takže by appka kolem místní půlnoci
+  // (hodinu až dvě, podle pásma) porovnávala "dnešek" podle jiného
+  // dne, než v jakém doopravdy je dnesniDenVTydnu() níž (ta počítá z
+  // místního getDay()) — přesně ten "streak si připsal den o pár
+  // hodin dřív" bug, co core/utils/date.ts's vlastní komentář popisuje.
+  const today = mistniDatum()
 
-  const trenovalDnes = formState.sezeni.some((s) => new Date(s.createdAt).toISOString().slice(0, 10) === today)
+  const trenovalDnes = formState.sezeni.some((s) => mistniDatum(new Date(s.createdAt)) === today)
   if (trenovalDnes) return
 
   // Dnešní plán (viz useCvicebniPlan.ts) — den odpočinku appku vůbec

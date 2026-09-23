@@ -33,12 +33,15 @@ import {
   vypocitejBmi,
   popisBmiKategorie,
   castiZaznamu,
+  spocitejStavCileVahy,
+  spocitejStavCileObvoduPasu,
 } from './telesneMiryStats'
 import { useCvicebniPlan, dnesniDenVTydnu, NAZEV_DNE, type HodnotaPlanu, type DenVTydnu } from './useCvicebniPlan'
 import { useJidelnicek } from './useJidelnicek'
 import { spocitejKalorieDne } from './jidelnicekStats'
 import { POTRAVINY } from './data/potraviny'
 import { usePitnyRezim } from './usePitnyRezim'
+import { useSpanek } from './useSpanek'
 import { RUTINY, type Rutina } from './data/rutiny'
 import { useFitnessPripomenuti } from './useFitnessPripomenuti'
 import { DOPORUCENE_JIDELNICKY, nejblizsiJidelnicek } from './data/doporuceneJidelnicky'
@@ -59,6 +62,10 @@ import './FitnessRoomModule.css'
 // nastavení nikdy neotevře, uvidí přesně tahle čísla jako dřív.
 const CIL_KCAL_VYCHOZI = 300
 const CIL_TRENINK_MIN_VYCHOZI = 20
+// Spánek nemá žádnou historickou hodnotu (appka ho nikdy dřív
+// nesledovala vůbec) — 8 h je jen běžně doporučovaný orientační
+// odhad, ne vyladěný plán, stejná role jako u kcal/tréninku výš.
+const CIL_SPANEK_VYCHOZI = 8
 
 const formatCasMinSek = (sekund: number): string => {
   if (sekund === 0) return '0 s'
@@ -132,6 +139,7 @@ export const FitnessRoomModule: React.FC = () => {
   const behani = useBehani()
   const posilovna = usePosilovna()
   const pitnyRezim = usePitnyRezim()
+  const spanek = useSpanek()
   const pripomenuti = useFitnessPripomenuti()
   const smiVip = useHasPermission('cosmetics.premium')
   const [notifOpen, setNotifOpen] = useState(false)
@@ -143,6 +151,14 @@ export const FitnessRoomModule: React.FC = () => {
   const [novaVyskaText, setNovaVyskaText] = useState('')
 
   const handleUlozitVysku = () => {
+    // Prázdné pole neznamená "smaž výšku" — appka bez tohohle by
+    // klepnutím "Uložit výšku" bez napsání čehokoli (např. jen letmý
+    // pohled na už uloženou hodnotu, kterou pole zobrazuje přes svůj
+    // vlastní fallback na miry.vyskaCm) tiše vymazala už zadanou
+    // výšku na null, protože Number('') je 0. Prázdné pole je tedy
+    // no-op, ne mazání — appka nemá žádné samostatné tlačítko na
+    // smazání výšky, tohle pole jen ukládá skutečně napsané číslo.
+    if (novaVyskaText.trim() === '') return
     const vyska = Number(novaVyskaText)
     miry.setVyska(vyska > 0 ? vyska : null)
   }
@@ -195,6 +211,10 @@ export const FitnessRoomModule: React.FC = () => {
   const rozdilVahyText = posledniVaha !== null ? formatujRozdilVahy(posledniVaha, predposledniVaha) : null
   const grafVahy = spocitejGrafVahy(miry.zaznamy, 14)
   const bmi = posledniVaha !== null ? vypocitejBmi(posledniVaha, miry.vyskaCm) : null
+
+  const stavCileVahy = spocitejStavCileVahy(miry.zaznamy, miry.cilVahaKg)
+  const stavCileObvoduPasu = spocitejStavCileObvoduPasu(miry.zaznamy, miry.cilObvodPasuCm)
+  const [upravujeCileMiry, setUpravujeCileMiry] = useState(false)
 
   const denDnes = dnesniDenVTydnu()
   const planDnes: HodnotaPlanu | undefined = cvicebniPlan.plan[denDnes]
@@ -267,17 +287,35 @@ export const FitnessRoomModule: React.FC = () => {
     return () => window.clearTimeout(timer)
   }, [tydenniOslavaViditelna])
 
+  // Dnešní datum — sdílené Jídelníčkem/Pitným režimem/Spánkem níž,
+  // spočítané tady nahoře, ať ho pocetDokoncenychCilu může použít pro
+  // dnešní spánek dřív, než appka dojde k Jídelníčkově vlastní sekci.
+  const dnesniDatumJidlo = dnesniDatumIso()
+
   const cilKcal = cile.cilKcal ?? CIL_KCAL_VYCHOZI
   const cilTreninkMin = cile.cilTreninkMin ?? CIL_TRENINK_MIN_VYCHOZI
+  const cilSpanekHod = spanek.cilHod ?? CIL_SPANEK_VYCHOZI
+  // null, dokud dnešek ještě není zapsaný — appka si nevymýšlí 0 hodin
+  // spánku jen proto, že se na to nikdo nepodíval, stejná poctivost
+  // jako u "zatím nesledujeme" jinde v appce.
+  const spanekDnesHod = spanek.hodiny[dnesniDatumJidlo] ?? null
 
   const kcalProgres = Math.min(100, Math.round((dnes.odhadKcal / cilKcal) * 100))
   const treninkProgres = Math.min(100, Math.round((dnes.minutTreninku / cilTreninkMin) * 100))
-  const pocetDokoncenychCilu = [kcalProgres, treninkProgres].filter((p) => p >= 100).length
+  const spanekProgres = spanekDnesHod !== null ? Math.min(100, Math.round((spanekDnesHod / cilSpanekHod) * 100)) : 0
+  const pocetDokoncenychCilu = [kcalProgres, treninkProgres, spanekProgres].filter((p) => p >= 100).length
+
+  const [novySpanekText, setNovySpanekText] = useState('')
+  const handleUlozitSpanek = () => {
+    const hodiny = Number(novySpanekText)
+    if (!(hodiny > 0)) return
+    spanek.setHodinySpanku(dnesniDatumJidlo, hodiny)
+    setNovySpanekText('')
+  }
 
   // ------------------------------------------
   // Jídelníček — deník snězených jídel s kaloriemi (viz useJidelnicek.ts).
   // ------------------------------------------
-  const dnesniDatumJidlo = dnesniDatumIso()
   const jidlaDnes = jidelnicek.zaznamy.filter((z) => z.datum === dnesniDatumJidlo)
   const kalorieSnezeno = spocitejKalorieDne(jidelnicek.zaznamy, dnesniDatumJidlo)
   const [vybranaPotravinaId, setVybranaPotravinaId] = useState(POTRAVINY[0].id)
@@ -488,13 +526,29 @@ export const FitnessRoomModule: React.FC = () => {
                 </span>
               </div>
 
-              <div className="fit-stat-radek fit-stat-radek--nesledujeme">
+              <div className="fit-stat-radek">
                 <span className="fit-stat-ikona fs-barva--cyan">
                   <AppIcon name="moon" size={18} />
                 </span>
                 <span className="fit-stat-text">
                   <span className="fit-stat-nazev">Spánek</span>
-                  <span className="fit-stat-hodnota-nesledujeme">Zatím nesledujeme</span>
+                  <span className="fit-spanek-radek">
+                    <input
+                      type="number"
+                      min={0}
+                      max={24}
+                      step="0.5"
+                      inputMode="decimal"
+                      value={novySpanekText || (spanekDnesHod ?? '')}
+                      onChange={(e) => setNovySpanekText(e.target.value)}
+                      placeholder="h"
+                      className="fit-spanek-input"
+                    />
+                    <span className="fit-spanek-jednotka">h</span>
+                    <button className="fit-spanek-ulozit" onClick={handleUlozitSpanek}>
+                      Uložit
+                    </button>
+                  </span>
                 </span>
               </div>
             </div>
@@ -798,14 +852,48 @@ export const FitnessRoomModule: React.FC = () => {
                 <p>Zatím žádný záznam</p>
               )}
             </div>
-            <button
-              className="fit-historie-btn"
-              aria-label="Přidat záznam tělesných měr"
-              onClick={() => setPridavaZaznamMiry((v) => !v)}
-            >
-              <AppIcon name="plus" size={18} />
-            </button>
+            <span className="fit-miry-hlavicka-tlacitka">
+              <button
+                className="fit-historie-btn"
+                aria-label="Upravit cíle váhy a obvodu pasu"
+                onClick={() => setUpravujeCileMiry((v) => !v)}
+              >
+                🎯
+              </button>
+              <button
+                className="fit-historie-btn"
+                aria-label="Přidat záznam tělesných měr"
+                onClick={() => setPridavaZaznamMiry((v) => !v)}
+              >
+                <AppIcon name="plus" size={18} />
+              </button>
+            </span>
           </div>
+
+          {upravujeCileMiry && (
+            <div className="fit-cile-editace">
+              <label>
+                Cíl váhy (kg)
+                <input
+                  type="number"
+                  min={1}
+                  value={miry.cilVahaKg ?? ''}
+                  placeholder="nepovinné"
+                  onChange={(e) => miry.setCilVahaKg(e.target.value === '' ? null : Number(e.target.value))}
+                />
+              </label>
+              <label>
+                Cíl obvodu pasu (cm)
+                <input
+                  type="number"
+                  min={1}
+                  value={miry.cilObvodPasuCm ?? ''}
+                  placeholder="nepovinné"
+                  onChange={(e) => miry.setCilObvodPasuCm(e.target.value === '' ? null : Number(e.target.value))}
+                />
+              </label>
+            </div>
+          )}
 
           {pridavaZaznamMiry && (
             <div className="fit-miry-form">
@@ -909,6 +997,49 @@ export const FitnessRoomModule: React.FC = () => {
             </div>
           )}
 
+          {(stavCileVahy !== null || stavCileObvoduPasu !== null) && (
+            <div className="fit-miry-cile">
+              {stavCileVahy !== null && (
+                <div className="fit-tydenni-cil">
+                  <div className="fit-tydenni-cil-hlavicka">
+                    <span>Cíl váhy</span>
+                    <span>
+                      {stavCileVahy.aktualniHodnota} / {stavCileVahy.cilHodnota} kg
+                    </span>
+                  </div>
+                  <div
+                    className="fit-tydenni-cil-pruh"
+                    role="progressbar"
+                    aria-valuenow={stavCileVahy.procenta}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div className="fit-tydenni-cil-vypln" style={{ width: `${stavCileVahy.procenta}%` }} />
+                  </div>
+                </div>
+              )}
+              {stavCileObvoduPasu !== null && (
+                <div className="fit-tydenni-cil">
+                  <div className="fit-tydenni-cil-hlavicka">
+                    <span>Cíl obvodu pasu</span>
+                    <span>
+                      {stavCileObvoduPasu.aktualniHodnota} / {stavCileObvoduPasu.cilHodnota} cm
+                    </span>
+                  </div>
+                  <div
+                    className="fit-tydenni-cil-pruh"
+                    role="progressbar"
+                    aria-valuenow={stavCileObvoduPasu.procenta}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div className="fit-tydenni-cil-vypln" style={{ width: `${stavCileObvoduPasu.procenta}%` }} />
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {grafVahy.length > 1 && (
             <div className="fit-graf" role="img" aria-label="Sloupcový graf váhy v čase">
               {grafVahy.map((b) => (
@@ -980,7 +1111,7 @@ export const FitnessRoomModule: React.FC = () => {
           <div className="fit-panel-hlavicka">
             <div>
               <h2>Dnešní cíl</h2>
-              <span className="fit-cile-pocet">{pocetDokoncenychCilu} z 2 dokončeno</span>
+              <span className="fit-cile-pocet">{pocetDokoncenychCilu} z 3 dokončeno</span>
             </div>
             <button
               className="fit-historie-btn"
@@ -1023,6 +1154,17 @@ export const FitnessRoomModule: React.FC = () => {
                   onChange={(e) => cile.setCilTreninkuTydne(e.target.value === '' ? null : Number(e.target.value))}
                 />
               </label>
+              <label>
+                Cíl spánku (h)
+                <input
+                  type="number"
+                  min={1}
+                  max={24}
+                  value={spanek.cilHod ?? ''}
+                  placeholder={String(CIL_SPANEK_VYCHOZI)}
+                  onChange={(e) => spanek.setCilHod(e.target.value === '' ? null : Number(e.target.value))}
+                />
+              </label>
             </div>
           )}
 
@@ -1061,12 +1203,17 @@ export const FitnessRoomModule: React.FC = () => {
               <span className="fit-krouzek-hodnota">Brzy</span>
             </div>
 
-            <div className="fit-krouzek-wrap fit-krouzek-wrap--brzy">
-              <div className="fit-krouzek fit-krouzek--brzy">
+            <div className="fit-krouzek-wrap">
+              <div
+                className="fit-krouzek fit-barva-krouzek--cyan"
+                style={{ '--fit-progres': `${spanekProgres}%` } as React.CSSProperties}
+              >
                 <AppIcon name="moon" size={20} />
               </div>
-              <span className="fit-krouzek-nazev">Spánek</span>
-              <span className="fit-krouzek-hodnota">Brzy</span>
+              <span className="fit-krouzek-nazev">{cilSpanekHod} h</span>
+              <span className="fit-krouzek-hodnota fit-text--cyan">
+                {spanekDnesHod ?? 0} / {cilSpanekHod}
+              </span>
             </div>
           </div>
 

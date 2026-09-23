@@ -77,6 +77,56 @@ export const popisBmiKategorie = (bmi: number): string => {
   return 'Obezita'
 }
 
+// ==========================================
+// Cíl váhy/obvodu pasu — appka nepředpokládá směr (hubnutí vs.
+// přibírání), ten odvodí ze vztahu PRVNÍHO záznamu s vyplněnou
+// hodnotou k zadanému cíli. "Výchozí" je proto první záznam v
+// historii, ne hodnota v okamžiku nastavení cíle — appka datum
+// nastavení cíle nikde neukládá, stejná jednoduchost jako u
+// School Roomova cilPrumeru (i tam appka srovnává proti aktuálnímu
+// stavu, ne proti historickému okamžiku).
+// ==========================================
+
+export interface StavCileMiry {
+  aktualniHodnota: number
+  cilHodnota: number
+  vychoziHodnota: number
+  procenta: number
+}
+
+const spocitejStavCile = (
+  zaznamy: ZaznamMiry[],
+  ziskejHodnotu: (z: ZaznamMiry) => number | null,
+  cil: number | null
+): StavCileMiry | null => {
+  if (cil === null) return null
+  const sHodnotou = serazenoPodleData(zaznamy).filter((z) => ziskejHodnotu(z) !== null)
+  if (sHodnotou.length === 0) return null
+
+  const vychoziHodnota = ziskejHodnotu(sHodnotou[0]) as number
+  const aktualniHodnota = ziskejHodnotu(sHodnotou[sHodnotou.length - 1]) as number
+
+  if (vychoziHodnota === cil) {
+    return { aktualniHodnota, cilHodnota: cil, vychoziHodnota, procenta: aktualniHodnota === cil ? 100 : 0 }
+  }
+
+  // Cíl může být nižší (hubnutí) i vyšší (přibírání) než výchozí
+  // hodnota — appka to pozná ze samotných čísel, ne z nějaké
+  // uživatelem zadané volby "hubnu/přibírám".
+  const celkovaVzdalenost = Math.abs(cil - vychoziHodnota)
+  const ujetaVzdalenost =
+    vychoziHodnota < cil ? aktualniHodnota - vychoziHodnota : vychoziHodnota - aktualniHodnota
+  const procenta = Math.max(0, Math.min(100, Math.round((ujetaVzdalenost / celkovaVzdalenost) * 100)))
+
+  return { aktualniHodnota, cilHodnota: cil, vychoziHodnota, procenta }
+}
+
+export const spocitejStavCileVahy = (zaznamy: ZaznamMiry[], cil: number | null): StavCileMiry | null =>
+  spocitejStavCile(zaznamy, (z) => z.vahaKg, cil)
+
+export const spocitejStavCileObvoduPasu = (zaznamy: ZaznamMiry[], cil: number | null): StavCileMiry | null =>
+  spocitejStavCile(zaznamy, (z) => z.obvodPasuCm, cil)
+
 /** Krátký textový souhrn jednoho záznamu — jen ty hodnoty, co má
  *  doopravdy vyplněné, spojené " · ", ať se v seznamu neukazuje
  *  "0 cm boky" pro nikdy nezadaný rozměr. */

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useTelesneMiry } from '@/flagships/fitness-room/useTelesneMiry'
 import { serazenoPodleData } from '@/flagships/fitness-room/telesneMiryStats'
 import { TrasaMapa } from './TrasaMapa'
+import { PovoleniPolohyDialog } from './PovoleniPolohyDialog'
 import { useBehani } from './useBehani'
 import {
   NAZEV_AKTIVITY,
@@ -49,6 +50,7 @@ export const Behani: React.FC = () => {
   const [pauza, setPauza] = useState(false)
   const [chyba, setChyba] = useState<string | null>(null)
   const [rozbaleneId, setRozbaleneId] = useState<string | null>(null)
+  const [zobrazitPovoleni, setZobrazitPovoleni] = useState(false)
 
   const watchIdRef = useRef<number | null>(null)
   const intervalRef = useRef<number | null>(null)
@@ -57,6 +59,56 @@ export const Behani: React.FC = () => {
   useEffect(() => {
     pauzaRef.current = pauza
   }, [pauza])
+
+  // Okénko s vysvětlením dřív, než appka vůbec zavolá skutečné
+  // navigator.geolocation.* — appka se zeptá Permissions API na
+  // aktuální stav (kde to jde), ať se okénko neukazuje zbytečně
+  // znovu tomu, kdo už jednou povolil, a ať se místo něj rovnou ukáže
+  // "zamítnuto" hláška tomu, komu appka polohu vidí jasně zablokovanou.
+  // Permissions API pro 'geolocation' není všude (starší Safari) —
+  // appka to bere jako 'prosím, nevím', ne jako 'nikdy neukazuj',
+  // stejná "netvrď víc, než appka doopravdy ví" zásada jako jinde.
+  useEffect(() => {
+    if (!PODPORUJE_GPS) return
+    let zruseno = false
+
+    const zkontroluj = async () => {
+      if (!('permissions' in navigator)) {
+        if (!zruseno) setZobrazitPovoleni(true)
+        return
+      }
+      try {
+        const stav = await navigator.permissions.query({ name: 'geolocation' as PermissionName })
+        if (zruseno) return
+        if (stav.state === 'denied') {
+          setChyba('Přístup k poloze byl zamítnut — povol ho v nastavení prohlížeče, ať appka může sledovat trasu.')
+        } else if (stav.state !== 'granted') {
+          setZobrazitPovoleni(true)
+        }
+      } catch {
+        if (!zruseno) setZobrazitPovoleni(true)
+      }
+    }
+
+    void zkontroluj()
+    return () => {
+      zruseno = true
+    }
+  }, [])
+
+  // Tlačítko samo o sobě žádné oprávnění neuděluje (appka to udělat
+  // nemůže) — jen zavolá skutečné getCurrentPosition(), což je přesně
+  // to, co prohlížečové/OS okénko vyvolá. Výsledek appku nezajímá,
+  // jen vyvolat ten skutečný dotaz — zamítnutí se ukáže, až se
+  // uživatel doopravdy pokusí spustit sledování tlačítkem "Spustit".
+  const potvrditPolohu = () => {
+    setZobrazitPovoleni(false)
+    navigator.geolocation.getCurrentPosition(
+      () => {},
+      () => {},
+      { enableHighAccuracy: false, timeout: 10000 }
+    )
+  }
 
   // Ukončí sledování polohy a odpočet, ať appka nenechá GPS běžet na
   // pozadí, když uživatel odejde z miniaplikace uprostřed sezení —
@@ -208,6 +260,10 @@ export const Behani: React.FC = () => {
 
   return (
     <div className="behani-page">
+      {zobrazitPovoleni && (
+        <PovoleniPolohyDialog onPovolit={potvrditPolohu} onZavrit={() => setZobrazitPovoleni(false)} />
+      )}
+
       <h2 className="behani-nadpis">Běhání a kardio</h2>
 
       {!PODPORUJE_GPS && <p className="behani-chyba">Tvé zařízení nepodporuje GPS — appka tuhle appku bez polohy nemůže spustit.</p>}

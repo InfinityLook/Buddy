@@ -145,6 +145,42 @@
   text-align: right;
 }
 
+/* Spánek — ruční zápis rovnou v Moje přehled, stejný "input + Uložit"
+   tvar jako fit-miry-vyska-radek, jen sesazený do jednoho řádku statu. */
+.fit-spanek-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+
+.fit-spanek-input {
+  width: 3.2rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  color: var(--text-primary);
+  padding: 0.2rem 0.35rem;
+  font-size: 0.78rem;
+}
+
+.fit-spanek-jednotka {
+  font-size: 0.68rem;
+  color: var(--text-secondary);
+}
+
+.fit-spanek-ulozit {
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 0.66rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
 /* ------------------------------------------
    OSOBNÍ REKORDY
    ------------------------------------------ */
@@ -341,6 +377,18 @@
   color: var(--text-secondary);
   display: block;
   margin-top: 0.15rem;
+}
+
+.fit-miry-hlavicka-tlacitka {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.fit-miry-cile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
 }
 
 .fit-cile-editace {

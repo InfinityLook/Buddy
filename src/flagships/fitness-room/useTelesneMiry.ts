@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
-import { validateTelesneMiryData, type ZaznamMiry } from '@/core/utils/telesneMiryValidation'
+import { validateTelesneMiryData, jeKladneCisloNeboNull, type ZaznamMiry } from '@/core/utils/telesneMiryValidation'
 
 // ==========================================
 // Deník tělesných měr — váha a obvod pasu v čase, čistě ruční záznam
@@ -39,9 +39,18 @@ interface TelesneMiryState {
   // BMI (telesneMiryStats.ts's vypocitejBmi) — appka jinde výšku
   // nepoužívá ani neodhaduje.
   vyskaCm: number | null
+  // Cíl váhy/obvodu pasu — null znamená "nezadáno", stejná konvence
+  // jako u vyskaCm výš a u useFitnessCil.ts's tří cílů vedle. Appka
+  // sama nerozhoduje, jestli jde o hubnutí nebo přibírání — to
+  // odvodí telesneMiryStats.ts's spocitejStavCileVahy ze vztahu
+  // prvního záznamu k zadanému číslu.
+  cilVahaKg: number | null
+  cilObvodPasuCm: number | null
   pridatZaznam: (datum: string, hodnoty: NoveHodnotyMiry) => void
   smazatZaznam: (id: string) => void
   setVyska: (vyskaCm: number | null) => void
+  setCilVahaKg: (kg: number | null) => void
+  setCilObvodPasuCm: (cm: number | null) => void
 }
 
 export const useTelesneMiry = create<TelesneMiryState>()(
@@ -49,6 +58,8 @@ export const useTelesneMiry = create<TelesneMiryState>()(
     (set) => ({
       zaznamy: [],
       vyskaCm: null,
+      cilVahaKg: null,
+      cilObvodPasuCm: null,
 
       pridatZaznam: (datum, hodnoty) => {
         set((state) => ({
@@ -73,6 +84,8 @@ export const useTelesneMiry = create<TelesneMiryState>()(
       },
 
       setVyska: (vyskaCm) => set({ vyskaCm: vyskaCm !== null && vyskaCm > 0 ? vyskaCm : null }),
+      setCilVahaKg: (kg) => set({ cilVahaKg: kg !== null && kg > 0 ? kg : null }),
+      setCilObvodPasuCm: (cm) => set({ cilObvodPasuCm: cm !== null && cm > 0 ? cm : null }),
     }),
     {
       name: 'schoolbuddy-telesne-miry-storage',
@@ -82,10 +95,14 @@ export const useTelesneMiry = create<TelesneMiryState>()(
         const saved = persisted as Partial<TelesneMiryState> | undefined
         const validace = validateTelesneMiryData(saved?.zaznamy)
         const vyska = saved?.vyskaCm
+        const cilVaha = saved?.cilVahaKg
+        const cilPas = saved?.cilObvodPasuCm
         return {
           ...current,
           zaznamy: validace.success ? validace.data : current.zaznamy,
           vyskaCm: typeof vyska === 'number' && Number.isFinite(vyska) && vyska > 0 ? vyska : null,
+          cilVahaKg: jeKladneCisloNeboNull(cilVaha) ? cilVaha : null,
+          cilObvodPasuCm: jeKladneCisloNeboNull(cilPas) ? cilPas : null,
         }
       },
     }

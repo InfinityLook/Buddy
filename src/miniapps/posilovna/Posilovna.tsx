@@ -1,5 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
+import { plural } from '@/core/utils/pluralCZ'
 import { usePosilovna } from './usePosilovna'
+import { odemkniOdpocinekZvuk, ohlasKonecOdpocinku } from './odpocinekZvuk'
 import {
   BEZNE_CVIKY,
   objemSezeni,
@@ -11,6 +13,7 @@ import {
   type CvikVSezeni,
   type Serie,
   type PosilovaciSezeni,
+  type SablonaTreninku,
 } from './types'
 import './Posilovna.css'
 
@@ -18,6 +21,16 @@ const formatDatum = (iso: string): string =>
   new Date(iso).toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' })
 
 const PRAZDNA_SERIE: Serie = { vahaKg: 0, opakovani: 0 }
+
+// Výchozí odpočinek mezi sériemi — orientační číslo, ne appkou
+// vypočtené z ničeho, stejná poctivost jako jinde v appce.
+const VYCHOZI_ODPOCINEK_S = 90
+
+const formatOdpocinek = (sekund: number): string => {
+  const min = Math.floor(sekund / 60)
+  const zbyleS = sekund % 60
+  return `${min}:${String(zbyleS).padStart(2, '0')}`
+}
 
 // ==========================================
 // Posilovna — deník vah a opakování (Fitness Roomova pátá fáze
@@ -33,6 +46,45 @@ export const Posilovna: React.FC = () => {
   const [novyCvikNazev, setNovyCvikNazev] = useState('')
   const [poznamka, setPoznamka] = useState('')
   const [rozbaleneId, setRozbaleneId] = useState<string | null>(null)
+  const [ukladaSablonu, setUkladaSablonu] = useState(false)
+  const [nazevSablony, setNazevSablony] = useState('')
+
+  // Odpočinek mezi sériemi — appka drží absolutní čas konce
+  // (Date.now() + N s), ne odpočítávání samo — stejný "absolutní
+  // časová značka, ne ubíhající countdown" tvar jako Pomodorovo
+  // endsAt jinde v appce, ať nic nezáleží na tom, jestli obrazovka
+  // mezitím usnula. odpocinekIndexCviku != null znamená "právě
+  // odpočívá cvik na tomhle indexu" — jeden odpočinek naráz.
+  const [odpocinekIndexCviku, setOdpocinekIndexCviku] = useState<number | null>(null)
+  const [odpocinekKonecCas, setOdpocinekKonecCas] = useState<number | null>(null)
+  const [odpocinekZbyvaS, setOdpocinekZbyvaS] = useState(0)
+
+  useEffect(() => {
+    if (odpocinekKonecCas === null) return
+    const tik = () => {
+      const zbyva = Math.max(0, Math.round((odpocinekKonecCas - Date.now()) / 1000))
+      setOdpocinekZbyvaS(zbyva)
+      if (zbyva <= 0) {
+        ohlasKonecOdpocinku()
+        setOdpocinekIndexCviku(null)
+        setOdpocinekKonecCas(null)
+      }
+    }
+    tik()
+    const interval = window.setInterval(tik, 250)
+    return () => window.clearInterval(interval)
+  }, [odpocinekKonecCas])
+
+  const spustitOdpocinek = (indexCviku: number) => {
+    odemkniOdpocinekZvuk()
+    setOdpocinekIndexCviku(indexCviku)
+    setOdpocinekKonecCas(Date.now() + VYCHOZI_ODPOCINEK_S * 1000)
+  }
+
+  const zrusitOdpocinek = () => {
+    setOdpocinekIndexCviku(null)
+    setOdpocinekKonecCas(null)
+  }
 
   const pridatCvik = (nazev: string) => {
     const orezany = nazev.trim()
@@ -77,6 +129,27 @@ export const Posilovna: React.FC = () => {
     posilovna.pridatSezeni(cviky, poznamka.trim())
     setCviky([])
     setPoznamka('')
+  }
+
+  const potvrditUlozeniSablony = () => {
+    const orezany = nazevSablony.trim()
+    if (!orezany || cviky.length === 0) return
+    posilovna.ulozitSablonu(
+      orezany,
+      cviky.map((c) => c.nazev)
+    )
+    setNazevSablony('')
+    setUkladaSablonu(false)
+  }
+
+  // Naplní sestavovač jmény cviků ze šablony — každý s jednou prázdnou
+  // sérií, stejný start jako u ručně přidaného cviku (pridatCvik výš).
+  // Nepřepisuje rozdělaný trénink, jen k němu přidá další cviky.
+  const pouzitSablonu = (sablona: SablonaTreninku) => {
+    setCviky((predchozi) => [
+      ...predchozi,
+      ...sablona.cviky.map((nazev) => ({ nazev, serie: [{ ...PRAZDNA_SERIE }] })),
+    ])
   }
 
   const smazat = (s: PosilovaciSezeni) => {
@@ -140,9 +213,23 @@ export const Posilovna: React.FC = () => {
                 </button>
               </div>
             ))}
-            <button className="posilovna-pridat-serii" onClick={() => pridatSerii(indexCviku)}>
-              + Série
-            </button>
+            <div className="posilovna-cvik-akce">
+              <button className="posilovna-pridat-serii" onClick={() => pridatSerii(indexCviku)}>
+                + Série
+              </button>
+              {odpocinekIndexCviku === indexCviku ? (
+                <div className="posilovna-odpocinek-bezici">
+                  <span className="posilovna-odpocinek-cas">⏱ {formatOdpocinek(odpocinekZbyvaS)}</span>
+                  <button className="posilovna-odpocinek-preskocit" onClick={zrusitOdpocinek}>
+                    Přeskočit
+                  </button>
+                </div>
+              ) : (
+                <button className="posilovna-odpocinek-spustit" onClick={() => spustitOdpocinek(indexCviku)}>
+                  ⏱ Odpočinek
+                </button>
+              )}
+            </div>
           </div>
         ))}
 
@@ -179,10 +266,72 @@ export const Posilovna: React.FC = () => {
           rows={2}
         />
 
-        <button className="posilovna-ulozit-btn" onClick={ulozit} disabled={!muzeUlozit}>
-          💾 Uložit sezení
-        </button>
+        <div className="posilovna-akce-radek">
+          <button className="posilovna-ulozit-btn" onClick={ulozit} disabled={!muzeUlozit}>
+            💾 Uložit sezení
+          </button>
+          <button
+            className="posilovna-sablona-ulozit-btn"
+            onClick={() => setUkladaSablonu((v) => !v)}
+            disabled={cviky.length === 0}
+          >
+            📐 Uložit jako šablonu
+          </button>
+        </div>
+
+        {ukladaSablonu && (
+          <div className="posilovna-sablona-radek">
+            <input
+              type="text"
+              className="posilovna-sablona-nazev-input"
+              placeholder="Název šablony (např. Push Day)…"
+              value={nazevSablony}
+              onChange={(e) => setNazevSablony(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') potvrditUlozeniSablony()
+              }}
+            />
+            <button
+              className="posilovna-sablona-potvrdit-btn"
+              onClick={potvrditUlozeniSablony}
+              disabled={!nazevSablony.trim()}
+            >
+              Uložit
+            </button>
+          </div>
+        )}
       </div>
+
+      {posilovna.sablony.length > 0 && (
+        <div className="posilovna-panel">
+          <h3 className="posilovna-panel-nadpis">📐 Šablony</h3>
+          <ul className="posilovna-sablony-seznam">
+            {posilovna.sablony.map((sablona) => (
+              <li key={sablona.id} className="posilovna-sablona-radek-polozka">
+                <span className="posilovna-sablona-info">
+                  <strong>{sablona.nazev}</strong>
+                  <span className="posilovna-sablona-cviky">
+                    {sablona.cviky.length} {plural(sablona.cviky.length, 'cvik', 'cviky', 'cviků')}:{' '}
+                    {sablona.cviky.join(', ')}
+                  </span>
+                </span>
+                <span className="posilovna-sablona-tlacitka">
+                  <button className="posilovna-sablona-pouzit" onClick={() => pouzitSablonu(sablona)}>
+                    ▶ Použít
+                  </button>
+                  <button
+                    className="posilovna-sablona-smazat"
+                    onClick={() => posilovna.smazatSablonu(sablona.id)}
+                    aria-label={`Smazat šablonu ${sablona.nazev}`}
+                  >
+                    ✕
+                  </button>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {nazvyRekordu.length > 0 && (
         <div className="posilovna-panel">
@@ -216,7 +365,8 @@ export const Posilovna: React.FC = () => {
                   <button className="posilovna-historie-hlavicka" onClick={() => setRozbaleneId(rozbaleno ? null : s.id)}>
                     <span className="posilovna-historie-info">
                       <strong>
-                        {s.cviky.length} {s.cviky.length === 1 ? 'cvik' : 'cviky'} · {pocetSerii(s)} sérií
+                        {s.cviky.length} {plural(s.cviky.length, 'cvik', 'cviky', 'cviků')} ·{' '}
+                        {pocetSerii(s)} {plural(pocetSerii(s), 'série', 'série', 'sérií')}
                       </strong>
                       <br />
                       <span className="posilovna-historie-datum">

@@ -23,7 +23,11 @@ export interface ZaznamMiry {
   tukProcent: number | null
 }
 
-const jeKladneCisloNeboNull = (x: unknown): x is number | null =>
+/** Vyexportováno pro useTelesneMiry.ts's vlastní cilVahaKg/
+ *  cilObvodPasuCm ověření v merge — stejná kontrola jako u
+ *  jednotlivých záznamů výš, cíl je jen další kladné číslo (nebo
+ *  žádné). */
+export const jeKladneCisloNeboNull = (x: unknown): x is number | null =>
   x === null || (typeof x === 'number' && Number.isFinite(x) && x > 0)
 
 const jePlatneProcentoNeboNull = (x: unknown): x is number | null =>

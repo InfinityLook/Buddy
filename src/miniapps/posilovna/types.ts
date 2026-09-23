@@ -90,6 +90,18 @@ export const spocitejOsobniRekordy = (sezeni: PosilovaciSezeni[]): Record<string
   return rekordy
 }
 
+// Šablona tréninku — jen jména cviků, žádné váhy/opakování. Uložení
+// celých sérií by po pár týdnech zastaralo (síla roste, čísla by
+// lhala) — šablona je "tahle sestava cviků", ne "tahle konkrétní
+// čísla", stejná "vzor, ne zamrzlá kopie" logika jako u Writer's
+// Roomových pevných SABLONY_KAPITOL, jen tady je sada uživatelova
+// vlastní, ne appkou daná.
+export interface SablonaTreninku {
+  id: string
+  nazev: string
+  cviky: string[]
+}
+
 export const formatujVahu = (kg: number): string => {
   const zaokrouhleno = Math.round(kg * 100) / 100
   const text = Number.isInteger(zaokrouhleno) ? String(zaokrouhleno) : String(zaokrouhleno).replace('.', ',')

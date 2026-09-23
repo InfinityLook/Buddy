@@ -18,9 +18,15 @@ import { validatePitnyRezimPocty, validatePitnyRezimCil } from '@/core/utils/pit
 interface PitnyRezimState {
   pocty: Record<string, number>
   cilSklenic: number | null
+  // Den poslední odeslané notifikace ('YYYY-MM-DD' nebo null) — stejný
+  // "co nejjednodušší jednou-denně zámek" tvar jako
+  // useFitnessCil.ts's posledniOslavenyTydenKlic, jen s datem místo
+  // týdenního klíče. Živý v pitnyRezimReminders.ts.
+  posledniPripomenutyDen: string | null
   pridatSklenici: (datum: string) => void
   odebratSklenici: (datum: string) => void
   setCilSklenic: (pocet: number | null) => void
+  oznacPripomenuto: (datum: string) => void
 }
 
 export const usePitnyRezim = create<PitnyRezimState>()(
@@ -28,6 +34,7 @@ export const usePitnyRezim = create<PitnyRezimState>()(
     (set) => ({
       pocty: {},
       cilSklenic: 8,
+      posledniPripomenutyDen: null,
 
       pridatSklenici: (datum) => {
         set((state) => ({ pocty: { ...state.pocty, [datum]: (state.pocty[datum] ?? 0) + 1 } }))
@@ -42,6 +49,8 @@ export const usePitnyRezim = create<PitnyRezimState>()(
       },
 
       setCilSklenic: (pocet) => set({ cilSklenic: pocet !== null && pocet > 0 ? pocet : null }),
+
+      oznacPripomenuto: (datum) => set({ posledniPripomenutyDen: datum }),
     }),
     {
       name: 'schoolbuddy-pitny-rezim-storage',
@@ -54,6 +63,7 @@ export const usePitnyRezim = create<PitnyRezimState>()(
           ...current,
           pocty: validace.success ? validace.data : current.pocty,
           cilSklenic: 'cilSklenic' in (saved ?? {}) ? validatePitnyRezimCil(saved?.cilSklenic) : current.cilSklenic,
+          posledniPripomenutyDen: typeof saved?.posledniPripomenutyDen === 'string' ? saved.posledniPripomenutyDen : null,
         }
       },
     }
