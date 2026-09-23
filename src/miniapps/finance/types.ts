@@ -313,6 +313,21 @@ export interface BudgetStav {
   jePrekrocen: boolean
 }
 
+/** Uloží nový limit rozpočtu a vynuluje lastExceededNotifiedMonth — jiný
+ *  limit je jiná otázka "jsem přes?", takže i kdyby appka letos u toho
+ *  starého limitu už upozornění poslala, nový (vyšší i nižší) limit si
+ *  zaslouží vlastní, čerstvou šanci na upozornění, ne mlčení do konce
+ *  měsíce jen proto, že se stará hranice jednou překročila. Čistá
+ *  funkce (injectovatelné `ted` kvůli testovatelnosti stejně jako
+ *  spocitejMesicniTrend/spocitejPredpovedCashflow výš) — useFinance.ts's
+ *  updateBudget ji jen volá. */
+export const upravitLimitRozpoctu = (budget: Budget, novyLimitKc: number, ted: number = Date.now()): Budget => ({
+  ...budget,
+  limitKc: Math.round(novyLimitKc),
+  lastExceededNotifiedMonth: null,
+  updatedAt: ted,
+})
+
 /** Kolik je vyčerpáno z limitu za AKTUÁLNÍ měsíc — čistá funkce, appka
  *  ji volá s už vyfiltrovanými transakcemi tohoto měsíce (viz
  *  useFinance.ts's obdobiTransactions), ne aby si sama počítala datum. */

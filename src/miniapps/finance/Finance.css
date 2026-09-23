@@ -645,6 +645,14 @@
   cursor: pointer;
 }
 
+/* "Zrušit" u inline editace (rozpočtový limit) — jediné type="button"
+   v .fin-mini-form, ostatní jsou vždy type="submit". Neutrální barva,
+   ať vizuálně nepůsobí jako stejně důležitá akce jako uložení. */
+.fin-mini-form button[type='button'] {
+  background: rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+}
+
 .fin-mini-form--sloupec {
   flex-direction: column;
 }

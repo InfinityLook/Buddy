@@ -196,6 +196,7 @@ export const Finance: React.FC = () => {
     budgets,
     budgetStavy,
     addBudget,
+    updateBudget,
     deleteBudget,
     recurring,
     addRecurring,
@@ -241,6 +242,11 @@ export const Finance: React.FC = () => {
   const [presunForm, setPresunForm] = useState({ z: '', do_: '', castka: '', poznamka: '' })
   const [novyRozpocetKategorie, setNovyRozpocetKategorie] = useState<ExpenseCategory>(EXPENSE_CATEGORIES[0])
   const [novyRozpocetLimit, setNovyRozpocetLimit] = useState('')
+  // Který rozpočet se zrovna upravuje (jeho id), null = žádný — jediná
+  // cesta, jak jde limit rozpočtu doopravdy změnit, jinak by musel jít
+  // smazat a založit znovu (a přijít o lastExceededNotifiedMonth zbytečně).
+  const [editingBudgetId, setEditingBudgetId] = useState<string | null>(null)
+  const [editBudgetLimit, setEditBudgetLimit] = useState('')
   const [opakujiciForm, setOpakujiciForm] = useState({
     type: 'vydaj' as TransactionType,
     amount: '',
@@ -412,6 +418,25 @@ export const Finance: React.FC = () => {
     if (!Number.isFinite(limit) || limit <= 0) return
     addBudget(novyRozpocetKategorie, limit)
     setNovyRozpocetLimit('')
+  }
+
+  const openEditBudget = (budget: { id: string; limitKc: number }) => {
+    setEditingBudgetId(budget.id)
+    setEditBudgetLimit(String(budget.limitKc))
+  }
+
+  const zavritEditBudget = () => {
+    setEditingBudgetId(null)
+    setEditBudgetLimit('')
+  }
+
+  const ulozitLimitRozpoctu = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingBudgetId) return
+    const limit = Number(editBudgetLimit)
+    if (!Number.isFinite(limit) || limit <= 0) return
+    updateBudget(editingBudgetId, limit)
+    zavritEditBudget()
   }
 
   const kategorieBezRozpoctu = useMemo(
@@ -592,7 +617,13 @@ export const Finance: React.FC = () => {
                     </span>
                   )}
                 </span>
-                <button className="fin-icon-btn danger" onClick={() => deleteWallet(w.id)} aria-label={`Smazat peněženku ${w.name}`}>
+                <button
+                  className="fin-icon-btn danger"
+                  onClick={() => {
+                    if (window.confirm(`Smazat peněženku „${w.name}“? Její transakce zůstanou, jen se odpojí.`)) deleteWallet(w.id)
+                  }}
+                  aria-label={`Smazat peněženku ${w.name}`}
+                >
                   ✕
                 </button>
               </div>
@@ -680,24 +711,55 @@ export const Finance: React.FC = () => {
                   <span>
                     {CATEGORY_ICONS[budget.category]} {budget.category}
                   </span>
-                  <button
-                    className="fin-icon-btn danger"
-                    onClick={() => deleteBudget(budget.id)}
-                    aria-label={`Smazat rozpočet ${budget.category}`}
-                  >
-                    ✕
-                  </button>
+                  <div className="fin-row-actions">
+                    <button
+                      className="fin-icon-btn"
+                      onClick={() => openEditBudget(budget)}
+                      aria-label={`Upravit limit rozpočtu ${budget.category}`}
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="fin-icon-btn danger"
+                      onClick={() => {
+                        if (window.confirm(`Smazat rozpočet „${budget.category}“?`)) deleteBudget(budget.id)
+                      }}
+                      aria-label={`Smazat rozpočet ${budget.category}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
                 </div>
-                <div className="fin-rozpocet-lista">
-                  <div
-                    className={`fin-rozpocet-vypln ${jePrekrocen ? 'je-prekrocen' : ''}`}
-                    style={{ width: `${Math.min(100, procenta)}%` }}
-                  />
-                </div>
-                <span className={`fin-rozpocet-text ${jePrekrocen ? 'je-prekrocen' : ''}`}>
-                  {formatKc(utraceno)} z {formatKc(budget.limitKc)} ({procenta} %)
-                  {jePrekrocen && ' — limit překročen!'}
-                </span>
+                {editingBudgetId === budget.id ? (
+                  <form className="fin-mini-form" onSubmit={ulozitLimitRozpoctu}>
+                    <input
+                      type="number"
+                      min={1}
+                      placeholder="Nový limit Kč/měsíc"
+                      aria-label={`Nový limit rozpočtu ${budget.category}`}
+                      value={editBudgetLimit}
+                      onChange={(e) => setEditBudgetLimit(e.target.value)}
+                      autoFocus
+                    />
+                    <button type="submit">Uložit</button>
+                    <button type="button" onClick={zavritEditBudget}>
+                      Zrušit
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <div className="fin-rozpocet-lista">
+                      <div
+                        className={`fin-rozpocet-vypln ${jePrekrocen ? 'je-prekrocen' : ''}`}
+                        style={{ width: `${Math.min(100, procenta)}%` }}
+                      />
+                    </div>
+                    <span className={`fin-rozpocet-text ${jePrekrocen ? 'je-prekrocen' : ''}`}>
+                      {formatKc(utraceno)} z {formatKc(budget.limitKc)} ({procenta} %)
+                      {jePrekrocen && ' — limit překročen!'}
+                    </span>
+                  </>
+                )}
               </div>
             ))}
             {kategorieBezRozpoctu.length > 0 && (
@@ -745,7 +807,13 @@ export const Finance: React.FC = () => {
                   >
                     {r.active ? '⏸️' : '▶️'}
                   </button>
-                  <button className="fin-icon-btn danger" onClick={() => deleteRecurring(r.id)} aria-label={`Smazat ${r.category}`}>
+                  <button
+                    className="fin-icon-btn danger"
+                    onClick={() => {
+                      if (window.confirm(`Smazat opakující se platbu „${r.note || r.category}“?`)) deleteRecurring(r.id)
+                    }}
+                    aria-label={`Smazat ${r.category}`}
+                  >
                     ✕
                   </button>
                 </div>
@@ -829,7 +897,13 @@ export const Finance: React.FC = () => {
                     {goal.name}
                     {goal.deadline && ` · do ${formatDatum(goal.deadline)}`}
                   </span>
-                  <button className="fin-icon-btn danger" onClick={() => deleteGoal(goal.id)} aria-label={`Smazat cíl ${goal.name}`}>
+                  <button
+                    className="fin-icon-btn danger"
+                    onClick={() => {
+                      if (window.confirm(`Smazat cíl „${goal.name}“?`)) deleteGoal(goal.id)
+                    }}
+                    aria-label={`Smazat cíl ${goal.name}`}
+                  >
                     ✕
                   </button>
                 </div>

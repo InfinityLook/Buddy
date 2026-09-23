@@ -30,6 +30,7 @@ import {
   spocitejMesicniTrend,
   spocitejStavCile,
   spocitejStavRozpoctu,
+  upravitLimitRozpoctu,
   zustatekZTransakci,
 } from './types'
 
@@ -281,9 +282,7 @@ const useFinanceStore = create<FinanceState>()(
       updateBudget: (id, limitKc) => {
         if (!Number.isFinite(limitKc) || limitKc <= 0) return
         set((state) => ({
-          budgets: state.budgets.map((b) =>
-            b.id === id ? { ...b, limitKc: Math.round(limitKc), updatedAt: Date.now() } : b
-          ),
+          budgets: state.budgets.map((b) => (b.id === id ? upravitLimitRozpoctu(b, limitKc) : b)),
         }))
       },
 

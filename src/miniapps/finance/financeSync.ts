@@ -176,11 +176,19 @@ const tabulky = (): TabulkaSync<any>[] => {
     table: 'finance_budgets',
     getLocal: () => state.budgets,
     setLocal: (items) => setRawFinanceState({ budgets: items }),
+    // last_exceeded_notified_month musí být v obou směrech — chybělo tu
+    // dřív, takže "už jsem tenhle měsíc upozornil" flag zmizel, kdykoli
+    // se ten samý rozpočet znovu stáhl (push a pull běží se stejným
+    // kurzorem v jednom průchodu, takže čerstvě odeslaný řádek se hned
+    // stáhne zpátky a slouc() ho, jako stejně starý, přepíše verzí bez
+    // téhle vlastnosti). Bez ní by appka mohla poslat duplicitní
+    // "Rozpočet překročen" notifikaci ve stejném měsíci.
     toRow: (userId, b) => ({
       id: b.id,
       user_id: userId,
       category: b.category,
       limit_kc: b.limitKc,
+      last_exceeded_notified_month: b.lastExceededNotifiedMonth ?? null,
       updated_at: naIso(b.updatedAt),
       deleted_at: b.deletedAt ? naIso(b.deletedAt) : null,
     }),
@@ -188,6 +196,7 @@ const tabulky = (): TabulkaSync<any>[] => {
       id: r.id,
       category: r.category,
       limitKc: r.limit_kc,
+      lastExceededNotifiedMonth: r.last_exceeded_notified_month ?? null,
       createdAt: r.created_at ?? new Date().toISOString(),
       updatedAt: zIso(r.updated_at),
       deletedAt: r.deleted_at ? zIso(r.deleted_at) : null,

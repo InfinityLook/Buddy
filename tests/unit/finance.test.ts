@@ -6,6 +6,7 @@ import {
   rozdelPodleKategorie,
   spocitejMesicniTrend,
   spocitejStavRozpoctu,
+  upravitLimitRozpoctu,
   rozpoctyKUpozorneni,
   melaByBytPridanaDnes,
   datumPristiSplatky,
@@ -187,6 +188,43 @@ describe('spocitejStavRozpoctu', () => {
   it('nulový limit se nedělí nulou — vrátí 0 %', () => {
     const [stav] = spocitejStavRozpoctu([rozpocet({ limitKc: 0 })], [])
     expect(stav.procenta).toBe(0)
+  })
+})
+
+describe('upravitLimitRozpoctu', () => {
+  const rozpocet = (over: Partial<Budget>): Budget => ({
+    id: 'b1',
+    category: 'Jídlo',
+    limitKc: 500,
+    createdAt: '2026-08-01T00:00:00.000Z',
+    updatedAt: 100,
+    deletedAt: null,
+    lastExceededNotifiedMonth: '2026-08',
+    ...over,
+  })
+
+  it('nastaví nový (zaokrouhlený) limit', () => {
+    const upraveny = upravitLimitRozpoctu(rozpocet({}), 1200.6, 200)
+    expect(upraveny.limitKc).toBe(1201)
+  })
+
+  it('vynuluje lastExceededNotifiedMonth, i když byl nastavený na letošní měsíc', () => {
+    const upraveny = upravitLimitRozpoctu(rozpocet({ lastExceededNotifiedMonth: '2026-09' }), 1000, 200)
+    expect(upraveny.lastExceededNotifiedMonth).toBeNull()
+  })
+
+  it('bumpne updatedAt na předané ted (kvůli cloudové synchronizaci)', () => {
+    const upraveny = upravitLimitRozpoctu(rozpocet({ updatedAt: 100 }), 1000, 999)
+    expect(upraveny.updatedAt).toBe(999)
+  })
+
+  it('nezmění id/kategorii/createdAt/deletedAt', () => {
+    const puvodni = rozpocet({ deletedAt: null })
+    const upraveny = upravitLimitRozpoctu(puvodni, 1000, 200)
+    expect(upraveny.id).toBe(puvodni.id)
+    expect(upraveny.category).toBe(puvodni.category)
+    expect(upraveny.createdAt).toBe(puvodni.createdAt)
+    expect(upraveny.deletedAt).toBeNull()
   })
 })
 
