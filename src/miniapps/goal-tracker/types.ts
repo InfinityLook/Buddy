@@ -66,6 +66,17 @@ export interface Goal {
   // nejde zpátky" zásada jako u BACKUP_STORES's gamification
   // restorable: false, jen na úrovni jednoho dne místo celého účtu.
   navykXpDny?: string[]
+
+  // --- Cloudová synchronizace (goalTrackerSync.ts) ---
+  // Goal dřív žádné createdAt vůbec neměl (appka ho nikde nezobrazovala) —
+  // teď existuje kvůli synchronizaci, stejný důvod jako u Kniha/Scenar/
+  // Komiks. updatedAt/deletedAt jsou číselná obdoba updatedAt/deletedAt
+  // u Financí/Writer's Roomu — updatedAt rozhoduje "kdo vyhrává" při
+  // sloučení mezi zařízeními, deletedAt je tombstone měkkého smazání
+  // (viz deleteGoal v useGoalTracker.ts).
+  createdAt: string
+  updatedAt: number
+  deletedAt: number | null
 }
 
 // Ukázkové cíle tu schválně nejsou — každý si zakládá svoje.
@@ -310,6 +321,11 @@ export const sanitizujCil = (goal: Goal): Goal => ({
   navykDny: sanitizujNavykDny(goal.navykDny),
   navykXpDny: sanitizujNavykDny(goal.navykXpDny),
   deadline: typeof goal.deadline === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(goal.deadline) ? goal.deadline : null,
+  // Stejný fallback jako Kniha/Scenar/Komiks — starší uložený cíl
+  // tahle pole vůbec neměl.
+  createdAt: typeof goal.createdAt === 'string' ? goal.createdAt : new Date().toISOString(),
+  updatedAt: typeof goal.updatedAt === 'number' && Number.isFinite(goal.updatedAt) ? goal.updatedAt : Date.now(),
+  deletedAt: typeof goal.deletedAt === 'number' && Number.isFinite(goal.deletedAt) ? goal.deletedAt : null,
 })
 
 /** Číselný cíl je "hotový", jen když dosáhl své cílové hodnoty — návyk

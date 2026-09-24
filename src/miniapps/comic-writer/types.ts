@@ -76,6 +76,11 @@ export interface Komiks {
   // Stejná role jako Kniha.cilSlov/Scenar.cilScen, jen v počtu stran —
   // null = žádný cíl nenastaven.
   cilStran: number | null
+  // Číselná obdoba upravenoAt + tombstone smazání — stejná role a
+  // stejný důvod jako Kniha.updatedAt/deletedAt (cloudová
+  // synchronizace, viz writerSync.ts).
+  updatedAt: number
+  deletedAt: number | null
   // "Bible postav" — stejná role a stejné klíčování jménem jako
   // Scenar.postavyPoznamky vedle. Nepovinné pole, fallback na prázdný
   // objekt (viz comicWriterValidation.ts).

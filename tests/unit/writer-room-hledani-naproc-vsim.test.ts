@@ -5,6 +5,8 @@ import type { Scenar } from '@/miniapps/screenplay-writer/types'
 import type { Komiks } from '@/miniapps/comic-writer/types'
 
 const kniha = (id: string, nazev: string, kapitoly: Kniha['kapitoly']): Kniha => ({
+  updatedAt: Date.now(),
+  deletedAt: null,
   id,
   nazev,
   cilSlov: null,
@@ -14,6 +16,8 @@ const kniha = (id: string, nazev: string, kapitoly: Kniha['kapitoly']): Kniha =>
 })
 
 const scenar = (id: string, nazev: string, sceny: Scenar['sceny']): Scenar => ({
+  updatedAt: Date.now(),
+  deletedAt: null,
   id,
   nazev,
   createdAt: '1',
@@ -24,6 +28,8 @@ const scenar = (id: string, nazev: string, sceny: Scenar['sceny']): Scenar => ({
 })
 
 const komiks = (id: string, nazev: string, strany: Komiks['strany']): Komiks => ({
+  updatedAt: Date.now(),
+  deletedAt: null,
   id,
   nazev,
   createdAt: '1',

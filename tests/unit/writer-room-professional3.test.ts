@@ -83,6 +83,8 @@ describe('validateWriterRoomCilData', () => {
 
 describe('spocitejReplikyPodlePostavy', () => {
   const scenarSPostavami = (): Scenar => ({
+    updatedAt: Date.now(),
+    deletedAt: null,
     id: 's',
     nazev: 'Scénář',
     createdAt: '1',
@@ -119,6 +121,8 @@ describe('spocitejReplikyPodlePostavy', () => {
 
   it('akční prvky se do počtu vůbec nepočítají', () => {
     const scenar: Scenar = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 's',
       nazev: 'S',
       createdAt: '1',
@@ -143,7 +147,7 @@ describe('spocitejReplikyPodlePostavy', () => {
   })
 
   it('prázdný scénář vrátí prázdný seznam', () => {
-    const scenar: Scenar = { id: 's', nazev: 'S', createdAt: '1', upravenoAt: '1', cilScen: null, postavyPoznamky: {}, sceny: [] }
+    const scenar: Scenar = { updatedAt: Date.now(), deletedAt: null, id: 's', nazev: 'S', createdAt: '1', upravenoAt: '1', cilScen: null, postavyPoznamky: {}, sceny: [] }
     expect(spocitejReplikyPodlePostavy(scenar)).toEqual([])
   })
 })

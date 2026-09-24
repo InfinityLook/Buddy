@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
@@ -79,6 +80,8 @@ const useComicWriterStore = create<ComicWriterState>()(
           upravenoAt: ted,
           cilStran: null,
           postavyPoznamky: {},
+          updatedAt: Date.now(),
+          deletedAt: null,
         }
         set((state) => ({ komiksy: [novy, ...state.komiksy] }))
         return id
@@ -88,14 +91,24 @@ const useComicWriterStore = create<ComicWriterState>()(
       // fallbacku.
       updateKomiks: (id, nazev) =>
         set((state) => ({
-          komiksy: state.komiksy.map((k) => (k.id === id ? { ...k, nazev, upravenoAt: new Date().toISOString() } : k)),
+          komiksy: state.komiksy.map((k) =>
+            k.id === id ? { ...k, nazev, upravenoAt: new Date().toISOString(), updatedAt: Date.now() } : k
+          ),
         })),
 
-      deleteKomiks: (id) => set((state) => ({ komiksy: state.komiksy.filter((k) => k.id !== id) })),
+      // Měkké smazání — stejná zásada jako Kniha.deleteKniha, viz
+      // Komiks.deletedAt v types.ts.
+      deleteKomiks: (id) =>
+        set((state) => {
+          const ted = Date.now()
+          return { komiksy: state.komiksy.map((k) => (k.id === id ? { ...k, deletedAt: ted, updatedAt: ted } : k)) }
+        }),
 
       setCilStran: (komiksId, cil) =>
         set((state) => ({
-          komiksy: state.komiksy.map((k) => (k.id === komiksId ? { ...k, cilStran: cil, upravenoAt: new Date().toISOString() } : k)),
+          komiksy: state.komiksy.map((k) =>
+            k.id === komiksId ? { ...k, cilStran: cil, upravenoAt: new Date().toISOString(), updatedAt: Date.now() } : k
+          ),
         })),
 
       addStrana: (komiksId) =>
@@ -104,7 +117,7 @@ const useComicWriterStore = create<ComicWriterState>()(
             if (k.id !== komiksId) return k
             const cislo = k.strany.length + 1
             const nova = { id: noveId(), cislo, panely: [], stav: 'napad' as StavPolozky, poznamka: '', stitky: '' }
-            return { ...k, strany: [...k.strany, nova], upravenoAt: new Date().toISOString() }
+            return { ...k, strany: [...k.strany, nova], upravenoAt: new Date().toISOString(), updatedAt: Date.now() }
           }),
         })),
 
@@ -117,6 +130,7 @@ const useComicWriterStore = create<ComicWriterState>()(
                   ...k,
                   strany: k.strany.map((s) => (s.id === stranaId ? { ...s, ...data } : s)),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         })),
@@ -130,6 +144,7 @@ const useComicWriterStore = create<ComicWriterState>()(
                   ...k,
                   strany: prescislovatStrany(k.strany.filter((s) => s.id !== stranaId)),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         })),
@@ -146,6 +161,7 @@ const useComicWriterStore = create<ComicWriterState>()(
                   ...k,
                   strany: k.strany.map((s) => (s.id === stranaId ? { ...s, panely: [...s.panely, novy] } : s)),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         }))
@@ -165,6 +181,7 @@ const useComicWriterStore = create<ComicWriterState>()(
                       : { ...s, panely: s.panely.map((p) => (p.id === panelId ? { ...p, ...data } : p)) }
                   ),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         })),
@@ -180,6 +197,7 @@ const useComicWriterStore = create<ComicWriterState>()(
                     s.id !== stranaId ? s : { ...s, panely: s.panely.filter((p) => p.id !== panelId) }
                   ),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         })),
@@ -201,6 +219,7 @@ const useComicWriterStore = create<ComicWriterState>()(
                         }
                   ),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         }))
@@ -226,6 +245,7 @@ const useComicWriterStore = create<ComicWriterState>()(
                         }
                   ),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         })),
@@ -248,6 +268,7 @@ const useComicWriterStore = create<ComicWriterState>()(
                         }
                   ),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         })),
@@ -258,7 +279,12 @@ const useComicWriterStore = create<ComicWriterState>()(
             if (k.id !== komiksId) return k
             const index = k.strany.findIndex((s) => s.id === stranaId)
             if (index < 0) return k
-            return { ...k, strany: prescislovatStrany(posunPolozku(k.strany, index, smer)), upravenoAt: new Date().toISOString() }
+            return {
+              ...k,
+              strany: prescislovatStrany(posunPolozku(k.strany, index, smer)),
+              upravenoAt: new Date().toISOString(),
+              updatedAt: Date.now(),
+            }
           }),
         })),
 
@@ -283,7 +309,7 @@ const useComicWriterStore = create<ComicWriterState>()(
               })
               return { ...s, panely }
             })
-            return celkemZamen > 0 ? { ...k, strany, upravenoAt: new Date().toISOString() } : k
+            return celkemZamen > 0 ? { ...k, strany, upravenoAt: new Date().toISOString(), updatedAt: Date.now() } : k
           }),
         }))
         return celkemZamen
@@ -302,6 +328,7 @@ const useComicWriterStore = create<ComicWriterState>()(
                   cilStran: sanitizovano.cilStran,
                   postavyPoznamky: sanitizovano.postavyPoznamky,
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
               : k
           ),
@@ -312,7 +339,14 @@ const useComicWriterStore = create<ComicWriterState>()(
       setPoznamkaPostavy: (komiksId, jmeno, poznamka) =>
         set((state) => ({
           komiksy: state.komiksy.map((k) =>
-            k.id === komiksId ? { ...k, postavyPoznamky: { ...k.postavyPoznamky, [jmeno]: poznamka } } : k
+            k.id === komiksId
+              ? {
+                  ...k,
+                  postavyPoznamky: { ...k.postavyPoznamky, [jmeno]: poznamka },
+                  upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
+                }
+              : k
           ),
         })),
 
@@ -329,6 +363,8 @@ const useComicWriterStore = create<ComicWriterState>()(
             nazev: `${original.nazev} (kopie)`,
             createdAt: ted,
             upravenoAt: ted,
+            updatedAt: Date.now(),
+            deletedAt: null,
             strany: original.strany.map((s) => ({
               ...s,
               id: noveId(),
@@ -355,4 +391,14 @@ const useComicWriterStore = create<ComicWriterState>()(
   )
 )
 
-export const useComicWriter = () => useComicWriterStore()
+// Syrový přístup pro cloudovou synchronizaci (writerSync.ts) — vidí i
+// smazané (deletedAt) komiksy, stejná trojice jako u Knihy/Scénáře.
+export const getRawComicWriterState = () => useComicWriterStore.getState()
+export const setRawComicWriterState = (patch: Partial<{ komiksy: Komiks[] }>) => useComicWriterStore.setState(patch)
+export const subscribeComicWriterStore = (fn: () => void) => useComicWriterStore.subscribe(fn)
+
+export const useComicWriter = () => {
+  const store = useComicWriterStore()
+  const komiksy = useMemo(() => store.komiksy.filter((k) => !k.deletedAt), [store.komiksy])
+  return { ...store, komiksy }
+}

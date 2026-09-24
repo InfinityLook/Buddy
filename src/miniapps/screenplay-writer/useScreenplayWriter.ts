@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
@@ -72,6 +73,8 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
           upravenoAt: ted,
           cilScen: null,
           postavyPoznamky: {},
+          updatedAt: Date.now(),
+          deletedAt: null,
         }
         set((state) => ({ scenare: [novy, ...state.scenare] }))
         return id
@@ -80,14 +83,24 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
       // Živě vázaný vstup jako updateKniha — bez trimu/fallbacku.
       updateScenar: (id, nazev) =>
         set((state) => ({
-          scenare: state.scenare.map((s) => (s.id === id ? { ...s, nazev, upravenoAt: new Date().toISOString() } : s)),
+          scenare: state.scenare.map((s) =>
+            s.id === id ? { ...s, nazev, upravenoAt: new Date().toISOString(), updatedAt: Date.now() } : s
+          ),
         })),
 
-      deleteScenar: (id) => set((state) => ({ scenare: state.scenare.filter((s) => s.id !== id) })),
+      // Měkké smazání — stejná zásada jako Kniha.deleteKniha, viz
+      // Scenar.deletedAt v types.ts.
+      deleteScenar: (id) =>
+        set((state) => {
+          const ted = Date.now()
+          return { scenare: state.scenare.map((s) => (s.id === id ? { ...s, deletedAt: ted, updatedAt: ted } : s)) }
+        }),
 
       setCilScen: (scenarId, cil) =>
         set((state) => ({
-          scenare: state.scenare.map((s) => (s.id === scenarId ? { ...s, cilScen: cil, upravenoAt: new Date().toISOString() } : s)),
+          scenare: state.scenare.map((s) =>
+            s.id === scenarId ? { ...s, cilScen: cil, upravenoAt: new Date().toISOString(), updatedAt: Date.now() } : s
+          ),
         })),
 
       // Odměna se dává za dokončenou scénu, ne za jednotlivou repliku —
@@ -105,7 +118,9 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
         }
         set((state) => ({
           scenare: state.scenare.map((s) =>
-            s.id === scenarId ? { ...s, sceny: [...s.sceny, nova], upravenoAt: new Date().toISOString() } : s
+            s.id === scenarId
+              ? { ...s, sceny: [...s.sceny, nova], upravenoAt: new Date().toISOString(), updatedAt: Date.now() }
+              : s
           ),
         }))
         useGamificationStore.getState().recordAction('screenplay', SCREENPLAY_XP)
@@ -120,6 +135,7 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
                   ...s,
                   sceny: s.sceny.map((sc): Scena => (sc.id === scenaId ? { ...sc, ...data } : sc)),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         })),
@@ -129,7 +145,12 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
           scenare: state.scenare.map((s) =>
             s.id !== scenarId
               ? s
-              : { ...s, sceny: s.sceny.filter((sc) => sc.id !== scenaId), upravenoAt: new Date().toISOString() }
+              : {
+                  ...s,
+                  sceny: s.sceny.filter((sc) => sc.id !== scenaId),
+                  upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
+                }
           ),
         })),
 
@@ -143,6 +164,7 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
                   ...s,
                   sceny: s.sceny.map((sc) => (sc.id === scenaId ? { ...sc, prvky: [...sc.prvky, prvek] } : sc)),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         }))
@@ -164,6 +186,7 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
                   ...s,
                   sceny: s.sceny.map((sc) => (sc.id === scenaId ? { ...sc, prvky: [...sc.prvky, prvek] } : sc)),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         }))
@@ -189,6 +212,7 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
                         }
                   ),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         })),
@@ -204,6 +228,7 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
                     sc.id !== scenaId ? sc : { ...sc, prvky: sc.prvky.filter((p) => p.id !== prvekId) }
                   ),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         })),
@@ -214,7 +239,12 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
             if (s.id !== scenarId) return s
             const index = s.sceny.findIndex((sc) => sc.id === scenaId)
             if (index < 0) return s
-            return { ...s, sceny: posunPolozku(s.sceny, index, smer), upravenoAt: new Date().toISOString() }
+            return {
+              ...s,
+              sceny: posunPolozku(s.sceny, index, smer),
+              upravenoAt: new Date().toISOString(),
+              updatedAt: Date.now(),
+            }
           }),
         })),
 
@@ -230,7 +260,9 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
           stitky: '',
         }))
         set((state) => ({
-          scenare: state.scenare.map((s) => (s.id === scenarId ? { ...s, sceny: [...s.sceny, ...nove], upravenoAt: ted } : s)),
+          scenare: state.scenare.map((s) =>
+            s.id === scenarId ? { ...s, sceny: [...s.sceny, ...nove], upravenoAt: ted, updatedAt: Date.now() } : s
+          ),
         }))
         nove.forEach(() => useGamificationStore.getState().recordAction('screenplay', SCREENPLAY_XP))
       },
@@ -256,7 +288,7 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
               })
               return { ...sc, prvky }
             })
-            return celkemZamen > 0 ? { ...s, sceny, upravenoAt: new Date().toISOString() } : s
+            return celkemZamen > 0 ? { ...s, sceny, upravenoAt: new Date().toISOString(), updatedAt: Date.now() } : s
           }),
         }))
         return celkemZamen
@@ -275,6 +307,7 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
                   cilScen: sanitizovano.cilScen,
                   postavyPoznamky: sanitizovano.postavyPoznamky,
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
               : s
           ),
@@ -285,7 +318,14 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
       setPoznamkaPostavy: (scenarId, jmeno, poznamka) =>
         set((state) => ({
           scenare: state.scenare.map((s) =>
-            s.id === scenarId ? { ...s, postavyPoznamky: { ...s.postavyPoznamky, [jmeno]: poznamka } } : s
+            s.id === scenarId
+              ? {
+                  ...s,
+                  postavyPoznamky: { ...s.postavyPoznamky, [jmeno]: poznamka },
+                  upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
+                }
+              : s
           ),
         })),
 
@@ -302,6 +342,8 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
             nazev: `${original.nazev} (kopie)`,
             createdAt: ted,
             upravenoAt: ted,
+            updatedAt: Date.now(),
+            deletedAt: null,
             sceny: original.sceny.map((sc) => ({ ...sc, id: noveId(), prvky: sc.prvky.map((p) => ({ ...p, id: noveId() })) })),
           }
           return { scenare: [kopie, ...state.scenare] }
@@ -324,4 +366,15 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
   )
 )
 
-export const useScreenplayWriter = () => useScreenplayWriterStore()
+// Syrový přístup pro cloudovou synchronizaci (writerSync.ts) — vidí i
+// smazané (deletedAt) scénáře, stejná trojice jako u Knihy.
+export const getRawScreenplayWriterState = () => useScreenplayWriterStore.getState()
+export const setRawScreenplayWriterState = (patch: Partial<{ scenare: Scenar[] }>) =>
+  useScreenplayWriterStore.setState(patch)
+export const subscribeScreenplayWriterStore = (fn: () => void) => useScreenplayWriterStore.subscribe(fn)
+
+export const useScreenplayWriter = () => {
+  const store = useScreenplayWriterStore()
+  const scenare = useMemo(() => store.scenare.filter((s) => !s.deletedAt), [store.scenare])
+  return { ...store, scenare }
+}

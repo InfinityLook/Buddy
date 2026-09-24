@@ -33,6 +33,12 @@ export interface Udalost {
   popis: string
   createdAt: number
   opakovani: Opakovani
+  // --- Cloudová synchronizace (skolaSync.ts) ---
+  // Stejný pár jako Kniha/Scenar/Komiks/Goal/Predmet/HodinaRozvrhu —
+  // updatedAt rozhoduje "kdo vyhrává" při sloučení mezi zařízeními,
+  // deletedAt je tombstone měkkého smazání (viz smazatUdalost).
+  updatedAt: number
+  deletedAt: number | null
 }
 
 /** Vyskytuje se událost v daný den? Počítáno vždy znovu z prvního data
@@ -76,3 +82,31 @@ export const pocetNadchazejicichUdalosti = (udalosti: Udalost[], dnesniStr: stri
 // datum -> barva, ne jako pole na Udalost.
 export const BARVY_DNE = ['cyan', 'violet', 'magenta', 'green', 'orange', 'red'] as const
 export type BarvaDne = (typeof BARVY_DNE)[number]
+
+// Uložený tvar (v úložišti i v cloudu) je pole záznamů, ne Record<string,
+// BarvaDne> — appka potřebuje na jednu barvu dne vlastní id/updatedAt/
+// deletedAt kvůli synchronizaci (stejná "záznam po záznamu" architektura
+// jako Kniha/Goal/Rozvrhova docházka), a měkké smazání ("✕ bez barvy")
+// potřebuje tombstone, ne fyzické odstranění klíče. Číst/psát barvu dne
+// zůstává pro zbytek appky (Kalendar.tsx) stejně jednoduché jako dřív —
+// useKalendar() z tohohle pole počítá přesně ten samý Record<string,
+// BarvaDne> pohled, co appka měla odjakživa (viz barvyDniJakoRecord níž).
+export interface BarvaDneZaznam {
+  /** Stejný klíč jako samotné datum ('YYYY-MM-DD') — appka může mít
+   *  vždycky nejvýš jednu barvu na den. */
+  id: string
+  datum: string
+  barva: BarvaDne
+  updatedAt: number
+  deletedAt: number | null
+}
+
+/** Nesmazané barvy dní jako Record<datum, barva> — přesně ten tvar, co
+ *  appka odjakživa četla/zapisovala přímo (Kalendar.tsx's barvyDni[den]). */
+export const barvyDniJakoRecord = (zaznamy: BarvaDneZaznam[]): Record<string, BarvaDne> => {
+  const barvyDni: Record<string, BarvaDne> = {}
+  for (const z of zaznamy) {
+    if (!z.deletedAt) barvyDni[z.datum] = z.barva
+  }
+  return barvyDni
+}

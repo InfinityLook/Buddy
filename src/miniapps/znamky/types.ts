@@ -30,6 +30,14 @@ export interface Predmet {
   // nezobrazuje, stejná "null znamená nenastaveno" konvence jako
   // School Roomovo cilPrumeru.
   cil?: number | null
+  // --- Cloudová synchronizace (skolaSync.ts) ---
+  // Stejná trojice jako Kniha/Scenar/Komiks/Goal — appka posílá celý
+  // Predmet (se svými znamky jako vnořené pole) jako jeden záznam, ne
+  // znamky zvlášť, stejný "vnořené pole je jsonb sloupec, ne vlastní
+  // synchronizovaný řádek" tvar jako Goalovy milniky/navykDny.
+  createdAt: string
+  updatedAt: number
+  deletedAt: number | null
 }
 
 export const MIN_ZNAMKA = 1

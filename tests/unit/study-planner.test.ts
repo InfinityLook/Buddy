@@ -15,6 +15,9 @@ const task = (patch: Partial<StudyTask> = {}): StudyTask => ({
   dueDate: '2025-01-01',
   priority: 'Střední',
   completed: false,
+  createdAt: '2024-01-01T00:00:00.000Z',
+  updatedAt: 0,
+  deletedAt: null,
   ...patch,
 })
 

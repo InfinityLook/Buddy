@@ -63,6 +63,9 @@ import { setupStudyPlannerReminders } from '@/miniapps/study-planner/useStudyPla
 import { setupFinanceRecurringCheck } from '@/miniapps/finance/useFinance'
 import { setupGoalTrackerReminders } from '@/miniapps/goal-tracker/useGoalTracker'
 import { startFinanceSync } from '@/miniapps/finance/financeSync'
+import { startWriterSync } from '@/flagships/writer-room/writerSync'
+import { startGoalTrackerSync } from '@/miniapps/goal-tracker/goalTrackerSync'
+import { startSkolaSync } from '@/flagships/school-room/skolaSync'
 import { setupFitnessReminders } from '@/flagships/fitness-room/fitnessReminders'
 import { setupPitnyRezimReminders } from '@/flagships/fitness-room/pitnyRezimReminders'
 import { setupRozvrhReminders } from '@/miniapps/rozvrh/rozvrhReminders'
@@ -177,6 +180,16 @@ export default function App() {
     // zrcadlo pro přenos mezi zařízeními) — stejný "doplněk, ne
     // podmínka" tichý no-op bez nastaveného cloudu jako startCloudSync.
     startFinanceSync()
+    // Totéž pro Writer's Room (Kniha/Scénář/Komiks) — každý dokument
+    // jako jeden JSONB blob, ne rozložený na sloupce, viz writerSync.ts.
+    startWriterSync()
+    // Totéž pro Growth Room (Goal Tracker) — cíle rozložené na sloupce
+    // jako Finance, ne JSONB blob jako Writer's Room, viz goalTrackerSync.ts.
+    startGoalTrackerSync()
+    // Totéž pro celou školní skupinu (Rozvrh+docházka/Známky/Planer/
+    // Kalendář+barvy dne) — jeden sdílený kurzor napříč šesti tabulkami,
+    // stejný tvar jako Finance, viz skolaSync.ts.
+    startSkolaSync()
   }, [])
 
   return (

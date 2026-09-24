@@ -9,6 +9,8 @@ const VCERA = '2026-06-14T09:00:00.000Z'
 const DNESNI_ISO = '2026-06-15T08:00:00.000Z'
 
 const kniha = (kapitolyDatumy: string[]): Kniha => ({
+  updatedAt: Date.now(),
+  deletedAt: null,
   id: 'k1',
   nazev: 'Kniha',
   cilSlov: null,
@@ -18,6 +20,8 @@ const kniha = (kapitolyDatumy: string[]): Kniha => ({
 })
 
 const scenar = (scenyDatumy: string[]): Scenar => ({
+  updatedAt: Date.now(),
+  deletedAt: null,
   id: 's1',
   nazev: 'Scénář',
   createdAt: VCERA,
@@ -38,6 +42,8 @@ const scenar = (scenyDatumy: string[]): Scenar => ({
 })
 
 const komiks = (panelyDatumy: string[]): Komiks => ({
+  updatedAt: Date.now(),
+  deletedAt: null,
   id: 'c1',
   nazev: 'Komiks',
   createdAt: VCERA,

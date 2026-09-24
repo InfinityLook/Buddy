@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
@@ -26,17 +27,26 @@ const useZnamkyStore = create<ZnamkyState>()(
 
       pridatPredmet: (nazev, kredity) => {
         if (!nazev.trim()) return
+        const ted = Date.now()
         const novy: Predmet = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: `${ted}-${Math.random().toString(36).slice(2, 7)}`,
           nazev: nazev.trim(),
           kredity: Math.max(0, kredity || 0),
           znamky: [],
+          createdAt: new Date(ted).toISOString(),
+          updatedAt: ted,
+          deletedAt: null,
         }
         set((state) => ({ predmety: [...state.predmety, novy] }))
       },
 
       smazatPredmet: (id) =>
-        set((state) => ({ predmety: state.predmety.filter((p) => p.id !== id) })),
+        set((state) => {
+          const ted = Date.now()
+          return {
+            predmety: state.predmety.map((p) => (p.id === id ? { ...p, deletedAt: ted, updatedAt: ted } : p)),
+          }
+        }),
 
       pridatZnamku: (predmetId, hodnota, vaha, popis, datum) => {
         const znamka: Znamka = {
@@ -48,7 +58,7 @@ const useZnamkyStore = create<ZnamkyState>()(
         }
         set((state) => ({
           predmety: state.predmety.map((p) =>
-            p.id === predmetId ? { ...p, znamky: [znamka, ...p.znamky] } : p
+            p.id === predmetId ? { ...p, znamky: [znamka, ...p.znamky], updatedAt: Date.now() } : p
           ),
         }))
         useGamificationStore.getState().recordAction('znamka', XP_ZA_ZNAMKU)
@@ -57,13 +67,15 @@ const useZnamkyStore = create<ZnamkyState>()(
       smazatZnamku: (predmetId, znamkaId) =>
         set((state) => ({
           predmety: state.predmety.map((p) =>
-            p.id === predmetId ? { ...p, znamky: p.znamky.filter((z) => z.id !== znamkaId) } : p
+            p.id === predmetId
+              ? { ...p, znamky: p.znamky.filter((z) => z.id !== znamkaId), updatedAt: Date.now() }
+              : p
           ),
         })),
 
       nastavCilPredmetu: (predmetId, cil) =>
         set((state) => ({
-          predmety: state.predmety.map((p) => (p.id === predmetId ? { ...p, cil } : p)),
+          predmety: state.predmety.map((p) => (p.id === predmetId ? { ...p, cil, updatedAt: Date.now() } : p)),
         })),
     }),
     {
@@ -79,8 +91,22 @@ const useZnamkyStore = create<ZnamkyState>()(
   )
 )
 
+// Syrový přístup ke storu pro cloudovou synchronizaci (skolaSync.ts) —
+// vidí i smazané (deletedAt) předměty, protože ty musí synchronizace
+// umět poslat jako tombstone řádek. Stejná trojice jako u Writer's
+// Roomových/Goal Trackerových getRaw*State funkcí.
+export const getRawZnamkyState = () => useZnamkyStore.getState()
+export const setRawZnamkyState = (patch: Partial<{ predmety: Predmet[] }>) => useZnamkyStore.setState(patch)
+export const subscribeZnamkyStore = (fn: () => void) => useZnamkyStore.subscribe(fn)
+
 export const useZnamky = () => {
-  const { predmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku, nastavCilPredmetu } =
+  const { predmety: vsechnyPredmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku, nastavCilPredmetu } =
     useZnamkyStore()
+
+  // Smazané předměty appka drží v úložišti dál (viz Predmet.deletedAt)
+  // jen kvůli synchronizaci mezi zařízeními — kdokoli appku volá jako
+  // dřív je nikdy nesmí vidět.
+  const predmety = useMemo(() => vsechnyPredmety.filter((p) => !p.deletedAt), [vsechnyPredmety])
+
   return { predmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku, nastavCilPredmetu }
 }

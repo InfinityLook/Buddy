@@ -15,6 +15,9 @@ const hodina = (over: Partial<HodinaRozvrhu> = {}): HodinaRozvrhu => ({
   predmet: 'Matematika',
   mistnost: 'A1',
   vyucujici: '',
+  createdAt: '2024-01-01T00:00:00.000Z',
+  updatedAt: 0,
+  deletedAt: null,
   ...over,
 })
 

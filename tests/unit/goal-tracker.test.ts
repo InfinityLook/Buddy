@@ -37,6 +37,9 @@ const cil = (over: Partial<Goal>): Goal => ({
   poznamka: '',
   milniky: [],
   navykDny: [],
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: 0,
+  deletedAt: null,
   ...over,
 })
 

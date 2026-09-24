@@ -54,6 +54,8 @@ describe('nahradVTextu', () => {
 
 describe('odhadCteniMinut (Kniha)', () => {
   const kniha = (slov: number): Kniha => ({
+    updatedAt: Date.now(),
+    deletedAt: null,
     id: 'k',
     nazev: 'K',
     cilSlov: null,
@@ -67,7 +69,7 @@ describe('odhadCteniMinut (Kniha)', () => {
   })
 
   it('prázdná kniha má odhad 0 minut', () => {
-    expect(odhadCteniMinut({ id: 'k', nazev: 'K', cilSlov: null, createdAt: '1', upravenoAt: '1', kapitoly: [] })).toBe(0)
+    expect(odhadCteniMinut({ updatedAt: Date.now(), deletedAt: null, id: 'k', nazev: 'K', cilSlov: null, createdAt: '1', upravenoAt: '1', kapitoly: [] })).toBe(0)
   })
 })
 
@@ -88,6 +90,8 @@ describe('SABLONY_SCEN', () => {
 describe('sestavFountain', () => {
   it('vyskládá skutečnou Fountain syntaxi — INT./EXT. nadpis, postava velkými písmeny, poznámka v závorce', () => {
     const scenar: Scenar = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 's',
       nazev: 'Můj scénář',
       createdAt: '1',
@@ -122,6 +126,8 @@ describe('sestavFountain', () => {
 
   it('INT/EXT se ve Fountainu skládá jako INT./EXT.', () => {
     const scenar: Scenar = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 's',
       nazev: 'S',
       createdAt: '1',
@@ -135,6 +141,8 @@ describe('sestavFountain', () => {
 
   it('prázdnou scénu označí jako takovou, ne prázdným řetězcem', () => {
     const scenar: Scenar = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 's',
       nazev: 'S',
       createdAt: '1',

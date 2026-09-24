@@ -40,6 +40,22 @@ export interface Kniha {
   // Writer's Roomu i seznam knih ukazovaly vždycky nejnověji ZALOŽENOU
   // knihu, ne tu, na které se doopravdy pracuje.
   upravenoAt: string
+  // Číselná obdoba upravenoAt (ms od epochy), jen pro cloudovou
+  // synchronizaci (viz writerSync.ts) — appka porovnává "kdo je
+  // novější" mezi zařízeními na číslech, ne na řetězcích, a
+  // upravenoAt zůstává beze změny pro všechno ostatní (řazení,
+  // zobrazení), ať se nemusí přepisovat žádné dřívější místo, co ho
+  // už čte. Bump se děje na stejném místě jako upravenoAt, vždycky
+  // spolu. Nepovinné — starší uložená kniha ho nemá, fallback na
+  // Date.now() při načtení (viz bookWriterValidation.ts).
+  updatedAt: number
+  // null = kniha existuje. Appka knihu nikdy fyzicky nemaže (viz
+  // deleteKniha) — smazání jen nastaví tenhle čas, ať se smazání dá
+  // synchronizovat na druhé zařízení jako tombstone řádek, ne jen
+  // zmizet z jednoho úložiště a zůstat navěky na druhém. Veřejný
+  // useBookWriter() smazané knihy sám vyfiltruje (stejná zásada jako
+  // Finance's Transaction.deletedAt).
+  deletedAt: number | null
 }
 
 // Prostý rozdělovač podle bílých znaků — appka nepotřebuje přesné

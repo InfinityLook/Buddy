@@ -40,7 +40,16 @@ export const sanitizujKnihu = (data: unknown) => {
   // založení, pokud appka jinak neví o ničem novějším).
   const upravenoAt = typeof d.upravenoAt === 'string' ? d.upravenoAt : d.createdAt
 
-  return { id: d.id, nazev: d.nazev, cilSlov: d.cilSlov, kapitoly, createdAt: d.createdAt, upravenoAt }
+  // updatedAt/deletedAt jsou ještě novější pole (cloudová synchronizace,
+  // viz writerSync.ts) — starší uložená kniha je nemá vůbec. updatedAt
+  // padá zpátky na Date.now(), ne na čas z upravenoAt/createdAt: appka
+  // touhle knihou při nejbližší synchronizaci chce projít jako
+  // "právě teď se dozvěděla o svém obsahu", ne se tvářit, že je stará
+  // a prohrát slučování s opravdu novější verzí odjinud.
+  const updatedAt = typeof d.updatedAt === 'number' && Number.isFinite(d.updatedAt) ? d.updatedAt : Date.now()
+  const deletedAt = typeof d.deletedAt === 'number' && Number.isFinite(d.deletedAt) ? d.deletedAt : null
+
+  return { id: d.id, nazev: d.nazev, cilSlov: d.cilSlov, kapitoly, createdAt: d.createdAt, upravenoAt, updatedAt, deletedAt }
 }
 
 const BookWriterSchema = v.object({

@@ -87,7 +87,13 @@ export const sanitizujScenar = (data: unknown) => {
     }
   }
 
-  return { id: d.id, nazev: d.nazev, sceny, createdAt: d.createdAt, upravenoAt, cilScen, postavyPoznamky }
+  // updatedAt/deletedAt jsou nejnovější pole (cloudová synchronizace,
+  // viz writerSync.ts) — stejný fallback jako u Knihy v
+  // bookWriterValidation.ts.
+  const updatedAt = typeof d.updatedAt === 'number' && Number.isFinite(d.updatedAt) ? d.updatedAt : Date.now()
+  const deletedAt = typeof d.deletedAt === 'number' && Number.isFinite(d.deletedAt) ? d.deletedAt : null
+
+  return { id: d.id, nazev: d.nazev, sceny, createdAt: d.createdAt, upravenoAt, cilScen, postavyPoznamky, updatedAt, deletedAt }
 }
 
 const ScreenplayWriterSchema = v.object({

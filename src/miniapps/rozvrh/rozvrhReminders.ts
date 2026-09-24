@@ -44,7 +44,11 @@ const oznamKlicPro = (h: HodinaRozvrhu, ted: Date): string =>
 const naplanuj = (): void => {
   zrusTimer()
   const ted = new Date()
-  const dalsi = najdiDalsiPripominku(useRozvrhStore.getState().hodiny, ted)
+  // Smazaná (deletedAt) hodina appka drží v úložišti dál jen kvůli
+  // synchronizaci mezi zařízeními — sama nesmí spustit připomínku,
+  // stejný filtr jako useRozvrh()'s vlastní veřejný pohled.
+  const aktivniHodiny = useRozvrhStore.getState().hodiny.filter((h) => !h.deletedAt)
+  const dalsi = najdiDalsiPripominku(aktivniHodiny, ted)
   if (!dalsi) return
 
   const klic = oznamKlicPro(dalsi.hodina, ted)

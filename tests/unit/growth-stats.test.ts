@@ -11,6 +11,9 @@ const cil = (id: string, current: number, target: number): Goal => ({
   unit: 'kroků',
   category: 'Osobní',
   completedAt: null,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: 0,
+  deletedAt: null,
 })
 
 describe('nejblizsiCile', () => {

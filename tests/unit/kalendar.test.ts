@@ -15,6 +15,8 @@ const udalost = (patch: Partial<Udalost> = {}): Udalost => ({
   popis: '',
   createdAt: 0,
   opakovani: 'zadne',
+  updatedAt: 0,
+  deletedAt: null,
   ...patch,
 })
 
@@ -83,5 +85,22 @@ describe('validateKalendarData', () => {
     })
     expect(vysledek.success).toBe(true)
     if (vysledek.success) expect(vysledek.data.udalosti).toHaveLength(0)
+  })
+
+  it('starší tvar (barvyDni jako Record<datum, barva>) se tiše převede na nový', () => {
+    const vysledek = validateKalendarData({ barvyDni: { '2025-01-01': 'cyan', '2025-01-02': 'neplatna-barva' } })
+    expect(vysledek.success).toBe(true)
+    if (vysledek.success) {
+      expect(vysledek.data.barvyDniZaznamy).toHaveLength(1)
+      expect(vysledek.data.barvyDniZaznamy[0]).toMatchObject({ id: '2025-01-01', datum: '2025-01-01', barva: 'cyan' })
+    }
+  })
+
+  it('nový tvar (pole barvyDniZaznamy) projde beze změny', () => {
+    const vysledek = validateKalendarData({
+      barvyDniZaznamy: [{ id: '2025-01-01', datum: '2025-01-01', barva: 'violet' }],
+    })
+    expect(vysledek.success).toBe(true)
+    if (vysledek.success) expect(vysledek.data.barvyDniZaznamy).toHaveLength(1)
   })
 })

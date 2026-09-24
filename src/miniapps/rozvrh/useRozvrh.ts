@@ -1,15 +1,16 @@
+import { useMemo } from 'react'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { validateRozvrhData } from '@/core/utils/rozvrhValidation'
-import { DenVTydnu, HodinaRozvrhu, klicDochazky, serazenoPodleCasu } from './types'
+import { DenVTydnu, DochazkaZaznam, HodinaRozvrhu, dochazkaJakoRecord, klicDochazky, serazenoPodleCasu } from './types'
 
 const XP_ZA_HODINU = 5
 
 interface RozvrhState {
   hodiny: HodinaRozvrhu[]
-  dochazka: Record<string, boolean>
+  dochazkaZaznamy: DochazkaZaznam[]
   pridatHodinu: (
     den: DenVTydnu,
     casOd: string,
@@ -26,24 +27,31 @@ interface RozvrhState {
 
 // Exportovaný přímo (ne jen skrz useRozvrh() níž) — rozvrhReminders.ts
 // potřebuje .getState() mimo React, stejný důvod, proč useFormCheckStore/
-// useWriterCheckpoints jsou taky exportované napřímo.
+// useWriterCheckpoints jsou taky exportované napřímo. Ze stejného důvodu
+// ho teď volá i skolaSync.ts (cloudová synchronizace) — .getState()/
+// .setState()/.subscribe() mu k tomu úplně stačí, žádná další
+// getRaw*State/setRaw*State trojice navíc není potřeba.
 export const useRozvrhStore = create<RozvrhState>()(
   persist(
     (set) => ({
       hodiny: [],
-      dochazka: {},
+      dochazkaZaznamy: [],
 
       pridatHodinu: (den, casOd, casDo, predmet, mistnost, vyucujici) => {
         if (!predmet.trim()) return
 
+        const ted = Date.now()
         const nova: HodinaRozvrhu = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: `${ted}-${Math.random().toString(36).slice(2, 7)}`,
           den,
           casOd,
           casDo,
           predmet: predmet.trim(),
           mistnost: mistnost.trim(),
           vyucujici: vyucujici.trim(),
+          createdAt: new Date(ted).toISOString(),
+          updatedAt: ted,
+          deletedAt: null,
         }
 
         set((state) => ({ hodiny: [...state.hodiny, nova] }))
@@ -62,27 +70,59 @@ export const useRozvrhStore = create<RozvrhState>()(
         if (orezanyPatch.vyucujici !== undefined) orezanyPatch.vyucujici = orezanyPatch.vyucujici.trim()
 
         set((state) => ({
-          hodiny: state.hodiny.map((h) => (h.id === id ? { ...h, ...orezanyPatch } : h)),
+          hodiny: state.hodiny.map((h) => (h.id === id ? { ...h, ...orezanyPatch, updatedAt: Date.now() } : h)),
         }))
       },
 
       smazatHodinu: (id) =>
         set((state) => {
+          const ted = Date.now()
           // Smazaná hodina strhne s sebou i svoje záznamy docházky —
-          // klíč (klicDochazky) na neexistující hodinu už nikdy nesedí.
-          const dochazka = Object.fromEntries(
-            Object.entries(state.dochazka).filter(([klic]) => !klic.startsWith(`${id}::`))
+          // měkce, stejný tombstone jako u hodiny samotné, ne fyzické
+          // odstranění (viz DochazkaZaznam.deletedAt v types.ts).
+          const dochazkaZaznamy = state.dochazkaZaznamy.map((z) =>
+            z.hodinaId === id && !z.deletedAt ? { ...z, deletedAt: ted, updatedAt: ted } : z
           )
-          return { hodiny: state.hodiny.filter((h) => h.id !== id), dochazka }
+          const hodiny = state.hodiny.map((h) => (h.id === id ? { ...h, deletedAt: ted, updatedAt: ted } : h))
+          return { hodiny, dochazkaZaznamy }
         }),
 
       oznacitDochazku: (hodinaId, datum, byl) =>
         set((state) => {
+          const ted = Date.now()
           const klic = klicDochazky(hodinaId, datum)
-          const dochazka = { ...state.dochazka }
-          if (byl === null) delete dochazka[klic]
-          else dochazka[klic] = byl
-          return { dochazka }
+          const existujici = state.dochazkaZaznamy.find((z) => z.id === klic)
+
+          if (byl === null) {
+            // Zpět na "nezaznamenáno" — měkké smazání, ne fyzické
+            // odstranění, ať appka umí zrcadlit i tohle "odznačení" na
+            // druhé zařízení.
+            if (!existujici || existujici.deletedAt) return {}
+            return {
+              dochazkaZaznamy: state.dochazkaZaznamy.map((z) =>
+                z.id === klic ? { ...z, deletedAt: ted, updatedAt: ted } : z
+              ),
+            }
+          }
+
+          if (existujici) {
+            return {
+              dochazkaZaznamy: state.dochazkaZaznamy.map((z) =>
+                z.id === klic ? { ...z, byl, deletedAt: null, updatedAt: ted } : z
+              ),
+            }
+          }
+
+          const novy: DochazkaZaznam = {
+            id: klic,
+            hodinaId,
+            datum,
+            byl,
+            createdAt: new Date(ted).toISOString(),
+            updatedAt: ted,
+            deletedAt: null,
+          }
+          return { dochazkaZaznamy: [...state.dochazkaZaznamy, novy] }
         }),
     }),
     {
@@ -99,11 +139,17 @@ export const useRozvrhStore = create<RozvrhState>()(
 )
 
 export const useRozvrh = () => {
-  const { hodiny, dochazka, pridatHodinu, updateHodinu, smazatHodinu, oznacitDochazku } =
-    useRozvrhStore()
+  const { hodiny, dochazkaZaznamy, pridatHodinu, updateHodinu, smazatHodinu, oznacitDochazku } = useRozvrhStore()
+
+  // Smazané hodiny appka drží v úložišti dál (viz HodinaRozvrhu.deletedAt)
+  // jen kvůli synchronizaci mezi zařízeními — kdokoli appku volá jako
+  // dřív je nikdy nesmí vidět, stejná zásada jako Writer's Roomovy/Goal
+  // Trackerovy filtrované hooky.
+  const viditelneHodiny = useMemo(() => hodiny.filter((h) => !h.deletedAt), [hodiny])
+  const dochazka = useMemo(() => dochazkaJakoRecord(dochazkaZaznamy), [dochazkaZaznamy])
 
   return {
-    hodiny: serazenoPodleCasu(hodiny),
+    hodiny: serazenoPodleCasu(viditelneHodiny),
     dochazka,
     pridatHodinu,
     updateHodinu,

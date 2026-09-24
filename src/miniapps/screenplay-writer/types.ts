@@ -64,6 +64,11 @@ export interface Scenar {
   // Nepovinné pole — starší uložený scénář ho nemá vůbec, fallback na
   // prázdný objekt (viz screenplayWriterValidation.ts).
   postavyPoznamky: Record<string, string>
+  // Číselná obdoba upravenoAt + tombstone smazání — stejná role a
+  // stejný důvod jako Kniha.updatedAt/deletedAt vedle (cloudová
+  // synchronizace, viz writerSync.ts).
+  updatedAt: number
+  deletedAt: number | null
 }
 
 // Skládá skutečný scénáristický nadpis scény z jejích tří polí — appka

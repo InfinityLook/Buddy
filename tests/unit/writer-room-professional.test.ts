@@ -67,6 +67,8 @@ describe('najdiUryvek', () => {
 })
 
 const scenarSPostavami = (): Scenar => ({
+  updatedAt: Date.now(),
+  deletedAt: null,
   id: 's',
   nazev: 'Scénář',
   createdAt: '1',
@@ -102,6 +104,8 @@ describe('ziskejPostavy (Scénář)', () => {
 
   it('vynechá akční prvky a prázdná jména', () => {
     const scenar: Scenar = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 's',
       nazev: 'S',
       createdAt: '1',
@@ -131,6 +135,8 @@ describe('ziskejPostavy (Scénář)', () => {
 describe('odhadStopazeMinut', () => {
   it('spočítá hrubý odhad ze slov napříč všemi scénami (~200 slov = 1 minuta)', () => {
     const scenar: Scenar = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 's',
       nazev: 'S',
       createdAt: '1',
@@ -165,7 +171,7 @@ describe('odhadStopazeMinut', () => {
   })
 
   it('prázdný scénář má odhad 0 minut', () => {
-    const scenar: Scenar = { id: 's', nazev: 'S', createdAt: '1', upravenoAt: '1', cilScen: null, postavyPoznamky: {}, sceny: [] }
+    const scenar: Scenar = { updatedAt: Date.now(), deletedAt: null, id: 's', nazev: 'S', createdAt: '1', upravenoAt: '1', cilScen: null, postavyPoznamky: {}, sceny: [] }
     expect(odhadStopazeMinut(scenar)).toBe(0)
   })
 })
@@ -173,6 +179,8 @@ describe('odhadStopazeMinut', () => {
 describe('ziskejPostavy (Komiks)', () => {
   it('vrátí jména postav použitá v dialogových řádcích napříč panely, bez duplicit', () => {
     const komiks: Komiks = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 'c',
       nazev: 'C',
       createdAt: '1',

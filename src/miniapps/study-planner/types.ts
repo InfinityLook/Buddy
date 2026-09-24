@@ -27,6 +27,16 @@ export interface StudyTask {
   // (task.podukoly ?? [])), appka funguje úplně stejně bez jediného
   // podúkolu, dokončení úkolu samo o sobě žádný podúkol nevyžaduje.
   podukoly?: Podukol[]
+  // --- Cloudová synchronizace (skolaSync.ts) ---
+  // Tenhle store nemá žádnou valibot validaci (viz komentář výš), takže
+  // se starší úkol bez těchhle polí dorovná přímo v persist's merge
+  // (useStudyPlanner.ts's backfillSyncFields), ne v samostatném
+  // sanitizuj* souboru jako u ostatních miniaplikací. updatedAt
+  // rozhoduje "kdo vyhrává" při sloučení mezi zařízeními, deletedAt je
+  // tombstone měkkého smazání (viz deleteTask).
+  createdAt: string
+  updatedAt: number
+  deletedAt: number | null
 }
 
 /** Kolik podúkolů je hotovo z celkového počtu — čistá pomocná funkce,

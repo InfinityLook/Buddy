@@ -27,6 +27,9 @@ const hodina = (over: Partial<HodinaRozvrhu> = {}): HodinaRozvrhu => ({
   predmet: 'Matematika',
   mistnost: 'A1',
   vyucujici: 'Dr. Novák',
+  createdAt: '2024-01-01T00:00:00.000Z',
+  updatedAt: 0,
+  deletedAt: null,
   ...over,
 })
 
@@ -163,12 +166,27 @@ describe('sestavIcsRozvrhu', () => {
 })
 
 describe('validateRozvrhData', () => {
-  it('projde platná data beze změny', () => {
-    const vysledek = validateRozvrhData({ hodiny: [hodina()], dochazka: { [klicDochazky('h1', '2024-01-01')]: true } })
+  it('projde platná data beze změny (nový tvar dochazkaZaznamy)', () => {
+    const klic = klicDochazky('h1', '2024-01-01')
+    const vysledek = validateRozvrhData({
+      hodiny: [hodina()],
+      dochazkaZaznamy: [{ id: klic, hodinaId: 'h1', datum: '2024-01-01', byl: true }],
+    })
     expect(vysledek.success).toBe(true)
     if (vysledek.success) {
       expect(vysledek.data.hodiny).toHaveLength(1)
-      expect(vysledek.data.dochazka[klicDochazky('h1', '2024-01-01')]).toBe(true)
+      expect(vysledek.data.dochazkaZaznamy).toHaveLength(1)
+      expect(vysledek.data.dochazkaZaznamy[0].byl).toBe(true)
+    }
+  })
+
+  it('starší tvar (dochazka jako Record<klic, byl>) se tiše převede na nový', () => {
+    const klic = klicDochazky('h1', '2024-01-01')
+    const vysledek = validateRozvrhData({ hodiny: [hodina()], dochazka: { [klic]: true } })
+    expect(vysledek.success).toBe(true)
+    if (vysledek.success) {
+      expect(vysledek.data.dochazkaZaznamy).toHaveLength(1)
+      expect(vysledek.data.dochazkaZaznamy[0]).toMatchObject({ id: klic, hodinaId: 'h1', datum: '2024-01-01', byl: true })
     }
   })
 
@@ -192,7 +210,7 @@ describe('validateRozvrhData', () => {
       dochazka: { [klicDochazky('h1', '2024-01-01')]: true },
     })
     expect(vysledek.success).toBe(true)
-    if (vysledek.success) expect(vysledek.data.dochazka).toEqual({})
+    if (vysledek.success) expect(vysledek.data.dochazkaZaznamy).toEqual([])
   })
 
   it('data, co vůbec neodpovídají tvaru, se odmítnou', () => {

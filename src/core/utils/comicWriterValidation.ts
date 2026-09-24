@@ -77,7 +77,12 @@ export const sanitizujKomiks = (data: unknown) => {
     }
   }
 
-  return { id: d.id, nazev: d.nazev, strany, createdAt: d.createdAt, upravenoAt, cilStran, postavyPoznamky }
+  // updatedAt/deletedAt jsou nejnovější pole (cloudová synchronizace,
+  // viz writerSync.ts) — stejný fallback jako u Knihy/Scénáře.
+  const updatedAt = typeof d.updatedAt === 'number' && Number.isFinite(d.updatedAt) ? d.updatedAt : Date.now()
+  const deletedAt = typeof d.deletedAt === 'number' && Number.isFinite(d.deletedAt) ? d.deletedAt : null
+
+  return { id: d.id, nazev: d.nazev, strany, createdAt: d.createdAt, upravenoAt, cilStran, postavyPoznamky, updatedAt, deletedAt }
 }
 
 const ComicWriterSchema = v.object({

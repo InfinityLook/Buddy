@@ -4,16 +4,15 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { validateKalendarData } from '@/core/utils/kalendarValidation'
-import { BarvaDne, Opakovani, Udalost, udalostSeVyskytujeVDen } from './types'
+import { BarvaDne, BarvaDneZaznam, Opakovani, Udalost, barvyDniJakoRecord, udalostSeVyskytujeVDen } from './types'
 
 const XP_ZA_UDALOST = 5
 
 interface KalendarState {
   udalosti: Udalost[]
-  // Datum -> barva, nezávisle na tom, jestli má den událost — viz
-  // types.ts's vlastní komentář u BARVY_DNE, proč je to vlastní mapa,
-  // ne pole na Udalost.
-  barvyDni: Record<string, BarvaDne>
+  // Pole záznamů barvy dne, ne Record — viz types.ts's vlastní komentář
+  // u BarvaDneZaznam, proč je to vlastní pole se soft-delete, ne mapa.
+  barvyDniZaznamy: BarvaDneZaznam[]
   pridatUdalost: (datum: string, nazev: string, popis: string, opakovani: Opakovani) => void
   smazatUdalost: (id: string) => void
   /** null smaže barvu dne (návrat na "bez barvy"). */
@@ -30,38 +29,69 @@ const dnesniDatum = (): string => {
   return naFormatDatumu(d.getFullYear(), d.getMonth(), d.getDate())
 }
 
-const useKalendarStore = create<KalendarState>()(
+// Exportovaný přímo — skolaSync.ts (cloudová synchronizace) potřebuje
+// .getState()/.setState()/.subscribe() mimo React, stejný důvod jako
+// Rozvrhovo useRozvrhStore.
+export const useKalendarStore = create<KalendarState>()(
   persist(
     (set) => ({
       udalosti: [],
-      barvyDni: {},
+      barvyDniZaznamy: [],
 
       nastavBarvuDne: (datum, barva) =>
         set((state) => {
-          const barvyDni = { ...state.barvyDni }
-          if (barva === null) delete barvyDni[datum]
-          else barvyDni[datum] = barva
-          return { barvyDni }
+          const ted = Date.now()
+          const existujici = state.barvyDniZaznamy.find((z) => z.id === datum)
+
+          if (barva === null) {
+            // Zpět na "bez barvy" — měkké smazání, ne fyzické odstranění,
+            // ať appka umí zrcadlit i tohle "✕ bez barvy" na druhé zařízení.
+            if (!existujici || existujici.deletedAt) return {}
+            return {
+              barvyDniZaznamy: state.barvyDniZaznamy.map((z) =>
+                z.id === datum ? { ...z, deletedAt: ted, updatedAt: ted } : z
+              ),
+            }
+          }
+
+          if (existujici) {
+            return {
+              barvyDniZaznamy: state.barvyDniZaznamy.map((z) =>
+                z.id === datum ? { ...z, barva, deletedAt: null, updatedAt: ted } : z
+              ),
+            }
+          }
+
+          const novy: BarvaDneZaznam = { id: datum, datum, barva, updatedAt: ted, deletedAt: null }
+          return { barvyDniZaznamy: [...state.barvyDniZaznamy, novy] }
         }),
 
       pridatUdalost: (datum, nazev, popis, opakovani) => {
         if (!nazev.trim()) return
 
+        const ted = Date.now()
         const nova: Udalost = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: `${ted}-${Math.random().toString(36).slice(2, 7)}`,
           datum,
           nazev: nazev.trim(),
           popis: popis.trim(),
-          createdAt: Date.now(),
+          createdAt: ted,
           opakovani,
+          updatedAt: ted,
+          deletedAt: null,
         }
 
         set((state) => ({ udalosti: [...state.udalosti, nova] }))
         useGamificationStore.getState().recordAction('kalendar', XP_ZA_UDALOST)
       },
 
+      // Měkké smazání — appka událost nikdy fyzicky neodstraní z pole,
+      // jen ji označí deletedAt (viz Udalost.deletedAt v types.ts).
       smazatUdalost: (id) =>
-        set((state) => ({ udalosti: state.udalosti.filter((u) => u.id !== id) })),
+        set((state) => {
+          const ted = Date.now()
+          return { udalosti: state.udalosti.map((u) => (u.id === id ? { ...u, deletedAt: ted, updatedAt: ted } : u)) }
+        }),
     }),
     {
       name: 'schoolbuddy-kalendar-storage',
@@ -95,11 +125,17 @@ export const NAZVY_MESICU = [
 ]
 
 export const useKalendar = () => {
-  const { udalosti, barvyDni, pridatUdalost, smazatUdalost, nastavBarvuDne } = useKalendarStore()
+  const { udalosti: vsechnyUdalosti, barvyDniZaznamy, pridatUdalost, smazatUdalost, nastavBarvuDne } = useKalendarStore()
   const dnes = useMemo(() => new Date(), [])
   const [rok, setRok] = useState(dnes.getFullYear())
   const [mesic, setMesic] = useState(dnes.getMonth())
   const [vybranyDen, setVybranyDen] = useState<string | null>(dnesniDatum())
+
+  // Smazané události/barvy dní appka drží v úložišti dál (viz
+  // Udalost.deletedAt/BarvaDneZaznam.deletedAt) jen kvůli synchronizaci
+  // mezi zařízeními — kdokoli appku volá jako dřív je nikdy nesmí vidět.
+  const udalosti = useMemo(() => vsechnyUdalosti.filter((u) => !u.deletedAt), [vsechnyUdalosti])
+  const barvyDni = useMemo(() => barvyDniJakoRecord(barvyDniZaznamy), [barvyDniZaznamy])
 
   const jitMesicem = (smer: -1 | 1) => {
     setVybranyDen(null)

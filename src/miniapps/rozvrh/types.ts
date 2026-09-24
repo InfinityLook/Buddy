@@ -42,6 +42,13 @@ export interface HodinaRozvrhu {
   predmet: string
   mistnost: string
   vyucujici: string
+  // --- Cloudová synchronizace (skolaSync.ts) ---
+  // Stejná trojice jako Kniha/Scenar/Komiks/Goal — updatedAt rozhoduje
+  // "kdo vyhrává" při sloučení mezi zařízeními, deletedAt je tombstone
+  // měkkého smazání (viz smazatHodinu v useRozvrh.ts).
+  createdAt: string
+  updatedAt: number
+  deletedAt: number | null
 }
 
 // Nesplněné se řadí schválně stejně jako Planer — podle dne, uvnitř
@@ -127,6 +134,38 @@ export const najdiKolize = (
   )
 
 // --- Docházka ---
+
+// Uložený tvar (v úložišti i v cloudu) je pole záznamů, ne Record<string,
+// boolean> — appka potřebuje na jeden záznam docházky vlastní id/
+// updatedAt/deletedAt kvůli synchronizaci (stejná "záznam po záznamu"
+// architektura jako Kniha/Goal), a měkké smazání (odznačení "byl jsem")
+// potřebuje tombstone, ne fyzické odstranění klíče. Číst/psát docházku
+// zůstává pro zbytek appky (Rozvrh.tsx, School Room) stejně jednoduché
+// jako dřív — useRozvrh() z tohohle pole počítá přesně ten samý
+// Record<string, boolean> pohled, co appka měla odjakživa (viz
+// dochazkaJakoRecord níž), a spocitejDochazkuPodlePredmetu tak dál bere
+// Record, ne pole.
+export interface DochazkaZaznam {
+  /** Stejný klíč jako klicDochazky(hodinaId, datum) výš. */
+  id: string
+  hodinaId: string
+  datum: string
+  byl: boolean
+  createdAt: string
+  updatedAt: number
+  deletedAt: number | null
+}
+
+/** Nesmazané záznamy docházky jako Record<klic, byl> — přesně ten tvar,
+ *  co appka odjakživa četla/zapisovala přímo (Rozvrh.tsx's dochazka[klic],
+ *  spocitejDochazkuPodlePredmetu). */
+export const dochazkaJakoRecord = (zaznamy: DochazkaZaznam[]): Record<string, boolean> => {
+  const dochazka: Record<string, boolean> = {}
+  for (const z of zaznamy) {
+    if (!z.deletedAt) dochazka[z.id] = z.byl
+  }
+  return dochazka
+}
 
 export interface DochazkaPredmetu {
   predmet: string

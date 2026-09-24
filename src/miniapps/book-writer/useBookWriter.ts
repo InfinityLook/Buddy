@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
@@ -66,7 +67,16 @@ const useBookWriterStore = create<BookWriterState>()(
       addKniha: (nazev) => {
         const id = noveId()
         const ted = new Date().toISOString()
-        const nova: Kniha = { id, nazev: nazev.trim() || 'Nová kniha', cilSlov: null, kapitoly: [], createdAt: ted, upravenoAt: ted }
+        const nova: Kniha = {
+          id,
+          nazev: nazev.trim() || 'Nová kniha',
+          cilSlov: null,
+          kapitoly: [],
+          createdAt: ted,
+          upravenoAt: ted,
+          updatedAt: Date.now(),
+          deletedAt: null,
+        }
         set((state) => ({ knihy: [nova, ...state.knihy] }))
         return id
       },
@@ -75,14 +85,26 @@ const useBookWriterStore = create<BookWriterState>()(
       // stejná volnost jako přejmenování kapitoly už má.
       updateKniha: (id, nazev) =>
         set((state) => ({
-          knihy: state.knihy.map((k) => (k.id === id ? { ...k, nazev, upravenoAt: new Date().toISOString() } : k)),
+          knihy: state.knihy.map((k) =>
+            k.id === id ? { ...k, nazev, upravenoAt: new Date().toISOString(), updatedAt: Date.now() } : k
+          ),
         })),
 
-      deleteKniha: (id) => set((state) => ({ knihy: state.knihy.filter((k) => k.id !== id) })),
+      // Měkké smazání — appka knihu nikdy fyzicky neodstraní z pole,
+      // jen ji označí deletedAt (viz Kniha.deletedAt v types.ts). Veřejný
+      // useBookWriter() ji sám vyfiltruje, ať appka i tak vypadá, jako
+      // by kniha zmizela — jen se smazání dá zrcadlit na druhé zařízení.
+      deleteKniha: (id) =>
+        set((state) => {
+          const ted = Date.now()
+          return { knihy: state.knihy.map((k) => (k.id === id ? { ...k, deletedAt: ted, updatedAt: ted } : k)) }
+        }),
 
       setCilSlov: (knihaId, cil) =>
         set((state) => ({
-          knihy: state.knihy.map((k) => (k.id === knihaId ? { ...k, cilSlov: cil, upravenoAt: new Date().toISOString() } : k)),
+          knihy: state.knihy.map((k) =>
+            k.id === knihaId ? { ...k, cilSlov: cil, upravenoAt: new Date().toISOString(), updatedAt: Date.now() } : k
+          ),
         })),
 
       addKapitola: (knihaId, nazev) => {
@@ -97,7 +119,9 @@ const useBookWriterStore = create<BookWriterState>()(
         }
         set((state) => ({
           knihy: state.knihy.map((k) =>
-            k.id === knihaId ? { ...k, kapitoly: [...k.kapitoly, nova], upravenoAt: new Date().toISOString() } : k
+            k.id === knihaId
+              ? { ...k, kapitoly: [...k.kapitoly, nova], upravenoAt: new Date().toISOString(), updatedAt: Date.now() }
+              : k
           ),
         }))
         useGamificationStore.getState().recordAction('book', BOOK_XP)
@@ -112,6 +136,7 @@ const useBookWriterStore = create<BookWriterState>()(
                   ...k,
                   kapitoly: k.kapitoly.map((kap) => (kap.id === kapitolaId ? { ...kap, ...data } : kap)),
                   upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
                 }
           ),
         })),
@@ -121,7 +146,12 @@ const useBookWriterStore = create<BookWriterState>()(
           knihy: state.knihy.map((k) =>
             k.id !== knihaId
               ? k
-              : { ...k, kapitoly: k.kapitoly.filter((kap) => kap.id !== kapitolaId), upravenoAt: new Date().toISOString() }
+              : {
+                  ...k,
+                  kapitoly: k.kapitoly.filter((kap) => kap.id !== kapitolaId),
+                  upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
+                }
           ),
         })),
 
@@ -131,7 +161,12 @@ const useBookWriterStore = create<BookWriterState>()(
             if (k.id !== knihaId) return k
             const index = k.kapitoly.findIndex((kap) => kap.id === kapitolaId)
             if (index < 0) return k
-            return { ...k, kapitoly: posunPolozku(k.kapitoly, index, smer), upravenoAt: new Date().toISOString() }
+            return {
+              ...k,
+              kapitoly: posunPolozku(k.kapitoly, index, smer),
+              upravenoAt: new Date().toISOString(),
+              updatedAt: Date.now(),
+            }
           }),
         })),
 
@@ -148,7 +183,7 @@ const useBookWriterStore = create<BookWriterState>()(
         }))
         set((state) => ({
           knihy: state.knihy.map((k) =>
-            k.id === knihaId ? { ...k, kapitoly: [...k.kapitoly, ...nove], upravenoAt: ted } : k
+            k.id === knihaId ? { ...k, kapitoly: [...k.kapitoly, ...nove], upravenoAt: ted, updatedAt: Date.now() } : k
           ),
         }))
         // Odměna za každou skutečně založenou kapitolu, stejně jako by
@@ -166,7 +201,7 @@ const useBookWriterStore = create<BookWriterState>()(
               celkemZamen += pocet
               return pocet > 0 ? { ...kap, text } : kap
             })
-            return celkemZamen > 0 ? { ...k, kapitoly, upravenoAt: new Date().toISOString() } : k
+            return celkemZamen > 0 ? { ...k, kapitoly, upravenoAt: new Date().toISOString(), updatedAt: Date.now() } : k
           }),
         }))
         return celkemZamen
@@ -178,7 +213,14 @@ const useBookWriterStore = create<BookWriterState>()(
         set((state) => ({
           knihy: state.knihy.map((k) =>
             k.id === knihaId
-              ? { ...k, nazev: sanitizovano.nazev, cilSlov: sanitizovano.cilSlov, kapitoly: sanitizovano.kapitoly, upravenoAt: new Date().toISOString() }
+              ? {
+                  ...k,
+                  nazev: sanitizovano.nazev,
+                  cilSlov: sanitizovano.cilSlov,
+                  kapitoly: sanitizovano.kapitoly,
+                  upravenoAt: new Date().toISOString(),
+                  updatedAt: Date.now(),
+                }
               : k
           ),
         }))
@@ -198,6 +240,8 @@ const useBookWriterStore = create<BookWriterState>()(
             nazev: `${original.nazev} (kopie)`,
             createdAt: ted,
             upravenoAt: ted,
+            updatedAt: Date.now(),
+            deletedAt: null,
             kapitoly: original.kapitoly.map((k) => ({ ...k, id: noveId() })),
           }
           return { knihy: [kopie, ...state.knihy] }
@@ -223,4 +267,20 @@ const useBookWriterStore = create<BookWriterState>()(
   )
 )
 
-export const useBookWriter = () => useBookWriterStore()
+// Syrový přístup ke storu pro cloudovou synchronizaci (writerSync.ts) —
+// vidí i smazané (deletedAt) knihy, protože ty musí synchronizace umět
+// poslat jako tombstone řádek. Stejná trojice jako Finance's
+// getRawFinanceState/setRawFinanceState/subscribeFinanceStore.
+export const getRawBookWriterState = () => useBookWriterStore.getState()
+export const setRawBookWriterState = (patch: Partial<{ knihy: Kniha[] }>) => useBookWriterStore.setState(patch)
+export const subscribeBookWriterStore = (fn: () => void) => useBookWriterStore.subscribe(fn)
+
+export const useBookWriter = () => {
+  const store = useBookWriterStore()
+  // Smazané knihy appka drží v úložišti dál (viz Kniha.deletedAt) jen
+  // kvůli synchronizaci mezi zařízeními — kdokoli appku volá jako dřív
+  // (useBookWriter().knihy) je nikdy nesmí vidět, stejná zásada jako
+  // Finance's useFinance().
+  const knihy = useMemo(() => store.knihy.filter((k) => !k.deletedAt), [store.knihy])
+  return { ...store, knihy }
+}

@@ -41,6 +41,17 @@ interface StudyPlannerState {
 const isDemoTask = (task: StudyTask) =>
   DEMO_TASK_IDS.includes(task.id) && DEMO_TASK_TOPICS.includes(task.topic)
 
+// Tenhle store nemá žádnou valibot validaci (viz StudyTask's vlastní
+// komentář), takže dorovnání starších úkolů bez createdAt/updatedAt/
+// deletedAt (před cloudovou synchronizací, viz skolaSync.ts) žije rovnou
+// tady, v persist's merge, ne ve zvláštním sanitizuj* souboru.
+const backfillSyncFields = (task: StudyTask): StudyTask => ({
+  ...task,
+  createdAt: typeof task.createdAt === 'string' ? task.createdAt : new Date().toISOString(),
+  updatedAt: typeof task.updatedAt === 'number' && Number.isFinite(task.updatedAt) ? task.updatedAt : 0,
+  deletedAt: typeof task.deletedAt === 'number' && Number.isFinite(task.deletedAt) ? task.deletedAt : null,
+})
+
 const useStudyPlannerStore = create<StudyPlannerState>()(
   persist(
     (set) => ({
@@ -57,20 +68,24 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
             useGamificationStore.getState().recordAction('task', XP_PER_COMPLETED_TASK)
           }
           return {
-            tasks: state.tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)),
+            tasks: state.tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed, updatedAt: Date.now() } : t)),
           }
         }),
 
       addTask: (subject, topic, dueDate, priority) => {
         if (!subject.trim() || !topic.trim()) return
 
+        const ted = Date.now()
         const newTask: StudyTask = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: `${ted}-${Math.random().toString(36).slice(2, 7)}`,
           subject: subject.trim(),
           topic: topic.trim(),
           dueDate: dueDate || todayIso(),
           priority,
           completed: false,
+          createdAt: new Date(ted).toISOString(),
+          updatedAt: ted,
+          deletedAt: null,
         }
 
         set((state) => ({ tasks: [newTask, ...state.tasks] }))
@@ -95,14 +110,23 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
                   topic: topic.trim(),
                   dueDate: dueDate || task.dueDate,
                   priority,
+                  updatedAt: Date.now(),
                 }
               : task
           ),
         }))
       },
 
+      // Měkké smazání — appka úkol nikdy fyzicky neodstraní z pole, jen
+      // ho označí deletedAt (viz StudyTask.deletedAt v types.ts).
+      // Veřejný useStudyPlanner()/Hub/ProfilNotifications ho sami
+      // vyfiltrují, ať appka i tak vypadá, jako by úkol zmizel — jen se
+      // smazání dá zrcadlit na druhé zařízení.
       deleteTask: (id) =>
-        set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) })),
+        set((state) => {
+          const ted = Date.now()
+          return { tasks: state.tasks.map((t) => (t.id === id ? { ...t, deletedAt: ted, updatedAt: ted } : t)) }
+        }),
 
       // Podúkoly jsou jen checklist bez vlastní odměny — dokončení
       // úkolu samo dál nese XP (toggleTask výš), přidávat/škrtat
@@ -116,7 +140,7 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
         }
         set((state) => ({
           tasks: state.tasks.map((t) =>
-            t.id === taskId ? { ...t, podukoly: [...(t.podukoly ?? []), novy] } : t
+            t.id === taskId ? { ...t, podukoly: [...(t.podukoly ?? []), novy], updatedAt: Date.now() } : t
           ),
         }))
       },
@@ -125,7 +149,11 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
         set((state) => ({
           tasks: state.tasks.map((t) =>
             t.id === taskId
-              ? { ...t, podukoly: (t.podukoly ?? []).map((p) => (p.id === podukolId ? { ...p, hotovo: !p.hotovo } : p)) }
+              ? {
+                  ...t,
+                  podukoly: (t.podukoly ?? []).map((p) => (p.id === podukolId ? { ...p, hotovo: !p.hotovo } : p)),
+                  updatedAt: Date.now(),
+                }
               : t
           ),
         })),
@@ -133,7 +161,9 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
       smazatPodukol: (taskId, podukolId) =>
         set((state) => ({
           tasks: state.tasks.map((t) =>
-            t.id === taskId ? { ...t, podukoly: (t.podukoly ?? []).filter((p) => p.id !== podukolId) } : t
+            t.id === taskId
+              ? { ...t, podukoly: (t.podukoly ?? []).filter((p) => p.id !== podukolId), updatedAt: Date.now() }
+              : t
           ),
         })),
     }),
@@ -143,12 +173,20 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
 
       merge: (persisted, current) => {
         const saved = persisted as Partial<StudyPlannerState> | undefined
-        const tasks = (saved?.tasks ?? []).filter((task) => !isDemoTask(task))
+        const tasks = (saved?.tasks ?? []).filter((task) => !isDemoTask(task)).map(backfillSyncFields)
         return { ...current, ...saved, tasks, lastReminderDate: saved?.lastReminderDate ?? null }
       },
     }
   )
 )
+
+// Syrový přístup ke storu pro cloudovou synchronizaci (skolaSync.ts) —
+// vidí i smazané (deletedAt) úkoly, protože ty musí synchronizace umět
+// poslat jako tombstone řádek. Stejná trojice jako u Writer's
+// Roomových/Goal Trackerových/Znamkových getRaw*State funkcí.
+export const getRawStudyPlannerState = () => useStudyPlannerStore.getState()
+export const setRawStudyPlannerState = (patch: Partial<{ tasks: StudyTask[] }>) => useStudyPlannerStore.setState(patch)
+export const subscribeStudyPlannerStore = (fn: () => void) => useStudyPlannerStore.subscribe(fn)
 
 // ==========================================
 // Upozornění na termíny — systémová notifikace, ne jen ta v aplikaci
@@ -173,10 +211,13 @@ const checkDueReminders = () => {
   // spouštěla při každém návratu do appky.
   if (state.lastReminderDate === today) return
 
+  // Smazané (deletedAt) úkoly appka drží v úložišti dál jen kvůli
+  // synchronizaci mezi zařízeními — samy nesmí spustit připomínku,
+  // stejný filtr jako useStudyPlanner()'s vlastní veřejný pohled níž.
   const overdue = state.tasks.filter(
-    (t) => !t.completed && /^\d{4}-\d{2}-\d{2}$/.test(t.dueDate) && t.dueDate < today
+    (t) => !t.deletedAt && !t.completed && /^\d{4}-\d{2}-\d{2}$/.test(t.dueDate) && t.dueDate < today
   ).length
-  const dueToday = state.tasks.filter((t) => !t.completed && t.dueDate === today).length
+  const dueToday = state.tasks.filter((t) => !t.deletedAt && !t.completed && t.dueDate === today).length
   if (overdue === 0 && dueToday === 0) return
 
   useStudyPlannerStore.setState({ lastReminderDate: today })
@@ -215,13 +256,21 @@ const compareTasks = (a: StudyTask, b: StudyTask) => {
 }
 
 export const useStudyPlanner = () => {
-  const { tasks, toggleTask, addTask, updateTask, deleteTask, pridatPodukol, prepnoutPodukol, smazatPodukol } =
+  const { tasks: vsechnyTasks, toggleTask, addTask, updateTask, deleteTask, pridatPodukol, prepnoutPodukol, smazatPodukol } =
     useStudyPlannerStore()
   const [filter, setFilter] = useState<TaskFilter>('Vše')
 
-  // POZOR: `tasks` se vrací nesetříděné a nefiltrované schválně — čte je
-  // i Hub (denní výzva) a panel upozornění v profilu, kterým do filtru
-  // nastaveného uvnitř miniaplikace nic není.
+  // Smazané (deletedAt) úkoly appka drží v úložišti dál jen kvůli
+  // synchronizaci mezi zařízeními — kdokoli appku volá jako dřív je
+  // nikdy nesmí vidět, stejná zásada jako Writer's Roomovy/Goal
+  // Trackerovy/Znamkovy filtrované hooky.
+  //
+  // POZOR: `tasks` se vrací nesetříděné a nefiltrované (kategoriovým
+  // filtrem) schválně — čte je i Hub (denní výzva) a panel upozornění
+  // v profilu, kterým do filtru nastaveného uvnitř miniaplikace nic
+  // není. Smazané se ale vyfiltrují vždycky, bez ohledu na tohle.
+  const tasks = useMemo(() => vsechnyTasks.filter((t) => !t.deletedAt), [vsechnyTasks])
+
   const visibleTasks = useMemo(() => {
     const filtered = tasks.filter((task) => {
       if (filter === 'Nesplněné') return !task.completed

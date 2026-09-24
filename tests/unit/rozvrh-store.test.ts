@@ -10,7 +10,7 @@ import { useRozvrhStore } from '@/miniapps/rozvrh/useRozvrh'
 // ==========================================
 
 const resetStore = () => {
-  useRozvrhStore.setState({ hodiny: [], dochazka: {} })
+  useRozvrhStore.setState({ hodiny: [], dochazkaZaznamy: [] })
 }
 
 beforeEach(resetStore)

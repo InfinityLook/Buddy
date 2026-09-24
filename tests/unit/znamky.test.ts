@@ -20,6 +20,9 @@ const predmet = (over: Partial<Predmet> = {}): Predmet => ({
   nazev: 'Matematika',
   kredity: 5,
   znamky: [],
+  createdAt: '2024-01-01T00:00:00.000Z',
+  updatedAt: 0,
+  deletedAt: null,
   ...over,
 })
 

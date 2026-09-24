@@ -100,6 +100,7 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
               current: nextVal,
               completedAt:
                 goal.completedAt ?? (nextVal >= goal.target ? new Date().toISOString() : null),
+              updatedAt: Date.now(),
             }
           }),
         }))
@@ -114,8 +115,9 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
       addGoal: (vstup) => {
         if (!vstup.title.trim() || vstup.target <= 0) return
 
+        const ted = Date.now()
         const newGoal: Goal = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: `${ted}-${Math.random().toString(36).slice(2, 7)}`,
           title: vstup.title.trim(),
           current: 0,
           target: vstup.target,
@@ -128,6 +130,9 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
           poznamka: vstup.poznamka.trim(),
           milniky: [],
           navykDny: [],
+          createdAt: new Date(ted).toISOString(),
+          updatedAt: ted,
+          deletedAt: null,
         }
 
         set((state) => ({ goals: [...state.goals, newGoal] }))
@@ -157,6 +162,7 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
                   poznamka: vstup.poznamka.trim(),
                   // Když se cíl zvedne, pokrok nesmí zůstat nad ním
                   current: vstup.typ === 'navyk' ? goal.current : Math.min(goal.current, vstup.target),
+                  updatedAt: Date.now(),
                 }
               : goal
           ),
@@ -165,15 +171,23 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
         if (vstup.deadline || vstup.typ === 'navyk') requestNotificationPermission()
       },
 
+      // Měkké smazání — appka cíl nikdy fyzicky neodstraní z pole, jen
+      // ho označí deletedAt (viz Goal.deletedAt v types.ts). Veřejný
+      // useGoalTracker() ho sám vyfiltruje, ať appka i tak vypadá, jako
+      // by cíl zmizel — jen se smazání dá zrcadlit na druhé zařízení.
       deleteGoal: (id) =>
-        set((state) => ({ goals: state.goals.filter((g) => g.id !== id) })),
+        set((state) => {
+          const ted = Date.now()
+          return { goals: state.goals.map((g) => (g.id === id ? { ...g, deletedAt: ted, updatedAt: ted } : g)) }
+        }),
 
       pridatZeSablony: (sablonaId) => {
         const sablona = SABLONY_CILU.find((s) => s.id === sablonaId)
         if (!sablona) return
 
+        const ted = Date.now()
         const newGoal: Goal = {
-          id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          id: `${ted}-${Math.random().toString(36).slice(2, 7)}`,
           title: sablona.nazev,
           current: 0,
           target: sablona.target,
@@ -186,6 +200,9 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
           poznamka: '',
           milniky: [],
           navykDny: [],
+          createdAt: new Date(ted).toISOString(),
+          updatedAt: ted,
+          deletedAt: null,
         }
 
         set((state) => ({ goals: [...state.goals, newGoal] }))
@@ -220,6 +237,7 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
               // "splněno dnes" je přepínač, ne jen jednosměrné tlačítko.
               navykDny: uzOznaceno ? dny.filter((d) => d !== dnesniIso) : [...dny, dnesniIso],
               navykXpDny: vyplatitXp ? [...(goal.navykXpDny ?? []), dnesniIso] : goal.navykXpDny,
+              updatedAt: Date.now(),
             }
           }),
         }))
@@ -233,14 +251,16 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
       // to jedno pole, beze zbytku validace celého formuláře cíle.
       nastavPoznamku: (goalId, poznamka) =>
         set((state) => ({
-          goals: state.goals.map((g) => (g.id === goalId ? { ...g, poznamka } : g)),
+          goals: state.goals.map((g) => (g.id === goalId ? { ...g, poznamka, updatedAt: Date.now() } : g)),
         })),
 
       pridatMilnik: (goalId, text) => {
         if (!text.trim()) return
         const milnik: Milnik = { id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, text: text.trim(), done: false }
         set((state) => ({
-          goals: state.goals.map((g) => (g.id === goalId ? { ...g, milniky: [...(g.milniky ?? []), milnik] } : g)),
+          goals: state.goals.map((g) =>
+            g.id === goalId ? { ...g, milniky: [...(g.milniky ?? []), milnik], updatedAt: Date.now() } : g
+          ),
         }))
       },
 
@@ -248,7 +268,11 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
         set((state) => ({
           goals: state.goals.map((g) =>
             g.id === goalId
-              ? { ...g, milniky: (g.milniky ?? []).map((m) => (m.id === milnikId ? { ...m, done: !m.done } : m)) }
+              ? {
+                  ...g,
+                  milniky: (g.milniky ?? []).map((m) => (m.id === milnikId ? { ...m, done: !m.done } : m)),
+                  updatedAt: Date.now(),
+                }
               : g
           ),
         })),
@@ -256,7 +280,9 @@ const useGoalTrackerStore = create<GoalTrackerState>()(
       smazatMilnik: (goalId, milnikId) =>
         set((state) => ({
           goals: state.goals.map((g) =>
-            g.id === goalId ? { ...g, milniky: (g.milniky ?? []).filter((m) => m.id !== milnikId) } : g
+            g.id === goalId
+              ? { ...g, milniky: (g.milniky ?? []).filter((m) => m.id !== milnikId), updatedAt: Date.now() }
+              : g
           ),
         })),
     }),
@@ -303,7 +329,9 @@ const checkGoalReminders = () => {
   const today = dnesniDatum()
   if (state.lastReminderDate === today) return
 
-  const aktivni = state.goals.filter((g) => (g.typ ?? 'cil') === 'cil' && g.current < g.target && g.deadline)
+  const aktivni = state.goals.filter(
+    (g) => !g.deletedAt && (g.typ ?? 'cil') === 'cil' && g.current < g.target && g.deadline
+  )
   const overdue = aktivni.filter((g) => g.deadline! < today).length
   const dueToday = aktivni.filter((g) => g.deadline === today).length
   if (overdue === 0 && dueToday === 0) return
@@ -330,7 +358,7 @@ const checkHabitReminders = () => {
   if (state.lastHabitReminderDate === today) return
   if (dnes.getHours() < NAVYK_PRIPOMINKA_OD_HODINY) return
 
-  const nedokoncene = state.goals.filter((g) => g.typ === 'navyk' && !jeNavykOznacenDnes(g, dnes))
+  const nedokoncene = state.goals.filter((g) => !g.deletedAt && g.typ === 'navyk' && !jeNavykOznacenDnes(g, dnes))
   if (nedokoncene.length === 0) return
 
   useGoalTrackerStore.setState({ lastHabitReminderDate: today })
@@ -371,7 +399,10 @@ const checkWeeklyDigest = () => {
 
   useGoalTrackerStore.setState({ lastDigestWeekKey: tydenKlic })
 
-  const { dokoncenoCilu, navykovychOdskrtnuti } = spocitejTydenniSouhrn(state.goals, dnes)
+  const { dokoncenoCilu, navykovychOdskrtnuti } = spocitejTydenniSouhrn(
+    state.goals.filter((g) => !g.deletedAt),
+    dnes
+  )
   if (dokoncenoCilu === 0 && navykovychOdskrtnuti === 0) return
 
   const { streakDays } = useGamificationStore.getState()
@@ -412,9 +443,17 @@ export const setupGoalTrackerReminders = (): void => {
   })
 }
 
+// Syrový přístup ke storu pro cloudovou synchronizaci
+// (goalTrackerSync.ts) — vidí i smazané (deletedAt) cíle, protože ty
+// musí synchronizace umět poslat jako tombstone řádek. Stejná trojice
+// jako u Writer's Roomových getRaw*State funkcí.
+export const getRawGoalTrackerState = () => useGoalTrackerStore.getState()
+export const setRawGoalTrackerState = (patch: Partial<{ goals: Goal[] }>) => useGoalTrackerStore.setState(patch)
+export const subscribeGoalTrackerStore = (fn: () => void) => useGoalTrackerStore.subscribe(fn)
+
 export const useGoalTracker = () => {
   const {
-    goals,
+    goals: vsechnyGoals,
     changeProgress,
     addGoal,
     updateGoal,
@@ -427,6 +466,12 @@ export const useGoalTracker = () => {
     smazatMilnik,
   } = useGoalTrackerStore()
   const [filter, setFilter] = useState<string>(ALL_GOALS)
+
+  // Smazané cíle appka drží v úložišti dál (viz Goal.deletedAt) jen
+  // kvůli synchronizaci mezi zařízeními — kdokoli appku volá jako dřív
+  // je nikdy nesmí vidět, stejná zásada jako Writer's Roomovy
+  // useBookWriter()/useScreenplayWriter()/useComicWriter().
+  const goals = useMemo(() => vsechnyGoals.filter((g) => !g.deletedAt), [vsechnyGoals])
 
   const filteredGoals = useMemo(() => {
     const filtered = goals.filter((goal) => filter === ALL_GOALS || goal.category === filter)

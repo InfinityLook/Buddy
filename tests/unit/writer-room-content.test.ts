@@ -15,8 +15,8 @@ import type { Komiks } from '@/miniapps/comic-writer/types'
 
 describe('serazenoPodleUpravy', () => {
   it('seřadí knihy podle upravenoAt sestupně, ne podle pořadí v poli', () => {
-    const stara: Kniha = { id: 'a', nazev: 'A', cilSlov: null, kapitoly: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01' }
-    const nova: Kniha = { id: 'b', nazev: 'B', cilSlov: null, kapitoly: [], createdAt: '2026-01-02', upravenoAt: '2026-06-01' }
+    const stara: Kniha = { updatedAt: Date.now(), deletedAt: null, id: 'a', nazev: 'A', cilSlov: null, kapitoly: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01' }
+    const nova: Kniha = { updatedAt: Date.now(), deletedAt: null, id: 'b', nazev: 'B', cilSlov: null, kapitoly: [], createdAt: '2026-01-02', upravenoAt: '2026-06-01' }
     // Pole samo je v pořadí založení (nova první) — výsledek řazení
     // podle upravenoAt musí být stejný bez ohledu na to.
     expect(serazenoKnih([nova, stara]).map((k) => k.id)).toEqual(['b', 'a'])
@@ -24,18 +24,18 @@ describe('serazenoPodleUpravy', () => {
   })
 
   it('funguje stejně pro scénáře i komiksy', () => {
-    const s1: Scenar = { id: 'x', nazev: 'X', sceny: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01', cilScen: null, postavyPoznamky: {} }
-    const s2: Scenar = { id: 'y', nazev: 'Y', sceny: [], createdAt: '2026-01-01', upravenoAt: '2026-05-01', cilScen: null, postavyPoznamky: {} }
+    const s1: Scenar = { updatedAt: Date.now(), deletedAt: null, id: 'x', nazev: 'X', sceny: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01', cilScen: null, postavyPoznamky: {} }
+    const s2: Scenar = { updatedAt: Date.now(), deletedAt: null, id: 'y', nazev: 'Y', sceny: [], createdAt: '2026-01-01', upravenoAt: '2026-05-01', cilScen: null, postavyPoznamky: {} }
     expect(serazenoScenaru([s1, s2]).map((s) => s.id)).toEqual(['y', 'x'])
 
-    const k1: Komiks = { id: 'p', nazev: 'P', strany: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01', cilStran: null, postavyPoznamky: {} }
-    const k2: Komiks = { id: 'q', nazev: 'Q', strany: [], createdAt: '2026-01-01', upravenoAt: '2026-05-01', cilStran: null, postavyPoznamky: {} }
+    const k1: Komiks = { updatedAt: Date.now(), deletedAt: null, id: 'p', nazev: 'P', strany: [], createdAt: '2026-01-01', upravenoAt: '2026-01-01', cilStran: null, postavyPoznamky: {} }
+    const k2: Komiks = { updatedAt: Date.now(), deletedAt: null, id: 'q', nazev: 'Q', strany: [], createdAt: '2026-01-01', upravenoAt: '2026-05-01', cilStran: null, postavyPoznamky: {} }
     expect(serazenoKomiksu([k1, k2]).map((k) => k.id)).toEqual(['q', 'p'])
   })
 
   it('nemutuje vstupní pole', () => {
-    const a: Kniha = { id: 'a', nazev: 'A', cilSlov: null, kapitoly: [], createdAt: '1', upravenoAt: '1' }
-    const b: Kniha = { id: 'b', nazev: 'B', cilSlov: null, kapitoly: [], createdAt: '2', upravenoAt: '2' }
+    const a: Kniha = { updatedAt: Date.now(), deletedAt: null, id: 'a', nazev: 'A', cilSlov: null, kapitoly: [], createdAt: '1', upravenoAt: '1' }
+    const b: Kniha = { updatedAt: Date.now(), deletedAt: null, id: 'b', nazev: 'B', cilSlov: null, kapitoly: [], createdAt: '2', upravenoAt: '2' }
     const puvodni = [a, b]
     serazenoKnih(puvodni)
     expect(puvodni).toEqual([a, b])
@@ -45,6 +45,8 @@ describe('serazenoPodleUpravy', () => {
 describe('sestavTextKnihy', () => {
   it('poskládá název, čísla kapitol a jejich text do jednoho řetězce', () => {
     const kniha: Kniha = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 'k',
       nazev: 'Můj příběh',
       cilSlov: null,
@@ -67,6 +69,8 @@ describe('sestavTextKnihy', () => {
 describe('sestavTextScenare', () => {
   it('poskládá nadpis scény, akce prostým textem a dialog s postavou velkými písmeny', () => {
     const scenar: Scenar = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 's',
       nazev: 'Scénář',
       createdAt: '1',
@@ -98,6 +102,8 @@ describe('sestavTextScenare', () => {
 
   it('prázdnou scénu označí jako takovou, ne prázdným řetězcem', () => {
     const scenar: Scenar = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 's',
       nazev: 'S',
       createdAt: '1',
@@ -114,6 +120,8 @@ describe('sestavTextScenare', () => {
 describe('shrnutiKnihy / shrnutiScenare / shrnutiKomiksu', () => {
   it('shrnutiKnihy spočítá počet kapitol a celkový počet slov, se správnou českou gramatikou', () => {
     const kniha: Kniha = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 'k',
       nazev: 'Kniha',
       cilSlov: null,
@@ -128,12 +136,14 @@ describe('shrnutiKnihy / shrnutiScenare / shrnutiKomiksu', () => {
   })
 
   it('shrnutiKnihy prázdnou knihu shrne jako 0 kapitol a 0 slov', () => {
-    const kniha: Kniha = { id: 'k', nazev: 'K', cilSlov: null, createdAt: '1', upravenoAt: '1', kapitoly: [] }
+    const kniha: Kniha = { updatedAt: Date.now(), deletedAt: null, id: 'k', nazev: 'K', cilSlov: null, createdAt: '1', upravenoAt: '1', kapitoly: [] }
     expect(shrnutiKnihy(kniha)).toBe('0 kapitol · 0 slov')
   })
 
   it('shrnutiScenare spočítá počet scén a slov napříč všemi prvky', () => {
     const scenar: Scenar = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 's',
       nazev: 'S',
       createdAt: '1',
@@ -162,6 +172,8 @@ describe('shrnutiKnihy / shrnutiScenare / shrnutiKomiksu', () => {
 
   it('shrnutiKomiksu spočítá počet stran a celkový počet panelů napříč nimi', () => {
     const komiks: Komiks = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 'c',
       nazev: 'C',
       createdAt: '1',
@@ -190,6 +202,8 @@ describe('shrnutiKnihy / shrnutiScenare / shrnutiKomiksu', () => {
 describe('sestavTextKomiksu', () => {
   it('poskládá stranu → panel → řádky do jednoho řetězce', () => {
     const komiks: Komiks = {
+      updatedAt: Date.now(),
+      deletedAt: null,
       id: 'c',
       nazev: 'Komiks',
       createdAt: '1',

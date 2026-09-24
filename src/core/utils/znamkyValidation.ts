@@ -25,6 +25,11 @@ export const PredmetSchema = v.object({
   // znamená přesně to samé, co dřív jediné existující chování (žádný
   // progres bar cíle se nezobrazuje).
   cil: v.optional(v.nullable(v.number([v.minValue(MIN_ZNAMKA), v.maxValue(MAX_ZNAMKA)])), null),
+  // Nepovinné — starší uložený předmět (před cloudovou synchronizací,
+  // viz skolaSync.ts) tahle pole vůbec neměl.
+  createdAt: v.optional(v.string()),
+  updatedAt: v.optional(v.number()),
+  deletedAt: v.optional(v.nullable(v.number()), null),
 })
 
 export const ZnamkyDataSchema = v.object({
@@ -43,7 +48,7 @@ const sanitizujZnamku = (raw: unknown): Znamka | null => {
 const sanitizujPredmet = (raw: unknown): Predmet | null => {
   const jedna = v.safeParse(PredmetSchema, raw)
   if (!jedna.success) return null
-  const { id, nazev, kredity, znamky, cil } = jedna.output
+  const { id, nazev, kredity, znamky, cil, createdAt, updatedAt, deletedAt } = jedna.output
   if (!nazev.trim()) return null
   return {
     id,
@@ -51,6 +56,11 @@ const sanitizujPredmet = (raw: unknown): Predmet | null => {
     kredity,
     znamky: znamky.map(sanitizujZnamku).filter((z): z is Znamka => z !== null),
     cil,
+    // Stejný fallback jako Kniha/Scenar/Komiks/Goal — starší uložený
+    // předmět tahle pole vůbec neměl.
+    createdAt: createdAt ?? new Date().toISOString(),
+    updatedAt: typeof updatedAt === 'number' && Number.isFinite(updatedAt) ? updatedAt : Date.now(),
+    deletedAt,
   }
 }
 
