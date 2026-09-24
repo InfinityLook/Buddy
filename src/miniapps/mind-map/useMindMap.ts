@@ -16,7 +16,8 @@ const INITIAL_NODES: Record<string, MindNode> = {
 
 // Posbírá id uzlu a všech jeho potomků. Průchod si drží množinu už
 // navštívených uzlů, takže případný cyklus v datech ho nezacyklí.
-const collectSubtree = (
+// Exportováno kvůli testům (viz tests/unit/mind-map.test.ts).
+export const collectSubtree = (
   nodes: Record<string, MindNode>,
   id: string,
   acc: Set<string> = new Set()
@@ -36,7 +37,7 @@ const collectSubtree = (
 // "bez hodnoty" — stejný "nedůvěřuj uloženým datům naslepo" duch jako
 // ostatní miniaplikace, jen bez samostatného valibot schématu, protože
 // tenhle store si čištění dat už řeší sám (viz pruneOrphans výš).
-const sanitizeNode = (node: MindNode): MindNode => ({
+export const sanitizeNode = (node: MindNode): MindNode => ({
   ...node,
   barva: node.barva && (BARVY_UZLU as readonly string[]).includes(node.barva) ? node.barva : null,
   poznamka: typeof node.poznamka === 'string' ? node.poznamka : '',
@@ -47,7 +48,7 @@ const sanitizeNode = (node: MindNode): MindNode => ({
 // kteří v mapě nejsou. Dřívější verze deleteNode mazala jen samotný uzel
 // a jeho potomky nechávala v úložišti napořád — tohle ten odpad uklidí
 // při prvním načtení a zároveň drží data konzistentní.
-const pruneOrphans = (nodes: Record<string, MindNode> | undefined): Record<string, MindNode> => {
+export const pruneOrphans = (nodes: Record<string, MindNode> | undefined): Record<string, MindNode> => {
   if (!nodes || !nodes.root) return INITIAL_NODES
 
   const reachable = collectSubtree(nodes, 'root')
@@ -81,7 +82,10 @@ interface MindMapState {
   setNodeDetail: (id: string, poznamka: string, tag: string) => void
 }
 
-const useMindMapStore = create<MindMapState>()(
+// Exportováno kvůli testům (getState()/setState(), stejná zásada jako
+// core/store/useGamificationStore.ts) — appka sama pořád používá jen
+// useMindMap() hook níž.
+export const useMindMapStore = create<MindMapState>()(
   persist(
     (set) => ({
       nodes: INITIAL_NODES,
@@ -264,9 +268,26 @@ export const useMindMap = () => {
     })
   }
 
+  // collapsedIds je efemérní React state appky, ne zustatek uložený ve
+  // storu — smazání sbaleného uzlu (i s podstromem) ho tam dřív nechávalo
+  // ležet napořád. Uzel tím sice nikdy znovu neožil (layoutMindMap ho
+  // neumí vykreslit, když do něj nevede cesta od kořene), ale
+  // hasCollapsed pořád hlásilo "něco je sbalené" i po smazání jediné
+  // sbalené větve — lišta pak navěky ukazovala "Rozbalit vše" i když
+  // nebylo co rozbalit. toRemove se musí spočítat PŘED voláním
+  // deleteNode(id), dokud nodes ještě obsahuje smazávaný podstrom.
   const handleDelete = (id: string) => {
+    const toRemove = collectSubtree(nodes, id)
     deleteNode(id)
     if (id === selectedId) setSelectedId('root')
+    setCollapsedIds((prev) => {
+      let changed = false
+      const next = new Set(prev)
+      for (const removedId of toRemove) {
+        if (next.delete(removedId)) changed = true
+      }
+      return changed ? next : prev
+    })
   }
 
   const totalNodes = Object.keys(nodes).length

@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useMindMap } from './useMindMap'
 import { NODE_HEIGHT, NODE_WIDTH, edgePath } from './layout'
 import { BARVY_UZLU, BarvaUzlu } from './types'
+import { plural } from '@/core/utils/pluralCZ'
 import './MindMap.css'
 
 // Popisky pro čtečky obrazovky/aria-label — stejná pevná paleta jako
@@ -83,6 +84,10 @@ export const MindMap: React.FC = () => {
 
   const handleAdd = (e: React.FormEvent) => {
     e.preventDefault()
+    // Store addChild sám ignoruje text tvořený jen mezerami, ale bez
+    // stejné podmínky tady by se pole vyčistilo i po neúspěšném pokusu —
+    // vypadalo by to, jako by appka vstup "spolkla" a nic nevytvořila.
+    if (!newText.trim()) return
     addChild(newText)
     setNewText('')
   }
@@ -94,6 +99,10 @@ export const MindMap: React.FC = () => {
 
   const submitRename = (e: React.FormEvent) => {
     e.preventDefault()
+    // Stejný důvod jako u handleAdd výš — bez tyhle podmínky by se
+    // formulář na mezery-jen text tiše zavřel, aniž by se jméno uzlu
+    // doopravdy změnilo.
+    if (!renameText.trim()) return
     renameNode(selectedId, renameText)
     setRenaming(false)
   }
@@ -111,7 +120,9 @@ export const MindMap: React.FC = () => {
     <div className="mm-app">
       <div className="mm-header">
         <h2>Mind Map</h2>
-        <span className="mm-badge">{totalNodes} uzlů</span>
+        <span className="mm-badge">
+          {totalNodes} {plural(totalNodes, 'uzel', 'uzly', 'uzlů')}
+        </span>
       </div>
 
       <div className="mm-toolbar">
