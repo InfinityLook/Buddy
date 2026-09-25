@@ -23,7 +23,14 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 // vůbec spustil.
 // ==========================================
 
-const MODEL = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.3-70b-instruct:free'
+// Bezplatné modely na OpenRouteru se občas mění/ruší (viz CLAUDE.md) —
+// tenhle konkrétní řádek už jednou musel být opraven, když Meta stáhla
+// meta-llama/llama-3.3-70b-instruct:free z bezplatné nabídky. Pokud se
+// to stane znovu, NEJDE o chybu appky — stačí na Vercelu nastavit
+// proměnnou OPENROUTER_MODEL na aktuálně dostupné :free id
+// (https://openrouter.ai/models, filtr "Free") a znovu nasadit, žádná
+// změna kódu potřeba není.
+const MODEL = process.env.OPENROUTER_MODEL || 'deepseek/deepseek-chat-v3.1:free'
 
 // Odpověď se čte nahlas přes syntézu řeči — dlouhá odpověď se dlouho
 // poslouchá a formátování (odrážky, hvězdičky) TTS čte doslova a zní to
