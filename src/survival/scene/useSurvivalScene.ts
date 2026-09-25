@@ -66,6 +66,17 @@ import { ARENA_POLOMER } from '../engine/engine'
 // podle toho, kam hráč jde, jen teď sedí přímo v jeho pozici místo
 // za ním.
 //
+// DRUHÁ, PRAVÁ příčina "joystick jako pohyb" (uživatelovo druhé
+// nahlášení, po tomhle souboru): appčin výchozí směr pohledu (dřív -Z,
+// Three.js's vlastní kamerová konvence) nesouhlasil s tím, kam
+// engine.ts's krokHry doopravdy posílá kladný vstup ze joysticku
+// nahoru (+Z, ne -Z — appka to tam nikdy nezměnila, engine zůstává
+// čistý/kamera-agnostický). Než appčino dohánějící natočení stihlo
+// kameru dotočit, appka viděla přesně opačně, než kam se hráč zrovna
+// pohnul — "nahoru = dozadu, dolů = dopředu". Appka teď počáteční
+// směr (smerFacingZ i initial camera.lookAt, viz níž) sjednotila na
+// +Z, appčinu skutečnou konvenci "dopředu".
+//
 // Kenney sprity jsou vybrané "nejbližší dostupný vzhled, ne doslovná
 // shoda" (stejná zásada jako Souboj kdysi Robot→Bulwark) — appčin mirror
 // (github.com/shorepine/kenney) nemá žádný "monstrum/příšera" balíček,
@@ -568,9 +579,24 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     // snímek/instanci) a jen ho v krok() přepisuje — hodnota pro úplně
     // první snímek (než vůbec existuje stav) odpovídá výchozímu směru
     // pohledu appka nastavuje kameře hned pod tím. ---
+    // Appčin výchozí pohled MUSÍ mířit na +Z, ne na Three.js's obvyklé
+    // výchozí -Z — engine.ts's krokHry aplikuje kladný vstupSmer.z
+    // (joystick nahoru, viz VirtualniJoystick.tsx's vlastní komentář
+    // "dy kladné = dolů = dozadu") jako pohyb k VĚTŠÍMU Z, ne menšímu.
+    // Appka měla dřív -Z jako výchozí (Three.js's vlastní kamerová
+    // konvence, "-Z je dopředu"), což ale nesouhlasilo s engine.ts's
+    // vlastní, nezávisle zvolenou konvencí — výsledek: appka viděla
+    // přesně OPAČNĚ, než kam se hráč skutečně pohnul, dokud appčino
+    // dohánějící natočení (RYCHLOST_NATOCENI) nestihlo dorotovat kameru
+    // — u prvního pohybu (spawn) i po každém pusť-a-znovu-zmáčkni to
+    // vypadalo jako "nahoru = dozadu, dolů = dopředu", přesně nahlášená
+    // chyba. Appka teď oba směry (počáteční smerFacingZ i počáteční
+    // lookAt) sjednotila na appčinu SKUTEČNOU konvenci (+Z = dopředu),
+    // ať appka od úplně prvního snímku vidí přesně tam, kam se hráč
+    // zrovna hýbe, ne opačně.
     const billboardKvaternion = new THREE.Quaternion()
     camera.position.set(0, VYSKA_OCI, 0)
-    camera.lookAt(0, VYSKA_OCI, -DOHLED_DOPREDU)
+    camera.lookAt(0, VYSKA_OCI, DOHLED_DOPREDU)
     billboardKvaternion.copy(camera.quaternion)
     bossMesh.quaternion.copy(billboardKvaternion)
     dekorace.quaternion.copy(billboardKvaternion)
@@ -608,7 +634,10 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     let posledniHracX = 0
     let posledniHracZ = 0
     let smerFacingX = 0
-    let smerFacingZ = -1
+    // +1, ne -1 — appčina skutečná konvence "dopředu" je +Z (viz
+    // komentář u počátečního camera.lookAt výš), tenhle výchozí směr
+    // musí souhlasit s tím tam.
+    let smerFacingZ = 1
 
     const krok = () => {
       if (!bezi) return
