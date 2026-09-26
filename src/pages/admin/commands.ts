@@ -25,7 +25,7 @@ export const PRIKAZY: Record<string, PrikazKonzole> = {
   },
   status:{
     popis:'Status Aplikace.',
-  spustit()=>['BuddyZone je online ','Systém je načten',
+  spustit: ()=> ['BuddyZone je online ','Systém je načten',
     ],
  },
 }
