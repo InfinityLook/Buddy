@@ -33,10 +33,11 @@ export const PRIKAZY: Record<string, PrikazKonzole> = {
     ],
  },
   diagnosticapp: {
-    popis:''
+    popis:'diagnostika cele aplikace jeste neni hotova'
     spustit: ()=> {
   const cas = now Date()
-  return [ `Čas: $ { cas.toLocaleTimeString()}`,
+  return [ 
+    `Čas: ${cas.toLocaleTimeString()}`,
   },
  apps: {
   popis:'Informace o Aplikacích',
