@@ -53,7 +53,7 @@ export const PRIKAZY: Record<string, PrikazKonzole> = {
  },
    appaudit : {
      popis:'Audit vsech aplikací zatim ve vyvoji',
-     spustit: {
+     spustit: () => {
        const apps = useAppStore.getState().apps
        return [ `===BuddyZoneApp===`,
        `Aplikace: ${apps.length}`,
