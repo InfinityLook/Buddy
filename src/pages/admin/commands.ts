@@ -38,6 +38,7 @@ export const PRIKAZY: Record<string, PrikazKonzole> = {
   const cas = now Date()
   return [ 
     `Čas: ${cas.toLocaleTimeString()}`,
+    ],
   },
  apps: {
   popis:'Informace o Aplikacích',
