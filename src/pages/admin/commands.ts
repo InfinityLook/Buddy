@@ -23,6 +23,11 @@ export const PRIKAZY: Record<string, PrikazKonzole> = {
     popis: 'Vypíše seznam dostupných příkazů.',
     spustit: () => ['dostupné příkazy:', ...Object.keys(PRIKAZY).map((k) => `  ${k} — ${PRIKAZY[k].popis}`)],
   },
+  status:{
+    popis:'Status Aplikace.',
+  spustit()=>['BuddyZone je online ','Systém je načten',
+    ],
+ },
 }
 
 export const spustPrikaz = (vstup: string): string[] => {
