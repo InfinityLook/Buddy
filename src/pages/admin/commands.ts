@@ -30,7 +30,8 @@ export const PRIKAZY: Record<string, PrikazKonzole> = {
     return[
       `Status: ${prihlasen ? 'Ano' : 'Ne'}`,
       'BuddyZone Aplikace dokončila proces',
-    ],
+    ]
+  }
  },
   diagnosticapp: {
     popis:'diagnostika cele aplikace jeste neni hotova',
@@ -39,6 +40,7 @@ export const PRIKAZY: Record<string, PrikazKonzole> = {
   return [ 
     `Čas: ${cas.toLocaleTimeString()}`,
     ],
+    }
   },
  apps: {
   popis:'Informace o Aplikacích',
@@ -46,6 +48,18 @@ export const PRIKAZY: Record<string, PrikazKonzole> = {
     const apps = useAppStore.getState().apps
     return [
       `Počet aplikací: ${apps.lenght}`,
+      ]
+    }
+ },
+   appaudit : {
+     popis:'Audit vsech aplikací zatim ve vyvoji',
+     spustit: {
+       const apps = useAppStore.getState().apps
+       return [ `===BuddyZoneApp===`,
+       `Aplikace: ${apps.length}`,
+       ...apps.map((app) => `
+       - $ {app.title}`)  ]
+     }
     },
 }
 
