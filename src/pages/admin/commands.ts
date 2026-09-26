@@ -1,5 +1,6 @@
 import { APP_BUILD_ID, APP_VERSION } from '@/core/utils/registerSW'
-import { useAuthStore } form '@/core/store/useAuthStore'
+import { useAppStore} from '@/core/store/useAppStore'
+import { useAuthStore } from '@/core/store/useAuthStore'
 // ==========================================
 // Příkazy konzole admin panelu.
 //
@@ -31,35 +32,32 @@ export const PRIKAZY: Record<string, PrikazKonzole> = {
       `Status: ${prihlasen ? 'Ano' : 'Ne'}`,
       'BuddyZone Aplikace dokončila proces',
     ]
-  }
+  },
  },
   diagnosticapp: {
     popis:'diagnostika cele aplikace jeste neni hotova',
     spustit: ()=> {
-  const cas = now Date()
+  const cas = new Date()
   return [ 
-    `Čas: ${cas.toLocaleTimeString()}`,
-    ],
-    }
+    `Čas: ${cas.toLocaleTimeString()}` ]
+    },
   },
  apps: {
   popis:'Informace o Aplikacích',
     spustit: () => {
     const apps = useAppStore.getState().apps
-    return [
-      `Počet aplikací: ${apps.lenght}`,
-      ]
-    }
+    return [`Počet aplikací: ${apps.lenght}`]
+    },
  },
    appaudit : {
      popis:'Audit vsech aplikací zatim ve vyvoji',
      spustit: () => {
        const apps = useAppStore.getState().apps
-       return [ `===BuddyZoneApp===`,
+       return [
+         `===BuddyZoneApp===`,
        `Aplikace: ${apps.length}`,
-       ...apps.map((app) => `
-       - $ {app.title}`)  ]
-     }
+       ...apps.map((app) => ` - $ {app.title}`)  ]
+     },
     },
 }
 
