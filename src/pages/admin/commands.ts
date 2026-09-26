@@ -26,37 +26,37 @@ export const PRIKAZY: Record<string, PrikazKonzole> = {
   },
   status:{
     popis:'Status Aplikace skutečný stav přihlášeni.',
-  spustit: ()=> { 
-    const prihlasen = useAuthStore.getState().isAuthed
-    return[
-      `Status: ${prihlasen ? 'Ano' : 'Ne'}`,
-      'BuddyZone Aplikace dokončila proces',
-    ]
+   spustit: ()=> { 
+     const prihlasen = useAuthStore.getState().isAuthed
+     return[
+       `Status: ${prihlasen ? 'Ano' : 'Ne'}`,
+       'BuddyZone Aplikace dokončila proces',
+     ]
+   },
   },
- },
   diagnosticapp: {
     popis:'diagnostika cele aplikace jeste neni hotova',
     spustit: ()=> {
-  const cas = new Date()
-  return [ 
-    `Čas: ${cas.toLocaleTimeString()}` ]
+   const cas = new Date()
+   return [ 
+     `Čas: ${cas.toLocaleTimeString()}` ]
     },
   },
- apps: {
-  popis:'Informace o Aplikacích',
+  apps: {
+   popis:'Informace o Aplikacích',
     spustit: () => {
-    const apps = useAppStore.getState().apps
-    return [`Počet aplikací: ${apps.lenght}`]
+     const apps = useAppStore.getState().apps
+     return [`Počet aplikací: ${apps.length}`]
     },
- },
+  },
    appaudit : {
      popis:'Audit vsech aplikací zatim ve vyvoji',
      spustit: () => {
        const apps = useAppStore.getState().apps
        return [
          `===BuddyZoneApp===`,
-       `Aplikace: ${apps.length}`,
-       ...apps.map((app) => ` - $ {app.title}`)  ]
+        `Aplikace: ${apps.length}`,
+        ...apps.map((app) => `- ${app.title}`)  ]
      },
     },
 }
