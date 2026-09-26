@@ -1,5 +1,5 @@
 import { APP_BUILD_ID, APP_VERSION } from '@/core/utils/registerSW'
-
+import { useAuthStore } form '@/core/store/useAuthStore'
 // ==========================================
 // Příkazy konzole admin panelu.
 //
@@ -24,10 +24,27 @@ export const PRIKAZY: Record<string, PrikazKonzole> = {
     spustit: () => ['dostupné příkazy:', ...Object.keys(PRIKAZY).map((k) => `  ${k} — ${PRIKAZY[k].popis}`)],
   },
   status:{
-    popis:'Status Aplikace.',
-  spustit: ()=> ['BuddyZone je online ','Systém je načten',
+    popis:'Status Aplikace skutečný stav přihlášeni.',
+  spustit: ()=> { 
+    const prihlasen = useAuthStore.getState().isAuthed
+    return[
+      `Status: ${prihlasen ? 'Ano' : 'Ne'}`,
+      'BuddyZone Aplikace dokončila proces',
     ],
  },
+  diagnosticapp: {
+    popis:''
+    spustit: ()=> {
+  const cas = now Date()
+  return [ `Čas: $ { cas.toLocaleTimeString()}`,
+  },
+ apps: {
+  popis:'Informace o Aplikacích',
+    spustit: () => {
+    const apps = useAppStore.getState().apps
+    return [
+      `Počet aplikací: ${apps.lenght}`,
+    },
 }
 
 export const spustPrikaz = (vstup: string): string[] => {
