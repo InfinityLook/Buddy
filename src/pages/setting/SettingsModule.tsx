@@ -45,7 +45,7 @@ import './SettingsModule.css'
 // nepřesouvá, jen se posunuly pod nové menu.
 // ==========================================
 
-type Sekce = 'osobni' | 'zvuk' | 'vzhled' | 'zabezpeceni' | 'soukromi'
+type Sekce = 'osobni' | 'zvuk' | 'vzhled' | 'zabezpeceni' | 'soukromi' | 'napoveda'
 
 const MENU_POLOZKY: { id: Sekce; ikona: string; barva: string; nazev: string; popis: string }[] = [
   { id: 'osobni', ikona: '👤', barva: 'blue', nazev: 'Osobní údaje', popis: 'Jméno, e-mail a motto na profilu' },
