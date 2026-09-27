@@ -1,0 +1,21 @@
+import { useNavigate } from 'react-router-dom'
+import './BoardGameModule.css'
+
+type Player = {
+  id: number
+  name: string
+  color: string
+  position: number
+}
+
+const STARTING_PLAYERS: Player[] = [
+  { id: 1, name: 'Hráč 1', color: '#ef4444', position: 0 },
+  { id: 2, name: 'Hráč 2', color: '#3b82f6', position: 0 },
+  { id: 3, name: 'Hráč 3', color: '#22c55e', position: 0 },
+  { id: 4, name: 'Hráč 4', color: '#f59e0b', position: 0 },
+]
+
+export const BoardGameModule = () => {
+  const navigate = useNavigate()
+  return <div />
+}
