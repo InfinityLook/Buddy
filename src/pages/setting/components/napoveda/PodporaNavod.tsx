@@ -1,10 +1,8 @@
 import React from 'react'
 
-interface Props {
-  onVratit: () => void
-}
+interface Props {}
 
-export const PodporaNavod: React.FC<Props> = ({ onVratit }) => {
+export const PodporaNavod: React.FC<Props> = () => {
   return (
     <>
       <section className="settings-card">
