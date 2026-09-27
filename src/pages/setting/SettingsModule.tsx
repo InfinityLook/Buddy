@@ -45,7 +45,7 @@ import './SettingsModule.css'
 // nepřesouvá, jen se posunuly pod nové menu.
 // ==========================================
 
-type Sekce = 'osobni' | 'zvuk' | 'vzhled' | 'zabezpeceni' | 'soukromi' | 'napoveda'
+type Sekce = 'osobni' | 'zvuk' | 'vzhled' | 'zabezpeceni' | 'soukromi'
 
 const MENU_POLOZKY: { id: Sekce; ikona: string; barva: string; nazev: string; popis: string }[] = [
   { id: 'osobni', ikona: '👤', barva: 'blue', nazev: 'Osobní údaje', popis: 'Jméno, e-mail a motto na profilu' },
@@ -59,13 +59,6 @@ const MENU_POLOZKY: { id: Sekce; ikona: string; barva: string; nazev: string; po
     nazev: 'Soukromí a Social',
     popis: 'Kdo tě vidí, blokovaní lidé, nahlášený obsah',
   },
-  { 
-    id: 'napoveda',
-    ikona: '❓',
-    barva:'purple',
-    nazev:'Nápověda',
-    popis:'Nápoveda o Aplikaci',
-  },
 ]
 
 const NADPISY: Record<Sekce, string> = {
@@ -74,7 +67,6 @@ const NADPISY: Record<Sekce, string> = {
   vzhled: 'Vzhled a rámečky',
   zabezpeceni: 'Zabezpečení',
   soukromi: 'Soukromí a Social',
-  napoveda: 'Nápověda',
 }
 
 // Popis stavu synchronizace pro kartu Synchronizace. Musí být srozumitelný
@@ -260,7 +252,7 @@ export const SettingsModule: React.FC = () => {
         {sekce === 'soukromi' && <SoukromiSocialSekce onToast={showToast} />}
 
         <AppBottomNav />
-b        {toast && <div className="settings-toast">{toast}</div>}
+        {toast && <div className="settings-toast">{toast}</div>}
       </div>
     )
   }
@@ -411,19 +403,21 @@ b        {toast && <div className="settings-toast">{toast}</div>}
           Zkontrolovat aktualizace
         </button>
       </section>
-<section className="settings-card">
-  <div className="settings-card-head">
-    <span className="settings-card-icon purple" aria-hidden="true">📖</span>
-    <div>
-      <h2 className="settings-card-title">Návod</h2>
-      <p className="settings-card-sub">Jak se app používá a co ti chybí</p>
-    </div>
-  </div>
 
-  <button className="settings-save-btn" onClick={() => navigate('/navod')}>
-    Otevřít návod
-  </button>
-</section>
+      <section className="settings-card">
+        <div className="settings-card-head">
+          <span className="settings-card-icon purple" aria-hidden="true">📖</span>
+          <div>
+            <h2 className="settings-card-title">Návod</h2>
+            <p className="settings-card-sub">Jak se app používá a co ti chybí</p>
+          </div>
+        </div>
+
+        <button className="settings-save-btn" onClick={() => navigate('/navod')}>
+          Otevřít návod
+        </button>
+      </section>
+
       {/* Podpora — vidí ji každý přihlášený, na rozdíl od Administrace
           níž bez žádné podmínky. Admin otevře stejnou obrazovku a uvidí
           v ní tikety od všech (RLS to rozhoduje, ne tenhle odkaz). */}
