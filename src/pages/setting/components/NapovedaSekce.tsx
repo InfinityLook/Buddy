@@ -67,15 +67,15 @@ export const NapovedaSekce: React.FC = () => {
   const zobrazitNapovedu = () => {
     switch (vybranaNapoveda) {
       case 'hub':
-        return <HubNavod onVratit={onVratit} />
+        return <HubNavod />
       case 'profil':
-        return <ProfilNavod onVratit={onVratit} />
+        return <ProfilNavod />
       case 'zvukVzhled':
-        return <ZvukVzhledNavod onVratit={onVratit} />
+        return <ZvukVzhledNavod />
       case 'zalohovani':
-        return <ZalohujemiNavod onVratit={onVratit} />
+        return <ZalohujemiNavod />
       case 'podpora':
-        return <PodporaNavod onVratit={onVratit} />
+        return <PodporaNavod />
       default:
         return null
     }
