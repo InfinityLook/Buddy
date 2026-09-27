@@ -406,15 +406,15 @@ export const SettingsModule: React.FC = () => {
 
       <section className="settings-card">
         <div className="settings-card-head">
-          <span className="settings-card-icon purple" aria-hidden="true">📖</span>
+          <span className="settings-card-icon purple" aria-hidden="true">❓</span>
           <div>
-            <h2 className="settings-card-title">Návod</h2>
-            <p className="settings-card-sub">Jak se app používá a co ti chybí</p>
+            <h2 className="settings-card-title">Nápověda</h2>
+            <p className="settings-card-sub">Jak se BuddyZone používá</p>
           </div>
         </div>
 
         <button className="settings-save-btn" onClick={() => navigate('/navod')}>
-          Otevřít návod
+          Otevřít Nápovědu
         </button>
       </section>
 
