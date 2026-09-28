@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import './BoardGameModule.css'
+import './CtyriKralovstvi.css'
 
 type Player = {
   id: number
@@ -18,7 +18,7 @@ const STARTING_PLAYERS: Player[] = [
 
 const BOARD_SIZE = 30
 
-export const BoardGameModule = () => {
+export const CtyriKralovstvi = () => {
   const navigate = useNavigate()
   const [players, setPlayers] = useState<Player[]>(STARTING_PLAYERS)
   const [currentPlayer, setCurrentPlayer] = useState(0)
@@ -78,4 +78,4 @@ export const BoardGameModule = () => {
   )
 }
 
-export default BoardGameModule
+export default CtyriKralovstvi

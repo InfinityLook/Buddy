@@ -12,7 +12,7 @@ import GrowthRoomModule from '@/flagships/growth-room/GrowthRoomModule.tsx'
 import MusicRoomModule from '@/flagships/music-room/MusicRoomModule.tsx'
 import WriterRoomModule from '@/flagships/writer-room/WriterRoomModule.tsx'
 import GamesHubModule from '@/pages/games/GamesHubModule.tsx'
-import BoardGameModule from '@/boardgame/BoardGameModule.tsx'
+import CtyriKralovstvi from '@/boardgame/CtyriKralovstvi.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
 import SettingsModule from '@/pages/setting/SettingsModule.tsx'
@@ -277,7 +277,7 @@ export default function App() {
               element={
                 dovnitr ? (
                   <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
-                    <BoardGameModule />
+                    <CtyriKralovstvi />
                   </Suspense>
                 ) : (
                   <Navigate to="/" replace />
