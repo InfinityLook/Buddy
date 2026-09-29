@@ -1,4 +1,4 @@
-.deskova-hra-page {
+.ck-page {
   min-height: 100dvh;
   box-sizing: border-box;
   padding: 1rem;
@@ -6,53 +6,215 @@
   color: var(--text-primary);
 }
 
-.deskova-hra-header {
-  max-width: 1100px;
-  margin: 0 auto 1rem;
+.ck-header {
+  max-width: 1200px;
+  margin: 0 auto 1.1rem;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
+  flex-wrap: wrap;
 }
-
-.deskova-hra-header h1,
-.deskova-hra-header p { margin: 0; }
-.deskova-hra-header h1 { font-size: clamp(1.4rem, 3vw, 2.2rem); }
-.deskova-hra-header p:not(.deskova-hra-kicker) { color: var(--text-secondary); font-size: .85rem; }
-.deskova-hra-kicker { color: var(--accent-cyan); font-size: .65rem; font-weight: 800; letter-spacing: .12em; }
-.deskova-hra-back,
-.deskova-hra-reset,
-.deskova-hra-winner button {
+.ck-header h1,
+.ck-header p { margin: 0; }
+.ck-header h1 { font-size: clamp(1.4rem, 3vw, 2.2rem); }
+.ck-podnadpis { color: var(--text-secondary); font-size: .85rem; max-width: 520px; margin-top: .2rem !important; }
+.ck-kicker { color: var(--accent-cyan); font-size: .65rem; font-weight: 800; letter-spacing: .12em; }
+.ck-back,
+.ck-reset {
   border: 1px solid var(--border-subtle);
   border-radius: 999px;
   padding: .55rem .85rem;
-  background: rgba(255,255,255,.06);
+  background: rgba(255, 255, 255, .06);
   color: var(--text-primary);
   font: inherit;
   cursor: pointer;
   white-space: nowrap;
 }
-.deskova-hra-reset { margin-left: auto; }
-.deskova-hra-content { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr 280px; gap: 1rem; }
-.deskova-hra-board { display: grid; grid-template-columns: repeat(6, 1fr); gap: .45rem; padding: 1rem; border: 1px solid var(--border-subtle); border-radius: 1rem; background: var(--bg-panel); }
-.deskova-hra-field { min-height: 72px; padding: .4rem; border-radius: .7rem; border: 1px solid var(--border-subtle); background: var(--bg-panel-raised); font-size: .7rem; color: var(--text-muted); }
-.deskova-hra-token { display: inline-flex; width: 24px; height: 24px; margin: 1.4rem .15rem 0; align-items: center; justify-content: center; border-radius: 50%; color: white; font-size: .7rem; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
-.deskova-hra-panel { display: flex; flex-direction: column; gap: 1rem; padding: 1rem; border: 1px solid var(--border-subtle); border-radius: 1rem; background: var(--bg-panel); }
-.deskova-hra-turn { display: flex; flex-direction: column; gap: .2rem; color: var(--text-secondary); }
-.deskova-hra-turn strong { font-size: 1.3rem; }
-.deskova-hra-roll { border: 0; border-radius: .8rem; padding: .9rem; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet)); color: var(--text-on-accent); font: inherit; font-weight: 800; cursor: pointer; }
-.deskova-hra-roll-result { margin: 0; color: var(--text-secondary); }
-.deskova-hra-players { display: flex; flex-direction: column; gap: .55rem; border-top: 1px solid var(--border-subtle); padding-top: 1rem; }
-.deskova-hra-player { display: flex; align-items: center; gap: .5rem; font-size: .85rem; }
-.deskova-hra-player strong { margin-left: auto; color: var(--text-secondary); }
-.deskova-hra-player-dot { width: 10px; height: 10px; border-radius: 50%; }
-.deskova-hra-winner { text-align: center; }
-.deskova-hra-winner span { font-size: 2.5rem; }
-.deskova-hra-winner h2 { margin: .3rem 0 1rem; }
+.ck-reset { margin-left: auto; }
 
-@media (max-width: 700px) {
-  .deskova-hra-header { align-items: flex-start; flex-wrap: wrap; }
-  .deskova-hra-reset { margin-left: 0; }
-  .deskova-hra-content { grid-template-columns: 1fr; }
-  .deskova-hra-board { grid-template-columns: repeat(5, 1fr); }
-  .deskova-hra-field { min-height: 58px; }
+/* ---- Nastavení hry ---- */
+.ck-nastaveni {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: .75rem;
+}
+.ck-nastaveni-radek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .9rem 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: .9rem;
+  background: var(--bg-panel);
+}
+.ck-stepper { display: flex; align-items: center; gap: .7rem; }
+.ck-stepper button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border-subtle);
+  background: rgba(255, 255, 255, .06);
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.ck-stepper button:disabled { opacity: .35; cursor: not-allowed; }
+.ck-stepper strong { min-width: 1.3rem; text-align: center; }
+
+.ck-sedadlo {
+  display: flex;
+  align-items: center;
+  gap: .8rem;
+  padding: .8rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: .9rem;
+  background: var(--bg-panel);
+}
+.ck-sedadlo-ikona { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; }
+.ck-sedadlo-text { display: flex; flex-direction: column; gap: .35rem; flex: 1; min-width: 0; }
+.ck-sedadlo-text input {
+  border: 1px solid var(--border-subtle);
+  border-radius: .5rem;
+  padding: .4rem .6rem;
+  background: var(--bg-panel-raised);
+  color: var(--text-primary);
+  font: inherit;
+}
+.ck-sedadlo-text input:disabled { opacity: .5; }
+.ck-typ-btn {
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  padding: .5rem .8rem;
+  font: inherit;
+  font-size: .8rem;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.ck-typ-btn.je-bot { background: rgba(255, 255, 255, .06); color: var(--text-secondary); }
+.ck-typ-btn.je-clovek { background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet)); color: var(--text-on-accent); border-color: transparent; }
+
+.ck-spustit-btn {
+  border: 0;
+  border-radius: .9rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  color: var(--text-on-accent);
+  font: inherit;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-top: .3rem;
+}
+
+/* ---- Hrací plocha ---- */
+.ck-content { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 300px; gap: 1rem; }
+
+.ck-cesta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-content: flex-start;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  background: var(--bg-panel);
+}
+.ck-pole {
+  width: 76px;
+  min-height: 76px;
+  border-radius: .7rem;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-panel-raised);
+  padding: .4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .2rem;
+}
+.ck-pole-cislo { font-size: .65rem; color: var(--text-muted); font-weight: 700; }
+.ck-pole-ikona { font-size: 1.3rem; line-height: 1; }
+.ck-pole--zlato { background: color-mix(in srgb, var(--bg-panel-raised) 70%, #f59e0b 30%); border-color: color-mix(in srgb, var(--border-subtle) 50%, #f59e0b 50%); }
+.ck-pole--drahokam { background: color-mix(in srgb, var(--bg-panel-raised) 70%, var(--accent-cyan) 30%); border-color: color-mix(in srgb, var(--border-subtle) 50%, var(--accent-cyan) 50%); }
+.ck-pole--osud { background: color-mix(in srgb, var(--bg-panel-raised) 70%, var(--accent-violet) 30%); border-color: color-mix(in srgb, var(--border-subtle) 50%, var(--accent-violet) 50%); }
+.ck-pole--trun {
+  width: 96px;
+  min-height: 96px;
+  background: linear-gradient(160deg, #b45309, #78350f);
+  border-color: #f59e0b;
+  box-shadow: 0 0 18px rgba(245, 158, 11, .45);
+}
+.ck-pole-ikona--trun img { width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
+.ck-pole-tokeny { display: flex; flex-wrap: wrap; gap: .15rem; justify-content: center; min-height: 20px; }
+.ck-token { width: 18px; height: 18px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
+
+.ck-panel {
+  display: flex;
+  flex-direction: column;
+  gap: .9rem;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 1rem;
+  background: var(--bg-panel);
+  align-self: flex-start;
+}
+.ck-tah { display: flex; flex-direction: column; gap: .2rem; color: var(--text-secondary); }
+.ck-tah strong { font-size: 1.25rem; }
+.ck-riziko-toggle { display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: var(--text-secondary); cursor: pointer; }
+.ck-roll-btn {
+  border: 0;
+  border-radius: .8rem;
+  padding: .9rem;
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
+  color: var(--text-on-accent);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.ck-posledni-kostka { width: 44px; height: 44px; object-fit: contain; align-self: center; filter: drop-shadow(0 2px 5px rgba(0,0,0,.5)); }
+.ck-udalost { margin: 0; color: var(--text-secondary); font-size: .82rem; border-top: 1px solid var(--border-subtle); padding-top: .7rem; }
+
+.ck-hraci { display: flex; flex-direction: column; gap: .5rem; border-top: 1px solid var(--border-subtle); padding-top: .8rem; }
+.ck-hrac-radek {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .82rem;
+  padding: .35rem .5rem;
+  border-radius: .5rem;
+}
+.ck-hrac-radek.je-aktivni { background: rgba(255, 255, 255, .07); box-shadow: inset 0 0 0 1px var(--accent-cyan); }
+.ck-hrac-token { width: 20px; height: 20px; object-fit: contain; flex-shrink: 0; }
+.ck-hrac-jmeno { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ck-hrac-body { color: var(--text-secondary); font-size: .75rem; white-space: nowrap; }
+
+/* ---- Konec hry ---- */
+.ck-konec { max-width: 560px; margin: 0 auto; text-align: center; display: flex; flex-direction: column; align-items: center; gap: .8rem; }
+.ck-konec-koruna { width: 56px; height: 56px; object-fit: contain; filter: drop-shadow(0 3px 8px rgba(245, 158, 11, .6)); }
+.ck-konec h2 { margin: 0; }
+.ck-vysledky { width: 100%; display: flex; flex-direction: column; gap: .5rem; }
+.ck-vysledek-radek {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .7rem .9rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: .8rem;
+  background: var(--bg-panel);
+  text-align: left;
+}
+.ck-vysledek-radek.je-vitez { border-color: #f59e0b; box-shadow: 0 0 14px rgba(245, 158, 11, .3); }
+.ck-vysledek-poradi { font-weight: 800; color: var(--text-muted); width: 1.4rem; }
+.ck-vysledek-token { width: 26px; height: 26px; object-fit: contain; flex-shrink: 0; }
+.ck-vysledek-jmeno { font-weight: 700; }
+.ck-vysledek-detail { flex: 1; color: var(--text-secondary); font-size: .78rem; }
+.ck-vysledek-skore { font-size: 1.1rem; }
+
+@media (max-width: 760px) {
+  .ck-content { grid-template-columns: 1fr; }
+  .ck-pole { width: 64px; min-height: 64px; }
+  .ck-pole--trun { width: 80px; min-height: 80px; }
+  .ck-reset { margin-left: 0; }
 }

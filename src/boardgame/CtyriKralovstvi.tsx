@@ -1,77 +1,392 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  CENA_RIZIKA,
+  Hrac,
+  HraStav,
+  KRALOVSTVI,
+  KralovstviId,
+  MAX_HRACU,
+  MIN_HRACU,
+  POZICE_TRUNU,
+  TYPY_POLI,
+  TypPole,
+  hodKostkou,
+  konecneProadi,
+  skoreHrace,
+  vytvorHrace,
+  vytvorHruStav,
+} from './ctyriKralovstviTypes'
 import './CtyriKralovstvi.css'
 
-type Player = {
-  id: number
-  name: string
-  color: string
-  position: number
+// ==========================================
+// Čtyři království — "Souboj o trůn". Appka staví jen na jednom
+// zařízení (appka to tak i popisuje v GamesHubModule.tsx — pass-and-
+// -play mezi lidmi u jednoho telefonu/tabletu, žádná síť), stejně
+// jako Buddyho Trh vedle ní ve stejné složce.
+//
+// Appka záměrně NEDÁVÁ za odehranou hru žádné XP — appka nemá jak
+// poznat, jestli za jedním zařízením sedí čtyři skuteční kamarádi
+// nebo jeden člověk, co si "hraje" sám za všechna čtyři království,
+// stejná úvaha, co Souboj používá pro svůj vlastní lokální režim
+// (LocalniZapas.tsx) a co Buddyho Trh ve stejné složce potvrzuje tím,
+// že žádné volání recordAction/addXp nikde nemá.
+//
+// Grafika: appka nemá nástroj na generování obrázků, takže appka
+// použila skutečné volné assety ze stejného Kenney zrcadla
+// (github.com/shorepine/kenney, CC0), co appka poprvé použila na
+// postavy v Souboji — figurky/hrady ze sady "Boardgame Pack" (barevné
+// verze přesně pro čtyři barvy království) a kostky/korunu ze sady
+// "Board Game Icons" (bílé ikony, appka je nechává bílé — hodí se na
+// appčino tmavé pozadí bez přebarvování).
+// ==========================================
+
+type Krok = 'nastaveni' | 'hra'
+
+interface Sedadlo {
+  jeBot: boolean
+  jmeno: string
 }
 
-const STARTING_PLAYERS: Player[] = [
-  { id: 1, name: 'Hráč 1', color: '#ef4444', position: 0 },
-  { id: 2, name: 'Hráč 2', color: '#3b82f6', position: 0 },
-  { id: 3, name: 'Hráč 3', color: '#22c55e', position: 0 },
-  { id: 4, name: 'Hráč 4', color: '#f59e0b', position: 0 },
-]
+const BARVA_PODLE_KRALOVSTVI: Record<KralovstviId, string> = {
+  ohnive: 'red',
+  vodni: 'blue',
+  lesni: 'green',
+  pousti: 'yellow',
+}
 
-const BOARD_SIZE = 30
+const ikonaPole = (typ: TypPole): string => {
+  switch (typ) {
+    case 'zlato':
+      return '🪙'
+    case 'drahokam':
+      return '💎'
+    case 'osud':
+      return '🎴'
+    default:
+      return ''
+  }
+}
+
+const vytvorSedadla = (pocet: number): Sedadlo[] =>
+  Array.from({ length: pocet }, (_, i) => ({ jeBot: i > 0, jmeno: '' }))
 
 export const CtyriKralovstvi = () => {
   const navigate = useNavigate()
-  const [players, setPlayers] = useState<Player[]>(STARTING_PLAYERS)
-  const [currentPlayer, setCurrentPlayer] = useState(0)
-  const [lastRoll, setLastRoll] = useState<number | null>(null)
-  const [winner, setWinner] = useState<Player | null>(null)
+  const [krok, setKrok] = useState<Krok>('nastaveni')
+  const [sedadla, setSedadla] = useState<Sedadlo[]>(() => vytvorSedadla(4))
+  const [stav, setStav] = useState<HraStav | null>(null)
+  const [riskovat, setRiskovat] = useState(false)
+  const botTimeoutRef = useRef<number | null>(null)
 
-  const resetGame = () => {
-    setPlayers(STARTING_PLAYERS.map((player) => ({ ...player })))
-    setCurrentPlayer(0)
-    setLastRoll(null)
-    setWinner(null)
+  useEffect(
+    () => () => {
+      if (botTimeoutRef.current !== null) window.clearTimeout(botTimeoutRef.current)
+    },
+    []
+  )
+
+  const zmenPocetSedadel = (novyPocet: number) => {
+    setSedadla((stara) => {
+      if (novyPocet <= stara.length) return stara.slice(0, novyPocet)
+      return [...stara, ...vytvorSedadla(novyPocet - stara.length).map((s) => ({ ...s, jeBot: true }))]
+    })
   }
 
-  const rollDice = () => {
-    if (winner) return
-    const roll = Math.floor(Math.random() * 6) + 1
-    const activePlayer = players[currentPlayer]
-    const newPosition = Math.min(activePlayer.position + roll, BOARD_SIZE)
-    const updatedPlayers = players.map((player, index) => index === currentPlayer ? { ...player, position: newPosition } : player)
-    setPlayers(updatedPlayers)
-    setLastRoll(roll)
-    if (newPosition >= BOARD_SIZE) {
-      setWinner({ ...activePlayer, position: newPosition })
-      return
+  const spustitHru = () => {
+    const hraci: Hrac[] = sedadla.map((sedadlo, i) => {
+      const kralovstvi = KRALOVSTVI[i]
+      const jmeno = sedadlo.jmeno.trim() || (sedadlo.jeBot ? `Bot (${kralovstvi.nazev})` : kralovstvi.nazev)
+      return vytvorHrace(`hrac-${i}`, jmeno, kralovstvi.id, sedadlo.jeBot)
+    })
+    setStav(vytvorHruStav(hraci))
+    setKrok('hra')
+  }
+
+  const novaHra = () => {
+    if (botTimeoutRef.current !== null) window.clearTimeout(botTimeoutRef.current)
+    setStav(null)
+    setKrok('nastaveni')
+  }
+
+  const aktivniHrac = stav && stav.faze === 'hod' ? stav.hraci[stav.aktivniIndex] : null
+
+  // Bota appka nechá hrát samo, po krátké pauze — stejný vzor jako
+  // Deska.tsx u Buddyho Trhu, ať se boti neprovalí okamžitě a appka
+  // dá lidem čas si přečíst, co se právě stalo.
+  useEffect(() => {
+    if (!stav || stav.faze !== 'hod') return
+    const hrac = stav.hraci[stav.aktivniIndex]
+    if (!hrac?.jeBot) return
+    botTimeoutRef.current = window.setTimeout(() => {
+      setStav((s) => (s ? hodKostkou(s, Math.random, false) : s))
+    }, 900)
+    return () => {
+      if (botTimeoutRef.current !== null) window.clearTimeout(botTimeoutRef.current)
     }
-    setCurrentPlayer((currentPlayer + 1) % players.length)
+  }, [stav])
+
+  if (krok === 'nastaveni') {
+    return (
+      <main className="ck-page">
+        <header className="ck-header">
+          <button className="ck-back" onClick={() => navigate('/hra')}>
+            ← Zpět ke hrám
+          </button>
+          <div>
+            <p className="ck-kicker">BUDDYZONE · DESKOVÉ HRY</p>
+            <h1>Čtyři království</h1>
+            <p className="ck-podnadpis">
+              Souboj o trůn — čtyři rody, jedna cesta. Sbírej zlato a drahokamy, dorazi k trůnu jako první pro bonus,
+              ale vyhrává ten, kdo má na konci nejvíc bodů.
+            </p>
+          </div>
+        </header>
+
+        <section className="ck-nastaveni">
+          <div className="ck-nastaveni-radek">
+            <span>Počet království</span>
+            <div className="ck-stepper">
+              <button
+                onClick={() => zmenPocetSedadel(Math.max(MIN_HRACU, sedadla.length - 1))}
+                disabled={sedadla.length <= MIN_HRACU}
+              >
+                −
+              </button>
+              <strong>{sedadla.length}</strong>
+              <button
+                onClick={() => zmenPocetSedadel(Math.min(MAX_HRACU, sedadla.length + 1))}
+                disabled={sedadla.length >= MAX_HRACU}
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {sedadla.map((sedadlo, i) => {
+            const kralovstvi = KRALOVSTVI[i]
+            const barva = BARVA_PODLE_KRALOVSTVI[kralovstvi.id]
+            return (
+              <div className="ck-sedadlo" key={kralovstvi.id}>
+                <img className="ck-sedadlo-ikona" src={`/deskova-hra/hrad-${barva}.png`} alt="" aria-hidden="true" />
+                <div className="ck-sedadlo-text">
+                  <strong style={{ color: kralovstvi.barva }}>
+                    {kralovstvi.emoji} {kralovstvi.nazev}
+                  </strong>
+                  <input
+                    type="text"
+                    placeholder={sedadlo.jeBot ? 'Bot' : 'Tvoje jméno'}
+                    value={sedadlo.jmeno}
+                    disabled={sedadlo.jeBot}
+                    onChange={(e) => {
+                      const hodnota = e.target.value
+                      setSedadla((s) => s.map((x, idx) => (idx === i ? { ...x, jmeno: hodnota } : x)))
+                    }}
+                  />
+                </div>
+                <button
+                  className={`ck-typ-btn ${sedadlo.jeBot ? 'je-bot' : 'je-clovek'}`}
+                  onClick={() =>
+                    setSedadla((s) => s.map((x, idx) => (idx === i ? { ...x, jeBot: !x.jeBot } : x)))
+                  }
+                >
+                  {sedadlo.jeBot ? '🤖 Bot' : '🧑 Člověk'}
+                </button>
+              </div>
+            )
+          })}
+
+          <button className="ck-spustit-btn" onClick={spustitHru}>
+            ▶ Spustit hru
+          </button>
+        </section>
+      </main>
+    )
   }
 
-  const activePlayer = players[currentPlayer]
+  if (!stav) return null
+
+  if (stav.faze === 'konec') {
+    const proradi = konecneProadi(stav.hraci)
+    return (
+      <main className="ck-page">
+        <header className="ck-header">
+          <button className="ck-back" onClick={() => navigate('/hra')}>
+            ← Zpět ke hrám
+          </button>
+          <div>
+            <p className="ck-kicker">BUDDYZONE · DESKOVÉ HRY</p>
+            <h1>Hra skončila</h1>
+          </div>
+        </header>
+
+        <section className="ck-konec">
+          <img className="ck-konec-koruna" src="/deskova-hra/koruna.png" alt="Koruna" />
+          <h2>
+            {KRALOVSTVI.find((k) => k.id === proradi[0].kralovstviId)?.emoji} {proradi[0].jmeno} vyhrává!
+          </h2>
+          <div className="ck-vysledky">
+            {proradi.map((hrac, poradi) => {
+              const kralovstvi = KRALOVSTVI.find((k) => k.id === hrac.kralovstviId)!
+              return (
+                <div className={`ck-vysledek-radek ${poradi === 0 ? 'je-vitez' : ''}`} key={hrac.id}>
+                  <span className="ck-vysledek-poradi">{poradi + 1}.</span>
+                  <img
+                    className="ck-vysledek-token"
+                    src={`/deskova-hra/token-${BARVA_PODLE_KRALOVSTVI[kralovstvi.id]}.png`}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <span className="ck-vysledek-jmeno" style={{ color: kralovstvi.barva }}>
+                    {hrac.jmeno}
+                    {hrac.jeBot && ' (bot)'}
+                  </span>
+                  <span className="ck-vysledek-detail">
+                    🪙 {hrac.zlato} · 💎 {hrac.drahokamy}
+                    {hrac.jeUchazecOTrun && ' · 👑 nárok na trůn'}
+                  </span>
+                  <strong className="ck-vysledek-skore">{skoreHrace(hrac)} b.</strong>
+                </div>
+              )
+            })}
+          </div>
+          <button className="ck-spustit-btn" onClick={novaHra}>
+            Nová hra
+          </button>
+        </section>
+      </main>
+    )
+  }
+
+  const muzeRiskovat = !!aktivniHrac && !aktivniHrac.jeBot && aktivniHrac.zlato >= CENA_RIZIKA
 
   return (
-    <main className="deskova-hra-page">
-      <header className="deskova-hra-header">
-        <button className="deskova-hra-back" onClick={() => navigate('/hra')}>← Zpět ke hrám</button>
+    <main className="ck-page">
+      <header className="ck-header">
+        <button className="ck-back" onClick={() => navigate('/hra')}>
+          ← Zpět ke hrám
+        </button>
         <div>
-          <p className="deskova-hra-kicker">BUDDYZONE · DESKOVÉ HRY</p>
+          <p className="ck-kicker">SOUBOJ O TRŮN</p>
           <h1>Čtyři království</h1>
-          <p>Jednoduchá hra pro 2–4 hráče na jednom zařízení.</p>
         </div>
-        <button className="deskova-hra-reset" onClick={resetGame}>Nová hra</button>
+        <button className="ck-reset" onClick={novaHra}>
+          Nová hra
+        </button>
       </header>
-      <section className="deskova-hra-content">
-        <div className="deskova-hra-board" aria-label="Herní plán">
-          {Array.from({ length: BOARD_SIZE + 1 }, (_, index) => (
-            <div className="deskova-hra-field" key={index}>
-              <span>{index}</span>
-              {players.map((player) => player.position === index ? <span className="deskova-hra-token" key={player.id} style={{ backgroundColor: player.color }} title={player.name}>{player.id}</span> : null)}
+
+      <section className="ck-content">
+        <div className="ck-cesta" aria-label="Cesta ke trůnu">
+          {TYPY_POLI.map((typ, i) => {
+            const cisloPole = i + 1
+            const hraciNaPoli = stav.hraci.filter((h) => h.pozice === cisloPole)
+            return (
+              <div className={`ck-pole ck-pole--${typ}`} key={cisloPole}>
+                <span className="ck-pole-cislo">{cisloPole}</span>
+                <span className="ck-pole-ikona" aria-hidden="true">
+                  {ikonaPole(typ)}
+                </span>
+                <div className="ck-pole-tokeny">
+                  {hraciNaPoli.map((h) => (
+                    <img
+                      key={h.id}
+                      className="ck-token"
+                      src={`/deskova-hra/token-${BARVA_PODLE_KRALOVSTVI[h.kralovstviId]}.png`}
+                      title={h.jmeno}
+                      alt={h.jmeno}
+                    />
+                  ))}
+                </div>
+              </div>
+            )
+          })}
+          <div className="ck-pole ck-pole--trun">
+            <span className="ck-pole-ikona ck-pole-ikona--trun" aria-hidden="true">
+              <img src="/deskova-hra/koruna.png" alt="" />
+            </span>
+            <span className="ck-pole-cislo">Trůn</span>
+            <div className="ck-pole-tokeny">
+              {stav.hraci
+                .filter((h) => h.pozice === POZICE_TRUNU)
+                .map((h) => (
+                  <img
+                    key={h.id}
+                    className="ck-token"
+                    src={`/deskova-hra/token-${BARVA_PODLE_KRALOVSTVI[h.kralovstviId]}.png`}
+                    title={h.jmeno}
+                    alt={h.jmeno}
+                  />
+                ))}
             </div>
-          ))}
+          </div>
         </div>
-        <aside className="deskova-hra-panel">
-          {winner ? <div className="deskova-hra-winner"><span>🏆</span><h2>{winner.name} vyhrává!</h2><button onClick={resetGame}>Hrát znovu</button></div> : <><div className="deskova-hra-turn"><span>Na tahu je</span><strong style={{ color: activePlayer.color }}>{activePlayer.name}</strong></div><button className="deskova-hra-roll" onClick={rollDice}>🎲 Hodit kostkou</button><p className="deskova-hra-roll-result">Poslední hod: <strong>{lastRoll ?? '—'}</strong></p></>}
-          <div className="deskova-hra-players">{players.map((player) => <div className="deskova-hra-player" key={player.id}><span className="deskova-hra-player-dot" style={{ backgroundColor: player.color }} /><span>{player.name}</span><strong>{player.position}/{BOARD_SIZE}</strong></div>)}</div>
+
+        <aside className="ck-panel">
+          {aktivniHrac && (
+            <div className="ck-tah">
+              <span>Na tahu je</span>
+              <strong style={{ color: KRALOVSTVI.find((k) => k.id === aktivniHrac.kralovstviId)?.barva }}>
+                {aktivniHrac.jmeno}
+                {aktivniHrac.jeBot && ' (bot)'}
+              </strong>
+            </div>
+          )}
+
+          {aktivniHrac && !aktivniHrac.jeBot && (
+            <>
+              <label className="ck-riziko-toggle">
+                <input
+                  type="checkbox"
+                  checked={riskovat}
+                  disabled={!muzeRiskovat}
+                  onChange={(e) => setRiskovat(e.target.checked)}
+                />
+                Riskovat (−1 🪙, hoď 2 kostkami a vezmi vyšší)
+              </label>
+              <button
+                className="ck-roll-btn"
+                onClick={() => {
+                  setStav((s) => (s ? hodKostkou(s, Math.random, riskovat) : s))
+                  setRiskovat(false)
+                }}
+              >
+                🎲 Hodit kostkou
+              </button>
+            </>
+          )}
+
+          {stav.posledniHod !== null && (
+            <img
+              className="ck-posledni-kostka"
+              src={`/deskova-hra/kostka-${stav.posledniHod}.png`}
+              alt={`Poslední hod: ${stav.posledniHod}`}
+            />
+          )}
+
+          {stav.posledniUdalost && <p className="ck-udalost">{stav.posledniUdalost}</p>}
+
+          <div className="ck-hraci">
+            {stav.hraci.map((h, i) => {
+              const kralovstvi = KRALOVSTVI.find((k) => k.id === h.kralovstviId)!
+              return (
+                <div className={`ck-hrac-radek ${i === stav.aktivniIndex ? 'je-aktivni' : ''}`} key={h.id}>
+                  <img
+                    className="ck-hrac-token"
+                    src={`/deskova-hra/token-${BARVA_PODLE_KRALOVSTVI[kralovstvi.id]}.png`}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <span className="ck-hrac-jmeno">
+                    {h.jmeno}
+                    {h.jeBot && ' 🤖'}
+                  </span>
+                  <span className="ck-hrac-body">
+                    🪙{h.zlato} 💎{h.drahokamy} · {skoreHrace(h)}b.
+                  </span>
+                </div>
+              )
+            })}
+          </div>
         </aside>
       </section>
     </main>

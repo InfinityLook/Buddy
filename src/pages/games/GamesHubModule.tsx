@@ -169,7 +169,7 @@ export const GamesHubModule: React.FC = () => {
               </span>
               <span className="bz-hra-karta-text">
                 <span className="bz-hra-karta-nazev">Čtyři království</span>
-                <span className="bz-hra-karta-popis">Desková hra pro 4 hráče. Hoď kostkou a dojdi do cíle.</span>
+                <span className="bz-hra-karta-popis">Souboj o trůn pro 2–4 hráče. Sbírej zlato a drahokamy — vyhrává nejbohatší, ne nejrychlejší.</span>
               </span>
               <span className="bz-hra-karta-hrat">HRÁT ▶</span>
             </button>
