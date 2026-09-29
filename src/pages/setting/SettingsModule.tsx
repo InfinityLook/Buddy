@@ -29,6 +29,7 @@ import { ZvukSekce } from './components/ZvukSekce'
 import { VzhledARamecekSekce } from './components/VzhledARamecekSekce'
 import { ZabezpeceniSekce } from './components/ZabezpeceniSekce'
 import { SoukromiSocialSekce } from './components/SoukromiSocialSekce'
+import { JazykSekce } from './components/JazykSekce'
 import './SettingsModule.css'
 
 // ==========================================
@@ -45,25 +46,21 @@ import './SettingsModule.css'
 // nepřesouvá, jen se posunuly pod nové menu.
 // ==========================================
 
-type Sekce = 'osobni' | 'zvuk' | 'vzhled' | 'zabezpeceni' | 'soukromi'
+type Sekce = 'osobni' | 'zvuk' | 'jazyk' | 'vzhled' | 'zabezpeceni' | 'soukromi'
 
 const MENU_POLOZKY: { id: Sekce; ikona: string; barva: string; nazev: string; popis: string }[] = [
   { id: 'osobni', ikona: '👤', barva: 'blue', nazev: 'Osobní údaje', popis: 'Jméno, e-mail a motto na profilu' },
   { id: 'zvuk', ikona: '🔊', barva: 'blue', nazev: 'Zvuk', popis: 'Hlasitost appky, Buddyho, hry a Music Studia' },
+  { id: 'jazyk', ikona: '🇨🇿',barva: 'gradinet', nazev: 'Jazyk', popis: 'Vyber Jaziku aplikace' },
   { id: 'vzhled', ikona: '🎨', barva: 'gradient', nazev: 'Vzhled a rámečky', popis: 'Barva appky a rámeček avatáru' },
   { id: 'zabezpeceni', ikona: '🛡️', barva: 'purple', nazev: 'Zabezpečení', popis: 'Přihlášení a ochrana účtu' },
-  {
-    id: 'soukromi',
-    ikona: '🔒',
-    barva: 'purple',
-    nazev: 'Soukromí a Social',
-    popis: 'Kdo tě vidí, blokovaní lidé, nahlášený obsah',
-  },
+  { id: 'soukromi', ikona: '🔒', barva: 'purple', nazev: 'Soukromí a Social', popis: 'Kdo tě vidí, blokovaní lidé, nahlášený obsah',},
 ]
 
 const NADPISY: Record<Sekce, string> = {
   osobni: 'Osobní údaje',
   zvuk: 'Zvuk',
+  jazyk: 'Jazyk',
   vzhled: 'Vzhled a rámečky',
   zabezpeceni: 'Zabezpečení',
   soukromi: 'Soukromí a Social',
