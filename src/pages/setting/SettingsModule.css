@@ -359,6 +359,37 @@
   vertical-align: middle;
 }
 
+/* ---------- jazyk ---------- */
+
+.settings-jazyk-popis {
+  padding-bottom: 0.3rem;
+}
+
+.settings-jazyk-stav {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 800;
+}
+
+.settings-jazyk-stav.je-aktivni {
+  background: var(--accent-cyan);
+  color: #06121f;
+}
+
+.settings-jazyk-stav.je-zamceno {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
 /* ---------- zvuk ---------- */
 
 .settings-zvuk-radek {

@@ -1,118 +1,71 @@
-import { useState, useRef, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
+import React from 'react'
 
-// Typ pro definici jednoho jazyka v menu
-interface JazykOption {
-  kod: string;
-  nazev: string;
-  vlajka: string;
+interface Props {
+  onToast: (zprava: string) => void
 }
 
-// Seznam dostupných jazyků
-const DOSTUPNE_JAZYKY: JazykOption[] = [
-  { kod: 'cs', nazev: 'Čeština', vlajka: '🇨🇿' },
-  { kod: 'en', nazev: 'English', vlajka: '🇬🇧' },
-  { kod: 'de', nazev: 'Deutsch', vlajka: '🇩🇪' },
-];
+interface JazykOption {
+  kod: string
+  nazev: string
+  vlajka: string
+  dostupny: boolean
+}
 
-export const Jazyksekce = () => {
-  const { i18n } = useTranslation();
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+// ==========================================
+// Nastavení — Jazyk. Appka nemá nikde žádnou i18n infrastrukturu —
+// všechny texty napříč celou appkou jsou napevno v češtině (viz
+// CLAUDE.md), takže tahle sekce zatím jen poctivě ukazuje, že čeština
+// je jediný skutečně fungující jazyk, místo aby předstírala přepínač,
+// co by ve skutečnosti nic nepřekládal. Angličtina a němčina jsou
+// "Brzy" řádky — appka je nechává vidět, ne mizet (stejná zdrženlivost
+// jako appčina Library dlaždice nebo admin panelu BRZY přepínače),
+// ale klepnutí na ně to řekne rovnou, ne že by tiše nic neudělalo.
+// ==========================================
 
-  // Zjištění aktuálně zvoleného jazyka
-  const aktualniJazyk =
-    DOSTUPNE_JAZYKY.find((j) => j.kod === i18n.language) || DOSTUPNE_JAZYKY[0];
+const JAZYKY: JazykOption[] = [
+  { kod: 'cs', nazev: 'Čeština', vlajka: '🇨🇿', dostupny: true },
+  { kod: 'en', nazev: 'English', vlajka: '🇬🇧', dostupny: false },
+  { kod: 'de', nazev: 'Deutsch', vlajka: '🇩🇪', dostupny: false },
+]
 
-  // Změna jazyka
-  const ZmenJazyk = (kod: string) => {
-    i18n.changeLanguage(kod);
-    setIsOpen(false);
-  };
-
-  // Uzavření menu při kliknutí mimo komponentu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
+export const JazykSekce: React.FC<Props> = ({ onToast }) => {
   return (
-    <div className="jazyk-sekce-container" ref={dropdownRef} style={{ position: 'relative', display: 'inline-block' }}>
-      {/* Hlavní tlačítko pro otevření/zavření menu */}
-      <button
-        type="button"
-        onClick={() => setIsOpen((prev) => !prev)}
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '8px 12px',
-          borderRadius: '8px',
-          border: '1px solid #ccc',
-          background: '#ffffff',
-          cursor: 'pointer',
-          fontSize: '14px',
-          fontWeight: 500,
-        }}
-      >
-        <span>{aktualniJazyk.vlajka}</span>
-        <span>{aktualniJazyk.nazev}</span>
-        <span style={{ fontSize: '10px', marginLeft: '4px' }}>{isOpen ? '▲' : '▼'}</span>
-      </button>
+    <section className="settings-card">
+      <p className="settings-card-sub settings-jazyk-popis">
+        Appka zatím umí jen česky — každý text v ní je napevno v češtině. Další jazyky appka plánuje, ale zatím nic
+        nepřekládají.
+      </p>
 
-      {/* Rozbalovací menu */}
-      {isOpen && (
-        <ul
-          role="listbox"
-          style={{
-            position: 'absolute',
-            top: '100%',
-            right: 0,
-            marginTop: '4px',
-            padding: '4px 0',
-            listStyle: 'none',
-            background: '#ffffff',
-            border: '1px solid #ddd',
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-            minWidth: '140px',
-            zIndex: 1000,
-          }}
+      {JAZYKY.map((jazyk) => (
+        <div
+          key={jazyk.kod}
+          className={`settings-toggle-row ${jazyk.dostupny ? '' : 'settings-toggle-row--soon'}`}
         >
-          {DOSTUPNE_JAZYKY.map((jazyk) => (
-            <li key={jazyk.kod} role="option" aria-selected={i18n.language === jazyk.kod}>
-              <button
-                type="button"
-                onClick={() => ZmenJazyk(jazyk.kod)}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '8px 12px',
-                  border: 'none',
-                  background: i18n.language === jazyk.kod ? '#f0f4ff' : 'transparent',
-                  color: i18n.language === jazyk.kod ? '#0284c7' : '#333',
-                  fontWeight: i18n.language === jazyk.kod ? 'bold' : 'normal',
-                  cursor: 'pointer',
-                }}
-              >
-                <span>{jazyk.vlajka}</span>
-                <span>{jazyk.nazev}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-};
+          <div className="settings-toggle-text">
+            <span className="settings-toggle-title">
+              {jazyk.vlajka} {jazyk.nazev}
+              {!jazyk.dostupny && <span className="settings-badge-soon">BRZY</span>}
+            </span>
+          </div>
+
+          {jazyk.dostupny ? (
+            <span className="settings-jazyk-stav je-aktivni" aria-label="Aktuální jazyk appky">
+              ✓
+            </span>
+          ) : (
+            <button
+              type="button"
+              className="settings-jazyk-stav je-zamceno"
+              aria-label={`${jazyk.nazev} appka zatím nepodporuje`}
+              onClick={() => onToast('Tenhle jazyk appka zatím nepodporuje.')}
+            >
+              🔒
+            </button>
+          )}
+        </div>
+      ))}
+    </section>
+  )
+}
+
+export default JazykSekce
