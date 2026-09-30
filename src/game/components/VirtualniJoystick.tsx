@@ -8,6 +8,16 @@ interface Props {
 }
 
 const POLOMER_ZAKLADNY = 52
+/** Mrtvá zóna kolem středu (appčino "vylepši ovládání" zadání u
+ *  appčina Survival Night, zavedené tady, protože jde o jediný zdroj
+ *  vstupu appka sdílí s appčiným 3D průzkumem) — bez ní i nepatrné,
+ *  neúmyslné posunutí palce (chvění prstu, nepřesný dotek na okraji
+ *  základny) poslalo nenulový vektor a postava se tak trochu "táhla"
+ *  i beze skutečného úmyslu appku pohnout. appka zbytek dráhy za
+ *  mrtvou zónou přeškáluje zpátky na 0..1 (viz zpracujPolohu níž), ať
+ *  appčin výstup pořád doopravdy dosáhne plné rychlosti na kraji
+ *  joysticku, ne jen na (1 - PODIL_MRTVE_ZONY) jejího rozsahu. */
+const PODIL_MRTVE_ZONY = 0.12
 
 // ==========================================
 // Virtuální joystick pro pohyb ve 3D průzkumu na mobilu — čisté DOM
@@ -40,8 +50,21 @@ export const VirtualniJoystick: React.FC<Props> = ({ onZmena }) => {
     }
 
     knoflik.style.transform = `translate(${dx}px, ${dy}px)`
+
+    // Appka pod mrtvou zónou pošle přesně (0, 0) — appčin vizuální
+    // knoflík pořád sleduje prst 1:1 (appka appku nenechává "cuknout"
+    // vizuálně, jen appčin VÝSTUP appka škáluje), jen appka nepošle
+    // téměř-nulový-ale-ne-úplně vektor dál do enginu.
+    const prahPx = POLOMER_ZAKLADNY * PODIL_MRTVE_ZONY
+    if (vzdalenost < prahPx) {
+      onZmena(0, 0)
+      return
+    }
+    const smerX = dx / vzdalenost
+    const smerY = dy / vzdalenost
+    const skalovanaVzd = Math.min(1, (vzdalenost - prahPx) / (POLOMER_ZAKLADNY - prahPx))
     // Obrazovka: dy kladné = dolů = dozadu, proto opačné znaménko pro z.
-    onZmena(dx / POLOMER_ZAKLADNY, -dy / POLOMER_ZAKLADNY)
+    onZmena(smerX * skalovanaVzd, -smerY * skalovanaVzd)
   }
 
   const pusteno = () => {

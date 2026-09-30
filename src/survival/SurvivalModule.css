@@ -65,7 +65,13 @@
   position: relative;
   height: 100%;
   overflow-y: auto;
-  padding: calc(1rem + env(safe-area-inset-top)) 1.25rem calc(1.5rem + env(safe-area-inset-bottom));
+  /* Landscape zámek (viz zámek na konci souboru) znamená appka MUSÍ
+     počítat i s bočními env(safe-area-inset-left/right) — appčino
+     telefonní zobrazení jinak v landscape schová obsah pod výřezem/
+     zaobleným rohem na boku, ne nahoře/dole jako v portrétu. Stejný
+     postup jako appčino sesterské BuddyZone (GamesHubModule.css). */
+  padding: calc(1rem + env(safe-area-inset-top)) calc(1.25rem + env(safe-area-inset-right))
+    calc(1.5rem + env(safe-area-inset-bottom)) calc(1.25rem + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   gap: 1rem;
@@ -363,7 +369,11 @@
   display: flex;
   align-items: center;
   gap: 0.7rem;
-  padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.5rem;
+  /* Boční env(safe-area-inset-*) taky tady — appčina landscape aréna
+     má stejný "výřez na boku, ne nahoře" problém jako appčiny menu
+     obrazovky výš (.sn-screen). */
+  padding: calc(0.75rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right)) 0.5rem
+    calc(1rem + env(safe-area-inset-left));
 }
 
 .sn-hud-back {
@@ -417,7 +427,7 @@
 }
 
 .sn-hud-log {
-  padding: 0 1rem;
+  padding: 0 calc(1rem + env(safe-area-inset-right)) 0 calc(1rem + env(safe-area-inset-left));
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
@@ -442,9 +452,14 @@
   gap: 0.6rem;
   /* Levý odsazovací padding uvolní místo pro appčin existující
      virtuální joystick (VirtualniJoystick.css, fixní vlevo dole,
-     ~104px + odstup) — na desktopu (pointer: fine) joystick mizí, tam
-     appka odsazení taky vrátí zpátky (viz media query níž). */
-  padding: 0 1rem calc(0.9rem + env(safe-area-inset-bottom)) 8.5rem;
+     ~104px + odstup, teď navíc posunutý o env(safe-area-inset-left) —
+     appka tady musí počítat se STEJNÝM odsazením, ať appčin joystick
+     appčinu vlastní HUD nepřekryje na telefonu s bočním výřezem v
+     landscape) — na desktopu (pointer: fine) joystick mizí, tam appka
+     odsazení taky vrátí zpátky (viz media query níž). Pravá strana
+     appky potřebuje env(safe-area-inset-right) ze stejného důvodu. */
+  padding: 0 calc(1rem + env(safe-area-inset-right)) calc(0.9rem + env(safe-area-inset-bottom))
+    calc(8.5rem + env(safe-area-inset-left));
 }
 
 .sn-hud-stats {
@@ -568,7 +583,7 @@ button.sn-hud-akce-ikona {
 
 @media (pointer: fine) {
   .sn-hud-bottom {
-    padding-left: 1rem;
+    padding-left: calc(1rem + env(safe-area-inset-left));
   }
 }
 

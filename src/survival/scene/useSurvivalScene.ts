@@ -606,8 +606,29 @@ export const useSurvivalScene = (): UseSurvivalSceneResult => {
     // úhlu ---
     const kvaternionIdentita = new THREE.Quaternion()
     const geometriePickup = new THREE.SphereGeometry(0.3, 12, 12)
-    const materialOrb = new THREE.MeshStandardMaterial({ color: '#22c55e', emissive: '#22c55e', emissiveIntensity: 1.2 })
-    const materialLektvar = new THREE.MeshStandardMaterial({ color: '#a855f7', emissive: '#a855f7', emissiveIntensity: 1.2 })
+    // "trošku průsvitné" appčino přímé zadání — appka to bere doslova:
+    // 1 = plně neprůhledné, appka drží spíš horní hranici "trochu",
+    // ať pickup pořád jasně zasvítí přes tmavý les (appčin cíl je
+    // jemné prosvítání, ne poloviční neviditelnost). Nejvýš 3 pickupy
+    // najednou (MAX_PICKUPU_NA_ARENE) a teď navíc rozestupem
+    // MIN_VZDALENOST_PICKUPU od sebe (viz engine.ts) — appka se
+    // vzájemným prolínáním dvou průsvitných koulí prakticky nikdy
+    // nemusí zabývat.
+    const PICKUP_PRUHLEDNOST = 0.72
+    const materialOrb = new THREE.MeshStandardMaterial({
+      color: '#22c55e',
+      emissive: '#22c55e',
+      emissiveIntensity: 1.2,
+      transparent: true,
+      opacity: PICKUP_PRUHLEDNOST,
+    })
+    const materialLektvar = new THREE.MeshStandardMaterial({
+      color: '#a855f7',
+      emissive: '#a855f7',
+      emissiveIntensity: 1.2,
+      transparent: true,
+      opacity: PICKUP_PRUHLEDNOST,
+    })
     const meshOrb = new THREE.InstancedMesh(geometriePickup, materialOrb, PICKUP_KAPACITA)
     meshOrb.count = 0
     const meshLektvar = new THREE.InstancedMesh(geometriePickup, materialLektvar, PICKUP_KAPACITA)

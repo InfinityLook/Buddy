@@ -6,7 +6,12 @@
 
 .explorace-joystick {
   position: fixed;
-  left: 1.1rem;
+  /* env(safe-area-inset-left) je 0 na většině zařízení (jen nastroj pro
+     appčinu landscape-zamčenou appku, jako appčino vlastní Survival
+     Night, kde appka může sedět vedle bočního výřezu/zaobleného rohu
+     telefonu) — appka to má tady, ne dvakrát zvlášť pro každou hru,
+     protože appka drží stejný joystick sdílený mezi appkami. */
+  left: calc(1.1rem + env(safe-area-inset-left));
   bottom: calc(1.6rem + env(safe-area-inset-bottom));
   z-index: 20;
   width: 104px;

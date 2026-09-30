@@ -95,6 +95,22 @@ describe('engine.ts — krokHry', () => {
     expect(stav.hrac.pozice.z).toBeCloseTo(0, 5)
   })
 
+  // appčino přímé "spomal chůzi hráče" zadání — appka ověřuje appčinu
+  // vlastní ZÁMĚRNOU rovnováhu, ne jen jedno konkrétní číslo: hráč
+  // musí být pomalejší, než byl (appka to porovná proti staré appčině
+  // hodnotě 4.2 ze zadání), ale POŘÁD rychlejší, než nejrychlejší
+  // pozemní nepřítel (wolf, data/monsters.ts), jinak by ho appka
+  // nikdy nedokázala setřást (posunKCili appka nemá žádné vyhýbání).
+  it('hráčova chůze je pomalejší než dřív, ale pořád rychlejší než nejrychlejší pozemní monstrum', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    krokHry(stav, 1000, { x: 1, z: 0 }, nahodne0)
+    const ujetaVzdalenost = stav.hrac.pozice.x
+    expect(ujetaVzdalenost).toBeCloseTo(VYCHOZI_POSTAVA.rychlost, 5)
+    expect(VYCHOZI_POSTAVA.rychlost).toBeLessThan(4.2)
+    const nejrychlejsiMonstrum = Math.max(...Object.values(MONSTRA).map((m) => m.rychlost))
+    expect(VYCHOZI_POSTAVA.rychlost).toBeGreaterThan(nejrychlejsiMonstrum)
+  })
+
   it('hráč se nikdy nedostane za hranici arény', () => {
     const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
     for (let i = 0; i < 200; i++) krokHry(stav, 200, { x: 1, z: 0 }, nahodne0)
@@ -828,6 +844,53 @@ describe('engine.ts — Health Orb/Potion pickupy (appčino "co ještě zbývá"
     krokHry(stav, 16, { x: 0, z: 0 }, nahodne0)
     expect(stav.hrac.hp).toBe(1)
     expect(stav.pickupy).toHaveLength(1)
+  })
+
+  // appčino přímé "dobré rozložení špeku, ne v řadě" zadání —
+  // rejection sampling v engine.ts's vlastní bodPickupu odmítne bod
+  // moc blízko existujícímu pickupu a znovu vylosuje, dokud nenajde
+  // (nebo nevyčerpá appčin počet pokusů) bod aspoň appkou zvolené
+  // vzdálenosti daleko (appka ji tu neexportuje, appka to proto ověří
+  // na appčině vlastní "4" hodnotě přímo).
+  it('nový pickup appka NEspawne přesně na existujícím, i když by ho první vzorek tam poslal — appka zkusí znovu a najde bod dost daleko', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    const existujici = { x: 5, z: 0 }
+    stav.pickupy = [{ id: 'existujici', typ: 'orb', pozice: existujici }]
+    // Fronta odpovídá pořadí appčiných volání nahodne() uvnitř
+    // spawnujPickupPodleCasu → bodPickupu: (1) appčin SANCE_LEKTVAR
+    // test-hod, (2)+(3) první bodVArene (uhel/poloměr appka trefí
+    // PŘESNĚ existující pickup na (5, 0)), (4)+(5) druhý bodVArene
+    // (jiný úhel/poloměr appku pošle jinam, dost daleko).
+    const fronta = [
+      0.5, // (1) > appčin SANCE_LEKTVAR (0.2) → zůstane 'orb'
+      0, // (2) uhel = 0 → míří přesně na (5, 0)
+      Math.pow(5 / (ARENA_POLOMER * 0.9), 2), // (3) poloměr appka trefí přesně 5
+      0.25, // (4) uhel = 90° → jiný směr
+      0.5, // (5) poloměr — jen aby appka měla nějakou rozumnou hodnotu
+    ]
+    let i = 0
+    const nahodneFronta = () => fronta[Math.min(i++, fronta.length - 1)]
+    krokHry(stav, 16, { x: 0, z: 0 }, nahodneFronta)
+    expect(stav.pickupy).toHaveLength(2)
+    const novy = stav.pickupy.find((p) => p.id !== 'existujici')!
+    // appka NEsedí přesně na existujícím (což by appka udělala, kdyby
+    // appka vzala rovnou první vzorek beze změny).
+    expect(novy.pozice).not.toEqual(existujici)
+    const vzdalenost = Math.hypot(novy.pozice.x - existujici.x, novy.pozice.z - existujici.z)
+    expect(vzdalenost).toBeGreaterThanOrEqual(4)
+  })
+
+  it('appka se po vyčerpání pokusů nevzdává — pickup appka spawne i s konstantním nahodne(), co pořád míří na to samé místo', () => {
+    const stav = vytvorPocatecniStav(VYCHOZI_POSTAVA)
+    stav.zbyvaSpawnovat = 0
+    stav.pickupy = [{ id: 'existujici', typ: 'orb', pozice: { x: 0, z: 12 } }]
+    // Konstantní nahodne() appku nikdy nepustí mimo první vylosované
+    // místo — appka i tak spawne DRUHÝ pickup (appčin fallback: vezmi
+    // poslední bod, i kdyby byl pořád moc blízko), místo aby appka
+    // zůstala navěky v smyčce.
+    krokHry(stav, 16, { x: 0, z: 0 }, () => 0.15)
+    expect(stav.pickupy).toHaveLength(2)
   })
 })
 

@@ -128,6 +128,20 @@ const PICKUP_POLOMER = 0.5
 const SANCE_LEKTVAR = 0.2
 const ORB_LECIVOST_PODIL_MAXHP = 0.15
 const LEKTVAR_LECIVOST_PODIL_MAXHP = 0.4
+/** appčino přímé "dobré rozložení špeku, ne v řadě" zadání — appka
+ *  odmítne bod, co je moc blízko KTERÉMUKOLIV už existujícímu pickupu
+ *  na zemi, a znovu vylosuje (rejection sampling, stejná technika,
+ *  jakou appka používá pro appčinu prázdnou zónu kolem hráče u
+ *  Buddyho Trh's vlastní dekorace) — bodVArene sám o sobě je už
+ *  rovnoměrné vzorkování celé plochy, ale appka nic nebránilo tomu,
+ *  aby dva pickupy náhodou spadly blízko sebe (nebo, čirou náhodou,
+ *  na podobný úhel od středu, což na krátkou vzdálenost vypadá jako
+ *  "v řadě"). appka se po vyčerpání pokusů nevzdává úplně — vezme
+ *  poslední vylosovaný bod, i kdyby byl pořád moc blízko (radši o
+ *  trochu horší rozestup, než appka by nikdy nespawnula pickup
+ *  vůbec). */
+const MIN_VZDALENOST_PICKUPU = 4
+const MAX_POKUSU_ROZLOZENI = 10
 
 let poradiId = 0
 const dalsiId = (predpona: string): string => `${predpona}-${(poradiId++).toString(36)}`
@@ -203,6 +217,22 @@ const bodVArene = (nahodne: () => number): Pozice2D => {
   return { x: Math.cos(uhel) * polomer, z: Math.sin(uhel) * polomer }
 }
 
+/** Sdílené mezi appčinou volbou POZICE nového pickupu a NIC jiným —
+ *  appka vzorkuje bodVArene, a pokud výsledek sedí moc blízko
+ *  některého už existujícího pickupu (viz MIN_VZDALENOST_PICKUPU's
+ *  vlastní komentář), zkusí to znovu, max MAX_POKUSU_ROZLOZENI krát. */
+const bodPickupu = (stav: SurvivalHerniStav, nahodne: () => number): Pozice2D => {
+  let bod = bodVArene(nahodne)
+  for (let pokus = 0; pokus < MAX_POKUSU_ROZLOZENI; pokus++) {
+    const dostRozestupu = stav.pickupy.every(
+      (p) => Math.hypot(p.pozice.x - bod.x, p.pozice.z - bod.z) >= MIN_VZDALENOST_PICKUPU
+    )
+    if (dostRozestupu) return bod
+    bod = bodVArene(nahodne)
+  }
+  return bod
+}
+
 const pridejLog = (stav: SurvivalHerniStav, text: string): void => {
   const zaznam: ZaznamUdalosti = { id: dalsiId('log'), text, cas: stav.cas }
   stav.log.unshift(zaznam)
@@ -268,7 +298,7 @@ const spawnujPickupPodleCasu = (stav: SurvivalHerniStav, nahodne: () => number):
   if (stav.pickupy.length >= MAX_PICKUPU_NA_ARENE) return
   if (stav.cas - stav.posledniPickupSpawnMs < PICKUP_SPAWN_INTERVAL_MS) return
   const typ = nahodne() < SANCE_LEKTVAR ? 'lektvar' : 'orb'
-  const pickup: PickupInstance = { id: dalsiId('pickup'), typ, pozice: bodVArene(nahodne) }
+  const pickup: PickupInstance = { id: dalsiId('pickup'), typ, pozice: bodPickupu(stav, nahodne) }
   stav.pickupy.push(pickup)
   stav.posledniPickupSpawnMs = stav.cas
 }
