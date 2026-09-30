@@ -122,45 +122,124 @@
   margin-top: .3rem;
 }
 
-/* ---- Hrací plocha ---- */
+/* ---- Hrací plocha ----
+   Deska bývala jeden vodorovný pás zabalený přes flex-wrap — v praxi
+   nudná řada stejných čtverečků. Appka teď pole rozestaví jako
+   hadovitou (serpentinovou) cestu přes CSS Grid — 4 sloupce, řádky se
+   střídají zleva/zprava, přesně stejný vzor jako appčiny reálné
+   deskové hry vzorem (Had a žebřík) — CtyriKralovstvi.tsx's own
+   pozicePole()/CK_ZATACKY počítají, kam který index patří. */
 .ck-content { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 300px; gap: 1rem; }
 
+.ck-cesta-obal { display: flex; flex-direction: column; gap: .6rem; max-width: 560px; margin: 0 auto; width: 100%; }
+.ck-cesta-legenda { margin: 0; text-align: center; font-size: .78rem; color: var(--text-secondary); }
+
 .ck-cesta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .5rem;
-  align-content: flex-start;
-  padding: 1rem;
+  position: relative;
+  display: grid;
+  grid-auto-rows: min-content;
+  gap: .55rem;
+  padding: 1.1rem;
   border: 1px solid var(--border-subtle);
-  border-radius: 1rem;
-  background: var(--bg-panel);
+  border-radius: 1.2rem;
+  background:
+    radial-gradient(circle at 12% 6%, rgba(138, 92, 246, .12), transparent 45%),
+    radial-gradient(circle at 88% 94%, rgba(53, 196, 240, .12), transparent 45%),
+    var(--bg-panel);
 }
+
+/* Cestička sama — vodorovný pruh na celý řádek a svislá "zatáčka" na
+   hranici dvou řádků. Obojí sedí pod poli (z-index 0) a je vidět jen
+   v mezeře MEZI políčky, protože každé pole svojí vlastní neprůhlednou
+   plochou (z-index 1) tu svoji buňku plně zakrývá — stejný trik, jaký
+   appka jinde používá pro "conic-gradient s maskovanou dírou" prstenec
+   (SocialAvatar, Hub orb), tady jen v jednom rozměru. */
+.ck-trasa-radek {
+  grid-column: 1 / -1;
+  z-index: 0;
+  align-self: center;
+  justify-self: stretch;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--border-strong) 12%, var(--border-strong) 88%, transparent);
+  pointer-events: none;
+}
+.ck-trasa-zatacka {
+  z-index: 0;
+  align-self: stretch;
+  justify-self: center;
+  width: 10px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  pointer-events: none;
+}
+
 .ck-pole {
-  width: 76px;
-  min-height: 76px;
-  border-radius: .7rem;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: .85rem;
   border: 1px solid var(--border-subtle);
   background: var(--bg-panel-raised);
-  padding: .4rem;
+  padding: .3rem;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: .2rem;
+  justify-content: center;
+  gap: .15rem;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .25);
+  transition: transform .15s ease;
 }
-.ck-pole-cislo { font-size: .65rem; color: var(--text-muted); font-weight: 700; }
-.ck-pole-ikona { font-size: 1.3rem; line-height: 1; }
-.ck-pole--zlato { background: color-mix(in srgb, var(--bg-panel-raised) 70%, #f59e0b 30%); border-color: color-mix(in srgb, var(--border-subtle) 50%, #f59e0b 50%); }
-.ck-pole--drahokam { background: color-mix(in srgb, var(--bg-panel-raised) 70%, var(--accent-cyan) 30%); border-color: color-mix(in srgb, var(--border-subtle) 50%, var(--accent-cyan) 50%); }
-.ck-pole--osud { background: color-mix(in srgb, var(--bg-panel-raised) 70%, var(--accent-violet) 30%); border-color: color-mix(in srgb, var(--border-subtle) 50%, var(--accent-violet) 50%); }
+.ck-pole-cislo {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  z-index: 2;
+  font-size: .62rem;
+  color: rgba(255, 255, 255, .8);
+  font-weight: 800;
+}
+.ck-pole-ikona { position: relative; z-index: 2; font-size: clamp(1.05rem, 4vw, 1.6rem); line-height: 1; }
+
+/* Barevné typy políček dostaly skutečné přechody a jemný "lesk" místo
+   plochého color-mix šedě — appka to řeší stejným ::before/radial-
+   -gradient trikem, jaký školní room/fitness room karty už používají
+   pro svoje "aurora" pozadí, jen menší a decentnější na 90px pole. */
+.ck-pole--prazdne {
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, .025) 0 8px, transparent 8px 16px),
+    var(--bg-panel-raised);
+}
+.ck-pole--zlato { background: linear-gradient(155deg, #fbbf24, #b45309); border-color: #f59e0b; }
+.ck-pole--drahokam { background: linear-gradient(155deg, #22d3ee, #0e7490); border-color: var(--accent-cyan); }
+.ck-pole--osud { background: linear-gradient(155deg, #c084fc, #6d28d9); border-color: var(--accent-violet); }
+.ck-pole--zlato::before,
+.ck-pole--drahokam::before,
+.ck-pole--osud::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 28% 20%, rgba(255, 255, 255, .38), transparent 55%);
+  pointer-events: none;
+}
+
 .ck-pole--trun {
-  width: 96px;
+  grid-column: 1 / -1;
+  width: auto;
+  aspect-ratio: auto;
   min-height: 96px;
-  background: linear-gradient(160deg, #b45309, #78350f);
+  flex-direction: row;
+  gap: .9rem;
+  background: linear-gradient(160deg, #fbbf24, #78350f);
   border-color: #f59e0b;
-  box-shadow: 0 0 18px rgba(245, 158, 11, .45);
+  box-shadow: 0 0 22px rgba(245, 158, 11, .5), inset 0 0 22px rgba(255, 255, 255, .08);
 }
-.ck-pole-ikona--trun img { width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); }
-.ck-pole-tokeny { display: flex; flex-wrap: wrap; gap: .15rem; justify-content: center; min-height: 20px; }
+.ck-pole-cislo--trun { position: static; font-size: .85rem; letter-spacing: .05em; }
+.ck-pole-ikona--trun img { width: 38px; height: 38px; object-fit: contain; filter: drop-shadow(0 2px 5px rgba(0, 0, 0, .55)); }
+.ck-pole-tokeny { position: relative; z-index: 2; display: flex; flex-wrap: wrap; gap: .15rem; justify-content: center; min-height: 18px; }
 .ck-token { width: 18px; height: 18px; object-fit: contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,.5)); }
 
 .ck-panel {
@@ -227,7 +306,9 @@
 
 @media (max-width: 760px) {
   .ck-content { grid-template-columns: 1fr; }
-  .ck-pole { width: 64px; min-height: 64px; }
-  .ck-pole--trun { width: 80px; min-height: 80px; }
+  /* Appka tu dřív ještě navrch vnucovala pevnou šířku v px — zbytečné
+     a škodlivé teď, když .ck-pole má width:100%/aspect-ratio:1 uvnitř
+     `minmax(0, 1fr)` sloupců: deska se zmenší sama, přesně na šířku
+     obrazovky, bez zvláštního pravidla. */
   .ck-reset { margin-left: 0; }
 }

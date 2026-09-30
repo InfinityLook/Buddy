@@ -8,6 +8,7 @@ import {
   KralovstviId,
   MAX_HRACU,
   MIN_HRACU,
+  POCET_POLI,
   POZICE_TRUNU,
   TYPY_POLI,
   TypPole,
@@ -70,6 +71,39 @@ const ikonaPole = (typ: TypPole): string => {
 
 const vytvorSedadla = (pocet: number): Sedadlo[] =>
   Array.from({ length: pocet }, (_, i) => ({ jeBot: i > 0, jmeno: '' }))
+
+// Deska bývala jeden vodorovný pás zabalený přes flex-wrap — přesně to
+// hráč popsal jako "nudné". Appka místo toho pole rozestaví do
+// hadovité (serpentinové) cesty přes CSS Grid, stejný vzor, jaký
+// běžné deskové hry (Had a žebřík, Candy Land) používají — 4 sloupce,
+// řádky se střídavě čtou zleva doprava a zprava doleva, takže sousední
+// pole (i a i+1) mají VŽDY buď stejný řádek (vodorovná cesta), nebo
+// stejný sloupec na hranici řádků (svislá "zatáčka"). Appka to počítá,
+// ne generuje náhodně — TYPY_POLI zůstává to samé pevné pole, jen se
+// jinak rozmístí na desce.
+const CK_SLOUPCU = 4
+const CK_RADKU = Math.ceil(POCET_POLI / CK_SLOUPCU)
+
+/** Grid pozice pole s indexem 0..POCET_POLI-1 — sudý řádek jde zleva
+ *  doprava, lichý zprava doleva, ať navazující pole na konci/začátku
+ *  řádku vždycky sedí ve stejném sloupci (proto appka dole umí
+ *  zatáčku nakreslit jedním svislým pruhem, ne zvlášť pro každé pole). */
+const pozicePole = (index: number): { gridRow: number; gridColumn: number } => {
+  const radek = Math.floor(index / CK_SLOUPCU)
+  const vRadku = index % CK_SLOUPCU
+  const sloupec = radek % 2 === 0 ? vRadku : CK_SLOUPCU - 1 - vRadku
+  return { gridRow: radek + 1, gridColumn: sloupec + 1 }
+}
+
+/** Jedna svislá "zatáčka" cesty za každý řádek — poslední spojuje
+ *  poslední pole s trůnem, co appka kreslí jako vlastní, širší řádek
+ *  hned pod nimi. Sloupec zatáčky appka nedostává z pozicePole (to by
+ *  vyžadovalo znát poslední pole KAŽDÉHO řádku zvlášť) — odvozuje ho
+ *  přímo ze stejné sudý/lichý logiky, protože se s ní vždycky shoduje. */
+const CK_ZATACKY = Array.from({ length: CK_RADKU }, (_, radek) => ({
+  gridRow: `${radek + 1} / span 2`,
+  gridColumn: radek % 2 === 0 ? CK_SLOUPCU : 1,
+}))
 
 export const CtyriKralovstvi = () => {
   const navigate = useNavigate()
@@ -276,18 +310,53 @@ export const CtyriKralovstvi = () => {
       </header>
 
       <section className="ck-content">
-        <div className="ck-cesta" aria-label="Cesta ke trůnu">
-          {TYPY_POLI.map((typ, i) => {
-            const cisloPole = i + 1
-            const hraciNaPoli = stav.hraci.filter((h) => h.pozice === cisloPole)
-            return (
-              <div className={`ck-pole ck-pole--${typ}`} key={cisloPole}>
-                <span className="ck-pole-cislo">{cisloPole}</span>
-                <span className="ck-pole-ikona" aria-hidden="true">
-                  {ikonaPole(typ)}
-                </span>
-                <div className="ck-pole-tokeny">
-                  {hraciNaPoli.map((h) => (
+        <div className="ck-cesta-obal">
+          <p className="ck-cesta-legenda">🏁 Start vlevo nahoře — cesta se kroutí až dolů k 👑 trůnu.</p>
+          <div
+            className="ck-cesta"
+            aria-label="Cesta ke trůnu"
+            style={{ gridTemplateColumns: `repeat(${CK_SLOUPCU}, minmax(0, 1fr))` }}
+          >
+            {Array.from({ length: CK_RADKU }, (_, radek) => (
+              <div key={`trasa-${radek}`} className="ck-trasa-radek" style={{ gridRow: radek + 1 }} aria-hidden="true" />
+            ))}
+            {CK_ZATACKY.map((zatacka, i) => (
+              <div key={`zatacka-${i}`} className="ck-trasa-zatacka" style={zatacka} aria-hidden="true" />
+            ))}
+
+            {TYPY_POLI.map((typ, i) => {
+              const cisloPole = i + 1
+              const hraciNaPoli = stav.hraci.filter((h) => h.pozice === cisloPole)
+              const { gridRow, gridColumn } = pozicePole(i)
+              return (
+                <div className={`ck-pole ck-pole--${typ}`} style={{ gridRow, gridColumn }} key={cisloPole}>
+                  <span className="ck-pole-cislo">{cisloPole}</span>
+                  <span className="ck-pole-ikona" aria-hidden="true">
+                    {ikonaPole(typ)}
+                  </span>
+                  <div className="ck-pole-tokeny">
+                    {hraciNaPoli.map((h) => (
+                      <img
+                        key={h.id}
+                        className="ck-token"
+                        src={`/deskova-hra/token-${BARVA_PODLE_KRALOVSTVI[h.kralovstviId]}.png`}
+                        title={h.jmeno}
+                        alt={h.jmeno}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+            <div className="ck-pole ck-pole--trun" style={{ gridRow: CK_RADKU + 1 }}>
+              <span className="ck-pole-ikona ck-pole-ikona--trun" aria-hidden="true">
+                <img src="/deskova-hra/koruna.png" alt="" />
+              </span>
+              <span className="ck-pole-cislo ck-pole-cislo--trun">Trůn</span>
+              <div className="ck-pole-tokeny">
+                {stav.hraci
+                  .filter((h) => h.pozice === POZICE_TRUNU)
+                  .map((h) => (
                     <img
                       key={h.id}
                       className="ck-token"
@@ -296,27 +365,7 @@ export const CtyriKralovstvi = () => {
                       alt={h.jmeno}
                     />
                   ))}
-                </div>
               </div>
-            )
-          })}
-          <div className="ck-pole ck-pole--trun">
-            <span className="ck-pole-ikona ck-pole-ikona--trun" aria-hidden="true">
-              <img src="/deskova-hra/koruna.png" alt="" />
-            </span>
-            <span className="ck-pole-cislo">Trůn</span>
-            <div className="ck-pole-tokeny">
-              {stav.hraci
-                .filter((h) => h.pozice === POZICE_TRUNU)
-                .map((h) => (
-                  <img
-                    key={h.id}
-                    className="ck-token"
-                    src={`/deskova-hra/token-${BARVA_PODLE_KRALOVSTVI[h.kralovstviId]}.png`}
-                    title={h.jmeno}
-                    alt={h.jmeno}
-                  />
-                ))}
             </div>
           </div>
         </div>
