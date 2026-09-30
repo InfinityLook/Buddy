@@ -1,5 +1,18 @@
 .ck-page {
-  min-height: 100dvh;
+  /* Appka tu chyběla v jediné, appkou jinde vždycky dodržené dvojici —
+     `height: 100vh`/`100dvh` PLUS `overflow-y: auto` (viz
+     AppModule.css/BoardgameModule.css/GamesHubModule.css a appčina
+     vlastní CLAUDE.md sekce "Responsive layout"). Appka měla jen
+     `min-height: 100dvh` a žádné `overflow`, takže na skutečném
+     telefonu (kde `html, body, #root` mají globálně `overflow: hidden`,
+     viz global.css) se obsah delší než viewport prostě OŘÍZL, ne
+     posunul — přesně "nevejde se mi na telefon", žádný posuvník,
+     spodek stránky (u hry hráčský panel, u nastavení tlačítko "Spustit
+     hru") zmizel bez možnosti se k němu dostat. */
+  height: 100vh;
+  height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   box-sizing: border-box;
   padding: 1rem;
   background: var(--bg-base);
