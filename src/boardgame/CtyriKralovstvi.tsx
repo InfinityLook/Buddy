@@ -18,6 +18,7 @@ import {
   vytvorHrace,
   vytvorHruStav,
 } from './ctyriKralovstviTypes'
+import { useCtyriKralovstviScene } from './scene/useCtyriKralovstviScene'
 import './CtyriKralovstvi.css'
 
 // ==========================================
@@ -104,6 +105,180 @@ const CK_ZATACKY = Array.from({ length: CK_RADKU }, (_, radek) => ({
   gridRow: `${radek + 1} / span 2`,
   gridColumn: radek % 2 === 0 ? CK_SLOUPCU : 1,
 }))
+
+interface HerniDeskaProps {
+  stav: HraStav
+  aktivniHrac: Hrac | null
+  riskovat: boolean
+  setRiskovat: (hodnota: boolean) => void
+  muzeRiskovat: boolean
+  onHodit: () => void
+  onNovaHra: () => void
+  onZpet: () => void
+}
+
+/** Vlastní, samostatná komponenta — schválně, ne jen JSX blok přímo v
+ *  CtyriKralovstvi — protože useCtyriKralovstviScene()'s vlastní efekt
+ *  se spouští jen JEDNOU při vlastním mountu (stejná podmínka jako
+ *  useTrhScene.ts). Kdyby appka hook volala přímo z CtyriKralovstvi
+ *  (mountnuté už na obrazovce "nastaveni", dřív než plátno vůbec
+ *  existuje), efekt by proběhl jednou s prázdným containerRef a 3D
+ *  scéna by se nikdy nepostavila — přesně stejný důvod, proč Buddyho
+ *  Trh vedle appky drží svoji Desku jako vlastní komponentu
+ *  (BoardgameModule.tsx), ne inline JSX. Tahle appčina komponenta se
+ *  namountuje přesně ve chvíli, kdy <HerniDeska> poprvé nahradí
+ *  obrazovku nastavení — plátno tedy existuje hned od prvního
+ *  vykreslení efektu. */
+const HerniDeska = ({ stav, aktivniHrac, riskovat, setRiskovat, muzeRiskovat, onHodit, onNovaHra, onZpet }: HerniDeskaProps) => {
+  const { containerRef, selhalo } = useCtyriKralovstviScene({ stav })
+
+  return (
+    <main className="ck-page">
+      <header className="ck-header">
+        <button className="ck-back" onClick={onZpet}>
+          ← Zpět ke hrám
+        </button>
+        <div>
+          <p className="ck-kicker">SOUBOJ O TRŮN</p>
+          <h1>Čtyři království</h1>
+        </div>
+        <button className="ck-reset" onClick={onNovaHra}>
+          Nová hra
+        </button>
+      </header>
+
+      <section className="ck-content">
+        {selhalo ? (
+          <div className="ck-cesta-obal">
+            <p className="ck-cesta-legenda">🏁 Start vlevo nahoře — cesta se kroutí až dolů k 👑 trůnu.</p>
+            <div
+              className="ck-cesta"
+              aria-label="Cesta ke trůnu"
+              style={{ gridTemplateColumns: `repeat(${CK_SLOUPCU}, minmax(0, 1fr))` }}
+            >
+              {Array.from({ length: CK_RADKU }, (_, radek) => (
+                <div key={`trasa-${radek}`} className="ck-trasa-radek" style={{ gridRow: radek + 1 }} aria-hidden="true" />
+              ))}
+              {CK_ZATACKY.map((zatacka, i) => (
+                <div key={`zatacka-${i}`} className="ck-trasa-zatacka" style={zatacka} aria-hidden="true" />
+              ))}
+
+              {TYPY_POLI.map((typ, i) => {
+                const cisloPole = i + 1
+                const hraciNaPoli = stav.hraci.filter((h) => h.pozice === cisloPole)
+                const { gridRow, gridColumn } = pozicePole(i)
+                return (
+                  <div className={`ck-pole ck-pole--${typ}`} style={{ gridRow, gridColumn }} key={cisloPole}>
+                    <span className="ck-pole-cislo">{cisloPole}</span>
+                    <span className="ck-pole-ikona" aria-hidden="true">
+                      {ikonaPole(typ)}
+                    </span>
+                    <div className="ck-pole-tokeny">
+                      {hraciNaPoli.map((h) => (
+                        <img
+                          key={h.id}
+                          className="ck-token"
+                          src={`/deskova-hra/token-${BARVA_PODLE_KRALOVSTVI[h.kralovstviId]}.png`}
+                          title={h.jmeno}
+                          alt={h.jmeno}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )
+              })}
+              <div className="ck-pole ck-pole--trun" style={{ gridRow: CK_RADKU + 1 }}>
+                <span className="ck-pole-ikona ck-pole-ikona--trun" aria-hidden="true">
+                  <img src="/deskova-hra/koruna.png" alt="" />
+                </span>
+                <span className="ck-pole-cislo ck-pole-cislo--trun">Trůn</span>
+                <div className="ck-pole-tokeny">
+                  {stav.hraci
+                    .filter((h) => h.pozice === POZICE_TRUNU)
+                    .map((h) => (
+                      <img
+                        key={h.id}
+                        className="ck-token"
+                        src={`/deskova-hra/token-${BARVA_PODLE_KRALOVSTVI[h.kralovstviId]}.png`}
+                        title={h.jmeno}
+                        alt={h.jmeno}
+                      />
+                    ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="ck-deska-obal">
+            <div className="ck-deska-canvas" ref={containerRef} />
+          </div>
+        )}
+
+        <aside className="ck-panel">
+          {aktivniHrac && (
+            <div className="ck-tah">
+              <span>Na tahu je</span>
+              <strong style={{ color: KRALOVSTVI.find((k) => k.id === aktivniHrac.kralovstviId)?.barva }}>
+                {aktivniHrac.jmeno}
+                {aktivniHrac.jeBot && ' (bot)'}
+              </strong>
+            </div>
+          )}
+
+          {aktivniHrac && !aktivniHrac.jeBot && (
+            <>
+              <label className="ck-riziko-toggle">
+                <input
+                  type="checkbox"
+                  checked={riskovat}
+                  disabled={!muzeRiskovat}
+                  onChange={(e) => setRiskovat(e.target.checked)}
+                />
+                Riskovat (−1 🪙, hoď 2 kostkami a vezmi vyšší)
+              </label>
+              <button className="ck-roll-btn" onClick={onHodit}>
+                🎲 Hodit kostkou
+              </button>
+            </>
+          )}
+
+          {stav.posledniHod !== null && (
+            <img
+              className="ck-posledni-kostka"
+              src={`/deskova-hra/kostka-${stav.posledniHod}.png`}
+              alt={`Poslední hod: ${stav.posledniHod}`}
+            />
+          )}
+
+          {stav.posledniUdalost && <p className="ck-udalost">{stav.posledniUdalost}</p>}
+
+          <div className="ck-hraci">
+            {stav.hraci.map((h, i) => {
+              const kralovstvi = KRALOVSTVI.find((k) => k.id === h.kralovstviId)!
+              return (
+                <div className={`ck-hrac-radek ${i === stav.aktivniIndex ? 'je-aktivni' : ''}`} key={h.id}>
+                  <img
+                    className="ck-hrac-token"
+                    src={`/deskova-hra/token-${BARVA_PODLE_KRALOVSTVI[kralovstvi.id]}.png`}
+                    alt=""
+                    aria-hidden="true"
+                  />
+                  <span className="ck-hrac-jmeno">
+                    {h.jmeno}
+                    {h.jeBot && ' 🤖'}
+                  </span>
+                  <span className="ck-hrac-body">
+                    🪙{h.zlato} 💎{h.drahokamy} · {skoreHrace(h)}b.
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </aside>
+      </section>
+    </main>
+  )
+}
 
 export const CtyriKralovstvi = () => {
   const navigate = useNavigate()
@@ -295,150 +470,19 @@ export const CtyriKralovstvi = () => {
   const muzeRiskovat = !!aktivniHrac && !aktivniHrac.jeBot && aktivniHrac.zlato >= CENA_RIZIKA
 
   return (
-    <main className="ck-page">
-      <header className="ck-header">
-        <button className="ck-back" onClick={() => navigate('/hra')}>
-          ← Zpět ke hrám
-        </button>
-        <div>
-          <p className="ck-kicker">SOUBOJ O TRŮN</p>
-          <h1>Čtyři království</h1>
-        </div>
-        <button className="ck-reset" onClick={novaHra}>
-          Nová hra
-        </button>
-      </header>
-
-      <section className="ck-content">
-        <div className="ck-cesta-obal">
-          <p className="ck-cesta-legenda">🏁 Start vlevo nahoře — cesta se kroutí až dolů k 👑 trůnu.</p>
-          <div
-            className="ck-cesta"
-            aria-label="Cesta ke trůnu"
-            style={{ gridTemplateColumns: `repeat(${CK_SLOUPCU}, minmax(0, 1fr))` }}
-          >
-            {Array.from({ length: CK_RADKU }, (_, radek) => (
-              <div key={`trasa-${radek}`} className="ck-trasa-radek" style={{ gridRow: radek + 1 }} aria-hidden="true" />
-            ))}
-            {CK_ZATACKY.map((zatacka, i) => (
-              <div key={`zatacka-${i}`} className="ck-trasa-zatacka" style={zatacka} aria-hidden="true" />
-            ))}
-
-            {TYPY_POLI.map((typ, i) => {
-              const cisloPole = i + 1
-              const hraciNaPoli = stav.hraci.filter((h) => h.pozice === cisloPole)
-              const { gridRow, gridColumn } = pozicePole(i)
-              return (
-                <div className={`ck-pole ck-pole--${typ}`} style={{ gridRow, gridColumn }} key={cisloPole}>
-                  <span className="ck-pole-cislo">{cisloPole}</span>
-                  <span className="ck-pole-ikona" aria-hidden="true">
-                    {ikonaPole(typ)}
-                  </span>
-                  <div className="ck-pole-tokeny">
-                    {hraciNaPoli.map((h) => (
-                      <img
-                        key={h.id}
-                        className="ck-token"
-                        src={`/deskova-hra/token-${BARVA_PODLE_KRALOVSTVI[h.kralovstviId]}.png`}
-                        title={h.jmeno}
-                        alt={h.jmeno}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-            <div className="ck-pole ck-pole--trun" style={{ gridRow: CK_RADKU + 1 }}>
-              <span className="ck-pole-ikona ck-pole-ikona--trun" aria-hidden="true">
-                <img src="/deskova-hra/koruna.png" alt="" />
-              </span>
-              <span className="ck-pole-cislo ck-pole-cislo--trun">Trůn</span>
-              <div className="ck-pole-tokeny">
-                {stav.hraci
-                  .filter((h) => h.pozice === POZICE_TRUNU)
-                  .map((h) => (
-                    <img
-                      key={h.id}
-                      className="ck-token"
-                      src={`/deskova-hra/token-${BARVA_PODLE_KRALOVSTVI[h.kralovstviId]}.png`}
-                      title={h.jmeno}
-                      alt={h.jmeno}
-                    />
-                  ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <aside className="ck-panel">
-          {aktivniHrac && (
-            <div className="ck-tah">
-              <span>Na tahu je</span>
-              <strong style={{ color: KRALOVSTVI.find((k) => k.id === aktivniHrac.kralovstviId)?.barva }}>
-                {aktivniHrac.jmeno}
-                {aktivniHrac.jeBot && ' (bot)'}
-              </strong>
-            </div>
-          )}
-
-          {aktivniHrac && !aktivniHrac.jeBot && (
-            <>
-              <label className="ck-riziko-toggle">
-                <input
-                  type="checkbox"
-                  checked={riskovat}
-                  disabled={!muzeRiskovat}
-                  onChange={(e) => setRiskovat(e.target.checked)}
-                />
-                Riskovat (−1 🪙, hoď 2 kostkami a vezmi vyšší)
-              </label>
-              <button
-                className="ck-roll-btn"
-                onClick={() => {
-                  setStav((s) => (s ? hodKostkou(s, Math.random, riskovat) : s))
-                  setRiskovat(false)
-                }}
-              >
-                🎲 Hodit kostkou
-              </button>
-            </>
-          )}
-
-          {stav.posledniHod !== null && (
-            <img
-              className="ck-posledni-kostka"
-              src={`/deskova-hra/kostka-${stav.posledniHod}.png`}
-              alt={`Poslední hod: ${stav.posledniHod}`}
-            />
-          )}
-
-          {stav.posledniUdalost && <p className="ck-udalost">{stav.posledniUdalost}</p>}
-
-          <div className="ck-hraci">
-            {stav.hraci.map((h, i) => {
-              const kralovstvi = KRALOVSTVI.find((k) => k.id === h.kralovstviId)!
-              return (
-                <div className={`ck-hrac-radek ${i === stav.aktivniIndex ? 'je-aktivni' : ''}`} key={h.id}>
-                  <img
-                    className="ck-hrac-token"
-                    src={`/deskova-hra/token-${BARVA_PODLE_KRALOVSTVI[kralovstvi.id]}.png`}
-                    alt=""
-                    aria-hidden="true"
-                  />
-                  <span className="ck-hrac-jmeno">
-                    {h.jmeno}
-                    {h.jeBot && ' 🤖'}
-                  </span>
-                  <span className="ck-hrac-body">
-                    🪙{h.zlato} 💎{h.drahokamy} · {skoreHrace(h)}b.
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </aside>
-      </section>
-    </main>
+    <HerniDeska
+      stav={stav}
+      aktivniHrac={aktivniHrac}
+      riskovat={riskovat}
+      setRiskovat={setRiskovat}
+      muzeRiskovat={muzeRiskovat}
+      onHodit={() => {
+        setStav((s) => (s ? hodKostkou(s, Math.random, riskovat) : s))
+        setRiskovat(false)
+      }}
+      onNovaHra={novaHra}
+      onZpet={() => navigate('/hra')}
+    />
   )
 }
 

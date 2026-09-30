@@ -12,7 +12,6 @@ import GrowthRoomModule from '@/flagships/growth-room/GrowthRoomModule.tsx'
 import MusicRoomModule from '@/flagships/music-room/MusicRoomModule.tsx'
 import WriterRoomModule from '@/flagships/writer-room/WriterRoomModule.tsx'
 import GamesHubModule from '@/pages/games/GamesHubModule.tsx'
-import CtyriKralovstvi from '@/boardgame/CtyriKralovstvi.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
 import SettingsModule from '@/pages/setting/SettingsModule.tsx'
@@ -22,6 +21,15 @@ import AdminModule from '@/pages/admin/AdminModule.tsx'
 import SupportModule from '@/pages/support/SupportModule.tsx'
 const SocialModule = lazy(() => import('@/social/SocialModule'))
 const SurvivalModule = lazy(() => import('@/survival/SurvivalModule'))
+// Skutečná 3D deska (useCtyriKralovstviScene.ts) tuhle appku poprvé
+// zavedla za three.js — appka ji proto musí načítat líně přesně jako
+// SocialModule/SurvivalModule výš, jinak by celá knihovna three.js
+// (stovky kB) skončila v appčině EAGER hlavním balíčku, co dostane
+// úplně každý uživatel hned při prvním otevření appky, ne jen ten,
+// kdo tuhle hru vůbec otevře — appka na tenhle přesný regres narazila
+// (`index-*.js` naráz vyrostl z ~994 kB na ~1683 kB) hned, jak appka
+// three.js do CtyriKralovstvi.tsx přidala, a opravila ho tímhle.
+const CtyriKralovstvi = lazy(() => import('@/boardgame/CtyriKralovstvi.tsx'))
 import { BootGate } from '@/components/BootGate'
 import { BiometricLock } from '@/components/BiometricLock'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'

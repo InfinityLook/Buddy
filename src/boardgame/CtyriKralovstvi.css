@@ -131,6 +131,28 @@
    pozicePole()/CK_ZATACKY počítají, kam který index patří. */
 .ck-content { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 300px; gap: 1rem; }
 
+/* Skutečná 3D deska (useCtyriKralovstviScene.ts) je appčina výchozí
+   cesta teď — čtvercová obálka přesně jako Buddyho Trh's vlastní
+   .trh-deska-obal/.trh-deska-canvas dvojice hned vedle ve stejné
+   složce, jen appka tady nechává i o kousek víc místa na výšku
+   (max-height), ať se na širokém desktopu deska nenatáhne přes celou
+   šířku sloupce do nesmyslně nízkého pásu. */
+.ck-deska-obal {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  aspect-ratio: 1 / 1;
+  max-height: 640px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  background: #160f2b;
+}
+.ck-deska-canvas { width: 100%; height: 100%; }
+
+/* Záložní 2D deska (`selhalo` — WebGL se na zařízení nepovedlo
+   spustit) — appčina dřívější hadovitá cesta přes CSS Grid zůstává
+   beze změny jako funkční náhrada, ne jako smazaný mezikrok. */
 .ck-cesta-obal { display: flex; flex-direction: column; gap: .6rem; max-width: 560px; margin: 0 auto; width: 100%; }
 .ck-cesta-legenda { margin: 0; text-align: center; font-size: .78rem; color: var(--text-secondary); }
 
