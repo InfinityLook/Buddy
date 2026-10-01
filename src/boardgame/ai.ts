@@ -1,14 +1,16 @@
 import { platneSmery } from './engine'
 import type { DefiniceObchodu } from './obchody'
+import { SABOTAZNI_AKCE } from './data/sabotaze'
 import type { Hrac, Smer, TrhStav } from './types'
 
 // ==========================================
 // Buddyho Trh — jednoduchý bot, stejná "reaktivní, žádná paměť"
 // disciplína jako Souboj's combat/ai.ts: každé rozhodnutí se dělá
 // znovu z aktuálního TrhStav, žádné plánování dopředu. Fáze 0 dala
-// botovi jen výběr směru; Fáze 1 (ekonomika) přidává jediné další
-// rozhodnutí, "koupit, nebo ne" — pořád jedno pravidlo, žádný chytrý
-// nákupní model.
+// botovi jen výběr směru; Fáze 1 (ekonomika) přidala jediné další
+// rozhodnutí, "koupit, nebo ne"; Fáze 4 (sabotáž) přidává třetí —
+// "okrást nejbohatšího soupeře, nebo ne" — pořád jedno ploché
+// pravidlo na rozhodnutí, žádný chytrý model.
 //
 // `nahodne` injektovatelné kvůli testovatelnosti, stejný důvod jako
 // u Souboj's `nahodnaPostava`/`pripravAkciAi` — tenhle bot běží jen
@@ -35,3 +37,24 @@ const BOT_MINIMALNI_REZERVA = 100
  *  jednoduchost jako Souboj's vlastní reaktivní bot. */
 export const melByBotKoupit = (hrac: Hrac, obchod: DefiniceObchodu): boolean =>
   hrac.penize - obchod.cena >= BOT_MINIMALNI_REZERVA
+
+/** Kolik kreditů musí mít soupeř, aby ho bot vůbec stálo za to okrást
+ *  — pojistka proti "sabotuj, i když soupeř nemá skoro nic". */
+const BOT_SABOTAZ_MIN_CIL = 50
+
+/** Rozhodne, jestli a koho má bot sabotovat (Fáze 4) — zatím jen
+ *  akcí "Krádež" (jediná s jasně vyhodnotitelným ziskem plochým
+ *  pravidlem), vždycky na NEJBOHATŠÍHO soupeře (nejjednodušší "útoč
+ *  na vedoucího", žádný výhled dopředu). Vrátí `null`, pokud bot
+ *  sabotáž tenhle tah už použil, nemá na ni (s rezervou) dost peněz,
+ *  nebo žádný soupeř nemá co ukrást. Zpomalení/Odstrčení zůstávají
+ *  ve verzi 1 jen pro lidské hráče — bot je nepoužívá, zdokumentovaná
+ *  škrtnutá hranice rozsahu, ne přehlédnutí. */
+export const melByBotSabotovat = (bot: Hrac, ostatni: Hrac[]): { akceId: string; cilId: string } | null => {
+  if (bot.sabotazPouzita) return null
+  const akce = SABOTAZNI_AKCE.find((a) => a.id === 'krast')
+  if (!akce || bot.penize - akce.cena < BOT_MINIMALNI_REZERVA) return null
+  const nejbohatsi = ostatni.filter((h) => h.id !== bot.id).sort((a, b) => b.penize - a.penize)[0]
+  if (!nejbohatsi || nejbohatsi.penize < BOT_SABOTAZ_MIN_CIL) return null
+  return { akceId: akce.id, cilId: nejbohatsi.id }
+}

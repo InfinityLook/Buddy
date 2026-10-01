@@ -10,6 +10,7 @@ import {
   startovniPozice,
   koupitPole,
   odmitnoutKoupi,
+  provedSabotaz,
   zkontrolujCas,
   vitezovePodleStavu,
   SIRKA_MRIZKY,
@@ -21,6 +22,9 @@ import { KOLO_STESTI_POLE, jeKoloStestiPole } from '@/boardgame/kolostesti'
 import { OBCHODY, klicPole } from '@/boardgame/obchody'
 import { UDALOSTI } from '@/boardgame/data/udalosti'
 import { VYSLEDKY_KOLA, vyberVysledekKola, stredovyUhelVysledku, conicGradientKola } from '@/boardgame/data/kolaStesti'
+import { SABOTAZNI_AKCE } from '@/boardgame/data/sabotaze'
+import { melByBotSabotovat } from '@/boardgame/ai'
+import type { TrhStav } from '@/boardgame/types'
 
 // ==========================================
 // Buddyho Trh — Fáze 0. Stejná "žádný React, žádná síť, jen pravidla
@@ -511,5 +515,239 @@ describe('krokPohybu — vytažení výsledku kola štěstí (Fáze 3)', () => {
 
     stav = ukonciTah(stav)
     expect(stav.aktivniIndex).toBe(1) // teprve teď se tah doopravdy předá Bobovi
+  })
+})
+
+// ==========================================
+// Fáze 4 — sabotáž. Na rozdíl od Osudu/kola štěstí (náhodné, políčkem
+// vyvolané) je sabotáž VOLBA aktivního hráče ve fázi 'konec-tahu' s
+// nulovou nabídkou koupě — testy proto staví TrhStav rovnou do toho
+// přesného tvaru napřímo (ne přes krokHodu/krokPohybu, kde by si
+// musely dávat pozor na to, aby žádná zvolená pozice nekolidovala s
+// obchodem/Osudem/kolem štěstí). Jediné dvě výjimky jsou testy, co
+// chtějí doopravdy ověřit integraci se skutečným pohybem/tahem (viz
+// jejich vlastní komentáře níž).
+// ==========================================
+
+/** Staví zadané hráče rovnou do fáze 'konec-tahu' s nulovou nabídkou
+ *  koupě — přesný předpoklad, jaký `provedSabotaz` vyžaduje, bez
+ *  nutnosti realisticky kostkou/pohybem po mřížce tam doopravdy
+ *  dojít. */
+const doKonceTahu = (hraci: ReturnType<typeof vytvorHrace>[]): TrhStav => ({
+  ...vytvorTrhStav(hraci),
+  faze: 'konec-tahu',
+})
+
+describe('SABOTAZNI_AKCE — pevný katalog (Fáze 4)', () => {
+  it('má přesně tři akce s unikátními id, kladnou cenou a všemi třemi typy efektu', () => {
+    expect(SABOTAZNI_AKCE).toHaveLength(3)
+    expect(new Set(SABOTAZNI_AKCE.map((a) => a.id)).size).toBe(3)
+    for (const a of SABOTAZNI_AKCE) expect(a.cena).toBeGreaterThan(0)
+    expect(SABOTAZNI_AKCE.some((a) => a.efekt.typ === 'krast')).toBe(true)
+    expect(SABOTAZNI_AKCE.some((a) => a.efekt.typ === 'zpomaleni')).toBe(true)
+    expect(SABOTAZNI_AKCE.some((a) => a.efekt.typ === 'odstrceni')).toBe(true)
+  })
+})
+
+describe('provedSabotaz — strážní podmínky (Fáze 4)', () => {
+  it('mimo fázi konec-tahu je no-op', () => {
+    const stav = noveDva() // fáze 'hod'
+    expect(provedSabotaz(stav, 'krast', 'b')).toBe(stav)
+  })
+
+  it('s nevyřízenou nabídkou koupě je no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 1 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = vytvorTrhStav([h1, h2])
+    stav = krokPohybu(krokHodu(stav, () => 0), 'vpravo') // doběhne na (1,1) = Pekárna
+    expect(stav.nabidkaKoupe).toBe('1,1')
+    expect(provedSabotaz(stav, 'krast', 'b')).toBe(stav)
+  })
+
+  it('cílit na sebe je no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = doKonceTahu([h1, h2])
+    expect(provedSabotaz(stav, 'krast', 'a')).toBe(stav)
+  })
+
+  it('už jednou použitá sabotáž tenhle tah je no-op', () => {
+    const h1 = { ...vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 }), sabotazPouzita: true }
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = doKonceTahu([h1, h2])
+    expect(provedSabotaz(stav, 'krast', 'b')).toBe(stav)
+  })
+
+  it('bez dostatku peněz na cenu akce je no-op', () => {
+    const h1 = { ...vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 }), penize: 10 }
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = doKonceTahu([h1, h2])
+    expect(provedSabotaz(stav, 'krast', 'b')).toBe(stav)
+  })
+
+  it('neexistující cíl je no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = doKonceTahu([h1, h2])
+    expect(provedSabotaz(stav, 'krast', 'neexistuje')).toBe(stav)
+  })
+
+  it('neexistující akce je no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = doKonceTahu([h1, h2])
+    expect(provedSabotaz(stav, 'neexistuje', 'b')).toBe(stav)
+  })
+})
+
+describe('provedSabotaz — Krádež (Fáze 4)', () => {
+  it('útočník zaplatí cenu, cíl ztratí castku, útočník ji dostane', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = doKonceTahu([h1, h2])
+    stav = provedSabotaz(stav, 'krast', 'b')
+
+    const anna = stav.hraci.find((h) => h.id === 'a')!
+    const bob = stav.hraci.find((h) => h.id === 'b')!
+    expect(anna.penize).toBe(POCATECNI_PENIZE - 50 + 150) // -cena +castka
+    expect(bob.penize).toBe(POCATECNI_PENIZE - 150)
+    expect(anna.sabotazPouzita).toBe(true)
+    expect(stav.posledniUdalost).toContain('🥷')
+    expect(stav.posledniUdalost).toContain('150 kreditů')
+  })
+
+  it('ukradená částka se ořízne o to, kolik cíl doopravdy má', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = { ...vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 }), penize: 40 }
+    let stav = doKonceTahu([h1, h2])
+    stav = provedSabotaz(stav, 'krast', 'b')
+
+    const anna = stav.hraci.find((h) => h.id === 'a')!
+    const bob = stav.hraci.find((h) => h.id === 'b')!
+    expect(bob.penize).toBe(0)
+    expect(anna.penize).toBe(POCATECNI_PENIZE - 50 + 40) // dostal jen 40, ne nominálních 150
+  })
+})
+
+describe('provedSabotaz — Zpomalení (Fáze 4)', () => {
+  it('cena jde do banky, cíl dostane preskociTah, útočník nic nezíská', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = doKonceTahu([h1, h2])
+    stav = provedSabotaz(stav, 'zpomaleni', 'b')
+
+    const anna = stav.hraci.find((h) => h.id === 'a')!
+    const bob = stav.hraci.find((h) => h.id === 'b')!
+    expect(anna.penize).toBe(POCATECNI_PENIZE - 80)
+    expect(bob.penize).toBe(POCATECNI_PENIZE) // nic neztratil, jen přeskočí tah
+    expect(bob.preskociTah).toBe(true)
+    expect(stav.posledniUdalost).toContain('🐌')
+  })
+
+  it('integrace: krokHodu doopravdy přeskočí příští tah zasaženého hráče', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = doKonceTahu([h1, h2])
+    stav = provedSabotaz(stav, 'zpomaleni', 'b')
+    stav = ukonciTah(stav) // na tahu Bob
+
+    expect(aktivniHrac(stav)!.id).toBe('b')
+    stav = krokHodu(stav)
+    expect(stav.posledniUdalost).toContain('vynechává tah')
+    expect(stav.aktivniIndex).toBe(0) // tah se rovnou vrátil Anně
+    expect(stav.hraci.find((h) => h.id === 'b')!.preskociTah).toBe(false)
+  })
+})
+
+describe('provedSabotaz — Odstrčení (Fáze 4)', () => {
+  it('cíl se posune o 3 pole zadaným směrem (dolu)', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 3, z: 0 })
+    let stav = doKonceTahu([h1, h2])
+    stav = provedSabotaz(stav, 'odstrceni', 'b')
+
+    expect(stav.hraci.find((h) => h.id === 'b')!.pozice).toEqual({ x: 3, z: 3 })
+    expect(stav.hraci.find((h) => h.id === 'a')!.penize).toBe(POCATECNI_PENIZE - 60)
+  })
+
+  it('respektuje hranici mřížky, nepřeteče', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 3, z: 5 })
+    let stav = doKonceTahu([h1, h2])
+    stav = provedSabotaz(stav, 'odstrceni', 'b')
+
+    // (3,5) -> (3,6) jde, (3,6) -> (3,7) je mimo mřížku (VYSKA_MRIZKY=7)
+    expect(stav.hraci.find((h) => h.id === 'b')!.pozice).toEqual({ x: 3, z: 6 })
+  })
+})
+
+describe('sabotazPouzita — jednou za tah a reset na dalšího hráče (Fáze 4)', () => {
+  it('druhé použití ve stejném tahu je no-op (sabotazPouzita už true)', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = doKonceTahu([h1, h2])
+    stav = provedSabotaz(stav, 'zpomaleni', 'b')
+    const po = stav
+    stav = provedSabotaz(stav, 'odstrceni', 'b')
+    expect(stav).toBe(po)
+  })
+
+  it('ukonciTah resetuje sabotazPouzita novému aktivnímu hráči', () => {
+    const h1 = { ...vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 }), sabotazPouzita: true }
+    const h2 = { ...vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 }), sabotazPouzita: true }
+    let stav = doKonceTahu([h1, h2])
+    stav = ukonciTah(stav)
+    expect(aktivniHrac(stav)!.id).toBe('b')
+    expect(aktivniHrac(stav)!.sabotazPouzita).toBe(false)
+  })
+
+  it('bonusový hod kola štěstí NEresetuje sabotazPouzita (stejný tah, ne nový)', () => {
+    const h1 = { ...vytvorHrace('a', 'Anna', 'gros', false, { x: 2, z: 3 }), sabotazPouzita: true }
+    let stav = vytvorTrhStav([h1])
+    stav = krokHodu(stav, () => 0)
+    stav = krokPohybu(stav, 'vpravo', () => 0.4) // (2,3) -> (3,3) kolo štěstí, index 3: bonusovy-hod
+    expect(aktivniHrac(stav)!.maBonusovyHod).toBe(true)
+    stav = ukonciTah(stav)
+    expect(stav.aktivniIndex).toBe(0) // zůstává na Anně
+    expect(aktivniHrac(stav)!.sabotazPouzita).toBe(true) // pořád true, nebyl to nový tah
+  })
+
+  it('krokHodu — "přeskoč celý tah" větev taky resetuje sabotazPouzita novému aktivnímu hráči', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = { ...vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 0 }), preskociTah: true }
+    const h3 = { ...vytvorHrace('c', 'Cecil', 'vozka', false, { x: 0, z: 6 }), sabotazPouzita: true }
+    let stav = vytvorTrhStav([h1, h2, h3])
+    stav = { ...stav, aktivniIndex: 1 } // na tahu Bob, co má preskociTah
+    stav = krokHodu(stav)
+    expect(stav.aktivniIndex).toBe(2) // Bobův tah se přeskočil, teď na tahu Cecil
+    expect(stav.hraci.find((h) => h.id === 'c')!.sabotazPouzita).toBe(false)
+  })
+})
+
+describe('melByBotSabotovat (Fáze 4)', () => {
+  it('vybere nejbohatšího soupeře, pokud má bot po zaplacení dost rezervy', () => {
+    const bot = vytvorHrace('bot', 'Bot', 'gros', true, { x: 0, z: 0 })
+    const chudsi = { ...vytvorHrace('b', 'Bob', 'cihla', false, { x: 1, z: 0 }), penize: 300 }
+    const bohatsi = { ...vytvorHrace('c', 'Cecil', 'vozka', false, { x: 2, z: 0 }), penize: 900 }
+    const vysledek = melByBotSabotovat(bot, [bot, chudsi, bohatsi])
+    expect(vysledek).toEqual({ akceId: 'krast', cilId: 'c' })
+  })
+
+  it('vrátí null, pokud bot sabotáž tenhle tah už použil', () => {
+    const bot = { ...vytvorHrace('bot', 'Bot', 'gros', true, { x: 0, z: 0 }), sabotazPouzita: true }
+    const soupeř = { ...vytvorHrace('b', 'Bob', 'cihla', false, { x: 1, z: 0 }), penize: 900 }
+    expect(melByBotSabotovat(bot, [bot, soupeř])).toBeNull()
+  })
+
+  it('vrátí null, pokud by po zaplacení ceny klesl pod rezervu', () => {
+    const bot = { ...vytvorHrace('bot', 'Bot', 'gros', true, { x: 0, z: 0 }), penize: 100 }
+    const soupeř = { ...vytvorHrace('b', 'Bob', 'cihla', false, { x: 1, z: 0 }), penize: 900 }
+    expect(melByBotSabotovat(bot, [bot, soupeř])).toBeNull()
+  })
+
+  it('vrátí null, pokud žádný soupeř nemá co ukrást', () => {
+    const bot = vytvorHrace('bot', 'Bot', 'gros', true, { x: 0, z: 0 })
+    const chudak = { ...vytvorHrace('b', 'Bob', 'cihla', false, { x: 1, z: 0 }), penize: 10 }
+    expect(melByBotSabotovat(bot, [bot, chudak])).toBeNull()
   })
 })

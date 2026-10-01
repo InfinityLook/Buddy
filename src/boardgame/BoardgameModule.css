@@ -487,3 +487,95 @@
   transition-property: transform;
   transition-timing-function: cubic-bezier(0.17, 0.89, 0.32, 1);
 }
+
+/* ---------- Sabotáž (Fáze 4) ----------
+   Stejný "glass karta" jazyk jako .trh-nabidka/.trh-volba — žádný
+   nový vizuální styl, jen další sheet ve stejné rodině. */
+
+.trh-sabotaz-panel {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.trh-sabotaz-otevrit-btn {
+  background: linear-gradient(90deg, #8b3a62, #c2694b);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1.1rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.trh-sabotaz-otevrit-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.trh-sabotaz-sheet {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.trh-sabotaz-nadpis {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.trh-sabotaz-akce {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: left;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.75rem;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.trh-sabotaz-akce:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.trh-sabotaz-akce-ikona {
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.trh-sabotaz-akce-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.trh-sabotaz-akce-text strong {
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.trh-sabotaz-cil {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.55rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  cursor: pointer;
+}

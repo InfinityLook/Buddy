@@ -5,6 +5,7 @@ import { jeOsudovePole } from './osud'
 import { jeKoloStestiPole } from './kolostesti'
 import { UDALOSTI, type EfektUdalosti } from './data/udalosti'
 import { vyberVysledekKola, type EfektKola } from './data/kolaStesti'
+import { SABOTAZNI_AKCE } from './data/sabotaze'
 
 // ==========================================
 // Buddyho Trh — čistý herní engine, stejná disciplína jako
@@ -38,6 +39,7 @@ export const vytvorHrace = (
   jeBot,
   preskociTah: false,
   maBonusovyHod: false,
+  sabotazPouzita: false,
 })
 
 /** Rozmístí hráče na okraj mřížky, ať nezačínají na sobě navzájem —
@@ -92,6 +94,20 @@ const posunPole = (p: Pole2D, smer: Smer): Pole2D => {
 const vHranicich = (p: Pole2D, stav: TrhStav): boolean =>
   p.x >= 0 && p.x < stav.sirkaMrizky && p.z >= 0 && p.z < stav.vyskaMrizky
 
+/** Posune pozici o `kroku` polí daným směrem, zastaví se dřív, pokud
+ *  by přešla mřížku — sdílené mezi Osudovou kartou "posun" a sabotáží
+ *  "odstrčení" (Fáze 4): obě chtějí identické chování, žádné
+ *  přetečení přes okraj, ne teleport na druhou stranu. */
+const posunOPoleHranicemi = (pozice: Pole2D, smer: Smer, kroku: number, stav: TrhStav): Pole2D => {
+  let vysledek = pozice
+  for (let i = 0; i < kroku; i++) {
+    const dalsi = posunPole(vysledek, smer)
+    if (!vHranicich(dalsi, stav)) break
+    vysledek = dalsi
+  }
+  return vysledek
+}
+
 /** Které směry z aktuální pozice hráče doopravdy vedou na mřížku —
  *  sdílené s ai.ts, ať bot nikdy nezkusí krok mimo hranici. */
 export const platneSmery = (pozice: Pole2D, stav: TrhStav): Smer[] =>
@@ -108,8 +124,19 @@ export const krokHodu = (stav: TrhStav, nahodne: () => number = Math.random): Tr
   if (stav.faze !== 'hod' || stav.konec) return stav
   const hrac = aktivniHrac(stav)
   if (hrac?.preskociTah) {
-    const noviHraci = stav.hraci.map((h) => (h.id === hrac.id ? { ...h, preskociTah: false } : h))
+    // Tahle větev taky přesouvá aktivniIndex na jiného hráče, stejně
+    // jako ukonciTah výš — musí proto stejně resetovat sabotazPouzita
+    // (Fáze 4) novému aktivnímu hráči, jinak by ho mohl zdědit ještě
+    // od jeho VLASTNÍHO posledního tahu (ukonciTah to při normálním
+    // předání vyřeší, ale tahle "přeskoč celý tah" větev jde kolem
+    // ukonciTah úplně).
     const dalsiIndex = (stav.aktivniIndex + 1) % stav.poradiHracu.length
+    const dalsiId = stav.poradiHracu[dalsiIndex]
+    const noviHraci = stav.hraci.map((h) => {
+      if (h.id === hrac.id) return { ...h, preskociTah: false }
+      if (h.id === dalsiId) return { ...h, sabotazPouzita: false }
+      return h
+    })
     return {
       ...stav,
       hraci: noviHraci,
@@ -135,12 +162,7 @@ const aplikujEfektKarty = (hraci: Hrac[], hracId: string, efekt: EfektUdalosti, 
     case 'penize':
       return hraci.map((h) => (h.id === hracId ? { ...h, penize: Math.max(0, h.penize + efekt.castka) } : h))
     case 'posun': {
-      let pozice = hraci.find((h) => h.id === hracId)!.pozice
-      for (let i = 0; i < efekt.kroku; i++) {
-        const dalsi = posunPole(pozice, efekt.smer)
-        if (!vHranicich(dalsi, stav)) break
-        pozice = dalsi
-      }
+      const pozice = posunOPoleHranicemi(hraci.find((h) => h.id === hracId)!.pozice, efekt.smer, efekt.kroku, stav)
       return hraci.map((h) => (h.id === hracId ? { ...h, pozice } : h))
     }
     case 'preskoc-tah':
@@ -209,7 +231,7 @@ export const krokPohybu = (stav: TrhStav, smer: Smer, nahodne: () => number = Ma
           return h
         })
         const vlastnik = stav.hraci.find((h) => h.id === vlastnikId)
-        posledniUdalost = `${hrac.jmeno} zaplatil ${castka} Kč hráči ${vlastnik?.jmeno ?? '?'} za ${obchod.nazev}.`
+        posledniUdalost = `${hrac.jmeno} zaplatil ${castka} kreditů hráči ${vlastnik?.jmeno ?? '?'} za ${obchod.nazev}.`
       }
     } else if (jeOsudovePole(novaPozice)) {
       const karta = UDALOSTI[Math.min(Math.floor(nahodne() * UDALOSTI.length), UDALOSTI.length - 1)]
@@ -252,7 +274,7 @@ export const koupitPole = (stav: TrhStav): TrhStav => {
     hraci: stav.hraci.map((h) => (h.id === hrac.id ? { ...h, penize: h.penize - obchod.cena } : h)),
     vlastnictvi: { ...stav.vlastnictvi, [obchod.klic]: hrac.id },
     nabidkaKoupe: null,
-    posledniUdalost: `${hrac.jmeno} koupil ${obchod.nazev} za ${obchod.cena} Kč.`,
+    posledniUdalost: `${hrac.jmeno} koupil ${obchod.nazev} za ${obchod.cena} kreditů.`,
   }
 }
 
@@ -261,6 +283,62 @@ export const koupitPole = (stav: TrhStav): TrhStav => {
 export const odmitnoutKoupi = (stav: TrhStav): TrhStav => {
   if (!stav.nabidkaKoupe) return stav
   return { ...stav, nabidkaKoupe: null }
+}
+
+/** Provede sabotážní akci aktivního hráče proti vybranému soupeři
+ *  (Fáze 4) — na rozdíl od Osudu/kola štěstí (appka je vybírá sama
+ *  náhodou, když na ně hráč políčkem narazí) je sabotáž VOLBA
+ *  aktivního hráče, dostupná jen ve fázi 'konec-tahu' (po doběhnutí
+ *  pohybu, po vyřešení políčka, na kterém skončil) a nejvýš jednou za
+ *  tah — `Hrac.sabotazPouzita` se resetuje vždycky, když se
+ *  `aktivniIndex` doopravdy přesune na někoho jiného (viz
+ *  `ukonciTah`/`krokHodu`'s "přeskoč tah" větev níž), nikdy uvnitř
+ *  bonusového hodu kola štěstí (ten nepočítá jako nový tah — pořád
+ *  stejný hráč, pořád stejná už-vyčerpaná sabotáž).
+ *
+ *  Stejná "nedůvěřuj volajícímu" disciplína jako `koupitPole` — UI
+ *  tlačítko appka sama zablokuje, ale engine si každou podmínku
+ *  ověřuje znovu nezávisle. */
+export const provedSabotaz = (stav: TrhStav, akceId: string, cilId: string): TrhStav => {
+  if (stav.faze !== 'konec-tahu' || stav.konec || stav.nabidkaKoupe) return stav
+  const utocnik = aktivniHrac(stav)
+  if (!utocnik || utocnik.sabotazPouzita || cilId === utocnik.id) return stav
+
+  const akce = SABOTAZNI_AKCE.find((a) => a.id === akceId)
+  if (!akce || utocnik.penize < akce.cena) return stav
+
+  const cil = stav.hraci.find((h) => h.id === cilId)
+  if (!cil) return stav
+
+  let noviHraci = stav.hraci.map((h) =>
+    h.id === utocnik.id ? { ...h, penize: h.penize - akce.cena, sabotazPouzita: true } : h
+  )
+  let posledniUdalost: string
+
+  switch (akce.efekt.typ) {
+    case 'krast': {
+      const castka = Math.min(akce.efekt.castka, cil.penize)
+      noviHraci = noviHraci.map((h) => {
+        if (h.id === utocnik.id) return { ...h, penize: h.penize + castka }
+        if (h.id === cil.id) return { ...h, penize: h.penize - castka }
+        return h
+      })
+      posledniUdalost = `🥷 ${utocnik.jmeno} ukradl(a) ${cil.jmeno} ${castka} kreditů.`
+      break
+    }
+    case 'zpomaleni':
+      noviHraci = noviHraci.map((h) => (h.id === cil.id ? { ...h, preskociTah: true } : h))
+      posledniUdalost = `🐌 ${utocnik.jmeno} zpomalil(a) ${cil.jmeno} — vynechá příští tah.`
+      break
+    case 'odstrceni': {
+      const pozice = posunOPoleHranicemi(cil.pozice, akce.efekt.smer, akce.efekt.kroku, stav)
+      noviHraci = noviHraci.map((h) => (h.id === cil.id ? { ...h, pozice } : h))
+      posledniUdalost = `👊 ${utocnik.jmeno} odstrčil(a) ${cil.jmeno} o ${akce.efekt.kroku} pole zpět.`
+      break
+    }
+  }
+
+  return { ...stav, hraci: noviHraci, posledniUdalost }
 }
 
 /** Ukončí tah dřív, i když ještě zbývají kroky — hráč nemusí kroky
@@ -273,7 +351,14 @@ export const odmitnoutKoupi = (stav: TrhStav): TrhStav => {
  *  fáze 'hod' BEZ posunu `aktivniIndex`: hráč tak dostane druhý hod ve
  *  stejném tahu, místo aby tah doopravdy skončil a předal se dalšímu
  *  na řadě. Symetrické k `preskociTah` v krokHodu výš, jen opačným
- *  směrem — tamta vlajka ubírá příští tah, tahle přidává tenhle. */
+ *  směrem — tamta vlajka ubírá příští tah, tahle přidává tenhle. Ani
+ *  tahle větev proto nereskuje `sabotazPouzita` (Fáze 4) — bonusový
+ *  hod pořád počítá jako stejný tah, ne nový, takže hráč, co sabotáž
+ *  už použil, ji nedostane podruhé zadarmo jen díky bonusovému hodu.
+ *
+ *  Teprve VĚTEV, co `aktivniIndex` doopravdy přesune na dalšího
+ *  hráče, resetuje JEHO `sabotazPouzita` na `false` — ten hráč tak
+ *  vždycky dostane čistou, nepoužitou sabotáž, až na něj přijde řada. */
 export const ukonciTah = (stav: TrhStav): TrhStav => {
   if (stav.faze === 'hod' || stav.konec || stav.nabidkaKoupe) return stav
   const hrac = aktivniHrac(stav)
@@ -287,8 +372,10 @@ export const ukonciTah = (stav: TrhStav): TrhStav => {
     }
   }
   const dalsiIndex = (stav.aktivniIndex + 1) % stav.poradiHracu.length
+  const dalsiId = stav.poradiHracu[dalsiIndex]
   return {
     ...stav,
+    hraci: stav.hraci.map((h) => (h.id === dalsiId ? { ...h, sabotazPouzita: false } : h)),
     aktivniIndex: dalsiIndex,
     faze: 'hod',
     zbyvaKroku: 0,

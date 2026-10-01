@@ -1,11 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { melByBotKoupit, pripravSmerBota } from '../ai'
+import { melByBotKoupit, melByBotSabotovat, pripravSmerBota } from '../ai'
 import {
   aktivniHrac,
   koupitPole,
   krokHodu,
   krokPohybu,
   odmitnoutKoupi,
+  provedSabotaz,
   ukonciTah,
   vitezovePodleStavu,
   vytvorTrhStav,
@@ -13,6 +14,7 @@ import {
   zkontrolujCas,
 } from '../engine'
 import { conicGradientKola, stredovyUhelVysledku } from '../data/kolaStesti'
+import { SABOTAZNI_AKCE, type SabotazniAkce } from '../data/sabotaze'
 import { OBCHODY_PODLE_KLICE } from '../obchody'
 import { POSTAVY } from '../postavy'
 import { useTrhScene } from '../scene/useTrhScene'
@@ -20,17 +22,25 @@ import type { Hrac, LimitMinut, Smer } from '../types'
 
 // ==========================================
 // Buddyho Trh — herní obrazovka: 3D deska + kostka + pohyb + Fáze 1
-// ekonomika (nabídka koupě, nájmy, časový limit). Boti hrají a
-// rozhodují automaticky přes efekt sledující `stav` — stejný "efekt
-// reaguje na změnu stavu, nastaví jeden timeout, sám se uklidí" vzor
-// jako typing indikátor/notifikace jinde v appce, ne samostatná herní
-// smyčka.
+// ekonomika (nabídka koupě, nájmy, časový limit), Fáze 2 Osud, Fáze 3
+// kolo štěstí a Fáze 4 sabotáž. Boti hrají a rozhodují automaticky
+// přes efekt sledující `stav` — stejný "efekt reaguje na změnu stavu,
+// nastaví jeden timeout, sám se uklidí" vzor jako typing
+// indikátor/notifikace jinde v appce, ne samostatná herní smyčka.
 // ==========================================
 
 const ZPOZDENI_HODU_MS = 650
 const ZPOZDENI_KROKU_MS = 420
 const ZPOZDENI_KONCE_TAHU_MS = 500
 const ZPOZDENI_ROZHODNUTI_MS = 700
+// Sabotáž (Fáze 4) — záměrně KRATŠÍ než ZPOZDENI_KONCE_TAHU_MS výš.
+// Na rozdíl od nabídky koupě (appka při čekající nabídce vůbec
+// nenaplánuje auto-konec tahu, viz ten useEffect níž) sabotáž žádnou
+// takovou pojistku nemá — konec-tahu bez nabídky koupě VŽDYCKY
+// odpočítává k automatickému ukonciTah, i když bot zrovna zvažuje
+// sabotáž. Kratší zpoždění je to, co botovi sabotáž vůbec dává šanci
+// proběhnout dřív, než appka tah sama ukončí.
+const ZPOZDENI_SABOTAZE_MS = 300
 
 // Kolo štěstí (Fáze 3) — čistě kosmetická animace dotočení, viz jeho
 // vlastní komentář u stavu níž. Appka respektuje prefers-reduced-motion
@@ -96,6 +106,20 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
     return () => window.clearTimeout(cas)
   }, [stav.kolostestiPocet, stav.posledniVysledekKolaId])
 
+  // Sabotáž (Fáze 4) — čistě lokální UI stav pro dvoukrokový sheet
+  // (vyber akci → vyber cíl), engine sám o "otevřeném sheetu" nic
+  // neví, jen o výsledku `provedSabotaz`. Appka sheet zavře pokaždé,
+  // když se `aktivniIndex` doopravdy přesune na jiného hráče (kryje
+  // jak normální předání tahu, tak "přeskoč celý tah" větev) — NE při
+  // bonusovém hodu kola štěstí (stejný index, pořád stejný tah), takže
+  // nehrozí zavření sheetu, dokud by ho hráč pořád mohl chtít použít.
+  const [sabotazOtevrena, setSabotazOtevrena] = useState(false)
+  const [vybranaAkce, setVybranaAkce] = useState<SabotazniAkce | null>(null)
+  useEffect(() => {
+    setSabotazOtevrena(false)
+    setVybranaAkce(null)
+  }, [stav.aktivniIndex])
+
   // Čistě zobrazovací tik jednou za sekundu — appka tak umí ukázat
   // odpočet i beze změny `stav` samotného (`zkontrolujCas` je no-op,
   // dokud čas doopravdy nevyprší, takže by React jinak nepřekreslil).
@@ -109,28 +133,37 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
   }, [])
 
   // Automatický konec tahu, jakmile dojdou kroky — ale ne dokud čeká
-  // nerozhodnutá nabídka koupě (tu musí nejdřív někdo vyřešit) ani
-  // dokud běží animace kola štěstí (Fáze 3) — appka by jinak tah
-  // ukončila (a u bonusového hodu rovnou otočila na druhý hod) dřív,
-  // než hráč vůbec uvidí, co se stalo.
+  // nerozhodnutá nabídka koupě (tu musí nejdřív někdo vyřešit), dokud
+  // běží animace kola štěstí (Fáze 3), ani dokud má hráč otevřený
+  // sabotážní sheet (Fáze 4) — appka by jinak tah ukončila (a u
+  // bonusového hodu rovnou otočila na druhý hod) dřív, než hráč vůbec
+  // stihne sabotáž vybrat a potvrdit.
   useEffect(() => {
-    if (stav.faze !== 'konec-tahu' || stav.nabidkaKoupe || stav.konec || kolostestiAktivni) return
+    if (stav.faze !== 'konec-tahu' || stav.nabidkaKoupe || stav.konec || kolostestiAktivni || sabotazOtevrena) return
     const cas = window.setTimeout(() => setStav((s) => ukonciTah(s)), ZPOZDENI_KONCE_TAHU_MS)
     return () => window.clearTimeout(cas)
-  }, [stav.faze, stav.nabidkaKoupe, stav.konec, kolostestiAktivni])
+  }, [stav.faze, stav.nabidkaKoupe, stav.konec, kolostestiAktivni, sabotazOtevrena])
 
   // Bot hraje sám — hodí kostkou, pak krok po kroku dojde, kam může,
-  // a jakmile na cestě narazí na nabídku koupě, sám ji vyřídí. Stejná
-  // kolostestiAktivni pojistka jako výš, ať appka bota nenechá "myslet"
-  // dál, zatímco ještě běží animace jeho vlastního kola štěstí.
+  // jakmile na cestě narazí na nabídku koupě, sám ji vyřídí, a jakmile
+  // doběhne do konce tahu bez nabídky koupě, zvažuje i sabotáž (Fáze
+  // 4). Stejná kolostestiAktivni pojistka jako výš, ať appka bota
+  // nenechá "myslet" dál, zatímco ještě běží animace jeho vlastního
+  // kola štěstí. Jakmile bot sabotáž tenhle tah použil (nebo nemá co
+  // dál rozhodovat), appka žádný další timeout nenaplánuje — zbytek
+  // obstará samostatný "automatický konec tahu" efekt výš.
   useEffect(() => {
     if (stav.konec || kolostestiAktivni) return
     const hrac = aktivniHrac(stav)
     if (!hrac?.jeBot) return
-    if (stav.faze === 'konec-tahu' && !stav.nabidkaKoupe) return
+    if (stav.faze === 'konec-tahu' && !stav.nabidkaKoupe && hrac.sabotazPouzita) return
 
-    const zpozdeni =
-      stav.faze === 'hod' ? ZPOZDENI_HODU_MS : stav.faze === 'pohyb' ? ZPOZDENI_KROKU_MS : ZPOZDENI_ROZHODNUTI_MS
+    let zpozdeni: number
+    if (stav.faze === 'hod') zpozdeni = ZPOZDENI_HODU_MS
+    else if (stav.faze === 'pohyb') zpozdeni = ZPOZDENI_KROKU_MS
+    else if (stav.faze === 'konec-tahu' && stav.nabidkaKoupe) zpozdeni = ZPOZDENI_ROZHODNUTI_MS
+    else zpozdeni = ZPOZDENI_SABOTAZE_MS
+
     const cas = window.setTimeout(() => {
       setStav((s) => {
         const aktualni = aktivniHrac(s)
@@ -142,6 +175,10 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
           if (!obchod) return odmitnoutKoupi(s)
           return melByBotKoupit(aktualni, obchod) ? koupitPole(s) : odmitnoutKoupi(s)
         }
+        if (s.faze === 'konec-tahu' && !s.nabidkaKoupe) {
+          const sabotaz = melByBotSabotovat(aktualni, s.hraci)
+          if (sabotaz) return provedSabotaz(s, sabotaz.akceId, sabotaz.cilId)
+        }
         return s
       })
     }, zpozdeni)
@@ -152,6 +189,26 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
   const jeNaTahuBot = hrac?.jeBot ?? false
   const nabidka = stav.nabidkaKoupe ? OBCHODY_PODLE_KLICE[stav.nabidkaKoupe] : null
   const vysledek = stav.konec ? vitezovePodleStavu(stav) : null
+
+  // Vybere akci — na dvouhráčovou hru appka rovnou aplikuje (jediný
+  // soupeř je jednoznačný cíl), jinak teprve otevře výběr cíle.
+  const vyberAkciSabotaze = (akce: SabotazniAkce) => {
+    if (!hrac) return
+    const ostatni = stav.hraci.filter((h) => h.id !== hrac.id)
+    if (ostatni.length === 1) {
+      setStav((s) => provedSabotaz(s, akce.id, ostatni[0].id))
+      setSabotazOtevrena(false)
+    } else {
+      setVybranaAkce(akce)
+    }
+  }
+
+  const pouzitSabotazNaCil = (cilId: string) => {
+    if (!vybranaAkce) return
+    setStav((s) => provedSabotaz(s, vybranaAkce.id, cilId))
+    setVybranaAkce(null)
+    setSabotazOtevrena(false)
+  }
 
   return (
     <div className="trh-page trh-page--hra">
@@ -194,7 +251,7 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
         {stav.hraci.map((h) => (
           <span key={h.id} className={`trh-poradi-hrac ${h.id === hrac?.id ? 'je-na-tahu' : ''}`}>
             <span style={{ color: POSTAVY[h.postavaId].barva }}>{POSTAVY[h.postavaId].emoji}</span> {h.jmeno} ·{' '}
-            {h.penize} Kč
+            {h.penize} kreditů
           </span>
         ))}
       </div>
@@ -213,7 +270,7 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
                 <li key={h.id} className={`trh-vysledek-radek ${vysledek.some((v) => v.id === h.id) ? 'je-vitez' : ''}`}>
                   <span style={{ color: POSTAVY[h.postavaId].barva }}>{POSTAVY[h.postavaId].emoji}</span>
                   <span className="trh-vysledek-jmeno">{h.jmeno}</span>
-                  <span className="trh-vysledek-penize">{h.penize} Kč</span>
+                  <span className="trh-vysledek-penize">{h.penize} kreditů</span>
                 </li>
               ))}
           </ul>
@@ -282,7 +339,7 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
           {stav.faze === 'konec-tahu' && nabidka && !jeNaTahuBot && (
             <div className="trh-nabidka">
               <p className="trh-nabidka-text">
-                Volné pole: <strong>{nabidka.nazev}</strong> — {nabidka.cena} Kč (nájem {nabidka.najem} Kč)
+                Volné pole: <strong>{nabidka.nazev}</strong> — {nabidka.cena} kreditů (nájem {nabidka.najem} kreditů)
               </p>
               <div className="trh-nabidka-btns">
                 <button
@@ -290,7 +347,7 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
                   disabled={!hrac || hrac.penize < nabidka.cena}
                   onClick={() => setStav((s) => koupitPole(s))}
                 >
-                  Koupit za {nabidka.cena} Kč
+                  Koupit za {nabidka.cena} kreditů
                 </button>
                 <button className="trh-ukoncit-tah-btn" onClick={() => setStav((s) => odmitnoutKoupi(s))}>
                   Nekoupit
@@ -301,6 +358,60 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
 
           {stav.faze === 'konec-tahu' && nabidka && jeNaTahuBot && (
             <p className="trh-zbyva">Bot přemýšlí o koupi {nabidka.nazev}…</p>
+          )}
+
+          {stav.faze === 'konec-tahu' && !nabidka && !jeNaTahuBot && (
+            <div className="trh-sabotaz-panel">
+              {!sabotazOtevrena ? (
+                <button
+                  className="trh-sabotaz-otevrit-btn"
+                  disabled={!hrac || hrac.sabotazPouzita}
+                  onClick={() => setSabotazOtevrena(true)}
+                >
+                  ⚔️ Sabotovat soupeře
+                </button>
+              ) : !vybranaAkce ? (
+                <div className="trh-sabotaz-sheet">
+                  <p className="trh-sabotaz-nadpis">Vyber sabotáž:</p>
+                  {SABOTAZNI_AKCE.map((akce) => (
+                    <button
+                      key={akce.id}
+                      className="trh-sabotaz-akce"
+                      disabled={!hrac || hrac.penize < akce.cena}
+                      onClick={() => vyberAkciSabotaze(akce)}
+                    >
+                      <span className="trh-sabotaz-akce-ikona" aria-hidden="true">
+                        {akce.ikona}
+                      </span>
+                      <span className="trh-sabotaz-akce-text">
+                        <strong>
+                          {akce.nazev} — {akce.cena} kreditů
+                        </strong>
+                        <span>{akce.popis}</span>
+                      </span>
+                    </button>
+                  ))}
+                  <button className="trh-ukoncit-tah-btn" onClick={() => setSabotazOtevrena(false)}>
+                    Zrušit
+                  </button>
+                </div>
+              ) : (
+                <div className="trh-sabotaz-sheet">
+                  <p className="trh-sabotaz-nadpis">Na koho použít {vybranaAkce.nazev}?</p>
+                  {stav.hraci
+                    .filter((h) => h.id !== hrac?.id)
+                    .map((h) => (
+                      <button key={h.id} className="trh-sabotaz-cil" onClick={() => pouzitSabotazNaCil(h.id)}>
+                        <span style={{ color: POSTAVY[h.postavaId].barva }}>{POSTAVY[h.postavaId].emoji}</span>{' '}
+                        {h.jmeno}
+                      </button>
+                    ))}
+                  <button className="trh-ukoncit-tah-btn" onClick={() => setVybranaAkce(null)}>
+                    Zpět
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

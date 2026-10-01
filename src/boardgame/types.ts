@@ -30,6 +30,15 @@ export interface Hrac {
    *  `ukonciTah` HNED, ve stejném tahu, kdy padla: hráč tak dostane
    *  druhý hod navíc, aniž by jeho tah doopravdy skončil. */
   maBonusovyHod: boolean
+  /** Jestli hráč tenhle tah už použil sabotáž (Fáze 4, viz
+   *  data/sabotaze.ts) — na rozdíl od `preskociTah`/`maBonusovyHod`
+   *  (appka je NASTAVUJE cizímu hráči jako následek karty/kola) tuhle
+   *  vlajku nastavuje útočník SÁM SOBĚ, hned při použití. Resetuje se
+   *  na `false`, jakmile se `aktivniIndex` doopravdy přesune na
+   *  někoho jiného (engine.ts's `ukonciTah`/`krokHodu`'s "přeskoč
+   *  tah" větev) — NE při bonusovém hodu kola štěstí, protože ten
+   *  pořád počítá jako stejný, ne nový tah. */
+  sabotazPouzita: boolean
 }
 
 export type Smer = 'nahoru' | 'dolu' | 'vlevo' | 'vpravo'
