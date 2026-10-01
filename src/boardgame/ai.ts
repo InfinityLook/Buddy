@@ -1,7 +1,8 @@
 import { platneSmery } from './engine'
 import { OBCHODY_PODLE_KLICE, type DefiniceObchodu } from './obchody'
 import { SABOTAZNI_AKCE } from './data/sabotaze'
-import type { Hrac, NabidkaObchodu, Smer, TrhStav } from './types'
+import { PRIHOZ_DRAZBY, type PolozkaDrazby } from './data/minihry'
+import type { Hrac, NabidkaObchodu, Smer, StavDrazby, StavPexesa, TrhStav } from './types'
 
 // ==========================================
 // Buddyho Trh — jednoduchý bot, stejná "reaktivní, žádná paměť"
@@ -15,7 +16,10 @@ import type { Hrac, NabidkaObchodu, Smer, TrhStav } from './types'
 // rozhodnutí, žádný chytrý model. Bot u obchodu navíc NIKDY neposílá
 // protinabídku (ta zůstává čistě lidská schopnost, viz engine.ts's
 // `navrhniProtinabidku`) — jen navrhne jedno jednoduché "peníze za
-// pole", nebo cizí nabídku přijme/odmítne.
+// pole", nebo cizí nabídku přijme/odmítne. Fáze 6 (minihry) přidává
+// tři poslední — "kterou kartu pexesa otočit", "přihodit v dražbě,
+// nebo se vzdát" a "jak přesně se trefit v rychlé aukci" — stejná
+// plochá jednoduchost, žádné plánování dopředu ani tady.
 //
 // `nahodne` injektovatelné kvůli testovatelnosti, stejný důvod jako
 // u Souboj's `nahodnaPostava`/`pripravAkciAi` — tenhle bot běží jen
@@ -128,3 +132,43 @@ export const melByBotPrijmoutObchod = (bot: Hrac, nabidka: NabidkaObchodu): bool
   if (hodnotaZisku <= hodnotaVydaje) return false
   return bot.penize - nabidka.pozadovanePenize >= BOT_MINIMALNI_REZERVA
 }
+
+// ==========================================
+// Fáze 6 — minihry. Tři nová, poslední rozhodnutí, stejná plochá
+// jednoduchost jako zbytek souboru.
+// ==========================================
+
+/** Vybere index další karty, kterou má bot v pexesu otočit — appka
+ *  nikdy nepamatuje, co bot "viděl" dřív (žádná paměť, stejná
+ *  disciplína jako zbytek souboru), jen náhodně vybere mezi kartami,
+ *  co ještě nejsou nalezené ani zrovna otočené. Appka tuhle funkci
+ *  volá pokaždé, kdy je na řadě jedna karta — jednou pro první kartu
+ *  dvojice, podruhé (po vyřešení/potvrzení) pro druhou. */
+export const pripravKartuBotuPexesa = (m: StavPexesa, nahodne: () => number = Math.random): number => {
+  const volne = m.karty
+    .map((_, index) => index)
+    .filter((index) => !m.karty[index].nalezena && !m.otevrene.includes(index))
+  const vyber = Math.floor(nahodne() * volne.length)
+  return volne[Math.min(vyber, volne.length - 1)]
+}
+
+/** Rozhodne, jestli má bot v dražbě přihodit, nebo se vzdát — bot
+ *  přihodí, jen pokud by nová nabídka pořád ještě nepřesáhla
+ *  skutečnou hodnotu předmětu (appka ho nenechá vědomě přeplatit) A
+ *  mu po zaplacení zbyde aspoň rezerva — stejná plochá "no profit, no
+ *  bid" jednoduchost jako melByBotKoupit výš. */
+export const melByBotZvysitNabidkuDrazby = (bot: Hrac, m: StavDrazby, polozka: PolozkaDrazby): boolean => {
+  const novaNabidka = m.aktualniNabidka + PRIHOZ_DRAZBY
+  if (novaNabidka > polozka.hodnota) return false
+  return bot.penize - novaNabidka >= BOT_MINIMALNI_REZERVA
+}
+
+/** Jak přesně se bot trefí v rychlé aukci s časovačem — appka tu
+ *  simuluje "průměrnou strojovou reakci", ne dokonalý zásah: rovnoměrně
+ *  náhodné číslo mezi BOT_MIN_PRESNOST a BOT_MAX_PRESNOST, nikdy celý
+ *  rozsah 0–100. */
+const BOT_MIN_PRESNOST_RYCHLE_AUKCE = 30
+const BOT_MAX_PRESNOST_RYCHLE_AUKCE = 85
+
+export const pripravPresnostBotuRychleAukce = (nahodne: () => number = Math.random): number =>
+  BOT_MIN_PRESNOST_RYCHLE_AUKCE + nahodne() * (BOT_MAX_PRESNOST_RYCHLE_AUKCE - BOT_MIN_PRESNOST_RYCHLE_AUKCE)

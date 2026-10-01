@@ -71,6 +71,70 @@ export interface NabidkaObchodu {
  *  hodnoty (viz mechanická diskuze v CLAUDE.md), žádný volný vstup. */
 export type LimitMinut = 15 | 30 | 45 | 60
 
+// ==========================================
+// Fáze 6 — minihry na políčkách. Tři různé tvary stavu pod jedním
+// diskriminovaným sjednocením `ProbihajiciMinihra`, stejná role jako
+// `NabidkaObchodu` výš: appka jich dovolí nejvýš jednu najednou
+// (`TrhStav.minihra`), nikdy frontu, a dokud běží, blokuje sabotáž,
+// návrh obchodu i konec tahu (viz engine.ts's `provedSabotaz`/
+// `navrhniObchod`/`ukonciTah`'s vlastní "|| stav.minihra" podmínky).
+// ==========================================
+
+export interface KartaPexesa {
+  symbol: string
+  nalezena: boolean
+}
+
+export interface StavPexesa {
+  typ: 'pexeso'
+  karty: KartaPexesa[]
+  /** Indexy právě otočených karet — appka jich najednou drží nejvýš
+   *  dvě. Jedna znamená "čeká se na druhou kartu", dvě buď dvojici
+   *  rovnou vyřeší (shoda), nebo appka obě nechá otočené s
+   *  `cekaNaPotvrzeni: true`, dokud appka nezavolá
+   *  `potvrdNeshoduPexesa` (viz engine.ts). */
+  otevrene: number[]
+  /** `true`, pokud právě dvě otočené karty NEJSOU pár — appka appku
+   *  (UI) donutí zavolat `potvrdNeshoduPexesa`, než dovolí otočit
+   *  další kartu, ať hráč/bot stihne vidět, co vlastně otočil. */
+  cekaNaPotvrzeni: boolean
+  /** Kolikrát se zatím porovnaly dvě karty — appka z toho počítá
+   *  odměnu (viz data/minihry.ts's odmenaZaPexeso), méně pokusů =
+   *  víc kreditů. */
+  pokusy: number
+}
+
+/** Jedno kolo dokola — appka jedná s KAŽDÝM hráčem (`poradiUcastniku`,
+ *  začíná u toho, kdo na pole doběhl) přesně JEDNOU, ne v
+ *  opakovaných kolech: `indexNaTahu` roste bez ohledu na to, jestli
+ *  dotyčný přihodil, nebo se vzdal, a jakmile dosáhne délky pole,
+ *  dražba se vyhodnotí (vede `vedeId`, pokud vůbec někdo přihodil).
+ *  Tohle zjednodušení schválně vynechává víckolové přehazování —
+ *  appka tak nemusí řešit, co se stane, když se vedoucí hráč na svém
+ *  dalším tahu "vzdá" vlastní už vedoucí nabídky. */
+export interface StavDrazby {
+  typ: 'drazba'
+  polozkaId: string
+  /** Appka ji inicializuje na `vyvolavaciCena - PRIHOZ_DRAZBY` (viz
+   *  engine.ts's otevriMinihru), takže první platné přihození vyjde
+   *  přesně na vyvolávací cenu. */
+  aktualniNabidka: number
+  vedeId: string | null
+  poradiUcastniku: string[]
+  indexNaTahu: number
+}
+
+/** Appka u týhle minihry nedrží žádný vlastní stav navíc — jediná
+ *  akce (`vyhodnotRychlouAukci`) bere hotovou `presnost` jako
+ *  argument, appka ji sama nevypočítává (viz data/minihry.ts's
+ *  vlastní komentář u ODMENY_RYCHLE_AUKCE, proč reálný čas žije jen
+ *  v Deska.tsx, ne v enginu). */
+export interface StavRychleAukce {
+  typ: 'rychla-aukce'
+}
+
+export type ProbihajiciMinihra = StavPexesa | StavDrazby | StavRychleAukce
+
 export interface TrhStav {
   hraci: Hrac[]
   /** Pořadí tahů jako pole id hráčů — samostatně od `hraci`, protože
@@ -101,6 +165,13 @@ export interface TrhStav {
    *  koupě, sabotáž, ukončení tahu) neprojde — appka tím vynucuje
    *  "jedno rozhodnutí najednou", stejně jako `nabidkaKoupe` výš. */
   nabidkaObchodu: NabidkaObchodu | null
+  /** Právě probíhající minihra (Fáze 6, viz ProbihajiciMinihra výš) —
+   *  neprázdná jen mezi doběhnutím na "Minihra" pole a jejím
+   *  vyřešením. Dokud je nastavená, žádná jiná akce (sabotáž, návrh
+   *  obchodu, konec tahu) neprojde — appka tím vynucuje "jedno
+   *  rozhodnutí najednou", stejně jako `nabidkaKoupe`/`nabidkaObchodu`
+   *  výš. */
+  minihra: ProbihajiciMinihra | null
   /** Jedna řádka pro poslední ekonomickou událost (koupě/nájem) —
    *  appka ji ukazuje jako prostý text, žádná historie zpráv. */
   posledniUdalost: string | null

@@ -18,18 +18,32 @@ import {
   navrhniProtinabidku,
   zkontrolujCas,
   vitezovePodleStavu,
+  otocitKartuPexesa,
+  potvrdNeshoduPexesa,
+  zvysNabidkuDrazby,
+  odstupOdDrazby,
+  vyhodnotRychlouAukci,
   SIRKA_MRIZKY,
   VYSKA_MRIZKY,
   POCATECNI_PENIZE,
 } from '@/boardgame/engine'
 import { OSUD_POLE, jeOsudovePole } from '@/boardgame/osud'
 import { KOLO_STESTI_POLE, jeKoloStestiPole } from '@/boardgame/kolostesti'
+import { MINIHRA_POLE, jeMinihrovePole } from '@/boardgame/minihry'
 import { OBCHODY, klicPole } from '@/boardgame/obchody'
 import { UDALOSTI } from '@/boardgame/data/udalosti'
 import { VYSLEDKY_KOLA, vyberVysledekKola, stredovyUhelVysledku, conicGradientKola } from '@/boardgame/data/kolaStesti'
 import { SABOTAZNI_AKCE } from '@/boardgame/data/sabotaze'
+import {
+  MINIHRY,
+  vyberTypMinihry,
+  POLOZKY_DRAZBY,
+  POCET_PARU_PEXESA,
+  PRIHOZ_DRAZBY,
+  odmenaZaPexeso,
+} from '@/boardgame/data/minihry'
 import { melByBotSabotovat } from '@/boardgame/ai'
-import type { TrhStav } from '@/boardgame/types'
+import type { KartaPexesa, ProbihajiciMinihra, StavDrazby, StavPexesa, TrhStav } from '@/boardgame/types'
 
 // ==========================================
 // Buddyho Trh — Fáze 0. Stejná "žádný React, žádná síť, jen pravidla
@@ -37,6 +51,14 @@ import type { TrhStav } from '@/boardgame/types'
 // ==========================================
 
 const stred = { x: Math.floor(SIRKA_MRIZKY / 2), z: Math.floor(VYSKA_MRIZKY / 2) }
+
+/** Vrátí zafrontované hodnoty v pořadí volání — appka tak umí
+ *  injektovat víc po sobě jdoucích `nahodne()` volání najednou,
+ *  stejný vzor jako tests/unit/boardgame-ai.test.ts. */
+const fronta = (hodnoty: number[]) => {
+  let i = 0
+  return () => hodnoty[Math.min(i++, hodnoty.length - 1)]
+}
 
 const noveDva = () => {
   const h1 = vytvorHrace('a', 'Anna', 'gros', false, stred)
@@ -1005,5 +1027,367 @@ describe('melByBotSabotovat (Fáze 4)', () => {
     const bot = vytvorHrace('bot', 'Bot', 'gros', true, { x: 0, z: 0 })
     const chudak = { ...vytvorHrace('b', 'Bob', 'cihla', false, { x: 1, z: 0 }), penize: 10 }
     expect(melByBotSabotovat(bot, [bot, chudak])).toBeNull()
+  })
+})
+
+// ==========================================
+// Fáze 6 — minihry na políčkách. Pět "Minihra" polí {1,2}/{5,2}/
+// {1,4}/{5,4}/{3,5} — appka vybírá TYP minihry (pexeso/dražba/rychlá
+// aukce) rovnoměrně náhodně při doběhnutí (viz vyberTypMinihry), ale
+// výsledek samotné minihry je vždycky další hráčovo rozhodnutí.
+//
+// Testy funkcí ŘEŠENÍ (otocitKartuPexesa, zvysNabidkuDrazby/
+// odstupOdDrazby, vyhodnotRychlouAukci) staví `TrhStav.minihra` přímo
+// přes object-spread (`doMinihry` níž, stejný vzor jako
+// doKonceTahuSVlastnictvim výš) — jen testy OTEVŘENÍ minihry jdou přes
+// realistický krokHodu+krokPohybu, protože `otevriMinihru` sama není z
+// engine.ts exportovaná.
+// ==========================================
+
+/** Jako `doKonceTahu` výš, jen appka navíc rovnou nastaví probíhající
+ *  minihru — přesný předpoklad, jaký otocitKartuPexesa/
+ *  zvysNabidkuDrazby/odstupOdDrazby/vyhodnotRychlouAukci vyžadují. */
+const doMinihry = (hraci: ReturnType<typeof vytvorHrace>[], minihra: ProbihajiciMinihra): TrhStav => ({
+  ...vytvorTrhStav(hraci),
+  faze: 'konec-tahu',
+  minihra,
+})
+
+describe('Minihra pole — sanity (Fáze 6)', () => {
+  it('se nikdy nepřekrývají s obchody, Osudem ani kolem štěstí', () => {
+    const obchodKlice = new Set(OBCHODY.map((o) => o.klic))
+    const osudKlice = new Set(OSUD_POLE.map(klicPole))
+    for (const p of MINIHRA_POLE) {
+      expect(obchodKlice.has(klicPole(p))).toBe(false)
+      expect(osudKlice.has(klicPole(p))).toBe(false)
+      expect(jeKoloStestiPole(p)).toBe(false)
+    }
+  })
+
+  it('jeMinihrovePole pozná jen pět skutečných pozic', () => {
+    for (const p of MINIHRA_POLE) expect(jeMinihrovePole(p)).toBe(true)
+    expect(jeMinihrovePole({ x: 0, z: 0 })).toBe(false)
+  })
+})
+
+describe('MINIHRY — pevná sada tří minihier (Fáze 6)', () => {
+  it('má přesně tři typy s unikátními id', () => {
+    expect(MINIHRY).toHaveLength(3)
+    expect(new Set(MINIHRY.map((m) => m.typ)).size).toBe(3)
+  })
+})
+
+describe('vyberTypMinihry — rovnoměrná náhoda (Fáze 6)', () => {
+  it.each([
+    [0, 'pexeso'],
+    [0.4, 'drazba'],
+    [0.7, 'rychla-aukce'],
+  ])('nahodne()=%s vybere %s', (hodnota, ocekavanyTyp) => {
+    expect(vyberTypMinihry(() => hodnota as number)).toMatchObject({ typ: ocekavanyTyp })
+  })
+})
+
+describe('krokPohybu — otevření minihry na Minihra poli (Fáze 6)', () => {
+  it('otevře pexeso s dvanácti kartami (šest dvojic)', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 2 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = vytvorTrhStav([h1, h2])
+    stav = krokHodu(stav, () => 0) // hod 1
+    stav = krokPohybu(stav, 'vpravo', fronta([0])) // (0,2) -> (1,2) = minihra pole, typ pexeso
+
+    expect(stav.minihra?.typ).toBe('pexeso')
+    const m = stav.minihra as StavPexesa
+    expect(m.karty).toHaveLength(POCET_PARU_PEXESA * 2)
+    expect(m.otevrene).toEqual([])
+    expect(m.cekaNaPotvrzeni).toBe(false)
+    expect(m.pokusy).toBe(0)
+
+    const pocty: Record<string, number> = {}
+    for (const k of m.karty) {
+      pocty[k.symbol] = (pocty[k.symbol] ?? 0) + 1
+      expect(k.nalezena).toBe(false)
+    }
+    expect(Object.keys(pocty)).toHaveLength(POCET_PARU_PEXESA)
+    expect(Object.values(pocty).every((pocet) => pocet === 2)).toBe(true)
+
+    expect(stav.posledniUdalost).toContain('🎮')
+    expect(stav.posledniUdalost).toContain('Tržní pexeso')
+  })
+
+  it('otevře dražbu s pořadím účastníků začínajícím u hráče, co na pole doběhl', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 5, z: 1 })
+    const h3 = vytvorHrace('c', 'Cecil', 'vozka', false, { x: 6, z: 6 })
+    let stav = vytvorTrhStav([h1, h2, h3]) // poradiHracu = ['a','b','c'], aktivní 'a'
+    stav = ukonciTah({ ...stav, faze: 'konec-tahu' }) // tah přejde na 'b'
+    expect(aktivniHrac(stav)!.id).toBe('b')
+    stav = krokHodu(stav, () => 0) // hod 1
+    stav = krokPohybu(stav, 'dolu', fronta([0.4])) // (5,1) -> (5,2) = minihra pole, typ drazba
+
+    expect(stav.minihra?.typ).toBe('drazba')
+    const m = stav.minihra as StavDrazby
+    // appka otočí poradiHracu tak, ať na indexu 0 stojí ten, co na pole
+    // doopravdy doběhl ('b'), zbytek jede dokola za ním ('c', pak 'a').
+    expect(m.poradiUcastniku).toEqual(['b', 'c', 'a'])
+    expect(m.indexNaTahu).toBe(0)
+    expect(m.vedeId).toBeNull()
+    // nahodne()=0.4 vybere POLOZKY_DRAZBY[2] = 'prsten' (viz druhý,
+    // zafrontovaný nahodne() volání uvnitř otevriMinihru).
+    expect(m.polozkaId).toBe('prsten')
+    expect(m.aktualniNabidka).toBe(POLOZKY_DRAZBY[2].vyvolavaciCena - PRIHOZ_DRAZBY)
+
+    expect(stav.posledniUdalost).toContain('🎮')
+    expect(stav.posledniUdalost).toContain('Dražba')
+  })
+
+  it('otevře rychlou aukci bez dalšího vlastního stavu', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 2, z: 5 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = vytvorTrhStav([h1, h2])
+    stav = krokHodu(stav, () => 0) // hod 1
+    stav = krokPohybu(stav, 'vpravo', fronta([0.7])) // (2,5) -> (3,5) = minihra pole, typ rychla-aukce
+
+    expect(stav.minihra).toEqual({ typ: 'rychla-aukce' })
+    expect(stav.posledniUdalost).toContain('Rychlá aukce')
+  })
+})
+
+describe('otocitKartuPexesa a potvrdNeshoduPexesa (Fáze 6)', () => {
+  const ctyriKarty = (): KartaPexesa[] => [
+    { symbol: 'X', nalezena: false },
+    { symbol: 'Y', nalezena: false },
+    { symbol: 'X', nalezena: false },
+    { symbol: 'Y', nalezena: false },
+  ]
+
+  it('první otočená karta se jen přidá do otevrene, nic nevyhodnocuje', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    const stav = doMinihry([h1], { typ: 'pexeso', karty: ctyriKarty(), otevrene: [], cekaNaPotvrzeni: false, pokusy: 0 })
+    const novy = otocitKartuPexesa(stav, 0)
+    expect(novy.minihra).toMatchObject({ otevrene: [0], cekaNaPotvrzeni: false, pokusy: 0 })
+  })
+
+  it('shoda (ne poslední dvojice) označí obě karty jako nalezené, otevrene se vyprázdní, nevyplatí nic', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    let stav = doMinihry([h1], { typ: 'pexeso', karty: ctyriKarty(), otevrene: [], cekaNaPotvrzeni: false, pokusy: 0 })
+    stav = otocitKartuPexesa(stav, 0) // X
+    stav = otocitKartuPexesa(stav, 2) // X — shoda, ale ještě zbývá dvojice Y
+    const m = stav.minihra as StavPexesa
+    expect(m.karty[0].nalezena).toBe(true)
+    expect(m.karty[2].nalezena).toBe(true)
+    expect(m.otevrene).toEqual([])
+    expect(m.pokusy).toBe(1)
+    expect(stav.minihra).not.toBeNull()
+    expect(aktivniHrac(stav)!.penize).toBe(POCATECNI_PENIZE)
+  })
+
+  it('neshoda nastaví cekaNaPotvrzeni, obě karty zůstanou otočené', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    let stav = doMinihry([h1], { typ: 'pexeso', karty: ctyriKarty(), otevrene: [], cekaNaPotvrzeni: false, pokusy: 0 })
+    stav = otocitKartuPexesa(stav, 0) // X
+    stav = otocitKartuPexesa(stav, 1) // Y — neshoda
+    const m = stav.minihra as StavPexesa
+    expect(m.cekaNaPotvrzeni).toBe(true)
+    expect(m.otevrene).toEqual([0, 1])
+    expect(m.karty[0].nalezena).toBe(false)
+    expect(m.pokusy).toBe(1)
+  })
+
+  it('otočení další karty, dokud appka čeká na potvrzení, je no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    let stav = doMinihry([h1], { typ: 'pexeso', karty: ctyriKarty(), otevrene: [], cekaNaPotvrzeni: false, pokusy: 0 })
+    stav = otocitKartuPexesa(stav, 0)
+    stav = otocitKartuPexesa(stav, 1) // neshoda, appka čeká na potvrzení
+    expect(otocitKartuPexesa(stav, 2)).toBe(stav)
+  })
+
+  it('potvrdNeshoduPexesa vyprázdní otevrene a vypne čekání', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    let stav = doMinihry([h1], { typ: 'pexeso', karty: ctyriKarty(), otevrene: [], cekaNaPotvrzeni: false, pokusy: 0 })
+    stav = otocitKartuPexesa(stav, 0)
+    stav = otocitKartuPexesa(stav, 1) // neshoda
+    stav = potvrdNeshoduPexesa(stav)
+    const m = stav.minihra as StavPexesa
+    expect(m.otevrene).toEqual([])
+    expect(m.cekaNaPotvrzeni).toBe(false)
+  })
+
+  it('poslední chybějící dvojice vyplatí odměnu podle pokusů a ukončí minihru', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    // appka tenhle scénář staví přímo: dvojice 'X' je už nalezená (stála
+    // jeden pokus), zbývá jen dvojice 'Y' — druhý pokus ji vyřeší.
+    const karty: KartaPexesa[] = [
+      { symbol: 'X', nalezena: true },
+      { symbol: 'Y', nalezena: false },
+      { symbol: 'X', nalezena: true },
+      { symbol: 'Y', nalezena: false },
+    ]
+    let stav = doMinihry([h1], { typ: 'pexeso', karty, otevrene: [], cekaNaPotvrzeni: false, pokusy: 1 })
+    stav = otocitKartuPexesa(stav, 1)
+    stav = otocitKartuPexesa(stav, 3) // shoda, POSLEDNÍ dvojice -> pokusy=2
+
+    expect(stav.minihra).toBeNull()
+    expect(aktivniHrac(stav)!.penize).toBe(POCATECNI_PENIZE + odmenaZaPexeso(2))
+    expect(stav.posledniUdalost).toContain('🧠')
+    expect(stav.posledniUdalost).toContain('2. pokus')
+  })
+
+  it('obě funkce jsou no-op mimo pexeso', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    const stav = doMinihry([h1], { typ: 'rychla-aukce' })
+    expect(otocitKartuPexesa(stav, 0)).toBe(stav)
+    expect(potvrdNeshoduPexesa(stav)).toBe(stav)
+  })
+
+  it('obě funkce jsou no-op bez probíhající minihry', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    const stav = doKonceTahu([h1])
+    expect(otocitKartuPexesa(stav, 0)).toBe(stav)
+    expect(potvrdNeshoduPexesa(stav)).toBe(stav)
+  })
+})
+
+describe('zvysNabidkuDrazby a odstupOdDrazby (Fáze 6)', () => {
+  const stavDrazby = (
+    poradi: string[],
+    indexNaTahu = 0,
+    aktualniNabidka = 60,
+    vedeId: string | null = null
+  ): StavDrazby => ({
+    typ: 'drazba',
+    polozkaId: 'prsten', // vyvolavaciCena 80, hodnota 150
+    aktualniNabidka,
+    vedeId,
+    poradiUcastniku: poradi,
+    indexNaTahu,
+  })
+
+  it('přihození mimo tah volajícího je no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 1, z: 0 })
+    const stav = doMinihry([h1, h2], stavDrazby(['a', 'b'], 0))
+    expect(zvysNabidkuDrazby(stav, 'b')).toBe(stav) // na tahu je 'a', ne 'b'
+  })
+
+  it('platné přihození zvýší nabídku, nastaví vedoucího a posune index', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 1, z: 0 })
+    const stav = doMinihry([h1, h2], stavDrazby(['a', 'b'], 0, 60))
+    const novy = zvysNabidkuDrazby(stav, 'a')
+    const m = novy.minihra as StavDrazby
+    expect(m.aktualniNabidka).toBe(80)
+    expect(m.vedeId).toBe('a')
+    expect(m.indexNaTahu).toBe(1)
+    expect(novy.minihra).not.toBeNull() // 'b' ještě nebyl na tahu
+  })
+
+  it('bez dostatku peněz na nové přihození je no-op', () => {
+    const h1 = { ...vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 }), penize: 70 }
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 1, z: 0 })
+    const stav = doMinihry([h1, h2], stavDrazby(['a', 'b'], 0, 60)) // nová nabídka by byla 80 > 70
+    expect(zvysNabidkuDrazby(stav, 'a')).toBe(stav)
+  })
+
+  it('vzdání se posune index beze změny nabídky/vedoucího', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 1, z: 0 })
+    const stav = doMinihry([h1, h2], stavDrazby(['a', 'b'], 0, 60, null))
+    const novy = odstupOdDrazby(stav, 'a')
+    const m = novy.minihra as StavDrazby
+    expect(m.aktualniNabidka).toBe(60)
+    expect(m.vedeId).toBeNull()
+    expect(m.indexNaTahu).toBe(1)
+  })
+
+  it('poslední hráč v kole dražbu vyhodnotí — vítěz zaplatí nabídku a dostane hodnotu předmětu', () => {
+    const h1 = { ...vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 }), penize: 500 }
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 1, z: 0 })
+    let stav = doMinihry([h1, h2], stavDrazby(['a', 'b'], 0, 60, null))
+    stav = zvysNabidkuDrazby(stav, 'a') // a vede na 80, index 1
+    stav = odstupOdDrazby(stav, 'b') // b se vzdá, index 2 = konec kola
+
+    expect(stav.minihra).toBeNull()
+    expect(stav.hraci.find((h) => h.id === 'a')!.penize).toBe(500 - 80 + 150) // zaplatí 80, dostane hodnotu 150
+    expect(stav.posledniUdalost).toContain('🔨')
+    expect(stav.posledniUdalost).toContain('vydražil')
+  })
+
+  it('pokud nikdo nepřihodí, dražba skončí bez vítěze beze změny peněz', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 1, z: 0 })
+    let stav = doMinihry([h1, h2], stavDrazby(['a', 'b'], 0, 60, null))
+    stav = odstupOdDrazby(stav, 'a')
+    stav = odstupOdDrazby(stav, 'b')
+
+    expect(stav.minihra).toBeNull()
+    expect(stav.hraci.every((h) => h.penize === POCATECNI_PENIZE)).toBe(true)
+    expect(stav.posledniUdalost).toContain('bez vítěze')
+  })
+
+  it('obě funkce jsou no-op mimo dražbu', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    const stav = doMinihry([h1], { typ: 'rychla-aukce' })
+    expect(zvysNabidkuDrazby(stav, 'a')).toBe(stav)
+    expect(odstupOdDrazby(stav, 'a')).toBe(stav)
+  })
+})
+
+describe('vyhodnotRychlouAukci (Fáze 6)', () => {
+  it.each([
+    [95, 250],
+    [75, 120],
+    [50, 50],
+    [10, 0],
+  ])('přesnost %s vyplatí %s kreditů podle stupně odměny', (presnost, odmena) => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    const stav = doMinihry([h1], { typ: 'rychla-aukce' })
+    const novy = vyhodnotRychlouAukci(stav, presnost)
+    expect(novy.minihra).toBeNull()
+    expect(aktivniHrac(novy)!.penize).toBe(POCATECNI_PENIZE + odmena)
+  })
+
+  it('přesnost nad 100 se ořízne na stejnou nejvyšší odměnu jako přesně 100', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    const stav = doMinihry([h1], { typ: 'rychla-aukce' })
+    expect(aktivniHrac(vyhodnotRychlouAukci(stav, 150))!.penize).toBe(
+      aktivniHrac(vyhodnotRychlouAukci(stav, 100))!.penize
+    )
+  })
+
+  it('je no-op mimo rychlou aukci', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })
+    const stav = doMinihry([h1], { typ: 'pexeso', karty: [], otevrene: [], cekaNaPotvrzeni: false, pokusy: 0 })
+    expect(vyhodnotRychlouAukci(stav, 100)).toBe(stav)
+  })
+})
+
+describe('minihra (Fáze 6) blokuje sabotáž, obchod i konec tahu, dokud běží', () => {
+  const minihra: ProbihajiciMinihra = { typ: 'rychla-aukce' }
+
+  it('provedSabotaz je no-op, dokud minihra běží', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = doMinihry([h1, h2], minihra)
+    expect(provedSabotaz(stav, 'krast', 'b')).toBe(stav)
+  })
+
+  it('navrhniObchod je no-op, dokud minihra běží', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = doMinihry([h1, h2], minihra)
+    expect(navrhniObchod(stav, 'a', 'b', 50, [], 0, [])).toBe(stav)
+  })
+
+  it('ukonciTah je no-op, dokud minihra běží, a znovu funguje normálně, jakmile se vyřeší', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = doMinihry([h1, h2], minihra)
+    expect(ukonciTah(stav)).toBe(stav)
+
+    stav = vyhodnotRychlouAukci(stav, 50) // appka minihru vyřeší a vymaže
+    expect(stav.minihra).toBeNull()
+    stav = ukonciTah(stav)
+    expect(stav.aktivniIndex).toBe(1)
+    expect(stav.faze).toBe('hod')
   })
 })

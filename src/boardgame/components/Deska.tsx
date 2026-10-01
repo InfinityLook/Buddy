@@ -1,5 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { melByBotKoupit, melByBotPrijmoutObchod, melByBotSabotovat, pripravSmerBota, zvazBotuNabidkuObchodu } from '../ai'
+import {
+  melByBotKoupit,
+  melByBotPrijmoutObchod,
+  melByBotSabotovat,
+  melByBotZvysitNabidkuDrazby,
+  pripravKartuBotuPexesa,
+  pripravPresnostBotuRychleAukce,
+  pripravSmerBota,
+  zvazBotuNabidkuObchodu,
+} from '../ai'
 import {
   aktivniHrac,
   koupitPole,
@@ -9,17 +18,23 @@ import {
   navrhniProtinabidku,
   odmitnoutKoupi,
   odmitnoutObchod,
+  odstupOdDrazby,
+  otocitKartuPexesa,
+  potvrdNeshoduPexesa,
   prijmoutObchod,
   provedSabotaz,
   ukonciTah,
   vitezovePodleStavu,
+  vyhodnotRychlouAukci,
   vytvorTrhStav,
   zbyvaCasuMs,
   zkontrolujCas,
   zrusitObchod,
+  zvysNabidkuDrazby,
 } from '../engine'
 import { conicGradientKola, stredovyUhelVysledku } from '../data/kolaStesti'
 import { SABOTAZNI_AKCE, type SabotazniAkce } from '../data/sabotaze'
+import { MINIHRY_PODLE_TYPU, POLOZKY_DRAZBY_PODLE_ID, PRIHOZ_DRAZBY } from '../data/minihry'
 import { OBCHODY_PODLE_KLICE } from '../obchody'
 import { POSTAVY } from '../postavy'
 import { useTrhScene } from '../scene/useTrhScene'
@@ -58,6 +73,57 @@ const ZPOZDENI_SABOTAZE_MS = 300
 // musí stihnout zareagovat dřív, než appka tah sama ukončí.
 const ZPOZDENI_NABIDKY_BOTU_MS = 500
 const ZPOZDENI_ODPOVEDI_BOTU_MS = 300
+
+// Minihry (Fáze 6) — stejná "bot nepotřebuje stihnout nic jiného dřív"
+// filozofie jako sabotáž/obchod výš, jen o chlup delší zpoždění, ať
+// appka stihne krátce ukázat, co se zrovna stalo (otočenou kartu,
+// přihození v dražbě), než bot pokračuje dál.
+const ZPOZDENI_MINIHRY_MS = 550
+
+// Rychlá aukce s časovačem — appka SCHVÁLNĚ opouští injektovatelné
+// `nahodne` tady v komponentě: ukazatel se pohybuje podle skutečně
+// uplynulého reálného času (performance.now()), ne podle enginu,
+// protože celá minihra je "reaguj na pohybující se cíl" — appka nemá
+// jak reálnou reakční dobu hráče jinak simulovat. Samotné VYHODNOCENÍ
+// (engine.ts's vyhodnotRychlouAukci) zůstává plně deterministické,
+// bere jen hotové číslo `presnost` jako vstup (viz data/minihry.ts's
+// vlastní komentář u ODMENY_RYCHLE_AUKCE).
+const RYCHLOST_AUKCE_MS = 1400
+
+const RychlaAukceHra: React.FC<{ onChytit: (presnost: number) => void }> = ({ onChytit }) => {
+  const [pozice, setPozice] = useState(50)
+  const poziceRef = useRef(50)
+  useEffect(() => {
+    const start = performance.now()
+    let id: number
+    const krok = (cas: number) => {
+      const t = cas - start
+      const nova = 50 + 50 * Math.sin((t / RYCHLOST_AUKCE_MS) * Math.PI * 2)
+      poziceRef.current = nova
+      setPozice(nova)
+      id = requestAnimationFrame(krok)
+    }
+    id = requestAnimationFrame(krok)
+    return () => cancelAnimationFrame(id)
+  }, [])
+
+  const chytit = () => {
+    const presnost = Math.max(0, 100 - Math.abs(poziceRef.current - 50) * 2)
+    onChytit(presnost)
+  }
+
+  return (
+    <div className="trh-aukce-hra">
+      <div className="trh-aukce-draha">
+        <div className="trh-aukce-cil" aria-hidden="true" />
+        <div className="trh-aukce-znacka" style={{ left: `${pozice}%` }} aria-hidden="true" />
+      </div>
+      <button className="trh-kostka-btn" onClick={chytit}>
+        ⚡ Chyť moment!
+      </button>
+    </div>
+  )
+}
 
 // Kolo štěstí (Fáze 3) — čistě kosmetická animace dotočení, viz jeho
 // vlastní komentář u stavu níž. Appka respektuje prefers-reduced-motion
@@ -171,6 +237,7 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
       stav.konec ||
       stav.nabidkaKoupe ||
       stav.nabidkaObchodu ||
+      stav.minihra ||
       kolostestiAktivni ||
       sabotazOtevrena ||
       obchodOtevren
@@ -246,7 +313,8 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
       sabotazOtevrena ||
       obchodOtevren ||
       protinabidkaOtevrena ||
-      stav.nabidkaObchodu
+      stav.nabidkaObchodu ||
+      stav.minihra
     ) {
       return
     }
@@ -261,6 +329,7 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
     obchodOtevren,
     protinabidkaOtevrena,
     stav.nabidkaObchodu,
+    stav.minihra,
   ])
 
   // Bot hraje sám — hodí kostkou, pak krok po kroku dojde, kam může,
@@ -277,8 +346,31 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
   // obstará samostatný "automatický konec tahu" efekt výš.
   useEffect(() => {
     if (stav.konec || kolostestiAktivni || stav.nabidkaObchodu) return
+    // Dražba (Fáze 6) se může týkat hráče, co zrovna NENÍ aktivniHrac
+    // (appka jde kolem stolu, viz StavDrazby's vlastní komentář v
+    // types.ts) — o tu se stará samostatný efekt níž.
+    if (stav.minihra?.typ === 'drazba') return
     const hrac = aktivniHrac(stav)
     if (!hrac?.jeBot) return
+
+    if (stav.minihra?.typ === 'pexeso') {
+      const cas = window.setTimeout(() => {
+        setStav((s) => {
+          const m = s.minihra
+          if (!m || m.typ !== 'pexeso') return s
+          return m.cekaNaPotvrzeni ? potvrdNeshoduPexesa(s) : otocitKartuPexesa(s, pripravKartuBotuPexesa(m))
+        })
+      }, ZPOZDENI_MINIHRY_MS)
+      return () => window.clearTimeout(cas)
+    }
+
+    if (stav.minihra?.typ === 'rychla-aukce') {
+      const cas = window.setTimeout(() => {
+        setStav((s) => (s.minihra?.typ === 'rychla-aukce' ? vyhodnotRychlouAukci(s, pripravPresnostBotuRychleAukce()) : s))
+      }, ZPOZDENI_MINIHRY_MS)
+      return () => window.clearTimeout(cas)
+    }
+
     if (stav.faze === 'konec-tahu' && !stav.nabidkaKoupe && hrac.sabotazPouzita) return
 
     let zpozdeni: number
@@ -307,6 +399,31 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
     }, zpozdeni)
     return () => window.clearTimeout(cas)
   }, [stav, kolostestiAktivni])
+
+  // Dražba (Fáze 6) — samostatný efekt, protože hráč, co je zrovna
+  // "na tahu v dražbě" (StavDrazby's poradiUcastniku/indexNaTahu),
+  // nemusí být aktivniHrac (ten, co má zrovna svůj herní tah) — stejná
+  // "může se to týkat i ne-aktivního hráče" situace jako u botí
+  // obchodní nabídky/odpovědi výš.
+  useEffect(() => {
+    const m = stav.minihra
+    if (!m || m.typ !== 'drazba' || stav.konec) return
+    const naTahu = stav.hraci.find((h) => h.id === m.poradiUcastniku[m.indexNaTahu])
+    if (!naTahu?.jeBot) return
+    const polozka = POLOZKY_DRAZBY_PODLE_ID[m.polozkaId]
+    if (!polozka) return
+
+    const cas = window.setTimeout(() => {
+      setStav((s) => {
+        const aktualniM = s.minihra
+        if (!aktualniM || aktualniM.typ !== 'drazba') return s
+        return melByBotZvysitNabidkuDrazby(naTahu, aktualniM, polozka)
+          ? zvysNabidkuDrazby(s, naTahu.id)
+          : odstupOdDrazby(s, naTahu.id)
+      })
+    }, ZPOZDENI_MINIHRY_MS)
+    return () => window.clearTimeout(cas)
+  }, [stav])
 
   const hrac = aktivniHrac(stav)
   const jeNaTahuBot = hrac?.jeBot ?? false
@@ -563,7 +680,96 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
 
           {stav.faze === 'konec-tahu' && !nabidka && (
             <div className="trh-akce-panel">
-              {stav.nabidkaObchodu && !protinabidkaOtevrena ? (
+              {stav.minihra ? (
+                (() => {
+                  const m = stav.minihra
+
+                  if (m.typ === 'pexeso') {
+                    return (
+                      <div className="trh-pexeso">
+                        <p className="trh-sabotaz-nadpis">
+                          🧠 Tržní pexeso — najdi všechny dvojice! (pokusy: {m.pokusy})
+                        </p>
+                        <div className="trh-pexeso-mrizka">
+                          {m.karty.map((k, index) => {
+                            const odkryta = k.nalezena || m.otevrene.includes(index)
+                            return (
+                              <button
+                                key={index}
+                                className={`trh-pexeso-karta ${odkryta ? 'je-odkryta' : ''} ${k.nalezena ? 'je-nalezena' : ''}`}
+                                disabled={jeNaTahuBot || k.nalezena || m.otevrene.includes(index) || m.cekaNaPotvrzeni}
+                                onClick={() => setStav((s) => otocitKartuPexesa(s, index))}
+                              >
+                                {odkryta ? k.symbol : '❓'}
+                              </button>
+                            )
+                          })}
+                        </div>
+                        {jeNaTahuBot ? (
+                          <p className="trh-zbyva">Bot hraje pexeso…</p>
+                        ) : m.cekaNaPotvrzeni ? (
+                          <button className="trh-kostka-btn" onClick={() => setStav((s) => potvrdNeshoduPexesa(s))}>
+                            Pokračovat
+                          </button>
+                        ) : null}
+                      </div>
+                    )
+                  }
+
+                  if (m.typ === 'drazba') {
+                    const polozka = POLOZKY_DRAZBY_PODLE_ID[m.polozkaId]
+                    const vede = m.vedeId ? stav.hraci.find((h) => h.id === m.vedeId) : null
+                    const naTahuId = m.indexNaTahu < m.poradiUcastniku.length ? m.poradiUcastniku[m.indexNaTahu] : null
+                    const naTahuHrac = naTahuId ? stav.hraci.find((h) => h.id === naTahuId) : null
+                    const dalsiNabidka = m.aktualniNabidka + PRIHOZ_DRAZBY
+                    return (
+                      <div className="trh-drazba">
+                        <p className="trh-sabotaz-nadpis">
+                          🔨 Dražba — {polozka?.ikona} <strong>{polozka?.nazev ?? '?'}</strong>
+                        </p>
+                        <p className="trh-zbyva">
+                          Aktuální nabídka: <strong>{m.aktualniNabidka} kreditů</strong> (vede:{' '}
+                          {vede ? vede.jmeno : 'nikdo zatím'})
+                        </p>
+                        {naTahuHrac?.jeBot ? (
+                          <p className="trh-zbyva">Bot {naTahuHrac.jmeno} přemýšlí…</p>
+                        ) : naTahuHrac ? (
+                          <>
+                            <p className="trh-sabotaz-nadpis">Na tahu: {naTahuHrac.jmeno}</p>
+                            <div className="trh-obchod-akce">
+                              <button
+                                className="trh-kostka-btn"
+                                disabled={naTahuHrac.penize < dalsiNabidka}
+                                onClick={() => setStav((s) => zvysNabidkuDrazby(s, naTahuHrac.id))}
+                              >
+                                Přihodit na {dalsiNabidka} kreditů
+                              </button>
+                              <button
+                                className="trh-ukoncit-tah-btn"
+                                onClick={() => setStav((s) => odstupOdDrazby(s, naTahuHrac.id))}
+                              >
+                                Vzdát se
+                              </button>
+                            </div>
+                          </>
+                        ) : null}
+                      </div>
+                    )
+                  }
+
+                  // 'rychla-aukce'
+                  return jeNaTahuBot ? (
+                    <p className="trh-zbyva">
+                      {MINIHRY_PODLE_TYPU['rychla-aukce'].ikona} Bot zkouší rychlou aukci…
+                    </p>
+                  ) : (
+                    <div className="trh-rychla-aukce">
+                      <p className="trh-sabotaz-nadpis">⚡ Rychlá aukce — chyť ukazatel uprostřed!</p>
+                      <RychlaAukceHra onChytit={(presnost) => setStav((s) => vyhodnotRychlouAukci(s, presnost))} />
+                    </div>
+                  )
+                })()
+              ) : stav.nabidkaObchodu && !protinabidkaOtevrena ? (
                 (() => {
                   const n = stav.nabidkaObchodu
                   const navrhovatel = stav.hraci.find((h) => h.id === n.odKoho)

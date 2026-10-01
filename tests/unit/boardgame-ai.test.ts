@@ -1,8 +1,17 @@
 import { describe, it, expect } from 'vitest'
-import { melByBotKoupit, melByBotPrijmoutObchod, pripravSmerBota, zvazBotuNabidkuObchodu } from '@/boardgame/ai'
+import {
+  melByBotKoupit,
+  melByBotPrijmoutObchod,
+  melByBotZvysitNabidkuDrazby,
+  pripravKartuBotuPexesa,
+  pripravPresnostBotuRychleAukce,
+  pripravSmerBota,
+  zvazBotuNabidkuObchodu,
+} from '@/boardgame/ai'
 import { vytvorHrace, vytvorTrhStav } from '@/boardgame/engine'
 import { OBCHODY_PODLE_KLICE } from '@/boardgame/obchody'
-import type { NabidkaObchodu } from '@/boardgame/types'
+import type { PolozkaDrazby } from '@/boardgame/data/minihry'
+import type { NabidkaObchodu, StavDrazby, StavPexesa } from '@/boardgame/types'
 
 /** Vrátí zafrontované hodnoty v pořadí volání — appka tak umí
  *  injektovat víc po sobě jdoucích `nahodne()` volání najednou,
@@ -133,5 +142,73 @@ describe('melByBotPrijmoutObchod (Fáze 5)', () => {
     const bot = { ...vytvorHrace('bot', 'Bot', 'gros', true, { x: 0, z: 0 }), penize: 150 }
     // Zisk (500) > výdaj (100), ale 150 - 100 = 50 < rezerva 100
     expect(melByBotPrijmoutObchod(bot, nabidka({ nabizenePenize: 500, pozadovanePenize: 100 }))).toBe(false)
+  })
+})
+
+// ==========================================
+// Fáze 6 — minihry. Poslední tři, poslední rozhodnutí bota.
+// ==========================================
+
+describe('pripravKartuBotuPexesa (Fáze 6)', () => {
+  const stavPexesa = (otevrene: number[] = [], nalezene: number[] = []): StavPexesa => ({
+    typ: 'pexeso',
+    karty: [0, 1, 2, 3].map((i) => ({ symbol: String(i), nalezena: nalezene.includes(i) })),
+    otevrene,
+    cekaNaPotvrzeni: false,
+    pokusy: 0,
+  })
+
+  it('vybere jen mezi kartami, co nejsou nalezené ani zrovna otočené', () => {
+    const m = stavPexesa([1], [0])
+    for (const nahodne of [0, 0.5, 0.99]) {
+      const index = pripravKartuBotuPexesa(m, () => nahodne)
+      expect([2, 3]).toContain(index)
+    }
+  })
+
+  it('je deterministický pro stejnou injektovanou náhodu', () => {
+    const m = stavPexesa()
+    expect(pripravKartuBotuPexesa(m, () => 0.4)).toBe(pripravKartuBotuPexesa(m, () => 0.4))
+  })
+})
+
+describe('melByBotZvysitNabidkuDrazby (Fáze 6)', () => {
+  const polozka: PolozkaDrazby = { id: 'prsten', nazev: 'Zlatý prsten', ikona: '💍', vyvolavaciCena: 80, hodnota: 150 }
+  const stavDrazby = (aktualniNabidka: number): StavDrazby => ({
+    typ: 'drazba',
+    polozkaId: polozka.id,
+    aktualniNabidka,
+    vedeId: null,
+    poradiUcastniku: ['bot'],
+    indexNaTahu: 0,
+  })
+
+  it('přihodí, pokud nová nabídka nepřesáhne hodnotu předmětu a zbyde rezerva', () => {
+    const bot = { ...vytvorHrace('bot', 'Bot', 'gros', true, { x: 0, z: 0 }), penize: 1000 }
+    expect(melByBotZvysitNabidkuDrazby(bot, stavDrazby(100), polozka)).toBe(true) // nová nabídka 120 <= 150
+  })
+
+  it('nepřihodí, pokud by nová nabídka přesáhla skutečnou hodnotu předmětu', () => {
+    const bot = { ...vytvorHrace('bot', 'Bot', 'gros', true, { x: 0, z: 0 }), penize: 1000 }
+    expect(melByBotZvysitNabidkuDrazby(bot, stavDrazby(140), polozka)).toBe(false) // nová nabídka 160 > 150
+  })
+
+  it('nepřihodí, pokud by po zaplacení nové nabídky klesl pod rezervu', () => {
+    const bot = { ...vytvorHrace('bot', 'Bot', 'gros', true, { x: 0, z: 0 }), penize: 150 }
+    expect(melByBotZvysitNabidkuDrazby(bot, stavDrazby(60), polozka)).toBe(false) // nová nabídka 80, 150-80=70 < rezerva 100
+  })
+})
+
+describe('pripravPresnostBotuRychleAukce (Fáze 6)', () => {
+  it('vrátí hodnotu v rozsahu [30, 85), nikdy celé 0–100', () => {
+    for (const nahodne of [0, 0.5, 0.999]) {
+      const presnost = pripravPresnostBotuRychleAukce(() => nahodne)
+      expect(presnost).toBeGreaterThanOrEqual(30)
+      expect(presnost).toBeLessThan(85)
+    }
+  })
+
+  it('je deterministický pro stejnou injektovanou náhodu', () => {
+    expect(pripravPresnostBotuRychleAukce(() => 0.4)).toBe(pripravPresnostBotuRychleAukce(() => 0.4))
   })
 })

@@ -693,3 +693,102 @@
   font-size: 0.8rem;
   color: var(--text-primary);
 }
+
+/* ---------- Minihry (Fáze 6) ----------
+   Tři panely sdílející stejný "glass karta" jazyk jako sabotáž/obchod
+   výš (.trh-sabotaz-sheet/.trh-obchod-nabidka), žádný nový vizuální
+   styl, jen další tři obsahy ve stejné rodině. */
+
+.trh-pexeso {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.trh-pexeso-mrizka {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.trh-pexeso-karta {
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-strong);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 1.3rem;
+  cursor: pointer;
+}
+
+.trh-pexeso-karta:disabled {
+  cursor: default;
+}
+
+.trh-pexeso-karta.je-odkryta {
+  background: rgba(76, 175, 106, 0.12);
+  border-color: var(--accent-cyan);
+}
+
+.trh-pexeso-karta.je-nalezena {
+  background: rgba(76, 175, 106, 0.22);
+  opacity: 0.6;
+}
+
+.trh-drazba {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.trh-rychla-aukce {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: center;
+}
+
+.trh-aukce-hra {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.trh-aukce-draha {
+  position: relative;
+  width: 100%;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  overflow: hidden;
+}
+
+.trh-aukce-cil {
+  position: absolute;
+  left: calc(50% - 10%);
+  top: 0;
+  bottom: 0;
+  width: 20%;
+  background: rgba(245, 196, 81, 0.25);
+}
+
+.trh-aukce-znacka {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  width: 6px;
+  margin-left: -3px;
+  border-radius: var(--radius-pill);
+  background: #f5c451;
+  box-shadow: 0 0 8px rgba(245, 196, 81, 0.6);
+}

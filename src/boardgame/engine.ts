@@ -1,11 +1,22 @@
-import type { FazeTahu, Hrac, LimitMinut, Pole2D, Smer, TrhStav } from './types'
+import type { FazeTahu, Hrac, LimitMinut, Pole2D, ProbihajiciMinihra, Smer, TrhStav } from './types'
 import type { PostavaId } from './postavy'
 import { najdiObchodNaPoli, OBCHODY_PODLE_KLICE } from './obchody'
 import { jeOsudovePole } from './osud'
 import { jeKoloStestiPole } from './kolostesti'
+import { jeMinihrovePole } from './minihry'
 import { UDALOSTI, type EfektUdalosti } from './data/udalosti'
 import { vyberVysledekKola, type EfektKola } from './data/kolaStesti'
 import { SABOTAZNI_AKCE } from './data/sabotaze'
+import {
+  MINIHRY_PODLE_TYPU,
+  odmenaZaPexeso,
+  POLOZKY_DRAZBY,
+  POLOZKY_DRAZBY_PODLE_ID,
+  PRIHOZ_DRAZBY,
+  stupenOdmenyRychleAukce,
+  SYMBOLY_PEXESA,
+  vyberTypMinihry,
+} from './data/minihry'
 
 // ==========================================
 // Buddyho Trh — čistý herní engine, stejná disciplína jako
@@ -69,6 +80,7 @@ export const vytvorTrhStav = (hraci: Hrac[], limitMinut: LimitMinut = VYCHOZI_LI
   vlastnictvi: {},
   nabidkaKoupe: null,
   nabidkaObchodu: null,
+  minihra: null,
   posledniUdalost: null,
   posledniVysledekKolaId: null,
   kolostestiPocet: 0,
@@ -188,6 +200,48 @@ const aplikujEfektKola = (hraci: Hrac[], hracId: string, efekt: EfektKola): Hrac
   }
 }
 
+/** Zamíchá dvanáct karet pexesa (šest dvojic, viz data/minihry.ts's
+ *  SYMBOLY_PEXESA) — standardní Fisher-Yates, stejný injektovatelný
+ *  `nahodne` jako zbytek enginu, žádné druhé, nezávislé míchání jinde
+ *  v appce. */
+const zamichejKartyPexesa = (nahodne: () => number): { symbol: string; nalezena: boolean }[] => {
+  const symboly = [...SYMBOLY_PEXESA, ...SYMBOLY_PEXESA]
+  for (let i = symboly.length - 1; i > 0; i--) {
+    const j = Math.floor(nahodne() * (i + 1))
+    ;[symboly[i], symboly[j]] = [symboly[j], symboly[i]]
+  }
+  return symboly.map((symbol) => ({ symbol, nalezena: false }))
+}
+
+/** Otevře novou minihru (Fáze 6) na políčku, na které hráč `hracId`
+ *  doběhl — appka nejdřív vybere typ (vyberTypMinihry), pak pro něj
+ *  sestaví počáteční stav. Dražba (viz StavDrazby's vlastní komentář
+ *  v types.ts) jede jedno kolo dokola počínaje hráčem, co na pole
+ *  doběhl — appka proto otočí `stav.poradiHracu` tak, ať ten hráč
+ *  stojí na indexu 0. */
+const otevriMinihru = (stav: TrhStav, hracId: string, nahodne: () => number): ProbihajiciMinihra => {
+  const definice = vyberTypMinihry(nahodne)
+  switch (definice.typ) {
+    case 'pexeso':
+      return { typ: 'pexeso', karty: zamichejKartyPexesa(nahodne), otevrene: [], cekaNaPotvrzeni: false, pokusy: 0 }
+    case 'drazba': {
+      const polozka = POLOZKY_DRAZBY[Math.min(Math.floor(nahodne() * POLOZKY_DRAZBY.length), POLOZKY_DRAZBY.length - 1)]
+      const indexHrace = Math.max(0, stav.poradiHracu.indexOf(hracId))
+      const poradiUcastniku = [...stav.poradiHracu.slice(indexHrace), ...stav.poradiHracu.slice(0, indexHrace)]
+      return {
+        typ: 'drazba',
+        polozkaId: polozka.id,
+        aktualniNabidka: polozka.vyvolavaciCena - PRIHOZ_DRAZBY,
+        vedeId: null,
+        poradiUcastniku,
+        indexNaTahu: 0,
+      }
+    }
+    case 'rychla-aukce':
+      return { typ: 'rychla-aukce' }
+  }
+}
+
 /** Posune aktivního hráče o jedno pole daným směrem. Krok mimo mřížku
  *  je tiše zahozen (nespotřebuje krok) — hráč prostě nemůže tím
  *  směrem, ne že by přišel o pohyb navíc za to, že to zkusil. Fáze
@@ -216,6 +270,7 @@ export const krokPohybu = (stav: TrhStav, smer: Smer, nahodne: () => number = Ma
   let posledniUdalost = stav.posledniUdalost
   let posledniVysledekKolaId = stav.posledniVysledekKolaId
   let kolostestiPocet = stav.kolostestiPocet
+  let minihra: ProbihajiciMinihra | null = null
 
   if (doslo) {
     const obchod = najdiObchodNaPoli(novaPozice)
@@ -244,6 +299,10 @@ export const krokPohybu = (stav: TrhStav, smer: Smer, nahodne: () => number = Ma
       posledniUdalost = `🎡 ${hrac.jmeno}: ${vysledek.text}`
       posledniVysledekKolaId = vysledek.id
       kolostestiPocet = stav.kolostestiPocet + 1
+    } else if (jeMinihrovePole(novaPozice)) {
+      minihra = otevriMinihru(stav, hrac.id, nahodne)
+      const definice = MINIHRY_PODLE_TYPU[minihra.typ]
+      posledniUdalost = `🎮 ${hrac.jmeno} spustil(a) minihru: ${definice.nazev}!`
     }
   }
 
@@ -253,6 +312,7 @@ export const krokPohybu = (stav: TrhStav, smer: Smer, nahodne: () => number = Ma
     zbyvaKroku: zbyva,
     faze: doslo ? ('konec-tahu' as FazeTahu) : ('pohyb' as FazeTahu),
     nabidkaKoupe,
+    minihra,
     posledniUdalost,
     posledniVysledekKolaId,
     kolostestiPocet,
@@ -307,9 +367,10 @@ export const odmitnoutKoupi = (stav: TrhStav): TrhStav => {
  *  vzájemně se vylučují) tohle je JEDINÉ místo mimo `ukonciTah`, kde se
  *  musí hlídat výslovně — fáze sama zůstává 'konec-tahu' po celou dobu
  *  obchodní nabídky, takže by `provedSabotaz` jinak prošel i uprostřed
- *  ještě nevyřízeného obchodu. */
+ *  ještě nevyřízeného obchodu. Stejný důvod platí pro `stav.minihra`
+ *  (Fáze 6) — dokud běží minihra, sabotáž musí počkat. */
 export const provedSabotaz = (stav: TrhStav, akceId: string, cilId: string): TrhStav => {
-  if (stav.faze !== 'konec-tahu' || stav.konec || stav.nabidkaKoupe || stav.nabidkaObchodu) return stav
+  if (stav.faze !== 'konec-tahu' || stav.konec || stav.nabidkaKoupe || stav.nabidkaObchodu || stav.minihra) return stav
   const utocnik = aktivniHrac(stav)
   if (!utocnik || utocnik.sabotazPouzita || cilId === utocnik.id) return stav
 
@@ -369,9 +430,14 @@ export const provedSabotaz = (stav: TrhStav, akceId: string, cilId: string): Trh
  *
  *  Teprve VĚTEV, co `aktivniIndex` doopravdy přesune na dalšího
  *  hráče, resetuje JEHO `sabotazPouzita` na `false` — ten hráč tak
- *  vždycky dostane čistou, nepoužitou sabotáž, až na něj přijde řada. */
+ *  vždycky dostane čistou, nepoužitou sabotáž, až na něj přijde řada.
+ *
+ *  `stav.minihra` (Fáze 6) blokuje stejně jako `nabidkaKoupe`/
+ *  `nabidkaObchodu` výš — appka by jinak mohla předat tah (a u
+ *  bonusového hodu rovnou otočit na druhý hod) uprostřed ještě
+ *  nevyřešené minihry. */
 export const ukonciTah = (stav: TrhStav): TrhStav => {
-  if (stav.faze === 'hod' || stav.konec || stav.nabidkaKoupe || stav.nabidkaObchodu) return stav
+  if (stav.faze === 'hod' || stav.konec || stav.nabidkaKoupe || stav.nabidkaObchodu || stav.minihra) return stav
   const hrac = aktivniHrac(stav)
   if (hrac?.maBonusovyHod) {
     return {
@@ -427,7 +493,9 @@ const vlastniVsechnaPole = (hracId: string, pole: string[], stav: TrhStav): bool
  *  kterákoli strana nevlastní všechna pole, co má podle nabídky dát.
  *  Stejná "nedůvěřuj volajícímu" disciplína jako `koupitPole`/
  *  `provedSabotaz` — appka to ověřuje znovu uvnitř funkce samotné, bez
- *  ohledu na to, co už zkontrolovalo volající UI. */
+ *  ohledu na to, co už zkontrolovalo volající UI. S čekající minihrou
+ *  (Fáze 6, `stav.minihra`) je taky no-op, ze stejného důvodu jako
+ *  `provedSabotaz`/`ukonciTah`. */
 export const navrhniObchod = (
   stav: TrhStav,
   odKoho: string,
@@ -437,7 +505,7 @@ export const navrhniObchod = (
   pozadovanePenize: number,
   pozadovanaPole: string[]
 ): TrhStav => {
-  if (stav.faze !== 'konec-tahu' || stav.konec || stav.nabidkaKoupe || stav.nabidkaObchodu) return stav
+  if (stav.faze !== 'konec-tahu' || stav.konec || stav.nabidkaKoupe || stav.nabidkaObchodu || stav.minihra) return stav
   if (odKoho === komu) return stav
   const navrhovatel = stav.hraci.find((h) => h.id === odKoho)
   const cil = stav.hraci.find((h) => h.id === komu)
@@ -551,6 +619,148 @@ export const navrhniProtinabidku = (
   return {
     ...vysledek,
     posledniUdalost: `🔁 ${novyNavrhovatel?.jmeno ?? '?'} poslal(a) protinabídku zpátky ${novyCil?.jmeno ?? '?'}.`,
+  }
+}
+
+// ==========================================
+// Fáze 6 — minihry na políčkách. Na rozdíl od sabotáže/obchodu (volba
+// aktivního hráče) nebo Osudu/kola štěstí (jediné vytažení) je
+// minihra dvoufázová: `krokPohybu` výš jen OTEVŘE `stav.minihra` (viz
+// otevriMinihru), teprve funkce níž ji VYŘEŠÍ — jedním voláním u
+// rychlé aukce, několika postupnými u pexesa/dražby. Všechny tři
+// sdílí stejnou "nedůvěřuj volajícímu" disciplínu jako
+// koupitPole/provedSabotaz/navrhniObchod výš.
+// ==========================================
+
+/** Otočí jednu kartu pexesa — no-op mimo pexeso, na neplatný/už
+ *  otočený/už nalezený index, nebo dokud appka čeká na potvrzení
+ *  neshody (viz StavPexesa's vlastní komentář v types.ts). Appka
+ *  dvojici vyhodnotí hned, jakmile je otočená druhá karta: shoda obě
+ *  označí za nalezené a (pokud to byla poslední dvojice) rovnou
+ *  vyplatí odměnu a minihru ukončí; neshoda obě nechá otočené a čeká
+ *  na `potvrdNeshoduPexesa`. */
+export const otocitKartuPexesa = (stav: TrhStav, index: number): TrhStav => {
+  if (stav.minihra?.typ !== 'pexeso' || stav.konec) return stav
+  const m = stav.minihra
+  if (m.cekaNaPotvrzeni) return stav
+  if (index < 0 || index >= m.karty.length) return stav
+  if (m.karty[index].nalezena || m.otevrene.includes(index)) return stav
+
+  const noveOtevrene = [...m.otevrene, index]
+  if (noveOtevrene.length < 2) {
+    return { ...stav, minihra: { ...m, otevrene: noveOtevrene } }
+  }
+
+  const [i1, i2] = noveOtevrene
+  const shoda = m.karty[i1].symbol === m.karty[i2].symbol
+  const pokusy = m.pokusy + 1
+
+  if (!shoda) {
+    return { ...stav, minihra: { ...m, otevrene: noveOtevrene, cekaNaPotvrzeni: true, pokusy } }
+  }
+
+  const noveKarty = m.karty.map((k, idx) => (idx === i1 || idx === i2 ? { ...k, nalezena: true } : k))
+  const vsechnyNalezeny = noveKarty.every((k) => k.nalezena)
+  if (!vsechnyNalezeny) {
+    return { ...stav, minihra: { ...m, karty: noveKarty, otevrene: [], pokusy } }
+  }
+
+  const hrac = aktivniHrac(stav)!
+  const odmena = odmenaZaPexeso(pokusy)
+  return {
+    ...stav,
+    hraci: stav.hraci.map((h) => (h.id === hrac.id ? { ...h, penize: h.penize + odmena } : h)),
+    minihra: null,
+    posledniUdalost: `🧠 ${hrac.jmeno} vyluštil(a) pexeso na ${pokusy}. pokus — +${odmena} kreditů!`,
+  }
+}
+
+/** Potvrdí, že appka/hráč viděl(a) neshodnou dvojici, a otočí obě
+ *  karty zpátky — no-op mimo pexeso nebo dokud appka na potvrzení
+ *  zrovna nečeká. */
+export const potvrdNeshoduPexesa = (stav: TrhStav): TrhStav => {
+  if (stav.minihra?.typ !== 'pexeso' || !stav.minihra.cekaNaPotvrzeni) return stav
+  return { ...stav, minihra: { ...stav.minihra, otevrene: [], cekaNaPotvrzeni: false } }
+}
+
+/** Vyhodnotí dokončenou dražbu (appka ji volá, jakmile `indexNaTahu`
+ *  doběhne na konec `poradiUcastniku`, viz zvysNabidkuDrazby/
+ *  odstupOdDrazby níž) — appka vítězi (pokud vůbec někdo přihodil)
+ *  strhne `aktualniNabidka` a PŘIPÍŠE `hodnota` předmětu, obojí v
+ *  jednom kroku (viz PolozkaDrazby's vlastní komentář proč to appka
+ *  nedělá jako dvě oddělené transakce). */
+const vyhodnotDrazbu = (stav: TrhStav, m: { polozkaId: string; aktualniNabidka: number; vedeId: string | null }): TrhStav => {
+  const polozka = POLOZKY_DRAZBY_PODLE_ID[m.polozkaId]
+  if (!polozka) return { ...stav, minihra: null }
+
+  if (!m.vedeId) {
+    return { ...stav, minihra: null, posledniUdalost: `🔨 Nikdo nenabídl na ${polozka.nazev} — dražba bez vítěze.` }
+  }
+
+  const vitez = stav.hraci.find((h) => h.id === m.vedeId)
+  if (!vitez) return { ...stav, minihra: null }
+
+  return {
+    ...stav,
+    hraci: stav.hraci.map((h) =>
+      h.id === vitez.id ? { ...h, penize: h.penize - m.aktualniNabidka + polozka.hodnota } : h
+    ),
+    minihra: null,
+    posledniUdalost: `🔨 ${vitez.jmeno} vydražil(a) ${polozka.nazev} za ${m.aktualniNabidka} kreditů!`,
+  }
+}
+
+/** Přihodí v probíhající dražbě — no-op mimo dražbu, mimo tah
+ *  volajícího hráče, nebo pokud by mu po zaplacení nového přihození
+ *  nezbylo dost peněz. Appka jde kolem `poradiUcastniku` přesně
+ *  jednou (viz StavDrazby's vlastní komentář v types.ts), takže
+ *  `indexNaTahu` roste bez ohledu na výsledek, a jakmile dosáhne
+ *  konce pole, appka rovnou zavolá vyhodnotDrazbu. */
+export const zvysNabidkuDrazby = (stav: TrhStav, hracId: string): TrhStav => {
+  if (stav.minihra?.typ !== 'drazba' || stav.konec) return stav
+  const m = stav.minihra
+  if (m.indexNaTahu >= m.poradiUcastniku.length || m.poradiUcastniku[m.indexNaTahu] !== hracId) return stav
+
+  const hrac = stav.hraci.find((h) => h.id === hracId)
+  const novaNabidka = m.aktualniNabidka + PRIHOZ_DRAZBY
+  if (!hrac || hrac.penize < novaNabidka) return stav
+
+  const novyM = { ...m, aktualniNabidka: novaNabidka, vedeId: hracId, indexNaTahu: m.indexNaTahu + 1 }
+  if (novyM.indexNaTahu >= novyM.poradiUcastniku.length) return vyhodnotDrazbu(stav, novyM)
+  return { ...stav, minihra: novyM, posledniUdalost: `${hrac.jmeno} nabízí ${novaNabidka} kreditů.` }
+}
+
+/** Vzdá se v probíhající dražbě (bez přihození) — stejné strážní
+ *  podmínky jako zvysNabidkuDrazby, jen beze změny nabídky/vedoucího. */
+export const odstupOdDrazby = (stav: TrhStav, hracId: string): TrhStav => {
+  if (stav.minihra?.typ !== 'drazba' || stav.konec) return stav
+  const m = stav.minihra
+  if (m.indexNaTahu >= m.poradiUcastniku.length || m.poradiUcastniku[m.indexNaTahu] !== hracId) return stav
+
+  const hrac = stav.hraci.find((h) => h.id === hracId)
+  const novyM = { ...m, indexNaTahu: m.indexNaTahu + 1 }
+  if (novyM.indexNaTahu >= novyM.poradiUcastniku.length) return vyhodnotDrazbu(stav, novyM)
+  return { ...stav, minihra: novyM, posledniUdalost: `${hrac?.jmeno ?? '?'} se dražby vzdal(a).` }
+}
+
+/** Vyhodnotí rychlou aukci s časovačem — appka bere `presnost` (0–100)
+ *  jako hotový vstup, sama žádný reálný čas neřeší (viz data/
+ *  minihry.ts's vlastní komentář u ODMENY_RYCHLE_AUKCE, proč tahle
+ *  funkce zůstává čistě deterministická, i když appka ji v
+ *  Deska.tsx volá z reálně odměřeného zásahu). No-op mimo rychlou
+ *  aukci. */
+export const vyhodnotRychlouAukci = (stav: TrhStav, presnost: number): TrhStav => {
+  if (stav.minihra?.typ !== 'rychla-aukce' || stav.konec) return stav
+  const hrac = aktivniHrac(stav)
+  if (!hrac) return { ...stav, minihra: null }
+
+  const stupen = stupenOdmenyRychleAukce(presnost)
+  return {
+    ...stav,
+    hraci: stupen.odmena !== 0 ? stav.hraci.map((h) => (h.id === hrac.id ? { ...h, penize: h.penize + stupen.odmena } : h)) : stav.hraci,
+    minihra: null,
+    posledniUdalost:
+      stupen.odmena > 0 ? `⚡ ${hrac.jmeno}: ${stupen.text} (+${stupen.odmena} kreditů)` : `⚡ ${hrac.jmeno}: ${stupen.text}`,
   }
 }
 
