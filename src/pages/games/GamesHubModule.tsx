@@ -29,14 +29,14 @@ import './GamesHubModule.css'
 // byl schovaný čistě kvůli soustředění release na Souboj, ne kvůli
 // nehotovosti (postavy, levelování, výbava, inventář, 3D průzkum,
 // questy i příběh Season 1 napříč pěti lokacemi jsou dávno hotové,
-// chybí jen 25 z 30 plánovaných vedlejších questů). Buddyho Trh
-// zůstává schovaný — z vlastního odsouhlaseného rozsahu mu pořád
-// chybí karty událostí, sabotáž, kolo štěstí, obchodování mezi hráči
-// a skutečná 3D grafika. Vrátit ho zpátky znamená: přidat mu sem
-// znovu skutečnou kartu, odkomentovat jeho lazy import v App.tsx a
-// přehodit jeho routu z <Navigate to="/hra" replace /> zpátky na
-// skutečný element — stejný "hide, keep documented, one-line revert"
-// postup, co appka použila na Buddyheima i Souboj.
+// chybí jen 25 z 30 plánovaných vedlejších questů). BUDDYHO TRH je
+// poslední odkrytá hra — na uživatelovu výslovnou žádost ("ještě tu
+// poslední hru odkrej, přidej jj do menu v play") dostává svou vlastní
+// kartu, i když appčina vlastní dokumentace (CLAUDE.md) pořád vědomě
+// přiznává chybějící síťový režim telefon+TV jako jedinou dál odloženou
+// položku — hra je plně hratelná lokálně (pass-and-play i sólo proti
+// botům), ekonomika/karty/sabotáž/obchodování/minihry i profesionální
+// grafika (Fáze 1–7) jsou dávno hotové.
 //
 // SURVIVAL NIGHT (src/survival/) je čtvrtá, nová hra a PRVNÍ, co se
 // tu doopravdy hraje — nahrazuje bývalé "Připravuje se" skutečnou,
@@ -156,7 +156,7 @@ export const GamesHubModule: React.FC = () => {
 
           <div className="bz-hlavicka">
             <h1 className="bz-nadpis">Vyber si hru</h1>
-            <p className="bz-podnadpis">Buddyheim je zpátky. Souboj a Survival Night tě taky čekají.</p>
+            <p className="bz-podnadpis">Buddyheim je zpátky. Souboj, Survival Night i Buddyho Trh tě taky čekají.</p>
           </div>
 
           <div className="bz-obsah">
@@ -205,6 +205,20 @@ export const GamesHubModule: React.FC = () => {
               <span className="bz-hra-karta-text">
                 <span className="bz-hra-karta-nazev">Čtyři království</span>
                 <span className="bz-hra-karta-popis">Souboj o trůn pro 2–4 hráče. Sbírej zlato a drahokamy — vyhrává nejbohatší, ne nejrychlejší.</span>
+              </span>
+              <span className="bz-hra-karta-hrat">HRÁT ▶</span>
+            </button>
+
+            <button className="bz-hra-karta bz-hra-karta--trh" onClick={() => navigate('/hra/trh')}>
+              <span className="bz-hra-karta-znak" aria-hidden="true">
+                🏪
+              </span>
+              <span className="bz-hra-karta-text">
+                <span className="bz-hra-karta-nazev">Buddyho Trh</span>
+                <span className="bz-hra-karta-popis">
+                  Deskovka pro 2–6 hráčů (i sólo proti botům) — kup obchody, vybírej nájem, obchoduj, sabotuj a
+                  zkoušej minihry na otevřené herní desce.
+                </span>
               </span>
               <span className="bz-hra-karta-hrat">HRÁT ▶</span>
             </button>

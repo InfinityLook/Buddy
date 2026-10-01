@@ -43,6 +43,13 @@ const CtyriKralovstvi = lazy(() => import('@/boardgame/CtyriKralovstvi.tsx'))
 // funguje"), takže appka hru vrací zpátky. Stejný líný import jako
 // SocialModule/SurvivalModule/CtyriKralovstvi výš.
 const FightingModule = lazy(() => import('@/fighting/FightingModule.tsx'))
+// Buddyho Trh (deskovka, src/boardgame/) byla schovaná od svého prvního
+// commitu, ne vrácená zpátky jako Souboj/Buddyheim výš — appka ji sem
+// teď poprvé skutečně zapojuje, na uživatelovu žádost odkrýt poslední
+// hru, i když appčina vlastní dokumentace (CLAUDE.md) pořád vědomě
+// přiznává chybějící síťový režim telefon+TV jako jedinou dál odloženou
+// položku. Stejný líný import jako CtyriKralovstvi/FightingModule výš.
+const BoardgameModule = lazy(() => import('@/boardgame/BoardgameModule.tsx'))
 import { BootGate } from '@/components/BootGate'
 import { BiometricLock } from '@/components/BiometricLock'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
@@ -288,7 +295,18 @@ export default function App() {
                 )
               }
             />
-            <Route path="/hra/trh" element={<Navigate to="/hra" replace />} />
+            <Route
+              path="/hra/trh"
+              element={
+                dovnitr ? (
+                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
+                    <BoardgameModule />
+                  </Suspense>
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
 
             <Route
               path="/hra/souboj"

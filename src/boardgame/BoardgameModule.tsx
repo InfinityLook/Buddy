@@ -73,9 +73,9 @@ export const BoardgameModule: React.FC = () => {
       </button>
 
       <p className="trh-faze-poznamka">
-        Fáze 4 — mřížka, kostka, pohyb, nákup obchodů, nájmy, časový limit hry, karty událostí (Osud), kolo štěstí a
-        sabotáž mezi hráči. Obchodování mezi hráči, minihry, skutečná 3D grafika a hraní přes víc telefonů přijdou v
-        dalších fázích.
+        Mřížka, kostka, pohyb, nákup obchodů, nájmy, časový limit hry, karty událostí (Osud), kolo štěstí, sabotáž i
+        obchodování mezi hráči a tři minihry (pexeso, dražba, rychlá aukce) jsou hotové. Hraní přes víc telefonů a
+        sdílenou TV přijde v pozdější fázi.
       </p>
     </div>
   )
