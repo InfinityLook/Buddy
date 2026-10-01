@@ -73,8 +73,8 @@ export const BoardgameModule: React.FC = () => {
       </button>
 
       <p className="trh-faze-poznamka">
-        Fáze 2 — mřížka, kostka, pohyb, nákup obchodů, nájmy, časový limit hry a karty událostí (Osud). Kolo štěstí,
-        sabotáže, obchodování mezi hráči, minihry, skutečná 3D grafika a hraní přes víc telefonů přijdou v dalších
+        Fáze 3 — mřížka, kostka, pohyb, nákup obchodů, nájmy, časový limit hry, karty událostí (Osud) a kolo štěstí.
+        Sabotáže, obchodování mezi hráči, minihry, skutečná 3D grafika a hraní přes víc telefonů přijdou v dalších
         fázích.
       </p>
     </div>

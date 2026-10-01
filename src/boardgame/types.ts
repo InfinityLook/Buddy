@@ -24,6 +24,12 @@ export interface Hrac {
    *  krokHodu), ne hned při vytažení karty, protože ji vytáhl
    *  uprostřed svého aktuálního tahu. */
   preskociTah: boolean
+  /** Nastaví výsledek "bonusový hod" kola štěstí (Fáze 3, viz
+   *  data/kolaStesti.ts) — na rozdíl od `preskociTah` (konzumováno v
+   *  krokHodu, na ZAČÁTKU příštího tahu) se tahle vlajka konzumuje v
+   *  `ukonciTah` HNED, ve stejném tahu, kdy padla: hráč tak dostane
+   *  druhý hod navíc, aniž by jeho tah doopravdy skončil. */
+  maBonusovyHod: boolean
 }
 
 export type Smer = 'nahoru' | 'dolu' | 'vlevo' | 'vpravo'
@@ -63,6 +69,18 @@ export interface TrhStav {
   /** Jedna řádka pro poslední ekonomickou událost (koupě/nájem) —
    *  appka ji ukazuje jako prostý text, žádná historie zpráv. */
   posledniUdalost: string | null
+  /** Id naposledy vytaženého výsledku kola štěstí (Fáze 3, viz
+   *  data/kolaStesti.ts) — čistě UI breadcrumb pro animaci dotočení
+   *  kola v Deska.tsx, engine sám tuhle hodnotu nikde zpátky nečte.
+   *  Stejné chování jako `posledniUdalost`: zůstává nastavené i do
+   *  dalšího tahu, dokud ho nepřepíše další vytažení. */
+  posledniVysledekKolaId: string | null
+  /** Kolikrát se za celou hru skutečně vytáhl výsledek kola štěstí —
+   *  ROSTOUCÍ čítač, ne jen poslední id, protože appka tak v
+   *  Deska.tsx pozná i opakování STEJNÉHO výsledku (dva různé tahy by
+   *  jinak sdílely identické `posledniVysledekKolaId` a animace by se
+   *  podruhé nespustila). */
+  kolostestiPocet: number
   limitMinut: LimitMinut
   /** Absolutní čas (Date.now()), kdy hra podle časového limitu
    *  skončí — appka to porovnává periodicky v komponentě

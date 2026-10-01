@@ -17,8 +17,10 @@ import {
   POCATECNI_PENIZE,
 } from '@/boardgame/engine'
 import { OSUD_POLE, jeOsudovePole } from '@/boardgame/osud'
+import { KOLO_STESTI_POLE, jeKoloStestiPole } from '@/boardgame/kolostesti'
 import { OBCHODY, klicPole } from '@/boardgame/obchody'
 import { UDALOSTI } from '@/boardgame/data/udalosti'
+import { VYSLEDKY_KOLA, vyberVysledekKola, stredovyUhelVysledku, conicGradientKola } from '@/boardgame/data/kolaStesti'
 
 // ==========================================
 // Buddyho Trh — Fáze 0. Stejná "žádný React, žádná síť, jen pravidla
@@ -367,5 +369,147 @@ describe('krokPohybu — vytažení karty na Osud poli (Fáze 2)', () => {
     expect(stav.faze).toBe('hod')
     expect(stav.aktivniIndex).toBe(1)
     expect(stav.hraci.find((h) => h.id === 'a')!.preskociTah).toBe(false)
+  })
+})
+
+// ==========================================
+// Fáze 3 — kolo štěstí. Jediné pole {3,3} (přesný střed 7×7 mřížky) —
+// testy staví hráče na {2,3} (sousední, prázdné pole) a hází kostkou
+// tak, ať na kolo doopravdy dojdou (hod 1 = jeden krok vpravo). Druhý
+// injektovaný `nahodne` argument krokPohybu vybere konkrétní výsledek
+// z VYSLEDKY_KOLA (viz přesné hranice vah v komentáři u testů níž).
+// ==========================================
+
+describe('Kolo štěstí pole — sanity (Fáze 3)', () => {
+  it('se nekryje s žádným obchodem ani Osud polem', () => {
+    const obchodKlice = new Set(OBCHODY.map((o) => o.klic))
+    expect(obchodKlice.has(klicPole(KOLO_STESTI_POLE))).toBe(false)
+    expect(jeOsudovePole(KOLO_STESTI_POLE)).toBe(false)
+  })
+
+  it('jeKoloStestiPole pozná jen tu jednu pozici', () => {
+    expect(jeKoloStestiPole(KOLO_STESTI_POLE)).toBe(true)
+    expect(jeKoloStestiPole({ x: 2, z: 3 })).toBe(false)
+    expect(jeKoloStestiPole({ x: 0, z: 0 })).toBe(false)
+  })
+})
+
+describe('VYSLEDKY_KOLA — pevná sada výsledků (Fáze 3)', () => {
+  it('má sedm výsledků s unikátními id, kladnými vahami a všemi třemi typy efektu', () => {
+    expect(VYSLEDKY_KOLA).toHaveLength(7)
+    expect(new Set(VYSLEDKY_KOLA.map((v) => v.id)).size).toBe(7)
+    for (const v of VYSLEDKY_KOLA) expect(v.vaha).toBeGreaterThan(0)
+    expect(VYSLEDKY_KOLA.filter((v) => v.efekt.typ === 'penize').length).toBeGreaterThan(0)
+    expect(VYSLEDKY_KOLA.filter((v) => v.efekt.typ === 'bonusovy-hod').length).toBeGreaterThan(0)
+    expect(VYSLEDKY_KOLA.filter((v) => v.efekt.typ === 'nic').length).toBeGreaterThan(0)
+  })
+})
+
+describe('vyberVysledekKola — vážená náhoda (Fáze 3)', () => {
+  // Celková váha je 21 (1+2+4+3+5+4+2); hranice segmentů v kumulativních
+  // vahách jsou 1, 3, 7, 10, 15, 19, 21 — každý test volí nahodne() těsně
+  // uvnitř příslušného rozsahu.
+  it.each([
+    [0, 'jackpot'],
+    [0.1, 'velka-vyhra'],
+    [0.2, 'mala-vyhra'],
+    [0.4, 'bonus-hod'],
+    [0.6, 'nic'],
+    [0.8, 'mala-smula'],
+    [0.95, 'velka-smula'],
+  ])('nahodne() = %s vybere výsledek %s', (hod, ocekavaneId) => {
+    expect(vyberVysledekKola(() => hod).id).toBe(ocekavaneId)
+  })
+})
+
+describe('stredovyUhelVysledku a conicGradientKola (Fáze 3)', () => {
+  it('vrátí úhel mezi 0 a 360 pro každý skutečný výsledek', () => {
+    for (const v of VYSLEDKY_KOLA) {
+      const uhel = stredovyUhelVysledku(v.id)
+      expect(uhel).toBeGreaterThanOrEqual(0)
+      expect(uhel).toBeLessThan(360)
+    }
+  })
+
+  it('pro neznámé id vrátí 0', () => {
+    expect(stredovyUhelVysledku('neexistuje')).toBe(0)
+  })
+
+  it('conicGradientKola sestaví platný CSS gradient se všemi barvami', () => {
+    const gradient = conicGradientKola()
+    expect(gradient).toMatch(/^conic-gradient\(/)
+    for (const v of VYSLEDKY_KOLA) expect(gradient).toContain(v.barva)
+  })
+})
+
+describe('krokPohybu — vytažení výsledku kola štěstí (Fáze 3)', () => {
+  it('doběhnutí na kolo štěstí vyhodnotí peněžní efekt', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 2, z: 3 })
+    let stav = vytvorTrhStav([h1])
+    stav = krokHodu(stav, () => 0) // hod 1
+    stav = krokPohybu(stav, 'vpravo', () => 0.1) // (2,3) -> (3,3), výsledek index 1: velka-vyhra +150
+    expect(aktivniHrac(stav)!.penize).toBe(POCATECNI_PENIZE + 150)
+    expect(stav.posledniUdalost).toContain('🎡')
+    expect(stav.posledniUdalost).toContain('Velká výhra')
+    expect(stav.posledniVysledekKolaId).toBe('velka-vyhra')
+    expect(stav.kolostestiPocet).toBe(1)
+    expect(stav.nabidkaKoupe).toBeNull()
+  })
+
+  it('"nic" výsledek nezmění peníze, jen zaznamená událost', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 2, z: 3 })
+    let stav = vytvorTrhStav([h1])
+    stav = krokHodu(stav, () => 0)
+    stav = krokPohybu(stav, 'vpravo', () => 0.6) // index 4: nic
+    expect(aktivniHrac(stav)!.penize).toBe(POCATECNI_PENIZE)
+    expect(stav.posledniVysledekKolaId).toBe('nic')
+    expect(stav.kolostestiPocet).toBe(1)
+  })
+
+  it('"bonusový hod" nastaví vlajku maBonusovyHod, ukonciTah ji hned spotřebuje a nepostoupí index', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 2, z: 3 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = vytvorTrhStav([h1, h2])
+    stav = krokHodu(stav, () => 0)
+    stav = krokPohybu(stav, 'vpravo', () => 0.4) // index 3: bonusovy-hod
+    expect(aktivniHrac(stav)!.maBonusovyHod).toBe(true)
+    expect(stav.faze).toBe('konec-tahu')
+
+    stav = ukonciTah(stav)
+    expect(stav.aktivniIndex).toBe(0) // zůstává na Anně, nepostoupí na Boba
+    expect(stav.faze).toBe('hod')
+    expect(aktivniHrac(stav)!.maBonusovyHod).toBe(false)
+  })
+
+  it('normální hráč (bez maBonusovyHod) se v ukonciTah chová jako dřív — postoupí index', () => {
+    let stav = noveDva()
+    stav = krokHodu(stav, () => 0.5)
+    expect(aktivniHrac(stav)!.maBonusovyHod).toBe(false)
+    stav = ukonciTah(stav)
+    expect(stav.aktivniIndex).toBe(1)
+    expect(stav.faze).toBe('hod')
+  })
+
+  it('dvouhráčová scéna: hráč A odehraje bonusový hod, teprve pak ukonciTah předá tah hráči B', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 2, z: 3 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = vytvorTrhStav([h1, h2])
+
+    stav = krokHodu(stav, () => 0)
+    stav = krokPohybu(stav, 'vpravo', () => 0.4) // Anna doběhne na kolo štěstí, bonusový hod
+    stav = ukonciTah(stav)
+    expect(stav.aktivniIndex).toBe(0)
+    expect(stav.faze).toBe('hod')
+
+    // Anna hraje svůj bonusový hod — tentokrát na obyčejné pole, žádná
+    // další událost.
+    stav = krokHodu(stav, () => 0)
+    stav = krokPohybu(stav, 'vlevo') // (3,3) -> (2,3), obyčejné pole
+    expect(stav.faze).toBe('konec-tahu')
+    expect(stav.nabidkaKoupe).toBeNull()
+    expect(aktivniHrac(stav)!.maBonusovyHod).toBe(false)
+
+    stav = ukonciTah(stav)
+    expect(stav.aktivniIndex).toBe(1) // teprve teď se tah doopravdy předá Bobovi
   })
 })

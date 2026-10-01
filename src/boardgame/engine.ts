@@ -2,7 +2,9 @@ import type { FazeTahu, Hrac, LimitMinut, Pole2D, Smer, TrhStav } from './types'
 import type { PostavaId } from './postavy'
 import { najdiObchodNaPoli, OBCHODY_PODLE_KLICE } from './obchody'
 import { jeOsudovePole } from './osud'
+import { jeKoloStestiPole } from './kolostesti'
 import { UDALOSTI, type EfektUdalosti } from './data/udalosti'
+import { vyberVysledekKola, type EfektKola } from './data/kolaStesti'
 
 // ==========================================
 // Buddyho Trh — čistý herní engine, stejná disciplína jako
@@ -35,6 +37,7 @@ export const vytvorHrace = (
   penize: POCATECNI_PENIZE,
   jeBot,
   preskociTah: false,
+  maBonusovyHod: false,
 })
 
 /** Rozmístí hráče na okraj mřížky, ať nezačínají na sobě navzájem —
@@ -64,6 +67,8 @@ export const vytvorTrhStav = (hraci: Hrac[], limitMinut: LimitMinut = VYCHOZI_LI
   vlastnictvi: {},
   nabidkaKoupe: null,
   posledniUdalost: null,
+  posledniVysledekKolaId: null,
+  kolostestiPocet: 0,
   limitMinut,
   konecCasuMs: Date.now() + limitMinut * 60_000,
 })
@@ -143,18 +148,35 @@ const aplikujEfektKarty = (hraci: Hrac[], hracId: string, efekt: EfektUdalosti, 
   }
 }
 
+/** Aplikuje efekt vytaženého výsledku kola štěstí (Fáze 3) — stejná
+ *  čistá, žádný-vedlejší-účinek-mimo-vrácené-pole disciplína jako
+ *  aplikujEfektKarty výš. 'bonusovy-hod' jen nastaví vlajku, skutečný
+ *  druhý hod řeší `ukonciTah` (viz jeho vlastní komentář) — ne krokHodu
+ *  jako u preskociTah, protože se tahle vlajka konzumuje HNED ve
+ *  stejném tahu, ne na začátku příštího. */
+const aplikujEfektKola = (hraci: Hrac[], hracId: string, efekt: EfektKola): Hrac[] => {
+  switch (efekt.typ) {
+    case 'penize':
+      return hraci.map((h) => (h.id === hracId ? { ...h, penize: Math.max(0, h.penize + efekt.castka) } : h))
+    case 'bonusovy-hod':
+      return hraci.map((h) => (h.id === hracId ? { ...h, maBonusovyHod: true } : h))
+    case 'nic':
+      return hraci
+  }
+}
+
 /** Posune aktivního hráče o jedno pole daným směrem. Krok mimo mřížku
  *  je tiše zahozen (nespotřebuje krok) — hráč prostě nemůže tím
  *  směrem, ne že by přišel o pohyb navíc za to, že to zkusil. Fáze
  *  přejde na 'konec-tahu', jakmile dojdou kroky — a jen tehdy, na
  *  úplně poslední doběhnuté políčko, se řeší ekonomika (nájem/nabídka
- *  koupě) nebo karta Osudu (Fáze 2), stejně jako v Monopoly rozhoduje
- *  jen políčko, na kterém hráč doopravdy skončí, ne ta, přes která
- *  jen prošel.
+ *  koupě), karta Osudu (Fáze 2) nebo kolo štěstí (Fáze 3), stejně jako
+ *  v Monopoly rozhoduje jen políčko, na kterém hráč doopravdy skončí,
+ *  ne ta, přes která jen prošel.
  *
  *  `nahodne` je injektovatelné (stejně jako u krokHodu) kvůli
- *  deterministickým testům vytažené karty — appka ho jinak v reálné
- *  hře vůbec neřeší, defaultní Math.random stačí. */
+ *  deterministickým testům vytažené karty/kola — appka ho jinak v
+ *  reálné hře vůbec neřeší, defaultní Math.random stačí. */
 export const krokPohybu = (stav: TrhStav, smer: Smer, nahodne: () => number = Math.random): TrhStav => {
   if (stav.faze !== 'pohyb' || stav.zbyvaKroku <= 0 || stav.konec) return stav
   const hrac = aktivniHrac(stav)
@@ -169,6 +191,8 @@ export const krokPohybu = (stav: TrhStav, smer: Smer, nahodne: () => number = Ma
 
   let nabidkaKoupe: string | null = null
   let posledniUdalost = stav.posledniUdalost
+  let posledniVysledekKolaId = stav.posledniVysledekKolaId
+  let kolostestiPocet = stav.kolostestiPocet
 
   if (doslo) {
     const obchod = najdiObchodNaPoli(novaPozice)
@@ -191,6 +215,12 @@ export const krokPohybu = (stav: TrhStav, smer: Smer, nahodne: () => number = Ma
       const karta = UDALOSTI[Math.min(Math.floor(nahodne() * UDALOSTI.length), UDALOSTI.length - 1)]
       noviHraci = aplikujEfektKarty(noviHraci, hrac.id, karta.efekt, stav)
       posledniUdalost = `🔮 ${hrac.jmeno}: ${karta.text}`
+    } else if (jeKoloStestiPole(novaPozice)) {
+      const vysledek = vyberVysledekKola(nahodne)
+      noviHraci = aplikujEfektKola(noviHraci, hrac.id, vysledek.efekt)
+      posledniUdalost = `🎡 ${hrac.jmeno}: ${vysledek.text}`
+      posledniVysledekKolaId = vysledek.id
+      kolostestiPocet = stav.kolostestiPocet + 1
     }
   }
 
@@ -201,6 +231,8 @@ export const krokPohybu = (stav: TrhStav, smer: Smer, nahodne: () => number = Ma
     faze: doslo ? ('konec-tahu' as FazeTahu) : ('pohyb' as FazeTahu),
     nabidkaKoupe,
     posledniUdalost,
+    posledniVysledekKolaId,
+    kolostestiPocet,
   }
 }
 
@@ -234,9 +266,26 @@ export const odmitnoutKoupi = (stav: TrhStav): TrhStav => {
 /** Ukončí tah dřív, i když ještě zbývají kroky — hráč nemusí kroky
  *  dovyčerpat, jen je ztratí. Dovoleno z fáze 'pohyb' i 'konec-tahu',
  *  ale ne dokud čeká nerozhodnutá nabídka koupě — appka by jinak
- *  mohla tiše přeskočit rozhodnutí, na které hráč ani nesáhl. */
+ *  mohla tiše přeskočit rozhodnutí, na které hráč ani nesáhl.
+ *
+ *  Nejdřív ale zkontroluje "bonusový hod" z kola štěstí (Fáze 3) —
+ *  pokud ho aktivní hráč právě nese, appka vlajku smaže a vrátí hru do
+ *  fáze 'hod' BEZ posunu `aktivniIndex`: hráč tak dostane druhý hod ve
+ *  stejném tahu, místo aby tah doopravdy skončil a předal se dalšímu
+ *  na řadě. Symetrické k `preskociTah` v krokHodu výš, jen opačným
+ *  směrem — tamta vlajka ubírá příští tah, tahle přidává tenhle. */
 export const ukonciTah = (stav: TrhStav): TrhStav => {
   if (stav.faze === 'hod' || stav.konec || stav.nabidkaKoupe) return stav
+  const hrac = aktivniHrac(stav)
+  if (hrac?.maBonusovyHod) {
+    return {
+      ...stav,
+      hraci: stav.hraci.map((h) => (h.id === hrac.id ? { ...h, maBonusovyHod: false } : h)),
+      faze: 'hod',
+      zbyvaKroku: 0,
+      posledniHod: null,
+    }
+  }
   const dalsiIndex = (stav.aktivniIndex + 1) % stav.poradiHracu.length
   return {
     ...stav,

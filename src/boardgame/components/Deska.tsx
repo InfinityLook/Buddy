@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { melByBotKoupit, pripravSmerBota } from '../ai'
 import {
   aktivniHrac,
@@ -12,6 +12,7 @@ import {
   zbyvaCasuMs,
   zkontrolujCas,
 } from '../engine'
+import { conicGradientKola, stredovyUhelVysledku } from '../data/kolaStesti'
 import { OBCHODY_PODLE_KLICE } from '../obchody'
 import { POSTAVY } from '../postavy'
 import { useTrhScene } from '../scene/useTrhScene'
@@ -30,6 +31,17 @@ const ZPOZDENI_HODU_MS = 650
 const ZPOZDENI_KROKU_MS = 420
 const ZPOZDENI_KONCE_TAHU_MS = 500
 const ZPOZDENI_ROZHODNUTI_MS = 700
+
+// Kolo štěstí (Fáze 3) — čistě kosmetická animace dotočení, viz jeho
+// vlastní komentář u stavu níž. Appka respektuje prefers-reduced-motion
+// zkontrolovaným jednou při startu modulu (stejný "PODPORUJE_X"
+// jednorázový feature-detect jako jinde v appce) — bez toho by overlay
+// visel celou dlouhou animaci, zatímco samotné kolo by se díky
+// sitewide kill-switchi v global.css vizuálně otočilo skoro okamžitě.
+const PREFERUJE_REDUKOVANY_POHYB =
+  typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+const POCET_OTOCEK_KOLA = 4
+const DELKA_ANIMACE_KOLA_MS = PREFERUJE_REDUKOVANY_POHYB ? 300 : 2600
 
 interface Props {
   pocatecniHraci: Hrac[]
@@ -56,6 +68,34 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
   const [, setTik] = useState(0)
   const { containerRef, selhalo } = useTrhScene({ stav })
 
+  // Kolo štěstí (Fáze 3) — engine rozhodne výsledek OKAMŽITĚ uvnitř
+  // krokPohybu (peníze/bonusový hod se do `stav` promítnou hned), tenhle
+  // stav jen zpožďuje jeho ODHALENÍ hráči animací roztočeného kola.
+  // `uhelKola` roste monotónně (appka ho nikdy nevrací zpátky na 0) —
+  // CSS transition tak kolo při každém dalším vytažení prostě točí dál,
+  // žádné "poskočení" zpátky na začátek.
+  const [uhelKola, setUhelKola] = useState(0)
+  const [kolostestiAktivni, setKolostestiAktivni] = useState(false)
+  const poslKolostestiPocetRef = useRef(stav.kolostestiPocet)
+
+  // Hlídá rostoucí `stav.kolostestiPocet`, ne jen `posledniVysledekKolaId`
+  // samotné — dva různé tahy mohou vytáhnout STEJNÝ výsledek (stejné
+  // id), takže porovnání jen podle id by druhé vytažení v řadě tiše
+  // přehlédlo (stará a nová hodnota by byly identické).
+  useEffect(() => {
+    if (stav.kolostestiPocet === poslKolostestiPocetRef.current) return
+    poslKolostestiPocetRef.current = stav.kolostestiPocet
+    if (!stav.posledniVysledekKolaId) return
+    const cilovyUhel = stredovyUhelVysledku(stav.posledniVysledekKolaId)
+    // Ukazatel je pevně nahoře (0°) — appka kolo musí otočit tak, aby
+    // střed trefeného segmentu skončil POD ním, tedy o (360 - cílový
+    // úhel), plus pár celých otoček navíc jen pro vizuální efekt.
+    setUhelKola((u) => u + POCET_OTOCEK_KOLA * 360 + (360 - cilovyUhel))
+    setKolostestiAktivni(true)
+    const cas = window.setTimeout(() => setKolostestiAktivni(false), DELKA_ANIMACE_KOLA_MS)
+    return () => window.clearTimeout(cas)
+  }, [stav.kolostestiPocet, stav.posledniVysledekKolaId])
+
   // Čistě zobrazovací tik jednou za sekundu — appka tak umí ukázat
   // odpočet i beze změny `stav` samotného (`zkontrolujCas` je no-op,
   // dokud čas doopravdy nevyprší, takže by React jinak nepřekreslil).
@@ -69,18 +109,22 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
   }, [])
 
   // Automatický konec tahu, jakmile dojdou kroky — ale ne dokud čeká
-  // nerozhodnutá nabídka koupě, tu musí nejdřív někdo (hráč nebo bot
-  // níž) vyřešit.
+  // nerozhodnutá nabídka koupě (tu musí nejdřív někdo vyřešit) ani
+  // dokud běží animace kola štěstí (Fáze 3) — appka by jinak tah
+  // ukončila (a u bonusového hodu rovnou otočila na druhý hod) dřív,
+  // než hráč vůbec uvidí, co se stalo.
   useEffect(() => {
-    if (stav.faze !== 'konec-tahu' || stav.nabidkaKoupe || stav.konec) return
+    if (stav.faze !== 'konec-tahu' || stav.nabidkaKoupe || stav.konec || kolostestiAktivni) return
     const cas = window.setTimeout(() => setStav((s) => ukonciTah(s)), ZPOZDENI_KONCE_TAHU_MS)
     return () => window.clearTimeout(cas)
-  }, [stav.faze, stav.nabidkaKoupe, stav.konec])
+  }, [stav.faze, stav.nabidkaKoupe, stav.konec, kolostestiAktivni])
 
   // Bot hraje sám — hodí kostkou, pak krok po kroku dojde, kam může,
-  // a jakmile na cestě narazí na nabídku koupě, sám ji vyřídí.
+  // a jakmile na cestě narazí na nabídku koupě, sám ji vyřídí. Stejná
+  // kolostestiAktivni pojistka jako výš, ať appka bota nenechá "myslet"
+  // dál, zatímco ještě běží animace jeho vlastního kola štěstí.
   useEffect(() => {
-    if (stav.konec) return
+    if (stav.konec || kolostestiAktivni) return
     const hrac = aktivniHrac(stav)
     if (!hrac?.jeBot) return
     if (stav.faze === 'konec-tahu' && !stav.nabidkaKoupe) return
@@ -102,7 +146,7 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
       })
     }, zpozdeni)
     return () => window.clearTimeout(cas)
-  }, [stav])
+  }, [stav, kolostestiAktivni])
 
   const hrac = aktivniHrac(stav)
   const jeNaTahuBot = hrac?.jeBot ?? false
@@ -111,6 +155,25 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
 
   return (
     <div className="trh-page trh-page--hra">
+      {kolostestiAktivni && (
+        <div className="trh-kolo-overlay">
+          <p className="trh-kolo-nadpis">🎡 Kolo štěstí!</p>
+          <div className="trh-kolo-wrap">
+            <span className="trh-kolo-ukazatel" aria-hidden="true">
+              ▼
+            </span>
+            <div
+              className="trh-kolo-disk"
+              style={{
+                background: conicGradientKola(),
+                transform: `rotate(${uhelKola}deg)`,
+                transitionDuration: `${DELKA_ANIMACE_KOLA_MS}ms`,
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       <header className="trh-top-bar">
         <button className="trh-back-btn" onClick={onZpet}>
           ← Ukončit hru
