@@ -579,3 +579,117 @@
   color: var(--text-primary);
   cursor: pointer;
 }
+
+/* ---------- Obchodování (Fáze 5) ----------
+   .trh-akce-panel je společný obal pro sabotáž i obchod — appka v
+   něm vykresluje přesně jednu ze čtyř věcí najednou (čekající
+   nabídka / stavební sheet / sabotážní sheet / dvojice tlačítek), viz
+   Deska.tsx's vlastní větvení. Stejný "glass karta" jazyk jako
+   .trh-sabotaz-panel/.trh-nabidka výš, žádný nový vizuální styl. */
+
+.trh-akce-panel {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.trh-akce-tlacitka {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.trh-obchod-otevrit-btn {
+  background: linear-gradient(90deg, #4caf6a, #2e8b7a);
+  color: #06121f;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.6rem 1.1rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.trh-obchod-nabidka {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  text-align: center;
+}
+
+.trh-obchod-nadpis {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.trh-obchod-detail {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.trh-obchod-akce {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.2rem;
+}
+
+.trh-obchod-zrusit-link {
+  margin-top: 0.2rem;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.trh-obchod-sheet {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.trh-obchod-sloupec {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.7rem;
+}
+
+.trh-obchod-sloupec-nadpis {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+.trh-obchod-penize-input {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.4rem 0.5rem;
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: var(--text-primary);
+}
+
+.trh-obchod-pole-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+}

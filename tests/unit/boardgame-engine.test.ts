@@ -11,6 +11,11 @@ import {
   koupitPole,
   odmitnoutKoupi,
   provedSabotaz,
+  navrhniObchod,
+  prijmoutObchod,
+  odmitnoutObchod,
+  zrusitObchod,
+  navrhniProtinabidku,
   zkontrolujCas,
   vitezovePodleStavu,
   SIRKA_MRIZKY,
@@ -721,6 +726,257 @@ describe('sabotazPouzita — jednou za tah a reset na dalšího hráče (Fáze 4
     stav = krokHodu(stav)
     expect(stav.aktivniIndex).toBe(2) // Bobův tah se přeskočil, teď na tahu Cecil
     expect(stav.hraci.find((h) => h.id === 'c')!.sabotazPouzita).toBe(false)
+  })
+})
+
+// ==========================================
+// Fáze 5 — obchodování mezi hráči. Stejná "staví TrhStav rovnou do
+// přesného tvaru napřímo" taktika jako u sabotáže (Fáze 4) výš, teď
+// navíc s vlastním `vlastnictvi`, ať appka nemusí realisticky
+// kostkou/pohybem obchody skutečně koupit, jen aby otestovala, co se
+// stane, když je někdo vlastní.
+// ==========================================
+
+/** Jako `doKonceTahu` výš, jen appka navíc rovnou nastaví
+ *  `vlastnictvi` na požadovaný tvar. */
+const doKonceTahuSVlastnictvim = (
+  hraci: ReturnType<typeof vytvorHrace>[],
+  vlastnictvi: Record<string, string>
+): TrhStav => ({
+  ...vytvorTrhStav(hraci),
+  faze: 'konec-tahu',
+  vlastnictvi,
+})
+
+describe('navrhniObchod — strážní podmínky (Fáze 5)', () => {
+  it('mimo fázi konec-tahu je no-op', () => {
+    const stav = noveDva() // fáze 'hod'
+    expect(navrhniObchod(stav, 'a', 'b', 50, [], 0, [])).toBe(stav)
+  })
+
+  it('s nevyřízenou nabídkou koupě je no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 1 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = vytvorTrhStav([h1, h2])
+    stav = krokPohybu(krokHodu(stav, () => 0), 'vpravo') // doběhne na (1,1) = Pekárna
+    expect(stav.nabidkaKoupe).toBe('1,1')
+    expect(navrhniObchod(stav, 'a', 'b', 50, [], 0, [])).toBe(stav)
+  })
+
+  it('s už čekajícím jiným obchodem je no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = doKonceTahu([h1, h2])
+    stav = navrhniObchod(stav, 'a', 'b', 50, [], 0, [])
+    expect(stav.nabidkaObchodu).not.toBeNull()
+    const pred = stav
+    expect(navrhniObchod(stav, 'b', 'a', 10, [], 0, [])).toBe(pred)
+  })
+
+  it('cílit na sebe je no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = doKonceTahu([h1, h2])
+    expect(navrhniObchod(stav, 'a', 'a', 50, [], 0, [])).toBe(stav)
+  })
+
+  it('ani odKoho, ani komu není aktivní hráč — no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const h3 = vytvorHrace('c', 'Cecil', 'vozka', false, { x: 0, z: 6 })
+    const stav = doKonceTahu([h1, h2, h3]) // aktivní je Anna (index 0)
+    expect(navrhniObchod(stav, 'b', 'c', 50, [], 0, [])).toBe(stav)
+  })
+
+  it('prázdná nabídka na obou stranách ("nic za nic") je no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = doKonceTahu([h1, h2])
+    expect(navrhniObchod(stav, 'a', 'b', 0, [], 0, [])).toBe(stav)
+  })
+
+  it('bez dostatku peněz na nabízenou částku je no-op', () => {
+    const h1 = { ...vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 }), penize: 10 }
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = doKonceTahu([h1, h2])
+    expect(navrhniObchod(stav, 'a', 'b', 50, [], 0, [])).toBe(stav)
+  })
+
+  it('bez dostatku peněz na požadovanou částku je no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = { ...vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 }), penize: 10 }
+    const stav = doKonceTahu([h1, h2])
+    expect(navrhniObchod(stav, 'a', 'b', 0, [], 50, [])).toBe(stav)
+  })
+
+  it('navrhovatel nevlastnící nabízené pole — no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = doKonceTahuSVlastnictvim([h1, h2], { '1,1': 'b' }) // vlastní to Bob, ne Anna
+    expect(navrhniObchod(stav, 'a', 'b', 0, ['1,1'], 0, [])).toBe(stav)
+  })
+
+  it('cíl nevlastnící požadované pole — no-op', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = doKonceTahu([h1, h2]) // nikdo nic nevlastní
+    expect(navrhniObchod(stav, 'a', 'b', 0, [], 0, ['1,1'])).toBe(stav)
+  })
+
+  it('validní návrh aktivního hráče jinému hráči nastaví čekající nabídku', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = navrhniObchod(
+      doKonceTahuSVlastnictvim([h1, h2], { '1,1': 'a', '5,1': 'b' }),
+      'a',
+      'b',
+      100,
+      ['1,1'],
+      50,
+      ['5,1']
+    )
+    expect(stav.nabidkaObchodu).toEqual({
+      odKoho: 'a',
+      komu: 'b',
+      nabizenePenize: 100,
+      nabizenaPole: ['1,1'],
+      pozadovanePenize: 50,
+      pozadovanaPole: ['5,1'],
+    })
+    expect(stav.posledniUdalost).toContain('🤝')
+    expect(stav.posledniUdalost).toContain('Anna')
+    expect(stav.posledniUdalost).toContain('Bob')
+  })
+
+  it('validní návrh BOTA aktivnímu (lidskému) hráči taky projde — invariant funguje obráceně', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 }) // aktivní, člověk
+    const h2 = vytvorHrace('bot', 'Bot', 'cihla', true, { x: 6, z: 6 })
+    const stav = navrhniObchod(doKonceTahuSVlastnictvim([h1, h2], { '1,1': 'a' }), 'bot', 'a', 100, [], 0, ['1,1'])
+    expect(stav.nabidkaObchodu).toEqual({
+      odKoho: 'bot',
+      komu: 'a',
+      nabizenePenize: 100,
+      nabizenaPole: [],
+      pozadovanePenize: 0,
+      pozadovanaPole: ['1,1'],
+    })
+  })
+})
+
+describe('prijmoutObchod / odmitnoutObchod / zrusitObchod (Fáze 5)', () => {
+  const stavSNabidkou = (): TrhStav => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    return navrhniObchod(doKonceTahuSVlastnictvim([h1, h2], { '1,1': 'a', '5,1': 'b' }), 'a', 'b', 100, ['1,1'], 50, [
+      '5,1',
+    ])
+  }
+
+  it('prijmoutObchod je no-op bez čekající nabídky', () => {
+    const stav = doKonceTahu([vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })])
+    expect(prijmoutObchod(stav)).toBe(stav)
+  })
+
+  it('prijmoutObchod převede peníze i vlastnictví oběma směry a vynuluje nabídku', () => {
+    const stav = prijmoutObchod(stavSNabidkou())
+    const anna = stav.hraci.find((h) => h.id === 'a')!
+    const bob = stav.hraci.find((h) => h.id === 'b')!
+    expect(anna.penize).toBe(POCATECNI_PENIZE - 100 + 50)
+    expect(bob.penize).toBe(POCATECNI_PENIZE - 50 + 100)
+    expect(stav.vlastnictvi['1,1']).toBe('b') // Anna dala pryč
+    expect(stav.vlastnictvi['5,1']).toBe('a') // Bob dal pryč
+    expect(stav.nabidkaObchodu).toBeNull()
+    expect(stav.posledniUdalost).toContain('🤝')
+  })
+
+  it('odmitnoutObchod je no-op bez čekající nabídky', () => {
+    const stav = doKonceTahu([vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })])
+    expect(odmitnoutObchod(stav)).toBe(stav)
+  })
+
+  it('odmitnoutObchod vynuluje nabídku beze změny majetku', () => {
+    const pred = stavSNabidkou()
+    const stav = odmitnoutObchod(pred)
+    expect(stav.nabidkaObchodu).toBeNull()
+    expect(stav.hraci).toEqual(pred.hraci)
+    expect(stav.vlastnictvi).toEqual(pred.vlastnictvi)
+  })
+
+  it('zrusitObchod je no-op bez čekající nabídky', () => {
+    const stav = doKonceTahu([vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })])
+    expect(zrusitObchod(stav)).toBe(stav)
+  })
+
+  it('zrusitObchod vynuluje nabídku beze změny majetku', () => {
+    const pred = stavSNabidkou()
+    const stav = zrusitObchod(pred)
+    expect(stav.nabidkaObchodu).toBeNull()
+    expect(stav.hraci).toEqual(pred.hraci)
+    expect(stav.vlastnictvi).toEqual(pred.vlastnictvi)
+  })
+})
+
+describe('navrhniProtinabidku (Fáze 5)', () => {
+  const stavSNabidkou = (): TrhStav => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    return navrhniObchod(doKonceTahuSVlastnictvim([h1, h2], { '1,1': 'a', '5,1': 'b' }), 'a', 'b', 100, ['1,1'], 50, [
+      '5,1',
+    ])
+  }
+
+  it('je no-op bez čekající nabídky', () => {
+    const stav = doKonceTahu([vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 0 })])
+    expect(navrhniProtinabidku(stav, 10, [], 0, [])).toBe(stav)
+  })
+
+  it('prohodí role a nahradí nabídku validními novými podmínkami', () => {
+    const stav = navrhniProtinabidku(stavSNabidkou(), 80, ['5,1'], 120, ['1,1'])
+    expect(stav.nabidkaObchodu).toEqual({
+      odKoho: 'b',
+      komu: 'a',
+      nabizenePenize: 80,
+      nabizenaPole: ['5,1'],
+      pozadovanePenize: 120,
+      pozadovanaPole: ['1,1'],
+    })
+    expect(stav.posledniUdalost).toContain('🔁')
+    expect(stav.posledniUdalost).toContain('Bob')
+    expect(stav.posledniUdalost).toContain('Anna')
+  })
+
+  it('neplatné nové podmínky nechají PŮVODNÍ čekající nabídku beze změny', () => {
+    const pred = stavSNabidkou()
+    // Nový navrhovatel (Bob) nevlastní '1,1' (to je Annino) — návrh
+    // na vlastní protinabídku musí selhat stejně jako běžný návrh.
+    const stav = navrhniProtinabidku(pred, 80, ['1,1'], 0, [])
+    expect(stav).toBe(pred)
+  })
+})
+
+describe('obchod (Fáze 5) blokuje sabotáž i konec tahu, dokud běží', () => {
+  it('provedSabotaz je no-op, dokud čeká nabídka obchodu', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = navrhniObchod(doKonceTahu([h1, h2]), 'a', 'b', 50, [], 0, [])
+    expect(provedSabotaz(stav, 'krast', 'b')).toBe(stav)
+  })
+
+  it('ukonciTah je no-op, dokud čeká nabídka obchodu', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    const stav = navrhniObchod(doKonceTahu([h1, h2]), 'a', 'b', 50, [], 0, [])
+    expect(ukonciTah(stav)).toBe(stav)
+  })
+
+  it('ukonciTah znovu funguje normálně, jakmile se obchod vyřeší', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = navrhniObchod(doKonceTahu([h1, h2]), 'a', 'b', 50, [], 0, [])
+    stav = odmitnoutObchod(stav)
+    stav = ukonciTah(stav)
+    expect(stav.aktivniIndex).toBe(1)
+    expect(stav.faze).toBe('hod')
   })
 })
 

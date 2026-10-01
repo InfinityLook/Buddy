@@ -68,6 +68,7 @@ export const vytvorTrhStav = (hraci: Hrac[], limitMinut: LimitMinut = VYCHOZI_LI
   konec: false,
   vlastnictvi: {},
   nabidkaKoupe: null,
+  nabidkaObchodu: null,
   posledniUdalost: null,
   posledniVysledekKolaId: null,
   kolostestiPocet: 0,
@@ -298,9 +299,17 @@ export const odmitnoutKoupi = (stav: TrhStav): TrhStav => {
  *
  *  Stejná "nedůvěřuj volajícímu" disciplína jako `koupitPole` — UI
  *  tlačítko appka sama zablokuje, ale engine si každou podmínku
- *  ověřuje znovu nezávisle. */
+ *  ověřuje znovu nezávisle.
+ *
+ *  Dokud čeká `nabidkaObchodu` (Fáze 5), je sabotáž taky no-op — na
+ *  rozdíl od `nabidkaKoupe` (které `provedSabotaz` kontroluje odjakživa
+ *  přes `stav.faze`, protože obě mohou nastat jen ve stejné fázi a
+ *  vzájemně se vylučují) tohle je JEDINÉ místo mimo `ukonciTah`, kde se
+ *  musí hlídat výslovně — fáze sama zůstává 'konec-tahu' po celou dobu
+ *  obchodní nabídky, takže by `provedSabotaz` jinak prošel i uprostřed
+ *  ještě nevyřízeného obchodu. */
 export const provedSabotaz = (stav: TrhStav, akceId: string, cilId: string): TrhStav => {
-  if (stav.faze !== 'konec-tahu' || stav.konec || stav.nabidkaKoupe) return stav
+  if (stav.faze !== 'konec-tahu' || stav.konec || stav.nabidkaKoupe || stav.nabidkaObchodu) return stav
   const utocnik = aktivniHrac(stav)
   if (!utocnik || utocnik.sabotazPouzita || cilId === utocnik.id) return stav
 
@@ -343,8 +352,10 @@ export const provedSabotaz = (stav: TrhStav, akceId: string, cilId: string): Trh
 
 /** Ukončí tah dřív, i když ještě zbývají kroky — hráč nemusí kroky
  *  dovyčerpat, jen je ztratí. Dovoleno z fáze 'pohyb' i 'konec-tahu',
- *  ale ne dokud čeká nerozhodnutá nabídka koupě — appka by jinak
- *  mohla tiše přeskočit rozhodnutí, na které hráč ani nesáhl.
+ *  ale ne dokud čeká nerozhodnutá nabídka koupě nebo obchodu (Fáze 5)
+ *  — appka by jinak mohla tiše přeskočit rozhodnutí, na které hráč ani
+ *  nesáhl, nebo (u obchodu) předat tah, zatímco druhá strana na
+ *  nabídku ještě vůbec nestihla zareagovat.
  *
  *  Nejdřív ale zkontroluje "bonusový hod" z kola štěstí (Fáze 3) —
  *  pokud ho aktivní hráč právě nese, appka vlajku smaže a vrátí hru do
@@ -360,7 +371,7 @@ export const provedSabotaz = (stav: TrhStav, akceId: string, cilId: string): Trh
  *  hráče, resetuje JEHO `sabotazPouzita` na `false` — ten hráč tak
  *  vždycky dostane čistou, nepoužitou sabotáž, až na něj přijde řada. */
 export const ukonciTah = (stav: TrhStav): TrhStav => {
-  if (stav.faze === 'hod' || stav.konec || stav.nabidkaKoupe) return stav
+  if (stav.faze === 'hod' || stav.konec || stav.nabidkaKoupe || stav.nabidkaObchodu) return stav
   const hrac = aktivniHrac(stav)
   if (hrac?.maBonusovyHod) {
     return {
@@ -380,6 +391,166 @@ export const ukonciTah = (stav: TrhStav): TrhStav => {
     faze: 'hod',
     zbyvaKroku: 0,
     posledniHod: null,
+  }
+}
+
+// ==========================================
+// Fáze 5 — obchodování mezi hráči. Na rozdíl od Osudu/kola štěstí
+// (náhodné) a sabotáže (volba JEN aktivního hráče proti komukoli
+// jinému) je obchod jediná akce, co může navrhnout i hráč, který
+// zrovna NA TAHU není — appka to dovolí ve dvou tvarech, lidské
+// iniciativě (aktivní hráč → kdokoli jiný) a botí iniciativě
+// (kterýkoli bot → aktivní hráč, viz ai.ts's
+// `zvazBotuNabidkuObchodu`), obojí pokryté jedinou podmínkou v
+// `navrhniObchod` níž: jedna ze dvou stran musí být právě ten, kdo je
+// na tahu. Dokud `nabidkaObchodu` běží, nic jiného se nestihne stát
+// (viz nahoře přidané `|| stav.nabidkaObchodu` v `provedSabotaz` a
+// `ukonciTah`, a strukturální nemožnost u krokHodu/krokPohybu/
+// koupitPole/odmitnoutKoupi — ty všechny vyžadují fázi 'hod'/'pohyb'
+// nebo nenulové `nabidkaKoupe`, a obchod existuje jen ve fázi
+// 'konec-tahu' s nulovým `nabidkaKoupe`), takže se žádná z obou stran
+// nemůže mezitím změnit — validace při přijetí proto jen opakuje tu
+// samou kontrolu, co už proběhla při návrhu, ne proto, že by se
+// cokoli mohlo mezitím posunout.
+// ==========================================
+
+/** Zkontroluje, že daný hráč doopravdy vlastní všechna uvedená pole —
+ *  sdílené mezi `navrhniObchod` a (přes něj) `navrhniProtinabidku`, ať
+ *  validace nikdy nezapomene na jednu ze dvou stran obchodu. */
+const vlastniVsechnaPole = (hracId: string, pole: string[], stav: TrhStav): boolean =>
+  pole.every((klic) => stav.vlastnictvi[klic] === hracId)
+
+/** Navrhne obchod mezi `odKoho` a `komu` — no-op mimo fázi 'konec-tahu',
+ *  s čekající nabídkou koupě, s UŽ čekajícím jiným obchodem, mezi
+ *  hráčem a jím samým, s prázdnou nabídkou na obou stranách zároveň
+ *  ("nic za nic"), bez dost peněz na kteroukoli stranu, nebo pokud
+ *  kterákoli strana nevlastní všechna pole, co má podle nabídky dát.
+ *  Stejná "nedůvěřuj volajícímu" disciplína jako `koupitPole`/
+ *  `provedSabotaz` — appka to ověřuje znovu uvnitř funkce samotné, bez
+ *  ohledu na to, co už zkontrolovalo volající UI. */
+export const navrhniObchod = (
+  stav: TrhStav,
+  odKoho: string,
+  komu: string,
+  nabizenePenize: number,
+  nabizenaPole: string[],
+  pozadovanePenize: number,
+  pozadovanaPole: string[]
+): TrhStav => {
+  if (stav.faze !== 'konec-tahu' || stav.konec || stav.nabidkaKoupe || stav.nabidkaObchodu) return stav
+  if (odKoho === komu) return stav
+  const navrhovatel = stav.hraci.find((h) => h.id === odKoho)
+  const cil = stav.hraci.find((h) => h.id === komu)
+  if (!navrhovatel || !cil) return stav
+
+  const aktivni = aktivniHrac(stav)
+  if (aktivni?.id !== odKoho && aktivni?.id !== komu) return stav
+
+  if (nabizenePenize < 0 || pozadovanePenize < 0) return stav
+  if (nabizenePenize === 0 && nabizenaPole.length === 0 && pozadovanePenize === 0 && pozadovanaPole.length === 0) {
+    return stav
+  }
+  if (navrhovatel.penize < nabizenePenize || cil.penize < pozadovanePenize) return stav
+  if (!vlastniVsechnaPole(odKoho, nabizenaPole, stav) || !vlastniVsechnaPole(komu, pozadovanaPole, stav)) return stav
+
+  return {
+    ...stav,
+    nabidkaObchodu: { odKoho, komu, nabizenePenize, nabizenaPole, pozadovanePenize, pozadovanaPole },
+    posledniUdalost: `🤝 ${navrhovatel.jmeno} nabízí obchod hráči ${cil.jmeno}.`,
+  }
+}
+
+/** Přijme čekající obchod — převede peníze i vlastnictví polí mezi
+ *  oběma stranami najednou a nabídku vynuluje. No-op, pokud žádná
+ *  neběží. */
+export const prijmoutObchod = (stav: TrhStav): TrhStav => {
+  const n = stav.nabidkaObchodu
+  if (!n || stav.konec) return stav
+  const odKoho = stav.hraci.find((h) => h.id === n.odKoho)
+  const komu = stav.hraci.find((h) => h.id === n.komu)
+  if (!odKoho || !komu) return { ...stav, nabidkaObchodu: null }
+
+  const noviHraci = stav.hraci.map((h) => {
+    if (h.id === n.odKoho) return { ...h, penize: h.penize - n.nabizenePenize + n.pozadovanePenize }
+    if (h.id === n.komu) return { ...h, penize: h.penize - n.pozadovanePenize + n.nabizenePenize }
+    return h
+  })
+  const noveVlastnictvi = { ...stav.vlastnictvi }
+  for (const klic of n.nabizenaPole) noveVlastnictvi[klic] = n.komu
+  for (const klic of n.pozadovanaPole) noveVlastnictvi[klic] = n.odKoho
+
+  return {
+    ...stav,
+    hraci: noviHraci,
+    vlastnictvi: noveVlastnictvi,
+    nabidkaObchodu: null,
+    posledniUdalost: `🤝 ${komu.jmeno} přijal(a) obchod s ${odKoho.jmeno}.`,
+  }
+}
+
+/** Odmítne čekající obchod beze změny majetku. No-op, pokud žádná
+ *  neběží. */
+export const odmitnoutObchod = (stav: TrhStav): TrhStav => {
+  const n = stav.nabidkaObchodu
+  if (!n) return stav
+  const odKoho = stav.hraci.find((h) => h.id === n.odKoho)
+  const komu = stav.hraci.find((h) => h.id === n.komu)
+  return {
+    ...stav,
+    nabidkaObchodu: null,
+    posledniUdalost: `🤝 ${komu?.jmeno ?? '?'} odmítl(a) obchod od ${odKoho?.jmeno ?? '?'}.`,
+  }
+}
+
+/** Zruší vlastní čekající nabídku bez odpovědi druhé strany — appka to
+ *  nabízí hlavně navrhovateli, co si to rozmyslel, než stihla
+ *  protistrana zareagovat (lidský hráč u sdíleného zařízení; bota
+ *  nikdy nenapadne vlastní nabídku rušit, viz ai.ts). No-op, pokud
+ *  žádná nabídka neběží. */
+export const zrusitObchod = (stav: TrhStav): TrhStav => {
+  if (!stav.nabidkaObchodu) return stav
+  return { ...stav, nabidkaObchodu: null }
+}
+
+/** Pošle protinabídku na místo té čekající — appka prohodí role
+ *  (dosavadní příjemce `komu` se stává novým navrhovatelem, původní
+ *  navrhovatel `odKoho` novým příjemcem) a validuje nové podmínky z
+ *  pohledu NOVÉHO navrhovatele přes `navrhniObchod` samotné — žádná
+ *  druhá, nezávislá kopie stejné kontroly. Boti nikdy protinabídku
+ *  neposílají (viz ai.ts's `melByBotPrijmoutObchod` — jen přijme, nebo
+ *  odmítne), takže řetězec protinabídek vždycky skončí, jakmile
+ *  dorazí k botovi.
+ *
+ *  No-op (beze změny PŮVODNÍ čekající nabídky), pokud žádná neběží
+ *  nebo nové podmínky neprojdou validací — appka to pozná přes
+ *  referenční rovnost s dočasně vynulovaným vstupem, stejnou, jakou
+ *  `navrhniObchod` sám vrací při vlastním no-opu. */
+export const navrhniProtinabidku = (
+  stav: TrhStav,
+  novaNabizenaPenize: number,
+  novaNabizenaPole: string[],
+  novaPozadovanaPenize: number,
+  novaPozadovanaPole: string[]
+): TrhStav => {
+  const n = stav.nabidkaObchodu
+  if (!n || stav.konec) return stav
+  const vstup: TrhStav = { ...stav, nabidkaObchodu: null }
+  const vysledek = navrhniObchod(
+    vstup,
+    n.komu,
+    n.odKoho,
+    novaNabizenaPenize,
+    novaNabizenaPole,
+    novaPozadovanaPenize,
+    novaPozadovanaPole
+  )
+  if (vysledek === vstup) return stav
+
+  const novyNavrhovatel = stav.hraci.find((h) => h.id === n.komu)
+  const novyCil = stav.hraci.find((h) => h.id === n.odKoho)
+  return {
+    ...vysledek,
+    posledniUdalost: `🔁 ${novyNavrhovatel?.jmeno ?? '?'} poslal(a) protinabídku zpátky ${novyCil?.jmeno ?? '?'}.`,
   }
 }
 

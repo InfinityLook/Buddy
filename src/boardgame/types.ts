@@ -47,6 +47,26 @@ export type Smer = 'nahoru' | 'dolu' | 'vlevo' | 'vpravo'
  *  jen za 'konec-tahu' přibude `nabidkaKoupe` — viz níž. */
 export type FazeTahu = 'hod' | 'pohyb' | 'konec-tahu'
 
+/** Jedna čekající nabídka obchodu mezi dvěma hráči (Fáze 5) — appka
+ *  jich dovolí jen jednu najednou (`TrhStav.nabidkaObchodu`), nikdy
+ *  frontu. `odKoho` nabízí `nabizenePenize`/`nabizenaPole` výměnou za
+ *  `pozadovanePenize`/`pozadovanaPole` od `komu` — obě strany mohou
+ *  být nula/prázdné pole (appka dovolí obchod jen za peníze nebo jen
+ *  za pole), ale nikdy obě najednou prázdné (žádný "nic za nic"
+ *  obchod, viz `navrhniObchod` v engine.ts). Nabídku smí navrhnout buď
+ *  aktivní hráč (lidská iniciativa), nebo kterýkoli bot cíleně NA
+ *  aktivního hráče (viz ai.ts's `zvazBotuNabidkuObchodu`) — appka to
+ *  vynucuje jednou společnou podmínkou v `navrhniObchod`, ne dvěma
+ *  samostatnými cestami. */
+export interface NabidkaObchodu {
+  odKoho: string
+  komu: string
+  nabizenePenize: number
+  nabizenaPole: string[]
+  pozadovanePenize: number
+  pozadovanaPole: string[]
+}
+
 /** Časový limit hry v minutách — appka nabízí jen tyhle čtyři
  *  hodnoty (viz mechanická diskuze v CLAUDE.md), žádný volný vstup. */
 export type LimitMinut = 15 | 30 | 45 | 60
@@ -75,6 +95,12 @@ export interface TrhStav {
    *  (koupit/nekoupit). Dokud je nastavené, `ukonciTah` odmítá tah
    *  ukončit, ať appka nepřeskočí rozhodnutí bez povšimnutí. */
   nabidkaKoupe: string | null
+  /** Čekající nabídka obchodu (Fáze 5, viz NabidkaObchodu výš) —
+   *  neprázdná jen mezi návrhem a vyřízením (přijetí/odmítnutí/zrušení/
+   *  protinabídka). Dokud je nastavená, žádná jiná akce (hod, pohyb,
+   *  koupě, sabotáž, ukončení tahu) neprojde — appka tím vynucuje
+   *  "jedno rozhodnutí najednou", stejně jako `nabidkaKoupe` výš. */
+  nabidkaObchodu: NabidkaObchodu | null
   /** Jedna řádka pro poslední ekonomickou událost (koupě/nájem) —
    *  appka ji ukazuje jako prostý text, žádná historie zpráv. */
   posledniUdalost: string | null
