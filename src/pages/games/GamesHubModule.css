@@ -374,6 +374,10 @@
   background: linear-gradient(135deg, rgba(248, 113, 113, 0.18), rgba(53, 196, 240, 0.12)), var(--bg-panel-raised);
 }
 
+.bz-hra-karta--buddyheim {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.16), rgba(53, 196, 240, 0.12)), var(--bg-panel-raised);
+}
+
 .bz-hra-karta-znak {
   font-size: 2.4rem;
   filter: drop-shadow(0 0 16px rgba(53, 196, 240, 0.5));

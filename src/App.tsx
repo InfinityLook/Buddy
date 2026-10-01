@@ -21,6 +21,12 @@ import AdminModule from '@/pages/admin/AdminModule.tsx'
 import SupportModule from '@/pages/support/SupportModule.tsx'
 const SocialModule = lazy(() => import('@/social/SocialModule'))
 const SurvivalModule = lazy(() => import('@/survival/SurvivalModule'))
+// Buddyheim (appčino RPG) byl dočasně schovaný, dokud appka soustředila
+// release na dokončení Souboje — ne proto, že by byl nehotový. Teď se
+// vrací zpátky stejným "hide, keep documented, one-line revert" postupem
+// jako Souboj o pár řádků výš: zpátky lazy import, zpátky skutečná routa,
+// zpátky skutečná karta v GamesHubModule.tsx.
+const GameModule = lazy(() => import('@/game/GameModule.tsx'))
 // Skutečná 3D deska (useCtyriKralovstviScene.ts) tuhle appku poprvé
 // zavedla za three.js — appka ji proto musí načítat líně přesně jako
 // SocialModule/SurvivalModule výš, jinak by celá knihovna three.js
@@ -270,7 +276,18 @@ export default function App() {
               element={dovnitr ? <GamesHubModule /> : <Navigate to="/" replace />}
             />
 
-            <Route path="/hra/buddyheim" element={<Navigate to="/hra" replace />} />
+            <Route
+              path="/hra/buddyheim"
+              element={
+                dovnitr ? (
+                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
+                    <GameModule />
+                  </Suspense>
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
             <Route path="/hra/trh" element={<Navigate to="/hra" replace />} />
 
             <Route
