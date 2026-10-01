@@ -18,17 +18,20 @@ import './GamesHubModule.css'
 // telefon doopravdy na šířku neleží — stejná dvojice appka už jednou
 // postavila pro Souboj a dokumentuje v CLAUDE.md).
 //
-// Appčiny tři STARŠÍ hry — Buddyheim (RPG, src/game/), Souboj (bojovka
-// pro dva, src/fighting/) a Buddyho Trh (deskovka, src/boardgame/) —
-// jsou pořád na žádost dočasně SCHOVANÉ, ne smazané: žádný soubor ve
-// všech třech herních složkách se kvůli tomu nemění — jen tahle
-// obrazovka jim nenabízí kartu a routy v App.tsx na ně přestaly
-// odkazovat (viz komentář tam u zakomentovaných lazy importů). Vrátit
-// některou hru zpátky znamená: přidat jí sem znovu skutečnou kartu,
-// odkomentovat její lazy import v App.tsx a přehodit její routu
+// Appčiny STARŠÍ hry — Buddyheim (RPG, src/game/), Souboj (bojovka pro
+// dva, src/fighting/) a Buddyho Trh (deskovka, src/boardgame/) — byly
+// na žádost dočasně SCHOVANÉ, ne smazané: žádný soubor v žádné herní
+// složce se kvůli tomu neměnil, jen tahle obrazovka jim nenabízela
+// kartu a routy v App.tsx na ně přestaly odkazovat. SOUBOJ appka
+// vrátila zpátky — uživatel ho vyzkoušel na reálné TV + mobilu a
+// potvrdil, že síťové párování funguje (to byl jediný důvod, proč byl
+// schovaný: appčin vzdálený sandbox sám o sobě WebSocket upgrade
+// nikdy neuměl ověřit). Buddyheim a Buddyho Trh zůstávají schované.
+// Vrátit některou z nich zpátky znamená: přidat jí sem znovu skutečnou
+// kartu, odkomentovat její lazy import v App.tsx a přehodit její routu
 // z <Navigate to="/hra" replace /> zpátky na skutečný element —
 // stejný "hide, keep documented, one-line revert" postup, co appka
-// použila jako první na samotného Buddyheima.
+// použila jako první na samotného Buddyheima a teď znovu na Souboje.
 //
 // SURVIVAL NIGHT (src/survival/) je čtvrtá, nová hra a PRVNÍ, co se
 // tu doopravdy hraje — nahrazuje bývalé "Připravuje se" skutečnou,
@@ -148,10 +151,24 @@ export const GamesHubModule: React.FC = () => {
 
           <div className="bz-hlavicka">
             <h1 className="bz-nadpis">Vyber si hru</h1>
-            <p className="bz-podnadpis">Survival Night je tu — přežij co nejvíc vln.</p>
+            <p className="bz-podnadpis">Souboj je zpátky. Survival Night tě taky čeká.</p>
           </div>
 
           <div className="bz-obsah">
+            <button className="bz-hra-karta bz-hra-karta--souboj" onClick={() => navigate('/hra/souboj')}>
+              <span className="bz-hra-karta-znak" aria-hidden="true">
+                ⚔️
+              </span>
+              <span className="bz-hra-karta-text">
+                <span className="bz-hra-karta-nazev">Souboj</span>
+                <span className="bz-hra-karta-popis">
+                  Bojovka pro dva — telefon jako ovladač, TV jako obrazovka. Nebo sólo proti botovi, lokálně na
+                  jednom telefonu.
+                </span>
+              </span>
+              <span className="bz-hra-karta-hrat">HRÁT ▶</span>
+            </button>
+
             <button className="bz-hra-karta" onClick={() => navigate('/hra/survival-night')}>
               <span className="bz-hra-karta-znak" aria-hidden="true">
                 🌙

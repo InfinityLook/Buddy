@@ -30,6 +30,13 @@ const SurvivalModule = lazy(() => import('@/survival/SurvivalModule'))
 // (`index-*.js` naráz vyrostl z ~994 kB na ~1683 kB) hned, jak appka
 // three.js do CtyriKralovstvi.tsx přidala, a opravila ho tímhle.
 const CtyriKralovstvi = lazy(() => import('@/boardgame/CtyriKralovstvi.tsx'))
+// Souboj (appčina bojovka pro dva, phone+TV) byla dočasně schovaná,
+// dokud se reálné síťové párování telefon+TV neověřilo na skutečných
+// zařízeních (tenhle vzdálený sandbox to sám nikdy neuměl dokázat) —
+// uživatel to teď potvrdil ("Souboj jsem zkoušel na tv a mobilu a
+// funguje"), takže appka hru vrací zpátky. Stejný líný import jako
+// SocialModule/SurvivalModule/CtyriKralovstvi výš.
+const FightingModule = lazy(() => import('@/fighting/FightingModule.tsx'))
 import { BootGate } from '@/components/BootGate'
 import { BiometricLock } from '@/components/BiometricLock'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
@@ -264,8 +271,20 @@ export default function App() {
             />
 
             <Route path="/hra/buddyheim" element={<Navigate to="/hra" replace />} />
-            <Route path="/hra/souboj" element={<Navigate to="/hra" replace />} />
             <Route path="/hra/trh" element={<Navigate to="/hra" replace />} />
+
+            <Route
+              path="/hra/souboj"
+              element={
+                dovnitr ? (
+                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
+                    <FightingModule />
+                  </Suspense>
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
 
             <Route
               path="/hra/survival-night"
