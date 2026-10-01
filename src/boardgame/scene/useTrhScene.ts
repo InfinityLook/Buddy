@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { SIRKA_MRIZKY, VYSKA_MRIZKY } from '../engine'
 import { klicPole, OBCHODY_PODLE_KLICE } from '../obchody'
+import { jeOsudovePole } from '../osud'
 import { POSTAVY } from '../postavy'
 import type { TrhStav } from '../types'
 
@@ -27,6 +28,7 @@ import type { TrhStav } from '../types'
 const VELIKOST_POLE = 1.4
 const MEZERA = 0.06
 const BARVA_NEPRODANEHO_OBCHODU = '#7a6a2e'
+const BARVA_OSUDOVEHO_POLE = '#c44fb0'
 
 interface UseTrhSceneOptions {
   stav: TrhStav
@@ -77,13 +79,17 @@ export const useTrhScene = ({ stav }: UseTrhSceneOptions): UseTrhSceneResult => 
     scene.add(smerove)
 
     // Šachovnicová mřížka — dvě střídající se barvy pro obyčejná
-    // pole, plus jedna vlastní (a tedy nezávisle přebarvitelná)
+    // pole, jedna vlastní (a tedy nezávisle přebarvitelná)
     // MeshStandardMaterial na každé z 12 obchodních políček (Fáze 1),
     // ať přebarvení jednoho obchodu podle vlastníka nezmění barvu i
-    // ostatním polím, co sdílejí stejný materiál.
+    // ostatním polím, co sdílejí stejný materiál, a jedna sdílená
+    // fialová na šesti "Osud" políčkách (Fáze 2) — ta se naopak
+    // nikdy nemění (karta Osudu nemá vlastníka), takže klidně sdílí
+    // jeden materiál mezi všemi šesti.
     const geometriePole = new THREE.BoxGeometry(VELIKOST_POLE - MEZERA, 0.2, VELIKOST_POLE - MEZERA)
     const materialSvetly = new THREE.MeshStandardMaterial({ color: '#22304e' })
     const materialTmavy = new THREE.MeshStandardMaterial({ color: '#1a2438' })
+    const materialOsud = new THREE.MeshStandardMaterial({ color: BARVA_OSUDOVEHO_POLE })
     const obchodniMeshePodleKlice = new Map<string, THREE.Mesh>()
     for (let x = 0; x < SIRKA_MRIZKY; x++) {
       for (let z = 0; z < VYSKA_MRIZKY; z++) {
@@ -91,9 +97,11 @@ export const useTrhScene = ({ stav }: UseTrhSceneOptions): UseTrhSceneResult => 
         const jeObchod = !!OBCHODY_PODLE_KLICE[klic]
         const material = jeObchod
           ? new THREE.MeshStandardMaterial({ color: BARVA_NEPRODANEHO_OBCHODU })
-          : (x + z) % 2 === 0
-            ? materialSvetly
-            : materialTmavy
+          : jeOsudovePole({ x, z })
+            ? materialOsud
+            : (x + z) % 2 === 0
+              ? materialSvetly
+              : materialTmavy
         const pole = new THREE.Mesh(geometriePole, material)
         pole.position.set(x * VELIKOST_POLE, 0, z * VELIKOST_POLE)
         scene.add(pole)
@@ -159,6 +167,7 @@ export const useTrhScene = ({ stav }: UseTrhSceneOptions): UseTrhSceneResult => 
       geometrieTokenu.dispose()
       materialSvetly.dispose()
       materialTmavy.dispose()
+      materialOsud.dispose()
       renderer.dispose()
       if (renderer.domElement.parentElement === container) container.removeChild(renderer.domElement)
     }

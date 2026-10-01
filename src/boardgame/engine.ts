@@ -1,6 +1,8 @@
 import type { FazeTahu, Hrac, LimitMinut, Pole2D, Smer, TrhStav } from './types'
 import type { PostavaId } from './postavy'
 import { najdiObchodNaPoli, OBCHODY_PODLE_KLICE } from './obchody'
+import { jeOsudovePole } from './osud'
+import { UDALOSTI, type EfektUdalosti } from './data/udalosti'
 
 // ==========================================
 // Buddyho Trh — čistý herní engine, stejná disciplína jako
@@ -32,6 +34,7 @@ export const vytvorHrace = (
   pozice,
   penize: POCATECNI_PENIZE,
   jeBot,
+  preskociTah: false,
 })
 
 /** Rozmístí hráče na okraj mřížky, ať nezačínají na sobě navzájem —
@@ -91,11 +94,53 @@ export const platneSmery = (pozice: Pole2D, stav: TrhStav): Smer[] =>
 
 /** Hodí kostkou (1–6) a otevře fázi pohybu s tolika kroky. No-op mimo
  *  fázi 'hod' — appka i síťová vrstva klidně zavolá tuhle funkci
- *  víckrát, aniž by musela sama hlídat, jestli už se hodilo. */
+ *  víckrát, aniž by musela sama hlídat, jestli už se hodilo.
+ *
+ *  Nejdřív ale zkontroluje kartu "přeskoč tah" (Fáze 2) — pokud ji
+ *  aktivní hráč nese z minulého tahu, tenhle tah se vůbec nehodí,
+ *  příznak se smaže a tah rovnou přejde na dalšího hráče. */
 export const krokHodu = (stav: TrhStav, nahodne: () => number = Math.random): TrhStav => {
   if (stav.faze !== 'hod' || stav.konec) return stav
+  const hrac = aktivniHrac(stav)
+  if (hrac?.preskociTah) {
+    const noviHraci = stav.hraci.map((h) => (h.id === hrac.id ? { ...h, preskociTah: false } : h))
+    const dalsiIndex = (stav.aktivniIndex + 1) % stav.poradiHracu.length
+    return {
+      ...stav,
+      hraci: noviHraci,
+      aktivniIndex: dalsiIndex,
+      faze: 'hod',
+      zbyvaKroku: 0,
+      posledniHod: null,
+      posledniUdalost: `${hrac.jmeno} vynechává tah.`,
+    }
+  }
   const hod = Math.floor(nahodne() * 6) + 1
   return { ...stav, faze: 'pohyb', zbyvaKroku: hod, posledniHod: hod }
+}
+
+/** Aplikuje efekt vytažené karty Osudu (Fáze 2) na hráče, co na ni
+ *  doběhl — čistá funkce, žádný vedlejší účinek mimo vrácené pole
+ *  hráčů. 'posun' jede po jednom poli stejnou hranici-respektující
+ *  logikou jako obyčejný tah (zastaví se dřív, nepřeteče přes
+ *  okraj) a NIKDY nespouští druhé vyhodnocení na nové pozici — appka
+ *  tak nikdy neřeší řetězec karta→nájem→další karta. */
+const aplikujEfektKarty = (hraci: Hrac[], hracId: string, efekt: EfektUdalosti, stav: TrhStav): Hrac[] => {
+  switch (efekt.typ) {
+    case 'penize':
+      return hraci.map((h) => (h.id === hracId ? { ...h, penize: Math.max(0, h.penize + efekt.castka) } : h))
+    case 'posun': {
+      let pozice = hraci.find((h) => h.id === hracId)!.pozice
+      for (let i = 0; i < efekt.kroku; i++) {
+        const dalsi = posunPole(pozice, efekt.smer)
+        if (!vHranicich(dalsi, stav)) break
+        pozice = dalsi
+      }
+      return hraci.map((h) => (h.id === hracId ? { ...h, pozice } : h))
+    }
+    case 'preskoc-tah':
+      return hraci.map((h) => (h.id === hracId ? { ...h, preskociTah: true } : h))
+  }
 }
 
 /** Posune aktivního hráče o jedno pole daným směrem. Krok mimo mřížku
@@ -103,9 +148,14 @@ export const krokHodu = (stav: TrhStav, nahodne: () => number = Math.random): Tr
  *  směrem, ne že by přišel o pohyb navíc za to, že to zkusil. Fáze
  *  přejde na 'konec-tahu', jakmile dojdou kroky — a jen tehdy, na
  *  úplně poslední doběhnuté políčko, se řeší ekonomika (nájem/nabídka
- *  koupě), stejně jako v Monopoly rozhoduje jen políčko, na kterém
- *  hráč doopravdy skončí, ne ta, přes která jen prošel. */
-export const krokPohybu = (stav: TrhStav, smer: Smer): TrhStav => {
+ *  koupě) nebo karta Osudu (Fáze 2), stejně jako v Monopoly rozhoduje
+ *  jen políčko, na kterém hráč doopravdy skončí, ne ta, přes která
+ *  jen prošel.
+ *
+ *  `nahodne` je injektovatelné (stejně jako u krokHodu) kvůli
+ *  deterministickým testům vytažené karty — appka ho jinak v reálné
+ *  hře vůbec neřeší, defaultní Math.random stačí. */
+export const krokPohybu = (stav: TrhStav, smer: Smer, nahodne: () => number = Math.random): TrhStav => {
   if (stav.faze !== 'pohyb' || stav.zbyvaKroku <= 0 || stav.konec) return stav
   const hrac = aktivniHrac(stav)
   if (!hrac) return stav
@@ -137,6 +187,10 @@ export const krokPohybu = (stav: TrhStav, smer: Smer): TrhStav => {
         const vlastnik = stav.hraci.find((h) => h.id === vlastnikId)
         posledniUdalost = `${hrac.jmeno} zaplatil ${castka} Kč hráči ${vlastnik?.jmeno ?? '?'} za ${obchod.nazev}.`
       }
+    } else if (jeOsudovePole(novaPozice)) {
+      const karta = UDALOSTI[Math.min(Math.floor(nahodne() * UDALOSTI.length), UDALOSTI.length - 1)]
+      noviHraci = aplikujEfektKarty(noviHraci, hrac.id, karta.efekt, stav)
+      posledniUdalost = `🔮 ${hrac.jmeno}: ${karta.text}`
     }
   }
 

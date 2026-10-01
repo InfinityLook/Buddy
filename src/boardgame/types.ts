@@ -19,6 +19,11 @@ export interface Hrac {
   pozice: Pole2D
   penize: number
   jeBot: boolean
+  /** Nastaví karta "přeskoč tah" (Fáze 2, viz data/udalosti.ts) —
+   *  konzumuje se až na začátku hráčova PŘÍŠTÍHO tahu (engine.ts's
+   *  krokHodu), ne hned při vytažení karty, protože ji vytáhl
+   *  uprostřed svého aktuálního tahu. */
+  preskociTah: boolean
 }
 
 export type Smer = 'nahoru' | 'dolu' | 'vlevo' | 'vpravo'

@@ -16,6 +16,9 @@ import {
   VYSKA_MRIZKY,
   POCATECNI_PENIZE,
 } from '@/boardgame/engine'
+import { OSUD_POLE, jeOsudovePole } from '@/boardgame/osud'
+import { OBCHODY, klicPole } from '@/boardgame/obchody'
+import { UDALOSTI } from '@/boardgame/data/udalosti'
 
 // ==========================================
 // Buddyho Trh — Fáze 0. Stejná "žádný React, žádná síť, jen pravidla
@@ -275,5 +278,94 @@ describe('zkontrolujCas a vitezovePodleStavu (Fáze 1 — časový limit)', () =
     const stav = noveDva()
     const vitezove = vitezovePodleStavu(stav)
     expect(vitezove).toHaveLength(2)
+  })
+})
+
+// ==========================================
+// Fáze 2 — karty událostí (Osud). (0,0), (5,3) atd. jsou "Osud" pole
+// podle src/boardgame/osud.ts — testy staví hráče tak, ať na ně
+// doopravdy doběhnou, a druhý injektovaný `nahodne` argument
+// krokPohybu vybere konkrétní kartu z UDALOSTI (viz index níž).
+// ==========================================
+
+describe('Osud pole — sanity (Fáze 2)', () => {
+  it('se nikdy nepřekrývají s obchody', () => {
+    const obchodKlice = new Set(OBCHODY.map((o) => o.klic))
+    for (const p of OSUD_POLE) {
+      expect(obchodKlice.has(klicPole(p))).toBe(false)
+    }
+  })
+
+  it('jeOsudovePole pozná jen šest skutečných pozic', () => {
+    for (const p of OSUD_POLE) expect(jeOsudovePole(p)).toBe(true)
+    expect(jeOsudovePole({ x: 3, z: 3 })).toBe(false)
+  })
+})
+
+describe('UDALOSTI — pevná sada karet (Fáze 2)', () => {
+  it('má přesně 12 karet s unikátními id a všemi třemi typy efektu', () => {
+    expect(UDALOSTI).toHaveLength(12)
+    expect(new Set(UDALOSTI.map((u) => u.id)).size).toBe(12)
+    expect(UDALOSTI.filter((u) => u.efekt.typ === 'penize').length).toBeGreaterThan(0)
+    expect(UDALOSTI.filter((u) => u.efekt.typ === 'posun').length).toBeGreaterThan(0)
+    expect(UDALOSTI.filter((u) => u.efekt.typ === 'preskoc-tah').length).toBeGreaterThan(0)
+  })
+})
+
+describe('krokPohybu — vytažení karty na Osud poli (Fáze 2)', () => {
+  it('doběhnutí na Osud pole vytáhne kartu a vyhodnotí peněžní efekt', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    let stav = vytvorTrhStav([h1])
+    stav = krokHodu(stav, () => 0) // hod 1
+    stav = krokPohybu(stav, 'vlevo', () => 0) // (1,0) -> (0,0), karta index 0: +80 Kč
+    expect(aktivniHrac(stav)!.penize).toBe(POCATECNI_PENIZE + 80)
+    expect(stav.posledniUdalost).toContain('🔮')
+    expect(stav.posledniUdalost).toContain('Výhodný nákup')
+    expect(stav.nabidkaKoupe).toBeNull()
+  })
+
+  it('peněžní efekt nikdy nesrazí hráče pod 0 Kč', () => {
+    const h1 = { ...vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 }), penize: 20 }
+    let stav = vytvorTrhStav([h1])
+    stav = krokHodu(stav, () => 0)
+    stav = krokPohybu(stav, 'vlevo', () => 0.3) // karta index 3 (zamecnik): -60 Kč
+    expect(aktivniHrac(stav)!.penize).toBe(0)
+  })
+
+  it('posun efekt se zastaví na okraji mřížky, nepřeteče', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 4, z: 3 })
+    let stav = vytvorTrhStav([h1])
+    stav = krokHodu(stav, () => 0) // hod 1
+    stav = krokPohybu(stav, 'vpravo', () => 0.45) // (4,3) -> (5,3), karta index 5: posun vpravo 2
+    // (5,3) -> (6,3) jde, (6,3) -> (7,3) je mimo mřížku (SIRKA_MRIZKY=7), zastaví se na (6,3)
+    expect(aktivniHrac(stav)!.pozice).toEqual({ x: 6, z: 3 })
+  })
+
+  it('karta "přeskoč tah" nastaví příznak, krokHodu ho na příštím tahu spotřebuje', () => {
+    const h1 = vytvorHrace('a', 'Anna', 'gros', false, { x: 1, z: 0 })
+    let stav = vytvorTrhStav([h1])
+    stav = krokHodu(stav, () => 0)
+    stav = krokPohybu(stav, 'vlevo', () => 0.76) // karta index 9 (nachlazeni): přeskoč tah
+    expect(aktivniHrac(stav)!.preskociTah).toBe(true)
+    expect(stav.faze).toBe('konec-tahu')
+
+    stav = ukonciTah(stav) // jediný hráč -> tah se vrátí zpátky na Annu, fáze 'hod'
+    expect(stav.faze).toBe('hod')
+    expect(aktivniHrac(stav)!.preskociTah).toBe(true)
+
+    stav = krokHodu(stav) // teď by se mělo tahu vzdát, ne hodit kostkou
+    expect(stav.posledniHod).toBeNull()
+    expect(aktivniHrac(stav)!.preskociTah).toBe(false)
+    expect(stav.posledniUdalost).toContain('vynechává tah')
+  })
+
+  it('krokHodu přeskočí tah hráče s preskociTah a posune tah na dalšího hráče', () => {
+    const h1 = { ...vytvorHrace('a', 'Anna', 'gros', false, { x: 0, z: 1 }), preskociTah: true }
+    const h2 = vytvorHrace('b', 'Bob', 'cihla', false, { x: 6, z: 6 })
+    let stav = vytvorTrhStav([h1, h2])
+    stav = krokHodu(stav)
+    expect(stav.faze).toBe('hod')
+    expect(stav.aktivniIndex).toBe(1)
+    expect(stav.hraci.find((h) => h.id === 'a')!.preskociTah).toBe(false)
   })
 })
