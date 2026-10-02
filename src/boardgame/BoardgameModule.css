@@ -287,10 +287,19 @@
     align-items: stretch;
   }
 
+  /* `align-self: flex-start` je tu schválně — bez něj by `align-items:
+     stretch` zděděné z `.trh-hra-layout` donutilo výšku zpátky na
+     100 % řádku bez ohledu na `height: auto`, a deska by se nikdy
+     doopravdy nezvětšila podle šířky. Takhle deska dostane procento
+     ze ŠÍŘKY řádku (víc než dřívější ~35 % odvozených z výšky) a
+     výška se dopočítá přes `aspect-ratio: 1/1` sama — čtverec zůstane
+     čtvercem, žádné zmáčknutí jako dřív u `flex-shrink: 0`, jen teď
+     je ta ochrana zbytečná o to víc, protože šířka je pevná, ne
+     odvozená z výšky. */
   .trh-deska-obal {
-    width: auto;
-    height: 100%;
-    max-width: 55vw;
+    align-self: flex-start;
+    width: 52%;
+    height: auto;
   }
 
   .trh-hra-info {
