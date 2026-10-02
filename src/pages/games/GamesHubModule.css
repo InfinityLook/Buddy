@@ -378,8 +378,30 @@
   background: linear-gradient(135deg, rgba(34, 197, 94, 0.16), rgba(53, 196, 240, 0.12)), var(--bg-panel-raised);
 }
 
+/* Buddyho Trh — jediná z pěti karet se skutečnou fotkou (reálná deska
+   co appce poslal uživatel, stejný box jako textury v useTrhScene.ts,
+   proto i stejný `trh-` prefix souboru — ten appka už beztak vylučuje
+   z instalační precache a líně cachuje přes existující pravidlo ve
+   vite.config.ts, žádná nová konfigurace nebyla potřeba). Tmavý scrim
+   zleva doprava drží text čitelný bez ohledu na to, jak jasná je právě
+   ta část fotky za ním — `.bz-hra-karta-hrat` leží vpravo na vlastní
+   neprůhledné pilulce, takže tam fotka může prosvítat plně. */
 .bz-hra-karta--trh {
-  background: linear-gradient(135deg, rgba(234, 179, 8, 0.18), rgba(31, 202, 181, 0.14)), var(--bg-panel-raised);
+  background:
+    linear-gradient(90deg, rgba(10, 14, 26, 0.87) 0%, rgba(10, 14, 26, 0.58) 52%, rgba(10, 14, 26, 0.22) 100%),
+    linear-gradient(135deg, rgba(234, 179, 8, 0.22), rgba(31, 202, 181, 0.16)),
+    url('/deskova-hra/trh-menu.png');
+  background-size: cover;
+  background-position: center 58%;
+}
+
+.bz-hra-karta--trh .bz-hra-karta-nazev,
+.bz-hra-karta--trh .bz-hra-karta-popis {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+.bz-hra-karta--trh .bz-hra-karta-popis {
+  color: rgba(242, 245, 251, 0.85);
 }
 
 .bz-hra-karta-znak {
