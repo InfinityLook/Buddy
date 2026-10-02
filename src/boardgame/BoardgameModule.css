@@ -230,17 +230,75 @@
   gap: 0.6rem;
 }
 
+/* `.trh-hra-layout` drží hrací desku a všechno ostatní (hlavička,
+   pořadí hráčů, log, ovládání) — v portrétu prostě sloupec přesně
+   jako dřív, v landscapu (viz media query níž) se přeskládá na dva
+   sloupce vedle sebe, ať appka využije šířku, co landscape nabízí,
+   místo aby ji nechala ladem po stranách. */
+.trh-hra-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+  min-height: 0;
+}
+
+/* `flex-shrink: 0` je tu schválně — bez něj by flexbox v nízkém
+   (landscape) viewportu čtvercový box s `aspect-ratio` tiše zmáčkl
+   na výšku, zatímco šířku (stretch přes celý kontejner) by nechal
+   beze změny, takže by z hrací desky zbyl tenký zdeformovaný pruh
+   místo čtverce — přesně to, co reálný screenshot z telefonu ukázal. */
 .trh-deska-obal {
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--border-subtle);
   aspect-ratio: 1 / 1;
   background: #0c1220;
+  flex-shrink: 0;
+  width: 100%;
 }
 
 .trh-deska-canvas {
   width: 100%;
   height: 100%;
+}
+
+.trh-hra-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-height: 0;
+}
+
+/* Telefon na šířku (appka ho z BuddyZone i zkouší zamknout — viz
+   GamesHubModule.tsx) má málo výšky, ale spoustu šířky navíc — tahle
+   podmínka cílí přesně na tenhle případ (max-height), ne na každý
+   landscape (tablet/desktop okno v landscapu má obvykle dost výšky,
+   že svislé řazení beze změny klidně stačí). */
+@media (orientation: landscape) and (max-height: 640px) {
+  .trh-page--hra {
+    max-width: none;
+    padding-left: calc(0.75rem + env(safe-area-inset-left));
+    padding-right: calc(0.75rem + env(safe-area-inset-right));
+  }
+
+  .trh-hra-layout {
+    flex-direction: row;
+    align-items: stretch;
+  }
+
+  .trh-deska-obal {
+    width: auto;
+    height: 100%;
+    max-width: 55vw;
+  }
+
+  .trh-hra-info {
+    flex: 1;
+    min-width: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 .trh-poradi {

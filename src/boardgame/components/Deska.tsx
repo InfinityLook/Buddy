@@ -549,419 +549,423 @@ export const Deska: React.FC<Props> = ({ pocatecniHraci, limitMinut, onZpet }) =
         </div>
       )}
 
-      <header className="trh-top-bar">
-        <button className="trh-back-btn" onClick={onZpet}>
-          ← Ukončit hru
-        </button>
-        <h1 className="trh-title">Buddyho Trh</h1>
-        {!stav.konec && <p className="trh-cas">⏱ {formatCas(zbyvaCasuMs(stav))}</p>}
-      </header>
-
-      <div className="trh-deska-obal">
-        {selhalo ? (
-          <p className="trh-varovani">3D vykreslení se na tomhle zařízení nepovedlo spustit.</p>
-        ) : (
-          <div className="trh-deska-canvas" ref={containerRef} />
-        )}
-      </div>
-
-      <div className="trh-poradi">
-        {stav.hraci.map((h) => (
-          <span key={h.id} className={`trh-poradi-hrac ${h.id === hrac?.id ? 'je-na-tahu' : ''}`}>
-            <span style={{ color: POSTAVY[h.postavaId].barva }}>{POSTAVY[h.postavaId].emoji}</span> {h.jmeno} ·{' '}
-            {h.penize} kreditů
-          </span>
-        ))}
-      </div>
-
-      {stav.posledniUdalost && !stav.konec && <p className="trh-udalost">{stav.posledniUdalost}</p>}
-
-      {vysledek ? (
-        <div className="trh-konec">
-          <h2 className="trh-konec-nadpis">
-            {vysledek.length > 1 ? '🤝 Remíza!' : `🏆 Vyhrál ${vysledek[0].jmeno}!`}
-          </h2>
-          <ul className="trh-vysledky">
-            {[...stav.hraci]
-              .sort((a, b) => b.penize - a.penize)
-              .map((h) => (
-                <li key={h.id} className={`trh-vysledek-radek ${vysledek.some((v) => v.id === h.id) ? 'je-vitez' : ''}`}>
-                  <span style={{ color: POSTAVY[h.postavaId].barva }}>{POSTAVY[h.postavaId].emoji}</span>
-                  <span className="trh-vysledek-jmeno">{h.jmeno}</span>
-                  <span className="trh-vysledek-penize">{h.penize} kreditů</span>
-                </li>
-              ))}
-          </ul>
-          <button className="trh-spustit-btn" onClick={onZpet}>
-            Zpět do menu
-          </button>
+      <div className="trh-hra-layout">
+        <div className="trh-deska-obal">
+          {selhalo ? (
+            <p className="trh-varovani">3D vykreslení se na tomhle zařízení nepovedlo spustit.</p>
+          ) : (
+            <div className="trh-deska-canvas" ref={containerRef} />
+          )}
         </div>
-      ) : (
-        <div className="trh-ovladani">
-          {hrac && (
-            <p className="trh-na-tahu">
-              Na tahu: <strong>{hrac.jmeno}</strong>
-              {jeNaTahuBot && ' (bot)'}
-            </p>
-          )}
 
-          {stav.faze === 'hod' && (
-            <button
-              className="trh-kostka-btn"
-              disabled={jeNaTahuBot}
-              onClick={() => setStav((s) => krokHodu(s))}
-            >
-              🎲 Hodit kostkou
+        <div className="trh-hra-info">
+          <header className="trh-top-bar">
+            <button className="trh-back-btn" onClick={onZpet}>
+              ← Ukončit hru
             </button>
-          )}
+            <h1 className="trh-title">Buddyho Trh</h1>
+            {!stav.konec && <p className="trh-cas">⏱ {formatCas(zbyvaCasuMs(stav))}</p>}
+          </header>
 
-          {stav.faze === 'pohyb' && (
-            <>
-              <p className="trh-zbyva">Zbývá kroků: {stav.zbyvaKroku}</p>
-              <div className="trh-dpad">
-                <button
-                  className="trh-dpad-btn trh-dpad-btn--nahoru"
-                  disabled={jeNaTahuBot}
-                  onClick={() => setStav((s) => krokPohybu(s, 'nahoru'))}
-                >
-                  {NAZEV_SMERU.nahoru}
-                </button>
-                <button
-                  className="trh-dpad-btn trh-dpad-btn--vlevo"
-                  disabled={jeNaTahuBot}
-                  onClick={() => setStav((s) => krokPohybu(s, 'vlevo'))}
-                >
-                  {NAZEV_SMERU.vlevo}
-                </button>
-                <button
-                  className="trh-dpad-btn trh-dpad-btn--vpravo"
-                  disabled={jeNaTahuBot}
-                  onClick={() => setStav((s) => krokPohybu(s, 'vpravo'))}
-                >
-                  {NAZEV_SMERU.vpravo}
-                </button>
-                <button
-                  className="trh-dpad-btn trh-dpad-btn--dolu"
-                  disabled={jeNaTahuBot}
-                  onClick={() => setStav((s) => krokPohybu(s, 'dolu'))}
-                >
-                  {NAZEV_SMERU.dolu}
-                </button>
-              </div>
-              <button className="trh-ukoncit-tah-btn" disabled={jeNaTahuBot} onClick={() => setStav((s) => ukonciTah(s))}>
-                Ukončit tah
+          <div className="trh-poradi">
+            {stav.hraci.map((h) => (
+              <span key={h.id} className={`trh-poradi-hrac ${h.id === hrac?.id ? 'je-na-tahu' : ''}`}>
+                <span style={{ color: POSTAVY[h.postavaId].barva }}>{POSTAVY[h.postavaId].emoji}</span> {h.jmeno} ·{' '}
+                {h.penize} kreditů
+              </span>
+            ))}
+          </div>
+
+          {stav.posledniUdalost && !stav.konec && <p className="trh-udalost">{stav.posledniUdalost}</p>}
+
+          {vysledek ? (
+            <div className="trh-konec">
+              <h2 className="trh-konec-nadpis">
+                {vysledek.length > 1 ? '🤝 Remíza!' : `🏆 Vyhrál ${vysledek[0].jmeno}!`}
+              </h2>
+              <ul className="trh-vysledky">
+                {[...stav.hraci]
+                  .sort((a, b) => b.penize - a.penize)
+                  .map((h) => (
+                    <li key={h.id} className={`trh-vysledek-radek ${vysledek.some((v) => v.id === h.id) ? 'je-vitez' : ''}`}>
+                      <span style={{ color: POSTAVY[h.postavaId].barva }}>{POSTAVY[h.postavaId].emoji}</span>
+                      <span className="trh-vysledek-jmeno">{h.jmeno}</span>
+                      <span className="trh-vysledek-penize">{h.penize} kreditů</span>
+                    </li>
+                  ))}
+              </ul>
+              <button className="trh-spustit-btn" onClick={onZpet}>
+                Zpět do menu
               </button>
-            </>
-          )}
+            </div>
+          ) : (
+            <div className="trh-ovladani">
+              {hrac && (
+                <p className="trh-na-tahu">
+                  Na tahu: <strong>{hrac.jmeno}</strong>
+                  {jeNaTahuBot && ' (bot)'}
+                </p>
+              )}
 
-          {stav.faze === 'konec-tahu' && nabidka && !jeNaTahuBot && (
-            <div className="trh-nabidka">
-              <p className="trh-nabidka-text">
-                Volné pole: <strong>{nabidka.nazev}</strong> — {nabidka.cena} kreditů (nájem {nabidka.najem} kreditů)
-              </p>
-              <div className="trh-nabidka-btns">
+              {stav.faze === 'hod' && (
                 <button
                   className="trh-kostka-btn"
-                  disabled={!hrac || hrac.penize < nabidka.cena}
-                  onClick={() => setStav((s) => koupitPole(s))}
+                  disabled={jeNaTahuBot}
+                  onClick={() => setStav((s) => krokHodu(s))}
                 >
-                  Koupit za {nabidka.cena} kreditů
+                  🎲 Hodit kostkou
                 </button>
-                <button className="trh-ukoncit-tah-btn" onClick={() => setStav((s) => odmitnoutKoupi(s))}>
-                  Nekoupit
-                </button>
-              </div>
-            </div>
-          )}
+              )}
 
-          {stav.faze === 'konec-tahu' && nabidka && jeNaTahuBot && (
-            <p className="trh-zbyva">Bot přemýšlí o koupi {nabidka.nazev}…</p>
-          )}
+              {stav.faze === 'pohyb' && (
+                <>
+                  <p className="trh-zbyva">Zbývá kroků: {stav.zbyvaKroku}</p>
+                  <div className="trh-dpad">
+                    <button
+                      className="trh-dpad-btn trh-dpad-btn--nahoru"
+                      disabled={jeNaTahuBot}
+                      onClick={() => setStav((s) => krokPohybu(s, 'nahoru'))}
+                    >
+                      {NAZEV_SMERU.nahoru}
+                    </button>
+                    <button
+                      className="trh-dpad-btn trh-dpad-btn--vlevo"
+                      disabled={jeNaTahuBot}
+                      onClick={() => setStav((s) => krokPohybu(s, 'vlevo'))}
+                    >
+                      {NAZEV_SMERU.vlevo}
+                    </button>
+                    <button
+                      className="trh-dpad-btn trh-dpad-btn--vpravo"
+                      disabled={jeNaTahuBot}
+                      onClick={() => setStav((s) => krokPohybu(s, 'vpravo'))}
+                    >
+                      {NAZEV_SMERU.vpravo}
+                    </button>
+                    <button
+                      className="trh-dpad-btn trh-dpad-btn--dolu"
+                      disabled={jeNaTahuBot}
+                      onClick={() => setStav((s) => krokPohybu(s, 'dolu'))}
+                    >
+                      {NAZEV_SMERU.dolu}
+                    </button>
+                  </div>
+                  <button className="trh-ukoncit-tah-btn" disabled={jeNaTahuBot} onClick={() => setStav((s) => ukonciTah(s))}>
+                    Ukončit tah
+                  </button>
+                </>
+              )}
 
-          {stav.faze === 'konec-tahu' && !nabidka && (
-            <div className="trh-akce-panel">
-              {stav.minihra ? (
-                (() => {
-                  const m = stav.minihra
+              {stav.faze === 'konec-tahu' && nabidka && !jeNaTahuBot && (
+                <div className="trh-nabidka">
+                  <p className="trh-nabidka-text">
+                    Volné pole: <strong>{nabidka.nazev}</strong> — {nabidka.cena} kreditů (nájem {nabidka.najem} kreditů)
+                  </p>
+                  <div className="trh-nabidka-btns">
+                    <button
+                      className="trh-kostka-btn"
+                      disabled={!hrac || hrac.penize < nabidka.cena}
+                      onClick={() => setStav((s) => koupitPole(s))}
+                    >
+                      Koupit za {nabidka.cena} kreditů
+                    </button>
+                    <button className="trh-ukoncit-tah-btn" onClick={() => setStav((s) => odmitnoutKoupi(s))}>
+                      Nekoupit
+                    </button>
+                  </div>
+                </div>
+              )}
 
-                  if (m.typ === 'pexeso') {
-                    return (
-                      <div className="trh-pexeso">
-                        <p className="trh-sabotaz-nadpis">
-                          🧠 Tržní pexeso — najdi všechny dvojice! (pokusy: {m.pokusy})
-                        </p>
-                        <div className="trh-pexeso-mrizka">
-                          {m.karty.map((k, index) => {
-                            const odkryta = k.nalezena || m.otevrene.includes(index)
-                            return (
-                              <button
-                                key={index}
-                                className={`trh-pexeso-karta ${odkryta ? 'je-odkryta' : ''} ${k.nalezena ? 'je-nalezena' : ''}`}
-                                disabled={jeNaTahuBot || k.nalezena || m.otevrene.includes(index) || m.cekaNaPotvrzeni}
-                                onClick={() => setStav((s) => otocitKartuPexesa(s, index))}
-                              >
-                                {odkryta ? k.symbol : '❓'}
+              {stav.faze === 'konec-tahu' && nabidka && jeNaTahuBot && (
+                <p className="trh-zbyva">Bot přemýšlí o koupi {nabidka.nazev}…</p>
+              )}
+
+              {stav.faze === 'konec-tahu' && !nabidka && (
+                <div className="trh-akce-panel">
+                  {stav.minihra ? (
+                    (() => {
+                      const m = stav.minihra
+
+                      if (m.typ === 'pexeso') {
+                        return (
+                          <div className="trh-pexeso">
+                            <p className="trh-sabotaz-nadpis">
+                              🧠 Tržní pexeso — najdi všechny dvojice! (pokusy: {m.pokusy})
+                            </p>
+                            <div className="trh-pexeso-mrizka">
+                              {m.karty.map((k, index) => {
+                                const odkryta = k.nalezena || m.otevrene.includes(index)
+                                return (
+                                  <button
+                                    key={index}
+                                    className={`trh-pexeso-karta ${odkryta ? 'je-odkryta' : ''} ${k.nalezena ? 'je-nalezena' : ''}`}
+                                    disabled={jeNaTahuBot || k.nalezena || m.otevrene.includes(index) || m.cekaNaPotvrzeni}
+                                    onClick={() => setStav((s) => otocitKartuPexesa(s, index))}
+                                  >
+                                    {odkryta ? k.symbol : '❓'}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                            {jeNaTahuBot ? (
+                              <p className="trh-zbyva">Bot hraje pexeso…</p>
+                            ) : m.cekaNaPotvrzeni ? (
+                              <button className="trh-kostka-btn" onClick={() => setStav((s) => potvrdNeshoduPexesa(s))}>
+                                Pokračovat
                               </button>
-                            )
-                          })}
-                        </div>
-                        {jeNaTahuBot ? (
-                          <p className="trh-zbyva">Bot hraje pexeso…</p>
-                        ) : m.cekaNaPotvrzeni ? (
-                          <button className="trh-kostka-btn" onClick={() => setStav((s) => potvrdNeshoduPexesa(s))}>
-                            Pokračovat
-                          </button>
-                        ) : null}
-                      </div>
-                    )
-                  }
+                            ) : null}
+                          </div>
+                        )
+                      }
 
-                  if (m.typ === 'drazba') {
-                    const polozka = POLOZKY_DRAZBY_PODLE_ID[m.polozkaId]
-                    const vede = m.vedeId ? stav.hraci.find((h) => h.id === m.vedeId) : null
-                    const naTahuId = m.indexNaTahu < m.poradiUcastniku.length ? m.poradiUcastniku[m.indexNaTahu] : null
-                    const naTahuHrac = naTahuId ? stav.hraci.find((h) => h.id === naTahuId) : null
-                    const dalsiNabidka = m.aktualniNabidka + PRIHOZ_DRAZBY
-                    return (
-                      <div className="trh-drazba">
-                        <p className="trh-sabotaz-nadpis">
-                          🔨 Dražba — {polozka?.ikona} <strong>{polozka?.nazev ?? '?'}</strong>
-                        </p>
+                      if (m.typ === 'drazba') {
+                        const polozka = POLOZKY_DRAZBY_PODLE_ID[m.polozkaId]
+                        const vede = m.vedeId ? stav.hraci.find((h) => h.id === m.vedeId) : null
+                        const naTahuId = m.indexNaTahu < m.poradiUcastniku.length ? m.poradiUcastniku[m.indexNaTahu] : null
+                        const naTahuHrac = naTahuId ? stav.hraci.find((h) => h.id === naTahuId) : null
+                        const dalsiNabidka = m.aktualniNabidka + PRIHOZ_DRAZBY
+                        return (
+                          <div className="trh-drazba">
+                            <p className="trh-sabotaz-nadpis">
+                              🔨 Dražba — {polozka?.ikona} <strong>{polozka?.nazev ?? '?'}</strong>
+                            </p>
+                            <p className="trh-zbyva">
+                              Aktuální nabídka: <strong>{m.aktualniNabidka} kreditů</strong> (vede:{' '}
+                              {vede ? vede.jmeno : 'nikdo zatím'})
+                            </p>
+                            {naTahuHrac?.jeBot ? (
+                              <p className="trh-zbyva">Bot {naTahuHrac.jmeno} přemýšlí…</p>
+                            ) : naTahuHrac ? (
+                              <>
+                                <p className="trh-sabotaz-nadpis">Na tahu: {naTahuHrac.jmeno}</p>
+                                <div className="trh-obchod-akce">
+                                  <button
+                                    className="trh-kostka-btn"
+                                    disabled={naTahuHrac.penize < dalsiNabidka}
+                                    onClick={() => setStav((s) => zvysNabidkuDrazby(s, naTahuHrac.id))}
+                                  >
+                                    Přihodit na {dalsiNabidka} kreditů
+                                  </button>
+                                  <button
+                                    className="trh-ukoncit-tah-btn"
+                                    onClick={() => setStav((s) => odstupOdDrazby(s, naTahuHrac.id))}
+                                  >
+                                    Vzdát se
+                                  </button>
+                                </div>
+                              </>
+                            ) : null}
+                          </div>
+                        )
+                      }
+
+                      // 'rychla-aukce'
+                      return jeNaTahuBot ? (
                         <p className="trh-zbyva">
-                          Aktuální nabídka: <strong>{m.aktualniNabidka} kreditů</strong> (vede:{' '}
-                          {vede ? vede.jmeno : 'nikdo zatím'})
+                          {MINIHRY_PODLE_TYPU['rychla-aukce'].ikona} Bot zkouší rychlou aukci…
                         </p>
-                        {naTahuHrac?.jeBot ? (
-                          <p className="trh-zbyva">Bot {naTahuHrac.jmeno} přemýšlí…</p>
-                        ) : naTahuHrac ? (
-                          <>
-                            <p className="trh-sabotaz-nadpis">Na tahu: {naTahuHrac.jmeno}</p>
+                      ) : (
+                        <div className="trh-rychla-aukce">
+                          <p className="trh-sabotaz-nadpis">⚡ Rychlá aukce — chyť ukazatel uprostřed!</p>
+                          <RychlaAukceHra onChytit={(presnost) => setStav((s) => vyhodnotRychlouAukci(s, presnost))} />
+                        </div>
+                      )
+                    })()
+                  ) : stav.nabidkaObchodu && !protinabidkaOtevrena ? (
+                    (() => {
+                      const n = stav.nabidkaObchodu
+                      const navrhovatel = stav.hraci.find((h) => h.id === n.odKoho)
+                      const cil = stav.hraci.find((h) => h.id === n.komu)
+                      const popisStrany = (penize: number, pole: string[]): string => {
+                        const casti: string[] = []
+                        if (penize > 0) casti.push(`${penize} kreditů`)
+                        casti.push(...pole.map((k) => OBCHODY_PODLE_KLICE[k]?.nazev ?? k))
+                        return casti.length > 0 ? casti.join(', ') : 'nic'
+                      }
+                      return (
+                        <div className="trh-obchod-nabidka">
+                          <p className="trh-obchod-nadpis">
+                            🤝 <strong>{navrhovatel?.jmeno ?? '?'}</strong> nabízí obchod hráči{' '}
+                            <strong>{cil?.jmeno ?? '?'}</strong>
+                          </p>
+                          <p className="trh-obchod-detail">
+                            Nabízí: <strong>{popisStrany(n.nabizenePenize, n.nabizenaPole)}</strong>
+                          </p>
+                          <p className="trh-obchod-detail">
+                            Chce: <strong>{popisStrany(n.pozadovanePenize, n.pozadovanaPole)}</strong>
+                          </p>
+                          {cil?.jeBot ? (
+                            <p className="trh-zbyva">Bot zvažuje nabídku…</p>
+                          ) : (
                             <div className="trh-obchod-akce">
-                              <button
-                                className="trh-kostka-btn"
-                                disabled={naTahuHrac.penize < dalsiNabidka}
-                                onClick={() => setStav((s) => zvysNabidkuDrazby(s, naTahuHrac.id))}
-                              >
-                                Přihodit na {dalsiNabidka} kreditů
+                              <button className="trh-kostka-btn" onClick={() => setStav((s) => prijmoutObchod(s))}>
+                                Přijmout
                               </button>
-                              <button
-                                className="trh-ukoncit-tah-btn"
-                                onClick={() => setStav((s) => odstupOdDrazby(s, naTahuHrac.id))}
-                              >
-                                Vzdát se
+                              <button className="trh-ukoncit-tah-btn" onClick={() => setStav((s) => odmitnoutObchod(s))}>
+                                Odmítnout
+                              </button>
+                              <button className="trh-ukoncit-tah-btn" onClick={otevritProtinabidku}>
+                                Upravit a poslat zpět
                               </button>
                             </div>
-                          </>
-                        ) : null}
-                      </div>
-                    )
-                  }
-
-                  // 'rychla-aukce'
-                  return jeNaTahuBot ? (
-                    <p className="trh-zbyva">
-                      {MINIHRY_PODLE_TYPU['rychla-aukce'].ikona} Bot zkouší rychlou aukci…
-                    </p>
-                  ) : (
-                    <div className="trh-rychla-aukce">
-                      <p className="trh-sabotaz-nadpis">⚡ Rychlá aukce — chyť ukazatel uprostřed!</p>
-                      <RychlaAukceHra onChytit={(presnost) => setStav((s) => vyhodnotRychlouAukci(s, presnost))} />
-                    </div>
-                  )
-                })()
-              ) : stav.nabidkaObchodu && !protinabidkaOtevrena ? (
-                (() => {
-                  const n = stav.nabidkaObchodu
-                  const navrhovatel = stav.hraci.find((h) => h.id === n.odKoho)
-                  const cil = stav.hraci.find((h) => h.id === n.komu)
-                  const popisStrany = (penize: number, pole: string[]): string => {
-                    const casti: string[] = []
-                    if (penize > 0) casti.push(`${penize} kreditů`)
-                    casti.push(...pole.map((k) => OBCHODY_PODLE_KLICE[k]?.nazev ?? k))
-                    return casti.length > 0 ? casti.join(', ') : 'nic'
-                  }
-                  return (
-                    <div className="trh-obchod-nabidka">
-                      <p className="trh-obchod-nadpis">
-                        🤝 <strong>{navrhovatel?.jmeno ?? '?'}</strong> nabízí obchod hráči{' '}
-                        <strong>{cil?.jmeno ?? '?'}</strong>
-                      </p>
-                      <p className="trh-obchod-detail">
-                        Nabízí: <strong>{popisStrany(n.nabizenePenize, n.nabizenaPole)}</strong>
-                      </p>
-                      <p className="trh-obchod-detail">
-                        Chce: <strong>{popisStrany(n.pozadovanePenize, n.pozadovanaPole)}</strong>
-                      </p>
-                      {cil?.jeBot ? (
-                        <p className="trh-zbyva">Bot zvažuje nabídku…</p>
-                      ) : (
-                        <div className="trh-obchod-akce">
-                          <button className="trh-kostka-btn" onClick={() => setStav((s) => prijmoutObchod(s))}>
-                            Přijmout
-                          </button>
-                          <button className="trh-ukoncit-tah-btn" onClick={() => setStav((s) => odmitnoutObchod(s))}>
-                            Odmítnout
-                          </button>
-                          <button className="trh-ukoncit-tah-btn" onClick={otevritProtinabidku}>
-                            Upravit a poslat zpět
+                          )}
+                          <button
+                            className="trh-obchod-zrusit-link"
+                            onClick={() => setStav((s) => zrusitObchod(s))}
+                          >
+                            Zrušit nabídku
                           </button>
                         </div>
-                      )}
-                      <button
-                        className="trh-obchod-zrusit-link"
-                        onClick={() => setStav((s) => zrusitObchod(s))}
-                      >
-                        Zrušit nabídku
-                      </button>
-                    </div>
-                  )
-                })()
-              ) : !jeNaTahuBot && (obchodOtevren || protinabidkaOtevrena) ? (
-                <div className="trh-obchod-sheet">
-                  {obchodOtevren && !protinabidkaOtevrena && !obchodCilId ? (
-                    <>
-                      <p className="trh-sabotaz-nadpis">Komu nabídnout obchod?</p>
-                      {stav.hraci
-                        .filter((h) => h.id !== hrac?.id)
-                        .map((h) => (
-                          <button key={h.id} className="trh-sabotaz-cil" onClick={() => setObchodCilId(h.id)}>
-                            <span style={{ color: POSTAVY[h.postavaId].barva }}>{POSTAVY[h.postavaId].emoji}</span>{' '}
-                            {h.jmeno}
-                          </button>
-                        ))}
-                      <button className="trh-ukoncit-tah-btn" onClick={zavritObchodSheet}>
-                        Zrušit
-                      </button>
-                    </>
-                  ) : (
-                    obchodStrany && (
-                      <>
-                        <p className="trh-sabotaz-nadpis">
-                          {protinabidkaOtevrena
-                            ? 'Uprav a pošli zpátky'
-                            : `Nabídka pro ${stav.hraci.find((h) => h.id === obchodStrany.cilId)?.jmeno ?? '?'}`}
-                        </p>
-                        <div className="trh-obchod-sloupec">
-                          <p className="trh-obchod-sloupec-nadpis">Nabízíš</p>
-                          <input
-                            className="trh-obchod-penize-input"
-                            type="number"
-                            min={0}
-                            inputMode="numeric"
-                            placeholder="Peníze (kreditů)"
-                            value={obchodNabizenePenize}
-                            onChange={(e) => setObchodNabizenePenize(e.target.value)}
-                          />
-                          {poleHrace(obchodStrany.navrhovatelId).map((klic) => (
-                            <label key={klic} className="trh-obchod-pole-radek">
-                              <input
-                                type="checkbox"
-                                checked={obchodNabizenaPole.has(klic)}
-                                onChange={() => prepnoutPole(obchodNabizenaPole, setObchodNabizenaPole, klic)}
-                              />
-                              {OBCHODY_PODLE_KLICE[klic]?.nazev ?? klic}
-                            </label>
-                          ))}
-                        </div>
-                        <div className="trh-obchod-sloupec">
-                          <p className="trh-obchod-sloupec-nadpis">Chceš</p>
-                          <input
-                            className="trh-obchod-penize-input"
-                            type="number"
-                            min={0}
-                            inputMode="numeric"
-                            placeholder="Peníze (kreditů)"
-                            value={obchodPozadovanePenize}
-                            onChange={(e) => setObchodPozadovanePenize(e.target.value)}
-                          />
-                          {poleHrace(obchodStrany.cilId).map((klic) => (
-                            <label key={klic} className="trh-obchod-pole-radek">
-                              <input
-                                type="checkbox"
-                                checked={obchodPozadovanaPole.has(klic)}
-                                onChange={() => prepnoutPole(obchodPozadovanaPole, setObchodPozadovanaPole, klic)}
-                              />
-                              {OBCHODY_PODLE_KLICE[klic]?.nazev ?? klic}
-                            </label>
-                          ))}
-                        </div>
-                        <div className="trh-obchod-akce">
-                          <button className="trh-kostka-btn" onClick={odeslatObchodniFormular}>
-                            {protinabidkaOtevrena ? 'Poslat protinabídku' : 'Navrhnout obchod'}
-                          </button>
+                      )
+                    })()
+                  ) : !jeNaTahuBot && (obchodOtevren || protinabidkaOtevrena) ? (
+                    <div className="trh-obchod-sheet">
+                      {obchodOtevren && !protinabidkaOtevrena && !obchodCilId ? (
+                        <>
+                          <p className="trh-sabotaz-nadpis">Komu nabídnout obchod?</p>
+                          {stav.hraci
+                            .filter((h) => h.id !== hrac?.id)
+                            .map((h) => (
+                              <button key={h.id} className="trh-sabotaz-cil" onClick={() => setObchodCilId(h.id)}>
+                                <span style={{ color: POSTAVY[h.postavaId].barva }}>{POSTAVY[h.postavaId].emoji}</span>{' '}
+                                {h.jmeno}
+                              </button>
+                            ))}
                           <button className="trh-ukoncit-tah-btn" onClick={zavritObchodSheet}>
                             Zrušit
                           </button>
-                        </div>
-                      </>
-                    )
-                  )}
-                </div>
-              ) : !jeNaTahuBot && sabotazOtevrena ? (
-                <div className="trh-sabotaz-sheet">
-                  {!vybranaAkce ? (
-                    <>
-                      <p className="trh-sabotaz-nadpis">Vyber sabotáž:</p>
-                      {SABOTAZNI_AKCE.map((akce) => (
-                        <button
-                          key={akce.id}
-                          className="trh-sabotaz-akce"
-                          disabled={!hrac || hrac.penize < akce.cena}
-                          onClick={() => vyberAkciSabotaze(akce)}
-                        >
-                          <span className="trh-sabotaz-akce-ikona" aria-hidden="true">
-                            {akce.ikona}
-                          </span>
-                          <span className="trh-sabotaz-akce-text">
-                            <strong>
-                              {akce.nazev} — {akce.cena} kreditů
-                            </strong>
-                            <span>{akce.popis}</span>
-                          </span>
-                        </button>
-                      ))}
-                      <button className="trh-ukoncit-tah-btn" onClick={() => setSabotazOtevrena(false)}>
-                        Zrušit
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <p className="trh-sabotaz-nadpis">Na koho použít {vybranaAkce.nazev}?</p>
-                      {stav.hraci
-                        .filter((h) => h.id !== hrac?.id)
-                        .map((h) => (
-                          <button key={h.id} className="trh-sabotaz-cil" onClick={() => pouzitSabotazNaCil(h.id)}>
-                            <span style={{ color: POSTAVY[h.postavaId].barva }}>{POSTAVY[h.postavaId].emoji}</span>{' '}
-                            {h.jmeno}
+                        </>
+                      ) : (
+                        obchodStrany && (
+                          <>
+                            <p className="trh-sabotaz-nadpis">
+                              {protinabidkaOtevrena
+                                ? 'Uprav a pošli zpátky'
+                                : `Nabídka pro ${stav.hraci.find((h) => h.id === obchodStrany.cilId)?.jmeno ?? '?'}`}
+                            </p>
+                            <div className="trh-obchod-sloupec">
+                              <p className="trh-obchod-sloupec-nadpis">Nabízíš</p>
+                              <input
+                                className="trh-obchod-penize-input"
+                                type="number"
+                                min={0}
+                                inputMode="numeric"
+                                placeholder="Peníze (kreditů)"
+                                value={obchodNabizenePenize}
+                                onChange={(e) => setObchodNabizenePenize(e.target.value)}
+                              />
+                              {poleHrace(obchodStrany.navrhovatelId).map((klic) => (
+                                <label key={klic} className="trh-obchod-pole-radek">
+                                  <input
+                                    type="checkbox"
+                                    checked={obchodNabizenaPole.has(klic)}
+                                    onChange={() => prepnoutPole(obchodNabizenaPole, setObchodNabizenaPole, klic)}
+                                  />
+                                  {OBCHODY_PODLE_KLICE[klic]?.nazev ?? klic}
+                                </label>
+                              ))}
+                            </div>
+                            <div className="trh-obchod-sloupec">
+                              <p className="trh-obchod-sloupec-nadpis">Chceš</p>
+                              <input
+                                className="trh-obchod-penize-input"
+                                type="number"
+                                min={0}
+                                inputMode="numeric"
+                                placeholder="Peníze (kreditů)"
+                                value={obchodPozadovanePenize}
+                                onChange={(e) => setObchodPozadovanePenize(e.target.value)}
+                              />
+                              {poleHrace(obchodStrany.cilId).map((klic) => (
+                                <label key={klic} className="trh-obchod-pole-radek">
+                                  <input
+                                    type="checkbox"
+                                    checked={obchodPozadovanaPole.has(klic)}
+                                    onChange={() => prepnoutPole(obchodPozadovanaPole, setObchodPozadovanaPole, klic)}
+                                  />
+                                  {OBCHODY_PODLE_KLICE[klic]?.nazev ?? klic}
+                                </label>
+                              ))}
+                            </div>
+                            <div className="trh-obchod-akce">
+                              <button className="trh-kostka-btn" onClick={odeslatObchodniFormular}>
+                                {protinabidkaOtevrena ? 'Poslat protinabídku' : 'Navrhnout obchod'}
+                              </button>
+                              <button className="trh-ukoncit-tah-btn" onClick={zavritObchodSheet}>
+                                Zrušit
+                              </button>
+                            </div>
+                          </>
+                        )
+                      )}
+                    </div>
+                  ) : !jeNaTahuBot && sabotazOtevrena ? (
+                    <div className="trh-sabotaz-sheet">
+                      {!vybranaAkce ? (
+                        <>
+                          <p className="trh-sabotaz-nadpis">Vyber sabotáž:</p>
+                          {SABOTAZNI_AKCE.map((akce) => (
+                            <button
+                              key={akce.id}
+                              className="trh-sabotaz-akce"
+                              disabled={!hrac || hrac.penize < akce.cena}
+                              onClick={() => vyberAkciSabotaze(akce)}
+                            >
+                              <span className="trh-sabotaz-akce-ikona" aria-hidden="true">
+                                {akce.ikona}
+                              </span>
+                              <span className="trh-sabotaz-akce-text">
+                                <strong>
+                                  {akce.nazev} — {akce.cena} kreditů
+                                </strong>
+                                <span>{akce.popis}</span>
+                              </span>
+                            </button>
+                          ))}
+                          <button className="trh-ukoncit-tah-btn" onClick={() => setSabotazOtevrena(false)}>
+                            Zrušit
                           </button>
-                        ))}
-                      <button className="trh-ukoncit-tah-btn" onClick={() => setVybranaAkce(null)}>
-                        Zpět
+                        </>
+                      ) : (
+                        <>
+                          <p className="trh-sabotaz-nadpis">Na koho použít {vybranaAkce.nazev}?</p>
+                          {stav.hraci
+                            .filter((h) => h.id !== hrac?.id)
+                            .map((h) => (
+                              <button key={h.id} className="trh-sabotaz-cil" onClick={() => pouzitSabotazNaCil(h.id)}>
+                                <span style={{ color: POSTAVY[h.postavaId].barva }}>{POSTAVY[h.postavaId].emoji}</span>{' '}
+                                {h.jmeno}
+                              </button>
+                            ))}
+                          <button className="trh-ukoncit-tah-btn" onClick={() => setVybranaAkce(null)}>
+                            Zpět
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  ) : !jeNaTahuBot ? (
+                    <div className="trh-akce-tlacitka">
+                      <button
+                        className="trh-sabotaz-otevrit-btn"
+                        disabled={!hrac || hrac.sabotazPouzita}
+                        onClick={() => {
+                          setObchodOtevren(false)
+                          setSabotazOtevrena(true)
+                        }}
+                      >
+                        ⚔️ Sabotovat soupeře
                       </button>
-                    </>
-                  )}
+                      <button className="trh-obchod-otevrit-btn" onClick={otevritObchod}>
+                        🤝 Obchodovat
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
-              ) : !jeNaTahuBot ? (
-                <div className="trh-akce-tlacitka">
-                  <button
-                    className="trh-sabotaz-otevrit-btn"
-                    disabled={!hrac || hrac.sabotazPouzita}
-                    onClick={() => {
-                      setObchodOtevren(false)
-                      setSabotazOtevrena(true)
-                    }}
-                  >
-                    ⚔️ Sabotovat soupeře
-                  </button>
-                  <button className="trh-obchod-otevrit-btn" onClick={otevritObchod}>
-                    🤝 Obchodovat
-                  </button>
-                </div>
-              ) : null}
+              )}
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
