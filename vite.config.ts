@@ -144,7 +144,21 @@ export default defineConfig(({ command }) => {
           // survival/** (Grafika — Kenney sprity pro Survival Night's
           // hráče/8 monster/bosse, viz useSurvivalScene.ts, ~30 kB) ze
           // stejného důvodu — /hra/survival-night otevře jen část hráčů.
-          globIgnores: ['**/js/auto-update.js', '**/mediapipe/**', '**/push-sw.js', '**/souboj/postavy/**', '**/survival/**'],
+          //
+          // deskova-hra/trh-*.png (textury Buddyho Trhu vyříznuté ze
+          // skutečné fotky desky, co appce poslal uživatel — viz
+          // useTrhScene.ts, ~1.1 MB) ze stejného důvodu jako výš —
+          // /hra/trh otevře jen část hráčů appky. Zbytek deskova-hra/
+          // (Čtyři království, pár kB) zůstává v běžné precache, protože
+          // je zanedbatelně malý.
+          globIgnores: [
+            '**/js/auto-update.js',
+            '**/mediapipe/**',
+            '**/push-sw.js',
+            '**/souboj/postavy/**',
+            '**/survival/**',
+            '**/deskova-hra/trh-*',
+          ],
           navigateFallbackDenylist: [/^\/api\//, /^\/version\.json$/, /^\/js\//],
           // Precache staré verze se po aktivaci nového SW smaže,
           // takže se v prohlížeči nehromadí zastaralé soubory.
@@ -217,6 +231,16 @@ export default defineConfig(({ command }) => {
               options: {
                 cacheName: 'survival-runtime',
                 expiration: { maxEntries: 15, maxAgeSeconds: 60 * 60 * 24 * 365 }
+              }
+            },
+            // Textury Buddyho Trhu (public/deskova-hra/trh-*.png), stejným
+            // důvodem jako výš: /hra/trh otevře jen část hráčů appky.
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/deskova-hra/trh-'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'trh-textury-runtime',
+                expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }
               }
             },
             // Mapové dlaždice OpenStreetMap pro Běhání/Kardio (src/miniapps/

@@ -15,101 +15,65 @@ import type { TrhStav } from '../types'
 // React dostane jen <div ref={containerRef}>. Obyčejný Three.js, ne
 // React Three Fiber — stejný důvod jako všude jinde v appce.
 //
-// DRUHÉ KOLO GRAFIKY — uživatel výslovně odmítl Kenney i jakýkoli jiný
-// stažený balíček ("chci fakt hezkou a profesionální grafiku, ne
-// Kenney") a zvolil cestu "postav to technikou": appka nemá nástroj na
-// generování 3D modelů a appčin sandboxní proxy blokuje úplně každou
-// volně dostupnou 3D knihovnu kromě GitHubu (kenney.nl/itch.io/
-// opengameart.org/quaternius.com/polyhaven.com/sketchfab.com/
-// poly.pizza — appka to ověřila přímým curl na všechny najednou, ne že
-// by to jen předpokládala), takže "profesionální" vzhled appka staví
-// čistě vlastními prostředky: procedurální canvas textury (zrnění,
-// dřevo, přechod oblohy — appka nikde NIC nestahuje), PBR materiály s
-// opravdovým metalness/roughness místo ploché barvy, měkké stíny
+// TŘETÍ KOLO GRAFIKY — uživatel appce sám poslal skutečnou fotku herní
+// desky (vygenerovanou přes ChatGPT podle appčina vlastního popisu
+// Buddyho Trhu — téma, políčka, postavy) s výslovným zadáním "tohle
+// použijeme jako hrací desku". Appka ji ale nepoužívá jako plochý
+// obrázek pozadí s překryvem (jako game/MapaSveta.tsx) — konkrétní
+// rozložení políček na fotce je čistě umělecké a neodpovídá políčko po
+// políčku appčiným skutečným datům (obchody.ts/osud.ts/kolostesti.ts/
+// minihry.ts), takže appka z fotky ořízla sedm čistých, kolmých
+// ukázkových dlaždic (obchod/osud/kolo štěstí/minihra/prázdné pole,
+// rám, stůl — viz public/deskova-hra/trh-*.png) a použila je jako
+// skutečné PBR textury na existující interaktivní 3D desce. Výsledek:
+// každé pole pořád ukazuje svůj OPRAVDOVÝ typ (appka se nespoléhá na
+// to, že fotka "uhodla" správné rozložení), jen material pod tím je
+// teď skutečná fotka místo appkou kreslené procedurální textury
+// (druhé kolo grafiky výš — appka tehdy neměla jinou volně dostupnou
+// cestu k "profesionálnímu" vzhledu, protože sandboxní proxy blokuje
+// kenney.nl/itch.io/opengameart.org/quaternius.com/polyhaven.com/
+// sketchfab.com/poly.pizza; tahle fotka přišla přímo od uživatele, ne
+// odjinud, takže appka ji stejně jako jakýkoli jiný uživatelem dodaný
+// obrázek v tomhle souboru self-hostuje z public/, nikdy nenačítá za
+// běhu odjinud). PBR materiály (metalness/roughness), měkké stíny
 // (PCFSoftShadowMap) a filmové tónové mapování (ACESFilmicToneMapping)
-// místo appčina dřívějšího holého rendereru.
+// zůstávají beze změny.
 //
-// Tahle revize taky opravuje skutečnou, dřív nikým nevšimnutou mezeru:
-// appka měla celou dobu 5 polí "Minihra" (viz minihry.ts, Fáze 6), ale
-// scéna na ně nikdy nereagovala — `jeMinihrovePole` se tu vůbec
-// neimportoval, takže minihrové pole vypadalo úplně stejně jako obyčejné
-// prázdné pole šachovnice. Teď má appka pátou, vlastní barvu/materiál
-// vedle obchodu/Osudu/kola štěstí, přesně jako ty tři.
+// Pozadí scény (vytvorGradientPozadi) zůstává appčina procedurální
+// canvas textura — žádný obrázek na vykreslení, jen jemný přechod barev
+// za deskou — jen appka přeladila odstín z chladné modré na teplou
+// hnědou, ať ladí s fotkou.
 // ==========================================
 
 const VELIKOST_POLE = 1.4
 const MEZERA = 0.06
-const BARVA_NEPRODANEHO_OBCHODU = '#7a6a2e'
+// Nenatónovaná (bílá) — appka dřív tónovala tmavým olivovým odstínem,
+// vyladěným na appčinu dřívější procedurální texturu; násobený přes
+// skutečnou (jasnou) fotografickou texturu to ale dělalo nekoupený
+// obchod skoro nečitelný, splýval s tmavými poli šachovnice. Bílá
+// necháva appku ukázat skutečnou texturu tak, jak vypadá na fotce.
+const BARVA_NEPRODANEHO_OBCHODU = '#ffffff'
 const BARVA_OSUDOVEHO_POLE = '#c44fb0'
 const BARVA_KOLA_STESTI = '#e8b43a'
 const BARVA_MINIHROVEHO_POLE = '#1fcab5'
 
 // ==========================================
-// Procedurální textury — appka žádný obrázek nenačítá, kreslí si je
-// sama na <canvas> při vytvoření scény. Žádný opravdový šumový
-// algoritmus (appka na to nemá knihovnu), ale appčino vlastní
-// "stovky malých teček/vlnek náhodné odchylky přes jednobarevný
-// podklad" stačí na to, aby dlaždice v appčině velikosti (VELIKOST_POLE)
-// přestala vypadat jako plochá vektorová barva a začala vypadat jako
-// skutečný povrch (kámen/mramor/dřevo). Stejný "appka to umí sama, bez
-// knihovny" přístup appka už má jinde (konfety, waveform, admin
-// sloupcové grafy) — tady poprvé použitý na texturu, ne na UI prvek.
+// Skutečné fotografické textury — appka je nenačítá za běhu odjinud,
+// má je self-hostnuté v public/deskova-hra/ (ořezané appkou z fotky,
+// co appce poslal uživatel, viz komentář výš). `nacti` je jen tenký
+// obal nad `THREE.TextureLoader`, co appce rovnou nastaví sRGB prostor
+// barev (stejný, co má renderer.outputColorSpace) a sám se přidá do
+// `vsechnyTextury`, ať appka nemusí na každém volání opakovat tytéž dva
+// řádky — `TextureLoader.load()` vrací Texture synchronně hned, obrázek
+// se do ní dotáhne asynchronně až o pár snímků později.
 // ==========================================
 
-const vytvorZrnitouTexturu = (zaklad: string, zrno: string, pocetTecek = 600, rozmer = 128): THREE.CanvasTexture => {
-  const canvas = document.createElement('canvas')
-  canvas.width = rozmer
-  canvas.height = rozmer
-  const ctx = canvas.getContext('2d')
-  if (ctx) {
-    ctx.fillStyle = zaklad
-    ctx.fillRect(0, 0, rozmer, rozmer)
-    ctx.fillStyle = zrno
-    for (let i = 0; i < pocetTecek; i++) {
-      const x = Math.random() * rozmer
-      const y = Math.random() * rozmer
-      const r = Math.random() * 1.6 + 0.3
-      ctx.globalAlpha = Math.random() * 0.3 + 0.06
-      ctx.beginPath()
-      ctx.arc(x, y, r, 0, Math.PI * 2)
-      ctx.fill()
-    }
-    ctx.globalAlpha = 1
-  }
-  const textura = new THREE.CanvasTexture(canvas)
-  textura.colorSpace = THREE.SRGBColorSpace
-  return textura
-}
+const zavaditel = new THREE.TextureLoader()
 
-/** Dřevitá textura pro rám kolem desky — appka vrství mírně zvlněné
- *  vodorovné pruhy (sinusová odchylka) tmavšího odstínu na základní
- *  barvu. `RepeatWrapping`, ať se jedna textura dá natáhnout kolem
- *  celého obvodu rámu beze švu. */
-const vytvorDrevenouTexturu = (zaklad: string, zrno: string, rozmer = 256): THREE.CanvasTexture => {
-  const canvas = document.createElement('canvas')
-  canvas.width = rozmer
-  canvas.height = rozmer
-  const ctx = canvas.getContext('2d')
-  if (ctx) {
-    ctx.fillStyle = zaklad
-    ctx.fillRect(0, 0, rozmer, rozmer)
-    ctx.strokeStyle = zrno
-    ctx.lineWidth = 1.5
-    for (let y = 4; y < rozmer; y += 7) {
-      ctx.globalAlpha = 0.18 + Math.random() * 0.14
-      ctx.beginPath()
-      ctx.moveTo(0, y)
-      for (let x = 0; x <= rozmer; x += 16) {
-        ctx.lineTo(x, y + Math.sin(x * 0.05 + y) * 3)
-      }
-      ctx.stroke()
-    }
-    ctx.globalAlpha = 1
-  }
-  const textura = new THREE.CanvasTexture(canvas)
+const nacti = (cesta: string, vsechnyTextury: THREE.Texture[]): THREE.Texture => {
+  const textura = zavaditel.load(cesta)
   textura.colorSpace = THREE.SRGBColorSpace
-  textura.wrapS = THREE.RepeatWrapping
-  textura.wrapT = THREE.RepeatWrapping
+  vsechnyTextury.push(textura)
   return textura
 }
 
@@ -169,16 +133,16 @@ export const useTrhScene = ({ stav }: UseTrhSceneOptions): UseTrhSceneResult => 
     renderer.shadowMap.enabled = true
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.1
+    renderer.toneMappingExposure = 1.3
     container.appendChild(renderer.domElement)
 
     const vsechnyTextury: THREE.Texture[] = []
 
     const scene = new THREE.Scene()
-    const texturaPozadi = vytvorGradientPozadi('#182340', '#05070d')
+    const texturaPozadi = vytvorGradientPozadi('#2b1c10', '#060301')
     vsechnyTextury.push(texturaPozadi)
     scene.background = texturaPozadi
-    scene.fog = new THREE.Fog('#0a0f1c', 15, 30)
+    scene.fog = new THREE.Fog('#140d07', 15, 30)
 
     const stredX = ((SIRKA_MRIZKY - 1) * VELIKOST_POLE) / 2
     const stredZ = ((VYSKA_MRIZKY - 1) * VELIKOST_POLE) / 2
@@ -191,10 +155,14 @@ export const useTrhScene = ({ stav }: UseTrhSceneOptions): UseTrhSceneResult => 
     // appčina dřívějšího "jen osvítit" směrového světla, a dosvitové
     // studené světlo z opačné strany (bez stínu, appka ho nepotřebuje
     // zdvojovat) pro hloubku ve stínovaných místech. Ambientní složka
-    // zůstává, jen o něco jemnější, ať nový vrhač stínu nevybělí celou
-    // scénu.
-    scene.add(new THREE.AmbientLight('#aab6d6', 0.4))
-    const hlavniSvetlo = new THREE.DirectionalLight('#fff3df', 1.45)
+    // appka přeladila z chladné modré (vyladěné na appčiny dřívější
+    // procedurální textury) na teplou, ať nebije se skutečnou
+    // fotografickou texturou desky (viz hlavní komentář výš), a o
+    // trochu zesílila — appčina dřívější scéna byla s reálnou,
+    // detailnější fotkou zbytečně tmavá a kreslené ikony na dlaždicích
+    // byly těžko čitelné.
+    scene.add(new THREE.AmbientLight('#e4c9a0', 0.55))
+    const hlavniSvetlo = new THREE.DirectionalLight('#fff3df', 1.6)
     hlavniSvetlo.position.set(stredX + 6, 13, stredZ + 5)
     hlavniSvetlo.castShadow = true
     hlavniSvetlo.shadow.mapSize.set(2048, 2048)
@@ -214,9 +182,9 @@ export const useTrhScene = ({ stav }: UseTrhSceneOptions): UseTrhSceneResult => 
 
     // Stůl pod celou deskou — appka dřív kreslila jen samotnou mřížku
     // na pozadí barvy; teď má deska skutečný "stůl", na který appčiny
-    // stíny dopadají (receiveShadow), zrnitý jako tmavá žula.
-    const texturaStolu = vytvorZrnitouTexturu('#131722', '#1e2434', 500, 160)
-    vsechnyTextury.push(texturaStolu)
+    // stíny dopadají (receiveShadow), ořezaný ze skutečného dřevěného
+    // stolu na uživatelově fotce (viz hlavní komentář výš).
+    const texturaStolu = nacti('/deskova-hra/trh-stul.png', vsechnyTextury)
     texturaStolu.wrapS = THREE.RepeatWrapping
     texturaStolu.wrapT = THREE.RepeatWrapping
     texturaStolu.repeat.set(5, 5)
@@ -232,9 +200,11 @@ export const useTrhScene = ({ stav }: UseTrhSceneOptions): UseTrhSceneResult => 
     // Dřevěný rám kolem mřížky — čtyři samostatné "kolejnice" appka
     // staví přesně na obvod SIRKA_MRIZKY × VYSKA_MRIZKY mřížky, ať
     // deska vypadá jako skutečná stolní hra v dřevěné krabici, ne jako
-    // dlaždice plovoucí bez okraje nad stolem.
-    const texturaRamu = vytvorDrevenouTexturu('#5c3a21', '#331d0f')
-    vsechnyTextury.push(texturaRamu)
+    // dlaždice plovoucí bez okraje nad stolem. Textura je skutečný
+    // dřevěný rám z uživatelovy fotky (viz hlavní komentář výš).
+    const texturaRamu = nacti('/deskova-hra/trh-ram.png', vsechnyTextury)
+    texturaRamu.wrapS = THREE.RepeatWrapping
+    texturaRamu.wrapT = THREE.RepeatWrapping
     texturaRamu.repeat.set(6, 1)
     const materialRamu = new THREE.MeshStandardMaterial({ map: texturaRamu, roughness: 0.6, metalness: 0.08 })
     const minX = -VELIKOST_POLE / 2
@@ -261,27 +231,31 @@ export const useTrhScene = ({ stav }: UseTrhSceneOptions): UseTrhSceneResult => 
       scene.add(rail)
     }
 
-    // Šachovnicová mřížka — appka teď dvě střídající se barvy kreslí
-    // jako zrnité PBR materiály (ne ploché MeshStandardMaterial barvy),
-    // jedna vlastní (a tedy nezávisle přebarvitelná) zlatá/bronzová
-    // metalická textura na každém z 12 obchodních políček (Fáze 1), ať
-    // přebarvení jednoho obchodu podle vlastníka nezmění barvu i
-    // ostatním polím co sdílejí stejný materiál, jedna sdílená fialová
-    // na šesti "Osud" políčkách (Fáze 2), jedna sdílená zlatá (se
-    // slabým vlastním leskem) na jediném poli "Kolo štěstí" (Fáze 3) a
-    // jedna sdílená tyrkysová na pěti polích "Minihra" (Fáze 6) —
-    // tahle poslední dřív appka vůbec nerozlišovala, pole tiše
-    // splývalo s obyčejnou šachovnicí.
+    // Šachovnicová mřížka — appka teď na ni místo appkou kreslených
+    // procedurálních textur dává skutečné fotografické dlaždice ořezané
+    // z uživatelovy fotky (viz hlavní komentář výš): zlatá/bronzová
+    // metalická na každém z 12 obchodních políček (appka ji sdílí mezi
+    // všemi, protože barva se nastaví až per-pole — viz `color` níž —
+    // ať přebarvení jednoho obchodu podle vlastníka nezmění barvu i
+    // ostatním polím), fialová na šesti "Osud" políčkách, zlatá se
+    // slabým vlastním leskem na jediném poli "Kolo štěstí" a tyrkysová
+    // na pěti polích "Minihra". Obyčejná prázdná pole appka střídá mezi
+    // dvěma odstíny TÉŽE fotky (appka fotila jen jeden vzorek
+    // "prázdného" pole) — světlejší beze změny, tmavší s mírně tmavším
+    // `color` tónem, aby šachovnice dvě barvy pořád rozlišila.
     const geometriePole = new THREE.BoxGeometry(VELIKOST_POLE - MEZERA, 0.2, VELIKOST_POLE - MEZERA)
-    const texturaSvetla = vytvorZrnitouTexturu('#243357', '#3a4f80', 500, 96)
-    const texturaTmava = vytvorZrnitouTexturu('#1a2438', '#28344f', 500, 96)
-    const texturaObchodu = vytvorZrnitouTexturu('#8a6a2a', '#d9bb60', 420, 96)
-    const texturaOsudu = vytvorZrnitouTexturu('#5c1f78', '#9349bd', 360, 96)
-    const texturaKola = vytvorZrnitouTexturu('#8a6a1e', '#f3d278', 360, 96)
-    const texturaMinihry = vytvorZrnitouTexturu('#0f6e63', '#2fe0c8', 360, 96)
-    vsechnyTextury.push(texturaSvetla, texturaTmava, texturaObchodu, texturaOsudu, texturaKola, texturaMinihry)
-    const materialSvetly = new THREE.MeshStandardMaterial({ map: texturaSvetla, roughness: 0.55, metalness: 0.06 })
-    const materialTmavy = new THREE.MeshStandardMaterial({ map: texturaTmava, roughness: 0.55, metalness: 0.06 })
+    const texturaPrazdna = nacti('/deskova-hra/trh-dlazdice-prazdne.png', vsechnyTextury)
+    const texturaObchodu = nacti('/deskova-hra/trh-dlazdice-obchod.png', vsechnyTextury)
+    const texturaOsudu = nacti('/deskova-hra/trh-dlazdice-osud.png', vsechnyTextury)
+    const texturaKola = nacti('/deskova-hra/trh-dlazdice-kolo.png', vsechnyTextury)
+    const texturaMinihry = nacti('/deskova-hra/trh-dlazdice-minihra.png', vsechnyTextury)
+    const materialSvetly = new THREE.MeshStandardMaterial({ map: texturaPrazdna, roughness: 0.55, metalness: 0.06 })
+    const materialTmavy = new THREE.MeshStandardMaterial({
+      map: texturaPrazdna,
+      color: '#b6a47c',
+      roughness: 0.55,
+      metalness: 0.06,
+    })
     const materialOsud = new THREE.MeshStandardMaterial({
       map: texturaOsudu,
       color: BARVA_OSUDOVEHO_POLE,
