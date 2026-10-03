@@ -208,8 +208,8 @@ export const HubModule: React.FC<HubModuleProps> = ({
                 <span className="hub-card-icon-box hub-card-icon-box--violet">
                   <SocialIcon name="gamepad" size={18} />
                 </span>
-                <span className="hub-card-title">Play</span>
-                <span className="hub-card-sub">BuddyZone Games</span>
+                <span className="hub-card-title">Hry</span>
+                <span className="hub-card-sub">Svět plný dobrodružství</span>
                 <span className="hub-card-arrow hub-card-arrow--violet" aria-hidden="true">
                   <SocialIcon name="arrow-left" size={13} />
                 </span>
@@ -219,8 +219,8 @@ export const HubModule: React.FC<HubModuleProps> = ({
                 <span className="hub-card-icon-box hub-card-icon-box--cyan">
                   <SocialIcon name="grid" size={18} />
                 </span>
-                <span className="hub-card-title">Apps</span>
-                <span className="hub-card-sub">Rooms and their applications</span>
+                <span className="hub-card-title">Aplikace</span>
+                <span className="hub-card-sub">Spusť si libovolnou aplikaci</span>
                 <span className="hub-card-arrow hub-card-arrow--cyan" aria-hidden="true">
                   <SocialIcon name="arrow-left" size={13} />
                 </span>
@@ -235,8 +235,8 @@ export const HubModule: React.FC<HubModuleProps> = ({
                 <SocialIcon name="chat" size={21} />
               </span>
               <span className="hub-card-wide-text">
-                <span className="hub-card-title">Community</span>
-                <span className="hub-card-sub">Friends, chats, and noew in one place</span>
+                <span className="hub-card-title">Social</span>
+                <span className="hub-card-sub">Přátelé, chaty a novinky na jednom místě</span>
               </span>
               <span className="hub-card-arrow hub-card-arrow--magenta" aria-hidden="true">
                 <SocialIcon name="arrow-left" size={14} />
@@ -251,7 +251,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
             kredity/peníze, žádná z obou barev se neopakuje s primární
             mřížkou nahoře. */}
         <div className="hub-section">
-          <span className="hub-section-label">Other</span>
+          <span className="hub-section-label">Tvůj pokrok</span>
           <div className="hub-card-row">
             <button className="hub-card hub-card--secondary" onClick={handleRewardsClick}>
               <span className="hub-card-secondary-top">
@@ -262,9 +262,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
                   <SocialIcon name="arrow-left" size={11} />
                 </span>
               </span>
-              <span className="hub-card-title hub-card-title--sm">Achievements</span>
+              <span className="hub-card-title hub-card-title--sm">Achievementy</span>
               <span className="hub-card-sub">
-                {unlockedBadges} z {badges.length}
+                {unlockedBadges} z {badges.length} obdrženo
               </span>
               <span className="hub-card-progress" aria-hidden="true">
                 <span
@@ -283,8 +283,8 @@ export const HubModule: React.FC<HubModuleProps> = ({
                   <SocialIcon name="arrow-left" size={11} />
                 </span>
               </span>
-              <span className="hub-card-title hub-card-title--sm">Shop</span>
-              <span className="hub-card-sub">BuddyZone shop</span>
+              <span className="hub-card-title hub-card-title--sm">Obchod</span>
+              <span className="hub-card-sub">Kredity, VIP a doplňky</span>
             </button>
           </div>
         </div>
