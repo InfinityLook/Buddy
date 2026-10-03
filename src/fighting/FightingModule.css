@@ -1020,9 +1020,20 @@
 
 /* ---------- TV: herní vykreslení ----------
    Na rozdíl od .souboj-page (telefon, max 480px), TV obrazovka smí
-   být širší — aréna má prostor, aby pohyb bojovníků byl vidět. */
+   být širší — aréna má prostor, aby pohyb bojovníků byl vidět.
+
+   Vylepšení — velikost obrazovky se přizpůsobí displeji zařízení.
+   Pevných 900px bylo na skutečné TV (1920×1080, naměřeno přes
+   Playwright) směšně málo — appka nechávala přes 500px prázdného
+   místa po KAŽDÉ straně a aréna pod ní zůstávala stejně malá, jako na
+   telefonu. `min(96vw, 1400px)` roste se šířkou okna/obrazovky (žádný
+   rozdíl na telefonu, kde je 96vw stejně užší než 900), ale na
+   opravdu širokém displeji appka konečně využije většinu šířky —
+   strop 1400px jen brání absurdnímu roztažení na ultra-širokém
+   monitoru, stejná "ohraničené, ne nekonečné" disciplína jako
+   `.souboj-arena`'s vlastní clamp() výš. */
 .souboj-page--tv {
-  max-width: 900px;
+  max-width: min(96vw, 1400px);
 }
 
 .souboj-bojiste {
@@ -1402,10 +1413,25 @@
    "reflektorová" světla z horních rohů — červené nad hráčem 1, cyan
    nad hráčem 2, stejné barvy jako jejich vlastní odznaky jinde v
    appce (`.souboj-hrac-panel--1`/`--2`) — ať aréna sama napovídá, kdo
-   stojí na které straně, ještě než padne první úder. */
+   stojí na které straně, ještě než padne první úder.
+
+   Vylepšení — velikost arény se přizpůsobí displeji. Pevných 220px
+   (resp. 320px u 3D verze níž) byl skutečný bug, ne jen estetická
+   volba — na krátkém telefonu na šířku (844×390, skutečně naměřeno
+   přes Playwright) to natahovalo celou stránku na dvojnásobek
+   dostupné výšky, a na velké TV (1920×1080) to naopak nechávalo
+   obrovský nevyužitý prostor nahoře/dole i po stranách (viz
+   `.souboj-page--tv`'s max-width níž — oboje appka měřila společně,
+   ne jen hádala). `height: clamp(MIN, %vh, MAX)` dělá obě věci
+   najednou: na krátkém displeji aréna reálně zmenší (procento z vh
+   padne pod MIN), na vysokém naroste (až po MAX, ať se nenafoukne do
+   absurdna na ultra-vysokém okně). Zbylý drobný přetok na fakt
+   stísněných zařízeních appka řeší stejně jako jinde v týhle appce
+   (viz CLAUDE.md's Buddyho Trh) — `.souboj-page`'s vlastní
+   `overflow-y: auto` jako záchrannou síť, ne přepisováním zbytku HUD. */
 .souboj-arena {
   position: relative;
-  height: 220px;
+  height: clamp(120px, 28vh, 350px);
   border-radius: var(--radius-lg);
   background:
     radial-gradient(ellipse 60% 45% at 12% 0%, rgba(239, 68, 68, 0.16) 0%, transparent 65%),
@@ -1450,11 +1476,21 @@
    kamera pro každého. `.souboj-arena--3d` doplňuje základní
    `.souboj-arena` (border-radius/overflow/vinětu si nechává), jen
    přebíjí to, co plátno samo obstará (barevné pozadí, výška — nižší
-   220px z 2D verze by pro dvě poloviny obrazovky bylo těsné) a ruší
+   rozmezí z 2D verze by pro dvě poloviny obrazovky bylo těsné) a ruší
    2D-only svislou dělicí čáru (`::before`) ve prospěch vlastní,
-   vodorovné (viz `.souboj-arena-3d-delic` níž). */
+   vodorovné (viz `.souboj-arena-3d-delic` níž).
+
+   Vlastní, o kousek štědřejší clamp() než `.souboj-arena` výš — 3D
+   verze má dvě poloviny obrazovky nad sebou (jedna na hráče), takže
+   při stejné výšce jako plochá 2D karta by každá polovina byla
+   nepříjemně nízká. `useSoubojScene.ts`'s vlastní ResizeObserver už
+   dávno reaguje na SKUTEČNOU velikost kontejneru (čte
+   `container.clientWidth`/`clientHeight` při každé změně, viz jeho
+   komentář) — tahle oprava mu konečně dává kontejner, co tu velikost
+   doopravdy mění, místo pevného čísla, co ResizeObserver nikdy
+   nespustí. */
 .souboj-arena--3d {
-  height: 320px;
+  height: clamp(160px, 42vh, 520px);
   background: #0e1710;
 }
 
