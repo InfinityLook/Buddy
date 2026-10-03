@@ -198,107 +198,112 @@ export const OnlineHost: React.FC<Props> = ({ kod, mojePostava, postavaSoupere, 
 
       {!hrac2 ? (
         <p className="souboj-sub">Čekám, až se soupeř připojí…</p>
-      ) : introAktivni ? (
-        <div className="souboj-intro" aria-label="Zápas začíná">
-          <div className="souboj-intro-bojovnik souboj-intro-bojovnik--1">
-            <PostavaGrafika postavaId={mojePostava} size={96} />
-            <span className="souboj-intro-jmeno">Ty</span>
-            <span className="souboj-intro-hlaska">„{POSTAVY[mojePostava].hlaska}“</span>
-          </div>
-          <span className="souboj-intro-vs">VS</span>
-          <div className="souboj-intro-bojovnik souboj-intro-bojovnik--2">
-            <PostavaGrafika postavaId={postavaSoupere} size={96} />
-            <span className="souboj-intro-jmeno">Soupeř</span>
-            <span className="souboj-intro-hlaska">„{POSTAVY[postavaSoupere].hlaska}“</span>
-          </div>
-          <IntroPocitadlo celkovaDelkaMs={INTRO_MS} />
-        </div>
       ) : (
-        soubojStav && (
-          <>
-            <Bojiste stav={soubojStav} jmena={['Ty', 'Soupeř']} arenaId={arenaId} emotes={[null, null]} kolo={1} />
-            {soubojStav.stavKola === 'konec' && (
-              <p className="souboj-sub souboj-vysledek-info">
-                {soubojStav.vitez === 0 ? '🏆 Vyhrál jsi!' : soubojStav.vitez === 1 ? '💀 Prohrál jsi.' : '🤝 Remíza.'}
-              </p>
+        <>
+          <div className="souboj-herni-plocha">
+            {introAktivni ? (
+              <div className="souboj-intro" aria-label="Zápas začíná">
+                <div className="souboj-intro-bojovnik souboj-intro-bojovnik--1">
+                  <PostavaGrafika postavaId={mojePostava} size={96} />
+                  <span className="souboj-intro-jmeno">Ty</span>
+                  <span className="souboj-intro-hlaska">„{POSTAVY[mojePostava].hlaska}“</span>
+                </div>
+                <span className="souboj-intro-vs">VS</span>
+                <div className="souboj-intro-bojovnik souboj-intro-bojovnik--2">
+                  <PostavaGrafika postavaId={postavaSoupere} size={96} />
+                  <span className="souboj-intro-jmeno">Soupeř</span>
+                  <span className="souboj-intro-hlaska">„{POSTAVY[postavaSoupere].hlaska}“</span>
+                </div>
+                <IntroPocitadlo celkovaDelkaMs={INTRO_MS} />
+              </div>
+            ) : (
+              soubojStav && (
+                <Bojiste stav={soubojStav} jmena={['Ty', 'Soupeř']} arenaId={arenaId} emotes={[null, null]} kolo={1} />
+              )
             )}
-          </>
-        )
-      )}
 
-      {hrac2 && !introAktivni && (
-        <div className="souboj-lokal-ovladace souboj-lokal-ovladace--jeden">
-          <div className="souboj-lokal-klastr">
-            <div className="souboj-lokal-smer">
-              <button
-                type="button"
-                className="souboj-lokal-smer-btn souboj-lokal-smer-btn--nahoru"
-                onPointerDown={(e) => {
-                  e.currentTarget.setPointerCapture(e.pointerId)
-                  mujSmer.current.nahoru = true
-                }}
-                onPointerUp={() => (mujSmer.current.nahoru = false)}
-                onPointerCancel={() => (mujSmer.current.nahoru = false)}
-              >
-                ▲
-              </button>
-              <button
-                type="button"
-                className="souboj-lokal-smer-btn souboj-lokal-smer-btn--vlevo"
-                onPointerDown={(e) => {
-                  e.currentTarget.setPointerCapture(e.pointerId)
-                  mujSmer.current.vlevo = true
-                }}
-                onPointerUp={() => (mujSmer.current.vlevo = false)}
-                onPointerCancel={() => (mujSmer.current.vlevo = false)}
-              >
-                ◀
-              </button>
-              <button
-                type="button"
-                className="souboj-lokal-smer-btn souboj-lokal-smer-btn--vpravo"
-                onPointerDown={(e) => {
-                  e.currentTarget.setPointerCapture(e.pointerId)
-                  mujSmer.current.vpravo = true
-                }}
-                onPointerUp={() => (mujSmer.current.vpravo = false)}
-                onPointerCancel={() => (mujSmer.current.vpravo = false)}
-              >
-                ▶
-              </button>
-              <button
-                type="button"
-                className="souboj-lokal-smer-btn souboj-lokal-smer-btn--dolu"
-                onPointerDown={(e) => {
-                  e.currentTarget.setPointerCapture(e.pointerId)
-                  mujSmer.current.dolu = true
-                }}
-                onPointerUp={() => (mujSmer.current.dolu = false)}
-                onPointerCancel={() => (mujSmer.current.dolu = false)}
-              >
-                ▼
-              </button>
-            </div>
-            <div className="souboj-lokal-akce">
-              {PORADI_TLACITEK.map((tlacitko) => (
-                <button
-                  key={tlacitko}
-                  type="button"
-                  className={`souboj-akcni-tlacitko souboj-akcni-tlacitko--${tlacitko} souboj-lokal-akcni-tlacitko`}
-                  onPointerDown={(e) => {
-                    e.currentTarget.setPointerCapture(e.pointerId)
-                    mojeTlacitka.current[tlacitko] = true
-                    zavibrujTlacitko()
-                  }}
-                  onPointerUp={() => (mojeTlacitka.current[tlacitko] = false)}
-                  onPointerCancel={() => (mojeTlacitka.current[tlacitko] = false)}
-                >
-                  {IKONA_TLACITKA[tlacitko]}
-                </button>
-              ))}
-            </div>
+            {!introAktivni && soubojStav?.stavKola !== 'konec' && (
+              <div className="souboj-lokal-ovladace souboj-lokal-ovladace--jeden">
+                <div className="souboj-lokal-klastr">
+                  <div className="souboj-lokal-smer">
+                    <button
+                      type="button"
+                      className="souboj-lokal-smer-btn souboj-lokal-smer-btn--nahoru"
+                      onPointerDown={(e) => {
+                        e.currentTarget.setPointerCapture(e.pointerId)
+                        mujSmer.current.nahoru = true
+                      }}
+                      onPointerUp={() => (mujSmer.current.nahoru = false)}
+                      onPointerCancel={() => (mujSmer.current.nahoru = false)}
+                    >
+                      ▲
+                    </button>
+                    <button
+                      type="button"
+                      className="souboj-lokal-smer-btn souboj-lokal-smer-btn--vlevo"
+                      onPointerDown={(e) => {
+                        e.currentTarget.setPointerCapture(e.pointerId)
+                        mujSmer.current.vlevo = true
+                      }}
+                      onPointerUp={() => (mujSmer.current.vlevo = false)}
+                      onPointerCancel={() => (mujSmer.current.vlevo = false)}
+                    >
+                      ◀
+                    </button>
+                    <button
+                      type="button"
+                      className="souboj-lokal-smer-btn souboj-lokal-smer-btn--vpravo"
+                      onPointerDown={(e) => {
+                        e.currentTarget.setPointerCapture(e.pointerId)
+                        mujSmer.current.vpravo = true
+                      }}
+                      onPointerUp={() => (mujSmer.current.vpravo = false)}
+                      onPointerCancel={() => (mujSmer.current.vpravo = false)}
+                    >
+                      ▶
+                    </button>
+                    <button
+                      type="button"
+                      className="souboj-lokal-smer-btn souboj-lokal-smer-btn--dolu"
+                      onPointerDown={(e) => {
+                        e.currentTarget.setPointerCapture(e.pointerId)
+                        mujSmer.current.dolu = true
+                      }}
+                      onPointerUp={() => (mujSmer.current.dolu = false)}
+                      onPointerCancel={() => (mujSmer.current.dolu = false)}
+                    >
+                      ▼
+                    </button>
+                  </div>
+                  <div className="souboj-lokal-akce">
+                    {PORADI_TLACITEK.map((tlacitko) => (
+                      <button
+                        key={tlacitko}
+                        type="button"
+                        className={`souboj-akcni-tlacitko souboj-akcni-tlacitko--${tlacitko} souboj-lokal-akcni-tlacitko`}
+                        onPointerDown={(e) => {
+                          e.currentTarget.setPointerCapture(e.pointerId)
+                          mojeTlacitka.current[tlacitko] = true
+                          zavibrujTlacitko()
+                        }}
+                        onPointerUp={() => (mojeTlacitka.current[tlacitko] = false)}
+                        onPointerCancel={() => (mojeTlacitka.current[tlacitko] = false)}
+                      >
+                        {IKONA_TLACITKA[tlacitko]}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
-        </div>
+
+          {!introAktivni && soubojStav && soubojStav.stavKola === 'konec' && (
+            <p className="souboj-sub souboj-vysledek-info">
+              {soubojStav.vitez === 0 ? '🏆 Vyhrál jsi!' : soubojStav.vitez === 1 ? '💀 Prohrál jsi.' : '🤝 Remíza.'}
+            </p>
+          )}
+        </>
       )}
     </div>
   )

@@ -2716,9 +2716,115 @@
 /* Jeden ovládací klastr (ProtiPocitaci.tsx/OnlineHost.tsx/
    OnlineGuest.tsx) — appka ho na rozdíl od dvou klastrů vedle sebe
    (LocalniZapas.tsx/TurnajLokalni.tsx) chce vycentrovaný, ne
-   přitažený ke kraji přes justify-content: space-between. */
+   přitažený ke kraji přes justify-content: space-between. Teď už jen
+   záložní hodnota pro případ, že by appka někde na `--jeden` omylem
+   nedopatřením nenasadila `position: fixed` níž — ve skutečnosti oba
+   skutečné potomci (`.souboj-lokal-smer`/`.souboj-lokal-akce`) z
+   běžného toku mizí úplně (viz dál), takže `justify-content` samo o
+   sobě nic nevykresluje. */
 .souboj-lokal-ovladace--jeden {
   justify-content: center;
+}
+
+/* Vylepšení — ovládání jako skutečný překryv HERNÍ OBRAZOVKY, ne
+   panel POD arénou. Dřív `.souboj-lokal-ovladace--jeden` jen držela
+   oba shluky (směr nahoře, akce pod ním) v běžném dokumentovém toku
+   — appka to teď otáčí na stejný "plovoucí sklo nad scénou" vzor,
+   jaký appka už má pro `.souboj-tlacitka` (skutečný telefon-ovladač)
+   a `.explorace-joystick` (RPG průzkum): obě skupiny sedí NAD arénou
+   (Bojiste.tsx), ne pod ní, a appka nemusí nic scrollovat, aby je
+   viděla.
+
+   `position: fixed` (první verze) se ukázala špatná volba, chycená
+   na skutečném měření, ne odhadem: appka ji kotvila ke skutečným
+   rohům VIEWPORTU, ne k herní ploše samotné — na vysokém "TV"
+   viewportu (1920×1080) tak mezi spodním okrajem arény a tlačítky
+   zůstala prázdná mezera stovek pixelů, a na širokém viewportu
+   `.souboj-page--tv`'s vlastní `max-width: min(96vw, 1400px)` navíc
+   celou stránku (a tedy i arénu) vycentruje DOVNITŘ od viewportu —
+   tlačítka kotvená na skutečný okraj obrazovky tak seděla mimo
+   stránku úplně, ne "na tom obraze", jak appka chtěla. Oprava:
+   `position: absolute` uvnitř nového `.souboj-herni-plocha` (viz
+   ProtiPocitaci.tsx/OnlineHost.tsx/OnlineGuest.tsx), co appka těsně
+   obepíná JEN kolem <Bojiste> + ovládání — vlastní `position:
+   relative` dělá z téhle obálky kotvící bod, ať tlačítka vždycky
+   lnou ke spodu skutečné herní plochy bez ohledu na tvar/velikost
+   viewportu. Appka schválně vynechává `env(safe-area-inset-*)` —
+   ty řeší bezpečnou zónu u SKUTEČNÉHO okraje zařízení, co `.souboj-
+   page`'s vlastní padding (1rem) už appce dává; `.souboj-herni-
+   plocha` sama žádný takový okraj nikdy neohraničuje.
+
+   Rozdělení je schválně PŘESNĚ obrácené oproti `.souboj-tlacitka`
+   samotnému (tam akce vpravo) — appka tu jde za výslovným zadáním:
+   pohyb (směrový d-pad) DOPRAVA, schopnosti (čtyři akční tlačítka)
+   DOLEVA. Oba `.souboj-lokal-klastr`'s dřívější `flex-direction:
+   column` zůstává nedotčené (jen ho appka přestala potřebovat —
+   `position: absolute` potomky z toku vyjme stejně, ať je rodič
+   flex, nebo ne), appka mění jen to, KDE na obrazovce obě skupiny
+   sedí.
+
+   Appka celé `.souboj-lokal-ovladace--jeden` schválně PŘESTANE
+   vykreslovat, jakmile `stavKola === 'konec'` (viz volající
+   komponenty) — chyceno skutečným screenshotem, ne odhadem: jakmile
+   appka ovládání zakotvila ke spodu `.souboj-herni-plocha` místo
+   viewportu, Bojiste.tsx's vlastní banner konce kola
+   (`.souboj-konec-kola`, obyčejný potomek v toku ZA arénou, ne
+   overlay) prodloužil `.souboj-herni-plocha` dolů a appčiny tlačítka
+   se s ním vlevo dole doslova překrývala. Jakmile kolo skončí, stejně
+   není co ovládat, takže appka je radši úplně schová, než aby
+   řešila druhé kotvení jen pro tenhle jeden stav. */
+.souboj-herni-plocha {
+  position: relative;
+}
+
+.souboj-lokal-ovladace--jeden .souboj-lokal-smer {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.8rem;
+  z-index: 20;
+}
+
+.souboj-lokal-ovladace--jeden .souboj-lokal-akce {
+  position: absolute;
+  left: 0.8rem;
+  bottom: 0.8rem;
+  z-index: 20;
+}
+
+/* Vylepšení — průhlednější tlačítka. Teď, když obě skupiny sedí NAD
+   arénou místo pod ní, appka chce, aby scéna za nimi zůstala vidět —
+   stejná "sklo, ne plná barva" úvaha jako `.explorace-joystick`'s
+   `rgba(…, 0.45)` + `backdrop-filter`, jen aplikovaná na směrová i
+   barevná akční tlačítka zvlášť, ne plošně přes `opacity` (to by
+   smylo i ikonu/okraj, appka chce průhlednější JEN pozadí). Barvy
+   zůstávají stejné odstíny jako appčiny plně neprůhledné verze
+   (červená/modrá/zelená/žlutá), jen s alfa kanálem místo plných hex
+   hodnot. */
+.souboj-lokal-ovladace--jeden .souboj-lokal-smer-btn {
+  background: rgba(18, 20, 38, 0.4);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.souboj-lokal-ovladace--jeden .souboj-akcni-tlacitko {
+  backdrop-filter: blur(6px);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.souboj-lokal-ovladace--jeden .souboj-akcni-tlacitko--udar {
+  background: radial-gradient(circle at 35% 30%, rgba(252, 165, 165, 0.55), rgba(239, 68, 68, 0.55));
+}
+
+.souboj-lokal-ovladace--jeden .souboj-akcni-tlacitko--kop {
+  background: radial-gradient(circle at 35% 30%, rgba(147, 197, 253, 0.55), rgba(59, 130, 246, 0.55));
+}
+
+.souboj-lokal-ovladace--jeden .souboj-akcni-tlacitko--blok {
+  background: radial-gradient(circle at 35% 30%, rgba(110, 231, 183, 0.55), rgba(16, 185, 129, 0.55));
+}
+
+.souboj-lokal-ovladace--jeden .souboj-akcni-tlacitko--specialni {
+  background: radial-gradient(circle at 35% 30%, rgba(253, 230, 138, 0.55), rgba(245, 158, 11, 0.55));
 }
 
 /* Online lobby — jednoduchý točící se kroužek místo textového
