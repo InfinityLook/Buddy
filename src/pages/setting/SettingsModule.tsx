@@ -25,9 +25,7 @@ import {
 } from '@/core/utils/backupHistory'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import { OsobniUdajeSekce } from './components/OsobniUdajeSekce'
-import { TutorialSekce }from  './components/Tutorial/base/tutorial.tsx'
-import { }
-import { }
+import { TutorialSekce } from './components/TutorialSekce'
 import { ZvukSekce } from './components/ZvukSekce'
 import { VzhledARamecekSekce } from './components/VzhledARamecekSekce'
 import { ZabezpeceniSekce } from './components/ZabezpeceniSekce'
@@ -49,7 +47,7 @@ import './SettingsModule.css'
 // nepřesouvá, jen se posunuly pod nové menu.
 // ==========================================
 
-type Sekce = 'osobni' | 'zvuk' | 'jazyk' | 'vzhled' | 'zabezpeceni' | 'soukromi'
+type Sekce = 'osobni' | 'zvuk' | 'jazyk' | 'vzhled' | 'zabezpeceni' | 'soukromi' | 'tutorial'
 
 const MENU_POLOZKY: { id: Sekce; ikona: string; barva: string; nazev: string; popis: string }[] = [
   { id: 'osobni', ikona: '👤', barva: 'blue', nazev: 'Osobní údaje', popis: 'Jméno, e-mail a motto na profilu' },
@@ -58,7 +56,7 @@ const MENU_POLOZKY: { id: Sekce; ikona: string; barva: string; nazev: string; po
   { id: 'vzhled', ikona: '🎨', barva: 'gradient', nazev: 'Vzhled a rámečky', popis: 'Barva appky a rámeček avatáru' },
   { id: 'zabezpeceni', ikona: '🛡️', barva: 'purple', nazev: 'Zabezpečení', popis: 'Přihlášení a ochrana účtu' },
   { id: 'soukromi', ikona: '🔒', barva: 'purple', nazev: 'Soukromí a Social', popis: 'Kdo tě vidí, blokovaní lidé, nahlášený obsah' },
-  {id: 'tutorial', ikona: '🔮', barva: 'red', nazev: 'Tutorial', popis: 'tutorial nastavení pak text doplním'  }
+  { id: 'tutorial', ikona: '🔮', barva: 'red', nazev: 'Tutorial', popis: 'Úvodní tutorial appky — zatím ve výstavbě' },
 ]
 
 const NADPISY: Record<Sekce, string> = {
@@ -253,6 +251,7 @@ export const SettingsModule: React.FC = () => {
         {sekce === 'vzhled' && <VzhledARamecekSekce onToast={showToast} />}
         {sekce === 'zabezpeceni' && <ZabezpeceniSekce onToast={showToast} />}
         {sekce === 'soukromi' && <SoukromiSocialSekce onToast={showToast} />}
+        {sekce === 'tutorial' && <TutorialSekce />}
 
         <AppBottomNav />
         {toast && <div className="settings-toast">{toast}</div>}
