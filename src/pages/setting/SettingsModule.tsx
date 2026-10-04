@@ -58,7 +58,7 @@ const MENU_POLOZKY: { id: Sekce; ikona: string; barva: string; nazev: string; po
   { id: 'vzhled', ikona: '🎨', barva: 'gradient', nazev: 'Vzhled a rámečky', popis: 'Barva appky a rámeček avatáru' },
   { id: 'zabezpeceni', ikona: '🛡️', barva: 'purple', nazev: 'Zabezpečení', popis: 'Přihlášení a ochrana účtu' },
   { id: 'soukromi', ikona: '🔒', barva: 'purple', nazev: 'Soukromí a Social', popis: 'Kdo tě vidí, blokovaní lidé, nahlášený obsah' },
-  {id: 'tutorial', ikona: '', barva: 'red', nazev: 'Tutorial', popis: 'tutorial nastavení pak text doplním'  }
+  {id: 'tutorial', ikona: '🔮', barva: 'red', nazev: 'Tutorial', popis: 'tutorial nastavení pak text doplním'  }
 ]
 
 const NADPISY: Record<Sekce, string> = {
