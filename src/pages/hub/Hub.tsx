@@ -189,43 +189,33 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </div>
         </div>
 
-        {/* PROZKOUMEJ — primární mřížka, kam appka doopravdy zve. Hry +
-            Aplikace vedle sebe, Social jako široká, prominentní karta
-            pod nimi (appka do něj investovala nejvíc ze všech svých
-            funkcí, zaslouží si větší místo než malý čtvereček). Dřív tu
-            byla i "Social Chat" dlaždice mířící na to samé
-            /social?zalozka=chaty jako "Chat" ve spodní liště — čistá
-            duplicita, pryč. Library (dřív čtvrtá dlaždice, jen BRZY
-            toast) je taky pryč, appka na ni nemá obsah. Barvy mají
-            teď systém, ne náhodu: fialová pro Hry, cyan pro Aplikace,
-            magenta pro Social — tři jasně odlišené, zapamatovatelné
-            barvy, žádná se neopakuje se sekcí "Tvůj pokrok" níž. */}
+        {/* PROZKOUMEJ — primární mřížka, kam appka doopravdy zve. Karta
+            Hry je teď dočasně pryč (viz App.tsx komentář u GamesHubModule
+            importu — appka releasuje v1 na Google Play bez celé sekce
+            Hry a doplní ji v updatu), takže Aplikace zůstala sama a
+            povýšila ze čtverečkové karty na širokou, stejně jako Social
+            pod ní — ne dvě poloprázdná místa v jedné řadě. Až se Hry
+            vrátí, patří sem zpátky jako čtverečková karta vedle
+            Aplikace přesně v téhle podobě (fialová barva, viz appčina
+            historie). Dřív tu byla i "Social Chat" dlaždice mířící na
+            to samé /social?zalozka=chaty jako "Chat" ve spodní liště —
+            čistá duplicita, pryč. Library (dřív čtvrtá dlaždice, jen
+            BRZY toast) je taky pryč, appka na ni nemá obsah. */}
         <div className="hub-section">
           <span className="hub-section-label">Prozkoumej</span>
           <div className="hub-section-body">
-            <div className="hub-card-row">
-              <button className="hub-card hub-card--square" onClick={() => navigate('/hra')}>
-                <span className="hub-card-icon-box hub-card-icon-box--violet">
-                  <SocialIcon name="gamepad" size={18} />
-                </span>
-                <span className="hub-card-title">Hry</span>
-                <span className="hub-card-sub">Svět plný dobrodružství</span>
-                <span className="hub-card-arrow hub-card-arrow--violet" aria-hidden="true">
-                  <SocialIcon name="arrow-left" size={13} />
-                </span>
-              </button>
-
-              <button className="hub-card hub-card--square" onClick={handleAppsClick}>
-                <span className="hub-card-icon-box hub-card-icon-box--cyan">
-                  <SocialIcon name="grid" size={18} />
-                </span>
+            <button className="hub-card hub-card--wide" onClick={handleAppsClick}>
+              <span className="hub-card-icon-box hub-card-icon-box--cyan hub-card-icon-box--lg">
+                <SocialIcon name="grid" size={21} />
+              </span>
+              <span className="hub-card-wide-text">
                 <span className="hub-card-title">Aplikace</span>
                 <span className="hub-card-sub">Spusť si libovolnou aplikaci</span>
-                <span className="hub-card-arrow hub-card-arrow--cyan" aria-hidden="true">
-                  <SocialIcon name="arrow-left" size={13} />
-                </span>
-              </button>
-            </div>
+              </span>
+              <span className="hub-card-arrow hub-card-arrow--cyan" aria-hidden="true">
+                <SocialIcon name="arrow-left" size={14} />
+              </span>
+            </button>
 
             <button
               className="hub-card hub-card--wide"

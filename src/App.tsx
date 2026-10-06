@@ -11,7 +11,15 @@ import EconomyRoomModule from '@/flagships/economy-room/EconomyRoomModule.tsx'
 import GrowthRoomModule from '@/flagships/growth-room/GrowthRoomModule.tsx'
 import MusicRoomModule from '@/flagships/music-room/MusicRoomModule.tsx'
 import WriterRoomModule from '@/flagships/writer-room/WriterRoomModule.tsx'
-import GamesHubModule from '@/pages/games/GamesHubModule.tsx'
+// Celá sekce Hry (GamesHubModule a všech pět her pod ní) je dočasně
+// schovaná pro v1 vydání na Google Play — appka ji v review vůbec
+// neukazuje, aby recenzent neviděl nic nedokončeného/neotestovaného,
+// a doplní se až v navazujícím updatu. Stejný "hide, keep documented,
+// one-line revert" postup jako dřívější schování Buddyheimu/Souboje
+// jednotlivě — jen teď pro celou sekci najednou. Návrat: odkomentovat
+// tenhle import + pět importů her níž, vrátit šest routy /hra* zpátky
+// na jejich skutečné komponenty, a vrátit kartu "Hry" v Hub.tsx.
+// import GamesHubModule from '@/pages/games/GamesHubModule.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
 import SettingsModule from '@/pages/setting/SettingsModule.tsx'
@@ -20,36 +28,20 @@ import ShopModule from '@/pages/shop/ShopModule.tsx'
 import AdminModule from '@/pages/admin/AdminModule.tsx'
 import SupportModule from '@/pages/support/SupportModule.tsx'
 const SocialModule = lazy(() => import('@/social/SocialModule'))
-const SurvivalModule = lazy(() => import('@/survival/SurvivalModule'))
-// Buddyheim (appčino RPG) byl dočasně schovaný, dokud appka soustředila
-// release na dokončení Souboje — ne proto, že by byl nehotový. Teď se
-// vrací zpátky stejným "hide, keep documented, one-line revert" postupem
-// jako Souboj o pár řádků výš: zpátky lazy import, zpátky skutečná routa,
-// zpátky skutečná karta v GamesHubModule.tsx.
-const GameModule = lazy(() => import('@/game/GameModule.tsx'))
-// Skutečná 3D deska (useCtyriKralovstviScene.ts) tuhle appku poprvé
-// zavedla za three.js — appka ji proto musí načítat líně přesně jako
-// SocialModule/SurvivalModule výš, jinak by celá knihovna three.js
-// (stovky kB) skončila v appčině EAGER hlavním balíčku, co dostane
-// úplně každý uživatel hned při prvním otevření appky, ne jen ten,
-// kdo tuhle hru vůbec otevře — appka na tenhle přesný regres narazila
-// (`index-*.js` naráz vyrostl z ~994 kB na ~1683 kB) hned, jak appka
-// three.js do CtyriKralovstvi.tsx přidala, a opravila ho tímhle.
-const CtyriKralovstvi = lazy(() => import('@/boardgame/CtyriKralovstvi.tsx'))
-// Souboj (appčina bojovka pro dva, phone+TV) byla dočasně schovaná,
-// dokud se reálné síťové párování telefon+TV neověřilo na skutečných
-// zařízeních (tenhle vzdálený sandbox to sám nikdy neuměl dokázat) —
-// uživatel to teď potvrdil ("Souboj jsem zkoušel na tv a mobilu a
-// funguje"), takže appka hru vrací zpátky. Stejný líný import jako
-// SocialModule/SurvivalModule/CtyriKralovstvi výš.
-const FightingModule = lazy(() => import('@/fighting/FightingModule.tsx'))
-// Buddyho Trh (deskovka, src/boardgame/) byla schovaná od svého prvního
-// commitu, ne vrácená zpátky jako Souboj/Buddyheim výš — appka ji sem
-// teď poprvé skutečně zapojuje, na uživatelovu žádost odkrýt poslední
-// hru, i když appčina vlastní dokumentace (CLAUDE.md) pořád vědomě
-// přiznává chybějící síťový režim telefon+TV jako jedinou dál odloženou
-// položku. Stejný líný import jako CtyriKralovstvi/FightingModule výš.
-const BoardgameModule = lazy(() => import('@/boardgame/BoardgameModule.tsx'))
+// Všech pět her (Buddyheim, Souboj, Buddyho Trh, Survival Night, Čtyři
+// království) je dočasně schovaných zároveň s GamesHubModule importem
+// výš — appka releasuje v1 na Google Play bez celé sekce Hry a doplní
+// ji v navazujícím updatu, kdy se appka jen nasadí znovu na živý web
+// bez nového review (appka je TWA/PWA, review testuje nativní obal,
+// ne živý obsah webu). Žádný z pěti souborů her nebyl smazaný ani
+// upravený — jen jejich lazy import zakomentovaný tady a routa pod
+// nimi vrácená na /hub. Návrat: odkomentovat všech pět importů +
+// vrátit šest routy /hra* na GamesHubModule.tsx (viz import výš).
+// const SurvivalModule = lazy(() => import('@/survival/SurvivalModule'))
+// const GameModule = lazy(() => import('@/game/GameModule.tsx'))
+// const CtyriKralovstvi = lazy(() => import('@/boardgame/CtyriKralovstvi.tsx'))
+// const FightingModule = lazy(() => import('@/fighting/FightingModule.tsx'))
+// const BoardgameModule = lazy(() => import('@/boardgame/BoardgameModule.tsx'))
 import { BootGate } from '@/components/BootGate'
 import { BiometricLock } from '@/components/BiometricLock'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
@@ -278,74 +270,19 @@ export default function App() {
               }
             />
 
-            <Route
-              path="/hra"
-              element={dovnitr ? <GamesHubModule /> : <Navigate to="/" replace />}
-            />
-
-            <Route
-              path="/hra/buddyheim"
-              element={
-                dovnitr ? (
-                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
-                    <GameModule />
-                  </Suspense>
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-            <Route
-              path="/hra/trh"
-              element={
-                dovnitr ? (
-                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
-                    <BoardgameModule />
-                  </Suspense>
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-
-            <Route
-              path="/hra/souboj"
-              element={
-                dovnitr ? (
-                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
-                    <FightingModule />
-                  </Suspense>
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-
-            <Route
-              path="/hra/survival-night"
-              element={
-                dovnitr ? (
-                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
-                    <SurvivalModule />
-                  </Suspense>
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
-
-            <Route
-              path="/hra/deskova-hra"
-              element={
-                dovnitr ? (
-                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
-                    <CtyriKralovstvi />
-                  </Suspense>
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
+            {/* Celá sekce Hry (/hra a všech pět her pod ní) je schovaná
+                pro v1 releasu na Google Play — viz komentář u GamesHubModule
+                importu nahoře. Bare <Navigate>, ne ternary na dovnitr: appka
+                nerozlišuje, jestli je uživatel přihlášený, jen ho pošle
+                na /hub, odkud appčin vlastní dovnitr-gate případně
+                doputuje až na /. Žádná z pěti her tím nezmizela ze
+                zdrojáků, jen je dočasně nedosažitelná přes přímé URL. */}
+            <Route path="/hra" element={<Navigate to="/hub" replace />} />
+            <Route path="/hra/buddyheim" element={<Navigate to="/hub" replace />} />
+            <Route path="/hra/trh" element={<Navigate to="/hub" replace />} />
+            <Route path="/hra/souboj" element={<Navigate to="/hub" replace />} />
+            <Route path="/hra/survival-night" element={<Navigate to="/hub" replace />} />
+            <Route path="/hra/deskova-hra" element={<Navigate to="/hub" replace />} />
 
             <Route
               path="/obchod"
