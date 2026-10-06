@@ -77,23 +77,50 @@
 .hub-logo {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
   flex-shrink: 0;
+  min-width: 0;
 }
 
-.hub-logo-mark {
-  font-size: 1.05rem;
-  color: var(--accent-cyan);
+/* Vlčí/liščí maskot v hlavičce — stejná fotka jako prostřední tlačítko
+   spodní lišty (public/maskot/buddy-vlk.png), žádný druhý crop. Nahradila
+   dřívější ✦ značku. */
+.hub-logo-img {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  border: 1.5px solid var(--border-strong);
+  flex-shrink: 0;
+  display: block;
+}
+
+.hub-logo-text-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
 }
 
 .hub-logo-text {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  line-height: 1.1;
   background: linear-gradient(100deg, #4cc9f0 0%, #35c4f0 40%, #6aa8ff 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.hub-logo-tagline {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .hub-header-actions {
@@ -305,262 +332,147 @@
 }
 
 /* ------------------------------------------
-   SEKCE S KARTAMI
-   Appka teď má jeden sjednocený tvar karty (.hub-card) místo dvou
-   různých systémů, co měla dřív (vodorovná "action" karta pro
-   Achievementy/Obchod, čtvercová "square" karta s náhledem pro
-   Hry/Aplikace/Social Chat/Library) — --square/--wide/--secondary
-   jsou tři varianty stejné základní karty, ne tři nezávislé
-   komponenty. Každá sekce má svůj popisek (.hub-section-label), ať je
-   vidět, že "Prozkoumej" (primární, kam appka zve) a "Tvůj pokrok"
-   (sekundární, o tvém postupu) jsou dvě různé věci, ne náhodně
-   seřazené dlaždice.
+   KRUHOVÉ MENU (KOLO)
+   Nahrazuje dřívější kartové sekce "Prozkoumej"/"Tvůj pokrok" naráz —
+   appka dodaná ikonová sada dala šest hotových, prosvětlených
+   medailonů (AI/Apps/Shop/Rewards/Rooms/Social) plus jeden sedmý pro
+   prostřední tlačítko (B logo), oříznuté přímo z appkou dodaného
+   sprite sheetu (viz public/icons/hub-wheel/*.png). Appka je používá
+   jako hotové kulaté odznaky, ne jako výplň vlastního CSS šestiúhelníku
+   — medailony už mají svůj vlastní prosvětlený prstenec zakreslený
+   přímo v obrázku, takže druhá, appkou kreslená šestiúhelníková
+   výplň pod nimi by jen zdvojila rámeček. Šest paprsků appka
+   rozmisťuje na pevné souřadnice (ne přes CSS trig funkce sin()/cos()
+   — appka tenhle postup, "spočítat úhly jednou sám, ne za běhu",
+   používá i jinde, viz Souborova vlastní "jiskra" animace), spočtené
+   jako šest bodů po 60° kolem středu (R=33 % šířky kola):
+     AI (0°, nahoře) · Apps (60°, vpravo nahoře) · Shop (120°, vpravo
+     dole) · Rewards (180°, dole) · Rooms (240°, vlevo dole) ·
+     Social (300°, vlevo nahoře)
+   — přesně v pořadí, v jakém appka dodanou referenční grafiku viděla.
    ------------------------------------------ */
-.hub-section {
+.hub-wheel-wrap {
   display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-}
-
-.hub-section-label {
-  font-size: 0.66rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  padding-left: 0.1rem;
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
-}
-
-.hub-section-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-}
-
-.hub-card-row {
-  display: flex;
-  gap: 0.7rem;
-}
-
-.hub-card {
+  justify-content: center;
+  padding: 0.35rem 0 0.1rem;
   position: relative;
-  background: rgba(21, 31, 56, 0.3);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  font-family: inherit;
-  color: var(--text-primary);
-  text-align: left;
-  cursor: pointer;
-  backdrop-filter: blur(18px);
-  box-shadow: 0 1px 14px rgba(0, 0, 0, 0.28);
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
 }
 
-.hub-card:hover {
-  background: rgba(28, 39, 68, 0.45);
-  transform: translateY(-2px);
+.hub-wheel {
+  position: relative;
+  width: min(84vw, 360px);
+  aspect-ratio: 1;
 }
 
-/* Čtvercová karta (Hry, Aplikace) — ikona nahoře, titulek/popisek pod
-   ní, šipka zarovnaná dolů přes margin-top: auto na flex ose. */
-.hub-card--square {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.4rem;
-  padding: 0.85rem;
-  min-height: 120px;
-}
-
-/* Široká karta (Social) — vodorovné rozvržení, ikona/text/šipka vedle
-   sebe, přes celou šířku. Social dostal tenhle prominentnější tvar
-   místo malého čtverečku schválně — appka do něj investovala nejvíc
-   ze všech svých funkcí. */
-.hub-card--wide {
-  width: 100%;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.95rem;
-}
-
-.hub-card-wide-text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-
-/* Sekundární karta (Achievementy, Obchod) — tišší, menší padding,
-   ikona a šipka v jedné řadě nahoře místo šipky přišpendlené do rohu. */
-.hub-card--secondary {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.2rem;
-  padding: 0.8rem 0.85rem;
-  background: rgba(21, 31, 56, 0.2);
-}
-
-.hub-card-secondary-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin-bottom: 0.15rem;
-}
-
-.hub-card-icon-box {
-  flex-shrink: 0;
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-md);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.hub-card-icon-box--sm {
-  width: 30px;
-  height: 30px;
-  border-radius: var(--radius-sm);
-}
-
-.hub-card-icon-box--lg {
-  width: 44px;
-  height: 44px;
-  border-radius: 13px;
-}
-
-/* Barevný systém karet, ne náhoda — fialová pro Hry, cyan pro
-   Aplikace, magenta pro Social (tři jasně odlišené barvy v sekci
-   "Prozkoumej"); oranžová pro Achievementy (stejná teplá barva jako
-   série výš — obojí je "tvůj vlastní pokrok"), zelená pro Obchod
-   (kredity/peníze) v sekci "Tvůj pokrok" — žádná barva se
-   neopakuje napříč oběma sekcemi. */
-.hub-card-icon-box--violet {
-  color: var(--accent-violet);
-  background: rgba(138, 92, 246, 0.18);
-}
-
-.hub-card-icon-box--cyan {
-  color: var(--accent-cyan);
-  background: rgba(53, 196, 240, 0.18);
-}
-
-.hub-card-icon-box--magenta {
-  color: var(--accent-magenta);
-  background: rgba(236, 72, 153, 0.18);
-}
-
-.hub-card-icon-box--orange {
-  color: var(--accent-orange);
-  background: rgba(245, 158, 11, 0.16);
-}
-
-.hub-card-icon-box--green {
-  color: var(--accent-green);
-  background: rgba(16, 185, 129, 0.16);
-}
-
-.hub-card-title {
-  font-size: 0.92rem;
-  font-weight: 800;
-  letter-spacing: -0.01em;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.45);
-}
-
-.hub-card-title--sm {
-  font-size: 0.82rem;
-}
-
-.hub-card-sub {
-  font-size: 0.68rem;
-  color: var(--text-secondary);
-  line-height: 1.35;
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
-}
-
-.hub-card-arrow {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Jemná zlatá záře za celým kolem — appčin vlastní nápad, jak
+   připomenout kamenný podstavec se svítící kružnicí z referenční
+   grafiky, bez nutnosti dalšího obrázku navíc. */
+.hub-wheel::before {
+  content: '';
+  position: absolute;
+  inset: 6%;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
-  color: var(--text-muted);
-  margin-top: auto;
-  align-self: flex-end;
+  background: radial-gradient(
+    circle,
+    rgba(245, 158, 11, 0.22) 0%,
+    rgba(245, 158, 11, 0.08) 45%,
+    transparent 72%
+  );
+  z-index: 0;
+  pointer-events: none;
 }
 
-.hub-card--wide .hub-card-arrow,
-.hub-card--secondary .hub-card-arrow {
-  margin-top: 0;
-  align-self: auto;
+.hub-wheel-center,
+.hub-wheel-petal {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.15s ease;
 }
 
-.hub-card-arrow--sm {
-  width: 22px;
-  height: 22px;
+.hub-wheel-center:active,
+.hub-wheel-petal:active {
+  transform: translate(-50%, -50%) scale(0.92);
 }
 
-.hub-card-arrow svg {
-  transform: rotate(180deg);
+.hub-wheel-center {
+  width: 34%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  z-index: 2;
 }
 
-.hub-card-arrow--violet {
-  background: rgba(138, 92, 246, 0.16);
-  color: var(--accent-violet);
-}
-
-.hub-card-arrow--cyan {
-  background: rgba(53, 196, 240, 0.16);
-  color: var(--accent-cyan);
-}
-
-.hub-card-arrow--magenta {
-  background: rgba(236, 72, 153, 0.16);
-  color: var(--accent-magenta);
-}
-
-.hub-card-arrow--orange {
-  background: rgba(245, 158, 11, 0.16);
-  color: var(--accent-orange);
-}
-
-.hub-card-arrow--green {
-  background: rgba(16, 185, 129, 0.16);
-  color: var(--accent-green);
-}
-
-/* Malý progress bar pod textem sekundární karty (Achievementy) */
-.hub-card-progress {
-  display: block;
+.hub-wheel-center img {
   width: 100%;
-  height: 3px;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.1);
-  overflow: hidden;
-  margin-top: 0.25rem;
-}
-
-.hub-card-progress-fill {
-  display: block;
   height: 100%;
-  border-radius: inherit;
+  display: block;
+  filter: drop-shadow(0 4px 16px rgba(245, 158, 11, 0.35));
 }
 
-.hub-card-progress-fill--orange {
-  background: linear-gradient(90deg, var(--accent-orange), var(--accent-magenta));
+.hub-wheel-petal {
+  width: 30%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+}
+
+.hub-wheel-petal img {
+  width: 100%;
+  aspect-ratio: 1;
+  display: block;
+  filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.4));
+}
+
+.hub-wheel-petal-label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.65);
+  white-space: nowrap;
+}
+
+/* Souřadnice šesti paprsků — viz appčin komentář u .hub-wheel výš pro
+   úhly, odkud se spočítaly (0/60/120/180/240/300° kolem středu,
+   R = 33 % šířky kola). */
+.hub-wheel-petal--ai {
+  top: 17%;
+  left: 50%;
+}
+
+.hub-wheel-petal--apps {
+  top: 33.5%;
+  left: 78.6%;
+}
+
+.hub-wheel-petal--shop {
+  top: 66.5%;
+  left: 78.6%;
+}
+
+.hub-wheel-petal--rewards {
+  top: 83%;
+  left: 50%;
+}
+
+.hub-wheel-petal--rooms {
+  top: 66.5%;
+  left: 21.4%;
+}
+
+.hub-wheel-petal--social {
+  top: 33.5%;
+  left: 21.4%;
 }
 
 /* ------------------------------------------
@@ -571,9 +483,8 @@
     gap: 0.6rem;
   }
 
-  .hub-card--square {
-    min-height: 104px;
-    padding: 0.65rem;
+  .hub-wheel {
+    width: min(78vw, 310px);
   }
 }
 

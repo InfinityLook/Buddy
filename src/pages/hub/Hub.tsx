@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { useBuddyVoice } from '@/buddy/useBuddyVoice'
+import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
@@ -23,45 +25,15 @@ interface HubModuleProps {
   onOpenProfile?: () => void
 }
 
-// Vlastní SVG ikony pro dvě hlavní akční karty Hubu (Achievementy/Obchod) —
-// appčina vlastní kresba přímo v tomhle souboru, ne emoji a ne sdílená
-// SocialIcon (ta zůstává jen pro drobné doprovodné ikony v hlavičce a
-// šipky/fajfky na kartách níž, kde jde jen o obecný "vede to dál"/"hotovo"
-// symbol, ne o identitu tlačítka samotného).
-const IkonaAchievementy: React.FC<{ size?: number }> = ({ size = 24 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <circle cx="12" cy="8" r="7" />
-    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" />
-  </svg>
-)
-
-const IkonaObchod: React.FC<{ size?: number }> = ({ size = 24 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    aria-hidden="true"
-  >
-    <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
-    <line x1="3" y1="6" x2="21" y2="6" />
-    <path d="M16 10a4 4 0 0 1-8 0" />
-  </svg>
-)
+// Jeden paprsek kruhového menu — šest jich jde kolem prostředního
+// "BUDDY CORE" tlačítka, viz HubModule.css's vlastní komentář u
+// .hub-wheel-petal pro úhly/souřadnice.
+interface KoloPaprsek {
+  id: string
+  nazev: string
+  ikona: string
+  onClick: () => void
+}
 
 export const HubModule: React.FC<HubModuleProps> = ({
   onOpenApps,
@@ -84,7 +56,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
   const [notifOpen, setNotifOpen] = useState(false)
 
   // Načtení gamifikačních dat ze storu
-  const { level, xp, streakDays, badges, recordActivity } = useGamificationStore()
+  const { level, xp, streakDays, recordActivity } = useGamificationStore()
 
   // Store aplikací — používáme pro deep-link do konkrétní miniaplikace
   const { setActiveAppId } = useAppStore()
@@ -94,7 +66,6 @@ export const HubModule: React.FC<HubModuleProps> = ({
     recordActivity()
   }, [recordActivity])
 
-  const unlockedBadges = badges.filter((badge) => badge.unlockedAt !== null).length
   const progressPercent = getLevelProgress(xp)
   const xpDoDalsi = getXpForNextLevel(level)
 
@@ -121,6 +92,37 @@ export const HubModule: React.FC<HubModuleProps> = ({
     navigate('/odmeny')
   }
 
+  // Hlasový Buddy — Hub si bere svou vlastní instanci useBuddyVoice
+  // (stejně jako AppBottomNav na každé jiné obrazovce), ať paprsek "AI"
+  // v kole jde otevřít přímo odtud, ne jen přes spodní lištu.
+  const buddyVoice = useBuddyVoice()
+  const [buddyOpen, setBuddyOpen] = useState(false)
+
+  const otevritBuddyho = () => {
+    buddyVoice.vycistit()
+    setBuddyOpen(true)
+  }
+
+  const zavritBuddyho = () => {
+    buddyVoice.zastavit()
+    setBuddyOpen(false)
+  }
+
+  // Šest paprsků kolem prostředního tlačítka — nahrazuje dřívější kartové
+  // sekce "Prozkoumej"/"Tvůj pokrok" naráz (appka do nich schválně
+  // nedává nic navíc, ať se Shop/Rewards nezobrazují dvakrát). Rooms a
+  // Apps vedou na stejné místo schválně — appčiny vlajkové roomy dnes
+  // žijí nahoře na /apps (RoomCarousel), appka tam nemá druhou, oddělenou
+  // obrazovku jen pro ně.
+  const kolo: KoloPaprsek[] = [
+    { id: 'ai', nazev: 'AI', ikona: '/icons/hub-wheel/ai.png', onClick: otevritBuddyho },
+    { id: 'apps', nazev: 'Apps', ikona: '/icons/hub-wheel/apps.png', onClick: handleAppsClick },
+    { id: 'shop', nazev: 'Shop', ikona: '/icons/hub-wheel/shop.png', onClick: () => navigate('/obchod') },
+    { id: 'rewards', nazev: 'Rewards', ikona: '/icons/hub-wheel/rewards.png', onClick: handleRewardsClick },
+    { id: 'rooms', nazev: 'Rooms', ikona: '/icons/hub-wheel/rooms.png', onClick: handleAppsClick },
+    { id: 'social', nazev: 'Social', ikona: '/icons/hub-wheel/social.png', onClick: () => prejit('/social') },
+  ]
+
   return (
     <div className="hub-page">
       {/* Fixní pozadí — fotka soumraku nad horami + ztmavovací gradient
@@ -131,19 +133,21 @@ export const HubModule: React.FC<HubModuleProps> = ({
       <div className="hub-bg-overlay" aria-hidden="true" />
 
       <div className="hub-container">
-        {/* Header — logo ("BuddyZone", appka dřív pod ním měla ještě
-            podtitul "Tvůj AI parťák", ten je pryč) + dvě akce (zvonek/
-            avatar). Lupa, co tu dřív byla jako třetí ikona, se
-            přestěhovala dolů do sdílené spodní lišty (AppBottomNav)
-            místo tlačítka "Social" — Social zůstává dosažitelný přes
-            velkou kartu níž a přes "Chat" v liště, tenhle jeden vstup
-            navíc byl nadbytečný. Odhlášení je v Nastavení
-            (settings-danger-btn tam), appka bez toho neměla jinou
-            cestu ven z účtu. */}
+        {/* Header — vlčí/liščí maskot (stejná fotka, co appka má i jako
+            prostřední tlačítko spodní lišty — public/maskot/buddy-vlk.png,
+            žádný nový crop) místo dřívější ✦ značky, "BuddyZone" +
+            podtitul "Lepší ty. Každý den." + dvě akce (zvonek/avatar).
+            Lupa, co tu dřív byla jako třetí ikona, se přestěhovala dolů
+            do sdílené spodní lišty (AppBottomNav) místo tlačítka
+            "Social". Odhlášení je v Nastavení (settings-danger-btn tam),
+            appka bez toho neměla jinou cestu ven z účtu. */}
         <header className="hub-header">
           <div className="hub-logo">
-            <span className="hub-logo-mark">✦</span>
-            <span className="hub-logo-text">BuddyZone</span>
+            <img src="/maskot/buddy-vlk.png" alt="" className="hub-logo-img" />
+            <div className="hub-logo-text-col">
+              <span className="hub-logo-text">BuddyZone</span>
+              <span className="hub-logo-tagline">Lepší ty. Každý den.</span>
+            </div>
           </div>
 
           <div className="hub-header-actions">
@@ -161,11 +165,12 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
         {/* Úroveň a série — appka dřív měla nad touhle řadou ještě celý
             hero panel s koulí maskota (a předtím ještě dřív rohové
-            odznaky přes něj), obojí je pryč. Hlasový Buddy zůstává
-            dosažitelný jen přes prostřední kolečko ve spodní liště —
-            AppBottomNav si teď na tuhle stránku bere svou vlastní
-            instanci useBuddyVoice stejně jako na Apps/Profil/Nastavení,
-            Hub už žádnou kouli nemá, se kterou by ji musel sdílet. */}
+            odznaky přes něj), obojí je pryč. Hlasový Buddy teď zase
+            jde otevřít přímo z Hubu (paprsek "AI" v kole níž), vedle
+            svých dalších vstupů ve spodní liště a na Apps/Profil/
+            Nastavení — appka si pro něj bere vlastní instanci
+            useBuddyVoice na každé z těchhle obrazovek zvlášť, žádná
+            koule ke sdílení stavu mezi nimi není potřeba. */}
         <div className="hub-hero-stats-row">
           <div className="hub-hero-level" aria-label={`Úroveň ${level}, ${xp} z ${xpDoDalsi} XP`}>
             <span className="hub-level-hex" aria-hidden="true">
@@ -189,103 +194,43 @@ export const HubModule: React.FC<HubModuleProps> = ({
           </div>
         </div>
 
-        {/* PROZKOUMEJ — primární mřížka, kam appka doopravdy zve. Karta
-            Hry je teď dočasně pryč (viz App.tsx komentář u GamesHubModule
-            importu — appka releasuje v1 na Google Play bez celé sekce
-            Hry a doplní ji v updatu), takže Aplikace zůstala sama a
-            povýšila ze čtverečkové karty na širokou, stejně jako Social
-            pod ní — ne dvě poloprázdná místa v jedné řadě. Až se Hry
-            vrátí, patří sem zpátky jako čtverečková karta vedle
-            Aplikace přesně v téhle podobě (fialová barva, viz appčina
-            historie). Dřív tu byla i "Social Chat" dlaždice mířící na
-            to samé /social?zalozka=chaty jako "Chat" ve spodní liště —
-            čistá duplicita, pryč. Library (dřív čtvrtá dlaždice, jen
-            BRZY toast) je taky pryč, appka na ni nemá obsah. */}
-        <div className="hub-section">
-          <span className="hub-section-label">Prozkoumej</span>
-          <div className="hub-section-body">
-            <button className="hub-card hub-card--wide" onClick={handleAppsClick}>
-              <span className="hub-card-icon-box hub-card-icon-box--cyan hub-card-icon-box--lg">
-                <SocialIcon name="grid" size={21} />
-              </span>
-              <span className="hub-card-wide-text">
-                <span className="hub-card-title">Aplikace</span>
-                <span className="hub-card-sub">Spusť si libovolnou aplikaci</span>
-              </span>
-              <span className="hub-card-arrow hub-card-arrow--cyan" aria-hidden="true">
-                <SocialIcon name="arrow-left" size={14} />
-              </span>
-            </button>
-
+        {/* Kruhové menu — nahrazuje dřívější kartové sekce "Prozkoumej"
+            a "Tvůj pokrok" naráz, viz appčin vlastní komentář u pole
+            `kolo` výš. Prostřední tlačítko (B medailon, stejný obrázek
+            jako paprsky — oříznuto z appkou dodané ikonové sady) vede
+            do Profilu; šest paprsků jde na AI/Apps/Shop/Rewards/Rooms/
+            Social, úhly a souřadnice viz HubModule.css. */}
+        <div className="hub-wheel-wrap">
+          <div className="hub-wheel">
             <button
-              className="hub-card hub-card--wide"
-              onClick={() => prejit('/social')}
+              type="button"
+              className="hub-wheel-center"
+              onClick={handleProfileClick}
+              aria-label="Profil"
             >
-              <span className="hub-card-icon-box hub-card-icon-box--magenta hub-card-icon-box--lg">
-                <SocialIcon name="chat" size={21} />
-              </span>
-              <span className="hub-card-wide-text">
-                <span className="hub-card-title">Social</span>
-                <span className="hub-card-sub">Přátelé, chaty a novinky na jednom místě</span>
-              </span>
-              <span className="hub-card-arrow hub-card-arrow--magenta" aria-hidden="true">
-                <SocialIcon name="arrow-left" size={14} />
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* TVŮJ POKROK — sekundární, tišší řádek. Oranžová (Achievementy)
-            a série výš sdílejí stejnou teplou barvu schválně, obojí je
-            "tvůj vlastní pokrok"; zelená (Obchod) je jasná asociace na
-            kredity/peníze, žádná z obou barev se neopakuje s primární
-            mřížkou nahoře. */}
-        <div className="hub-section">
-          <span className="hub-section-label">Tvůj pokrok</span>
-          <div className="hub-card-row">
-            <button className="hub-card hub-card--secondary" onClick={handleRewardsClick}>
-              <span className="hub-card-secondary-top">
-                <span className="hub-card-icon-box hub-card-icon-box--orange hub-card-icon-box--sm">
-                  <IkonaAchievementy size={16} />
-                </span>
-                <span className="hub-card-arrow hub-card-arrow--orange hub-card-arrow--sm" aria-hidden="true">
-                  <SocialIcon name="arrow-left" size={11} />
-                </span>
-              </span>
-              <span className="hub-card-title hub-card-title--sm">Achievementy</span>
-              <span className="hub-card-sub">
-                {unlockedBadges} z {badges.length} obdrženo
-              </span>
-              <span className="hub-card-progress" aria-hidden="true">
-                <span
-                  className="hub-card-progress-fill hub-card-progress-fill--orange"
-                  style={{ width: `${badges.length > 0 ? (unlockedBadges / badges.length) * 100 : 0}%` }}
-                />
-              </span>
+              <img src="/icons/hub-wheel/buddy-core.png" alt="" />
             </button>
 
-            <button className="hub-card hub-card--secondary" onClick={() => navigate('/obchod')}>
-              <span className="hub-card-secondary-top">
-                <span className="hub-card-icon-box hub-card-icon-box--green hub-card-icon-box--sm">
-                  <IkonaObchod size={16} />
-                </span>
-                <span className="hub-card-arrow hub-card-arrow--green hub-card-arrow--sm" aria-hidden="true">
-                  <SocialIcon name="arrow-left" size={11} />
-                </span>
-              </span>
-              <span className="hub-card-title hub-card-title--sm">Obchod</span>
-              <span className="hub-card-sub">Kredity, VIP a doplňky</span>
-            </button>
+            {kolo.map((paprsek) => (
+              <button
+                key={paprsek.id}
+                type="button"
+                className={`hub-wheel-petal hub-wheel-petal--${paprsek.id}`}
+                onClick={paprsek.onClick}
+              >
+                <img src={paprsek.ikona} alt="" />
+                <span className="hub-wheel-petal-label">{paprsek.nazev}</span>
+              </button>
+            ))}
           </div>
         </div>
 
         {/* Spodní navigace — Fáze 4 Social nav reworku vytáhla tenhle
             blok do sdílené komponenty (src/components/AppBottomNav.tsx),
             appka ji teď vykresluje i mimo Hub (Apps/Profil/Nastavení).
-            Bez vlastního onTal propu — Hub už nemá kouli maskota, se
-            kterou by hlasový Buddy musel sdílet stav, takže si lišta
-            bere úplně svou vlastní instanci useBuddyVoice stejně jako
-            na každé jiné stránce. */}
+            Bez vlastního onTal propu — lišta si bere úplně svou vlastní
+            instanci useBuddyVoice, nezávislou na Hubovu vlastní (paprsek
+            "AI" v kole výš), stejně jako na každé jiné stránce. */}
         <AppBottomNav />
 
         <ProfilNotifications
@@ -294,6 +239,8 @@ export const HubModule: React.FC<HubModuleProps> = ({
           onMarkRead={markNotificationRead}
           onClose={() => setNotifOpen(false)}
         />
+
+        {buddyOpen && <BuddyOverlay voice={buddyVoice} onZavrit={zavritBuddyho} />}
       </div>
     </div>
   )
