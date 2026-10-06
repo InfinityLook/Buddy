@@ -362,6 +362,19 @@
   position: relative;
   width: min(84vw, 360px);
   aspect-ratio: 1;
+  /* Krok 5 — appka tu sleduje prst skrz onPointerMove kvůli hoveru/
+     zvýraznění paprsku, a bez tohohle by o to normálně mohla přijít:
+     tah prstem od horního paprsku (SOCIAL) ke spodnímu (ROOMS) je
+     hlavně svislý pohyb na stránce, co se jinak sama svisle scrolluje
+     (.hub-container's overflow-y: auto) — Chromium takový tah umí
+     vyhodnotit jako "uživatel chce scrollovat", převzít ho sám pro
+     nativní posun a appčinu JS poslouchanou řadu pointer eventů
+     ukončit pointercancelem uprostřed gesta (appka si to ověřila
+     přímo přes nasazený listener, ne jen odhadem). Stejný problém a
+     stejné řešení appka má i jinde (VirtualniJoystick.tsx, Souborův
+     d-pad) — touch-action: none appce říká, ať celé gesto v kole
+     nechá jen jí, žádný nativní scroll/pan nikdy nepřevezme. */
+  touch-action: none;
 }
 
 /* Jemná zlatá záře za celým kolem — appčin vlastní nápad, jak
@@ -612,6 +625,31 @@
   top: 83%;
   left: 50%;
   transition-delay: 0.5s;
+}
+
+/* Krok 5 — "hover"/dotyk nad paprskem: appka tyhle dvě třídy přepíná
+   v JS podle toho, který paprsek je zrovna pod kurzorem/prstem (viz
+   Hub.tsx's `zvyrazneneId`) — zvětší ho, ostatní "malinko stáhne".
+   Musí jít AŽ PO pravidlech výš (stejná specificita, 3 třídy
+   všude), jinak by ho tiše přebily, viz appčina vlastní poučka
+   o pořadí u .bz-shell jinde v appce — tentokrát navíc musí jít i
+   PO šesti výše uvedených --ai/--apps/... pravidlech, ne jen po
+   základním .je-otevrene .hub-wheel-petal, protože ty nesou svoje
+   vlastní transition-delay (0,15–0,5 s, pro rozjezd otevírání).
+   `transition-delay` je samostatná vlastnost — appka ji tu musí
+   výslovně vynulovat (`transition-delay: 0s`), jinak by zvětšení/
+   zmenšení při pouhém přejetí myší zdědilo tutéž prodlevu jako
+   otevírací kaskáda (u REWARDS klidně půl vteřiny), takže by hover
+   reagoval nápadně pozdě místo hned. */
+.hub-wheel.je-otevrene .hub-wheel-petal--aktivni {
+  transform: translate(-50%, -50%) scale(1.08);
+  transition-delay: 0s;
+  z-index: 2;
+}
+
+.hub-wheel.je-otevrene .hub-wheel-petal--stazeny {
+  transform: translate(-50%, -50%) scale(0.92);
+  transition-delay: 0s;
 }
 
 /* ------------------------------------------

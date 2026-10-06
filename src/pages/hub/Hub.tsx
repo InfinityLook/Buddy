@@ -109,6 +109,34 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // u .hub-wheel-petal.
   const [kolootevreno, setKolootevreno] = useState(false)
 
+  // Krok 5: "hover" nad paprskem — appka ho schválně netrackuje přes
+  // CSS :hover (na dotykové obrazovce nic takového spolehlivě
+  // neexistuje, a appka chce přesně to, co uživatel popsal — "přejede
+  // prstem" přes víc paprsků bez zvednutí prstu). Pointer Events
+  // sjednocují myš i dotyk do jednoho mechanismu: appka na .hub-wheel
+  // poslouchá pohyb/stisk, přes document.elementFromPoint zjistí, pod
+  // kterým paprskem (pokud pod nějakým) kurzor/prst zrovna je, a to
+  // id uloží — zavřený paprsek má pointer-events:none, takže zavřené
+  // kolo tudy nikdy nic nenajde (žádná extra podmínka není potřeba).
+  // Zvýrazněný paprsek se zvětší, ostatní se stáhnou — obojí jen CSS
+  // třída podle tohohle jednoho stavu, viz HubModule.css.
+  const [zvyrazneneId, setZvyrazneneId] = useState<string | null>(null)
+
+  const najdiPaprsekPodKurzorem = (x: number, y: number): string | null => {
+    const el = document.elementFromPoint(x, y)
+    const paprsek = el?.closest<HTMLElement>('.hub-wheel-petal')
+    return paprsek?.dataset.paprsekId ?? null
+  }
+
+  const sledujKurzorNadKolem = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!kolootevreno) return
+    setZvyrazneneId(najdiPaprsekPodKurzorem(e.clientX, e.clientY))
+  }
+
+  const zrusZvyrazneni = () => {
+    setZvyrazneneId(null)
+  }
+
   const otevritBuddyho = () => {
     buddyVoice.vycistit()
     setBuddyOpen(true)
@@ -116,6 +144,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
   const prepnoutKolo = () => {
     setKolootevreno((v) => !v)
+    setZvyrazneneId(null)
   }
 
   const zavritBuddyho = () => {
@@ -217,9 +246,18 @@ export const HubModule: React.FC<HubModuleProps> = ({
             střed kolo přepne na otevřené a paprsky vyjedou ven,
             jeden po druhém (viz HubModule.css pro přesné zpoždění u
             každého a pro to, proč prstence běží pořád, ne jen při
-            otevření). */}
+            otevření). Přejetí prstem/kurzorem přes otevřený paprsek
+            ho zvětší a ostatní zmenší, viz appčin komentář u
+            `zvyrazneneId` výš. */}
         <div className="hub-wheel-wrap">
-          <div className={`hub-wheel${kolootevreno ? ' je-otevrene' : ''}`}>
+          <div
+            className={`hub-wheel${kolootevreno ? ' je-otevrene' : ''}`}
+            onPointerMove={sledujKurzorNadKolem}
+            onPointerDown={sledujKurzorNadKolem}
+            onPointerUp={zrusZvyrazneni}
+            onPointerCancel={zrusZvyrazneni}
+            onPointerLeave={zrusZvyrazneni}
+          >
             <span className="hub-wheel-ring-wrap" aria-hidden="true">
               <span className="hub-wheel-ring-outer" />
               <span className="hub-wheel-ring-inner" />
@@ -235,18 +273,27 @@ export const HubModule: React.FC<HubModuleProps> = ({
               <img src="/icons/hub-wheel/buddy-core.png" alt="" />
             </button>
 
-            {kolo.map((paprsek) => (
-              <button
-                key={paprsek.id}
-                type="button"
-                className={`hub-wheel-petal hub-wheel-petal--${paprsek.id}`}
-                onClick={paprsek.onClick}
-                tabIndex={kolootevreno ? 0 : -1}
-              >
-                <img src={paprsek.ikona} alt="" />
-                <span className="hub-wheel-petal-label">{paprsek.nazev}</span>
-              </button>
-            ))}
+            {kolo.map((paprsek) => {
+              const zvyrazneny = zvyrazneneId === paprsek.id
+              const stazeny = zvyrazneneId !== null && !zvyrazneny
+              return (
+                <button
+                  key={paprsek.id}
+                  type="button"
+                  data-paprsek-id={paprsek.id}
+                  className={`hub-wheel-petal hub-wheel-petal--${paprsek.id}${
+                    zvyrazneny ? ' hub-wheel-petal--aktivni' : stazeny ? ' hub-wheel-petal--stazeny' : ''
+                  }`}
+                  onClick={paprsek.onClick}
+                  onFocus={() => setZvyrazneneId(paprsek.id)}
+                  onBlur={() => setZvyrazneneId((cur) => (cur === paprsek.id ? null : cur))}
+                  tabIndex={kolootevreno ? 0 : -1}
+                >
+                  <img src={paprsek.ikona} alt="" />
+                  <span className="hub-wheel-petal-label">{paprsek.nazev}</span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
