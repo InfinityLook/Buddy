@@ -430,63 +430,96 @@
 }
 
 /* Otevření kola — appka přepne jen jednu třídu (.je-otevrene) a nechá
-   CSS přechody udělat celý zbytek, přesně podle zadaného časování:
-     0–100 ms   střed se zvětší, scale(1) → scale(1.08) (appka k tomu
-                vypne klidový puls výš, ať si "bump" a nekonečná
-                animace nepřetahují o tutéž vlastnost)
-     100–250 ms objeví se oranžový prstenec (.hub-wheel-ring-wrap)
-     250–450 ms prstenec se otočí (.hub-wheel-ring-spin, vnořený prvek
-                schválně — jeden přechod neumí nezávisle načasovat
-                "objevit se" a "otočit se" na tomtéž transformu)
-     450–650 ms paprsky vyjedou ven, každý s vlastním zpožděním (viz
-                .hub-wheel-petal--* níž) — appka k tomu posouvá jejich
-                vlastní top/left z 50 %/50 % (zavřeno) na finální
-                souřadnice (otevřeno), ne jen opacity/scale.
+   CSS přechody udělat zbytek:
+     0–100 ms  střed se zvětší, scale(1) → scale(1.08) a drží se tak
+               (appka k tomu vypne klidový puls výš, ať si "bump" a
+               nekonečná animace nepřetahují o tutéž vlastnost)
+     ~100 ms   oba prstence (viz níž) ze svého klidového ztlumení
+               zjasní — appka je ale nechává točit se POŘÁD, i zavřené,
+               takže "objeví se" teď znamená "zesílí", ne "naskočí
+               z ničeho".
+   Paprsky vyjíždí ven jeden po druhém, každý s vlastním zpožděním —
+   viz vlastní komentář u .hub-wheel-petal--* níž.
    Zavírání jede stejnou cestou zpátky, jen bez zpoždění (appka
    zpoždění definuje jen uvnitř .je-otevrene, takže při odebrání třídy
-   zmizí rovnou) — rychlé, bez rozfázování, žádný "step 2 v obráceném
-   pořadí" nebyl zadán. */
+   zmizí rovnou) — rychlé, bez rozfázování, žádný "zpětný sled" nebyl
+   zadán. */
 .hub-wheel.je-otevrene .hub-wheel-center {
   animation: none;
   transform: translate(-50%, -50%) scale(1.08);
 }
 
+/* Dva prstence kolem Buddy Core, pořád jemně rotující — appka je
+   schválně nespouští jen při otevření (jako dřív jeden prstenec, co
+   se objevil a jednou otočil), ale nechává je běžet napořád v obou
+   stavech, ať kolo působí jako "energetické jádro", ne mrtvý kruh,
+   co ožije jen na klepnutí. Vnější po/vnitřní proti směru hodinových
+   ručiček, různá rychlost — appka úhel i polohu peče rovnou do
+   @keyframes (translate(-50%,-50%) + rotate v jednom), ne přes
+   vnořené prvky jako dřív u jednoho prstence — tam to bylo nutné,
+   protože appka potřebovala nezávisle časovat "objevit se" (transition
+   na wrapperu) a "otočit se" (transition na vnitřku); teď obojí jede
+   jako jedna nekonečná `animation`, žádný konflikt o transform není.
+   Otevření/zavření mění jen opacity (ztlumeno/zjasněno), tu appka řeší
+   zvlášť přes transition, protože opacity do animace nepatří. */
 .hub-wheel-ring-wrap {
-  top: 50%;
-  left: 50%;
-  width: 46%;
-  aspect-ratio: 1;
+  position: absolute;
+  inset: 0;
   z-index: 1;
   pointer-events: none;
-  opacity: 0;
-  transform: translate(-50%, -50%) scale(0.75);
-  transition: opacity 0.15s ease, transform 0.15s ease;
 }
 
-.hub-wheel.je-otevrene .hub-wheel-ring-wrap {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1);
+.hub-wheel-ring-outer,
+.hub-wheel-ring-inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  opacity: 0.38;
+  transition: opacity 0.15s ease;
   transition-delay: 0.1s;
 }
 
-.hub-wheel-ring-spin {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 4px solid transparent;
+.hub-wheel-ring-outer {
+  width: 58%;
+  aspect-ratio: 1;
   border-top-color: var(--accent-orange);
-  border-right-color: var(--accent-orange);
-  /* Samotná 3-4px linka splývala s fotkou na pozadí (potvrdil
-     screenshot) — záře navíc dělá z "prstenec se roztočí" doopravdy
-     vidět oranžovou, ne jen tenký šedý kroužek. */
-  filter: drop-shadow(0 0 7px rgba(245, 158, 11, 0.65));
-  transform: rotate(0deg);
-  transition: transform 0.2s ease;
+  border-left-color: rgba(245, 158, 11, 0.3);
+  filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.4));
+  animation: hub-ring-cw 25s linear infinite;
 }
 
-.hub-wheel.je-otevrene .hub-wheel-ring-spin {
-  transform: rotate(220deg);
-  transition-delay: 0.25s;
+.hub-wheel-ring-inner {
+  width: 40%;
+  aspect-ratio: 1;
+  border-bottom-color: var(--accent-orange);
+  border-right-color: rgba(245, 158, 11, 0.25);
+  filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.35));
+  animation: hub-ring-ccw 13s linear infinite;
+}
+
+.hub-wheel.je-otevrene .hub-wheel-ring-outer,
+.hub-wheel.je-otevrene .hub-wheel-ring-inner {
+  opacity: 0.9;
+}
+
+@keyframes hub-ring-cw {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes hub-ring-ccw {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(-360deg);
+  }
 }
 
 .hub-wheel-petal {
@@ -503,7 +536,7 @@
   z-index: 1;
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, -50%) scale(0.35);
+  transform: translate(-50%, -50%) scale(0.5);
   transition:
     top 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
     left 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -541,43 +574,43 @@
 /* Souřadnice šesti paprsků — viz appčin komentář u .hub-wheel výš pro
    úhly, odkud se spočítaly (0/60/120/180/240/300° kolem středu,
    R = 33 % šířky kola). Platí jen v otevřeném stavu (zavřeno = 50 %/
-   50 %, viz základní .hub-wheel-petal výš) — vlastní zpoždění u
-   každého dělá "jinou trajektorii, ne všechny najednou" ze zadání:
-   AI vyjede první, pak dvojice Apps/Social, pak Rooms/Shop, Rewards
-   poslední. */
+   50 %, viz základní .hub-wheel-petal výš). Zpoždění jde přesně podle
+   zadaného pořadí, jeden po druhém po 0,07 s (ne v párech jako dřív):
+   AI 0,15 s → Apps 0,22 s → Social 0,29 s → Rooms 0,36 s → Shop
+   0,43 s → Rewards 0,50 s. */
 .hub-wheel.je-otevrene .hub-wheel-petal--ai {
   top: 17%;
   left: 50%;
-  transition-delay: 0.45s;
+  transition-delay: 0.15s;
 }
 
 .hub-wheel.je-otevrene .hub-wheel-petal--apps {
   top: 33.5%;
   left: 78.6%;
-  transition-delay: 0.5s;
-}
-
-.hub-wheel.je-otevrene .hub-wheel-petal--shop {
-  top: 66.5%;
-  left: 78.6%;
-  transition-delay: 0.55s;
-}
-
-.hub-wheel.je-otevrene .hub-wheel-petal--rewards {
-  top: 83%;
-  left: 50%;
-  transition-delay: 0.6s;
-}
-
-.hub-wheel.je-otevrene .hub-wheel-petal--rooms {
-  top: 66.5%;
-  left: 21.4%;
-  transition-delay: 0.55s;
+  transition-delay: 0.22s;
 }
 
 .hub-wheel.je-otevrene .hub-wheel-petal--social {
   top: 33.5%;
   left: 21.4%;
+  transition-delay: 0.29s;
+}
+
+.hub-wheel.je-otevrene .hub-wheel-petal--rooms {
+  top: 66.5%;
+  left: 21.4%;
+  transition-delay: 0.36s;
+}
+
+.hub-wheel.je-otevrene .hub-wheel-petal--shop {
+  top: 66.5%;
+  left: 78.6%;
+  transition-delay: 0.43s;
+}
+
+.hub-wheel.je-otevrene .hub-wheel-petal--rewards {
+  top: 83%;
+  left: 50%;
   transition-delay: 0.5s;
 }
 

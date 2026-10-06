@@ -211,18 +211,18 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
         {/* Kruhové menu — nahrazuje dřívější kartové sekce "Prozkoumej"
             a "Tvůj pokrok" naráz, viz appčin vlastní komentář u pole
-            `kolo` výš. Zavřené kolo ukazuje jen prostřední "BUDDY CORE"
-            tlačítko (B medailon) — klepnutí ho přepne na otevřené a
-            celý vizuální sled (bliknutí → prstenec → otočení prstence →
-            vyjetí paprsků, každý s vlastním zpožděním) odehraje čistě
-            CSS přes třídu .je-otevrene, viz HubModule.css. Prstenec je
-            dva vnořené prvky schválně (.hub-wheel-ring-wrap/-spin) —
-            jeden CSS přechod neumí nezávisle načasovat "objevit se" a
-            "otočit se" na tomtéž transformu, tohle ano. */}
+            `kolo` výš. Zavřené kolo ukazuje prostřední "BUDDY CORE"
+            tlačítko (B medailon) obklopené dvěma jemnými, pořád se
+            otáčejícími prstenci ("energetické jádro") — klepnutí na
+            střed kolo přepne na otevřené a paprsky vyjedou ven,
+            jeden po druhém (viz HubModule.css pro přesné zpoždění u
+            každého a pro to, proč prstence běží pořád, ne jen při
+            otevření). */}
         <div className="hub-wheel-wrap">
           <div className={`hub-wheel${kolootevreno ? ' je-otevrene' : ''}`}>
             <span className="hub-wheel-ring-wrap" aria-hidden="true">
-              <span className="hub-wheel-ring-spin" />
+              <span className="hub-wheel-ring-outer" />
+              <span className="hub-wheel-ring-inner" />
             </span>
 
             <button
