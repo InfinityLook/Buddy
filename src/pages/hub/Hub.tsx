@@ -98,9 +98,24 @@ export const HubModule: React.FC<HubModuleProps> = ({
   const buddyVoice = useBuddyVoice()
   const [buddyOpen, setBuddyOpen] = useState(false)
 
+  // Kolo je defaultně zavřené — jen prostřední "BUDDY CORE" tlačítko,
+  // žádný paprsek. Klepnutí na střed teď přepíná otevřeno/zavřeno (dřív
+  // vedlo rovnou do Profilu — appka pro to má avatar v hlavičce, druhá
+  // cesta tam navíc nebyla potřeba). Vizuální sled (bliknutí středu →
+  // objeví se prstenec → prstenec se otočí → paprsky vyjedou ven,
+  // každý s vlastním zpožděním) je celý v CSS přes .hub-wheel.je-
+  // otevrene, žádný JS časovač — appka jen přepne jednu třídu a nechá
+  // CSS přechody udělat zbytek, viz HubModule.css's vlastní komentář
+  // u .hub-wheel-petal.
+  const [kolootevreno, setKolootevreno] = useState(false)
+
   const otevritBuddyho = () => {
     buddyVoice.vycistit()
     setBuddyOpen(true)
+  }
+
+  const prepnoutKolo = () => {
+    setKolootevreno((v) => !v)
   }
 
   const zavritBuddyho = () => {
@@ -196,17 +211,26 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
         {/* Kruhové menu — nahrazuje dřívější kartové sekce "Prozkoumej"
             a "Tvůj pokrok" naráz, viz appčin vlastní komentář u pole
-            `kolo` výš. Prostřední tlačítko (B medailon, stejný obrázek
-            jako paprsky — oříznuto z appkou dodané ikonové sady) vede
-            do Profilu; šest paprsků jde na AI/Apps/Shop/Rewards/Rooms/
-            Social, úhly a souřadnice viz HubModule.css. */}
+            `kolo` výš. Zavřené kolo ukazuje jen prostřední "BUDDY CORE"
+            tlačítko (B medailon) — klepnutí ho přepne na otevřené a
+            celý vizuální sled (bliknutí → prstenec → otočení prstence →
+            vyjetí paprsků, každý s vlastním zpožděním) odehraje čistě
+            CSS přes třídu .je-otevrene, viz HubModule.css. Prstenec je
+            dva vnořené prvky schválně (.hub-wheel-ring-wrap/-spin) —
+            jeden CSS přechod neumí nezávisle načasovat "objevit se" a
+            "otočit se" na tomtéž transformu, tohle ano. */}
         <div className="hub-wheel-wrap">
-          <div className="hub-wheel">
+          <div className={`hub-wheel${kolootevreno ? ' je-otevrene' : ''}`}>
+            <span className="hub-wheel-ring-wrap" aria-hidden="true">
+              <span className="hub-wheel-ring-spin" />
+            </span>
+
             <button
               type="button"
               className="hub-wheel-center"
-              onClick={handleProfileClick}
-              aria-label="Profil"
+              onClick={prepnoutKolo}
+              aria-label={kolootevreno ? 'Zavřít menu' : 'Otevřít menu'}
+              aria-expanded={kolootevreno}
             >
               <img src="/icons/hub-wheel/buddy-core.png" alt="" />
             </button>
@@ -217,6 +241,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
                 type="button"
                 className={`hub-wheel-petal hub-wheel-petal--${paprsek.id}`}
                 onClick={paprsek.onClick}
+                tabIndex={kolootevreno ? 0 : -1}
               >
                 <img src={paprsek.ikona} alt="" />
                 <span className="hub-wheel-petal-label">{paprsek.nazev}</span>
