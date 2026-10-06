@@ -27,11 +27,15 @@ interface HubModuleProps {
 
 // Jeden paprsek kruhového menu — šest jich jde kolem prostředního
 // "BUDDY CORE" tlačítka, viz HubModule.css's vlastní komentář u
-// .hub-wheel-petal pro úhly/souřadnice.
+// .hub-wheel-petal pro úhly/souřadnice. `uhel` je stejný úhlový rozpis
+// (0° nahoře/AI, po 60° po směru hodinových ručiček), co appka má
+// zapsaný i v CSS komentáři — tady ho appka potřebuje znovu jako
+// skutečná čísla kvůli Kroku 6 (viz `najdiPaprsekPodleSmeru` níž).
 interface KoloPaprsek {
   id: string
   nazev: string
   ikona: string
+  uhel: number
   onClick: () => void
 }
 
@@ -109,33 +113,11 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // u .hub-wheel-petal.
   const [kolootevreno, setKolootevreno] = useState(false)
 
-  // Krok 5: "hover" nad paprskem — appka ho schválně netrackuje přes
-  // CSS :hover (na dotykové obrazovce nic takového spolehlivě
-  // neexistuje, a appka chce přesně to, co uživatel popsal — "přejede
-  // prstem" přes víc paprsků bez zvednutí prstu). Pointer Events
-  // sjednocují myš i dotyk do jednoho mechanismu: appka na .hub-wheel
-  // poslouchá pohyb/stisk, přes document.elementFromPoint zjistí, pod
-  // kterým paprskem (pokud pod nějakým) kurzor/prst zrovna je, a to
-  // id uloží — zavřený paprsek má pointer-events:none, takže zavřené
-  // kolo tudy nikdy nic nenajde (žádná extra podmínka není potřeba).
-  // Zvýrazněný paprsek se zvětší, ostatní se stáhnou — obojí jen CSS
-  // třída podle tohohle jednoho stavu, viz HubModule.css.
+  // Krok 5/6: zvýraznění paprsku pod prstem/kurzorem — appka ho
+  // schválně netrackuje přes CSS :hover (na dotykové obrazovce nic
+  // takového spolehlivě neexistuje), ale přes sjednocené Pointer
+  // Events, co fungují stejně pro myš i dotyk.
   const [zvyrazneneId, setZvyrazneneId] = useState<string | null>(null)
-
-  const najdiPaprsekPodKurzorem = (x: number, y: number): string | null => {
-    const el = document.elementFromPoint(x, y)
-    const paprsek = el?.closest<HTMLElement>('.hub-wheel-petal')
-    return paprsek?.dataset.paprsekId ?? null
-  }
-
-  const sledujKurzorNadKolem = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!kolootevreno) return
-    setZvyrazneneId(najdiPaprsekPodKurzorem(e.clientX, e.clientY))
-  }
-
-  const zrusZvyrazneni = () => {
-    setZvyrazneneId(null)
-  }
 
   const otevritBuddyho = () => {
     buddyVoice.vycistit()
@@ -157,15 +139,91 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // nedává nic navíc, ať se Shop/Rewards nezobrazují dvakrát). Rooms a
   // Apps vedou na stejné místo schválně — appčiny vlajkové roomy dnes
   // žijí nahoře na /apps (RoomCarousel), appka tam nemá druhou, oddělenou
-  // obrazovku jen pro ně.
+  // obrazovku jen pro ně. `uhel` musí přesně sedět s rozestavěním
+  // v HubModule.css (0°=nahoře/AI, po 60° po směru hodinových ručiček) —
+  // appka obě appku si drží schválně ručně synchronizované, ne jako
+  // jednu sdílenou konstantu, protože CSS procenta (top/left) a JS úhly
+  // (pro Krok 6 níž) jsou dva různé způsoby, jak vyjádřit totéž
+  // rozestavění, a appka je nemá jak spočítat jedno z druhého bez
+  // zbytečné komplikace navíc.
   const kolo: KoloPaprsek[] = [
-    { id: 'ai', nazev: 'AI', ikona: '/icons/hub-wheel/ai.png', onClick: otevritBuddyho },
-    { id: 'apps', nazev: 'Apps', ikona: '/icons/hub-wheel/apps.png', onClick: handleAppsClick },
-    { id: 'shop', nazev: 'Shop', ikona: '/icons/hub-wheel/shop.png', onClick: () => navigate('/obchod') },
-    { id: 'rewards', nazev: 'Rewards', ikona: '/icons/hub-wheel/rewards.png', onClick: handleRewardsClick },
-    { id: 'rooms', nazev: 'Rooms', ikona: '/icons/hub-wheel/rooms.png', onClick: handleAppsClick },
-    { id: 'social', nazev: 'Social', ikona: '/icons/hub-wheel/social.png', onClick: () => prejit('/social') },
+    { id: 'ai', nazev: 'AI', ikona: '/icons/hub-wheel/ai.png', uhel: 0, onClick: otevritBuddyho },
+    { id: 'apps', nazev: 'Apps', ikona: '/icons/hub-wheel/apps.png', uhel: 60, onClick: handleAppsClick },
+    { id: 'shop', nazev: 'Shop', ikona: '/icons/hub-wheel/shop.png', uhel: 120, onClick: () => navigate('/obchod') },
+    { id: 'rewards', nazev: 'Rewards', ikona: '/icons/hub-wheel/rewards.png', uhel: 180, onClick: handleRewardsClick },
+    { id: 'rooms', nazev: 'Rooms', ikona: '/icons/hub-wheel/rooms.png', uhel: 240, onClick: handleAppsClick },
+    { id: 'social', nazev: 'Social', ikona: '/icons/hub-wheel/social.png', uhel: 300, onClick: () => prejit('/social') },
   ]
+
+  // Krok 6: appka teď paprsek pod prstem nehledá podle toho, nad kterým
+  // DOM prvkem prst doopravdy je (document.elementFromPoint, Krok 5),
+  // ale podle SMĚRU od STŘEDU kola — prst tak nemusí doputovat až na
+  // skutečnou pozici paprsku, stačí i malý pohyb správným směrem
+  // ("prst jde doprava: APPS se rozsvítí"). Blízko středu (uvnitř
+  // kruhu prostředního tlačítka, mrtvá zóna = jeho vlastní poloměr,
+  // 17 % šířky kola) appka schválně nic nehlásí — směr by tam byl
+  // nejistý, a appka tím místem nechává projít obyčejné klepnutí na
+  // střed (otevřít/zavřít kolo) beze změny.
+  //
+  // Úhel appka počítá v souřadnicích obrazovky (Y roste dolů), proto
+  // +90° posun: atan2(dy,dx) dá "nahoru" = -90°, appka chce "nahoru" =
+  // 0° (AI). Výsledek je čistá matematika, bez dalšího dotazu do DOM.
+  const najdiPaprsekPodleSmeru = (x: number, y: number, rect: DOMRect): string | null => {
+    const stredX = rect.left + rect.width / 2
+    const stredY = rect.top + rect.height / 2
+    const dx = x - stredX
+    const dy = y - stredY
+    const vzdalenost = Math.hypot(dx, dy)
+    const mrtvaZona = rect.width * 0.17
+    if (vzdalenost < mrtvaZona) return null
+
+    // Přesně napůl mezi dvěma paprsky (čistě vodorovně doleva/doprava —
+    // 270°/90° — leží přesně uprostřed mezi SOCIAL/ROOMS resp. APPS/SHOP,
+    // oba po 30°) appka rozhodne podle pořadí v poli `kolo` výš (první
+    // nalezený vyhrává, `<` ne `<=`) — ověřeno přímo v prohlížeči, že se
+    // to doopravdy stává jen při matematicky přesně vodorovném gestu.
+    // Appka to schválně neřeší zvlášť: žádný skutečný pohyb prstu/myši
+    // není nikdy úplně přesně vodorovný, i malý svislý posun (viz appčin
+    // vlastní test) nejednoznačnost spolehlivě rozlomí správným směrem.
+    const uhel = ((Math.atan2(dy, dx) * 180) / Math.PI + 90 + 360) % 360
+    let nejblizsiId: string | null = null
+    let nejmensiRozdil = Infinity
+    for (const paprsek of kolo) {
+      const rozdilSurovy = Math.abs(uhel - paprsek.uhel)
+      const rozdil = Math.min(rozdilSurovy, 360 - rozdilSurovy)
+      if (rozdil < nejmensiRozdil) {
+        nejmensiRozdil = rozdil
+        nejblizsiId = paprsek.id
+      }
+    }
+    return nejblizsiId
+  }
+
+  const sledujKurzorNadKolem = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!kolootevreno) return
+    setZvyrazneneId(najdiPaprsekPodleSmeru(e.clientX, e.clientY, e.currentTarget.getBoundingClientRect()))
+  }
+
+  const zrusZvyrazneni = () => {
+    setZvyrazneneId(null)
+  }
+
+  // Krok 6: "A když prst pustí → otevře se daná sekce." Appka tu
+  // směr počítá znovu, přímo ze souřadnic uvolnění (ne jen ze starého
+  // `zvyrazneneId` ve stavu) — stejná funkce, ale appka tak má jistotu,
+  // že se aktivuje přesně to, co bylo vidět v okamžiku puštění, ne
+  // nějaká o krůček stará hodnota. Mimo mrtvou zónu beze změru (prst
+  // se vrátil ke středu, nebo kolo opustil pointerup bez pohybu) appka
+  // nic nespustí — přesné klepnutí na prostřední tlačítko dál funguje
+  // samo přes svůj vlastní onClick, nedotčené.
+  const aktivovatNaUvolneni = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (kolootevreno) {
+      const paprsekId = najdiPaprsekPodleSmeru(e.clientX, e.clientY, e.currentTarget.getBoundingClientRect())
+      const paprsek = paprsekId ? kolo.find((p) => p.id === paprsekId) : null
+      paprsek?.onClick()
+    }
+    setZvyrazneneId(null)
+  }
 
   return (
     <div className="hub-page">
@@ -246,15 +304,16 @@ export const HubModule: React.FC<HubModuleProps> = ({
             střed kolo přepne na otevřené a paprsky vyjedou ven,
             jeden po druhém (viz HubModule.css pro přesné zpoždění u
             každého a pro to, proč prstence běží pořád, ne jen při
-            otevření). Přejetí prstem/kurzorem přes otevřený paprsek
-            ho zvětší a ostatní zmenší, viz appčin komentář u
-            `zvyrazneneId` výš. */}
+            otevření). Pohyb prstem/kurzorem kolem středu zvýrazní
+            paprsek ve směru pohybu (nemusí na něj fyzicky doputovat)
+            a uvolnění danou sekci rovnou otevře — viz appčin komentář
+            u `najdiPaprsekPodleSmeru`/`aktivovatNaUvolneni` výš. */}
         <div className="hub-wheel-wrap">
           <div
             className={`hub-wheel${kolootevreno ? ' je-otevrene' : ''}`}
             onPointerMove={sledujKurzorNadKolem}
             onPointerDown={sledujKurzorNadKolem}
-            onPointerUp={zrusZvyrazneni}
+            onPointerUp={aktivovatNaUvolneni}
             onPointerCancel={zrusZvyrazneni}
             onPointerLeave={zrusZvyrazneni}
           >
@@ -284,7 +343,17 @@ export const HubModule: React.FC<HubModuleProps> = ({
                   className={`hub-wheel-petal hub-wheel-petal--${paprsek.id}${
                     zvyrazneny ? ' hub-wheel-petal--aktivni' : stazeny ? ' hub-wheel-petal--stazeny' : ''
                   }`}
-                  onClick={paprsek.onClick}
+                  onClick={(e) => {
+                    // Krok 6: myš/dotyk teď akci spouští centrálně přes
+                    // uvolnění nad kolem (aktivovatNaUvolneni výš, podle
+                    // směru od středu, ne nutně přesně na tomhle
+                    // tlačítku) — tenhle onClick smí doopravdy spustit
+                    // akci jen pro klávesnici (Enter/Space na
+                    // fokusovaném tlačítku, kde prohlížeč sám hlásí
+                    // detail===0), jinak by myš/dotyk akci spustily
+                    // dvakrát, jednou odsud, jednou z gesta.
+                    if (e.detail === 0) paprsek.onClick()
+                  }}
                   onFocus={() => setZvyrazneneId(paprsek.id)}
                   onBlur={() => setZvyrazneneId((cur) => (cur === paprsek.id ? null : cur))}
                   tabIndex={kolootevreno ? 0 : -1}
