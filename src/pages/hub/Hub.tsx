@@ -39,6 +39,36 @@ interface KoloPaprsek {
   onClick: () => void
 }
 
+// Krok 7: appka při výběru nejdřív 350–500 ms "doehraje" zavírací
+// efekt (viz `vybratPaprsek`/TRVANI_VYBERU_MS níž), teprve pak doopravdy
+// naviguje. 400 ms sedí přesně doprostřed zadaného rozpětí.
+const TRVANI_VYBERU_MS = 400
+
+// Dvanáct drobných jiskřiček, co z prstenu "vybuchnou" směrem ven, než
+// appka naviguje — appka si jejich směr (jednotkový vektor) spočítá
+// jednou tady při startu modulu, ne znovu při každém vykreslení/výběru,
+// stejný duch jako appčin komentář u `kolo` výš ("úhly jednou sama, ne
+// za běhu"), jen přes krátkou smyčku místo ručního vypsání dvanácti
+// dvojic čísel. `od`/`do` jsou rovnou hotová procenta pro CSS top/left
+// (appka cestu nedělá přes transform: translate(%) — to by se počítalo
+// vůči velikosti tečky samotné, ne kola, a jiskřička by tak urazila
+// jen zlomek milimetru místo kus kola) — vnitřní poloměr 18 % sedí
+// kousek za vnitřním prstencem, vnější 58 % přesně na poloměru
+// vnějšího prstence (.hub-wheel-ring-outer's vlastní width), ať
+// jiskřičky doopravdy vypadají jako rozpadlý prsten, ne náhodné tečky.
+const POCET_CASTIC = 12
+const CASTICE_SMERY = Array.from({ length: POCET_CASTIC }, (_, i) => {
+  const uhel = ((360 / POCET_CASTIC) * i * Math.PI) / 180
+  const x = Math.sin(uhel)
+  const y = -Math.cos(uhel)
+  return {
+    odLeft: 50 + x * 18,
+    odTop: 50 + y * 18,
+    doLeft: 50 + x * 58,
+    doTop: 50 + y * 58,
+  }
+})
+
 export const HubModule: React.FC<HubModuleProps> = ({
   onOpenApps,
   onOpenProfile,
@@ -119,12 +149,21 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // Events, co fungují stejně pro myš i dotyk.
   const [zvyrazneneId, setZvyrazneneId] = useState<string | null>(null)
 
+  // Krok 7: id právě vybraného paprsku, dokud appka "doehrává" zavírací
+  // efekt (viz vybratPaprsek níž) — null znamená "nic se nevybírá,
+  // kolo je buď zavřené, nebo normálně otevřené". Appka tímhle stavem
+  // zároveň hlídá, ať se výběr nespustí dvakrát (druhé klepnutí/
+  // uvolnění během těch pár set milisekund už žádný efekt nezpůsobí,
+  // viz vybratPaprsek's vlastní guard).
+  const [vybranyId, setVybranyId] = useState<string | null>(null)
+
   const otevritBuddyho = () => {
     buddyVoice.vycistit()
     setBuddyOpen(true)
   }
 
   const prepnoutKolo = () => {
+    if (vybranyId !== null) return
     setKolootevreno((v) => !v)
     setZvyrazneneId(null)
   }
@@ -200,12 +239,43 @@ export const HubModule: React.FC<HubModuleProps> = ({
   }
 
   const sledujKurzorNadKolem = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!kolootevreno) return
+    if (!kolootevreno || vybranyId !== null) return
     setZvyrazneneId(najdiPaprsekPodleSmeru(e.clientX, e.clientY, e.currentTarget.getBoundingClientRect()))
   }
 
   const zrusZvyrazneni = () => {
     setZvyrazneneId(null)
+  }
+
+  // Krok 7: appka tímhle místem vybrání paprsku vždycky prochází —
+  // ať je vybráno uvolněním gesta (aktivovatNaUvolneni) nebo klávesnicí
+  // (petal's vlastní onClick níž), výsledek je stejný: kolo se "stáhne"
+  // zpátky ke středu, prsteny zmizí a prstenec "vybuchne" na jiskřičky
+  // (celé přes CSS, viz .hub-wheel--vybira-se v HubModule.css), appka
+  // jen po uplynutí tý doby doopravdy naviguje/spustí Buddyho/atd.
+  //
+  // Guard na `vybranyId !== null` brání druhému, nechtěnému spuštění,
+  // kdyby gesto/klávesnice stihly vybrat něco ještě před doběhnutím
+  // prvního efektu. `prefers-reduced-motion` appka čte přímo tady (ne
+  // přes CSS kill-switch global.css's vlastní blok) ze stejného
+  // důvodu, jako to dělá useModulovyPrechod.ts — appka totiž tenhle
+  // časový posun řeší v JS (setTimeout), ne čistě v CSS přechodu/
+  // animaci, takže ho kill-switch sám o sobě nezkrátí.
+  const vybratPaprsek = (id: string) => {
+    if (vybranyId !== null) return
+    const paprsek = kolo.find((p) => p.id === id)
+    if (!paprsek) return
+    setZvyrazneneId(null)
+    setVybranyId(id)
+    const zkraceno = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.setTimeout(
+      () => {
+        paprsek.onClick()
+        setVybranyId(null)
+        setKolootevreno(false)
+      },
+      zkraceno ? 0 : TRVANI_VYBERU_MS,
+    )
   }
 
   // Krok 6: "A když prst pustí → otevře se daná sekce." Appka tu
@@ -215,12 +285,13 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // nějaká o krůček stará hodnota. Mimo mrtvou zónu beze změru (prst
   // se vrátil ke středu, nebo kolo opustil pointerup bez pohybu) appka
   // nic nespustí — přesné klepnutí na prostřední tlačítko dál funguje
-  // samo přes svůj vlastní onClick, nedotčené.
+  // samo přes svůj vlastní onClick, nedotčené. Krok 7: aktivace teď
+  // vede přes vybratPaprsek (zavírací efekt), ne přímo přes
+  // paprsek.onClick().
   const aktivovatNaUvolneni = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (kolootevreno) {
+    if (kolootevreno && vybranyId === null) {
       const paprsekId = najdiPaprsekPodleSmeru(e.clientX, e.clientY, e.currentTarget.getBoundingClientRect())
-      const paprsek = paprsekId ? kolo.find((p) => p.id === paprsekId) : null
-      paprsek?.onClick()
+      if (paprsekId) vybratPaprsek(paprsekId)
     }
     setZvyrazneneId(null)
   }
@@ -310,7 +381,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
             u `najdiPaprsekPodleSmeru`/`aktivovatNaUvolneni` výš. */}
         <div className="hub-wheel-wrap">
           <div
-            className={`hub-wheel${kolootevreno ? ' je-otevrene' : ''}`}
+            className={`hub-wheel${kolootevreno ? ' je-otevrene' : ''}${
+              vybranyId !== null ? ' hub-wheel--vybira-se' : ''
+            }`}
             onPointerMove={sledujKurzorNadKolem}
             onPointerDown={sledujKurzorNadKolem}
             onPointerUp={aktivovatNaUvolneni}
@@ -321,6 +394,30 @@ export const HubModule: React.FC<HubModuleProps> = ({
               <span className="hub-wheel-ring-outer" />
               <span className="hub-wheel-ring-inner" />
             </span>
+
+            {/* Krok 7: dvanáct jiskřiček, co z prstenu "vybuchnou" ven —
+                appka je vykresluje jen během přechodu (vybranyId !== null),
+                ne pořád schované v DOM, ať appka nenosí 12 navíc prvků na
+                stránce, dokud se kolo doopravdy nevybírá. Směr/vzdálenost
+                appka počítá jen jednou při startu modulu (CASTICE_SMERY
+                výš) — tady je jen přiřazuje na vlastní CSS proměnné, co
+                @keyframes hub-castice-vybuch v HubModule.css animuje. */}
+            {vybranyId !== null && (
+              <span className="hub-wheel-castice" aria-hidden="true">
+                {CASTICE_SMERY.map((smer, i) => (
+                  <span
+                    key={i}
+                    className="hub-wheel-castice-bod"
+                    style={{
+                      '--cl-od': `${smer.odLeft}%`,
+                      '--ct-od': `${smer.odTop}%`,
+                      '--cl-do': `${smer.doLeft}%`,
+                      '--ct-do': `${smer.doTop}%`,
+                    } as React.CSSProperties}
+                  />
+                ))}
+              </span>
+            )}
 
             <button
               type="button"
@@ -344,17 +441,22 @@ export const HubModule: React.FC<HubModuleProps> = ({
                     zvyrazneny ? ' hub-wheel-petal--aktivni' : stazeny ? ' hub-wheel-petal--stazeny' : ''
                   }`}
                   onClick={(e) => {
-                    // Krok 6: myš/dotyk teď akci spouští centrálně přes
+                    // Krok 6/7: myš/dotyk teď akci spouští centrálně přes
                     // uvolnění nad kolem (aktivovatNaUvolneni výš, podle
                     // směru od středu, ne nutně přesně na tomhle
                     // tlačítku) — tenhle onClick smí doopravdy spustit
-                    // akci jen pro klávesnici (Enter/Space na
+                    // výběr jen pro klávesnici (Enter/Space na
                     // fokusovaném tlačítku, kde prohlížeč sám hlásí
-                    // detail===0), jinak by myš/dotyk akci spustily
-                    // dvakrát, jednou odsud, jednou z gesta.
-                    if (e.detail === 0) paprsek.onClick()
+                    // detail===0), jinak by myš/dotyk výběr spustily
+                    // dvakrát, jednou odsud, jednou z gesta. I odtud ale
+                    // jde přes vybratPaprsek, ne přímo paprsek.onClick() —
+                    // klávesnice má na stejný zavírací efekt právo stejně
+                    // jako dotyk/myš.
+                    if (e.detail === 0) vybratPaprsek(paprsek.id)
                   }}
-                  onFocus={() => setZvyrazneneId(paprsek.id)}
+                  onFocus={() => {
+                    if (vybranyId === null) setZvyrazneneId(paprsek.id)
+                  }}
                   onBlur={() => setZvyrazneneId((cur) => (cur === paprsek.id ? null : cur))}
                   tabIndex={kolootevreno ? 0 : -1}
                 >

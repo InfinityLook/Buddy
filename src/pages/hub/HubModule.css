@@ -652,6 +652,87 @@
   transition-delay: 0s;
 }
 
+/* Krok 7 — výběr paprsku: appka k otevřenému kolu přidá ještě
+   `.hub-wheel--vybira-se` (viz Hub.tsx's `vybranyId`/`vybratPaprsek`)
+   po dobu TRVANI_VYBERU_MS (400 ms), než doopravdy naviguje/spustí
+   akci. Sled je přesně "menu se stáhne → kruh se rozpadne na
+   světelné částice → [JS naviguje]": paprsky se vrátí zpátky ke
+   středu a zmenší/zprůhlední (dřív ze stejné pozice jely jen při
+   ZAVŘENÍ celého kola — tohle je ta samá animace, jen appka ji teď
+   spouští i uprostřed otevřeného kola), souběžně oba prstence
+   zmizí a na jejich místě vybuchnou drobné jiskřičky (viz
+   .hub-wheel-castice* níž). Čtyři třídy na `.hub-wheel` (hub-wheel,
+   je-otevrene, hub-wheel--vybira-se) + .hub-wheel-petal dohromady
+   = vyšší specificita než tři třídy u --ai/--apps/.../--aktivni/
+   --stazeny pravidel výš, takže appka nic nepřebíjí přes
+   `!important` — čistě pořadí selektorů podle počtu tříd. */
+.hub-wheel.je-otevrene.hub-wheel--vybira-se .hub-wheel-petal {
+  top: 50%;
+  left: 50%;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.35);
+  transition:
+    top 0.2s ease,
+    left 0.2s ease,
+    opacity 0.16s ease,
+    transform 0.2s ease;
+  transition-delay: 0s;
+}
+
+.hub-wheel.je-otevrene.hub-wheel--vybira-se .hub-wheel-ring-outer,
+.hub-wheel.je-otevrene.hub-wheel--vybira-se .hub-wheel-ring-inner {
+  opacity: 0;
+  transition: opacity 0.22s ease;
+  transition-delay: 0s;
+}
+
+/* Dvanáct jiskřiček — appka je vykresluje jen během přechodu (viz
+   Hub.tsx), ne pořád v DOM. Vlastní proměnné (--cl-od/--ct-od/
+   --cl-do/--ct-do) nastavuje inline styl z CASTICE_SMERY; appka
+   si cestu (od/do) spočítala jednou při startu modulu, tady ji
+   jen přehrává. `.hub-wheel-castice` leží přes `inset: 0` přesně
+   na stejném místě jako `.hub-wheel-ring-wrap` výš, takže top/left
+   procenta jiskřiček sedí na stejné měřítko jako appčiny paprsky
+   a prstence. */
+.hub-wheel-castice {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.hub-wheel-castice-bod {
+  position: absolute;
+  left: var(--cl-od);
+  top: var(--ct-od);
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--accent-orange);
+  box-shadow: 0 0 6px 2px rgba(245, 158, 11, 0.75);
+  opacity: 0;
+  animation: hub-castice-vybuch 0.38s ease-out forwards;
+}
+
+@keyframes hub-castice-vybuch {
+  0% {
+    left: var(--cl-od);
+    top: var(--ct-od);
+    opacity: 0;
+    transform: scale(0.5);
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    left: var(--cl-do);
+    top: var(--ct-do);
+    opacity: 0;
+    transform: scale(0.3);
+  }
+}
+
 /* ------------------------------------------
    MENŠÍ TELEFONY
    ------------------------------------------ */
