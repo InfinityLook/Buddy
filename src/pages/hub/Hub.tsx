@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
 import { SocialIcon } from '@/social/components/SocialIcon'
@@ -8,7 +8,7 @@ import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
-import { getLevelProgress, getXpForNextLevel } from '@/core/utils/gamificationUtils'
+import { getLevelFromXp, getLevelProgress, getXpForNextLevel } from '@/core/utils/gamificationUtils'
 import {
   ProfilNotifications,
   useNotificationItems,
@@ -80,6 +80,28 @@ const CASTICE_SMERY = Array.from({ length: POCET_CASTIC }, (_, i) => {
   }
 })
 
+// Krok 11: "+50 XP" bublina nad odznakem levelu, co appka ukáže na pár
+// vteřin po každém reálném zisku XP (appka xp porovnává proti
+// předchozí hodnotě, viz `predchoziXpRef`/efekt níž) — appka ji po
+// uplynutí sama smaže, žádné trvalé tlačítko na zavření, stejný "krátká
+// animace, sama zmizí" vzorec appka má i jinde (Fitness Room's týdenní
+// oslava, Souboj's bublina výsledku). 1600 ms appce stačí na celý
+// sled (vyletí nahoru, tři jiskřičky, pohasne) a nechá ho číst i
+// nejpomalejšímu oku, aniž by na obrazovce zbytečně dlouho překážel.
+const TRVANI_XP_BUBLINY_MS = 1600
+
+interface XpBublina {
+  // appka sem dává Date.now(), ne čistě rostoucí počítadlo — appka tím
+  // vynucuje nový `key` na vykresleném prvku při KAŽDÉM zisku, i kdyby
+  // dvě bubliny nějakou shodou okolností padly do stejné milisekundy
+  // (appka v tom případě proste přepíše starou novou, stejně jako by
+  // to udělal i čistě rostoucí čítač), ať se CSS animace vždycky
+  // spustí od začátku, ne od stavu, kde zrovna předchozí bublina byla.
+  id: number
+  castka: number
+  levelUp: boolean
+}
+
 export const HubModule: React.FC<HubModuleProps> = ({
   onOpenApps,
   onOpenProfile,
@@ -113,6 +135,53 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
   const progressPercent = getLevelProgress(xp)
   const xpDoDalsi = getXpForNextLevel(level)
+
+  // Krok 11: appka si level/XP "udělala součástí herního systému" —
+  // odznak teď žije, ne jen zobrazuje čísla. Appka xp/level porovnává
+  // proti předchozí hodnotě (ref, ne state — appka nechce kvůli tomu
+  // druhý zbytečný re-render) a při KAŽDÉM skutečném nárůstu (přišlo
+  // odkudkoli — appka tu neví a nepotřebuje vědět, jestli to byl
+  // dokončený úkol, Buddyho rozhovor nebo cokoli jiného, co zrovna
+  // zavolalo recordAction/addXp) ukáže na pár vteřin "+N XP" bublinu,
+  // viz XpBublina výš. Appka tím pádem chytá i XP, co appka připsala,
+  // zatímco byl uživatel na Hubu ale nedělal nic SÁM na týhle
+  // obrazovce — reálný zdroj appce je jedno.
+  const predchoziXpRef = useRef(xp)
+  const bublinaTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [xpBublina, setXpBublina] = useState<XpBublina | null>(null)
+
+  useEffect(() => {
+    const predchozi = predchoziXpRef.current
+    predchoziXpRef.current = xp
+    if (xp <= predchozi) return
+    const castka = xp - predchozi
+    const levelUp = getLevelFromXp(xp) > getLevelFromXp(predchozi)
+    setXpBublina({ id: Date.now(), castka, levelUp })
+
+    // Appka tenhle časovač SCHVÁLNĚ nekrátí pod prefers-reduced-motion,
+    // na rozdíl od Kroku 7/8 — tam appka zkracovala zavírací/výběrovou
+    // kaskádu, co uživatel jen čeká, až doběhne, než appka doopravdy
+    // naviguje. Tahle bublina naproti tomu NESE čitelný obsah ("+N
+    // XP") — appka mu chce dát stejně dlouho na přečtení, ať uživatel
+    // motion sníženou nebo ne. Appka motion schválně odstraňuje jen
+    // v CSS (.hub-xp-bublina's vlastní @media přepsání níž — appka
+    // tam bublinu nechá rovnou plně viditelnou, bez vzletu/zmizení),
+    // ne zkracováním toho, jak dlouho appka obsah vůbec ukazuje.
+    if (bublinaTimeoutRef.current !== null) clearTimeout(bublinaTimeoutRef.current)
+    bublinaTimeoutRef.current = setTimeout(() => {
+      setXpBublina(null)
+      bublinaTimeoutRef.current = null
+    }, TRVANI_XP_BUBLINY_MS)
+  }, [xp])
+
+  // Appka časovač na nárůst XP uklidí i při skutečném odmountování
+  // Hubu (ne jen při příští změně xp) — jinak by setTimeout po
+  // odchodu z obrazovky zavolal setState na už nežijící komponentu.
+  useEffect(() => {
+    return () => {
+      if (bublinaTimeoutRef.current !== null) clearTimeout(bublinaTimeoutRef.current)
+    }
+  }, [])
 
   const handleAppsClick = () => {
     if (onOpenApps) {
@@ -402,12 +471,42 @@ export const HubModule: React.FC<HubModuleProps> = ({
             useBuddyVoice na každé z těchhle obrazovek zvlášť, žádná
             koule ke sdílení stavu mezi nimi není potřeba. */}
         <div className="hub-hero-stats-row">
+          {/* Krok 11: "udělej z levelu součást herního systému" — odznak
+              dostal svou vlastní svítící záři (.hub-level-hex-wrap,
+              stejný "kruh kolem" duch jako appčina vlastní zlatá záře
+              kolem kola níž, jen menší a klidnější) a číslo uvnitř
+              povýšilo z malého "01" na opravdu velké, odznaku vlastní
+              číslo levelu — "LEVEL" samo se přestěhovalo ven jako malý
+              eyebrow štítek nad něj, appka tím pádem obě části (ikona
+              odznaku / popisek) odlišuje jasnějc, než když byly obě
+              schované v jednom řetězci "LEVEL 12". Bublina s "+N XP"
+              (viz XpBublina/appčin efekt výš) se vykresluje jako čtvrté
+              dítě tyhle karty, position: absolute nad odznakem — appka
+              proto dala `.hub-hero-level` position: relative. */}
           <div className="hub-hero-level" aria-label={`Úroveň ${level}, ${xp} z ${xpDoDalsi} XP`}>
-            <span className="hub-level-hex" aria-hidden="true">
-              <span className="hub-level-hex-num">{String(level).padStart(2, '0')}</span>
+            {xpBublina && (
+              <div
+                key={xpBublina.id}
+                className={`hub-xp-bublina${xpBublina.levelUp ? ' hub-xp-bublina--level-up' : ''}`}
+                aria-live="polite"
+              >
+                <span className="hub-xp-bublina-jiskry" aria-hidden="true">
+                  <span className="hub-xp-bublina-jiskra">✦</span>
+                  <span className="hub-xp-bublina-jiskra">✦</span>
+                  <span className="hub-xp-bublina-jiskra">✦</span>
+                </span>
+                <span className="hub-xp-bublina-castka">
+                  {xpBublina.levelUp ? `🎉 LEVEL ${level}! ` : ''}+{xpBublina.castka} XP
+                </span>
+              </div>
+            )}
+            <span className="hub-level-hex-wrap" aria-hidden="true">
+              <span className="hub-level-hex">
+                <span className="hub-level-hex-num">{level}</span>
+              </span>
             </span>
             <div className="hub-level-info">
-              <span className="hub-level-title">LEVEL {level}</span>
+              <span className="hub-level-eyebrow">LEVEL</span>
               <span className="hub-level-xp">
                 {xp} / {xpDoDalsi} XP
               </span>

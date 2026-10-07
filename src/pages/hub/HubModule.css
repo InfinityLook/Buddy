@@ -231,7 +231,12 @@
    pryč, hlasový Buddy zůstává dosažitelný jen přes prostřední kolečko
    ve spodní liště. Řada samotná zůstala beze změny — level vlevo/
    série vpravo, dvě samostatné karty ve flex řádku.
-   ------------------------------------------ */
+
+   Krok 11: appka z levelu udělala skutečnou "součást herního systému"
+   — odznak dostal svítící halo + větší vlastní číslo (viz
+   .hub-level-hex-wrap/-hex-num níž) a appka přidala živou "+N XP"
+   bublinu, co se objeví při KAŽDÉM skutečném zisku XP (viz Hub.tsx's
+   XpBublina/efekt sledující `xp`). ------------------------------------------ */
 .hub-hero-stats-row {
   display: flex;
   align-items: flex-start;
@@ -239,9 +244,10 @@
 }
 
 .hub-hero-level {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.6rem;
   flex: 1;
   min-width: 0;
   background: rgba(21, 31, 56, 0.3);
@@ -265,13 +271,74 @@
   backdrop-filter: blur(14px);
 }
 
-/* Šestiúhelník přes clip-path — dvě vrstvy (barevný přechod, tmavá
-   výplň o pár px menší) dají dojem svítícího rámečku. */
-.hub-level-hex {
+/* Odznak levelu — appka kolem šestiúhelníku (stejná clip-path
+   konstrukce jako dřív, jen o chlup větší) přidala vlastní svítící
+   halo (::before, stejný "radial-gradient kruh kolem" duch jako
+   appčina zlatá záře kolem kola kousek níž v tomhle souboru, jen
+   menší a klidnější) s pomalým dýchavým pulzem — appka ho schválně
+   nechává běžet POŘÁD (ne jen při zisku XP), ať odznak sám o sobě
+   působí živě, "součást herního systému", ne jen statická ikonka.
+   Appka tím pádem při skutečném zisku XP (.hub-hero-level:has(.hub-
+   xp-bublina) níž) halo jen na okamžik zesílí navíc, místo aby ho
+   teprve v tu chvíli rozsvěcela odnuly. */
+.hub-level-hex-wrap {
   position: relative;
   flex-shrink: 0;
-  width: 52px;
-  height: 52px;
+  width: 58px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hub-level-hex-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.4) 0%, rgba(34, 211, 238, 0.18) 45%, transparent 72%);
+  animation: hub-level-halo-dech 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes hub-level-halo-dech {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+/* Appka halo i samotný odznak na okamžik "zablikne" silněji, dokud na
+   kartě sedí čerstvá +XP bublina — appka tím spojuje číslo, co právě
+   naskočilo, s tím, že odznak samotný je "za to" vizuálně odpovědný.
+   :has() appka používá schválně — bez podpory v prohlížeči appka
+   efekt prostě vynechá (bublina samotná pořád funguje), appka nic
+   nerozbije, jen o trochu méně "zabliká". */
+.hub-hero-level:has(.hub-xp-bublina) .hub-level-hex-wrap {
+  animation: hub-level-badge-zablesk 0.7s ease;
+}
+
+@keyframes hub-level-badge-zablesk {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.hub-level-hex {
+  position: relative;
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -289,9 +356,10 @@
 
 .hub-level-hex-num {
   position: relative;
-  font-size: 1.05rem;
-  font-weight: 800;
+  font-size: 1.35rem;
+  font-weight: 900;
   color: var(--text-primary);
+  line-height: 1;
 }
 
 .hub-level-info {
@@ -302,10 +370,15 @@
   min-width: 0;
 }
 
-.hub-level-title {
-  font-size: 0.85rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+/* Appka "LEVEL" vyvedla jako malý, odtažitý eyebrow štítek — stejná
+   škála jako appčin vlastní .hub-streak-label kousek níž (konzistence
+   mezi oběma kartami v řadě) — hlavní váhu teď nese velké číslo
+   uvnitř odznaku samotného, ne tenhle popisek. */
+.hub-level-eyebrow {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
@@ -324,11 +397,129 @@
   margin-top: 0.1rem;
 }
 
+/* Appka appka šířku teď doopravdy animuje (dřív jen skákala na novou
+   hodnotu) — "XP BAR SE PLNÍ" appka dociluje jedním transition, žádný
+   zvláštní JS navíc, appka tím pádem dostává efekt zdarma při KAŽDÉ
+   změně progressPercent, nejen při otevření +XP bubliny. Jemný glow
+   appce dává pocit, že výplň sama svítí, ne jen roste. */
 .hub-level-progress-fill {
   display: block;
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.55);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Krok 11: "+N XP" bublina — vyletí nad kartou levelu, tři jiskřičky
+   se nezávisle zatřpytí (viz .hub-xp-bublina-jiskra níž) a appka ji po
+   TRVANI_XP_BUBLINY_MS (Hub.tsx) zase smaže.
+
+   Appka ji PRVNÍ verzí centrovala přímo nad malý odznak samotný
+   (left: 29px, polovina .hub-level-hex-wrap's šířky) — appka to ale
+   přes skutečnou kontrolu getBoundingClientRect() (ne jen odhadem
+   z komponenty) odhalila jako skutečný bug: delší text (appčina
+   vlastní "🎉 LEVEL 2! +145 XP" varianta) je širší, než kolik appka
+   kolem 29px nechala místa, a bublina appce přetekla přes levý okraj
+   celé obrazovky (appka naměřila doopravdy x: -22px, kus textu by na
+   reálném telefonu zůstal mimo viditelnou plochu). Appka proto kotví
+   místo toho vůči CELÉ kartě levelu (left: 50%, .hub-hero-level má
+   position: relative a je skoro pětkrát širší než samotný odznak) —
+   stejná vizuální myšlenka ("bublina patří k levelu"), jen appka má
+   konečně dost místa na obě strany i pro ten nejdelší text. */
+.hub-xp-bublina {
+  position: absolute;
+  left: 50%;
+  top: -0.2rem;
+  transform: translate(-50%, 0);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.05rem;
+  pointer-events: none;
+  z-index: 2;
+  animation: hub-xp-bublina-vzestup 1.6s ease-out forwards;
+}
+
+.hub-xp-bublina--level-up .hub-xp-bublina-castka {
+  color: var(--accent-orange);
+}
+
+@keyframes hub-xp-bublina-vzestup {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.85);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -8px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -26px) scale(0.95);
+  }
+}
+
+.hub-xp-bublina-jiskry {
+  display: flex;
+  gap: 0.15rem;
+  font-size: 0.6rem;
+  color: var(--accent-cyan);
+  line-height: 1;
+}
+
+.hub-xp-bublina-jiskra {
+  animation: hub-xp-jiskra-trpyt 1.6s ease-in-out infinite;
+}
+
+.hub-xp-bublina-jiskra:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.hub-xp-bublina-jiskra:nth-child(3) {
+  animation-delay: 0.36s;
+}
+
+@keyframes hub-xp-jiskra-trpyt {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+.hub-xp-bublina-castka {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  white-space: nowrap;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}
+
+/* Appčin globální kill-switch (global.css) by .hub-xp-bublina's
+   `forwards`-animaci zkrátil na skoro nulovou dobu a nechal ji ustát
+   na POSLEDNÍM snímku — tedy opacity: 0, bublina by zmizela dřív, než
+   by ji kdokoli stihl přečíst. Appka proto pro tenhle jeden případ
+   animaci rovnou vypíná a nahrazuje ji pevným, plně viditelným stavem
+   — obsah appka ukáže stejně dlouho (TRVANI_XP_BUBLINY_MS appka
+   NEkrátí, viz Hub.tsx), jen bez vzletu/zmizení, appka ho prostě po
+   uplynutí času smaže z DOM, což samo o sobě žádný pohyb nenese.
+   Appka blok schválně dává AŽ SEM, za vlastní pravidlo, co přepisuje
+   — appčin vlastní, už jednou naučený cascade-order lesson. */
+@media (prefers-reduced-motion: reduce) {
+  .hub-xp-bublina {
+    animation: none;
+    opacity: 1;
+    transform: translate(-50%, -8px);
+  }
 }
 
 .hub-streak-flame {
