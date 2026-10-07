@@ -6,6 +6,7 @@ import { AppBottomNav } from '@/components/AppBottomNav'
 import { useBuddyVoice } from '@/buddy/useBuddyVoice'
 import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
+import { useDailyGoalStore, jeDnesniCilSplnen, DENNI_CIL_ODMENA_XP } from '@/core/store/useDailyGoalStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { getLevelFromXp, getLevelProgress, getXpForNextLevel } from '@/core/utils/gamificationUtils'
@@ -125,6 +126,22 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // Načtení gamifikačních dat ze storu
   const { level, xp, streakDays, recordActivity } = useGamificationStore()
 
+  // Krok 13: "Dnešní cíl" karta — appka stav čte přímo z úložiště, nikdy
+  // neukládá vlastní odvozenou kopii "je dnes splněno".
+  const { datum: dailyGoalDatum, splneno: dailyGoalSplneno, oznacitSplneno } = useDailyGoalStore()
+  // Vynutí nové vykreslení jednou za minutu, čistě ať appka pozná i
+  // půlnoc samotnou, ne jen uživatelovu další skutečnou akci — bez
+  // tohohle tiku by karta po otevření před půlnocí zůstala "splněno"
+  // zamrzlá klidně celý další den, přesně stejná appčina mezera, co
+  // School Roomovo "Příští hodina"/dnes už jednou řešilo (viz
+  // SchoolRoomModule.tsx's vlastní komentář u ted/setTed).
+  const [, setDenniCilTik] = useState(0)
+  useEffect(() => {
+    const id = window.setInterval(() => setDenniCilTik((t) => t + 1), 60_000)
+    return () => window.clearInterval(id)
+  }, [])
+  const dnesniCilSplnen = jeDnesniCilSplnen(dailyGoalDatum, dailyGoalSplneno)
+
   // Store aplikací — používáme pro deep-link do konkrétní miniaplikace
   const { setActiveAppId } = useAppStore()
 
@@ -171,8 +188,20 @@ export const HubModule: React.FC<HubModuleProps> = ({
     bublinaTimeoutRef.current = setTimeout(() => {
       setXpBublina(null)
       bublinaTimeoutRef.current = null
+
+      // Krok 13: appka bonus za "Dnešní cíl" schválně volá až TADY, na
+      // konci právě doběhlé bubliny, ne hned nahoře při detekci
+      // nárůstu — oznacitSplneno() (no-op, pokud je cíl dnes už
+      // splněný) uvnitř zavolá addXp, což xp znovu změní a tenhle
+      // efekt sám sebe spustí podruhé (predchoziXpRef už odkazuje na
+      // hodnotu BEZ bonusu, takže druhý běh poznání +50 jako novou,
+      // oddělenou bublinu doopravdy vyjde). Kdyby appka oznacitSplneno()
+      // zavolala hned při detekci prvního nárůstu, obě bubliny by se
+      // přepisovaly ve zlomku vteřiny a první by uživatel nikdy
+      // doopravdy neviděl doběhnout.
+      oznacitSplneno()
     }, TRVANI_XP_BUBLINY_MS)
-  }, [xp])
+  }, [xp, oznacitSplneno])
 
   // Appka časovač na nárůst XP uklidí i při skutečném odmountování
   // Hubu (ne jen při příští změně xp) — jinak by setTimeout po
@@ -622,6 +651,30 @@ export const HubModule: React.FC<HubModuleProps> = ({
               )
             })}
           </div>
+        </div>
+
+        {/* Krok 13: appka sem místo víc karet dává jen jednu — jediný
+            dnešní cíl ("dokonči jednu aktivitu"), co appka pozná ze
+            stejného signálu jako Krok 11's bublina (xp reálně stoupl,
+            viz oznacitSplneno() volání uvnitř efektu výš) a odmění
+            bonusem navíc. Appka dnesniCilSplnen čte vždycky čerstvě
+            při vykreslení (jeDnesniCilSplnen, nikdy jen podle uloženého
+            splneno samotného) — proto appka k "další den se změní"
+            nepotřebuje žádný vlastní půlnoční reset, karta se
+            doopravdy sama přepočítá na nesplněnou hned při prvním
+            vykreslení po půlnoci (ať ho vyvolá nová aktivita, nebo jen
+            appčin vlastní minutový tik výš). */}
+        <div className={`hub-denni-cil${dnesniCilSplnen ? ' hub-denni-cil--splneno' : ''}`}>
+          <span className="hub-denni-cil-znacka" aria-hidden="true">
+            {dnesniCilSplnen ? '✓' : '🎯'}
+          </span>
+          <div className="hub-denni-cil-text">
+            <span className="hub-denni-cil-stav">{dnesniCilSplnen ? 'SPLNĚNO' : 'DNEŠNÍ CÍL'}</span>
+            <span className="hub-denni-cil-popis">
+              {dnesniCilSplnen ? 'Dnešní cíl dokončen' : 'Dokonči jednu aktivitu'}
+            </span>
+          </div>
+          <span className="hub-denni-cil-odmena">+{DENNI_CIL_ODMENA_XP} XP</span>
         </div>
 
         {/* Spodní navigace — Fáze 4 Social nav reworku vytáhla tenhle
