@@ -453,10 +453,22 @@
                z ničeho".
    Paprsky vyjíždí ven jeden po druhém, každý s vlastním zpožděním —
    viz vlastní komentář u .hub-wheel-petal--* níž.
-   Zavírání jede stejnou cestou zpátky, jen bez zpoždění (appka
-   zpoždění definuje jen uvnitř .je-otevrene, takže při odebrání třídy
-   zmizí rovnou) — rychlé, bez rozfázování, žádný "zpětný sled" nebyl
-   zadán. */
+
+   Krok 8 — zavírání (jen klepnutí znovu na střed, appka nic
+   nevybírá) jede STEJNOU kaskádou zpátky, ale OBRÁCENĚ: appka
+   k otevřenému kolu na dobu zavírání přidá ještě `.hub-wheel--
+   zavira-se` (viz Hub.tsx's `zaviraSe`/`prepnoutKolo`) a nechá
+   `.je-otevrene` nasazené po celou tu dobu — prostřední tlačítko
+   tak zůstává "vyboulené" (scale 1.08, žádný klidový puls) celou
+   dobu, co se paprsky REWARDS→SHOP→ROOMS→SOCIAL→APPS→AI vracejí
+   zpátky ke středu (viz šest .hub-wheel--zavira-se pravidel níž,
+   stejná zpoždění jako při otevření, jen navzájem prohozená).
+   Teprve až appka po doběhnutí celé kaskády (Hub.tsx's
+   TRVANI_ZAVIRANI_MS) `.je-otevrene` doopravdy sundá, tahle
+   dvoutřídní pravidlo tu přestane platit, střed se transition:
+   transform 0.1s ease vrátí na scale(1) a klidový puls naskočí
+   znovu — to je appčino "a nakonec: BUDDY CORE znovu" ze zadání,
+   žádná nová animace navíc, jen správné pořadí/časování. */
 .hub-wheel.je-otevrene .hub-wheel-center {
   animation: none;
   transform: translate(-50%, -50%) scale(1.08);
@@ -730,6 +742,74 @@
     top: var(--ct-do);
     opacity: 0;
     transform: scale(0.3);
+  }
+}
+
+/* Krok 8 — zavírání kola (klepnutí znovu na střed, ne výběr). Jedno
+   obecné pravidlo posune VŠECHNY paprsky na stejnou zavřenou pozici
+   (střed, zmenšené, neviditelné — stejné hodnoty jako appčina úplně
+   základní .hub-wheel-petal pravidlo výš, appka tu jen schválně musí
+   mít vyšší specificitu, ať přebije pořád aktivní .je-otevrene
+   .hub-wheel-petal--X pravidlo s otevřenou pozicí), šest dalších
+   pravidel (stejná specificita, 4 třídy, ale netýkají se stejných
+   vlastností — top/left/opacity/transform proti transition-delay —
+   takže si navzájem nepřekáží bez ohledu na pořadí v souboru) nastaví
+   KAŽDÉMU paprsku jeho VLASTNÍ zpoždění. Appka samotný `transition`
+   (doba/křivka) schválně nepřepisuje — zdědí ho ze základního
+   .hub-wheel-petal výš (stejná "bounce" křivka, co appka používá
+   i pro obyčejné zavření bez rozfázování), ať appka nenosí čtvrtou
+   kopii skoro stejné deklarace navíc. */
+.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal {
+  top: 50%;
+  left: 50%;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.5);
+}
+
+/* Zpoždění přesně naopak, než má stejný paprsek při OTEVŘENÍ výš
+   (AI↔REWARDS, APPS↔SHOP, SOCIAL↔ROOMS) — "REWARDS, SHOP, ROOMS,
+   SOCIAL, APPS, AI" ze zadání je tak jen appčino `nejmensiRozdil`
+   řazení čtené pozpátku. */
+.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--ai {
+  transition-delay: 0.5s;
+}
+
+.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--apps {
+  transition-delay: 0.43s;
+}
+
+.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--social {
+  transition-delay: 0.36s;
+}
+
+.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--rooms {
+  transition-delay: 0.29s;
+}
+
+.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--shop {
+  transition-delay: 0.22s;
+}
+
+.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--rewards {
+  transition-delay: 0.15s;
+}
+
+/* prefers-reduced-motion kill-switch (global.css) appce zkrátí jen
+   transition-DURATION, ne transition-DELAY — appka proto zpoždění
+   při omezeném pohybu vynuluje tady výslovně, jinak by paprsky i
+   s okamžitým přechodem čekaly na svůj plný, nezkrácený odstup
+   (až 0,5 s u AI), než se vůbec hnou. Hub.tsx's `prepnoutKolo` čte
+   stejnou media-query v JS a zkrátí podle ní i dobu, po kterou čeká
+   s úklidem stavu (TRVANI_ZAVIRANI_MS) — obojí musí jít ruku v ruce. */
+@media (prefers-reduced-motion: reduce) {
+  .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--ai,
+  .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--apps,
+  .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--social,
+  .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--rooms,
+  .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--shop,
+  .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--rewards {
+    transition-delay: 0s;
   }
 }
 

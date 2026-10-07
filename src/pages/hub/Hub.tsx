@@ -44,6 +44,17 @@ interface KoloPaprsek {
 // naviguje. 400 ms sedí přesně doprostřed zadaného rozpětí.
 const TRVANI_VYBERU_MS = 400
 
+// Krok 8: klepnutí znovu na střed (appka POUZE zavírá, nic nevybírá)
+// spustí obrácenou kaskádu — stejná šestice zpoždění jako při otevření
+// (0,15–0,50 s po 0,07 s), ale REWARDS/SHOP/ROOMS/SOCIAL/APPS/AI, přesně
+// naopak (viz šest nových .hub-wheel--zavira-se pravidel v HubModule.css).
+// 850 ms appka počítá z nejdelšího zpoždění v tý obrácený kaskádě (AI,
+// 0,50 s, stejná hodnota jako REWARDS měl při otevření) plus doby
+// samotného přechodu (0,32 s, stejná, co paprsky používají odjakživa —
+// viz .hub-wheel-petal's vlastní `transition` v HubModule.css) a malou
+// rezervu navíc, ať appka nepřepne stav dřív, než CSS doopravdy dojede.
+const TRVANI_ZAVIRANI_MS = 850
+
 // Dvanáct drobných jiskřiček, co z prstenu "vybuchnou" směrem ven, než
 // appka naviguje — appka si jejich směr (jednotkový vektor) spočítá
 // jednou tady při startu modulu, ne znovu při každém vykreslení/výběru,
@@ -157,15 +168,47 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // viz vybratPaprsek's vlastní guard).
   const [vybranyId, setVybranyId] = useState<string | null>(null)
 
+  // Krok 8: appka "zavírá se" (obrácená kaskáda, viz zavritKolo níž),
+  // dokud je true — na rozdíl od vybranyId appka tu nepotřebuje
+  // konkrétní id, zavírání se vždycky týká CELÉHO kola naráz, jen
+  // s různým zpožděním na KAŽDÉM paprsku zvlášť (to už appka řeší
+  // čistě v CSS, viz .hub-wheel--zavira-se).
+  const [zaviraSe, setZaviraSe] = useState(false)
+
   const otevritBuddyho = () => {
     buddyVoice.vycistit()
     setBuddyOpen(true)
   }
 
+  // Krok 8: appka teď OTEVŘENÍ (okamžité, jako doteď) a ZAVŘENÍ
+  // (obrácená, rozfázovaná kaskáda) řeší jako dvě různé věci, ne jeden
+  // prostý toggle. `je-otevrene` zůstává nasazené po celou dobu
+  // zavírání — appka ho sundá, teprve až se poslední paprsek (AI)
+  // doopravdy vrátí ke středu, čímž se zároveň prostřední tlačítko
+  // (pořád drženo na scale(1.08) celou tu dobu, viz HubModule.css's
+  // .hub-wheel.je-otevrene .hub-wheel-center) vrátí ke svýmu klidovýmu
+  // pulzu — to je to "a nakonec: BUDDY CORE znovu" ze zadání, appka
+  // pro to nepotřebuje žádnou novou animaci navíc, jen správné pořadí.
+  // `prefers-reduced-motion` appka čte přímo tady ze stejného důvodu
+  // jako u vybratPaprsek — jde o JS časovač, kill-switch v global.css
+  // sám o sobě zkrátí jen transition-duration/CSS animace, ne tenhle
+  // setTimeout.
   const prepnoutKolo = () => {
-    if (vybranyId !== null) return
-    setKolootevreno((v) => !v)
+    if (vybranyId !== null || zaviraSe) return
+    if (!kolootevreno) {
+      setKolootevreno(true)
+      return
+    }
     setZvyrazneneId(null)
+    setZaviraSe(true)
+    const zkraceno = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    window.setTimeout(
+      () => {
+        setKolootevreno(false)
+        setZaviraSe(false)
+      },
+      zkraceno ? 0 : TRVANI_ZAVIRANI_MS,
+    )
   }
 
   const zavritBuddyho = () => {
@@ -239,7 +282,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
   }
 
   const sledujKurzorNadKolem = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (!kolootevreno || vybranyId !== null) return
+    if (!kolootevreno || vybranyId !== null || zaviraSe) return
     setZvyrazneneId(najdiPaprsekPodleSmeru(e.clientX, e.clientY, e.currentTarget.getBoundingClientRect()))
   }
 
@@ -289,7 +332,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // vede přes vybratPaprsek (zavírací efekt), ne přímo přes
   // paprsek.onClick().
   const aktivovatNaUvolneni = (e: React.PointerEvent<HTMLDivElement>) => {
-    if (kolootevreno && vybranyId === null) {
+    if (kolootevreno && vybranyId === null && !zaviraSe) {
       const paprsekId = najdiPaprsekPodleSmeru(e.clientX, e.clientY, e.currentTarget.getBoundingClientRect())
       if (paprsekId) vybratPaprsek(paprsekId)
     }
@@ -383,7 +426,7 @@ export const HubModule: React.FC<HubModuleProps> = ({
           <div
             className={`hub-wheel${kolootevreno ? ' je-otevrene' : ''}${
               vybranyId !== null ? ' hub-wheel--vybira-se' : ''
-            }`}
+            }${zaviraSe ? ' hub-wheel--zavira-se' : ''}`}
             onPointerMove={sledujKurzorNadKolem}
             onPointerDown={sledujKurzorNadKolem}
             onPointerUp={aktivovatNaUvolneni}
@@ -455,10 +498,10 @@ export const HubModule: React.FC<HubModuleProps> = ({
                     if (e.detail === 0) vybratPaprsek(paprsek.id)
                   }}
                   onFocus={() => {
-                    if (vybranyId === null) setZvyrazneneId(paprsek.id)
+                    if (vybranyId === null && !zaviraSe) setZvyrazneneId(paprsek.id)
                   }}
                   onBlur={() => setZvyrazneneId((cur) => (cur === paprsek.id ? null : cur))}
-                  tabIndex={kolootevreno ? 0 : -1}
+                  tabIndex={kolootevreno && !zaviraSe ? 0 : -1}
                 >
                   <img src={paprsek.ikona} alt="" />
                   <span className="hub-wheel-petal-label">{paprsek.nazev}</span>
