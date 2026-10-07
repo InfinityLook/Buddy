@@ -94,9 +94,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
       <AppHeader
         onBack={handleBack}
         onOpenNotifications={() => setNotifOpen(true)}
-        onOpenProfile={() => navigate('/profil')}
         unreadCount={unreadCount}
-        avatarSrc={profile.avatar}
       />
 
       {roomy.length > 0 && (

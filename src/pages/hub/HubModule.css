@@ -199,41 +199,6 @@
   justify-content: center;
 }
 
-.hub-avatar-btn {
-  position: relative;
-  background: none;
-  border: none;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  padding: 0;
-  cursor: pointer;
-  border-radius: 50%;
-}
-
-.hub-avatar-img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1.5px solid var(--border-strong);
-  display: block;
-}
-
-/* "Jsi tu" tečka — appčin vlastní avatar v hlavičce vždycky znamená
-   "appka je otevřená právě teď", takže je to jistota, ne živý stav
-   z presence.ts jako u cizích avatarů v Socialu. */
-.hub-avatar-dot {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: var(--accent-green);
-  border: 2px solid var(--bg-base);
-}
-
 /* ------------------------------------------
    ÚROVEŇ A SÉRIE
    Appka nad touhle řadou dřív měla celý hero panel s koulí maskota

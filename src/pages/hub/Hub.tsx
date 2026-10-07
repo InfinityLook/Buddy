@@ -33,7 +33,6 @@ import './HubModule.css'
 
 interface HubModuleProps {
   onOpenApps?: () => void
-  onOpenProfile?: () => void
 }
 
 // Jeden paprsek kruhového menu — šest jich jde kolem prostředního
@@ -113,10 +112,7 @@ interface XpBublina {
   levelUp: boolean
 }
 
-export const HubModule: React.FC<HubModuleProps> = ({
-  onOpenApps,
-  onOpenProfile,
-}) => {
+export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
   const navigate = useNavigate()
   // Jen tenhle jeden volání (Hub -> Social) — viz jeho vlastní komentář
   // a global.css's ::view-transition-*(root) pro proč jen dopředu.
@@ -251,14 +247,6 @@ export const HubModule: React.FC<HubModuleProps> = ({
     // Vyčistíme případnou dříve otevřenou miniaplikaci, ať se zobrazí přehled
     setActiveAppId(null)
     navigate('/apps')
-  }
-
-  const handleProfileClick = () => {
-    if (onOpenProfile) {
-      onOpenProfile()
-      return
-    }
-    navigate('/profil')
   }
 
   // Rewards otevře samostatný modul s odměnami (úroveň, série, odznaky)
@@ -537,11 +525,17 @@ export const HubModule: React.FC<HubModuleProps> = ({
         {/* Header — vlčí/liščí maskot (stejná fotka, co appka má i jako
             prostřední tlačítko spodní lišty — public/maskot/buddy-vlk.png,
             žádný nový crop) místo dřívější ✦ značky, "BuddyZone" +
-            podtitul "Lepší ty. Každý den." + dvě akce (zvonek/avatar).
-            Lupa, co tu dřív byla jako třetí ikona, se přestěhovala dolů
-            do sdílené spodní lišty (AppBottomNav) místo tlačítka
-            "Social". Odhlášení je v Nastavení (settings-danger-btn tam),
-            appka bez toho neměla jinou cestu ven z účtu. */}
+            podtitul "Lepší ty. Každý den." + jedna akce (zvonek).
+            Avatarové tlačítko, co tu dřív bývalo vedle zvonku, appka
+            přesunula do sdílené spodní lišty (AppBottomNav's vlastní
+            "Profil" položka, první před Home) — appka tím dostala
+            profil na dosah na všech čtyřech hlavních obrazovkách, ne
+            jen na Hubu a na Apps, kde měly svoje vlastní, na sobě
+            nezávislá tlačítka. Lupa, co tu dřív byla jako třetí ikona,
+            se přestěhovala dolů do stejné lišty ("Hledat") místo
+            tlačítka "Social". Odhlášení je v Nastavení
+            (settings-danger-btn tam), appka bez toho neměla jinou
+            cestu ven z účtu. */}
         <header className="hub-header">
           <div className="hub-logo">
             <img src="/maskot/buddy-vlk.png" alt="" className="hub-logo-img" />
@@ -577,11 +571,6 @@ export const HubModule: React.FC<HubModuleProps> = ({
                   {pocetNeprectenych > 9 ? '9+' : pocetNeprectenych}
                 </span>
               )}
-            </button>
-
-            <button className="hub-avatar-btn" aria-label="Profil" onClick={handleProfileClick}>
-              <img src={profile.avatar} alt="" className="hub-avatar-img" />
-              <span className="hub-avatar-dot" aria-hidden="true" />
             </button>
           </div>
         </header>

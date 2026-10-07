@@ -6,12 +6,13 @@ import { useInbox } from '@/social/inbox'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import { useBuddyVoice } from '@/buddy/useBuddyVoice'
 import { BuddyOverlay } from '@/buddy/BuddyOverlay'
+import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import './AppBottomNav.css'
 
 // ==========================================
 // Sdílená spodní navigace appky — Fáze 4 Social nav reworku (viz
 // CLAUDE.md). Dřív žila jen v Hub.tsx (hub-bottom-nav); appka teď
-// stejnou lištu (Home/Hledat/Buddy/Chat/Nastavení) vykresluje na
+// stejnou lištu (Profil/Home/Hledat/Buddy/Chat/Nastavení) vykresluje na
 // Hub/Apps/Profil/Nastavení, ať se mezi hlavními obrazovkami appky
 // nemusí pokaždé vracet přes Hub. Social má vlastní, jinou spodní
 // lištu (Profil/Chaty/Domů/Vyhledávač — vnitřní záložky obrazovky, ne
@@ -23,6 +24,16 @@ import './AppBottomNav.css'
 // a přes "Chat" tady v liště, druhý obecný vstup navíc byl
 // nadbytečný), lupa se sem přestěhovala z Hubovy hlavičky, kde dřív
 // bydlela jako samostatná ikona vedle zvonku.
+//
+// "Profil" (appčino vlastní kolečko avataru, první položka před
+// Home) appka přesunula sem z Hubovy a Apps hlavičky — appka dřív
+// měla dvě nezávislá avatarová tlačítka (Hub.tsx's hub-avatar-btn,
+// AppHeader.tsx's app-avatar-btn), teď je jen jedno, vidět na KAŽDÉ
+// ze čtyř obrazovek, ne jen na dvou z nich. FlagshipShell.tsx (šest
+// vlajkových Roomů) svoje vlastní app-avatar-btn v hlavičce
+// schválně ponechává — ty AppBottomNav vůbec nepoužívají, mají
+// vlastní šipky mezi Roomy místo téhle lišty, takže appka tam
+// duplicitu neřeší.
 //
 // Route-aware: "Home"/"Nastavení" se zvýrazní podle aktuální cesty
 // (useLocation), ne natvrdo — dřív bylo "Home" v Hub.tsx vždycky
@@ -56,6 +67,7 @@ interface Props {
 export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
   const location = useLocation()
   const navigate = useNavigate()
+  const { profile } = useProfileData()
   // Jen dopředné "→ Social" cesty (Hledat/Chat) dostávají animovaný
   // přechod — stejné omezení jako Hub.tsx's vlastní komentář u
   // prejit(): "Home"/"Nastavení" jsou neutrální/zpětné trasy, CSS má
@@ -82,9 +94,10 @@ export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
   // v CSS, ne JS detekcí zařízení — stejný vzor jako VirtualniJoystick.tsx
   // (jen obráceně — tady se skrývají NA dotykovém zařízení, joystick se
   // schovává BEZ něj). Appka na dotykové obrazovce žádnou swipe/gesto
-  // náhradu za tyhle šipky nemá; Profil zůstává dosažitelný přes
-  // avatarové tlačítko v hlavičce každé stránky. Nezobrazí se na konci
-  // seznamu (Hub nemá "předchozí", Nastavení nemá "další").
+  // náhradu za tyhle šipky nemá; Profil zůstává dosažitelný přes svoje
+  // vlastní tlačítko přímo v týhle liště (viz "Profil" položka níž).
+  // Nezobrazí se na konci seznamu (Hub nemá "předchozí", Nastavení
+  // nemá "další").
   const { predchozi, dalsi } = (sousedniFn ?? sousedniStranky)(location.pathname)
   const jitNa = (cesta: string, smer: 'vpravo' | 'vlevo') => {
     if (onSipkaKlik) onSipkaKlik(cesta, smer)
@@ -113,6 +126,35 @@ export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
       )}
 
       <nav className="app-bottom-nav">
+        {/* Profil — appčino vlastní kolečko avataru, přesunuté sem z
+            Hubovy a Apps hlavičky (appka tam dřív měla dvě na sobě
+            nezávislá tlačítka na to samé místo, teď jen tohle jedno,
+            vidět na všech čtyřech obrazovkách). Appka ho navigací řeší
+            stejně prostě jako Home/Nastavení níž (obyčejný navigate(),
+            ne animovaný prejit() — ten appka drží jen pro dopředné
+            cesty do Social, viz appčin komentář u prejit výš), a
+            stejnou "aktivní = zvýrazni" logikou, i když na Profilu
+            samotném kliknutí logicky nic nedělá (stejné chování, jaké
+            Home/Nastavení už mají na svojí vlastní stránce). Zelená
+            tečka v rohu avataru neznamená "online" ve smyslu
+            presence.ts — appka ji ukazuje vždycky, stejný "appka je
+            otevřená právě teď" význam, co měla i na starém místě v
+            hlavičce (viz appčin dřívější komentář u .hub-avatar-dot). */}
+        <button
+          className={`app-nav-item ${jeAktivni('/profil') ? 'app-nav-item--active' : ''}`}
+          aria-current={jeAktivni('/profil') ? 'page' : undefined}
+          aria-label="Profil"
+          onClick={() => {
+            if (!jeAktivni('/profil')) navigate('/profil')
+          }}
+        >
+          <span className="app-nav-avatar-wrap">
+            <img src={profile.avatar} alt="" className="app-nav-avatar-img" />
+            <span className="app-nav-avatar-dot" aria-hidden="true" />
+          </span>
+          <span>Profil</span>
+        </button>
+
         <button
           className={`app-nav-item ${jeAktivni('/hub') ? 'app-nav-item--active' : ''}`}
           aria-current={jeAktivni('/hub') ? 'page' : undefined}
