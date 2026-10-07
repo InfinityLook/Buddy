@@ -129,8 +129,13 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // vlajkové appce přes FlagshipShell.tsx. Zvonek dřív jen vedl do
   // Profilu s tečkou navíc — teď doopravdy ukáže poslední upozornění
   // rovnou tady, Profil zůstává jen pro "Zobrazit vše".
+  //
+  // Krok 15b: appka místo holé tečky počítá SKUTEČNÝ počet
+  // nepřečtených (appka filtruje, ne jen `.some`) — zvonek teď ukazuje
+  // reálné číslo, ne jen "něco tu je".
   const notifications = useNotificationItems()
-  const maNeprectene = notifications.some((n) => !profile.readNotifications.includes(n.id))
+  const pocetNeprectenych = notifications.filter((n) => !profile.readNotifications.includes(n.id)).length
+  const maNeprectene = pocetNeprectenych > 0
   const [notifOpen, setNotifOpen] = useState(false)
 
   // Načtení gamifikačních dat ze storu. `hydratovano`/`xpLog` přibyly
@@ -557,14 +562,21 @@ export const HubModule: React.FC<HubModuleProps> = ({
             {/* Krok 14h: appka zvonku dává popisek, co zahrnuje i
                 nepřečtený stav — appka dřív nepřečtenost signalizovala
                 jen barevnou tečkou (aria-hidden), takže by ji čtečka
-                obrazovky uživateli vůbec neoznámila. */}
+                obrazovky uživateli vůbec neoznámila. Krok 15b: appka
+                popisek i vizuální odznak dává skutečným počtem, ne jen
+                "ano/ne" tečkou — odznak appka stropuje na "9+", ať
+                nerostl donekonečna u opravdu zanedbaného zvonku. */}
             <button
               className="hub-icon-btn"
-              aria-label={maNeprectene ? 'Oznámení, máš nové' : 'Oznámení'}
+              aria-label={maNeprectene ? `Oznámení, ${pocetNeprectenych} nových` : 'Oznámení'}
               onClick={() => setNotifOpen(true)}
             >
               <SocialIcon name="bell" size={19} />
-              {maNeprectene && <span className="hub-icon-dot" aria-hidden="true" />}
+              {maNeprectene && (
+                <span className="hub-icon-badge" aria-hidden="true">
+                  {pocetNeprectenych > 9 ? '9+' : pocetNeprectenych}
+                </span>
+              )}
             </button>
 
             <button className="hub-avatar-btn" aria-label="Profil" onClick={handleProfileClick}>
@@ -582,14 +594,17 @@ export const HubModule: React.FC<HubModuleProps> = ({
             Nastavení — appka si pro něj bere vlastní instanci
             useBuddyVoice na každé z těchhle obrazovek zvlášť, žádná
             koule ke sdílení stavu mezi nimi není potřeba. */}
-        {/* Krok 14b ("Plynulý vstup při startu") — appka tuhle řadu (a
-            denní cíl níž) schová za hub-fade-pending, dokud se store
-            doopravdy nehydratuje (hydratovano, viz
-            useGamificationStore.ts's vlastní komentář u `merge`) — jinak
-            by appka na zlomek sekundy ukázala "Level 1, 0 XP, 0 dní v
-            řadě", než se načtou reálná data z localStorage, a ten
-            záblesk výchozích hodnot appka přesně tomuhle krokem řeší. */}
-        <div className={`hub-hero-stats-row${!hydratovano ? ' hub-fade-pending' : ''}`}>
+        {/* Krok 15a ("Skeletony místo fade při startu") — tahle řada (a
+            insights/denní cíl níž) dřív jen zmizela za hub-fade-pending
+            (opacity: 0), dokud se store nehydratovalo. Appka teď
+            MÍSTO toho uvnitř stejných .hub-hero-level/-streak boxů
+            (stejné rozměry/padding/border, žádný layout shift) ukáže
+            pulzující obrysy — hydratovano appka pořád potřebuje stejně
+            jako v Kroku 14b (viz useGamificationStore.ts's vlastní
+            komentář u `merge`), jen ho appka teď čte jako přepínač
+            SKELETON/REÁLNÝ OBSAH uvnitř karet, ne jako opacity celé
+            řady. */}
+        <div className="hub-hero-stats-row">
           {/* Krok 11: "udělej z levelu součást herního systému" — odznak
               dostal svou vlastní svítící záři (.hub-level-hex-wrap,
               stejný "kruh kolem" duch jako appčina vlastní zlatá záře
@@ -602,43 +617,67 @@ export const HubModule: React.FC<HubModuleProps> = ({
               (viz XpBublina/appčin efekt výš) se vykresluje jako čtvrté
               dítě tyhle karty, position: absolute nad odznakem — appka
               proto dala `.hub-hero-level` position: relative. */}
-          <div className="hub-hero-level" aria-label={`Úroveň ${level}, ${xp} z ${xpDoDalsi} XP`}>
-            {xpBublina && (
-              <div
-                key={xpBublina.id}
-                className={`hub-xp-bublina${xpBublina.levelUp ? ' hub-xp-bublina--level-up' : ''}`}
-                aria-live="polite"
-              >
-                <span className="hub-xp-bublina-jiskry" aria-hidden="true">
-                  <span className="hub-xp-bublina-jiskra">✦</span>
-                  <span className="hub-xp-bublina-jiskra">✦</span>
-                  <span className="hub-xp-bublina-jiskra">✦</span>
+          <div
+            className="hub-hero-level"
+            aria-label={hydratovano ? `Úroveň ${level}, ${xp} z ${xpDoDalsi} XP` : 'Načítání úrovně'}
+          >
+            {hydratovano ? (
+              <>
+                {xpBublina && (
+                  <div
+                    key={xpBublina.id}
+                    className={`hub-xp-bublina${xpBublina.levelUp ? ' hub-xp-bublina--level-up' : ''}`}
+                    aria-live="polite"
+                  >
+                    <span className="hub-xp-bublina-jiskry" aria-hidden="true">
+                      <span className="hub-xp-bublina-jiskra">✦</span>
+                      <span className="hub-xp-bublina-jiskra">✦</span>
+                      <span className="hub-xp-bublina-jiskra">✦</span>
+                    </span>
+                    <span className="hub-xp-bublina-castka">
+                      {xpBublina.levelUp ? `🎉 LEVEL ${level}! ` : ''}+{xpBublina.castka} XP
+                    </span>
+                  </div>
+                )}
+                <span className="hub-level-hex-wrap" aria-hidden="true">
+                  <span className="hub-level-hex">
+                    <span className="hub-level-hex-num">{level}</span>
+                  </span>
                 </span>
-                <span className="hub-xp-bublina-castka">
-                  {xpBublina.levelUp ? `🎉 LEVEL ${level}! ` : ''}+{xpBublina.castka} XP
-                </span>
-              </div>
+                <div className="hub-level-info">
+                  <span className="hub-level-eyebrow">LEVEL</span>
+                  <span className="hub-level-xp">
+                    {xp} / {xpDoDalsi} XP
+                  </span>
+                  <span className="hub-level-progress" aria-hidden="true">
+                    <span className="hub-level-progress-fill" style={{ width: `${progressPercent}%` }} />
+                  </span>
+                </div>
+              </>
+            ) : (
+              <>
+                <span className="hub-skeleton hub-skeleton--circle" aria-hidden="true" />
+                <div className="hub-skeleton-stack" aria-hidden="true">
+                  <span className="hub-skeleton hub-skeleton--line-sm" />
+                  <span className="hub-skeleton hub-skeleton--line" />
+                </div>
+              </>
             )}
-            <span className="hub-level-hex-wrap" aria-hidden="true">
-              <span className="hub-level-hex">
-                <span className="hub-level-hex-num">{level}</span>
-              </span>
-            </span>
-            <div className="hub-level-info">
-              <span className="hub-level-eyebrow">LEVEL</span>
-              <span className="hub-level-xp">
-                {xp} / {xpDoDalsi} XP
-              </span>
-              <span className="hub-level-progress" aria-hidden="true">
-                <span className="hub-level-progress-fill" style={{ width: `${progressPercent}%` }} />
-              </span>
-            </div>
           </div>
 
-          <div className="hub-hero-streak" aria-label={`${streakDays} dní v řadě`}>
-            <span className="hub-streak-flame" aria-hidden="true">🔥</span>
-            <span className="hub-streak-num">{streakDays}</span>
-            <span className="hub-streak-label">DAYS STREAK</span>
+          <div className="hub-hero-streak" aria-label={hydratovano ? `${streakDays} dní v řadě` : 'Načítání série'}>
+            {hydratovano ? (
+              <>
+                <span className="hub-streak-flame" aria-hidden="true">🔥</span>
+                <span className="hub-streak-num">{streakDays}</span>
+                <span className="hub-streak-label">DAYS STREAK</span>
+              </>
+            ) : (
+              <>
+                <span className="hub-skeleton hub-skeleton--circle-sm" aria-hidden="true" />
+                <span className="hub-skeleton hub-skeleton--line-sm" aria-hidden="true" />
+              </>
+            )}
           </div>
         </div>
 
@@ -652,23 +691,34 @@ export const HubModule: React.FC<HubModuleProps> = ({
             i bez XP), odznakový řádek jen když nejblizsiOdznak() vrátí
             něco jiného než null — appka ho celý řádek schová, ne
             poloprázdný, když jsou všechny čtyři kandidátské odznaky
-            odemčené (viz appčin komentář u `nejblizsiOdznak`). */}
-        <div className={`hub-insights${!hydratovano ? ' hub-fade-pending' : ''}`}>
-          <p className="hub-insight-line">
-            <span className="hub-insight-icon" aria-hidden="true">📅</span>
-            Tenhle týden: <strong>{xpTydne} XP</strong>
-            {streakDays > 0 && (
-              <>
-                {' '}· {streakDays} {sklonujDen(streakDays)} v řadě
-              </>
-            )}
-          </p>
-          {nejblizsi && (
-            <p className="hub-insight-line">
-              <span className="hub-insight-icon" aria-hidden="true">{nejblizsi.badge.icon}</span>
-              Příští odznak: <strong>{nejblizsi.badge.title}</strong> (
-              {popisekPokrokuOdznaku(nejblizsi.badge.id, xp, level, streakDays)})
-            </p>
+            odemčené (viz appčin komentář u `nejblizsiOdznak`). Krok
+            15a: appka i tady schovanou opacity nahradila dvěma
+            skeleton řádky, dokud appka nehydratovala. */}
+        <div className="hub-insights">
+          {hydratovano ? (
+            <>
+              <p className="hub-insight-line">
+                <span className="hub-insight-icon" aria-hidden="true">📅</span>
+                Tenhle týden: <strong>{xpTydne} XP</strong>
+                {streakDays > 0 && (
+                  <>
+                    {' '}· {streakDays} {sklonujDen(streakDays)} v řadě
+                  </>
+                )}
+              </p>
+              {nejblizsi && (
+                <p className="hub-insight-line">
+                  <span className="hub-insight-icon" aria-hidden="true">{nejblizsi.badge.icon}</span>
+                  Příští odznak: <strong>{nejblizsi.badge.title}</strong> (
+                  {popisekPokrokuOdznaku(nejblizsi.badge.id, xp, level, streakDays)})
+                </p>
+              )}
+            </>
+          ) : (
+            <>
+              <span className="hub-skeleton hub-skeleton--line-insight" aria-hidden="true" />
+              <span className="hub-skeleton hub-skeleton--line-insight" aria-hidden="true" />
+            </>
           )}
         </div>
 
@@ -787,24 +837,40 @@ export const HubModule: React.FC<HubModuleProps> = ({
         {/* Krok 14h ("Accessibility dotažení") — role="status"/aria-live
             appce dává to samé, co appka u XP bubliny výš: odečítač
             obrazovky nahlásí "SPLNĚNO" ve chvíli, kdy se stav karty
-            doopravdy překlopí, ne až po vlastní, nejistém objevení. */}
+            doopravdy překlopí, ne až po vlastní, nejistém objevení.
+            Krok 15a: appka místo opacity:0 (hub-fade-pending) dokud se
+            nehydratuje ukáže uvnitř STEJNÉ karty (stejný rámeček/
+            padding/backdrop-filter, žádný layout shift) skeleton
+            obrysy — role="status"/aria-live appka nechává nastavené
+            pořád, i uvnitř skeletonu appka nic nenamlouvá napevno. */}
         <div
-          className={`hub-denni-cil${dnesniCilSplnen ? ' hub-denni-cil--splneno' : ''}${
-            !hydratovano ? ' hub-fade-pending' : ''
-          }`}
+          className={`hub-denni-cil${dnesniCilSplnen ? ' hub-denni-cil--splneno' : ''}`}
           role="status"
           aria-live="polite"
         >
-          <span className="hub-denni-cil-znacka" aria-hidden="true">
-            {dnesniCilSplnen ? '✓' : '🎯'}
-          </span>
-          <div className="hub-denni-cil-text">
-            <span className="hub-denni-cil-stav">{dnesniCilSplnen ? 'SPLNĚNO' : 'DNEŠNÍ CÍL'}</span>
-            <span className="hub-denni-cil-popis">
-              {dnesniCilSplnen ? 'Dnešní cíl dokončen' : 'Dokonči jednu aktivitu'}
-            </span>
-          </div>
-          <span className="hub-denni-cil-odmena">+{DENNI_CIL_ODMENA_XP} XP</span>
+          {hydratovano ? (
+            <>
+              <span className="hub-denni-cil-znacka" aria-hidden="true">
+                {dnesniCilSplnen ? '✓' : '🎯'}
+              </span>
+              <div className="hub-denni-cil-text">
+                <span className="hub-denni-cil-stav">{dnesniCilSplnen ? 'SPLNĚNO' : 'DNEŠNÍ CÍL'}</span>
+                <span className="hub-denni-cil-popis">
+                  {dnesniCilSplnen ? 'Dnešní cíl dokončen' : 'Dokonči jednu aktivitu'}
+                </span>
+              </div>
+              <span className="hub-denni-cil-odmena">+{DENNI_CIL_ODMENA_XP} XP</span>
+            </>
+          ) : (
+            <>
+              <span className="hub-skeleton hub-skeleton--circle-sm" aria-hidden="true" />
+              <div className="hub-skeleton-stack" aria-hidden="true">
+                <span className="hub-skeleton hub-skeleton--line-sm" />
+                <span className="hub-skeleton hub-skeleton--line" />
+              </div>
+              <span className="hub-skeleton hub-skeleton--chip" aria-hidden="true" />
+            </>
+          )}
         </div>
 
         {/* Spodní navigace — Fáze 4 Social nav reworku vytáhla tenhle

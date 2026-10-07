@@ -174,19 +174,29 @@
   transform: translateY(-1px);
 }
 
-/* Tečka na zvonku — appka teď pod ním doopravdy ukazuje poslední
-   upozornění (ProfilNotifications.tsx), ne jen tenhle proxy indikátor;
-   tečka sama zůstává stejná, jen její podmínka teď čte skutečný
-   nepřečtený stav (viz Hub.tsx), ne jen počet zpráv. */
-.hub-icon-dot {
+/* Odznak na zvonku — appka teď pod ním doopravdy ukazuje poslední
+   upozornění (ProfilNotifications.tsx), ne jen tenhle proxy indikátor.
+   Krok 15b nahradila holou tečku (appka dřív jen signalizovala "něco
+   tu je") skutečným číslem nepřečtených — appka ho stropuje na "9+"
+   v Hub.tsx, ne tady v CSS, ať appka u jedné cifry nemá zbytečně
+   širokou kapsli. */
+.hub-icon-badge {
   position: absolute;
-  top: 6px;
-  right: 7px;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 999px;
   background: var(--accent-magenta);
   border: 1.5px solid var(--bg-base);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hub-avatar-btn {
@@ -244,18 +254,98 @@
   transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
-/* Krok 14b ("Plynulý vstup při startu") — appka tímhle schová výchozí
-   "Level 1 / 0 XP / 0 dní v řadě" záblesk, dokud se gamifikační store
-   doopravdy nehydratuje (viz Hub.tsx's `hydratovano`). Jedna sdílená
-   třída, appka ji dává na hero-stats-row, hub-insights i hub-denni-cil
-   najednou — tři nezávislé, ale podobně rychlé fade-iny vypadají líp
-   než appka, co by každý z nich časovala jinak. prefers-reduced-motion
-   appka řeší globálně (global.css's transition-duration: 0.001ms), ne
-   druhou kopií tady — hodnota skočí na finální stav prakticky okamžitě
-   i tak. */
-.hub-fade-pending {
-  opacity: 0;
-  transform: translateY(6px);
+/* Krok 15a ("Skeletony místo fade při startu") — appka dřív schovávala
+   výchozí "Level 1 / 0 XP / 0 dní v řadě" záblesk, dokud se gamifikační
+   store doopravdy nehydratuje (viz Hub.tsx's `hydratovano`), jedinou
+   sdílenou třídou hub-fade-pending (opacity: 0, viz historie téhle
+   appky výš v komentářích). Appka ji teď nahradila pulzujícími
+   obrysy (hub-skeleton*) PŘÍMO uvnitř stejných karet (hub-hero-level/
+   -streak, hub-insights, hub-denni-cil) — appka tím pádem nemusí
+   žádnou z nich schovávat celou, žádný layout shift (appka skeleton
+   kreslí do úplně stejných boxů se stejným paddingem/borderem/
+   backdrop-filterem, jen MÍSTO reálného obsahu, ne navrch přes něj).
+
+   hub-skeleton samotná je jen šimrající gradient (appka ho posouvá
+   přes @keyframes), prefers-reduced-motion appka řeší globálně
+   (global.css's animation-duration: 0.001ms), ne druhou kopií tady —
+   animace skočí na poslední snímek prakticky okamžitě i tak. Appka
+   rozměry jednotlivých tvarů (circle/circle-sm/line/line-sm/chip)
+   odvodila ze skutečných rozměrů toho, co nahrazují (hub-level-hex-
+   wrap je 58px kruh, hub-denni-cil-znacka 2.1rem) — ne z odhadu, ať
+   appka při přepnutí skeleton→reálný obsah neposkočí. */
+.hub-skeleton {
+  display: inline-block;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: hub-skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes hub-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.hub-skeleton--circle {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hub-skeleton--circle-sm {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hub-skeleton--line {
+  height: 0.65rem;
+  width: 70%;
+}
+
+.hub-skeleton--line-sm {
+  height: 0.5rem;
+  width: 45%;
+}
+
+/* Jediné místo, co appka potřebuje vlastní, přesněji vyladěnou výšku
+   řádku — hub-insights (na rozdíl od ostatních tří karet) nemá žádnou
+   ikonu, co by výšku karty "převálcovala" svou vlastní (58px/2,1rem),
+   takže appka tu skutečnou shodu výšky skeleton↔reálný text (appčiny
+   dva .hub-insight-line's, 0,78rem/1,4 řádkování) potřebuje doopravdy
+   přesně — appka to naměřila reálným getBoundingClientRect() (ne jen
+   odhadem), první verze (hub-skeleton--line-sm) nechávala kartu o
+   ~19px nižší, než jaká karta doopravdy je s reálným textem, takže by
+   appka po hydrataci vizuálně "poskočila" o těch 19px dolů — přesně to,
+   čemu měl skeleton zabránit. */
+.hub-skeleton--line-insight {
+  height: 1.05rem;
+  width: 72%;
+}
+
+.hub-skeleton--chip {
+  flex-shrink: 0;
+  height: 0.85rem;
+  width: 2.4rem;
+}
+
+.hub-skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
 }
 
 /* Krok 14f/14g — appka tyhle dva řádky dává jako lehký text pod hero
