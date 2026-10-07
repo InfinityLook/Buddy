@@ -69,6 +69,7 @@ import { startSkolaSync } from '@/flagships/school-room/skolaSync'
 import { setupFitnessReminders } from '@/flagships/fitness-room/fitnessReminders'
 import { setupPitnyRezimReminders } from '@/flagships/fitness-room/pitnyRezimReminders'
 import { setupRozvrhReminders } from '@/miniapps/rozvrh/rozvrhReminders'
+import { setupStreakWarningReminder } from '@/core/streakWarningReminder'
 
 export default function App() {
   const { isAuthed, login } = useAuthStore()
@@ -109,6 +110,7 @@ export default function App() {
     setupFitnessReminders()
     setupPitnyRezimReminders()
     setupRozvrhReminders()
+    setupStreakWarningReminder()
   }, [])
 
   return (

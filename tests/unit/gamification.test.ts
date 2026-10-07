@@ -26,6 +26,7 @@ const resetStore = () => {
     badges: vychoziStav.badges.map((b) => ({ ...b, unlockedAt: null })),
     counters: {},
     fitnessXp: 0,
+    xpLog: [],
   })
 }
 
@@ -179,5 +180,33 @@ describe('unlockBadge', () => {
     useGamificationStore.getState().unlockBadge('first_step')
 
     expect(odznak('first_step')?.unlockedAt).toBe(prvniDatum)
+  })
+})
+
+// Krok 14g — appka si při KAŽDÉM addXp (i přes recordAction, co ho volá
+// uvnitř sebe) přidá jeden záznam do xpLog.
+describe('addXp — xpLog', () => {
+  it('každé addXp přidá jeden záznam s dnešním datem a částkou', () => {
+    useGamificationStore.getState().addXp(30)
+    expect(useGamificationStore.getState().xpLog).toEqual([{ datum: '2026-08-21', castka: 30 }])
+  })
+
+  it('recordAction přidá do xpLog taky, přes vnitřní addXp', () => {
+    useGamificationStore.getState().recordAction('flashcard', 5)
+    expect(useGamificationStore.getState().xpLog).toEqual([{ datum: '2026-08-21', castka: 5 }])
+  })
+
+  it('víc volání přibývá do xpLog, nepřepisuje', () => {
+    useGamificationStore.getState().addXp(10)
+    useGamificationStore.getState().addXp(20)
+    expect(useGamificationStore.getState().xpLog).toHaveLength(2)
+    expect(useGamificationStore.getState().xpLog.map((z) => z.castka)).toEqual([10, 20])
+  })
+
+  it('ořeže na posledních 500 záznamů, starší odpadnou', () => {
+    for (let i = 0; i < 510; i++) {
+      useGamificationStore.getState().addXp(1)
+    }
+    expect(useGamificationStore.getState().xpLog).toHaveLength(500)
   })
 })

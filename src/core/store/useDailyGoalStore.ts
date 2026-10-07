@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { mistniDatum } from '@/core/utils/date'
 import { validateDailyGoalDatum, validateDailyGoalSplneno } from '@/core/utils/dailyGoalValidation'
+import { zavibrujSplneniCile } from '@/core/utils/haptika'
 import { useGamificationStore } from './useGamificationStore'
 
 // Hubova "Dnešního cíle" (Krok 13) bonus — holé addXp, ne recordAction:
@@ -42,6 +43,11 @@ export const useDailyGoalStore = create<DailyGoalState>()(
 
         set({ datum: dnes, splneno: true })
         useGamificationStore.getState().addXp(DENNI_CIL_ODMENA_XP)
+        // Krok 14c: appka vibraci volá přímo tady, ne z Hub.tsx — tím
+        // pádem appka spoléhá na no-op guard výš a vibrace se nikdy
+        // nespustí podruhé za stejný den, i kdyby oznacitSplneno()
+        // zavolal ještě jednou odkudkoli jiného.
+        zavibrujSplneniCile()
       },
     }),
     {

@@ -22,6 +22,11 @@ export const GamificationSchema = v.object({
   // nezhroutí, jen se dopočítá jako 0 (useGamificationStore.ts's
   // initial state).
   fitnessXp: v.optional(v.number()),
+  // xpLog přibylo s Hubovým "Týdenním souhrnem" (Krok 14g) — stejná
+  // zpětná kompatibilita jako counters/fitnessXp výš, chybějící pole
+  // appku nezhroutí, jen se dopočítá jako [] (useGamificationStore.ts's
+  // initial state/merge).
+  xpLog: v.optional(v.array(v.object({ datum: v.string(), castka: v.number() }))),
 })
 
 // Pomocná funkce pro bezpečné ověření gamifikačních dat načtených ze storage

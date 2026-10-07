@@ -56,6 +56,10 @@ export const BACKUP_STORES: BackupStore[] = [
   // takže na rozdíl od něj je bezpečné vracet zpátky: jeDnesniCilSplnen
   // obnovené splneno z jiného dne stejně při čtení přepočítá na false.
   { key: 'schoolbuddy-daily-goal-storage', storage: 'secure', label: 'Dnešní cíl' },
+  // Krok 14e — jen datum posledního odeslaného upozornění na konec
+  // série, žádné samo o sobě vydřené XP ani jinak citlivá data, bezpečné
+  // vrátit zpátky i z starší zálohy.
+  { key: 'schoolbuddy-streak-warning-storage', storage: 'secure', label: 'Upozornění na sérii' },
   { key: 'schoolbuddy-study-planner-storage', storage: 'secure', label: 'Planer' },
   { key: 'schoolbuddy-quick-notes-storage', storage: 'secure', label: 'Quick Notes' },
   { key: 'schoolbuddy-flashcards-storage', storage: 'secure', label: 'Flashcards' },

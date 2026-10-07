@@ -1,9 +1,16 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
-import { UserStats, Badge } from '../types/gamification.types'
+import { UserStats, Badge, XpLogEntry } from '../types/gamification.types'
 import { getLevelFromXp, checkStreak } from '../utils/gamificationUtils'
 import { validateGamificationData } from '../utils/gamificationValidation'
+import { mistniDatum } from '../utils/date'
+
+// Krok 14g — appka xpLog ořezává na pevný strop, ne nechává neomezeně
+// růst, stejný "ořež na konstantu" vzor jako Pomodorovo sessionLog.
+// 500 appce bohatě stačí i na víc než čtrnáct dní i hodně aktivního
+// uživatele, co "Týdenní souhrn" (poslední 7 dní) potřebuje vidět.
+const MAX_XP_LOG = 500
 
 // Druhy činností, za které se počítají odznaky vázané na počet.
 // Miniaplikace hlásí činnost přes recordAction, ne přes holé addXp,
@@ -82,6 +89,24 @@ const FITNESS_KINDY: ReadonlySet<ActivityKind> = new Set(['workout', 'behani', '
 interface GamificationState extends UserStats {
   // Kolikrát uživatel danou činnost udělal (klíč = ActivityKind)
   counters: Record<string, number>
+
+  // Krok 14g — krátká historie přírůstků XP (datum + částka), jen pro
+  // Hubův "Týdenní souhrn". Appka ji NEsynchronizuje do cloudu (viz
+  // core/supabase's CloudSnapshot — nese jen xp/level/streakDays/
+  // lastActiveDate/badges/counters/fitnessXp, žádný podrobný log) a
+  // nepočítá se ani do applyCloudSnapshot níž — čistě místní, per
+  // zařízení pomůcka pro UI, ne skutečná uživatelská data, co by bylo
+  // potřeba slučovat mezi zařízeními.
+  xpLog: XpLogEntry[]
+
+  // Krok 14b ("Plynulý vstup při startu") — appka ho NIKDY nebere
+  // z uloženého stavu (viz merge níž, co ho pokaždé vynutí na false) a
+  // nastaví přesně jednou, výhradně přes persist.onFinishHydration/
+  // hasHydrated() hned za touhle definicí storu — appka tím Hubu umožní
+  // schovat/plynule rozjasnit čísla (level/XP/série/dnešní cíl), dokud
+  // appka doopravdy nedočetla uložený stav, místo krátkého probliknutí
+  // výchozích nul.
+  hydratovano: boolean
 
   addXp: (amount: number) => void
   recordActivity: () => void
@@ -264,6 +289,8 @@ export const useGamificationStore = create<GamificationState>()(
       badges: DEFAULT_BADGES,
       counters: {},
       fitnessXp: 0,
+      xpLog: [],
+      hydratovano: false,
 
       // Přidá XP a automaticky přepočítá Level
       addXp: (amount: number) => {
@@ -278,10 +305,18 @@ export const useGamificationStore = create<GamificationState>()(
           if (newLevel >= 5) updatedBadges = unlock(updatedBadges, 'level_5')
           if (newXp >= 1000) updatedBadges = unlock(updatedBadges, 'xp_1000')
 
+          // Krok 14g: appka si přírůstek připíše do xpLog při KAŽDÉM
+          // volání addXp (recordAction ho volá uvnitř sebe, takže appka
+          // tím pádem chytá i bonusy/odměny mimo recordAction, třeba
+          // Krok 13's +50 za Dnešní cíl) — appka ořezává na MAX_XP_LOG
+          // položek odzadu, ne neomezeně roste.
+          const newXpLog = [...state.xpLog, { datum: mistniDatum(), castka: amount }].slice(-MAX_XP_LOG)
+
           return {
             xp: newXp,
             level: newLevel,
             badges: updatedBadges,
+            xpLog: newXpLog,
           }
         })
       },
@@ -362,6 +397,13 @@ export const useGamificationStore = create<GamificationState>()(
           ...saved,
           badges: mergeBadges(saved?.badges),
           counters: saved?.counters ?? {},
+          xpLog: Array.isArray(saved?.xpLog) ? saved.xpLog : [],
+          // hydratovano appka NIKDY nebere z uloženého stavu, viz jeho
+          // vlastní komentář u GamificationState výš — merge ho vždycky
+          // vynutí na false, jediné, co ho smí přepnout na true, je
+          // persist.onFinishHydration/hasHydrated() hned pod touhle
+          // definicí storu.
+          hydratovano: false,
         }
       },
 
@@ -378,10 +420,29 @@ export const useGamificationStore = create<GamificationState>()(
             badges: DEFAULT_BADGES,
             counters: {},
             fitnessXp: 0,
-          } as GamificationState
+            xpLog: [],
+            hydratovano: false,
+          } as unknown as GamificationState
         }
         return persistedState as GamificationState
       },
     }
   )
 )
+
+// Krok 14b — appka tenhle příznak registruje AŽ TEĎ, jako samostatný
+// příkaz PO dokončeném vytvoření storu (ne uvnitř persist's vlastních
+// voleb výš) — uvnitř by appka riskovala odkazovat na `useGamificationStore`
+// dřív, než se mu proměnná doopravdy přiřadí (TDZ), kdyby zustand
+// rehydratoval synchronně ještě v průběhu create()/persist() volání.
+// Appka hlídá OBĚ možnosti, ne jen jednu: `onFinishHydration` pro
+// případ, že rehydratace doběhne až PO tomhle řádku, a `hasHydrated()`
+// pro případ, že už doběhla PŘED ním (synchronní úložiště, viz
+// secureStorage.ts) — ať appka příznak nastaví na true přesně jednou,
+// bez ohledu na to, kdy přesně zustand rehydrataci doopravdy provede.
+useGamificationStore.persist.onFinishHydration(() => {
+  useGamificationStore.setState({ hydratovano: true })
+})
+if (useGamificationStore.persist.hasHydrated()) {
+  useGamificationStore.setState({ hydratovano: true })
+}

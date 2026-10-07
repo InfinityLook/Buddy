@@ -9,7 +9,17 @@ import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useDailyGoalStore, jeDnesniCilSplnen, DENNI_CIL_ODMENA_XP } from '@/core/store/useDailyGoalStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
-import { getLevelFromXp, getLevelProgress, getXpForNextLevel } from '@/core/utils/gamificationUtils'
+import {
+  getLevelFromXp,
+  getLevelProgress,
+  getXpForNextLevel,
+  nejblizsiOdznak,
+  popisekPokrokuOdznaku,
+  spocitejXpZaPoslednichNDni,
+} from '@/core/utils/gamificationUtils'
+import { pozdravPodleCasu } from '@/core/utils/pozdrav'
+import { zavibrujKliknuti } from '@/core/utils/haptika'
+import { sklonujDen } from '@/core/utils/text'
 import {
   ProfilNotifications,
   useNotificationItems,
@@ -123,8 +133,11 @@ export const HubModule: React.FC<HubModuleProps> = ({
   const maNeprectene = notifications.some((n) => !profile.readNotifications.includes(n.id))
   const [notifOpen, setNotifOpen] = useState(false)
 
-  // Načtení gamifikačních dat ze storu
-  const { level, xp, streakDays, recordActivity } = useGamificationStore()
+  // Načtení gamifikačních dat ze storu. `hydratovano`/`xpLog` přibyly
+  // v Kroku 14 — viz jejich vlastní komentáře u GamificationState
+  // (useGamificationStore.ts) pro Krok 14b (Plynulý vstup)/14g (Týdenní
+  // souhrn).
+  const { level, xp, streakDays, badges, xpLog, hydratovano, recordActivity } = useGamificationStore()
 
   // Krok 13: "Dnešní cíl" karta — appka stav čte přímo z úložiště, nikdy
   // neukládá vlastní odvozenou kopii "je dnes splněno".
@@ -152,6 +165,19 @@ export const HubModule: React.FC<HubModuleProps> = ({
 
   const progressPercent = getLevelProgress(xp)
   const xpDoDalsi = getXpForNextLevel(level)
+
+  // Krok 14a: appka pozdrav počítá přímo při vykreslení (žádný vlastní
+  // stav/interval) — appčin vlastní minutový tik (setDenniCilTik výš)
+  // appku donutí k novému vykreslení, takže appka tím dostane i
+  // přechod z "Dobré ráno" na "Dobré odpoledne" zadarmo, bez druhého
+  // časovače navíc.
+  const pozdrav = pozdravPodleCasu()
+
+  // Krok 14f/14g: appka oba "náhledy" počítá tady jednou, ne uvnitř
+  // JSX přímo — oba jsou čisté funkce nad už dostupnými daty
+  // (gamificationUtils.ts), appka je nikde dál nepersistuje.
+  const xpTydne = spocitejXpZaPoslednichNDni(xpLog)
+  const nejblizsi = nejblizsiOdznak(xp, level, streakDays, badges)
 
   // Krok 11: appka si level/XP "udělala součástí herního systému" —
   // odznak teď žije, ne jen zobrazuje čísla. Appka xp/level porovnává
@@ -293,6 +319,9 @@ export const HubModule: React.FC<HubModuleProps> = ({
   // setTimeout.
   const prepnoutKolo = () => {
     if (vybranyId !== null || zaviraSe) return
+    // Krok 14c: appka vibraci volá na začátku, pro otevření i zavření
+    // stejně — appka obě akce chce potvrdit stejným krátkým cvaknutím.
+    zavibrujKliknuti()
     if (!kolootevreno) {
       setKolootevreno(true)
       return
@@ -406,6 +435,10 @@ export const HubModule: React.FC<HubModuleProps> = ({
     if (vybranyId !== null) return
     const paprsek = kolo.find((p) => p.id === id)
     if (!paprsek) return
+    // Krok 14c: appka vibraci volá až TADY, za guardem výš — appka tím
+    // zaručí, že cvaknutí přijde přesně jednou za skutečný výběr, ne
+    // za každé gesto/klepnutí, co by na už rozjetý výběr dorazilo pozdě.
+    zavibrujKliknuti()
     setZvyrazneneId(null)
     setVybranyId(id)
     const zkraceno = window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -437,13 +470,48 @@ export const HubModule: React.FC<HubModuleProps> = ({
     setZvyrazneneId(null)
   }
 
+  // Krok 14d: jemná paralaxa pozadí — appka pozici pozadí posouvá
+  // přímo přes ref/DOM styl, NE přes React state/setState. Pohyb
+  // kurzoru/prstu by jinak vyvolal re-render Hubu i desítky za
+  // vteřinu, zbytečná zátěž pro čistě kosmetický efekt. Appka
+  // `prefers-reduced-motion` kontroluje jednou tady (ne skrz CSS
+  // kill-switch) a při zapnutém appka posun vůbec nepočítá, ani ho
+  // nenastaví — fotka zůstane úplně klidná.
+  const PARALAXA_MAX_PX = 12
+  const snizenyPohyb = useRef(false)
+  useEffect(() => {
+    snizenyPohyb.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  }, [])
+  const bgRef = useRef<HTMLDivElement>(null)
+
+  const sledujParalaxu = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (snizenyPohyb.current || !bgRef.current) return
+    const x = (e.clientX / window.innerWidth - 0.5) * 2 * PARALAXA_MAX_PX
+    const y = (e.clientY / window.innerHeight - 0.5) * 2 * PARALAXA_MAX_PX
+    bgRef.current.style.transform = `translate3d(${x}px, ${y}px, 0) scale(1.05)`
+  }
+
+  const resetujParalaxu = () => {
+    if (!bgRef.current) return
+    bgRef.current.style.transform = ''
+  }
+
   return (
-    <div className="hub-page">
+    <div
+      className="hub-page"
+      onPointerMove={sledujParalaxu}
+      onPointerLeave={resetujParalaxu}
+      onPointerCancel={resetujParalaxu}
+    >
       {/* Fixní pozadí — fotka soumraku nad horami + ztmavovací gradient
           kvůli čitelnosti hlavičky/karet, ne holý gradient appky jako
           dřív (viz hub-bg.css's vlastní komentář pro proč a jak moc
-          přitmavené). */}
-      <div className="hub-bg" aria-hidden="true" />
+          přitmavené). Krok 14d: appka na stejný prvek ještě drží `ref`
+          kvůli jemné paralaxe — appka pozici posouvá přímo přes
+          DOM styl (sledujParalaxu/resetujParalaxu výš), ne přes React
+          state, ať pohyb kurzoru/prstu nevyvolává re-render celého
+          Hubu desítky za vteřinu. */}
+      <div ref={bgRef} className="hub-bg" aria-hidden="true" />
       <div className="hub-bg-overlay" aria-hidden="true" />
       {/* Krok 9: "Když menu otevřeš: pozadí lehce ztmavne... Když menu
           zavřeš: pozadí se zase rozjasní." — appka to řeší jako třetí,
@@ -473,13 +541,28 @@ export const HubModule: React.FC<HubModuleProps> = ({
           <div className="hub-logo">
             <img src="/maskot/buddy-vlk.png" alt="" className="hub-logo-img" />
             <div className="hub-logo-text-col">
-              <span className="hub-logo-text">BuddyZone</span>
+              {/* Krok 14a: appka tady místo statického "BuddyZone"
+                  ukazuje pozdrav podle denní doby + uživatelovo jméno
+                  (appka ho nijak neohýbá do vokativu, viz
+                  core/utils/pozdrav.ts's vlastní komentář) — "BuddyZone"
+                  jako značka appky zůstává viditelná jinde (titulek
+                  stránky, BootGate), tady appka dává přednost osobnějšímu
+                  přivítání. */}
+              <span className="hub-logo-text">{pozdrav}, {profile.name} 👋</span>
               <span className="hub-logo-tagline">Lepší ty. Každý den.</span>
             </div>
           </div>
 
           <div className="hub-header-actions">
-            <button className="hub-icon-btn" aria-label="Oznámení" onClick={() => setNotifOpen(true)}>
+            {/* Krok 14h: appka zvonku dává popisek, co zahrnuje i
+                nepřečtený stav — appka dřív nepřečtenost signalizovala
+                jen barevnou tečkou (aria-hidden), takže by ji čtečka
+                obrazovky uživateli vůbec neoznámila. */}
+            <button
+              className="hub-icon-btn"
+              aria-label={maNeprectene ? 'Oznámení, máš nové' : 'Oznámení'}
+              onClick={() => setNotifOpen(true)}
+            >
               <SocialIcon name="bell" size={19} />
               {maNeprectene && <span className="hub-icon-dot" aria-hidden="true" />}
             </button>
@@ -499,7 +582,14 @@ export const HubModule: React.FC<HubModuleProps> = ({
             Nastavení — appka si pro něj bere vlastní instanci
             useBuddyVoice na každé z těchhle obrazovek zvlášť, žádná
             koule ke sdílení stavu mezi nimi není potřeba. */}
-        <div className="hub-hero-stats-row">
+        {/* Krok 14b ("Plynulý vstup při startu") — appka tuhle řadu (a
+            denní cíl níž) schová za hub-fade-pending, dokud se store
+            doopravdy nehydratuje (hydratovano, viz
+            useGamificationStore.ts's vlastní komentář u `merge`) — jinak
+            by appka na zlomek sekundy ukázala "Level 1, 0 XP, 0 dní v
+            řadě", než se načtou reálná data z localStorage, a ten
+            záblesk výchozích hodnot appka přesně tomuhle krokem řeší. */}
+        <div className={`hub-hero-stats-row${!hydratovano ? ' hub-fade-pending' : ''}`}>
           {/* Krok 11: "udělej z levelu součást herního systému" — odznak
               dostal svou vlastní svítící záři (.hub-level-hex-wrap,
               stejný "kruh kolem" duch jako appčina vlastní zlatá záře
@@ -550,6 +640,36 @@ export const HubModule: React.FC<HubModuleProps> = ({
             <span className="hub-streak-num">{streakDays}</span>
             <span className="hub-streak-label">DAYS STREAK</span>
           </div>
+        </div>
+
+        {/* Krok 14f/14g ("Náhled na příští odznak" + "Týdenní souhrn") —
+            appka obě tyhle řádky schválně nedělá jako další dvě plné
+            karty (Hub jich má dost už jen v kole níž) — jde o dva tiché,
+            jednořádkové postřehy hned pod hlavní statistikou, stejná
+            "lehká vrstva, ne další těžká karta" zdrženlivost, co appka
+            má zapsanou i jinde (Writer's Roomovo "Dnes napsáno"). Appka
+            týdenní souhrn ukazuje vždy (appka ví, kolik dní v řadě běží
+            i bez XP), odznakový řádek jen když nejblizsiOdznak() vrátí
+            něco jiného než null — appka ho celý řádek schová, ne
+            poloprázdný, když jsou všechny čtyři kandidátské odznaky
+            odemčené (viz appčin komentář u `nejblizsiOdznak`). */}
+        <div className={`hub-insights${!hydratovano ? ' hub-fade-pending' : ''}`}>
+          <p className="hub-insight-line">
+            <span className="hub-insight-icon" aria-hidden="true">📅</span>
+            Tenhle týden: <strong>{xpTydne} XP</strong>
+            {streakDays > 0 && (
+              <>
+                {' '}· {streakDays} {sklonujDen(streakDays)} v řadě
+              </>
+            )}
+          </p>
+          {nejblizsi && (
+            <p className="hub-insight-line">
+              <span className="hub-insight-icon" aria-hidden="true">{nejblizsi.badge.icon}</span>
+              Příští odznak: <strong>{nejblizsi.badge.title}</strong> (
+              {popisekPokrokuOdznaku(nejblizsi.badge.id, xp, level, streakDays)})
+            </p>
+          )}
         </div>
 
         {/* Kruhové menu — nahrazuje dřívější kartové sekce "Prozkoumej"
@@ -664,7 +784,17 @@ export const HubModule: React.FC<HubModuleProps> = ({
             doopravdy sama přepočítá na nesplněnou hned při prvním
             vykreslení po půlnoci (ať ho vyvolá nová aktivita, nebo jen
             appčin vlastní minutový tik výš). */}
-        <div className={`hub-denni-cil${dnesniCilSplnen ? ' hub-denni-cil--splneno' : ''}`}>
+        {/* Krok 14h ("Accessibility dotažení") — role="status"/aria-live
+            appce dává to samé, co appka u XP bubliny výš: odečítač
+            obrazovky nahlásí "SPLNĚNO" ve chvíli, kdy se stav karty
+            doopravdy překlopí, ne až po vlastní, nejistém objevení. */}
+        <div
+          className={`hub-denni-cil${dnesniCilSplnen ? ' hub-denni-cil--splneno' : ''}${
+            !hydratovano ? ' hub-fade-pending' : ''
+          }`}
+          role="status"
+          aria-live="polite"
+        >
           <span className="hub-denni-cil-znacka" aria-hidden="true">
             {dnesniCilSplnen ? '✓' : '🎯'}
           </span>

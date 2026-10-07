@@ -241,6 +241,49 @@
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* Krok 14b ("Plynulý vstup při startu") — appka tímhle schová výchozí
+   "Level 1 / 0 XP / 0 dní v řadě" záblesk, dokud se gamifikační store
+   doopravdy nehydratuje (viz Hub.tsx's `hydratovano`). Jedna sdílená
+   třída, appka ji dává na hero-stats-row, hub-insights i hub-denni-cil
+   najednou — tři nezávislé, ale podobně rychlé fade-iny vypadají líp
+   než appka, co by každý z nich časovala jinak. prefers-reduced-motion
+   appka řeší globálně (global.css's transition-duration: 0.001ms), ne
+   druhou kopií tady — hodnota skočí na finální stav prakticky okamžitě
+   i tak. */
+.hub-fade-pending {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+/* Krok 14f/14g — appka tyhle dva řádky dává jako lehký text pod hero
+   kartou, ne jako další plnou kartu (appka jich má dost v kole níž) —
+   stejná zdrženlivost, co appka má zapsanou u Writer's Roomova
+   "Dnes napsáno". */
+.hub-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.1rem 0.3rem;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.hub-insight-line {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.hub-insight-line strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.hub-insight-icon {
+  margin-right: 0.3rem;
 }
 
 .hub-hero-level {
@@ -1072,7 +1115,7 @@
   border-radius: var(--radius-md);
   padding: 0.65rem 0.8rem;
   backdrop-filter: blur(14px);
-  transition: background 0.4s ease, border-color 0.4s ease;
+  transition: background 0.4s ease, border-color 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
 }
 
 .hub-denni-cil--splneno {
