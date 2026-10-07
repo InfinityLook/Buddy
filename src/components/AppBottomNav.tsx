@@ -1,18 +1,16 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
 import { sousedniStranky, type ModulovaStranka } from '@/core/navigation/moduloveStranky'
 import { useInbox } from '@/social/inbox'
 import { SocialIcon } from '@/social/components/SocialIcon'
-import { useBuddyVoice } from '@/buddy/useBuddyVoice'
-import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import './AppBottomNav.css'
 
 // ==========================================
 // Sdílená spodní navigace appky — Fáze 4 Social nav reworku (viz
 // CLAUDE.md). Dřív žila jen v Hub.tsx (hub-bottom-nav); appka teď
-// stejnou lištu (Profil/Home/Hledat/Buddy/Chat/Nastavení) vykresluje na
+// stejnou lištu (Profil/Chat/Home/Hledat/Nastavení) vykresluje na
 // Hub/Apps/Profil/Nastavení, ať se mezi hlavními obrazovkami appky
 // nemusí pokaždé vracet přes Hub. Social má vlastní, jinou spodní
 // lištu (Profil/Chaty/Domů/Vyhledávač — vnitřní záložky obrazovky, ne
@@ -26,7 +24,7 @@ import './AppBottomNav.css'
 // bydlela jako samostatná ikona vedle zvonku.
 //
 // "Profil" (appčino vlastní kolečko avataru, první položka před
-// Home) appka přesunula sem z Hubovy a Apps hlavičky — appka dřív
+// Chat) appka přesunula sem z Hubovy a Apps hlavičky — appka dřív
 // měla dvě nezávislá avatarová tlačítka (Hub.tsx's hub-avatar-btn,
 // AppHeader.tsx's app-avatar-btn), teď je jen jedno, vidět na KAŽDÉ
 // ze čtyř obrazovek, ne jen na dvou z nich. FlagshipShell.tsx (šest
@@ -35,14 +33,20 @@ import './AppBottomNav.css'
 // vlastní šipky mezi Roomy místo téhle lišty, takže appka tam
 // duplicitu neřeší.
 //
+// Vyvýšené prostřední kolečko s hlasovým Buddym (fotka vlka,
+// `.app-nav-orb`, rovnou otevíralo BuddyOverlay) appka z týhle lišty
+// úplně odstranila — ne přesunula jinam, prostě pryč, uživatel si to
+// výslovně nepřál. Appka proto v týhle liště nemá `useBuddyVoice`/
+// `BuddyOverlay` vůbec žádné — hlasový Buddy teď jde otevřít JEN
+// z Hubova vlastního kruhového menu (paprsek "AI", Hub.tsx's vlastní
+// `otevritBuddyho`/`buddyVoice`, nedotčené), ne odkudkoli jinde.
+// Appka si tím pádem na Apps/Profilu/Nastavení žádnou cestu k
+// hlasovému Buddymu nenechala — jen Hub.
+//
 // Route-aware: "Home"/"Nastavení" se zvýrazní podle aktuální cesty
 // (useLocation), ne natvrdo — dřív bylo "Home" v Hub.tsx vždycky
 // aktivní, protože se lišta vykreslovala jen tam; teď musí umět
 // zhasnout na každé jiné stránce a naopak vést zpátky na /hub.
-//
-// Appka si vlastní instanci useBuddyVoice bere sama, na každé
-// stránce stejně — žádná z nich už nemá velkou kouli maskota (Hub
-// svou odstranil), se kterou by se muselo sdílet.
 //
 // `sousedniFn`/`onSipkaKlik` jsou nepovinné — výchozí hodnoty
 // (sousedniStranky() + obyčejný navigate()) drží appčino dosavadní
@@ -74,19 +78,6 @@ export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
   // definovaný jen jeden směr pohybu.
   const prejit = useModulovyPrechod()
   const neprectene = useInbox((s) => s.neprectene)
-
-  const vlastniVoice = useBuddyVoice()
-  const [vlastniOtevreny, setVlastniOtevreny] = useState(false)
-
-  const spustitTalk = () => {
-    vlastniVoice.vycistit()
-    setVlastniOtevreny(true)
-  }
-
-  const zavritVlastni = () => {
-    vlastniVoice.zastavit()
-    setVlastniOtevreny(false)
-  }
 
   const jeAktivni = (cesta: string) => location.pathname === cesta
 
@@ -155,6 +146,19 @@ export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
           <span>Profil</span>
         </button>
 
+        {/* Chat — appka ho schválně dala hned za Profil, ne až za Home/
+            Hledat jako dřív (nové pořadí Profil/Chat/Home/Hledat/
+            Nastavení appka si vyžádala sama, ať Home vyjde přesně
+            doprostřed pětice teď, co prostřední vyvýšené kolečko
+            s Buddym z lišty zmizelo úplně). */}
+        <button className="app-nav-item" onClick={() => prejit('/social?zalozka=chaty')}>
+          <span className="app-nav-icon-wrap">
+            <SocialIcon name="chat" size={20} />
+            {neprectene > 0 && <span className="app-nav-dot" aria-hidden="true" />}
+          </span>
+          <span>Chat</span>
+        </button>
+
         <button
           className={`app-nav-item ${jeAktivni('/hub') ? 'app-nav-item--active' : ''}`}
           aria-current={jeAktivni('/hub') ? 'page' : undefined}
@@ -171,22 +175,6 @@ export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
           <span>Hledat</span>
         </button>
 
-        {/* Skutečná fotka maskota (public/maskot/buddy-vlk.png), ne dřív
-            kreslené oči — appka ho stejně eagerly precachuje jako dřív
-            pro Hubův (dnes zrušený) hero panel, viz vite.config.ts's
-            globPatterns/globIgnores. */}
-        <button className="app-nav-orb" aria-label="Promluvit s Buddym" onClick={spustitTalk}>
-          <img src="/maskot/buddy-vlk.png" alt="" className="app-nav-orb-maskot" />
-        </button>
-
-        <button className="app-nav-item" onClick={() => prejit('/social?zalozka=chaty')}>
-          <span className="app-nav-icon-wrap">
-            <SocialIcon name="chat" size={20} />
-            {neprectene > 0 && <span className="app-nav-dot" aria-hidden="true" />}
-          </span>
-          <span>Chat</span>
-        </button>
-
         <button
           className={`app-nav-item ${jeAktivni('/nastaveni') ? 'app-nav-item--active' : ''}`}
           aria-current={jeAktivni('/nastaveni') ? 'page' : undefined}
@@ -198,8 +186,6 @@ export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
           <span>Settings</span>
         </button>
       </nav>
-
-      {vlastniOtevreny && <BuddyOverlay voice={vlastniVoice} onZavrit={zavritVlastni} />}
     </>
   )
 }

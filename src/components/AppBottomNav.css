@@ -2,13 +2,15 @@
    Sdílená spodní navigace (Fáze 4 Social nav reworku, viz CLAUDE.md).
    Přesunuto beze změny vzhledu z HubModule.css's .hub-bottom-nav —
    appka tuhle lištu teď vykresluje i mimo Hub (Apps/Profil/Nastavení),
-   takže patří sem, ne do jedné konkrétní stránky. Šest položek
-   (Profil/Home/Hledat/Buddy/Chat/Nastavení — appka Profil přidala
-   jako první, přesunuté sem z Hubovy a Apps hlavičky, viz
-   AppBottomNav.tsx's vlastní komentář), prostřední Buddy je vyvýšené
-   kolečko bez popisku, zbytek má ikonu + text pod ní — stejný
-   "Instagram/TikTok" vzor, jaký appka používá i v Socialu
-   (.social-bottom-nav).
+   takže patří sem, ne do jedné konkrétní stránky. Pět položek
+   (Profil/Chat/Home/Hledat/Nastavení — appka Profil přidala jako
+   první, přesunuté sem z Hubovy a Apps hlavičky, viz AppBottomNav.tsx's
+   vlastní komentář), všech pět má stejnou ikona+text pod ní podobu,
+   žádné vyvýšené kolečko uprostřed — to appka z lišty úplně odstranila
+   (dřív tam bývalo vyvýšené kolečko s hlasovým Buddym, appka ho pryč,
+   ne přesunuté jinam, viz AppBottomNav.tsx's vlastní komentář), takže
+   Home teď sedí přesně doprostřed pětice. Stejný "Instagram/TikTok"
+   vzor appka používá i v Socialu (.social-bottom-nav).
    ========================================== */
 .app-bottom-nav {
   position: relative;
@@ -117,39 +119,6 @@
   border: 1.5px solid var(--bg-base);
 }
 
-/* Prostřední kolečko — vyvýšené nad ostatní, žádný popisek pod sebou
-   (stejná role jako "shutter" tlačítko uprostřed lišty v appkách typu
-   TikTok/Snapchat). Dřív kreslilo dvě "oči" (.app-nav-orb-oko), teď
-   uvnitř nese skutečnou fotku maskota (.app-nav-orb-maskot níž) —
-   background/box-shadow zůstaly beze změny, ať kolečko pořád čte jako
-   "prosvícené sklo", ne jako nalepený obrázek; tmavý gradient je jen
-   záložka na tu jednu chvíli, než se fotka stihne načíst, a `overflow:
-   hidden` je to, co fotku doopravdy ořízne do kruhu. */
-.app-nav-orb {
-  position: relative;
-  flex-shrink: 0;
-  width: 54px;
-  height: 54px;
-  margin-bottom: 14px;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background:
-    radial-gradient(circle at 35% 30%, rgba(190, 240, 255, 0.5) 0%, rgba(66, 190, 240, 0.3) 30%, transparent 60%),
-    radial-gradient(circle at 50% 50%, rgba(16, 42, 88, 0.95) 0%, rgba(46, 150, 210, 0.65) 100%);
-  box-shadow: 0 0 0 4px var(--bg-base), 0 0 22px rgba(53, 196, 240, 0.55);
-}
-
-.app-nav-orb-maskot {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
 /* Šipky pro přechod mezi Hub/Apps/Profil/Nastavení (a mezi vlajkovými
    Roomy, viz FlagshipShell.tsx) — appka dřív na dotykovém zařízení
    místo nich nabízela vodorovný swipe, ten je ale dnes pryč
@@ -158,7 +127,7 @@
    přesto zůstávají skrytá na dotykovém zařízení a vidět jen s jemným
    ukazatelem (myš) — appka je jinak nemá čím na dotyku nahradit,
    takže tam sekvenční "předchozí/další" navigace tímhle směrem dnes
-   chybí úplně, jen hlavní pětice tlačítek/avatar v hlavičce. */
+   chybí úplně, jen hlavní pětice tlačítek dole. */
 .modul-sipka {
   display: none;
 }
