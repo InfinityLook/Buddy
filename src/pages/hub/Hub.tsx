@@ -347,6 +347,20 @@ export const HubModule: React.FC<HubModuleProps> = ({
           přitmavené). */}
       <div className="hub-bg" aria-hidden="true" />
       <div className="hub-bg-overlay" aria-hidden="true" />
+      {/* Krok 9: "Když menu otevřeš: pozadí lehce ztmavne... Když menu
+          zavřeš: pozadí se zase rozjasní." — appka to řeší jako třetí,
+          samostatnou vrstvu nad .hub-bg-overlay (ne přebarvováním jejího
+          gradientu samotného — gradient appka přes transition spolehlivě
+          neanimuje přes všechny prohlížeče, plochá barva s vlastním
+          opacity přechodem ano). Appka drží ztmavení vázané čistě na
+          `kolootevreno`, ne na vybranyId/zaviraSe — kolo samo (prostřední
+          tlačítko, oba prstence, viz jejich vlastní komentáře v
+          HubModule.css) zůstává ve svém "otevřeném" vzhledu po celou
+          dobu i Kroku 7 (výběr), i Kroku 8 (zavírání), a appka chce, ať
+          se pozadí rozjasní přesně ve stejnou chvíli, co se tyhle prvky
+          doopravdy vrátí do klidu — jeden společný moment, ne dřívější
+          rozjasnění pod ještě viditelně mizejícími paprsky. */}
+      <div className={`hub-bg-dim${kolootevreno ? ' hub-bg-dim--aktivni' : ''}`} aria-hidden="true" />
 
       <div className="hub-container">
         {/* Header — vlčí/liščí maskot (stejná fotka, co appka má i jako

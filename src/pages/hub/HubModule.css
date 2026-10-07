@@ -37,6 +37,28 @@
   );
 }
 
+/* Krok 9: třetí, samostatná vrstva nad .hub-bg-overlay — appka ji
+   schválně nemíchá přímo do gradientu výš (CSS přechod na vlastnosti
+   `background`/gradientu appka nemůže spoléhat, že poběží plynule ve
+   všech prohlížečích; plochá barva s vlastním `opacity` přechodem
+   ano). Appka žádný z-index nepotřebuje — v DOM appka tenhle `<div>`
+   staví hned za .hub-bg-overlay (stejná vrstva), appka tím pádem
+   maluje nad ním automaticky, pod .hub-container (ten má svůj vlastní
+   z-index: 1) díky pořadí v markupu, stejný princip, co appka má
+   i mezi .hub-bg a .hub-bg-overlay samotnými. */
+.hub-bg-dim {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+.hub-bg-dim--aktivni {
+  opacity: 0.22;
+}
+
 .hub-container {
   position: relative;
   z-index: 1;
@@ -379,7 +401,17 @@
 
 /* Jemná zlatá záře za celým kolem — appčin vlastní nápad, jak
    připomenout kamenný podstavec se svítící kružnicí z referenční
-   grafiky, bez nutnosti dalšího obrázku navíc. */
+   grafiky, bez nutnosti dalšího obrázku navíc.
+
+   Krok 9: appka gradient samotný netransitionuje (background/gradient
+   appka přes CSS transition spolehlivě neanimuje), místo toho mu dala
+   pevně silnější vzhled (0.4/0.16 místo původních 0.22/0.08) a navrch
+   `opacity`, co appka SKUTEČNĚ přechází — klidová hodnota 0.55 je
+   zvolená přesně tak, ať 0.4 × 0.55 = 0.22 vyjde na chlup stejně, co
+   appka měla před Krokem 9 napevno (0.22) — uživatel, co menu nikdy
+   neotevře, tak nepozná žádný rozdíl. "A kolem kruhu se objeví slabé
+   světlo" appka dociluje zesílením na plnou opacity: 1, viz pravidlo
+   .hub-wheel.je-otevrene::before níž. */
 .hub-wheel::before {
   content: '';
   position: absolute;
@@ -387,12 +419,27 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(245, 158, 11, 0.22) 0%,
-    rgba(245, 158, 11, 0.08) 45%,
+    rgba(245, 158, 11, 0.4) 0%,
+    rgba(245, 158, 11, 0.16) 45%,
     transparent 72%
   );
+  opacity: 0.55;
+  transition: opacity 0.4s ease;
   z-index: 0;
   pointer-events: none;
+}
+
+/* Appka záři zesílí po celou dobu, co je kolo otevřené — stejně jako
+   oba prstence a prostřední tlačítko, appka ji nechává na plné síle
+   i přes celou obrácenou kaskádu Kroku 8 (appka `.je-otevrene` sundá,
+   teprve až se poslední paprsek doopravdy vrátí ke středu), ať se
+   celé kolo zklidní v jednu společnou chvíli. Výjimka je Krok 7
+   (`--vybira-se`) — tou dobou appka i oba prstence nechává zmizet
+   (viz jejich vlastní pravidlo níž), takže appka záři schválně
+   netlačí na plnou silu proti mizejícím paprskům, ale ji naopak
+   nechá klesnout zpátky na klidovou hodnotu spolu s nimi. */
+.hub-wheel.je-otevrene:not(.hub-wheel--vybira-se)::before {
+  opacity: 1;
 }
 
 .hub-wheel-center,
