@@ -13,12 +13,60 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  background:
-    radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.22) 0%, transparent 40%),
-    radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.18) 0%, transparent 35%),
-    radial-gradient(circle at 50% 95%, rgba(236, 72, 153, 0.13) 0%, transparent 45%),
-    var(--bg-base);
+  /* Plochá barva appka drží jen jako záložní stav, než se .reward-bg
+     (fotka níž) stihne natáhnout — appka ji schválně nechala tmavou,
+     ne barevnou jako dřív, ať na zlomek vteřiny mezi vykreslením a
+     načtením fotky nebliká nic nápadného. */
+  background: var(--bg-base);
   color: var(--text-primary);
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Pozadí Achievementů — noční hradní scéna (měsíc, drak, vodopád),
+   appka dostala hotovou fotku od uživatele, ne holý gradient jako
+   dřív. position: fixed, ne absolute — appka tu na rozdíl od Hubu
+   nemá oddělený vnější "rám" (appka ho tu nepotřebuje; .reward-page
+   je zároveň scrollující kontejner i jediný předek appčiny fotky),
+   fixed appce kotví vrstvu vůči viewportu bez ohledu na to, kam v DOM
+   appka ji zasadí — appka ověřila, že žádný předek .reward-page
+   nenastavuje transform/filter/contain, co by appce tenhle kotevní
+   bod přebral (global.css má podobné vlastnosti jen uvnitř
+   @keyframes appčina view-transition efektu, ne na trvalém předkovi).
+   Appčina fotka je sama o sobě tmavá dole (vysoký, úzký formát —
+   hradní scéna nahoře, tma dole, přesně tam, kam appka klade kartu
+   odznaků), proto appka svůj vlastní přitmavovací gradient
+   (.reward-bg-overlay) drží mírný, ne tak silný jako u Hubu. */
+.reward-bg {
+  position: fixed;
+  inset: 0;
+  background-image: url('/backgrounds/achievementy-noc.png');
+  background-size: cover;
+  background-position: center top;
+}
+
+.reward-bg-overlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 9, 20, 0.38) 0%,
+    rgba(6, 9, 20, 0.22) 30%,
+    rgba(6, 9, 20, 0.5) 65%,
+    rgba(6, 9, 20, 0.82) 100%
+  );
+}
+
+/* Skutečný obsah appka drží v samostatné vrstvě nad .reward-bg*
+   (position: relative + z-index: 1 appku dostane nad obě fixed
+   pozadí appce bez ohledu na pořadí appčiných vrstev v DOM) — dřív
+   tenhle padding/flex/gap/max-width nesl .reward-page samotná, appka
+   je sem přesunula, protože .reward-page teď má jen tři přímé děti
+   (.reward-bg, .reward-bg-overlay, .reward-content), ne celý obsah
+   stránky napřímo. */
+.reward-content {
+  position: relative;
+  z-index: 1;
   /* Krok 19: AppBottomNav je sticky flex prvek, co si svou výšku
      rezervuje sám (stejná poznámka jako .app-container v AppModule.css) —
      tahle hodnota je jen malý prostor navíc pod poslední kartou, ne
@@ -29,8 +77,6 @@
   display: flex;
   flex-direction: column;
   gap: 0.6rem;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
 }
 
 /* Hlavička */
