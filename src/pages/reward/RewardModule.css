@@ -79,132 +79,473 @@
   gap: 0.6rem;
 }
 
-/* Hlavička */
-.reward-top-bar {
+/* ------------------------------------------
+   HLAVIČKA — stejný jazyk jako Hubova (fotka maskota + text vedle sebe,
+   skutečné kruhové ikonové tlačítko), ne doslovné zopakování pozdravu
+   podle denní doby (viz appčin komentář v RewardModule.tsx). Appka
+   .hub-header/.hub-icon-btn/.hub-logo* přenesla jedno ku jedné, jen
+   s reward- prefixem.
+   ------------------------------------------ */
+.reward-header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.75rem;
-}
-
-.reward-back-btn {
-  background: none;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 0.85rem;
-  cursor: pointer;
-  padding: 0;
-  margin-bottom: 0.5rem;
-}
-
-.reward-title {
-  font-size: 1.35rem;
-  font-weight: 800;
-  margin: 0;
-  letter-spacing: -0.3px;
-}
-
-.reward-subtitle {
-  color: var(--text-secondary);
-  font-size: 0.7rem;
-  margin: 0.15rem 0 0;
-  line-height: 1.35;
-}
-
-.reward-hero-icon {
-  font-size: 1.75rem;
-  line-height: 1;
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 12px rgba(236, 72, 153, 0.55));
-}
-
-/* Souhrnná karta s úrovní a statistikami */
-.reward-summary-card {
-  background: var(--bg-glass);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(10, 14, 28, 0.38);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-card);
-  padding: 0.7rem 0.8rem;
+  padding: 0.5rem 0.7rem;
+  backdrop-filter: blur(16px);
+}
+
+.reward-icon-btn {
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.reward-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.09);
+  transform: translateY(-1px);
+}
+
+.reward-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+/* Stejná fotka jako Hubova hlavička a prostřední tlačítko spodní lišty
+   (public/maskot/buddy-vlk.png), žádný druhý crop. */
+.reward-logo-img {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  border: 1.5px solid var(--border-strong);
+  flex-shrink: 0;
+  display: block;
+}
+
+.reward-logo-text-col {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.05rem;
+  min-width: 0;
 }
 
-.reward-level-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.reward-level-name {
-  font-size: 0.85rem;
+.reward-logo-text {
+  font-size: 1.2rem;
   font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  background: linear-gradient(100deg, #4cc9f0 0%, #35c4f0 40%, #6aa8ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.reward-logo-tagline {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ------------------------------------------
+   ÚROVEŇ A SÉRIE — stejná dvojice karet vedle sebe jako Hubova
+   .hub-hero-stats-row, přenesená beze změny (šestiúhelníkový odznak se
+   svítícím halem + "+N XP" bublinou se třpytkami, zvětšená karta
+   série s plamenem). Appka to dřív měla slité do jedné "souhrnné"
+   karty s plain textem — tahle dvojice teď reaguje na level/xp/
+   streakDays vizuálně úplně stejně jako na Hubu.
+   ------------------------------------------ */
+.reward-hero-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* Skeleton místo fade při startu — appka obrysy kreslí PŘÍMO uvnitř
+   stejných karet (reward-hero-level/-streak/-insights), dokud se
+   gamifikační store nehydratuje (`hydratovano`), žádný layout shift
+   (stejné rozměry/padding/border/backdrop-filter jako reálný obsah,
+   jen MÍSTO něj, ne navrch přes něj) — appka tenhle vzor i rozměry
+   jednotlivých tvarů přenesla přesně z Hubova .hub-skeleton*. */
+.reward-skeleton {
+  display: inline-block;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: reward-skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes reward-skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.reward-skeleton--circle {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.reward-skeleton--circle-sm {
+  width: 2.1rem;
+  height: 2.1rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.reward-skeleton--line {
+  height: 0.65rem;
+  width: 70%;
+}
+
+.reward-skeleton--line-sm {
+  height: 0.5rem;
+  width: 45%;
+}
+
+.reward-skeleton--line-insight {
+  height: 1.05rem;
+  width: 72%;
+}
+
+.reward-skeleton--line-insight:last-child {
+  width: 55%;
+}
+
+.reward-skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.reward-hero-level {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+  background: rgba(21, 31, 56, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.4rem 0.6rem 0.4rem 0.4rem;
+  backdrop-filter: blur(14px);
+}
+
+.reward-hero-streak {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 0.05rem;
+  flex-shrink: 0;
+  background: rgba(21, 31, 56, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.35rem 0.55rem;
+  backdrop-filter: blur(14px);
+}
+
+/* Odznak levelu — šestiúhelník se svítícím halem (::before, pomalý
+   dýchavý pulz, appka ho nechává běžet pořád, ne jen při zisku XP) a
+   velkým vlastním číslem uvnitř. */
+.reward-level-hex-wrap {
+  position: relative;
+  flex-shrink: 0;
+  width: 58px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reward-level-hex-wrap::before {
+  content: '';
+  position: absolute;
+  inset: -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(167, 139, 250, 0.4) 0%, rgba(34, 211, 238, 0.18) 45%, transparent 72%);
+  animation: reward-level-halo-dech 3.4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes reward-level-halo-dech {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+/* Appka halo i samotný odznak na okamžik "zablikne" silněji, dokud na
+   kartě sedí čerstvá +XP bublina — appka tím spojuje číslo, co právě
+   naskočilo, s tím, že odznak samotný je "za to" vizuálně odpovědný.
+   :has() appka používá schválně — bez podpory v prohlížeči appka
+   efekt prostě vynechá (bublina samotná pořád funguje). */
+.reward-hero-level:has(.reward-xp-bublina) .reward-level-hex-wrap {
+  animation: reward-level-badge-zablesk 0.7s ease;
+}
+
+@keyframes reward-level-badge-zablesk {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.reward-level-hex {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, var(--accent-violet) 0%, var(--accent-cyan) 100%);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.reward-level-hex::before {
+  content: '';
+  position: absolute;
+  inset: 2.5px;
+  background: var(--bg-panel);
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+}
+
+.reward-level-hex-num {
+  position: relative;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.reward-level-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.reward-level-eyebrow {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
 .reward-level-xp {
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   color: var(--text-secondary);
-  font-weight: 700;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
-.reward-xp-bar-bg {
-  height: 7px;
+.reward-level-progress {
+  display: block;
+  height: 5px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.1);
   overflow: hidden;
+  margin-top: 0.1rem;
 }
 
-.reward-xp-bar-fill {
+.reward-level-progress-fill {
+  display: block;
   height: 100%;
-  border-radius: var(--radius-pill);
+  border-radius: inherit;
   background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
-  box-shadow: 0 0 12px rgba(53, 196, 240, 0.5);
-  transition: width 0.35s ease;
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.55);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.reward-level-hint {
-  font-size: 0.65rem;
-  color: var(--text-secondary);
-}
-
-.reward-stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.5rem;
-  margin-top: 0.15rem;
-}
-
-.reward-stat-box {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 0.45rem 0.55rem;
+/* "+N XP" bublina — vyletí nad kartou levelu, tři jiskřičky se
+   nezávisle zatřpytí a appka ji po TRVANI_XP_BUBLINY_MS (RewardModule.tsx)
+   zase smaže. Appka ji kotví vůči CELÉ kartě levelu (left: 50%,
+   .reward-hero-level má position: relative a je skoro pětkrát širší
+   než samotný odznak), ne přímo nad malý odznak — delší text (appčina
+   vlastní "🎉 LEVEL 2! +145 XP" varianta) by se jinak o úzký odznak
+   neopřel a přetekl přes okraj obrazovky (stejný bug appka odhalila a
+   opravila na Hubu, viz appčin komentář v HubModule.css). */
+.reward-xp-bublina {
+  position: absolute;
+  left: 50%;
+  top: -0.2rem;
+  transform: translate(-50%, 0);
   display: flex;
   flex-direction: column;
-  gap: 0.1rem;
+  align-items: center;
+  gap: 0.05rem;
+  pointer-events: none;
+  z-index: 2;
+  animation: reward-xp-bublina-vzestup 1.6s ease-out forwards;
 }
 
-.reward-stat-label {
+.reward-xp-bublina--level-up .reward-xp-bublina-castka {
+  color: var(--accent-orange);
+}
+
+@keyframes reward-xp-bublina-vzestup {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 6px) scale(0.85);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -8px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -26px) scale(0.95);
+  }
+}
+
+.reward-xp-bublina-jiskry {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.reward-xp-bublina-jiskra {
+  font-size: 0.6rem;
+  color: var(--accent-cyan);
+  animation: reward-xp-bublina-trpytka 1.6s ease-in-out infinite;
+}
+
+.reward-xp-bublina-jiskra:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.reward-xp-bublina-jiskra:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes reward-xp-bublina-trpytka {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.reward-xp-bublina-castka {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  white-space: nowrap;
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reward-xp-bublina {
+    animation: none;
+    opacity: 1;
+    transform: translate(-50%, -8px);
+  }
+}
+
+.reward-streak-flame {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.reward-streak-num {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--accent-orange);
+  line-height: 1.1;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+}
+
+.reward-streak-label {
   font-size: 0.55rem;
-  font-weight: 800;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   color: var(--text-muted);
-  letter-spacing: 0.4px;
+  white-space: nowrap;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
-.reward-stat-value {
-  font-size: 1.05rem;
-  font-weight: 800;
+/* ------------------------------------------
+   POSTŘEHY — tichá, jednořádková vrstva pod hero kartami, schválně NE
+   další plná karta (appka jich má dost už v sekci odznaků níž) —
+   stejná zdrženlivost jako Hubovo .hub-insights. Appka sem navíc
+   přidala první řádek ("ještě N XP do levelu"), co Hub nikdy neměl kam
+   dát — tahle obrazovka je o postupu samotném.
+   ------------------------------------------ */
+.reward-insights {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.1rem 0.3rem;
 }
 
-.reward-stat-sub {
-  font-size: 0.58rem;
+.reward-insight-line {
+  margin: 0;
+  font-size: 0.78rem;
   color: var(--text-secondary);
+  line-height: 1.4;
 }
 
-/* Sekce (Odznaky, Jak získat XP) */
+.reward-insight-line strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.reward-insight-icon {
+  margin-right: 0.3rem;
+}
+
+/* Sekce (Odznaky) */
 .reward-section {
   display: flex;
   flex-direction: column;
@@ -267,24 +608,32 @@
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--border-subtle);
-  font-size: 0.85rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   opacity: 0.45;
   cursor: pointer;
-  transition: opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  transition: opacity 0.15s ease, border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 
 .reward-badge-pin.je-pripnuty {
   opacity: 1;
   background: rgba(53, 196, 240, 0.16);
   border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
 }
 
 .reward-badge-pin:disabled { cursor: default; }
 
+/* Odznakovou ikonu appka drží jako flex box — holé emoji (badge.icon)
+   i ikona zámku (SocialIcon, u zamčených) tak sedí na stejné ose. */
 .reward-badge-icon {
   font-size: 1.4rem;
   line-height: 1.2;
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
 }
 
 .reward-badge-text {
@@ -306,6 +655,9 @@
 }
 
 .reward-badge-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   font-size: 0.6rem;
   font-weight: 700;
   color: var(--text-muted);
