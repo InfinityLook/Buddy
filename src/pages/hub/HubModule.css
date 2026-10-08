@@ -652,15 +652,21 @@
    jako hotové kulaté odznaky, ne jako výplň vlastního CSS šestiúhelníku
    — medailony už mají svůj vlastní prosvětlený prstenec zakreslený
    přímo v obrázku, takže druhá, appkou kreslená šestiúhelníková
-   výplň pod nimi by jen zdvojila rámeček. Šest paprsků appka
-   rozmisťuje na pevné souřadnice (ne přes CSS trig funkce sin()/cos()
-   — appka tenhle postup, "spočítat úhly jednou sám, ne za běhu",
-   používá i jinde, viz Souborova vlastní "jiskra" animace), spočtené
-   jako šest bodů po 60° kolem středu (R=33 % šířky kola):
-     AI (0°, nahoře) · Apps (60°, vpravo nahoře) · Shop (120°, vpravo
-     dole) · Rewards (180°, dole) · Rooms (240°, vlevo dole) ·
-     Social (300°, vlevo nahoře)
-   — přesně v pořadí, v jakém appka dodanou referenční grafiku viděla.
+   výplň pod nimi by jen zdvojila rámeček.
+
+   Appka kolo později zúžila ze šesti paprsků na čtyři — Shop a Rewards
+   dostaly vlastní kartu pod "Dnešní cíl" (.hub-quick-link, viz appčin
+   vlastní komentář u ní níž), uvolněná dvě místa ve věnci appka
+   schválně nenechala prázdná jen vizuálně — appka je úplně smazala,
+   žádný "připravujeme" placeholder appka tam dávat nechtěla (appka
+   tam nic nechystá). Čtyři zbylé paprsky appka rozmisťuje na pevné
+   souřadnice (ne přes CSS trig funkce sin()/cos() — appka tenhle
+   postup, "spočítat úhly jednou sám, ne za běhu", používá i jinde,
+   viz Souborova vlastní "jiskra" animace), spočtené jako čtyři body
+   po 90° kolem středu (R=33 % šířky kola), teď pravidelný kříž místo
+   dřívějšího šestiúhelníku:
+     AI (0°, nahoře) · Apps (90°, vpravo) · Rooms (180°, dole) ·
+     Social (270°, vlevo)
    ------------------------------------------ */
 .hub-wheel-wrap {
   display: flex;
@@ -796,9 +802,9 @@
    zavira-se` (viz Hub.tsx's `zaviraSe`/`prepnoutKolo`) a nechá
    `.je-otevrene` nasazené po celou tu dobu — prostřední tlačítko
    tak zůstává "vyboulené" (scale 1.08, žádný klidový puls) celou
-   dobu, co se paprsky REWARDS→SHOP→ROOMS→SOCIAL→APPS→AI vracejí
-   zpátky ke středu (viz šest .hub-wheel--zavira-se pravidel níž,
-   stejná zpoždění jako při otevření, jen navzájem prohozená).
+   dobu, co se paprsky SOCIAL→ROOMS→APPS→AI vracejí zpátky ke středu
+   (viz čtyři .hub-wheel--zavira-se pravidla níž, stejná zpoždění
+   jako při otevření, jen navzájem prohozená).
    Teprve až appka po doběhnutí celé kaskády (Hub.tsx's
    TRVANI_ZAVIRANI_MS) `.je-otevrene` doopravdy sundá, tahle
    dvoutřídní pravidlo tu přestane platit, střed se transition:
@@ -932,13 +938,14 @@
   white-space: nowrap;
 }
 
-/* Souřadnice šesti paprsků — viz appčin komentář u .hub-wheel výš pro
-   úhly, odkud se spočítaly (0/60/120/180/240/300° kolem středu,
-   R = 33 % šířky kola). Platí jen v otevřeném stavu (zavřeno = 50 %/
-   50 %, viz základní .hub-wheel-petal výš). Zpoždění jde přesně podle
-   zadaného pořadí, jeden po druhém po 0,07 s (ne v párech jako dřív):
-   AI 0,15 s → Apps 0,22 s → Social 0,29 s → Rooms 0,36 s → Shop
-   0,43 s → Rewards 0,50 s. */
+/* Souřadnice čtyř paprsků — appka je dřív měla šest, teď jen tyhle
+   čtyři (Shop a Rewards appka z kola odstranila, viz appčin komentář
+   výš u KRUHOVÉ MENU). Úhly, odkud se spočítaly (0/90/180/270° kolem
+   středu, R = 33 % šířky kola), appka má zapsané u appčina vlastní
+   komentáře u .hub-wheel výš. Platí jen v otevřeném stavu (zavřeno =
+   50 %/50 %, viz základní .hub-wheel-petal výš). Zpoždění jde přesně
+   podle appčina pořadí v poli `kolo` (Hub.tsx), jeden po druhém po
+   0,07 s: AI 0,15 s → Apps 0,22 s → Rooms 0,29 s → Social 0,36 s. */
 .hub-wheel.je-otevrene .hub-wheel-petal--ai {
   top: 17%;
   left: 50%;
@@ -946,33 +953,21 @@
 }
 
 .hub-wheel.je-otevrene .hub-wheel-petal--apps {
-  top: 33.5%;
-  left: 78.6%;
+  top: 50%;
+  left: 83%;
   transition-delay: 0.22s;
 }
 
-.hub-wheel.je-otevrene .hub-wheel-petal--social {
-  top: 33.5%;
-  left: 21.4%;
+.hub-wheel.je-otevrene .hub-wheel-petal--rooms {
+  top: 83%;
+  left: 50%;
   transition-delay: 0.29s;
 }
 
-.hub-wheel.je-otevrene .hub-wheel-petal--rooms {
-  top: 66.5%;
-  left: 21.4%;
+.hub-wheel.je-otevrene .hub-wheel-petal--social {
+  top: 50%;
+  left: 17%;
   transition-delay: 0.36s;
-}
-
-.hub-wheel.je-otevrene .hub-wheel-petal--shop {
-  top: 66.5%;
-  left: 78.6%;
-  transition-delay: 0.43s;
-}
-
-.hub-wheel.je-otevrene .hub-wheel-petal--rewards {
-  top: 83%;
-  left: 50%;
-  transition-delay: 0.5s;
 }
 
 /* Krok 5 — "hover"/dotyk nad paprskem: appka tyhle dvě třídy přepíná
@@ -981,14 +976,14 @@
    Musí jít AŽ PO pravidlech výš (stejná specificita, 3 třídy
    všude), jinak by ho tiše přebily, viz appčina vlastní poučka
    o pořadí u .bz-shell jinde v appce — tentokrát navíc musí jít i
-   PO šesti výše uvedených --ai/--apps/... pravidlech, ne jen po
+   PO čtyřech výše uvedených --ai/--apps/... pravidlech, ne jen po
    základním .je-otevrene .hub-wheel-petal, protože ty nesou svoje
-   vlastní transition-delay (0,15–0,5 s, pro rozjezd otevírání).
+   vlastní transition-delay (0,15–0,36 s, pro rozjezd otevírání).
    `transition-delay` je samostatná vlastnost — appka ji tu musí
    výslovně vynulovat (`transition-delay: 0s`), jinak by zvětšení/
    zmenšení při pouhém přejetí myší zdědilo tutéž prodlevu jako
-   otevírací kaskáda (u REWARDS klidně půl vteřiny), takže by hover
-   reagoval nápadně pozdě místo hned. */
+   otevírací kaskáda (u SOCIAL klidně přes třetinu vteřiny), takže
+   by hover reagoval nápadně pozdě místo hned. */
 .hub-wheel.je-otevrene .hub-wheel-petal--aktivni {
   transform: translate(-50%, -50%) scale(1.08);
   transition-delay: 0s;
@@ -1086,8 +1081,8 @@
    (střed, zmenšené, neviditelné — stejné hodnoty jako appčina úplně
    základní .hub-wheel-petal pravidlo výš, appka tu jen schválně musí
    mít vyšší specificitu, ať přebije pořád aktivní .je-otevrene
-   .hub-wheel-petal--X pravidlo s otevřenou pozicí), šest dalších
-   pravidel (stejná specificita, 4 třídy, ale netýkají se stejných
+   .hub-wheel-petal--X pravidlo s otevřenou pozicí), čtyři další
+   pravidla (stejná specificita, 4 třídy, ale netýkají se stejných
    vlastností — top/left/opacity/transform proti transition-delay —
    takže si navzájem nepřekáží bez ohledu na pořadí v souboru) nastaví
    KAŽDÉMU paprsku jeho VLASTNÍ zpoždění. Appka samotný `transition`
@@ -1103,31 +1098,22 @@
   transform: translate(-50%, -50%) scale(0.5);
 }
 
-/* Zpoždění přesně naopak, než má stejný paprsek při OTEVŘENÍ výš
-   (AI↔REWARDS, APPS↔SHOP, SOCIAL↔ROOMS) — "REWARDS, SHOP, ROOMS,
-   SOCIAL, APPS, AI" ze zadání je tak jen appčino `nejmensiRozdil`
-   řazení čtené pozpátku. */
+/* Zpoždění přesně naopak, než má stejný paprsek při OTEVŘENÍ výš —
+   SOCIAL, ROOMS, APPS, AI je tak jen appčino pořadí v poli `kolo`
+   (Hub.tsx) čtené pozpátku. */
 .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--ai {
-  transition-delay: 0.5s;
-}
-
-.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--apps {
-  transition-delay: 0.43s;
-}
-
-.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--social {
   transition-delay: 0.36s;
 }
 
-.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--rooms {
+.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--apps {
   transition-delay: 0.29s;
 }
 
-.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--shop {
+.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--rooms {
   transition-delay: 0.22s;
 }
 
-.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--rewards {
+.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--social {
   transition-delay: 0.15s;
 }
 
@@ -1135,16 +1121,14 @@
    transition-DURATION, ne transition-DELAY — appka proto zpoždění
    při omezeném pohybu vynuluje tady výslovně, jinak by paprsky i
    s okamžitým přechodem čekaly na svůj plný, nezkrácený odstup
-   (až 0,5 s u AI), než se vůbec hnou. Hub.tsx's `prepnoutKolo` čte
+   (až 0,36 s u AI), než se vůbec hnou. Hub.tsx's `prepnoutKolo` čte
    stejnou media-query v JS a zkrátí podle ní i dobu, po kterou čeká
    s úklidem stavu (TRVANI_ZAVIRANI_MS) — obojí musí jít ruku v ruce. */
 @media (prefers-reduced-motion: reduce) {
   .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--ai,
   .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--apps,
-  .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--social,
   .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--rooms,
-  .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--shop,
-  .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--rewards {
+  .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--social {
     transition-delay: 0s;
   }
 }
@@ -1238,6 +1222,85 @@
 
 .hub-denni-cil--splneno .hub-denni-cil-odmena {
   color: var(--accent-green);
+}
+
+/* ------------------------------------------
+   SHOP / REWARDS (rychlé karty pod Dnešním cílem)
+   Appka je sem přesunula z kruhového menu (bývalé paprsky SHOP/
+   REWARDS, viz appčin vlastní komentář u KRUHOVÉ MENU výš) — stejná
+   "sklo, jemný rámeček" podoba jako .hub-denni-cil kousek nad nimi
+   (appka schválně drží vizuální jazyk karet jednotný), jen jako
+   doopravdy klikatelné <button>, ne <div role="status">, protože na
+   rozdíl od Dnešního cíle appka tyhle dvě karty nechce jen ukazovat
+   stav — appka na ně chce navigovat. */
+.hub-quick-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.hub-quick-link {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  background: rgba(21, 31, 56, 0.3);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.6rem 0.8rem;
+  backdrop-filter: blur(14px);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+.hub-quick-link:hover {
+  background: rgba(21, 31, 56, 0.45);
+  border-color: var(--border-strong);
+}
+
+.hub-quick-link:active {
+  transform: scale(0.98);
+}
+
+.hub-quick-link-icon {
+  flex-shrink: 0;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: block;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+}
+
+.hub-quick-link-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.hub-quick-link-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--text-primary);
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
+}
+
+.hub-quick-link-desc {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hub-quick-link-arrow {
+  flex-shrink: 0;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--text-muted);
 }
 
 /* ------------------------------------------

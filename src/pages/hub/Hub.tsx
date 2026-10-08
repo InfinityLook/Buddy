@@ -35,12 +35,14 @@ interface HubModuleProps {
   onOpenApps?: () => void
 }
 
-// Jeden paprsek kruhového menu — šest jich jde kolem prostředního
-// "BUDDY CORE" tlačítka, viz HubModule.css's vlastní komentář u
-// .hub-wheel-petal pro úhly/souřadnice. `uhel` je stejný úhlový rozpis
-// (0° nahoře/AI, po 60° po směru hodinových ručiček), co appka má
-// zapsaný i v CSS komentáři — tady ho appka potřebuje znovu jako
-// skutečná čísla kvůli Kroku 6 (viz `najdiPaprsekPodleSmeru` níž).
+// Jeden paprsek kruhového menu — čtyři jich jde kolem prostředního
+// "BUDDY CORE" tlačítka (appka ho dřív měla šest, Shop a Rewards z
+// něj odešly, viz appčin vlastní komentář u `kolo` níž), viz
+// HubModule.css's vlastní komentář u .hub-wheel-petal pro úhly/
+// souřadnice. `uhel` je stejný úhlový rozpis (0° nahoře/AI, po 90°
+// po směru hodinových ručiček), co appka má zapsaný i v CSS komentáři
+// — tady ho appka potřebuje znovu jako skutečná čísla kvůli Kroku 6
+// (viz `najdiPaprsekPodleSmeru` níž).
 interface KoloPaprsek {
   id: string
   nazev: string
@@ -55,15 +57,18 @@ interface KoloPaprsek {
 const TRVANI_VYBERU_MS = 400
 
 // Krok 8: klepnutí znovu na střed (appka POUZE zavírá, nic nevybírá)
-// spustí obrácenou kaskádu — stejná šestice zpoždění jako při otevření
-// (0,15–0,50 s po 0,07 s), ale REWARDS/SHOP/ROOMS/SOCIAL/APPS/AI, přesně
-// naopak (viz šest nových .hub-wheel--zavira-se pravidel v HubModule.css).
-// 850 ms appka počítá z nejdelšího zpoždění v tý obrácený kaskádě (AI,
-// 0,50 s, stejná hodnota jako REWARDS měl při otevření) plus doby
-// samotného přechodu (0,32 s, stejná, co paprsky používají odjakživa —
-// viz .hub-wheel-petal's vlastní `transition` v HubModule.css) a malou
+// spustí obrácenou kaskádu — stejná čtveřice zpoždění jako při otevření
+// (0,15–0,36 s po 0,07 s), ale SOCIAL/ROOMS/APPS/AI, přesně naopak (viz
+// čtyři .hub-wheel--zavira-se pravidla v HubModule.css). Appka tenhle
+// výpočet zkrátila spolu se zúžením kola ze šesti paprsků na čtyři
+// (appka Shop/Rewards z kola odstranila, viz appčin vlastní komentář u
+// `kolo` níž) — dřív appka počítala z nejdelšího zpoždění při šesti
+// paprscích (0,50 s), teď ze čtyř (0,36 s). 710 ms appka počítá stejným
+// způsobem jako dřív: nejdelší zpoždění (0,36 s) plus doba samotného
+// přechodu (0,32 s, stejná, co paprsky používají odjakživa — viz
+// .hub-wheel-petal's vlastní `transition` v HubModule.css) a malou
 // rezervu navíc, ať appka nepřepne stav dřív, než CSS doopravdy dojede.
-const TRVANI_ZAVIRANI_MS = 850
+const TRVANI_ZAVIRANI_MS = 710
 
 // Dvanáct drobných jiskřiček, co z prstenu "vybuchnou" směrem ven, než
 // appka naviguje — appka si jejich směr (jednotkový vektor) spočítá
@@ -336,24 +341,32 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
     setBuddyOpen(false)
   }
 
-  // Šest paprsků kolem prostředního tlačítka — nahrazuje dřívější kartové
-  // sekce "Prozkoumej"/"Tvůj pokrok" naráz (appka do nich schválně
-  // nedává nic navíc, ať se Shop/Rewards nezobrazují dvakrát). Rooms a
-  // Apps vedou na stejné místo schválně — appčiny vlajkové roomy dnes
-  // žijí nahoře na /apps (RoomCarousel), appka tam nemá druhou, oddělenou
-  // obrazovku jen pro ně. `uhel` musí přesně sedět s rozestavěním
-  // v HubModule.css (0°=nahoře/AI, po 60° po směru hodinových ručiček) —
-  // appka obě appku si drží schválně ručně synchronizované, ne jako
-  // jednu sdílenou konstantu, protože CSS procenta (top/left) a JS úhly
-  // (pro Krok 6 níž) jsou dva různé způsoby, jak vyjádřit totéž
-  // rozestavění, a appka je nemá jak spočítat jedno z druhého bez
-  // zbytečné komplikace navíc.
+  // Čtyři paprsky kolem prostředního tlačítka — appka tu dřív měla
+  // šest (AI/Apps/Shop/Rewards/Rooms/Social), ale Shop a Rewards z
+  // kola odešly: appka si nechala potvrdit, že obě svítí dost často
+  // na to, aby si zasloužily vlastní, čitelnější kartu (viz dvě nové
+  // .hub-quick-link tlačítka pod "Dnešní cíl" níž), ne jen malé
+  // kolečko ve věnci. Appka schválně NEDALA na uvolněná dvě místa
+  // žádnou "připravujeme" značku — appka tam nic nechystá, prázdný
+  // slib appka nechce (viz appčina vlastní zdrženlivost u BRZY štítků
+  // jinde v appce), proto věnec zůstává zúžený na čtyři, ne doplněný
+  // placeholderem.
+  //
+  // Rooms a Apps vedou na stejné místo schválně — appčiny vlajkové
+  // roomy dnes žijí nahoře na /apps (RoomCarousel), appka tam nemá
+  // druhou, oddělenou obrazovku jen pro ně. `uhel` musí přesně sedět
+  // s rozestavěním v HubModule.css (0°=nahoře/AI, po 90° po směru
+  // hodinových ručiček — appka doopravdy jen smazala dva paprsky mezi
+  // Apps a Rooms, zbylé čtyři přerovnala na rovné kříž místo
+  // šestiúhelníku) — appka obě appku si drží schválně ručně
+  // synchronizované, ne jako jednu sdílenou konstantu, protože CSS
+  // procenta (top/left) a JS úhly (pro Krok 6 níž) jsou dva různé
+  // způsoby, jak vyjádřit totéž rozestavění, a appka je nemá jak
+  // spočítat jedno z druhého bez zbytečné komplikace navíc.
   const kolo: KoloPaprsek[] = [
     { id: 'ai', nazev: 'AI', ikona: '/icons/hub-wheel/ai.png', uhel: 0, onClick: otevritBuddyho },
-    { id: 'apps', nazev: 'Apps', ikona: '/icons/hub-wheel/apps.png', uhel: 60, onClick: handleAppsClick },
-    { id: 'shop', nazev: 'Shop', ikona: '/icons/hub-wheel/shop.png', uhel: 120, onClick: () => navigate('/obchod') },
-    { id: 'rewards', nazev: 'Rewards', ikona: '/icons/hub-wheel/rewards.png', uhel: 180, onClick: handleRewardsClick },
-    { id: 'rooms', nazev: 'Rooms', ikona: '/icons/hub-wheel/rooms.png', uhel: 240, onClick: handleAppsClick },
+    { id: 'apps', nazev: 'Apps', ikona: '/icons/hub-wheel/apps.png', uhel: 90, onClick: handleAppsClick },
+    { id: 'rooms', nazev: 'Rooms', ikona: '/icons/hub-wheel/rooms.png', uhel: 180, onClick: handleAppsClick },
     // Krok 18: "Social" přejmenováno na "Feed" a přesměrováno z celého
     // SocialModule (vlastní pětice spodních záložek) na FeedModule.tsx
     // ("jen zeď", bez Socialovy vlastní navigace) — appka Chat a Hledat
@@ -361,7 +374,7 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
     // paprsek doopravdy ještě nabízel navíc, byla samotná záložka Domů.
     // Ikonu appka ponechala beze změny (/icons/hub-wheel/social.png) —
     // appka v týhle relaci nemá nástroj na generování nové grafiky.
-    { id: 'social', nazev: 'Feed', ikona: '/icons/hub-wheel/social.png', uhel: 300, onClick: () => prejit('/feed') },
+    { id: 'social', nazev: 'Feed', ikona: '/icons/hub-wheel/social.png', uhel: 270, onClick: () => prejit('/feed') },
   ]
 
   // Krok 6: appka teď paprsek pod prstem nehledá podle toho, nad kterým
@@ -386,14 +399,14 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
     const mrtvaZona = rect.width * 0.17
     if (vzdalenost < mrtvaZona) return null
 
-    // Přesně napůl mezi dvěma paprsky (čistě vodorovně doleva/doprava —
-    // 270°/90° — leží přesně uprostřed mezi SOCIAL/ROOMS resp. APPS/SHOP,
-    // oba po 30°) appka rozhodne podle pořadí v poli `kolo` výš (první
-    // nalezený vyhrává, `<` ne `<=`) — ověřeno přímo v prohlížeči, že se
-    // to doopravdy stává jen při matematicky přesně vodorovném gestu.
-    // Appka to schválně neřeší zvlášť: žádný skutečný pohyb prstu/myši
-    // není nikdy úplně přesně vodorovný, i malý svislý posun (viz appčin
-    // vlastní test) nejednoznačnost spolehlivě rozlomí správným směrem.
+    // Přesně napůl mezi dvěma sousedními paprsky (appka má teď čtyři
+    // rovnoměrně po 90° — AI/Apps/Rooms/Social — takže nejednoznačné
+    // směry leží na diagonálách, 45°/135°/225°/315°, ne na appčině
+    // dřívějším vodorovném 90°/270°) appka rozhodne podle pořadí v poli
+    // `kolo` výš (první nalezený vyhrává, `<` ne `<=`). Appka to
+    // schválně neřeší zvlášť: žádný skutečný pohyb prstu/myši není
+    // nikdy úplně přesně diagonální, i malá odchylka nejednoznačnost
+    // spolehlivě rozlomí správným směrem.
     const uhel = ((Math.atan2(dy, dx) * 180) / Math.PI + 90 + 360) % 360
     let nejblizsiId: string | null = null
     let nejmensiRozdil = Infinity
@@ -867,6 +880,31 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
               <span className="hub-skeleton hub-skeleton--chip" aria-hidden="true" />
             </>
           )}
+        </div>
+
+        {/* Shop a Rewards — appka je přesunula sem z kruhového menu
+            (bývalé paprsky SHOP/REWARDS), ať dostanou vlastní, čitelnou
+            kartu místo malého kolečka ve věnci. Appka ikony ponechala
+            beze změny (stejné medailonky, co appka měla i v kole,
+            public/icons/hub-wheel/shop.png a rewards.png) — appka v
+            týhle relaci nemá nástroj na generování nové grafiky. */}
+        <div className="hub-quick-links">
+          <button type="button" className="hub-quick-link" onClick={() => navigate('/obchod')}>
+            <img src="/icons/hub-wheel/shop.png" alt="" className="hub-quick-link-icon" />
+            <span className="hub-quick-link-text">
+              <span className="hub-quick-link-title">Shop</span>
+              <span className="hub-quick-link-desc">Kredity, VIP a kosmetika</span>
+            </span>
+            <span className="hub-quick-link-arrow" aria-hidden="true">›</span>
+          </button>
+          <button type="button" className="hub-quick-link" onClick={handleRewardsClick}>
+            <img src="/icons/hub-wheel/rewards.png" alt="" className="hub-quick-link-icon" />
+            <span className="hub-quick-link-text">
+              <span className="hub-quick-link-title">Rewards</span>
+              <span className="hub-quick-link-desc">Úroveň, série a odznaky</span>
+            </span>
+            <span className="hub-quick-link-arrow" aria-hidden="true">›</span>
+          </button>
         </div>
 
         {/* Spodní navigace — Fáze 4 Social nav reworku vytáhla tenhle
