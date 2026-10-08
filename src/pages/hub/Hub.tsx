@@ -6,7 +6,6 @@ import { AppBottomNav } from '@/components/AppBottomNav'
 import { useBuddyVoice } from '@/buddy/useBuddyVoice'
 import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
-import { useDailyGoalStore, jeDnesniCilSplnen, DENNI_CIL_ODMENA_XP } from '@/core/store/useDailyGoalStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import {
@@ -145,21 +144,18 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
   // souhrn).
   const { level, xp, streakDays, badges, xpLog, hydratovano, recordActivity } = useGamificationStore()
 
-  // Krok 13: "Dnešní cíl" karta — appka stav čte přímo z úložiště, nikdy
-  // neukládá vlastní odvozenou kopii "je dnes splněno".
-  const { datum: dailyGoalDatum, splneno: dailyGoalSplneno, oznacitSplneno } = useDailyGoalStore()
-  // Vynutí nové vykreslení jednou za minutu, čistě ať appka pozná i
-  // půlnoc samotnou, ne jen uživatelovu další skutečnou akci — bez
-  // tohohle tiku by karta po otevření před půlnocí zůstala "splněno"
-  // zamrzlá klidně celý další den, přesně stejná appčina mezera, co
-  // School Roomovo "Příští hodina"/dnes už jednou řešilo (viz
-  // SchoolRoomModule.tsx's vlastní komentář u ted/setTed).
-  const [, setDenniCilTik] = useState(0)
+  // Minutový tik vynutí nové vykreslení jednou za minutu — appka ho
+  // dřív potřebovala i pro Krok 13's "Dnešní cíl" (ta karta appku i s
+  // celým svým useDailyGoalStore.ts úplně opustila, uživatel chtěl
+  // Hub jen se Shopem a Rewards), appka si ho ale nechala: pozdrav
+  // (Krok 14a, pod radou) na něm pořád visí, ať appka dostane přechod
+  // "Dobré ráno" → "Dobré odpoledne" zadarmo, bez vlastního druhého
+  // časovače.
+  const [, setMinutovyTik] = useState(0)
   useEffect(() => {
-    const id = window.setInterval(() => setDenniCilTik((t) => t + 1), 60_000)
+    const id = window.setInterval(() => setMinutovyTik((t) => t + 1), 60_000)
     return () => window.clearInterval(id)
   }, [])
-  const dnesniCilSplnen = jeDnesniCilSplnen(dailyGoalDatum, dailyGoalSplneno)
 
   // Store aplikací — používáme pro deep-link do konkrétní miniaplikace
   const { setActiveAppId } = useAppStore()
@@ -173,7 +169,7 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
   const xpDoDalsi = getXpForNextLevel(level)
 
   // Krok 14a: appka pozdrav počítá přímo při vykreslení (žádný vlastní
-  // stav/interval) — appčin vlastní minutový tik (setDenniCilTik výš)
+  // stav/interval) — appčin vlastní minutový tik (setMinutovyTik výš)
   // appku donutí k novému vykreslení, takže appka tím dostane i
   // přechod z "Dobré ráno" na "Dobré odpoledne" zadarmo, bez druhého
   // časovače navíc.
@@ -220,20 +216,8 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
     bublinaTimeoutRef.current = setTimeout(() => {
       setXpBublina(null)
       bublinaTimeoutRef.current = null
-
-      // Krok 13: appka bonus za "Dnešní cíl" schválně volá až TADY, na
-      // konci právě doběhlé bubliny, ne hned nahoře při detekci
-      // nárůstu — oznacitSplneno() (no-op, pokud je cíl dnes už
-      // splněný) uvnitř zavolá addXp, což xp znovu změní a tenhle
-      // efekt sám sebe spustí podruhé (predchoziXpRef už odkazuje na
-      // hodnotu BEZ bonusu, takže druhý běh poznání +50 jako novou,
-      // oddělenou bublinu doopravdy vyjde). Kdyby appka oznacitSplneno()
-      // zavolala hned při detekci prvního nárůstu, obě bubliny by se
-      // přepisovaly ve zlomku vteřiny a první by uživatel nikdy
-      // doopravdy neviděl doběhnout.
-      oznacitSplneno()
     }, TRVANI_XP_BUBLINY_MS)
-  }, [xp, oznacitSplneno])
+  }, [xp])
 
   // Appka časovač na nárůst XP uklidí i při skutečném odmountování
   // Hubu (ne jen při příští změně xp) — jinak by setTimeout po
@@ -345,12 +329,14 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
   // šest (AI/Apps/Shop/Rewards/Rooms/Social), ale Shop a Rewards z
   // kola odešly: appka si nechala potvrdit, že obě svítí dost často
   // na to, aby si zasloužily vlastní, čitelnější kartu (viz dvě nové
-  // .hub-quick-link tlačítka pod "Dnešní cíl" níž), ne jen malé
-  // kolečko ve věnci. Appka schválně NEDALA na uvolněná dvě místa
-  // žádnou "připravujeme" značku — appka tam nic nechystá, prázdný
-  // slib appka nechce (viz appčina vlastní zdrženlivost u BRZY štítků
-  // jinde v appce), proto věnec zůstává zúžený na čtyři, ne doplněný
-  // placeholderem.
+  // .hub-quick-link tlačítka hned pod kolem níž — appka tam dřív
+  // měla ještě "Dnešní cíl" kartu mezi nimi, tu appka na uživatelovu
+  // žádost odstranila úplně, Hub teď pod kolem nese jen Shop a
+  // Rewards), ne jen malé kolečko ve věnci. Appka schválně NEDALA na
+  // uvolněná dvě místa v kole žádnou "připravujeme" značku — appka
+  // tam nic nechystá, prázdný slib appka nechce (viz appčina vlastní
+  // zdrženlivost u BRZY štítků jinde v appce), proto věnec zůstává
+  // zúžený na čtyři, ne doplněný placeholderem.
   //
   // Rooms a Apps vedou na stejné místo schválně — appčiny vlajkové
   // roomy dnes žijí nahoře na /apps (RoomCarousel), appka tam nemá
@@ -832,59 +818,12 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
           </div>
         </div>
 
-        {/* Krok 13: appka sem místo víc karet dává jen jednu — jediný
-            dnešní cíl ("dokonči jednu aktivitu"), co appka pozná ze
-            stejného signálu jako Krok 11's bublina (xp reálně stoupl,
-            viz oznacitSplneno() volání uvnitř efektu výš) a odmění
-            bonusem navíc. Appka dnesniCilSplnen čte vždycky čerstvě
-            při vykreslení (jeDnesniCilSplnen, nikdy jen podle uloženého
-            splneno samotného) — proto appka k "další den se změní"
-            nepotřebuje žádný vlastní půlnoční reset, karta se
-            doopravdy sama přepočítá na nesplněnou hned při prvním
-            vykreslení po půlnoci (ať ho vyvolá nová aktivita, nebo jen
-            appčin vlastní minutový tik výš). */}
-        {/* Krok 14h ("Accessibility dotažení") — role="status"/aria-live
-            appce dává to samé, co appka u XP bubliny výš: odečítač
-            obrazovky nahlásí "SPLNĚNO" ve chvíli, kdy se stav karty
-            doopravdy překlopí, ne až po vlastní, nejistém objevení.
-            Krok 15a: appka místo opacity:0 (hub-fade-pending) dokud se
-            nehydratuje ukáže uvnitř STEJNÉ karty (stejný rámeček/
-            padding/backdrop-filter, žádný layout shift) skeleton
-            obrysy — role="status"/aria-live appka nechává nastavené
-            pořád, i uvnitř skeletonu appka nic nenamlouvá napevno. */}
-        <div
-          className={`hub-denni-cil${dnesniCilSplnen ? ' hub-denni-cil--splneno' : ''}`}
-          role="status"
-          aria-live="polite"
-        >
-          {hydratovano ? (
-            <>
-              <span className="hub-denni-cil-znacka" aria-hidden="true">
-                {dnesniCilSplnen ? '✓' : '🎯'}
-              </span>
-              <div className="hub-denni-cil-text">
-                <span className="hub-denni-cil-stav">{dnesniCilSplnen ? 'SPLNĚNO' : 'DNEŠNÍ CÍL'}</span>
-                <span className="hub-denni-cil-popis">
-                  {dnesniCilSplnen ? 'Dnešní cíl dokončen' : 'Dokonči jednu aktivitu'}
-                </span>
-              </div>
-              <span className="hub-denni-cil-odmena">+{DENNI_CIL_ODMENA_XP} XP</span>
-            </>
-          ) : (
-            <>
-              <span className="hub-skeleton hub-skeleton--circle-sm" aria-hidden="true" />
-              <div className="hub-skeleton-stack" aria-hidden="true">
-                <span className="hub-skeleton hub-skeleton--line-sm" />
-                <span className="hub-skeleton hub-skeleton--line" />
-              </div>
-              <span className="hub-skeleton hub-skeleton--chip" aria-hidden="true" />
-            </>
-          )}
-        </div>
-
         {/* Shop a Rewards — appka je přesunula sem z kruhového menu
             (bývalé paprsky SHOP/REWARDS), ať dostanou vlastní, čitelnou
-            kartu místo malého kolečka ve věnci. Appka ikony ponechala
+            kartu místo malého kolečka ve věnci. Mezi nimi a kolem dřív
+            appka ještě měla "Dnešní cíl" kartu (Krok 13) — na
+            uživatelovu žádost ji appka odstranila úplně, Hub teď pod
+            kolem nese jen tyhle dvě karty. Appka ikony ponechala
             beze změny (stejné medailonky, co appka měla i v kole,
             public/icons/hub-wheel/shop.png a rewards.png) — appka v
             týhle relaci nemá nástroj na generování nové grafiky. */}

@@ -24,6 +24,3 @@ const zavibruj = (vzor: number | number[]) => {
 
 /** Krátké cvaknutí — otevření/zavření kola, výběr paprsku. */
 export const zavibrujKliknuti = () => zavibruj(12)
-
-/** Delší, radostnější vzor — splnění Dnešního cíle (Krok 13/14c). */
-export const zavibrujSplneniCile = () => zavibruj([30, 50, 30, 50, 70])

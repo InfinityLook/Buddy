@@ -51,11 +51,6 @@ export const BACKUP_STORES: BackupStore[] = [
   // takže se sice zálohují (soubor má být věrný snímek), ale nikdy se
   // nezapisují zpět.
   { key: 'schoolbuddy-gamification-storage', storage: 'secure', label: 'XP a odznaky', restorable: false },
-  // Hubovo "Dnešní cíl" (Krok 13) — jen datum + splneno, žádné samo o
-  // sobě vydřené XP uvnitř zálohy (to leží v gamification-storage výš),
-  // takže na rozdíl od něj je bezpečné vracet zpátky: jeDnesniCilSplnen
-  // obnovené splneno z jiného dne stejně při čtení přepočítá na false.
-  { key: 'schoolbuddy-daily-goal-storage', storage: 'secure', label: 'Dnešní cíl' },
   // Krok 14e — jen datum posledního odeslaného upozornění na konec
   // série, žádné samo o sobě vydřené XP ani jinak citlivá data, bezpečné
   // vrátit zpátky i z starší zálohy.

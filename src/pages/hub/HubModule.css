@@ -225,19 +225,19 @@
    sdílenou třídou hub-fade-pending (opacity: 0, viz historie téhle
    appky výš v komentářích). Appka ji teď nahradila pulzujícími
    obrysy (hub-skeleton*) PŘÍMO uvnitř stejných karet (hub-hero-level/
-   -streak, hub-insights, hub-denni-cil) — appka tím pádem nemusí
-   žádnou z nich schovávat celou, žádný layout shift (appka skeleton
-   kreslí do úplně stejných boxů se stejným paddingem/borderem/
-   backdrop-filterem, jen MÍSTO reálného obsahu, ne navrch přes něj).
+   -streak, hub-insights) — appka tím pádem nemusí žádnou z nich
+   schovávat celou, žádný layout shift (appka skeleton kreslí do
+   úplně stejných boxů se stejným paddingem/borderem/backdrop-
+   filterem, jen MÍSTO reálného obsahu, ne navrch přes něj).
 
    hub-skeleton samotná je jen šimrající gradient (appka ho posouvá
    přes @keyframes), prefers-reduced-motion appka řeší globálně
    (global.css's animation-duration: 0.001ms), ne druhou kopií tady —
    animace skočí na poslední snímek prakticky okamžitě i tak. Appka
-   rozměry jednotlivých tvarů (circle/circle-sm/line/line-sm/chip)
-   odvodila ze skutečných rozměrů toho, co nahrazují (hub-level-hex-
-   wrap je 58px kruh, hub-denni-cil-znacka 2.1rem) — ne z odhadu, ať
-   appka při přepnutí skeleton→reálný obsah neposkočí. */
+   rozměry jednotlivých tvarů (circle/circle-sm/line/line-sm) odvodila
+   ze skutečných rozměrů toho, co nahrazují (hub-level-hex-wrap je
+   58px kruh) — ne z odhadu, ať appka při přepnutí skeleton→reálný
+   obsah neposkočí. */
 .hub-skeleton {
   display: inline-block;
   border-radius: var(--radius-sm);
@@ -297,12 +297,6 @@
 .hub-skeleton--line-insight {
   height: 1.05rem;
   width: 72%;
-}
-
-.hub-skeleton--chip {
-  flex-shrink: 0;
-  height: 0.85rem;
-  width: 2.4rem;
 }
 
 .hub-skeleton-stack {
@@ -655,11 +649,13 @@
    výplň pod nimi by jen zdvojila rámeček.
 
    Appka kolo později zúžila ze šesti paprsků na čtyři — Shop a Rewards
-   dostaly vlastní kartu pod "Dnešní cíl" (.hub-quick-link, viz appčin
-   vlastní komentář u ní níž), uvolněná dvě místa ve věnci appka
-   schválně nenechala prázdná jen vizuálně — appka je úplně smazala,
-   žádný "připravujeme" placeholder appka tam dávat nechtěla (appka
-   tam nic nechystá). Čtyři zbylé paprsky appka rozmisťuje na pevné
+   dostaly vlastní kartu hned pod kolem (.hub-quick-link, viz appčin
+   vlastní komentář u ní níž — appka tam dřív mezi kolem a kartami
+   ještě měla "Dnešní cíl", tu si uživatel vyžádal úplně pryč),
+   uvolněná dvě místa ve věnci appka schválně nenechala prázdná jen
+   vizuálně — appka je úplně smazala, žádný "připravujeme" placeholder
+   appka tam dávat nechtěla (appka tam nic nechystá). Čtyři zbylé
+   paprsky appka rozmisťuje na pevné
    souřadnice (ne přes CSS trig funkce sin()/cos() — appka tenhle
    postup, "spočítat úhly jednou sám, ne za běhu", používá i jinde,
    viz Souborova vlastní "jiskra" animace), spočtené jako čtyři body
@@ -1134,105 +1130,16 @@
 }
 
 /* ------------------------------------------
-   DNEŠNÍ CÍL (Krok 13)
-   Jedna dynamická karta pod kolem, ne několik karet — přesně jak
-   zadání chtělo. Appka incomplete/complete rozlišuje jen přes
-   .hub-denni-cil--splneno (text/emoji appka sama volí v Hub.tsx podle
-   stejného appčin dnesniCilSplnen, co appka taky vykresluje). Přechod
-   mezi oběma appka necílí vlastním @keyframes — background/border-
-   /text barvy appka prostě plynule transituje, stejně jako kdekoli
-   jinde appka řeší "jemná změna stavu" — appčin globální kill-switch
-   (global.css) transition-duration pod prefers-reduced-motion zkrátí
-   sám, appka tu nic navíc řešit nemusí.
-   ------------------------------------------ */
-.hub-denni-cil {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  background: rgba(21, 31, 56, 0.3);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 0.65rem 0.8rem;
-  backdrop-filter: blur(14px);
-  transition: background 0.4s ease, border-color 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
-}
-
-.hub-denni-cil--splneno {
-  background: rgba(16, 185, 129, 0.14);
-  border-color: rgba(16, 185, 129, 0.4);
-}
-
-.hub-denni-cil-znacka {
-  flex-shrink: 0;
-  width: 2.1rem;
-  height: 2.1rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  line-height: 1;
-  border-radius: 50%;
-  background: rgba(138, 92, 246, 0.18);
-  transition: background 0.4s ease;
-}
-
-.hub-denni-cil--splneno .hub-denni-cil-znacka {
-  background: rgba(16, 185, 129, 0.22);
-}
-
-.hub-denni-cil-text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.hub-denni-cil-stav {
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  color: var(--accent-violet);
-  white-space: nowrap;
-  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
-  transition: color 0.4s ease;
-}
-
-.hub-denni-cil--splneno .hub-denni-cil-stav {
-  color: var(--accent-green);
-}
-
-.hub-denni-cil-popis {
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.hub-denni-cil-odmena {
-  flex-shrink: 0;
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: var(--accent-cyan);
-  white-space: nowrap;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
-  transition: color 0.4s ease;
-}
-
-.hub-denni-cil--splneno .hub-denni-cil-odmena {
-  color: var(--accent-green);
-}
-
-/* ------------------------------------------
-   SHOP / REWARDS (rychlé karty pod Dnešním cílem)
+   SHOP / REWARDS (rychlé karty hned pod kolem)
    Appka je sem přesunula z kruhového menu (bývalé paprsky SHOP/
-   REWARDS, viz appčin vlastní komentář u KRUHOVÉ MENU výš) — stejná
-   "sklo, jemný rámeček" podoba jako .hub-denni-cil kousek nad nimi
-   (appka schválně drží vizuální jazyk karet jednotný), jen jako
-   doopravdy klikatelné <button>, ne <div role="status">, protože na
-   rozdíl od Dnešního cíle appka tyhle dvě karty nechce jen ukazovat
-   stav — appka na ně chce navigovat. */
+   REWARDS, viz appčin vlastní komentář u KRUHOVÉ MENU výš) — appka
+   mezi nimi a kolem dřív ještě měla dynamickou "Dnešní cíl" kartu
+   (Krok 13, appka ji na uživatelovu žádost smazala úplně, spolu s
+   celým .hub-denni-cil* blokem co tu dřív stával), takže appka tyhle
+   dvě dostávají stejnou "sklo, jemný rámeček" podobu, jakou appka
+   drží i jinde po celém Hubu (appčin vizuální jazyk karet jednotný),
+   jen jako doopravdy klikatelné <button> — appka na ně chce
+   navigovat, ne jen ukazovat stav. */
 .hub-quick-links {
   display: flex;
   flex-direction: column;
