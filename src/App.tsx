@@ -28,6 +28,7 @@ import ShopModule from '@/pages/shop/ShopModule.tsx'
 import AdminModule from '@/pages/admin/AdminModule.tsx'
 import SupportModule from '@/pages/support/SupportModule.tsx'
 const SocialModule = lazy(() => import('@/social/SocialModule'))
+const FeedModule = lazy(() => import('@/social/FeedModule'))
 // Všech pět her (Buddyheim, Souboj, Buddyho Trh, Survival Night, Čtyři
 // království) je dočasně schovaných zároveň s GamesHubModule importem
 // výš — appka releasuje v1 na Google Play bez celé sekce Hry a doplní
@@ -265,6 +266,23 @@ export default function App() {
                 dovnitr ? (
                   <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
                     <SocialModule />
+                  </Suspense>
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+
+            {/* Krok 18: "jen zeď" — Hubovo kolo (paprsek "Feed", dřív
+                "Social") sem vede přímo, mimo celý SocialModule se
+                svojí vlastní spodní navigací. Viz FeedModule.tsx's
+                vlastní komentář. */}
+            <Route
+              path="/feed"
+              element={
+                dovnitr ? (
+                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
+                    <FeedModule />
                   </Suspense>
                 ) : (
                   <Navigate to="/" replace />

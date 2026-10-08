@@ -354,7 +354,14 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
     { id: 'shop', nazev: 'Shop', ikona: '/icons/hub-wheel/shop.png', uhel: 120, onClick: () => navigate('/obchod') },
     { id: 'rewards', nazev: 'Rewards', ikona: '/icons/hub-wheel/rewards.png', uhel: 180, onClick: handleRewardsClick },
     { id: 'rooms', nazev: 'Rooms', ikona: '/icons/hub-wheel/rooms.png', uhel: 240, onClick: handleAppsClick },
-    { id: 'social', nazev: 'Social', ikona: '/icons/hub-wheel/social.png', uhel: 300, onClick: () => prejit('/social') },
+    // Krok 18: "Social" přejmenováno na "Feed" a přesměrováno z celého
+    // SocialModule (vlastní pětice spodních záložek) na FeedModule.tsx
+    // ("jen zeď", bez Socialovy vlastní navigace) — appka Chat a Hledat
+    // už má přímo v AppBottomNav.tsx odkudkoli, takže jediné, co tenhle
+    // paprsek doopravdy ještě nabízel navíc, byla samotná záložka Domů.
+    // Ikonu appka ponechala beze změny (/icons/hub-wheel/social.png) —
+    // appka v týhle relaci nemá nástroj na generování nové grafiky.
+    { id: 'social', nazev: 'Feed', ikona: '/icons/hub-wheel/social.png', uhel: 300, onClick: () => prejit('/feed') },
   ]
 
   // Krok 6: appka teď paprsek pod prstem nehledá podle toho, nad kterým
