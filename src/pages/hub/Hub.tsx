@@ -35,8 +35,8 @@ interface HubModuleProps {
 }
 
 // Jeden paprsek kruhového menu — čtyři jich jde kolem prostředního
-// "BUDDY CORE" tlačítka (appka ho dřív měla šest, Shop a Rewards z
-// něj odešly, viz appčin vlastní komentář u `kolo` níž), viz
+// "BUDDY CORE" tlačítka (appka ho dřív měla šest, Shop a Achievementy
+// z něj odešly, viz appčin vlastní komentář u `kolo` níž), viz
 // HubModule.css's vlastní komentář u .hub-wheel-petal pro úhly/
 // souřadnice. `uhel` je stejný úhlový rozpis (0° nahoře/AI, po 90°
 // po směru hodinových ručiček), co appka má zapsaný i v CSS komentáři
@@ -60,7 +60,7 @@ const TRVANI_VYBERU_MS = 400
 // (0,15–0,36 s po 0,07 s), ale SOCIAL/ROOMS/APPS/AI, přesně naopak (viz
 // čtyři .hub-wheel--zavira-se pravidla v HubModule.css). Appka tenhle
 // výpočet zkrátila spolu se zúžením kola ze šesti paprsků na čtyři
-// (appka Shop/Rewards z kola odstranila, viz appčin vlastní komentář u
+// (appka Shop/Achievementy z kola odstranila, viz appčin vlastní komentář u
 // `kolo` níž) — dřív appka počítala z nejdelšího zpoždění při šesti
 // paprscích (0,50 s), teď ze čtyř (0,36 s). 710 ms appka počítá stejným
 // způsobem jako dřív: nejdelší zpoždění (0,36 s) plus doba samotného
@@ -147,7 +147,7 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
   // Minutový tik vynutí nové vykreslení jednou za minutu — appka ho
   // dřív potřebovala i pro Krok 13's "Dnešní cíl" (ta karta appku i s
   // celým svým useDailyGoalStore.ts úplně opustila, uživatel chtěl
-  // Hub jen se Shopem a Rewards), appka si ho ale nechala: pozdrav
+  // Hub jen se Shopem a Achievementy), appka si ho ale nechala: pozdrav
   // (Krok 14a, pod radou) na něm pořád visí, ať appka dostane přechod
   // "Dobré ráno" → "Dobré odpoledne" zadarmo, bez vlastního druhého
   // časovače.
@@ -238,8 +238,8 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
     navigate('/apps')
   }
 
-  // Rewards otevře samostatný modul s odměnami (úroveň, série, odznaky)
-  const handleRewardsClick = () => {
+  // Achievementy otevřou samostatný modul s odměnami (úroveň, série, odznaky)
+  const handleAchievementsClick = () => {
     navigate('/odmeny')
   }
 
@@ -326,13 +326,13 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
   }
 
   // Čtyři paprsky kolem prostředního tlačítka — appka tu dřív měla
-  // šest (AI/Apps/Shop/Rewards/Rooms/Social), ale Shop a Rewards z
+  // šest (AI/Apps/Shop/Achievementy/Rooms/Social), ale Shop a Achievementy z
   // kola odešly: appka si nechala potvrdit, že obě svítí dost často
   // na to, aby si zasloužily vlastní, čitelnější kartu (viz dvě nové
   // .hub-quick-link tlačítka hned pod kolem níž — appka tam dřív
   // měla ještě "Dnešní cíl" kartu mezi nimi, tu appka na uživatelovu
   // žádost odstranila úplně, Hub teď pod kolem nese jen Shop a
-  // Rewards), ne jen malé kolečko ve věnci. Appka schválně NEDALA na
+  // Achievementy), ne jen malé kolečko ve věnci. Appka schválně NEDALA na
   // uvolněná dvě místa v kole žádnou "připravujeme" značku — appka
   // tam nic nechystá, prázdný slib appka nechce (viz appčina vlastní
   // zdrženlivost u BRZY štítků jinde v appce), proto věnec zůstává
@@ -818,8 +818,8 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
           </div>
         </div>
 
-        {/* Shop a Rewards — appka je přesunula sem z kruhového menu
-            (bývalé paprsky SHOP/REWARDS), ať dostanou vlastní, čitelnou
+        {/* Shop a Achievementy — appka je přesunula sem z kruhového menu
+            (bývalé paprsky SHOP/ACHIEVEMENTY), ať dostanou vlastní, čitelnou
             kartu místo malého kolečka ve věnci. Mezi nimi a kolem dřív
             appka ještě měla "Dnešní cíl" kartu (Krok 13) — na
             uživatelovu žádost ji appka odstranila úplně, Hub teď pod
@@ -836,10 +836,10 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
             </span>
             <span className="hub-quick-link-arrow" aria-hidden="true">›</span>
           </button>
-          <button type="button" className="hub-quick-link" onClick={handleRewardsClick}>
+          <button type="button" className="hub-quick-link" onClick={handleAchievementsClick}>
             <img src="/icons/hub-wheel/rewards.png" alt="" className="hub-quick-link-icon" />
             <span className="hub-quick-link-text">
-              <span className="hub-quick-link-title">Rewards</span>
+              <span className="hub-quick-link-title">Achievementy</span>
               <span className="hub-quick-link-desc">Úroveň, série a odznaky</span>
             </span>
             <span className="hub-quick-link-arrow" aria-hidden="true">›</span>
