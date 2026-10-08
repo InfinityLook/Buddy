@@ -4,10 +4,12 @@ import { DomuPanel } from './components/DomuPanel'
 import { VerejnyProfilDialog } from './components/VerejnyProfilDialog'
 import { useSocial } from './useSocial'
 import { useAmbientScene } from './scene/useAmbientScene'
+import { AppBottomNav } from '@/components/AppBottomNav'
 import './SocialModule.css'
 
 // ==========================================
-// Feed — "jen zeď", bez Socialovy vlastní navigace.
+// Feed — "jen zeď" (jen DomuPanel.tsx, ne celý SocialModule), appčina
+// sdílená AppBottomNav od Kroku 19 dál.
 //
 // Krok 18: appčino kruhové menu na Hubu mělo paprsek "Social", co
 // otevíral celý SocialModule (vlastní pětice spodních záložek Profil/
@@ -18,10 +20,15 @@ import './SocialModule.css'
 //
 // Tenhle modul je proto DomuPanel.tsx (stejná komponenta, co Social's
 // vlastní záložka Domů vykresluje) obalený jen tenkou hlavičkou se
-// šipkou zpátky na Hub — žádná vlastní spodní lišta, žádné Chaty/
-// Vyhledávač/Profil tady. Stejný vzor appka má i u otevřené
-// miniaplikace (AppModule.tsx's app-fullscreen-view) — ohraničený
-// obsah s jedinou cestou ven, ne druhá sada navigace navíc.
+// šipkou zpátky na Hub, žádné Chaty/Vyhledávač/Profil tady.
+//
+// Krok 19: appka si "spodní lišta pro (téměř) celou appku" nechala
+// potvrdit po jednotlivých obrazovkách — a pro tuhle padla odpověď
+// "Ano, přidat", přímo naproti Kroku 18's "jen zeď" (appka to tak
+// zachovává, protiřečí si to jen navenek, ne v tom, co uživatel
+// doopravdy odpověděl). AppBottomNav appce teď dává to, co Feed
+// samo nikdy nemělo — tlačítko Profil/Chat/Home/Hledat/Nastavení
+// přímo odsud, bez návratu na Hub.
 //
 // `useSocial()` appka volá jako druhou, na SocialModule nezávislou
 // instanci stejného hooku — zavedený appčin vzor (viz appčin
@@ -71,6 +78,8 @@ export const FeedModule: React.FC = () => {
           onZavrit={() => setOtevrenyProfil(null)}
         />
       )}
+
+      <AppBottomNav />
     </div>
   )
 }

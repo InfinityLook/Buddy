@@ -13,7 +13,11 @@
     radial-gradient(circle at 85% 20%, rgba(138, 92, 246, 0.18) 0%, transparent 36%),
     var(--bg-base);
   color: var(--text-primary);
-  padding: 0.75rem 0.75rem calc(1.25rem + env(safe-area-inset-bottom));
+  /* Krok 19: AppBottomNav je sticky flex prvek, co si svou výšku
+     rezervuje sám — tahle hodnota je jen malý prostor navíc pod
+     poslední kartou, ne odhad výšky lišty samotné (shoduje se s
+     .app-container's vlastní, stejně odůvodněnou hodnotou). */
+  padding: 0.75rem 0.75rem calc(1.5rem + env(safe-area-inset-bottom));
   max-width: 480px;
   margin: 0 auto;
   display: flex;
@@ -41,9 +45,10 @@
 .social-ambient.je-skryty { opacity: 0; }
 
 /* Obsah musí ležet nad ambientní vrstvou explicitně — fixed prvek se
-   umí propsat nad obyčejný tok i bez z-indexu, tohle je pojistka. */
+   umí propsat nad obyčejný tok i bez z-indexu, tohle je pojistka.
+   Krok 19: appčina sdílená <AppBottomNav /> (components/AppBottomNav.css)
+   má svůj vlastní z-index, sem už nepatří. */
 .social-top-bar,
-.social-bottom-nav,
 .social-panel,
 .social-chat-view {
   position: relative;
@@ -79,77 +84,11 @@
 }
 
 /* ---------- spodní navigace ---------- */
-/* Instagram/TikTok vzor: ikony dole na pevno přilepené k okraji, ne
-   záložky nahoře nad obsahem. Stejný sticky+gradientový podklad jako
-   sdílené appčiny .app-bottom-nav (components/AppBottomNav.css) — dvě
-   různé lišty pro totéž by
-   appka nemusela mít. flex:1 tu na rozdíl od staré horní řady nevadí:
-   samotná ikona s jednoslovným popiskem pod sebou se nemá kam zalomit
-   ani na pěti/šesti položkách v řadě, takže vodorovný scroll (řešení
-   staré verze) už není potřeba vůbec. */
-.social-bottom-nav {
-  display: flex;
-  align-items: stretch;
-  margin-top: auto;
-  padding-top: 0.4rem;
-  padding-bottom: 0.25rem;
-  position: sticky;
-  bottom: 0;
-}
-
-.social-bottom-nav::before {
-  content: '';
-  position: absolute;
-  inset: -0.7rem -0.75rem calc(-1.25rem - env(safe-area-inset-bottom)) -0.75rem;
-  background: linear-gradient(180deg, rgba(6, 10, 22, 0) 0%, rgba(6, 10, 22, 0.92) 45%);
-  pointer-events: none;
-  z-index: -1;
-}
-
-.social-nav-item {
-  position: relative;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
-  border: none;
-  background: none;
-  color: var(--text-muted);
-  font-family: inherit;
-  font-size: 0.56rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: color 0.2s ease, transform 0.15s ease;
-}
-
-.social-nav-item:active { transform: scale(0.92); }
-
-.social-nav-item.is-aktivni { color: var(--accent-cyan); }
-
-.social-nav-icon-wrap {
-  position: relative;
-  display: inline-flex;
-}
-
-.social-nav-odznak {
-  position: absolute;
-  top: -4px;
-  right: -8px;
-  min-width: 14px;
-  height: 14px;
-  padding: 0 3px;
-  border-radius: var(--radius-pill);
-  background: var(--accent-magenta);
-  color: #fff;
-  font-size: 0.48rem;
-  font-weight: 800;
-  line-height: 14px;
-  text-align: center;
-  border: 2px solid var(--bg-base);
-  box-sizing: border-box;
-}
+/* Krok 19: appka tu dřív měla vlastní pětici tlačítek (Profil/Chaty/
+   Hub/Domů/Vyhledávač, Instagram/TikTok vzor) — appčina sdílená
+   <AppBottomNav /> (components/AppBottomNav.css) ji teď nahrazuje
+   úplně, viz komentář u SocialModule.tsx's Zalozka. Nic odsud se
+   už nevykresluje. */
 
 /* ---------- karty ---------- */
 
@@ -2604,7 +2543,8 @@
   position: fixed;
   left: 50%;
   /* 4.5rem místo dřívějších 1.25rem — appka teď má na tomhle místě
-     přilepenou spodní navigaci (social-bottom-nav), toast musí plavat
+     přilepenou spodní navigaci (Krok 19: appčina sdílená AppBottomNav,
+     dřív vlastní social-bottom-nav podobné výšky), toast musí plavat
      nad ní, ne se s ní překrývat. */
   bottom: calc(4.5rem + env(safe-area-inset-bottom));
   transform: translateX(-50%);
@@ -2720,7 +2660,6 @@
    od kruhu v Hubu po tenhle modul appka bere prefers-reduced-motion
    vážně napříč celou aplikací, ne jen tam, kde si na to někdo vzpomněl. */
 @media (prefers-reduced-motion: reduce) {
-  .social-nav-item,
   .social-avatar-prstenec,
   .social-avatar-pulz,
   .social-row--chat.ma-neprectene .social-odznak,

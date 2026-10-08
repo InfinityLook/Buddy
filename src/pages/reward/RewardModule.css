@@ -19,7 +19,11 @@
     radial-gradient(circle at 50% 95%, rgba(236, 72, 153, 0.13) 0%, transparent 45%),
     var(--bg-base);
   color: var(--text-primary);
-  padding: 0.75rem 0.75rem calc(1.25rem + env(safe-area-inset-bottom));
+  /* Krok 19: AppBottomNav je sticky flex prvek, co si svou výšku
+     rezervuje sám (stejná poznámka jako .app-container v AppModule.css) —
+     tahle hodnota je jen malý prostor navíc pod poslední kartou, ne
+     odhad výšky lišty samotné. */
+  padding: 0.75rem 0.75rem calc(1.5rem + env(safe-area-inset-bottom));
   max-width: 480px;
   margin: 0 auto;
   display: flex;

@@ -11,6 +11,7 @@ import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
 import { PRAH_RIZIKA_DOCHAZKY, spocitejDochazkuPodlePredmetu } from '@/miniapps/rozvrh/types'
 import { spocitejTrendZnamek } from './skolaStats'
 import { AppIcon } from '@/pages/app/components/AppIcon'
+import { AppBottomNav } from '@/components/AppBottomNav'
 import '@/pages/app/AppModule.css'
 import './SchoolRoomModule.css'
 
@@ -298,6 +299,16 @@ export const SkolaStatistiky: React.FC = () => {
           <p className="sr-prazdno-text">Zatím žádné známky za posledních 6 měsíců.</p>
         )}
       </div>
+
+      {/* Krok 19: appka si jednotlivé vlajkové podobrazovky (tahle a
+          SkolaUpozorneni.tsx) ptala zvlášť na to, co FlagshipShell.tsx
+          má už dávno (šest Roomů samotných AppBottomNav dostává přes
+          shell) — tahle stránka shell nepoužívá (vlastní jednoduchá
+          hlavička, žádné velké karty/šipky mezi Roomy), takže lištu
+          potřebuje přidat ručně. .app-container appka tu má beze
+          změny z AppModule.css, stejný sticky-v-toku mechanismus jako
+          jinde appku zbavuje nutnosti cokoli dolaďovat v odsazení. */}
+      <AppBottomNav />
     </div>
   )
 }

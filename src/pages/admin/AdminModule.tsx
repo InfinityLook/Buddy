@@ -9,6 +9,7 @@ import { SystemPanel } from './components/SystemPanel'
 import { KonzolePanel } from './components/KonzolePanel'
 import { ADMIN_TABS, AdminTab, AdminTabDef } from './types'
 import { MODERATOR_ROLE, ADMIN_ROLE, useHasPermission } from '@/core/role'
+import { AppBottomNav } from '@/components/AppBottomNav'
 import './AdminModule.css'
 
 // ==========================================
@@ -117,6 +118,11 @@ export const AdminModule: React.FC = () => {
       {sekce && AktivniPanel && (
         <div className="admin-content">{smiOtevrenouSekci ? <AktivniPanel /> : null}</div>
       )}
+
+      {/* Krok 19: appčina sdílená spodní lišta — jak na menu, tak na
+          otevřené sekci, ať se z admin panelu dá odejít stejně jako
+          odkudkoli jinde v appce. */}
+      <AppBottomNav />
     </div>
   )
 }

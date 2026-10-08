@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { useNotificationItems } from '@/pages/profil/components/ProfilNotifications'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
+import { AppBottomNav } from '@/components/AppBottomNav'
 import '@/pages/app/AppModule.css'
 import './SchoolRoomModule.css'
 
@@ -63,6 +64,11 @@ export const SkolaUpozorneni: React.FC = () => {
           })
         )}
       </div>
+
+      {/* Krok 19: viz stejný komentář v SkolaStatistiky.tsx — tahle
+          podstránka taky nejde přes FlagshipShell, lištu si proto
+          nese sama. */}
+      <AppBottomNav />
     </div>
   )
 }

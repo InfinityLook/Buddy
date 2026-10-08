@@ -4,6 +4,7 @@ import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
+import { AppBottomNav } from '@/components/AppBottomNav'
 import './RewardModule.css'
 
 // Kolik odznaků smí být na veřejném profilu vystavených najednou — víc
@@ -195,6 +196,12 @@ export const RewardModule: React.FC = () => {
           ))}
         </div>
       </section>
+
+      {/* Krok 19: appka appčinu sdílenou spodní lištu rozšiřuje na
+          (téměř) celou appku — Rewards dřív žádnou navigaci na
+          dně nemělo, teď dostává tu stejnou, co Hub/Apps/Profil/
+          Nastavení. */}
+      <AppBottomNav />
     </div>
   )
 }

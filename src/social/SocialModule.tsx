@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { SocialIcon } from './components/SocialIcon'
 import { DomuPanel } from './components/DomuPanel'
 import { ChatyPanel } from './components/ChatyPanel'
 import { ChatView } from './components/ChatView'
@@ -12,6 +11,7 @@ import { useTajnyChat, nastavOtevrenyTajnyChat } from './useTajnyChat'
 import { nastavOtevrenyChat } from './inbox'
 import { useAmbientScene } from './scene/useAmbientScene'
 import { najdiPodleKodu } from './api'
+import { AppBottomNav } from '@/components/AppBottomNav'
 import './SocialModule.css'
 
 // ==========================================
@@ -28,30 +28,36 @@ import './SocialModule.css'
 
 type Zalozka = 'chaty' | 'domu' | 'vyhledavac'
 
-// Tři pevné položky pro úplně každého, ne čtyři/pět/šest podle role.
-// Hledání nových lidí (dřív karta nad seznamem přátel v Profilu) má
-// vlastní záložku Vyhledávač — stejný mentální model, jaký zná
-// Instagram/TikTok. Blokovaní a Hlášení, dřív vlastní čtvrtá záložka
-// "Nastavení" (menu dvou řádků, NastaveniPanel.tsx), se přestěhovaly
-// do appčina skutečného /nastaveni jako karta "Sociální nastavení"
-// (SettingsModule.tsx, lazy SocialniNastaveniSekce.tsx) — appka má tak
-// jen jedno "Nastavení", ne dvě různá pod stejným jménem na dvou
-// místech. Tajný chat mezitím žije pod "+ Nový" v ChatyPanel.tsx.
+// Tři vnitřní záložky obrazovky — Chaty/Domů/Vyhledávač. Blokovaní a
+// Hlášení, dřív vlastní čtvrtá záložka "Nastavení" (menu dvou řádků,
+// NastaveniPanel.tsx), se přestěhovaly do appčina skutečného /nastaveni
+// jako karta "Sociální nastavení" (SettingsModule.tsx, lazy
+// SocialniNastaveniSekce.tsx). Tajný chat žije pod "+ Nový" v
+// ChatyPanel.tsx.
 //
-// "Profil" mezitím přestala být záložka Social — appka má jen jeden
-// skutečný profil (pages/profil/ProfilModule.tsx) a mít jeho kopii i
-// tady bylo matoucí (dvě různé "moje" obrazovky se jménem, avatarem
-// a úrovní, ne vždy stejně aktuální). Tlačítko na jejím místě proto
-// vede rovnou tam (viz spodní navigace níž), Social's vlastní seznam
-// přátel a sdílení kódu se přestěhovaly do ProfilModule.tsx (lazy
-// ProfilSocialniSekce.tsx — Social API nesmí zatížit appčin hlavní balíček).
-// Uvolněné místo uprostřed lišty zabrala nová "Domů" (DomuPanel.tsx) —
-// zatím jen story pruh, zbytek se doplní v pozdější fázi.
-const ZALOZKY: { id: Zalozka; popis: string; ikona: string }[] = [
-  { id: 'chaty', popis: 'Chaty', ikona: 'chat' },
-  { id: 'domu', popis: 'Domů', ikona: 'home' },
-  { id: 'vyhledavac', popis: 'Vyhledávač', ikona: 'search' },
-]
+// "Profil" dávno přestala být záložka Social — appka má jen jeden
+// skutečný profil (pages/profil/ProfilModule.tsx), Social's vlastní
+// seznam přátel a sdílení kódu se přestěhovaly do ProfilModule.tsx
+// (lazy ProfilSocialniSekce.tsx).
+//
+// Krok 19: appka si "spodní lišta pro (téměř) celou appku" nechala
+// potvrdit po jednotlivých obrazovkách — pro Social padla odpověď
+// "Ano, nahradit Socialovu vlastní lištu sdílenou AppBottomNav".
+// Socialova dřívější vlastní pětice tlačítek (Profil/Chaty/Hub/Domů/
+// Vyhledávač) je proto pryč, nahrazená appčinou sdílenou
+// <AppBottomNav /> (Profil/Chat/Home/Hledat/Nastavení) — Chat a Hledat
+// na ní vedou přes URL (?zalozka=chaty / ?zalozka=vyhledavac, viz
+// useEffect níž), ne přímým přepnutím stavu tady.
+//
+// Dvě věci se tím vědomě ztrácí, appka to tak schvaluje, ne že by si
+// toho nevšimla: (1) sdílená lišta nemá tlačítko "Domů" vůbec žádné —
+// jednou opuštěná domovská záložka Social se odsud zpátky nedá otevřít
+// jinak než novým načtením /social (bez ?zalozka v adrese) nebo
+// tlačítkem zpět v historii prohlížeče; (2) odznak na "Vyhledávač" pro
+// čekající žádosti o přátelství (cekaZadosti) a přičtení
+// tajnyStav.cekajiciNaMe k odznaku na "Chat" appka neměla kam
+// přenést — appčina sdílená lišta počítá jen appčinu obecnou
+// schránku (inbox.ts), ne tyhle dvě Socialu vlastní čísla.
 
 export const SocialModule: React.FC = () => {
   const navigate = useNavigate()
@@ -60,11 +66,11 @@ export const SocialModule: React.FC = () => {
   const tajnyStav = useTajnyChat()
 
   // Výchozí záložka jde přebít parametrem v URL (?zalozka=chaty) — stejný
-  // vzor jako AppModule.tsx's ?kategorie=, jen tady si tak appka od
-  // Hubu vyžádá rovnou Chaty místo domovské obrazovky Social's vlastní
-  // "Chat" tlačítko dole. Čte se jen jednou při mountu (useState's
-  // inicializátor), ne živě — jinak by přepsání "zalozka" v adrese za
-  // běhu appku uprostřed používání přehodilo na jinou záložku.
+  // vzor jako AppModule.tsx's ?kategorie=. Inicializátor tu je, aby
+  // první vykreslení hned ukázalo správnou záložku bez jednoho rámečku
+  // bliknutí na "domu" — živou reaktivitu na pozdější změny parametru
+  // (Krok 19: appčina sdílená AppBottomNav teď na tenhle parametr
+  // vede) řeší samostatný useEffect níž.
   const [zalozka, setZalozka] = useState<Zalozka>(() => {
     const z = searchParams.get('zalozka')
     return z === 'chaty' || z === 'vyhledavac' ? z : 'domu'
@@ -123,13 +129,20 @@ export const SocialModule: React.FC = () => {
     return () => nastavOtevrenyTajnyChat(null)
   }, [otevrenyTajnyChat])
 
-  const cekaZadosti = stav.zadosti.filter((z) => z.smer === 'prichozi').length
-  // Ztlumené chaty se do souhrnného odznaku na záložce nepočítají —
-  // stejné vynechání jako u globální schránky v inbox.ts, jinak by
-  // ztlumení chatu na tomhle číslo nemělo vůbec žádný efekt.
-  const neprectene = stav.chaty
-    .filter((ch) => !ch.mujMuted)
-    .reduce((soucet, ch) => soucet + ch.neprectene, 0)
+  // Krok 19: appčina sdílená <AppBottomNav /> vede Chat/Hledat přes URL
+  // (?zalozka=chaty / ?zalozka=vyhledavac), ne přes přímé setZalozka()
+  // volání jako dřív vlastní lišta. Navigace z /social na
+  // /social?zalozka=... zůstává na stejné routě — React Router tuhle
+  // komponentu znovu nezamountuje, takže inicializátor useState výš
+  // (čte se jen jednou při mountu) by si novou hodnotu parametru
+  // nevšiml. Tenhle efekt doplňuje tu chybějící reaktivitu; chybějící
+  // nebo neplatný parametr appka čte stejně jako ten inicializátor —
+  // jako "domu" (pokrývá i návrat na obyčejné /social přes tlačítko
+  // zpět v historii prohlížeče).
+  useEffect(() => {
+    const z = searchParams.get('zalozka')
+    setZalozka(z === 'chaty' || z === 'vyhledavac' ? z : 'domu')
+  }, [searchParams])
 
   // Ambientní pozadí žije mimo React a musí se postavit přesně jednou —
   // proto containerRef nesmí zmizet z DOMu, ať uživatel otevře chat,
@@ -139,36 +152,6 @@ export const SocialModule: React.FC = () => {
   // pořád v DOMu; jen ve chatu se schová přes CSS, ať nesoutěží
   // s čtením zpráv, ale běžet klidně může dál.
   const { containerRef: ambientRef } = useAmbientScene()
-
-  // Vytažené z .map() ve spodní navigaci, ať se mezi ZALOZKY položky dá
-  // vložit tlačítko na Hub (viz JSX níž) bez rozbití odznakové logiky.
-  const renderZalozka = (z: (typeof ZALOZKY)[number]) => {
-    // Tajný chat teď žije pod "+ Nový" v Chatech (ChatyPanel.tsx),
-    // ne v Nastavení — čekající pozvánka se proto pro rychlý
-    // pohled zvenčí sčítá do stejného odznaku jako nepřečtené
-    // zprávy, ne že by zůstala neviditelná, dokud uživatel
-    // Chaty sám neotevře.
-    const odznak =
-      z.id === 'vyhledavac'
-        ? cekaZadosti
-        : z.id === 'chaty'
-          ? neprectene + tajnyStav.cekajiciNaMe
-          : 0
-
-    return (
-      <button
-        key={z.id}
-        className={`social-nav-item ${zalozka === z.id ? 'is-aktivni' : ''}`}
-        onClick={() => setZalozka(z.id)}
-      >
-        <span className="social-nav-icon-wrap">
-          <SocialIcon name={z.ikona} size={21} />
-          {odznak > 0 && <span className="social-nav-odznak">{odznak}</span>}
-        </span>
-        {z.popis}
-      </button>
-    )
-  }
 
   return (
     <div className="social-page">
@@ -231,39 +214,10 @@ export const SocialModule: React.FC = () => {
 
           {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
 
-          {/* Spodní navigace, ne horní záložky — Instagram/TikTok vzor,
-              viz komentář v SocialModule.css. Poslední prvek v .social-page's
-              flex sloupci, margin-top: auto ho posune ke dnu i s krátkým
-              obsahem, position: sticky ho tam udrží i při delším scrollu. */}
-          <div className="social-bottom-nav">
-            {/* Ne záložka jako zbytek lišty — opouští Social úplně
-                a jde na appčin skutečný profil (pages/profil/ProfilModule.tsx),
-                viz komentář u Zalozka výš. Zůstává na svém původním
-                místě vlevo, jen mění, co se stane po klepnutí. */}
-            <button className="social-nav-item" onClick={() => navigate('/profil')}>
-              <span className="social-nav-icon-wrap">
-                <SocialIcon name="user" size={21} />
-              </span>
-              Profil
-            </button>
-
-            {renderZalozka(ZALOZKY[0])}
-
-            {/* Hub — stejně jako "Profil" opouští Social úplně, ne
-                záložka. Schválně uprostřed lišty (mezi Chaty a Domů, ne
-                na kraji) — appka ho žádá výslovně "doprostřed", ať se z
-                kterékoli obrazovky Social vrací na appčin hlavní modul
-                jedním klepnutím, stejně jako "Home" v AppBottomNav.tsx
-                na Hub/Apps/Profil/Nastavení. */}
-            <button className="social-nav-item" onClick={() => navigate('/hub')}>
-              <span className="social-nav-icon-wrap">
-                <SocialIcon name="hub" size={21} />
-              </span>
-              Hub
-            </button>
-
-            {ZALOZKY.slice(1).map(renderZalozka)}
-          </div>
+          {/* Krok 19: appčina sdílená spodní lišta — jen tady, ne
+              v otevřeném chatu/tajném chatu výš, ten zůstává
+              celoobrazovkovou, nerušenou obrazovkou stejně jako dřív. */}
+          <AppBottomNav />
         </>
       )}
 

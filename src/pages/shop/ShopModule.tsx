@@ -5,6 +5,7 @@ import { ShopBalance } from './components/ShopBalance'
 import { CreditPackCard } from './components/CreditPackCard'
 import { VipPlanCard } from './components/VipPlanCard'
 import { ShopItemCard } from './components/ShopItemCard'
+import { AppBottomNav } from '@/components/AppBottomNav'
 import { useShop } from './useShop'
 import {
   CREDIT_PACKS,
@@ -175,6 +176,10 @@ export const ShopModule: React.FC = () => {
       </section>
 
       {toast && <div className="shop-toast">{toast}</div>}
+
+      {/* Krok 19: appčina sdílená spodní lišta — Shop dřív žádnou
+          navigaci na dně nemělo. */}
+      <AppBottomNav />
     </div>
   )
 }

@@ -85,6 +85,14 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
             </Suspense>
           </ErrorBoundary>
         </main>
+
+        {/* Krok 19: appčina sdílená spodní lišta — i otevřená
+            miniaplikace na celou obrazovku ji dostává teď, ne jen
+            mřížka /apps. .app-fullscreen-content si nad ní dál
+            scrolluje sama (flex: 1), lišta sedí jako třetí, neflexující
+            sourozenec pod ní, stejně jako .app-fullscreen-header
+            nahoře. */}
+        <AppBottomNav />
       </div>
     )
   }
