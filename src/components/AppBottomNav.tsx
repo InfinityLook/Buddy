@@ -81,6 +81,16 @@ export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
 
   const jeAktivni = (cesta: string) => location.pathname === cesta
 
+  // Chat/Hledat nikdy nezůstávají na vlastní cestě (/social?zalozka=...),
+  // takže obyčejné jeAktivni(cesta) výš je nerozezná — appka proto
+  // kontroluje zalozka= rovnou v query stringu. location.search appka
+  // čte přes živý useLocation() (appčin react-router hook, ne appčin
+  // vlastní useState jako v SocialModule.tsx), takže se tu znovu
+  // nevrací problém z Kroku 19 — navigace na stejné komponentě appku
+  // znovu vykreslí správně i bez appčina samostatného useEffectu.
+  const jeAktivniZalozka = (zalozka: 'chaty' | 'vyhledavac') =>
+    location.pathname === '/social' && new URLSearchParams(location.search).get('zalozka') === zalozka
+
   // Šipky se zobrazují jen na zařízení s myší, přes @media (pointer: fine)
   // v CSS, ne JS detekcí zařízení — stejný vzor jako VirtualniJoystick.tsx
   // (jen obráceně — tady se skrývají NA dotykovém zařízení, joystick se
@@ -151,7 +161,11 @@ export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
             Nastavení appka si vyžádala sama, ať Home vyjde přesně
             doprostřed pětice teď, co prostřední vyvýšené kolečko
             s Buddym z lišty zmizelo úplně). */}
-        <button className="app-nav-item" onClick={() => prejit('/social?zalozka=chaty')}>
+        <button
+          className={`app-nav-item ${jeAktivniZalozka('chaty') ? 'app-nav-item--active' : ''}`}
+          aria-current={jeAktivniZalozka('chaty') ? 'page' : undefined}
+          onClick={() => prejit('/social?zalozka=chaty')}
+        >
           <span className="app-nav-icon-wrap">
             <SocialIcon name="chat" size={20} />
             {neprectene > 0 && <span className="app-nav-dot" aria-hidden="true" />}
@@ -170,7 +184,11 @@ export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
           <span>Home</span>
         </button>
 
-        <button className="app-nav-item" onClick={() => prejit('/social?zalozka=vyhledavac')}>
+        <button
+          className={`app-nav-item ${jeAktivniZalozka('vyhledavac') ? 'app-nav-item--active' : ''}`}
+          aria-current={jeAktivniZalozka('vyhledavac') ? 'page' : undefined}
+          onClick={() => prejit('/social?zalozka=vyhledavac')}
+        >
           <SocialIcon name="search" size={20} />
           <span>Hledat</span>
         </button>
