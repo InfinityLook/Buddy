@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
-import { useAppStore } from '@/core/store/useAppStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { getXpForNextLevel, getLevelProgress } from '@/core/utils/gamificationUtils'
 import { AppBottomNav } from '@/components/AppBottomNav'
@@ -14,38 +13,9 @@ import './RewardModule.css'
 // než by narazila na server.
 const MAX_PRIPNUTYCH = 3
 
-// Zdroje XP odpovídají hodnotám natvrdo v jednotlivých miniaplikacích
-// (XP_PER_COMPLETED_TASK apod.). Když se některá z nich změní, je potřeba
-// srovnat i tenhle seznam — jinak bude stránka slibovat něco jiného,
-// než uživatel doopravdy dostane.
-interface XpSource {
-  appId: string
-  icon: string
-  title: string
-  reward: string
-}
-
-const XP_SOURCES: XpSource[] = [
-  { appId: 'exam-prep', icon: '⏱️', title: 'Odsimuluj maturitní otázku (jednou za otázku)', reward: '+100 XP' },
-  { appId: 'exam-prep', icon: '🎓', title: 'Zopakuj otázku, která je na řadě', reward: '+10 až 50 XP' },
-  { appId: 'goal-tracker', icon: '🎯', title: 'Dotáhni cíl v Goal Trackeru', reward: '+25 XP' },
-  { appId: 'document-editor', icon: '📄', title: 'Ulož nový dokument', reward: '+15 XP' },
-  { appId: 'pomodoro', icon: '🍅', title: 'Dokonči soustředění v Pomodoru (podle délky)', reward: '+15 XP / 25 min' },
-  { appId: 'study-planner', icon: '📚', title: 'Splň úkol v Planeru', reward: '+10 XP' },
-  { appId: 'flashcards', icon: '🃏', title: 'Vytvoř vlastní kartičku', reward: '+5 XP' },
-  { appId: 'quick-notes', icon: '📝', title: 'Ulož poznámku', reward: '+5 XP' },
-  { appId: 'mind-map', icon: '🗺️', title: 'Přidej uzel do myšlenkové mapy', reward: '+5 XP' },
-  { appId: 'file-manager', icon: '📁', title: 'Přidej soubor', reward: '+5 XP' },
-  { appId: 'finance', icon: '💸', title: 'Zapiš příjem nebo výdaj ve Financích', reward: '+3 XP' },
-  { appId: 'form-check', icon: '🏋️', title: 'Dokonči trénink ve Form Checku', reward: '+1 XP / opakování (max 30)' },
-  { appId: 'flashcards', icon: '🧠', title: 'Označ kartičku jako naučenou', reward: '+3 XP' },
-  { appId: 'math-solver', icon: '🧮', title: 'Spočítej výraz v Math Solveru', reward: '+2 XP' },
-]
-
 export const RewardModule: React.FC = () => {
   const navigate = useNavigate()
   const { level, xp, streakDays, badges } = useGamificationStore()
-  const { setActiveAppId } = useAppStore()
   const { profile, updateProfile } = useProfileData()
 
   const prepnoutPripnuti = (badgeId: string) => {
@@ -73,13 +43,6 @@ export const RewardModule: React.FC = () => {
   )
 
   const unlockedCount = badges.filter((badge) => badge.unlockedAt !== null).length
-
-  // Deep-link do miniaplikace se zpáteční cestou sem, ať tlačítko Zpět
-  // v otevřené aplikaci vrátí uživatele na Achievementy, ne jen do seznamu aplikací.
-  const openApp = (appId: string) => {
-    setActiveAppId(appId, '/odmeny')
-    navigate('/apps')
-  }
 
   return (
     <div className="reward-page">
@@ -176,26 +139,12 @@ export const RewardModule: React.FC = () => {
         </div>
       </section>
 
-      {/* Odkud se XP bere — každý řádek rovnou otevře příslušnou miniaplikaci */}
-      <section className="reward-section">
-        <div className="reward-section-head">
-          <span>Jak získat XP</span>
-        </div>
-
-        <div className="reward-source-list">
-          {XP_SOURCES.map((source) => (
-            <button
-              key={`${source.appId}-${source.title}`}
-              className="reward-source-row"
-              onClick={() => openApp(source.appId)}
-            >
-              <span className="reward-source-icon" aria-hidden="true">{source.icon}</span>
-              <span className="reward-source-title">{source.title}</span>
-              <span className="reward-source-reward">{source.reward}</span>
-            </button>
-          ))}
-        </div>
-      </section>
+      {/* "Jak získat XP" appka odstranila na uživatelovu žádost —
+          uživatel chtěl na týhle obrazovce zatím jen samotné
+          achievementy (odznaky výš), bez návodu, kde se XP bere.
+          Appka XP_SOURCES/openApp smazala úplně spolu s ní, ne jen
+          schovala — malá, snadno znovu postavitelná data/kód, kdyby
+          se sem sekce měla v nějaké formě ještě vrátit. */}
 
       {/* Krok 19: appka appčinu sdílenou spodní lištu rozšiřuje na
           (téměř) celou appku — Rewards dřív žádnou navigaci na
