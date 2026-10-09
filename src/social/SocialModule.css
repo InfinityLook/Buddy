@@ -1289,23 +1289,37 @@
   cursor: pointer;
 }
 
+/* Aktivní režim dřív jen přebarvil pozadí na plochou azurovou — appka
+   mu přidala stejný dvoubarevný gradient + jemnou záři, jaký appka
+   používá na aktivních stavech jinde (odznak úrovně na Hubu/
+   Achievementech, vybraná postava v appkách přes celou appku), ne
+   plochou barvu zvlášť jen tady. */
 .social-domu-rezim-btn.is-aktivni {
-  background: var(--accent-cyan);
+  background: linear-gradient(120deg, var(--accent-cyan), var(--accent-violet));
+  box-shadow: 0 0 10px rgba(53, 196, 240, 0.35);
   color: var(--bg-base);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .social-domu-pridat-story-btn {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  background: var(--bg-panel-raised);
+  background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
   padding: 0.35rem 0.7rem;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-size: 0.76rem;
+  font-weight: 600;
+  backdrop-filter: blur(10px);
   cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.social-domu-pridat-story-btn:active {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(0.96);
 }
 
 .social-feed {
@@ -1458,6 +1472,33 @@
   color: #f43f5e;
 }
 
+/* Uložený příspěvek appka barví cyanem, ne stejnou růžovou jako lajk —
+   jsou to dvě různé akce, nemají splývat do jedné barvy. */
+.social-feed-akce-btn.je-ulozeno .social-feed-akce-kruh {
+  color: var(--accent-cyan);
+}
+
+/* "Pop" při skutečném přechodu na lajknuto (viz FeedPrispevek.tsx) —
+   krátké vystřelení a sednutí zpět, ne jen prosté zvětšení/zmenšení. */
+.social-feed-akce-kruh.je-pop {
+  animation: social-feed-lajk-pop 0.4s ease-out;
+}
+
+@keyframes social-feed-lajk-pop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.35);
+  }
+  65% {
+    transform: scale(0.92);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
 .social-feed-akce-pocet {
   font-size: 0.62rem;
   font-weight: 700;
@@ -1470,13 +1511,135 @@
   object-fit: cover;
 }
 
-.social-feed-nacitam {
+/* Ukazatel postupu videa — tenká lišta úplně nahoře přes médium, appka
+   ji plní podle onTimeUpdate (viz FeedPrispevek.tsx). Jen pro video,
+   appka ji drží mimo .social-feed-zavoj/-info, ať se o stejný prostor
+   nepere s karuselovou značkou (ta sedí v pravém horním rohu, tahle
+   lišta přes celou šířku nahoře). */
+.social-feed-video-progres {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2.5px;
+  background: rgba(255, 255, 255, 0.18);
+  z-index: 1;
+}
+
+.social-feed-video-progres-vypln {
+  height: 100%;
+  background: #fff;
+  /* Appka šířku neanimuje (na rozdíl od appčiných jiných progress
+     barů) — timeupdate chodí ~4× za vteřinu, plynulý postup appka
+     dostane zadarmo z frekvence aktualizací samotných, druhá CSS
+     animace navíc by jen zpožďovala, ne vyhlazovala. */
+}
+
+/* ---------- prázdný a loading stav feedu ---------- */
+
+.social-feed-prazdno-stav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 1.5rem;
+}
+
+.social-feed-prazdno-ikona {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
   color: var(--text-muted);
-  font-size: 0.7rem;
+}
+
+/* Skeleton prvního načtení feedu — appka tvar odvodila ze skutečné
+   .social-feed-post (médium přes celou plochu appka tu nahradila
+   šimrajícím gradientem, info dole vlevo/akce dole vpravo appka
+   naznačila stejně umístěnými obrysy), ne z odhadu — appka tenhle
+   princip ("pulzující obrysy přesně v rozměrech reálného obsahu, ne
+   schovaný obsah za opacitou") má zapsaný i u Hubu/Achievementů,
+   tahle instance jen žije ve vlastním, social- prefixovaném souboru
+   (appka ho mezi moduly nesdílí, přijatá malá duplikace). */
+.social-feed-skeleton {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: linear-gradient(
+    120deg,
+    rgba(255, 255, 255, 0.04) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.04) 75%
+  );
+  background-size: 200% 100%;
+  animation: social-skeleton-mihotani 1.6s ease-in-out infinite;
+}
+
+@keyframes social-skeleton-mihotani {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.social-feed-skeleton-zavoj {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 55%;
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+.social-feed-skeleton-info {
+  position: absolute;
+  left: 0.9rem;
+  right: 4.2rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.social-feed-skeleton-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  flex-shrink: 0;
+}
+
+.social-feed-skeleton-radek {
+  height: 0.6rem;
+  width: 65%;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.social-feed-skeleton-radek--kratky {
+  width: 40%;
+}
+
+.social-feed-skeleton-akce {
+  position: absolute;
+  right: 0.7rem;
+  bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.social-feed-skeleton-kruh {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
 }
 
 /* ---------- můj profil (sdílení) ---------- */

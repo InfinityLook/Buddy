@@ -233,13 +233,40 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
 
       {nacita ? (
         <div className="social-feed-prazdno">
-          <p className="social-feed-nacitam">Načítám…</p>
+          {/* Skeleton místo plochého textu "Načítám…" — appka tvar
+              odvodila ze skutečné .social-feed-post (médium přes celou
+              plochu, info dole vlevo, akce dole vpravo), ne z odhadu,
+              ať appka při přepnutí skeleton→reálný obsah nepůsobí jako
+              dvě různé obrazovky. Stejný "pulzující obrysy přesně v
+              rozměrech reálného obsahu" vzor appka má na Hubu a na
+              Achievementech (viz jejich vlastní třídy hub-skeleton a
+              reward-skeleton), tady vlastní instance se social-
+              prefixem — appka tenhle vzor nesdílí přes moduly, stejná
+              přijatá malá duplikace jako BARVY_UZLU jinde v appce. */}
+          <div className="social-feed-skeleton" aria-hidden="true">
+            <div className="social-feed-skeleton-zavoj" />
+            <div className="social-feed-skeleton-info">
+              <span className="social-feed-skeleton-avatar" />
+              <span className="social-feed-skeleton-radek social-feed-skeleton-radek--kratky" />
+              <span className="social-feed-skeleton-radek" />
+            </div>
+            <div className="social-feed-skeleton-akce">
+              <span className="social-feed-skeleton-kruh" />
+              <span className="social-feed-skeleton-kruh" />
+              <span className="social-feed-skeleton-kruh" />
+            </div>
+          </div>
         </div>
       ) : jePrazdno ? (
         <div className="social-feed-prazdno">
-          <p className="social-empty-note social-empty-note--stred">
-            Sleduj někoho, ať tu něco uvidíš. ✨
-          </p>
+          <div className="social-feed-prazdno-stav">
+            <span className="social-feed-prazdno-ikona" aria-hidden="true">
+              <SocialIcon name="users" size={26} />
+            </span>
+            <p className="social-empty-note social-empty-note--stred">
+              Sleduj někoho, ať tu něco uvidíš. ✨
+            </p>
+          </div>
         </div>
       ) : (
         <div className="social-feed" ref={feedRef}>
@@ -273,6 +300,7 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
               onPrepnoutZvuk={() => setZvukZapnuty((z) => !z)}
               onOtevritProfil={() => onOtevritProfil(p.autorId)}
               onOtevritDetail={() => setOtevrenyDetail(p)}
+              stav={stav}
               // Ref appka drží mimo React stav (postElementy.current), ne
               // useState — mění se při každém scrollu a appka ho
               // potřebuje jen pro IntersectionObserver výš, ne pro
