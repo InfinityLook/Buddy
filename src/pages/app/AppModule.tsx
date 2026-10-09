@@ -98,35 +98,47 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   }
 
   return (
-    <div className="app-container">
-      <AppHeader
-        onBack={handleBack}
-        onOpenNotifications={() => setNotifOpen(true)}
-        unreadCount={unreadCount}
-      />
+    // .app-page je appčina vlastní, ne sdílená vrstva (na rozdíl od
+    // .app-container níž, co appka sdílí s FlagshipShell.tsx/šesti
+    // vlajkovými Roomy) — proto appka fantasy pozadí dává právě sem,
+    // ne na sdílenou třídu. Žádný Room si tak nahraditelné pozadí
+    // nevynutí, i když přes ně prochází stejný .app-header/.app-icon-btn
+    // sjednocený vzhled (viz AppModule.css). Stejný dvouvrstvý "fotka +
+    // ztmavovací gradient" vzor jako Hub.tsx's .hub-bg/.hub-bg-overlay.
+    <div className="app-page">
+      <div className="app-page-bg" aria-hidden="true" />
+      <div className="app-page-bg-overlay" aria-hidden="true" />
 
-      {roomy.length > 0 && (
-        <RoomCarousel
-          rooms={roomy}
-          onEnter={(room) => {
-            markAppOpened(room.id)
-            if (room.route) navigate(room.route)
-          }}
+      <div className="app-container">
+        <AppHeader
+          onBack={handleBack}
+          onOpenNotifications={() => setNotifOpen(true)}
+          unreadCount={unreadCount}
         />
-      )}
 
-      <RychleSpusteni miniaplikace={miniaplikace} onOpen={(id) => setActiveAppId(id)} />
+        {roomy.length > 0 && (
+          <RoomCarousel
+            rooms={roomy}
+            onEnter={(room) => {
+              markAppOpened(room.id)
+              if (room.route) navigate(room.route)
+            }}
+          />
+        )}
 
-      {/* Fáze 4 Social nav reworku (viz CLAUDE.md) — appka teď navigaci
-          mezi hlavními obrazovkami nabízí i tady, ne jen na Hubu. */}
-      <AppBottomNav />
+        <RychleSpusteni miniaplikace={miniaplikace} onOpen={(id) => setActiveAppId(id)} />
 
-      <ProfilNotifications
-        open={notifOpen}
-        readIds={profile.readNotifications}
-        onMarkRead={markNotificationRead}
-        onClose={() => setNotifOpen(false)}
-      />
+        {/* Fáze 4 Social nav reworku (viz CLAUDE.md) — appka teď navigaci
+            mezi hlavními obrazovkami nabízí i tady, ne jen na Hubu. */}
+        <AppBottomNav />
+
+        <ProfilNotifications
+          open={notifOpen}
+          readIds={profile.readNotifications}
+          onMarkRead={markNotificationRead}
+          onClose={() => setNotifOpen(false)}
+        />
+      </div>
     </div>
   )
 }

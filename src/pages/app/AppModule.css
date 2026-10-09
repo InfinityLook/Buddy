@@ -19,7 +19,51 @@
   --app-green: var(--accent-green);
 }
 
+/* ------------------------------------------
+   .app-page — appčina VLASTNÍ vrstva, jen pro AppModule.tsx (ne pro
+   FlagshipShell.tsx, co .app-container používá rovnou bez tohohle
+   obalu). Stejný dvouvrstvý "fotka + ztmavovací gradient" vzor jako
+   Hub.tsx/HubModule.css's .hub-bg/.hub-bg-overlay — appka ho tu
+   nepřebírá přes sdílenou třídu schválně, ať žádný ze šesti vlajkových
+   Roomů fantasy fotku na pozadí nedostane jen jako vedlejší efekt.
+
+   Obrázek appka znovu nepřidávala — hub-buddyzone.png (dodaný asset
+   "hub-inspired-background-art.png" vyšel po appčině vlastním resize
+   na 720px širokoúhlý, optimize=True pipeline, viz public/backgrounds/
+   README.md, byte-for-byte identicky se souborem, co appka má uložený
+   už od dřívějšího BuddyZone konceptu a dosud ho nikde nepoužívala).
+   ------------------------------------------ */
+.app-page {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.app-page-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url('/backgrounds/hub-buddyzone.png');
+  background-size: cover;
+  background-position: center 22%;
+}
+
+.app-page-bg-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(8, 8, 18, 0.74) 0%,
+    rgba(10, 8, 20, 0.52) 30%,
+    rgba(10, 8, 20, 0.6) 62%,
+    rgba(6, 6, 14, 0.9) 100%
+  );
+}
+
 .app-container {
+  position: relative;
+  z-index: 1;
   height: 100vh;
   height: 100dvh;
   overflow-y: auto;
@@ -43,19 +87,49 @@
   box-sizing: border-box;
 }
 
+/* Uvnitř .app-page appka svůj vlastní radiální gradient nahrazuje
+   skutečnou fotkou za ním (.app-page-bg výš) — FlagshipShell.tsx's
+   .app-container.fs-page (bez předka .app-page) si ten původní
+   gradient drží beze změny, viz selektor specificity (dvě třídy +
+   potomek > jedna třída) výš. Appka taky zúžila .app-container na
+   100% rodiče místo druhého 100vh řetězce — oba by dnes vyšly
+   vizuálně stejně, ale appka radši jeden spolehlivý zdroj výšky
+   (.app-page) než dva zřetězené viewport jednotky. */
+.app-page > .app-container {
+  height: 100%;
+  background-image: none;
+}
+
 /* ------------------------------------------
-   HEADER
+   HEADER — sklovitý panel jako Hub.tsx's vlastní .hub-header (stejná
+   barva/blur/zaoblení, appka má svoji vlastní kopii, ne import, ze
+   stejného důvodu jako FlagshipShell.tsx's komentář o vlastní kopii
+   zvonku/avataru výš vysvětluje). Protože .app-header je sdílená
+   třída i pro FlagshipShell.tsx, dostává sklovitý vzhled i hlavička
+   všech šesti vlajkových Roomů — to je žádoucí sjednocení "Room &
+   Apps" modulu, ne vedlejší škoda.
    ------------------------------------------ */
 .app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: env(safe-area-inset-top);
+  gap: 0.6rem;
+  flex-shrink: 0;
+  background: rgba(10, 14, 28, 0.38);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: 0.6rem 0.7rem;
+  padding-top: calc(0.6rem + env(safe-area-inset-top));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 /* Ikonové tlačítko zpět — referenční vzhled nemá vedle šipky žádný
    popisek, jen kruh stejné velikosti jako zvonek/avatar na druhé
-   straně hlavičky (.app-icon-btn), ať je hlavička vizuálně vyvážená. */
+   straně hlavičky (.app-icon-btn), ať je hlavička vizuálně vyvážená.
+   Jemný teplý (zlatý) prstenec kolem — appka čte --accent-orange přes
+   color-mix, ne natvrdo hex, ať se tón sladí s appčiným systémem
+   motivů (core/theme/themes.ts) a ne jen s výchozí paletou. */
 .app-back-btn {
   display: flex;
   align-items: center;
@@ -63,19 +137,21 @@
   width: 40px;
   height: 40px;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--app-card-border);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid color-mix(in srgb, var(--accent-orange) 32%, var(--app-card-border));
   color: var(--app-text-main);
   padding: 0;
   border-radius: 50%;
   cursor: pointer;
-  backdrop-filter: blur(8px);
-  transition: background 0.2s ease, border-color 0.2s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-orange) 10%, transparent) inset;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .app-back-btn:hover {
   background: rgba(255, 255, 255, 0.12);
-  border-color: var(--border-strong);
+  border-color: color-mix(in srgb, var(--accent-orange) 55%, var(--border-strong));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent-orange) 35%, transparent);
 }
 
 .app-header-center {
@@ -89,8 +165,11 @@
   gap: 0.5rem;
 }
 
+/* Mřížková ikona vedle "Aplikace"/názvu Roomu — teplá zlatá místo
+   dřívější cyan, ať sedí s appčiným novým "zlatá = hlavní akce/
+   identita obrazovky" jazykem (viz .rc-enter-btn/.rs-nadpis). */
 .app-header-icon {
-  color: var(--app-cyan);
+  color: var(--accent-orange);
 }
 
 .app-header-center h1 {
@@ -116,19 +195,22 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid var(--app-card-border);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid color-mix(in srgb, var(--accent-orange) 32%, var(--app-card-border));
   color: var(--app-text-main);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-orange) 10%, transparent) inset;
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .app-icon-btn:hover {
   background: rgba(255, 255, 255, 0.12);
-  border-color: var(--border-strong);
+  border-color: color-mix(in srgb, var(--accent-orange) 55%, var(--border-strong));
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent-orange) 35%, transparent);
 }
 
 /* Počet nepřečtených upozornění u zvonku */
@@ -163,13 +245,15 @@
   border-radius: 50%;
   padding: 0;
   background: transparent;
-  border: 2px solid rgba(53, 196, 240, 0.5);
+  border: 2px solid color-mix(in srgb, var(--accent-orange) 55%, transparent);
   cursor: pointer;
-  transition: border-color 0.2s ease;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-orange) 25%, transparent);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .app-avatar-btn:hover {
-  border-color: var(--app-cyan);
+  border-color: var(--accent-orange);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent-orange) 45%, transparent);
 }
 
 .app-avatar-img {

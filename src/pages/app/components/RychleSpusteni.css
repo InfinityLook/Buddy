@@ -20,29 +20,43 @@
   color: var(--text-primary);
 }
 
+/* Raketa zůstává zlatá i mimo samotný nápis (viz .rs-nadpis výš, co
+   drží text bílý) — appka ikonu barví přes vlastní třídu, ne skrz
+   zdědění z rodiče. */
+.rs-nadpis-icon {
+  color: var(--accent-orange);
+  flex-shrink: 0;
+}
+
 .rs-popis {
   font-size: 0.78rem;
   color: var(--text-secondary);
   margin: -0.3rem 0 0.2rem;
 }
 
+/* Pilulkový tvar + sklovitý vzhled jako appčiny ostatní vyhledávací/
+   vstupní pole v novém stylu modulu — zlatá záře při zaměření místo
+   dřívější natvrdo zapsané cyan rgba. */
 .rs-search-box {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-subtle);
-  border-radius: 12px;
-  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius-pill);
+  padding: 0.65rem 1rem;
+  backdrop-filter: blur(10px);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .rs-search-icon {
-  color: var(--text-secondary);
+  color: var(--accent-orange);
   flex-shrink: 0;
 }
 
 .rs-search-box:focus-within {
-  border-color: rgba(53, 196, 240, 0.5);
+  border-color: color-mix(in srgb, var(--accent-orange) 55%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-orange) 18%, transparent);
 }
 
 .rs-search-box input {
@@ -88,12 +102,25 @@
 }
 
 .rs-skupina-nadpis {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.4px;
   text-transform: uppercase;
   color: var(--text-secondary);
   margin: 0;
+}
+
+/* Dekorativní oddělovač za názvem kategorie (viz RychleSpusteni.tsx's
+   <span aria-hidden>) — tenká zlatavá čára dojíždějící do ztracena,
+   ne druhý nápis ani ikona. */
+.rs-skupina-ornament {
+  flex: 1;
+  height: 1px;
+  min-width: 16px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-orange) 45%, transparent), transparent);
 }
 
 .rs-mrizka {
@@ -112,13 +139,25 @@
   border-radius: 14px;
   padding: 0.75rem 0.4rem;
   cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .rs-dlazdice:hover {
   transform: translateY(-2px);
   border-color: rgba(255, 255, 255, 0.18);
 }
+
+/* Barva při hoveru se řídí tím, jakou .rs-dlazdice-ikona dlaždice
+   doopravdy nese (:has() na jejího potomka) — stejná šestice hex
+   hodnot jako .rs-dlazdice-ikona.<barva> výš, ne nový nezávislý
+   výběr, ať glow vždycky sedí s barvou appčiny vlastní ikonové
+   dlaždice. */
+.rs-dlazdice:has(.rs-dlazdice-ikona.purple):hover { border-color: rgba(168, 85, 247, 0.5); box-shadow: 0 10px 22px rgba(124, 58, 237, 0.28); }
+.rs-dlazdice:has(.rs-dlazdice-ikona.cyan):hover { border-color: rgba(56, 189, 248, 0.5); box-shadow: 0 10px 22px rgba(2, 132, 199, 0.28); }
+.rs-dlazdice:has(.rs-dlazdice-ikona.orange):hover { border-color: rgba(251, 191, 36, 0.5); box-shadow: 0 10px 22px rgba(217, 119, 6, 0.28); }
+.rs-dlazdice:has(.rs-dlazdice-ikona.green):hover { border-color: rgba(52, 211, 153, 0.5); box-shadow: 0 10px 22px rgba(5, 150, 105, 0.28); }
+.rs-dlazdice:has(.rs-dlazdice-ikona.pink):hover { border-color: rgba(244, 114, 182, 0.5); box-shadow: 0 10px 22px rgba(219, 39, 119, 0.28); }
+.rs-dlazdice:has(.rs-dlazdice-ikona.gold):hover { border-color: rgba(234, 179, 8, 0.5); box-shadow: 0 10px 22px rgba(161, 98, 7, 0.28); }
 
 .rs-dlazdice-ikona {
   width: 40px;

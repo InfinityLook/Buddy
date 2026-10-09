@@ -54,7 +54,7 @@ export const RychleSpusteni: React.FC<RychleSpusteniProps> = ({ miniaplikace, on
   return (
     <section className="rs-section">
       <h2 className="rs-nadpis">
-        <AppIcon name="rocket" size={18} />
+        <AppIcon name="rocket" size={18} className="rs-nadpis-icon" />
         Rychlé spuštění
       </h2>
       <p className="rs-popis">Hledej napříč appkami uvnitř Roomů — klepnutím skočíš rovnou dovnitř.</p>
@@ -79,7 +79,13 @@ export const RychleSpusteni: React.FC<RychleSpusteniProps> = ({ miniaplikace, on
       ) : (
         kategorie.map((kat) => (
           <div key={kat} className="rs-skupina">
-            <h3 className="rs-skupina-nadpis">{kat}</h3>
+            <h3 className="rs-skupina-nadpis">
+              {kat}
+              {/* Čistě dekorativní oddělovač za názvem kategorie — appka
+                  ho nečte ani neklikne, jen vizuálně navazuje na zlatý
+                  jazyk zbytku modulu (viz RychleSpusteni.css). */}
+              <span className="rs-skupina-ornament" aria-hidden="true" />
+            </h3>
             <div className="rs-mrizka">
               {filtrovane
                 .filter((app) => app.category === kat)
