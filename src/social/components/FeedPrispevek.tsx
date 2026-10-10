@@ -6,6 +6,7 @@ import { NahlasitDialog } from './NahlasitDialog'
 import * as api from '../api'
 import { useDoubleTapLike } from '../useDoubleTapLike'
 import { plural } from '@/core/utils/pluralCZ'
+import { zavibrujLajk } from '@/core/utils/haptika'
 import type { Prispevek, SocialProfil, VztahKPrispevku } from '../types'
 import type { SocialStav } from '../useSocial'
 
@@ -80,6 +81,10 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
   const [meniLajk, setMeniLajk] = useState(false)
   const [jeUlozeno, setJeUlozeno] = useState<boolean | null>(null)
   const [meniUlozeni, setMeniUlozeni] = useState(false)
+  // Jen číslo vedle 💬 — appka ho natáhne odděleně, ne jako součást
+  // VztahKPrispevku (ten zůstává jen pro lajky, žádná jiná appka tenhle
+  // typ ani neví, že komentáře počítá taky, zbytečně by ho to rozšiřovalo).
+  const [pocetKomentaru, setPocetKomentaru] = useState<number | null>(null)
   const [otevrenoSdileni, setOtevrenoSdileni] = useState(false)
   const [otevrenoNahlaseni, setOtevrenoNahlaseni] = useState(false)
   const [videoProgres, setVideoProgres] = useState(0)
@@ -106,6 +111,7 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
     let platne = true
     void api.nactiVztahKPrispevku(prispevek.id).then((v) => platne && setVztah(v))
     void api.jeUlozenyPrispevek(prispevek.id).then((u) => platne && setJeUlozeno(u))
+    void api.nactiPocetKomentaru(prispevek.id).then((n) => platne && setPocetKomentaru(n))
     return () => {
       platne = false
     }
@@ -173,6 +179,7 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
     predchoziLajkRef.current = vztah.lajkujiJa
     if (!predchozi && vztah.lajkujiJa) {
       setLajkPop(true)
+      zavibrujLajk()
       const t = window.setTimeout(() => setLajkPop(false), 400)
       return () => window.clearTimeout(t)
     }
@@ -271,6 +278,7 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
           <span className="social-feed-akce-kruh">
             <SocialIcon name="chat" size={19} />
           </span>
+          <span className="social-feed-akce-pocet">{pocetKomentaru ?? ''}</span>
         </button>
 
         {/* Uložit a Sdílet appka ve feedu dřív vůbec neměla — obě akce

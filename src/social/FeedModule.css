@@ -66,3 +66,68 @@
   color: #0b0a06;
   box-shadow: 0 0 14px color-mix(in srgb, var(--accent-orange) 45%, transparent);
 }
+
+/* .feed-nebe — náhrada za appčinu dřívější useAmbientScene() instanci
+   (viz FeedModule.tsx's vlastní komentář nahoře). Hvězdy mihotají
+   (opacity), jiskry pomalu stoupají a mizí (translateY + opacity) —
+   appka obojí drží na position:fixed/z-index:0, přesně tam, kde dřív
+   seděl .social-ambient, takže appka nemusí měnit pořadí žádné jiné
+   vrstvy. overflow:hidden na kontejneru stačí, ať appka jiskře, co by
+   doputovala až nad vrstvu, neřeší zvlášť ořez. */
+.feed-nebe {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.feed-hvezda {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 5px rgba(255, 255, 255, 0.75);
+  opacity: 0.2;
+  animation: feed-mihotani 3.4s ease-in-out infinite;
+}
+
+.feed-jiskra {
+  position: absolute;
+  bottom: 18%;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fde68a, #eab308 60%, transparent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-orange) 70%, transparent);
+  opacity: 0;
+  animation: feed-stoupani 6s ease-in infinite;
+}
+
+@keyframes feed-mihotani {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes feed-stoupani {
+  0% {
+    transform: translateY(0) scale(0.8);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 0.4;
+  }
+  100% {
+    transform: translateY(-220px) scale(1.1);
+    opacity: 0;
+  }
+}

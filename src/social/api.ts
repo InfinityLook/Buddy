@@ -2336,6 +2336,24 @@ export const nactiVztahKPrispevku = async (postId: string): Promise<VztahKPrispe
   return { pocetLajku: data.length, lajkujiJa: !!ja && data.some((r) => r.user_id === ja) }
 }
 
+/**
+ * Počet komentářů pod příspěvkem — pro malé číslo u 💬 ve feedu
+ * (FeedPrispevek.tsx), bez nutnosti natahovat celý seznam přes
+ * nacti_komentare_prispevku() (ten navíc resolvuje i jméno/avatar
+ * autora každého komentáře, zbytečná práce jen pro jedno číslo).
+ * post_comments má přesně stejnou plain SELECT politiku jako post_likes
+ * (smi_videt_prispevek(post_id)), takže appka počítá úplně stejně jako
+ * nactiVztahKPrispevku výš — žádná nová SQL funkce nebyla potřeba.
+ */
+export const nactiPocetKomentaru = async (postId: string): Promise<number> => {
+  if (!supabase) return 0
+
+  const { data, error } = await supabase.from('post_comments').select('id').eq('post_id', postId)
+  if (error || !data) return 0
+
+  return data.length
+}
+
 export const pridatLajk = async (postId: string): Promise<Vysledek> => {
   if (!supabase) return NENI_CLOUD
 

@@ -24,3 +24,10 @@ const zavibruj = (vzor: number | number[]) => {
 
 /** Krátké cvaknutí — otevření/zavření kola, výběr paprsku. */
 export const zavibrujKliknuti = () => zavibruj(12)
+
+/** Krátký dvojpulz — skutečné nové lajknutí (ne zavibruj na každý
+ *  klik/dvojklik, jen na opravdový přechod "nelajknuto → lajknuto",
+ *  stejný rozdíl, co FeedPrispevek.tsx's vlastní "pop" animace srdce
+ *  už hlídá). Jiný vzor než zavibrujKliknuti výš, ať to necítí jako
+ *  to samé cvaknutí co otevření menu. */
+export const zavibrujLajk = () => zavibruj([10, 40, 10])
