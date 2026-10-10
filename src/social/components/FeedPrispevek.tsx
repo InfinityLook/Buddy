@@ -2,8 +2,10 @@ import { forwardRef, useEffect, useRef, useState } from 'react'
 import { SocialAvatar } from './SocialAvatar'
 import { SocialIcon } from './SocialIcon'
 import { SdiletPrispevekDialog } from './SdiletPrispevekDialog'
+import { NahlasitDialog } from './NahlasitDialog'
 import * as api from '../api'
 import { useDoubleTapLike } from '../useDoubleTapLike'
+import { plural } from '@/core/utils/pluralCZ'
 import type { Prispevek, SocialProfil, VztahKPrispevku } from '../types'
 import type { SocialStav } from '../useSocial'
 
@@ -22,9 +24,38 @@ interface Props {
   onPrepnoutZvuk: () => void
   onOtevritProfil: () => void
   onOtevritDetail: () => void
-  /** Jen pro dialog sdílení (SdiletPrispevekDialog) níž — appka to tahá
-   *  přes DomuPanel.tsx, žádný jiný kus komponenty to nepotřebuje. */
+  /** "⋯ Více možností" — appka tu znovu použije přesně tu samou
+   *  smazat/nahlásit logiku, co PrispevekProhlizec.tsx odjakživa má ve
+   *  své vlastní hlavičce (appka to tam NEOTVÍRÁ, aby smazala/nahlásila,
+   *  jen zavolá skutečné funkce rovnou tady, stejný princip jako dřívější
+   *  povýšení Uložit+Sdílet do rychlého sloupce). Appka musí umět
+   *  příspěvek po smazání odebrat ze seznamu — proto vlastní onSmazano,
+   *  ne přes onOtevritDetail. */
+  onSmazano: () => void
+  /** Jen pro dialog sdílení (SdiletPrispevekDialog) a nahlášení
+   *  (NahlasitDialog) níž — appka to tahá přes DomuPanel.tsx, žádný
+   *  jiný kus komponenty to nepotřebuje. */
   stav: SocialStav
+}
+
+// Malý, nezávislý formátovač relativního času — appka ho schválně
+// nesdílí s ChatyPanel.tsx's vlastním casKratce (ladění pro cadence
+// chatu — minuty, pak čas, pak datum — ne pro cadence feedu, kde jsou
+// příspěvky typicky hodiny až dny od sebe), stejná přijatá malá
+// duplikace jako BARVY_UZLU jinde v appce. Skloňování appka řeší přes
+// appčin sdílený plural() (core/utils/pluralCZ.ts), ne vlastním
+// ternárem — ten je ve skutečnosti myšlený pro sdílení napříč appkou,
+// na rozdíl od časového vzorce samotného.
+const casPrispevku = (iso: string): string => {
+  const kdy = new Date(iso)
+  const rozdilMinut = Math.max(0, Math.round((Date.now() - kdy.getTime()) / 60000))
+  if (rozdilMinut < 1) return 'teď'
+  if (rozdilMinut < 60) return `před ${rozdilMinut} ${plural(rozdilMinut, 'minutou', 'minutami', 'minutami')}`
+  const rozdilHodin = Math.round(rozdilMinut / 60)
+  if (rozdilHodin < 24) return `před ${rozdilHodin} ${plural(rozdilHodin, 'hodinou', 'hodinami', 'hodinami')}`
+  const rozdilDni = Math.round(rozdilHodin / 24)
+  if (rozdilDni < 7) return `před ${rozdilDni} ${plural(rozdilDni, 'dnem', 'dny', 'dny')}`
+  return kdy.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric' })
 }
 
 /**
@@ -42,7 +73,7 @@ interface Props {
 // video autoplay i dotažení další stránky), ne kvůli imperativnímu
 // volání metod na komponentě samotné.
 export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispevek(
-  { prispevek, autor, aktivni, online, zvukZapnuty, onPrepnoutZvuk, onOtevritProfil, onOtevritDetail, stav },
+  { prispevek, autor, aktivni, online, zvukZapnuty, onPrepnoutZvuk, onOtevritProfil, onOtevritDetail, onSmazano, stav },
   ref
 ) {
   const [vztah, setVztah] = useState<VztahKPrispevku | null>(null)
@@ -50,8 +81,26 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
   const [jeUlozeno, setJeUlozeno] = useState<boolean | null>(null)
   const [meniUlozeni, setMeniUlozeni] = useState(false)
   const [otevrenoSdileni, setOtevrenoSdileni] = useState(false)
+  const [otevrenoNahlaseni, setOtevrenoNahlaseni] = useState(false)
   const [videoProgres, setVideoProgres] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
+
+  const jeMoje = !!autor && autor.id === stav.mujId
+
+  // Stejný confirm + api.smazatPrispevek jako PrispevekProhlizec.tsx's
+  // vlastní smazat() — appka to tu volá přímo z "⋯", ne přes otevření
+  // celého detailu, přesně jako Uložit/Sdílet už dělají pro svoje akce.
+  const smazatPrispevek = async () => {
+    if (!window.confirm('Smazat tenhle příspěvek?')) return
+    const vysledek = await api.smazatPrispevek(prispevek.id)
+    if (vysledek.ok) onSmazano()
+    else stav.rekni(vysledek.chyba ?? 'Nepovedlo se to.')
+  }
+
+  const kliknutiNaVice = () => {
+    if (jeMoje) void smazatPrispevek()
+    else setOtevrenoNahlaseni(true)
+  }
 
   useEffect(() => {
     let platne = true
@@ -180,6 +229,14 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
         </span>
       )}
 
+      {/* "⋯" vlevo nahoře, ne vpravo jako v referenčním návrhu — appka
+          to schválně nedala doprava, tam už sedí karuselová značka
+          výš a obě by se při příspěvku s víc fotkami přes sebe
+          překrývaly. */}
+      <button className="social-feed-vice-btn" onClick={kliknutiNaVice} aria-label="Více možností">
+        <SocialIcon name="more" size={18} />
+      </button>
+
       <div className="social-feed-zavoj" aria-hidden="true" />
 
       <div className="social-feed-info">
@@ -193,6 +250,7 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
           />
           <span className="social-feed-autor-jmeno">{autor?.displayName ?? '…'}</span>
         </button>
+        <span className="social-feed-cas">{casPrispevku(prispevek.createdAt)}</span>
         {prispevek.caption && <p className="social-feed-popisek">{prispevek.caption}</p>}
       </div>
 
@@ -257,6 +315,15 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
           postId={prispevek.id}
           stav={stav}
           onZavrit={() => setOtevrenoSdileni(false)}
+        />
+      )}
+
+      {otevrenoNahlaseni && (
+        <NahlasitDialog
+          userId={prispevek.autorId}
+          postId={prispevek.id}
+          stav={stav}
+          onZavrit={() => setOtevrenoNahlaseni(false)}
         />
       )}
     </article>

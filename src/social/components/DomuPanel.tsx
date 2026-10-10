@@ -300,6 +300,7 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
               onPrepnoutZvuk={() => setZvukZapnuty((z) => !z)}
               onOtevritProfil={() => onOtevritProfil(p.autorId)}
               onOtevritDetail={() => setOtevrenyDetail(p)}
+              onSmazano={() => setPrispevky((prev) => prev.filter((x) => x.id !== p.id))}
               stav={stav}
               // Ref appka drží mimo React stav (postElementy.current), ne
               // useState — mění se při každém scrollu a appka ho

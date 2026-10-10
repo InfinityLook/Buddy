@@ -1289,15 +1289,15 @@
   cursor: pointer;
 }
 
-/* Aktivní režim dřív jen přebarvil pozadí na plochou azurovou — appka
-   mu přidala stejný dvoubarevný gradient + jemnou záři, jaký appka
-   používá na aktivních stavech jinde (odznak úrovně na Hubu/
-   Achievementech, vybraná postava v appkách přes celou appku), ne
-   plochou barvu zvlášť jen tady. */
+/* Aktivní režim appka přebarvila z plochého/dvoubarevného azurového
+   gradientu na appčinu zlatou (stejný dvoubarevný pár jako
+   RoomCarousel.tsx's GRADIENTY.gold), ať "Nejnovější"/"Pro tebe"
+   sedí vedle appčiny gold = hlavní/aktivní barvy zbytku appky
+   (hlavičkové tlačítko "Vstoupit" na /apps, appčiny ikony v hlavičce). */
 .social-domu-rezim-btn.is-aktivni {
-  background: linear-gradient(120deg, var(--accent-cyan), var(--accent-violet));
-  box-shadow: 0 0 10px rgba(53, 196, 240, 0.35);
-  color: var(--bg-base);
+  background: linear-gradient(120deg, #a16207, #eab308);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-orange) 45%, transparent);
+  color: #0b0a06;
   font-weight: 700;
 }
 
@@ -1314,11 +1314,12 @@
   font-weight: 600;
   backdrop-filter: blur(10px);
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.15s ease;
+  transition: background 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
 }
 
 .social-domu-pridat-story-btn:active {
   background: rgba(255, 255, 255, 0.1);
+  border-color: color-mix(in srgb, var(--accent-orange) 55%, var(--border-strong));
   transform: scale(0.96);
 }
 
@@ -1349,6 +1350,32 @@
   overflow: hidden;
   background: #000;
   display: flex;
+  /* Appka přidala jemný zlatavý rámeček + ambientní fialovou záři okolo
+     celé karty (appčina vlastní, ne doslovně okopírovaná verze
+     referenčního "glowing border") — appčina tmavá fotka/video kartu
+     samotnou pořád vizuálně odlišuje, rámeček je navíc jen doladění. */
+  border: 1px solid color-mix(in srgb, var(--accent-orange) 26%, rgba(255, 255, 255, 0.06));
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.55),
+    0 0 22px color-mix(in srgb, var(--accent-violet) 16%, transparent);
+  /* Jemné "objevení se" při prvním vykreslení (první načtení/dotažení
+     další stránky) — appka appku animuje JEN jednou při vzniku uzlu,
+     ne při každém scrollu (React prvek dál drží smontovaný, appka ho
+     jen posouvá scroll-snapem). prefers-reduced-motion appka řeší
+     appčiným sdíleným kill-switchem v global.css, žádný další kód tu
+     netřeba. */
+  animation: social-feed-post-objevit 0.4s ease-out;
+}
+
+@keyframes social-feed-post-objevit {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .social-feed-media {
@@ -1364,7 +1391,10 @@
   position: absolute;
   inset: auto 0 0 0;
   height: 55%;
-  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.75) 100%);
+  /* Mírně teplejší, do fialova nazoubkovaná černá, ne čistě
+     rgba(0,0,0,...) — ladí s appčinou tmavě navy/fialovou paletou, ne
+     jen s obecným stmívačem. */
+  background: linear-gradient(180deg, transparent 0%, rgba(8, 6, 18, 0.82) 100%);
   pointer-events: none;
 }
 
@@ -1394,6 +1424,14 @@
 .social-feed-autor-jmeno {
   font-size: 0.82rem;
   font-weight: 800;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* Kdy byl příspěvek přidán (casPrispevku() ve FeedPrispevek.tsx) —
+   appka tu žádnou appčinu dřívější hodnotu nepřepisuje, pole je nové. */
+.social-feed-cas {
+  font-size: 0.68rem;
+  color: rgba(255, 255, 255, 0.72);
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
@@ -1457,11 +1495,12 @@
   height: 42px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .social-feed-akce-btn:active .social-feed-akce-kruh {
@@ -1470,12 +1509,16 @@
 
 .social-feed-akce-btn.je-lajknuto .social-feed-akce-kruh {
   color: #f43f5e;
+  border-color: color-mix(in srgb, #f43f5e 45%, transparent);
+  box-shadow: 0 0 12px rgba(244, 63, 94, 0.45);
 }
 
 /* Uložený příspěvek appka barví cyanem, ne stejnou růžovou jako lajk —
    jsou to dvě různé akce, nemají splývat do jedné barvy. */
 .social-feed-akce-btn.je-ulozeno .social-feed-akce-kruh {
   color: var(--accent-cyan);
+  border-color: color-mix(in srgb, var(--accent-cyan) 45%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-cyan) 45%, transparent);
 }
 
 /* "Pop" při skutečném přechodu na lajknuto (viz FeedPrispevek.tsx) —
@@ -1533,6 +1576,33 @@
      barů) — timeupdate chodí ~4× za vteřinu, plynulý postup appka
      dostane zadarmo z frekvence aktualizací samotných, druhá CSS
      animace navíc by jen zpožďovala, ne vyhlazovala. */
+}
+
+/* "⋯ Více možností" — vlevo nahoře (viz FeedPrispevek.tsx's vlastní
+   komentář proč ne vpravo), stejný skleněný kruhový jazyk jako appčin
+   .social-feed-akce-kruh, jen menší — tohle je jedna doplňková akce
+   navíc, ne rovnocenná se čtveřicí dole. */
+.social-feed-vice-btn {
+  position: absolute;
+  top: 0.9rem;
+  left: 0.9rem;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(6px);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.social-feed-vice-btn:active {
+  background: rgba(255, 255, 255, 0.24);
+  transform: scale(0.9);
 }
 
 /* ---------- prázdný a loading stav feedu ---------- */

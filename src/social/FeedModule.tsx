@@ -2,10 +2,12 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DomuPanel } from './components/DomuPanel'
 import { VerejnyProfilDialog } from './components/VerejnyProfilDialog'
+import { SocialIcon } from './components/SocialIcon'
 import { useSocial } from './useSocial'
 import { useAmbientScene } from './scene/useAmbientScene'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import './SocialModule.css'
+import './FeedModule.css'
 
 // ==========================================
 // Feed — "jen zeď" (jen DomuPanel.tsx, ne celý SocialModule), appčina
@@ -43,6 +45,16 @@ import './SocialModule.css'
 // vlastní logiky pro otevřený chat) — pošle uživatele na Social's
 // Chaty (?zalozka=chaty), kde nově založený/nalezený chat appka už
 // najde v seznamu, jen ho rovnou neotevře.
+//
+// Pozadí (FeedModule.css's .feed-bg/.feed-bg-overlay) je appčin
+// vlastní obrázek hub-soumrak.png — ten samý, co má Hub.tsx — appka
+// ho vykresluje za ambientní 3D scénou (ta je průhledná, viz
+// useAmbientScene.ts's alpha:true/setClearColor(0,0)), ne přes ni.
+// Appka přitom NESAHÁ na .social-page's vlastní pozadí (to je
+// sdílené se SocialModule.tsx's Profil/Chaty/Vyhledávač/Nastavení
+// záložkami) — tahle vrstva je navíc, vlastní appčiny .feed-* třídy,
+// odstraněné z toku (position:fixed), takže appčinu vlastní flex
+// sloupec níž neruší.
 // ==========================================
 
 export const FeedModule: React.FC = () => {
@@ -53,13 +65,20 @@ export const FeedModule: React.FC = () => {
 
   return (
     <div className="social-page">
+      <div className="feed-bg" aria-hidden="true" />
+      <div className="feed-bg-overlay" aria-hidden="true" />
       <div ref={ambientRef} className="social-ambient" aria-hidden="true" />
 
       <div className="social-top-bar">
         <button className="social-back-btn" onClick={() => navigate('/hub')}>
           ← Zpět do Hubu
         </button>
-        <h1 className="social-title">Feed</h1>
+        <div className="feed-title-row">
+          <span className="feed-title-icon" aria-hidden="true">
+            <SocialIcon name="chat" size={20} />
+          </span>
+          <h1 className="social-title">Feed</h1>
+        </div>
       </div>
 
       {stav.nacita ? (

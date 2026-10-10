@@ -158,6 +158,19 @@ export const SocialIcon: React.FC<SocialIconProps> = ({ name, size = 20, classNa
           <path d="M15 12h4"/>
         </svg>
       )
+    // "Více možností" na kartě příspěvku (FeedPrispevek.tsx) — tři
+    // vyplněné tečky, stejný "plná výplň, žádný obrys" jazyk jako
+    // layers/heart-filled/bookmark-filled výš, ne tenký obrys jako
+    // většina ostatní sady (tři tenké tečky by na malém kolečku přes
+    // fotku byly špatně vidět).
+    case 'more':
+      return (
+        <svg {...common} fill="currentColor" stroke="none">
+          <circle cx="5" cy="12" r="2"/>
+          <circle cx="12" cy="12" r="2"/>
+          <circle cx="19" cy="12" r="2"/>
+        </svg>
+      )
     default:
       return null
   }

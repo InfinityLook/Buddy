@@ -1,0 +1,68 @@
+/* ==========================================
+   FeedModule.css — jen to, co se smí lišit mezi /feed (vlastní "Feed"
+   hlavička) a /social (vlastní "Social" hlavička, viz SocialModule.tsx).
+   Appka tu schválně nesahá na .social-top-bar/.social-back-btn/
+   .social-title/.social-page samotné (ty obě obrazovky sdílí) — jen
+   přidává vlastní .feed-* třídy VEDLE nich v FeedModule.tsx's JSX.
+
+   Všechno, co je doopravdy Feedovo vlastní (karty příspěvků, přepínač
+   Nejnovější/Pro tebe, tlačítko "+ Story", akční sloupec) appka upravuje
+   přímo v SocialModule.css, protože to jsou DomuPanel.tsx/FeedPrispevek.tsx's
+   vlastní třídy — appka je vykresluje beze změny i uvnitř SocialModule.tsx's
+   vlastní záložky Domů, takže patří tam, ne sem (appka nechce dvě různě
+   vypadající verze té samé komponenty podle toho, kudy se k ní přišlo).
+   ========================================== */
+
+/* Pozadí — stejný obrázek jako Hub.tsx (hub-soumrak.png), appka ho tu
+   záměrně znovu nahrává ze stejné cesty (appka ho nekopíruje jinam),
+   ať appka nepřidává druhou kopii skoro identického souboru a prohlížeč
+   ho má navíc už dávno v precache. position:fixed appku vyjme z toku
+   (nenarušuje .social-page's vlastní flex sloupec níž) a appka ji
+   vloží jako PRVNÍ dítě před .social-ambient (obě z-index:0) — appka
+   se spoléhá na pořadí v DOM, ne na záporný z-index, ten by u fixed
+   prvku záležel na tom, jestli má appčin kořenový <body>/<html> vlastní
+   neprůhledné pozadí (mohlo by scénu úplně schovat). */
+.feed-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image: url('/backgrounds/hub-soumrak.png');
+  background-size: cover;
+  background-position: center 30%;
+  pointer-events: none;
+}
+
+.feed-bg-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 9, 20, 0.74) 0%,
+    rgba(6, 9, 20, 0.56) 32%,
+    rgba(6, 9, 20, 0.86) 100%
+  );
+  pointer-events: none;
+}
+
+/* Hlavička "Feed" — appka tu přidala jen novou řádku vedle appčina
+   existujícího <h1 className="social-title">, tu samotnou appka
+   nemění (sdílí ji appka se Social's vlastní "Social" hlavičkou). */
+.feed-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.feed-title-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #a16207, #eab308);
+  color: #0b0a06;
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent-orange) 45%, transparent);
+}
