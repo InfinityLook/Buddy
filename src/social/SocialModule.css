@@ -1341,6 +1341,27 @@
   justify-content: center;
 }
 
+/* Tlačítko "nahoru" — appka ho schválně nedává jako plovoucí kruh nad
+   příspěvkem samotným: každý rohový prostor celoobrazovkového příspěvku
+   už něco zabírá ("⋯ Více" vlevo nahoře, karuselová značka vpravo
+   nahoře, lajk/uložit/sdílet vpravo dole, autor/popisek vlevo dole), a
+   appka nechce hádat, který z nich se právě nekryje. Žije proto v
+   nescrollující horní liště (.social-domu-horni-lista), ne ve
+   scrollovaném .social-feed — appka ho ukáže až po scrollu přes celý
+   první příspěvek (viz onScroll v DomuPanel.tsx). */
+.social-domu-horni-prava {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* arrow-left otočený o 90° po směru hodinových ručiček = šipka nahoru —
+   appka nepřidává druhou ikonu jen pro jednu rotaci (stejný vzor jako
+   .social-nastaveni-sipka). */
+.social-domu-nahoru-btn svg {
+  transform: rotate(90deg);
+}
+
 .social-feed-post {
   position: relative;
   height: 100%;
@@ -2427,6 +2448,142 @@
 
 .social-dialog-akce { display: flex; gap: 0.45rem; }
 .social-dialog-akce .social-btn { flex: 1; }
+
+/* Nabídka "⋯" u cizího příspěvku ve feedu (FeedPrispevek.tsx) — Není
+   to pro mě / Nahlásit, uvnitř stejného .social-dialog jako Nahlásit
+   samo, ne nová vrstva navíc. */
+.social-nabidka-vice { display: flex; flex-direction: column; gap: 0.3rem; }
+
+.social-nabidka-vice-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.social-nabidka-vice-radek:active { transform: scale(0.98); }
+.social-nabidka-vice-radek .social-row-sub { display: block; font-weight: 500; }
+
+/* Klikatelný #hashtag uvnitř popisku příspěvku (HashtagovyText.tsx) —
+   zlatý akcent, ne appčina obvyklá cyan/violet (ty uvnitř popisku
+   splývaly s odkazy appka jinde barví stejně), inline <button> uvnitř
+   <p> zůstává součástí textového toku, ne vlastní řádek. */
+.social-hashtag {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--accent-orange) 85%, #fff);
+  cursor: pointer;
+}
+
+.social-hashtag:hover,
+.social-hashtag:active {
+  text-decoration: underline;
+}
+
+/* Přeřazení do sbírky v PrispevekProhlizec.tsx — jen z Uloženého, stejná
+   řádková poloha jako lajk/uložit/sdílet pod ní, ne vlastní karta navíc. */
+.social-prispevek-kolekce-radek {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 1rem 0;
+  color: var(--text-muted);
+}
+
+.social-prispevek-kolekce-select {
+  flex: 1;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.3rem 0.5rem;
+}
+
+/* Sbírky v Uloženém (ProfilSocialniSekce.tsx) — vodorovný, scrollovatelný
+   pruh filtrovacích pilulek nad mřížkou, stejná vodorovná-scroll logika
+   jako appčiny jiné chip-řádky (kategorie na /apps). */
+.social-sbirky-radek {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.3rem;
+  margin-bottom: 0.4rem;
+  scrollbar-width: none;
+}
+.social-sbirky-radek::-webkit-scrollbar { display: none; }
+
+.social-sbirka-chip {
+  flex-shrink: 0;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.social-sbirka-chip.is-aktivni {
+  background: color-mix(in srgb, var(--accent-cyan) 20%, transparent);
+  border-color: var(--accent-cyan);
+  color: var(--text-primary);
+}
+
+.social-sbirka-chip--nova { color: var(--accent-cyan); border-style: dashed; }
+
+.social-sbirka-chip-wrap {
+  flex-shrink: 0;
+  position: relative;
+  display: inline-flex;
+}
+
+.social-sbirka-smazat {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-base);
+  border: 1px solid var(--border-strong);
+  color: var(--text-muted);
+  padding: 0;
+  cursor: pointer;
+}
+
+.social-sbirka-nova-form {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.social-sbirka-nova-form .social-input { width: 7rem; padding: 0.35rem 0.5rem; font-size: 0.72rem; }
 
 /* ---------- profil cizího účtu (VerejnyProfilDialog.tsx) ---------- */
 /* Vlastní verze .profil-* tříd z pages/profil/ProfilModule.css — ten

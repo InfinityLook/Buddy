@@ -3,6 +3,7 @@ import { SocialAvatar } from './SocialAvatar'
 import { SocialIcon } from './SocialIcon'
 import { SdiletPrispevekDialog } from './SdiletPrispevekDialog'
 import { NahlasitDialog } from './NahlasitDialog'
+import { HashtagovyText } from './HashtagovyText'
 import * as api from '../api'
 import { useDoubleTapLike } from '../useDoubleTapLike'
 import { plural } from '@/core/utils/pluralCZ'
@@ -33,6 +34,12 @@ interface Props {
    *  příspěvek po smazání odebrat ze seznamu — proto vlastní onSmazano,
    *  ne přes onOtevritDetail. */
   onSmazano: () => void
+  /** "Není to pro mě" — na rozdíl od onSmazano appka neodstraní jen
+   *  tenhle jeden příspěvek, ale všechny od toho samého autora
+   *  zrovna viditelné ve feedu (DomuPanel.tsx filtruje podle autorId).
+   *  Nové/další stránky feedu je už stejně nikdy nenačtou — appka
+   *  je vynechá na databázi (nacti_feed/nacti_doporuceny_feed). */
+  onUtlumeno: () => void
   /** Jen pro dialog sdílení (SdiletPrispevekDialog) a nahlášení
    *  (NahlasitDialog) níž — appka to tahá přes DomuPanel.tsx, žádný
    *  jiný kus komponenty to nepotřebuje. */
@@ -74,7 +81,19 @@ const casPrispevku = (iso: string): string => {
 // video autoplay i dotažení další stránky), ne kvůli imperativnímu
 // volání metod na komponentě samotné.
 export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispevek(
-  { prispevek, autor, aktivni, online, zvukZapnuty, onPrepnoutZvuk, onOtevritProfil, onOtevritDetail, onSmazano, stav },
+  {
+    prispevek,
+    autor,
+    aktivni,
+    online,
+    zvukZapnuty,
+    onPrepnoutZvuk,
+    onOtevritProfil,
+    onOtevritDetail,
+    onSmazano,
+    onUtlumeno,
+    stav,
+  },
   ref
 ) {
   const [vztah, setVztah] = useState<VztahKPrispevku | null>(null)
@@ -87,6 +106,10 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
   const [pocetKomentaru, setPocetKomentaru] = useState<number | null>(null)
   const [otevrenoSdileni, setOtevrenoSdileni] = useState(false)
   const [otevrenoNahlaseni, setOtevrenoNahlaseni] = useState(false)
+  // Nabídka "⋯" u cizího příspěvku — Není to pro mě / Nahlásit. U
+  // vlastního se žádná nabídka neukáže, kliknutiNaVice jde rovnou na
+  // smazatPrispevek (window.confirm), beze změny.
+  const [otevrenaNabidkaVice, setOtevrenaNabidkaVice] = useState(false)
   const [videoProgres, setVideoProgres] = useState(0)
   const videoRef = useRef<HTMLVideoElement>(null)
 
@@ -104,7 +127,18 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
 
   const kliknutiNaVice = () => {
     if (jeMoje) void smazatPrispevek()
-    else setOtevrenoNahlaseni(true)
+    else setOtevrenaNabidkaVice(true)
+  }
+
+  const utlumit = async () => {
+    setOtevrenaNabidkaVice(false)
+    const vysledek = await api.utlumitUcet(prispevek.autorId)
+    if (vysledek.ok) {
+      onUtlumeno()
+      stav.rekni('Příspěvky od tohoto účtu se ti ve feedu už nebudou zobrazovat.')
+    } else {
+      stav.rekni(vysledek.chyba ?? 'Nepovedlo se to.')
+    }
   }
 
   useEffect(() => {
@@ -258,7 +292,11 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
           <span className="social-feed-autor-jmeno">{autor?.displayName ?? '…'}</span>
         </button>
         <span className="social-feed-cas">{casPrispevku(prispevek.createdAt)}</span>
-        {prispevek.caption && <p className="social-feed-popisek">{prispevek.caption}</p>}
+        {prispevek.caption && (
+          <p className="social-feed-popisek">
+            <HashtagovyText text={prispevek.caption} />
+          </p>
+        )}
       </div>
 
       <div className="social-feed-akce">
@@ -324,6 +362,39 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
           stav={stav}
           onZavrit={() => setOtevrenoSdileni(false)}
         />
+      )}
+
+      {otevrenaNabidkaVice && (
+        <>
+          <div className="social-overlay" onClick={() => setOtevrenaNabidkaVice(false)} />
+          <div className="social-dialog">
+            <h3 className="social-dialog-title">Co s tímto příspěvkem?</h3>
+            <div className="social-nabidka-vice">
+              <button className="social-nabidka-vice-radek" onClick={() => void utlumit()}>
+                <SocialIcon name="volume-off" size={18} />
+                <span>
+                  Není to pro mě
+                  <span className="social-row-sub">Přestaneš vidět příspěvky od tohoto účtu</span>
+                </span>
+              </button>
+              <button
+                className="social-nabidka-vice-radek"
+                onClick={() => {
+                  setOtevrenaNabidkaVice(false)
+                  setOtevrenoNahlaseni(true)
+                }}
+              >
+                <SocialIcon name="flag" size={18} />
+                <span>Nahlásit</span>
+              </button>
+            </div>
+            <div className="social-dialog-akce">
+              <button className="social-btn social-btn--tlumene" onClick={() => setOtevrenaNabidkaVice(false)}>
+                Zrušit
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       {otevrenoNahlaseni && (

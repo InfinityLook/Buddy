@@ -9,6 +9,10 @@ import type { PratelskyNavrh, Prispevek, SocialProfil } from '../types'
 interface Props {
   stav: SocialStav
   onOtevritProfil: (userId: string) => void
+  /** Hashtag z klikatelného popisku (HashtagovyText.tsx), přes
+   *  SocialModule.tsx's ?hashtag= — vyplní appka a hned vyhledá, bez
+   *  nutnosti znovu psát/odesílat formulář ručně. */
+  initHashtag?: string | null
 }
 
 // ==========================================
@@ -20,7 +24,7 @@ interface Props {
 // k lidem, se kterými už jsi propojený/á (ti zůstávají v Profilu).
 // ==========================================
 
-export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
+export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil, initHashtag }) => {
   const [dotaz, setDotaz] = useState('')
   const [vysledky, setVysledky] = useState<SocialProfil[]>([])
   const [hleda, setHleda] = useState(false)
@@ -51,18 +55,23 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
     }
   }, [stav.pratele, stav.zadosti])
 
+  const hledatHashtag = async (surovy: string) => {
+    const orezany = surovy.trim()
+    if (orezany.replace(/^#/, '').length < 2) return
+    setHleda(true)
+    const vysledek = await api.hledejPodleHashtagu(orezany)
+    setHashtagVysledky(vysledek)
+    setHledanoHashtag(true)
+    setHledano(true)
+    setHleda(false)
+  }
+
   const hledat = async (e: React.FormEvent) => {
     e.preventDefault()
     const orezany = dotaz.trim()
 
     if (jeHashtag) {
-      if (orezany.replace(/^#/, '').length < 2) return
-      setHleda(true)
-      const vysledek = await api.hledejPodleHashtagu(orezany)
-      setHashtagVysledky(vysledek)
-      setHledanoHashtag(true)
-      setHledano(true)
-      setHleda(false)
+      await hledatHashtag(orezany)
       return
     }
 
@@ -74,6 +83,15 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
     setHledano(true)
     setHleda(false)
   }
+
+  // Hashtag přišel zvenčí (klikatelný #hashtag v popisku) — appka ho
+  // rovnou vyhledá, bez nutnosti ho uživatel ještě jednou potvrdit.
+  useEffect(() => {
+    if (!initHashtag) return
+    const sHashem = initHashtag.startsWith('#') ? initHashtag : `#${initHashtag}`
+    setDotaz(sHashem)
+    void hledatHashtag(sHashem)
+  }, [initHashtag])
 
   // Text úspěchu závisí na tom, co se ze sledování doopravdy stalo — u
   // veřejného účtu je hned 'prijato', u soukromého 'cekajici' (server to

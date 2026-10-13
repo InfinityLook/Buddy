@@ -20,6 +20,7 @@ export const useSocial = () => {
   const [pratele, setPratele] = useState<Pritel[]>([])
   const [zadosti, setZadosti] = useState<Zadost[]>([])
   const [bloky, setBloky] = useState<SocialProfil[]>([])
+  const [utlumeni, setUtlumeni] = useState<SocialProfil[]>([])
   const [chaty, setChaty] = useState<Chat[]>([])
   const [nacita, setNacita] = useState(true)
   const [hlaska, setHlaska] = useState<string | null>(null)
@@ -38,11 +39,12 @@ export const useSocial = () => {
       return
     }
 
-    const [p, pr, z, b, ch, mod] = await Promise.all([
+    const [p, pr, z, b, u, ch, mod] = await Promise.all([
       api.nactiMujProfil(),
       api.nactiPratele(),
       api.nactiZadosti(),
       api.nactiBloky(),
+      api.nactiUtlumene(),
       api.nactiChaty(),
       api.jsemModerator(),
     ])
@@ -51,6 +53,7 @@ export const useSocial = () => {
     setPratele(pr)
     setZadosti(z)
     setBloky(b)
+    setUtlumeni(u)
     setChaty(ch)
     setModerator(mod)
     setNacita(false)
@@ -106,6 +109,7 @@ export const useSocial = () => {
     pratele,
     zadosti,
     bloky,
+    utlumeni,
     chaty,
     nacita,
     hlaska,

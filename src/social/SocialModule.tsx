@@ -81,6 +81,11 @@ export const SocialModule: React.FC = () => {
   // proto vlastní stav tady nahoře, ne uvnitř panelu/ChatView, odkud
   // se otevřel.
   const [otevrenyProfil, setOtevrenyProfil] = useState<string | null>(null)
+  // #hashtag z klikatelného popisku (HashtagovyText.tsx), ne přímo
+  // VyhledavacPanel.tsx's vlastní "dotaz" — appka ho sem dostane přes
+  // URL (?hashtag=...), jednou přečte a hned z adresy odstraní, stejný
+  // vzor jako ?kod= pár řádků níž.
+  const [initHashtag, setInitHashtag] = useState<string | null>(null)
 
   // Sdílený odkaz na profil (?kod=..., viz shareLink.ts) — jednorázově
   // při načtení, stejný vzor jako AppModule.tsx's ?kategorie= seed.
@@ -104,6 +109,19 @@ export const SocialModule: React.FC = () => {
     // stav.rekni je z useCallback s prázdným polem závislostí (useSocial.ts),
     // takže je mezi vykresleními stabilní a nepatří do závislostí tady.
   }, [searchParams, stav.rekni])
+
+  useEffect(() => {
+    const hashtag = searchParams.get('hashtag')
+    if (!hashtag) return
+
+    setSearchParams((p) => {
+      const nove = new URLSearchParams(p)
+      nove.delete('hashtag')
+      return nove
+    }, { replace: true })
+
+    setInitHashtag(hashtag)
+  }, [searchParams, setSearchParams])
 
   const chat = useMemo(
     () => stav.chaty.find((ch) => ch.id === otevrenyChat) ?? null,
@@ -207,7 +225,11 @@ export const SocialModule: React.FC = () => {
               )}
               {zalozka === 'domu' && <DomuPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />}
               {zalozka === 'vyhledavac' && (
-                <VyhledavacPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />
+                <VyhledavacPanel
+                  stav={stav}
+                  onOtevritProfil={setOtevrenyProfil}
+                  initHashtag={initHashtag}
+                />
               )}
             </>
           )}

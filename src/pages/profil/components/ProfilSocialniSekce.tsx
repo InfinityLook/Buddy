@@ -12,7 +12,7 @@ import { SledujiciDialog } from '@/social/components/SledujiciDialog'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import * as socialApi from '@/social/api'
 import { profilOdkaz } from '@/social/shareLink'
-import type { Prispevek, VztahSledovani } from '@/social/types'
+import type { Prispevek, SbirkaUlozenych, VztahSledovani } from '@/social/types'
 import '@/social/SocialModule.css'
 
 // ==========================================
@@ -49,8 +49,48 @@ export const ProfilSocialniSekce: React.FC = () => {
 
   // Uložené příspěvky se natáhnou, až se záložka "Uloženo" doopravdy
   // otevře poprvé — ne hned s vlastní mřížkou, stejný "jen na vyžádání"
-  // princip jako u vztahu/spolecnich ve VerejnyProfilDialog.tsx.
+  // princip jako u vztahu/spolecnich ve VerejnyProfilDialog.tsx. Sbírky
+  // (kolekce) se natáhnou ve stejné chvíli — appka v Uloženém nic
+  // nefiltruje, dokud sbírky ani neznáme.
   const [ulozene, setUlozene] = useState<Prispevek[] | null>(null)
+  const [kolekce, setKolekce] = useState<SbirkaUlozenych[]>([])
+  const [filtrKolekce, setFiltrKolekce] = useState<'vse' | 'bez' | string>('vse')
+  const [vytvarimSbirku, setVytvarimSbirku] = useState(false)
+  const [novaSbirka, setNovaSbirka] = useState('')
+
+  const nacistUlozeneISbirky = () => {
+    void socialApi.nactiUlozenePrispevky().then(setUlozene)
+    void socialApi.nactiSbirky().then(setKolekce)
+  }
+
+  const vytvoritSbirku = async () => {
+    const vysledek = await socialApi.zalozitSbirku(novaSbirka)
+    if (vysledek.ok) {
+      setNovaSbirka('')
+      setVytvarimSbirku(false)
+      void socialApi.nactiSbirky().then(setKolekce)
+    } else {
+      stav.rekni(vysledek.chyba ?? 'Nepovedlo se to.')
+    }
+  }
+
+  const smazatSbirku = async (id: string) => {
+    if (!window.confirm('Smazat tuhle sbírku? Uložené příspěvky v ní zůstanou, jen se vrátí mimo sbírky.')) return
+    const vysledek = await socialApi.smazatSbirku(id)
+    if (vysledek.ok) {
+      setKolekce((k) => k.filter((x) => x.id !== id))
+      if (filtrKolekce === id) setFiltrKolekce('vse')
+      setUlozene((u) => (u ? u.map((p) => (p.collectionId === id ? { ...p, collectionId: null } : p)) : u))
+    } else {
+      stav.rekni(vysledek.chyba ?? 'Nepovedlo se to.')
+    }
+  }
+
+  const zobrazovaneUlozene = (ulozene ?? []).filter((p) => {
+    if (filtrKolekce === 'vse') return true
+    if (filtrKolekce === 'bez') return !p.collectionId
+    return p.collectionId === filtrKolekce
+  })
 
   const nacistPrispevky = () => {
     if (!stav.mujId) return
@@ -139,7 +179,7 @@ export const ProfilSocialniSekce: React.FC = () => {
             className={`social-prispevky-tab ${tab === 'ulozeno' ? 'is-aktivni' : ''}`}
             onClick={() => {
               setTab('ulozeno')
-              if (ulozene === null) void socialApi.nactiUlozenePrispevky().then(setUlozene)
+              if (ulozene === null) nacistUlozeneISbirky()
             }}
           >
             Uloženo
@@ -147,36 +187,105 @@ export const ProfilSocialniSekce: React.FC = () => {
         </div>
 
         {tab === 'ulozeno' ? (
-          <div className="social-prispevky-mrizka">
-            {ulozene === null ? (
-              <p className="social-empty-note social-prispevky-prazdno">Načítám…</p>
-            ) : ulozene.length === 0 ? (
-              <p className="social-empty-note social-prispevky-prazdno">
-                Zatím nic uloženého. Ukládej si příspěvky přes 🔖 v jejich detailu.
-              </p>
-            ) : (
-              ulozene.map((p) => (
+          <>
+            {/* Sbírky — filtr podle toho, kam si uživatel příspěvek
+                přeřadil (viz "move to collection" v PrispevekProhlizec.tsx).
+                "Vše"/"Bez sbírky" jsou vždy tady, vlastní sbírky jen
+                když appka nějakou zná. */}
+            {ulozene !== null && ulozene.length > 0 && (
+              <div className="social-sbirky-radek">
                 <button
-                  key={p.id}
-                  className="social-prispevek-dlazdice"
-                  onClick={() => setOtevrenyPrispevek(p)}
+                  className={`social-sbirka-chip ${filtrKolekce === 'vse' ? 'is-aktivni' : ''}`}
+                  onClick={() => setFiltrKolekce('vse')}
                 >
-                  {p.mediaType === 'video' ? (
-                    <video src={p.mediaUrl} muted playsInline />
-                  ) : (
-                    <img src={p.mediaUrl} alt="" />
-                  )}
-                  {p.dalsiMedia.length > 0 ? (
-                    <span className="social-prispevek-karusel-znacka">
-                      <SocialIcon name="layers" size={13} />
-                    </span>
-                  ) : (
-                    p.mediaType === 'video' && <span className="social-prispevek-video-znacka">▶</span>
-                  )}
+                  Vše
                 </button>
-              ))
+                {kolekce.map((k) => (
+                  <span key={k.id} className="social-sbirka-chip-wrap">
+                    <button
+                      className={`social-sbirka-chip ${filtrKolekce === k.id ? 'is-aktivni' : ''}`}
+                      onClick={() => setFiltrKolekce(k.id)}
+                    >
+                      {k.nazev}
+                    </button>
+                    <button
+                      className="social-sbirka-smazat"
+                      aria-label={`Smazat sbírku ${k.nazev}`}
+                      onClick={() => void smazatSbirku(k.id)}
+                    >
+                      <SocialIcon name="x" size={11} />
+                    </button>
+                  </span>
+                ))}
+                <button
+                  className={`social-sbirka-chip ${filtrKolekce === 'bez' ? 'is-aktivni' : ''}`}
+                  onClick={() => setFiltrKolekce('bez')}
+                >
+                  Bez sbírky
+                </button>
+                {vytvarimSbirku ? (
+                  <form
+                    className="social-sbirka-nova-form"
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      void vytvoritSbirku()
+                    }}
+                  >
+                    <input
+                      className="social-input social-input--zprava"
+                      placeholder="Název sbírky"
+                      value={novaSbirka}
+                      maxLength={40}
+                      autoFocus
+                      onChange={(e) => setNovaSbirka(e.target.value)}
+                    />
+                    <button className="social-btn social-btn--small" type="submit" disabled={!novaSbirka.trim()}>
+                      <SocialIcon name="check" size={13} />
+                    </button>
+                  </form>
+                ) : (
+                  <button className="social-sbirka-chip social-sbirka-chip--nova" onClick={() => setVytvarimSbirku(true)}>
+                    <SocialIcon name="plus" size={12} /> Nová
+                  </button>
+                )}
+              </div>
             )}
-          </div>
+
+            <div className="social-prispevky-mrizka">
+              {ulozene === null ? (
+                <p className="social-empty-note social-prispevky-prazdno">Načítám…</p>
+              ) : ulozene.length === 0 ? (
+                <p className="social-empty-note social-prispevky-prazdno">
+                  Zatím nic uloženého. Ukládej si příspěvky přes 🔖 v jejich detailu.
+                </p>
+              ) : zobrazovaneUlozene.length === 0 ? (
+                <p className="social-empty-note social-prispevky-prazdno">
+                  V týhle sbírce zatím nic není.
+                </p>
+              ) : (
+                zobrazovaneUlozene.map((p) => (
+                  <button
+                    key={p.id}
+                    className="social-prispevek-dlazdice"
+                    onClick={() => setOtevrenyPrispevek(p)}
+                  >
+                    {p.mediaType === 'video' ? (
+                      <video src={p.mediaUrl} muted playsInline />
+                    ) : (
+                      <img src={p.mediaUrl} alt="" />
+                    )}
+                    {p.dalsiMedia.length > 0 ? (
+                      <span className="social-prispevek-karusel-znacka">
+                        <SocialIcon name="layers" size={13} />
+                      </span>
+                    ) : (
+                      p.mediaType === 'video' && <span className="social-prispevek-video-znacka">▶</span>
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </>
         ) : (
           <div className="social-prispevky-mrizka">
             <button
@@ -335,6 +444,16 @@ export const ProfilSocialniSekce: React.FC = () => {
           onSmazano={() => {
             setOtevrenyPrispevek(null)
             nacistPrispevky()
+          }}
+          // Sbírky jen z "Uloženo" — appka to tam ukáže (kolekce) i
+          // bez ohledu na to, kterou dlaždici v jaké sbírce uživatel
+          // zrovna otevřel, "mimo sbírky" jde zadat vždycky.
+          kolekce={tab === 'ulozeno' ? kolekce : undefined}
+          aktivniKolekceId={otevrenyPrispevek.collectionId ?? null}
+          onZmenaKolekce={(novaId) => {
+            const idOtevreneho = otevrenyPrispevek.id
+            setUlozene((u) => (u ? u.map((p) => (p.id === idOtevreneho ? { ...p, collectionId: novaId } : p)) : u))
+            setOtevrenyPrispevek((p) => (p ? { ...p, collectionId: novaId } : p))
           }}
         />
       )}

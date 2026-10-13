@@ -1,10 +1,11 @@
 import React, { useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { BlokovaniPanel } from './BlokovaniPanel'
+import { ZtlumeniPanel } from './ZtlumeniPanel'
 import { ModeracePanel } from './ModeracePanel'
 import type { SocialStav } from '../useSocial'
 
-type Sekce = 'blokovani' | 'hlaseni'
+type Sekce = 'blokovani' | 'ztlumeni' | 'hlaseni'
 
 interface Props {
   stav: SocialStav
@@ -12,6 +13,7 @@ interface Props {
 
 const POLOZKY: { id: Sekce; popis: string; ikona: string }[] = [
   { id: 'blokovani', popis: 'Blokovaní', ikona: 'block' },
+  { id: 'ztlumeni', popis: 'Ztlumené účty', ikona: 'volume-off' },
   { id: 'hlaseni', popis: 'Hlášení', ikona: 'flag' },
 ]
 
@@ -43,6 +45,7 @@ export const NastaveniPanel: React.FC<Props> = ({ stav }) => {
           ← Zpět do nastavení
         </button>
         {sekce === 'blokovani' && <BlokovaniPanel stav={stav} />}
+        {sekce === 'ztlumeni' && <ZtlumeniPanel stav={stav} />}
         {sekce === 'hlaseni' && <ModeracePanel stav={stav} />}
       </div>
     )

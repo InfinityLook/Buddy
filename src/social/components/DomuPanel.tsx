@@ -75,6 +75,15 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
   const feedRef = useRef<HTMLDivElement>(null)
   const postElementy = useRef<Map<string, HTMLElement>>(new Map())
 
+  // Tlačítko "nahoru" — appka ho ukáže, až uživatel sešupne přes celou
+  // výšku prvního příspěvku (scroll-snap stránkuje po jednom, takže
+  // "scrollTop > clientHeight" znamená "jsme už za prvním"), ne hned
+  // při prvním pixelu scrollu. Appka to drží jako vlastní stav, ne
+  // čtení přímo z DOM při každém renderu — scroll běží často, appka
+  // chce překreslit jen při skutečné změně true/false, ne při každém
+  // pixelu posunu.
+  const [ukazatNahoru, setUkazatNahoru] = useState(false)
+
   // Přehledy o autorech se jen doplňují, nikdy nemažou — dvě stránky
   // feedu se běžně překrývají ve stejném autorovi (kdo postuje často),
   // druhé dotažení jeho profilu appce nevadí, jen ho tiše přepíše týmž.
@@ -87,6 +96,7 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
   useEffect(() => {
     let platne = true
     doporucenyKurzor.current = null
+    setUkazatNahoru(false)
     void (async () => {
       setNacitaPrispevky(true)
       const prvni =
@@ -211,12 +221,24 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
               Pro tebe
             </button>
           </div>
-          <button
-            className="social-domu-pridat-story-btn"
-            onClick={() => vstupStoryRef.current?.click()}
-          >
-            <SocialIcon name="plus" size={14} /> Story
-          </button>
+          <div className="social-domu-horni-prava">
+            {ukazatNahoru && (
+              <button
+                type="button"
+                className="social-icon-btn social-domu-nahoru-btn"
+                aria-label="Posunout na začátek feedu"
+                onClick={() => feedRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
+                <SocialIcon name="arrow-left" size={16} />
+              </button>
+            )}
+            <button
+              className="social-domu-pridat-story-btn"
+              onClick={() => vstupStoryRef.current?.click()}
+            >
+              <SocialIcon name="plus" size={14} /> Story
+            </button>
+          </div>
           <input
             ref={vstupStoryRef}
             type="file"
@@ -269,7 +291,14 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
           </div>
         </div>
       ) : (
-        <div className="social-feed" ref={feedRef}>
+        <div
+          className="social-feed"
+          ref={feedRef}
+          onScroll={(e) => {
+            const za = e.currentTarget.scrollTop > e.currentTarget.clientHeight
+            setUkazatNahoru((p) => (p === za ? p : za))
+          }}
+        >
           {storyPolozky.map(({ skupina, story, indexVeSkupine }) => {
             const klic = `story:${story.id}`
             return (
@@ -301,6 +330,7 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
               onOtevritProfil={() => onOtevritProfil(p.autorId)}
               onOtevritDetail={() => setOtevrenyDetail(p)}
               onSmazano={() => setPrispevky((prev) => prev.filter((x) => x.id !== p.id))}
+              onUtlumeno={() => setPrispevky((prev) => prev.filter((x) => x.autorId !== p.autorId))}
               stav={stav}
               // Ref appka drží mimo React stav (postElementy.current), ne
               // useState — mění se při každém scrollu a appka ho

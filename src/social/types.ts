@@ -408,6 +408,21 @@ export interface Prispevek {
    *  jednoduchost jako Zprava.editedAt: jen aktuální text, žádná
    *  historie předchozích verzí. */
   editedAt: string | null
+  /** Do které sbírky v Uloženém příspěvek patří — `undefined` u
+   *  obyčejného feedu/profilové mřížky (appka se tam na sbírky neptá
+   *  vůbec), `null`/id jen u výsledku nactiUlozenePrispevky(). Appka
+   *  schválně nerozlišuje "nenačteno" (undefined) a "bez sbírky"
+   *  (null) — obě čtou stejně "nepatří do žádné konkrétní sbírky". */
+  collectionId?: string | null
+}
+
+/** Jedna sbírka v Uloženém — appka nabízí jen vlastní, soukromé
+ *  přeřazení uloženého (žádné sdílení sbírek, žádná veřejná viditelnost,
+ *  stejná zdrženlivost jako u Uloženého samotného). */
+export interface SbirkaUlozenych {
+  id: string
+  nazev: string
+  createdAt: string
 }
 
 // ==========================================

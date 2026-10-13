@@ -4,9 +4,10 @@ import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import { NahlasitDialog } from './NahlasitDialog'
 import { SdiletPrispevekDialog } from './SdiletPrispevekDialog'
+import { HashtagovyText } from './HashtagovyText'
 import * as api from '../api'
 import { useDoubleTapLike } from '../useDoubleTapLike'
-import type { Komentar, Prispevek, VztahKPrispevku } from '../types'
+import type { Komentar, Prispevek, SbirkaUlozenych, VztahKPrispevku } from '../types'
 import type { SocialStav } from '../useSocial'
 
 interface Props {
@@ -28,6 +29,13 @@ interface Props {
   stav: SocialStav
   onZavrit: () => void
   onSmazano: () => void
+  /** Přeřazení do sbírky — appka tohle ovládání ukáže jen z Uloženého
+   *  (ProfilSocialniSekce.tsx), kde tyhle tři props skutečně dostanou
+   *  hodnotu. Z feedu/profilové mřížky/výsledků hledání zůstává
+   *  `kolekce` undefined a appka tu nic navíc nevykreslí. */
+  kolekce?: SbirkaUlozenych[]
+  aktivniKolekceId?: string | null
+  onZmenaKolekce?: (collectionId: string | null) => void
 }
 
 /**
@@ -40,7 +48,17 @@ interface Props {
  * celou mřížku najednou, stejný "jen na vyžádání" princip jako
  * VerejnyProfilDialog.tsx's vztah/spolecni.
  */
-export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, stav, onZavrit, onSmazano }) => {
+export const PrispevekProhlizec: React.FC<Props> = ({
+  prispevek,
+  jeMoje,
+  mujId,
+  stav,
+  onZavrit,
+  onSmazano,
+  kolekce,
+  aktivniKolekceId,
+  onZmenaKolekce,
+}) => {
   const [vztah, setVztah] = useState<VztahKPrispevku | null>(null)
   const [meniLajk, setMeniLajk] = useState(false)
   const [komentare, setKomentare] = useState<Komentar[]>([])
@@ -99,6 +117,20 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
     const vysledek = await akce(prispevek.id)
     if (vysledek.ok) setUlozeno(!ulozeno)
     setMeniUlozeni(false)
+  }
+
+  // Jen z Uloženého (kolekce je tam skutečně vyplněná) — přeřazuje
+  // vlastní uložený příspěvek mezi sbírkami appka drží samostatně od
+  // VztahKPrispevku, ten zůstává jen pro lajky.
+  const [prepinaKolekci, setPrepinaKolekci] = useState(false)
+
+  const prepnoutKolekci = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const noveId = e.target.value || null
+    setPrepinaKolekci(true)
+    const vysledek = await api.presunoutUlozenyPrispevekDoSbirky(prispevek.id, noveId)
+    setPrepinaKolekci(false)
+    if (vysledek.ok) onZmenaKolekce?.(noveId)
+    else stav.rekni(vysledek.chyba ?? 'Nepovedlo se to.')
   }
 
   const smazat = async () => {
@@ -293,7 +325,7 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
       ) : (
         (popisek || jeMoje) && (
           <p className="social-story-popisek">
-            {popisek}
+            {popisek && <HashtagovyText text={popisek} />}
             {jeMoje && (
               <button className="social-prispevek-popisek-upravit" onClick={zacitUpravovatPopisek} aria-label="Upravit popisek">
                 <SocialIcon name="pencil" size={13} />
@@ -330,6 +362,26 @@ export const PrispevekProhlizec: React.FC<Props> = ({ prispevek, jeMoje, mujId, 
           <SocialIcon name="share" size={20} />
         </button>
       </div>
+
+      {kolekce !== undefined && (
+        <div className="social-prispevek-kolekce-radek">
+          <SocialIcon name="layers" size={15} />
+          <select
+            className="social-prispevek-kolekce-select"
+            value={aktivniKolekceId ?? ''}
+            onChange={prepnoutKolekci}
+            disabled={prepinaKolekci}
+            aria-label="Přeřadit do sbírky"
+          >
+            <option value="">Bez sbírky</option>
+            {kolekce.map((k) => (
+              <option key={k.id} value={k.id}>
+                {k.nazev}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="social-prispevek-komentare">
         {komentare.length === 0 ? (

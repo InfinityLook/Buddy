@@ -9,6 +9,7 @@ import type {
   PratelskyNavrh,
   Prispevek,
   Reakce,
+  SbirkaUlozenych,
   StavHlaseni,
   MujProfil,
   Pritel,
@@ -378,6 +379,59 @@ export const odblokovat = async (kohoId: string): Promise<Vysledek> => {
     .delete()
     .eq('blocker_id', ja)
     .eq('blocked_id', kohoId)
+
+  return error ? chyba(error) : { ok: true }
+}
+
+// ---------- ztlumení (feed) ----------
+//
+// Na rozdíl od blokování ztlumený účet dál smí napsat, komentovat i
+// sledovat — appka jen přestane ukazovat jeho příspěvky ve feedu
+// (nacti_feed/nacti_doporuceny_feed na databázi vynechají autora,
+// kterého volající ztlumil, stejná `not exists` klauzule jako u
+// blocks). "Není to pro mě", ne "tenhle člověk mi vadí" — proto ani
+// netrhá sledování/přátelství, jen tlumí jeden konkrétní kanál.
+
+export const nactiUtlumene = async (): Promise<SocialProfil[]> => {
+  if (!supabase) return []
+
+  const { data } = await supabase.from('muted_accounts').select('muted_id')
+  const ids = (data ?? []).map((r) => r.muted_id)
+  if (ids.length === 0) return []
+
+  const profily = await nactiProfily(ids)
+  return ids.map(
+    (id) => profily.get(id) ?? { id, displayName: 'Neznámý uživatel', avatarUrl: null }
+  )
+}
+
+export const utlumitUcet = async (kohoId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase.from('muted_accounts').insert({ user_id: ja, muted_id: kohoId })
+  // Primární klíč (user_id, muted_id) — druhé ztlumení narazí na kolizi
+  // (23505), ne na skutečnou chybu (stejné "no-op úspěch" jako
+  // u pridatLajk/ulozitPrispevek).
+  if (error && (error as { code?: string }).code !== '23505') return chyba(error)
+  return { ok: true }
+}
+
+export const odtlumitUcet = async (kohoId: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase
+    .from('muted_accounts')
+    .delete()
+    .eq('user_id', ja)
+    .eq('muted_id', kohoId)
 
   return error ? chyba(error) : { ok: true }
 }
@@ -1999,6 +2053,7 @@ const prispevekZRadku = (
     created_at: string
     dalsi_media?: { media_path: string; media_type: 'image' | 'video' }[] | null
     edited_at?: string | null
+    collection_id?: string | null
   }
 ): Prispevek => ({
   id: r.id,
@@ -2013,6 +2068,7 @@ const prispevekZRadku = (
     mediaType: m.media_type,
   })),
   editedAt: r.edited_at ?? null,
+  collectionId: r.collection_id ?? null,
 })
 
 // Karusel — Instagram sám povoluje 10, stejné číslo appka přebírá jako
@@ -2191,10 +2247,20 @@ export const jeUlozenyPrispevek = async (postId: string): Promise<boolean> => {
   return !!data
 }
 
+/**
+ * Volá nacti_ulozene_prispevky_s_kolekci, ne nacti_ulozene_prispevky —
+ * tahle druhá, novější funkce navíc vrací collection_id (viz migrace
+ * pridej_ztlumene_ucty_a_sbirky_ulozenych). Původní funkce zůstává na
+ * databázi beze změny a nepoužitá — DROP FUNCTION + CREATE se stejným
+ * jménem (jediná cesta, jak rozšířit RETURNS TABLE) tady opakovaně
+ * narazil na to, že destruktivní příkaz čeká na potvrzení, které v téhle
+ * relaci nejde dát, takže appka raději přidala novou funkci navíc, než
+ * aby násilím mazala starou.
+ */
 export const nactiUlozenePrispevky = async (): Promise<Prispevek[]> => {
   if (!supabase) return []
 
-  const { data, error } = await supabase.rpc('nacti_ulozene_prispevky')
+  const { data, error } = await supabase.rpc('nacti_ulozene_prispevky_s_kolekci')
   if (error || !data) return []
 
   const klient = supabase
@@ -2208,8 +2274,89 @@ export const nactiUlozenePrispevky = async (): Promise<Prispevek[]> => {
       created_at: string
       dalsi_media: { media_path: string; media_type: 'image' | 'video' }[]
       edited_at: string | null
+      collection_id: string | null
     }[]
   ).map((r) => prispevekZRadku(klient, r))
+}
+
+// ---------- sbírky v Uloženém ----------
+//
+// Vlastní, soukromé přeřazení uloženého do skupin — žádné sdílení,
+// žádná veřejná viditelnost (viz saved_collections' RLS, čistě self-row).
+// Smazání sbírky nemaže uložené příspěvky v ní, jen je vrátí mimo
+// sbírky (saved_posts.collection_id ON DELETE SET NULL na databázi) —
+// stejný "reference může zmizet, řádek, co na ni ukazoval, ne" vzor
+// jako u messages.story_id.
+
+export const nactiSbirky = async (): Promise<SbirkaUlozenych[]> => {
+  if (!supabase) return []
+
+  const { data, error } = await supabase
+    .from('saved_collections')
+    .select('id, nazev, created_at')
+    .order('created_at', { ascending: true })
+
+  if (error || !data) return []
+  return data.map((r) => ({ id: r.id, nazev: r.nazev, createdAt: r.created_at }))
+}
+
+export const zalozitSbirku = async (nazev: string): Promise<{ id: string | null } & Vysledek> => {
+  if (!supabase) return { ...NENI_CLOUD, id: null }
+
+  const orezany = nazev.trim()
+  if (!orezany) return { ok: false, chyba: 'Název sbírky nemůže být prázdný.', id: null }
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return { ...NENI_CLOUD, id: null }
+
+  const { data, error } = await supabase
+    .from('saved_collections')
+    .insert({ user_id: ja, nazev: orezany })
+    .select('id')
+    .single()
+
+  if (error || !data) return { ...chyba(error), id: null }
+  return { ok: true, id: data.id }
+}
+
+export const prejmenovatSbirku = async (id: string, novyNazev: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const orezany = novyNazev.trim()
+  if (!orezany) return { ok: false, chyba: 'Název sbírky nemůže být prázdný.' }
+
+  const { error } = await supabase.from('saved_collections').update({ nazev: orezany }).eq('id', id)
+  return error ? chyba(error) : { ok: true }
+}
+
+export const smazatSbirku = async (id: string): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { error } = await supabase.from('saved_collections').delete().eq('id', id)
+  return error ? chyba(error) : { ok: true }
+}
+
+/** Přeřadí už uložený příspěvek do jiné sbírky (`null` = zpátky mimo
+ *  sbírky) — plain UPDATE vlastního řádku, stejná RLS politika jako
+ *  u ulozitPrispevek/odebratUlozenyPrispevek. */
+export const presunoutUlozenyPrispevekDoSbirky = async (
+  postId: string,
+  collectionId: string | null
+): Promise<Vysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  const { data: relace } = await supabase.auth.getSession()
+  const ja = relace.session?.user?.id
+  if (!ja) return NENI_CLOUD
+
+  const { error } = await supabase
+    .from('saved_posts')
+    .update({ collection_id: collectionId })
+    .eq('user_id', ja)
+    .eq('post_id', postId)
+
+  return error ? chyba(error) : { ok: true }
 }
 
 /**
