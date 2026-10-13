@@ -12,9 +12,57 @@
   position: fixed;
   inset: 0;
   background: #10190f;
+  overflow: hidden;
+  /* appka řeší telefon na výšku i na šířku stejně jako jinde v appce —
+     žádný natvrdo omezený rozměr, jen bezpečné okraje. */
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ---------- "otoč telefon" výzva — jen v portrétu ----------
+   Stejný postup jako Survival Night/BuddyZone/Souboj: appčin skutečný
+   herní obsah (appčin `.bw-shell`) je schovaný, dokud appka neleží na
+   šířku — viz @media (orientation: portrait) na konci souboru, musí
+   zůstat na konci, ať v pořadí zdroje přebije `.bw-shell`'s vlastní
+   bezpodmínečné `display: flex` (stejná past se stejnou specificitou
+   co appka už jednou opravovala u Souboje a Survival Night). */
+
+.bw-rotate-prompt {
+  display: none;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  text-align: center;
+  color: #e8f0e4;
+  padding: 2rem;
+}
+
+.bw-rotate-ikona {
+  font-size: 2.6rem;
+}
+
+@keyframes bw-otoc-houpani {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  50% {
+    transform: rotate(-90deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bw-rotate-ikona {
+    animation: bw-otoc-houpani 1.6s ease-in-out infinite;
+  }
+}
+
+.bw-shell {
+  height: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 
 /* --- appčin výběr maskota (VyberMaskota.tsx) --- */
@@ -416,4 +464,20 @@
   justify-content: center;
   font-size: 1.5rem;
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
+}
+
+/* ==========================================
+   LANDSCAPE ZÁMEK — musí zůstat úplně na konci souboru. Při shodné
+   specificitě vyhrává v CSS pořadí ve zdroji, takže dřívější umístění
+   tohohle bloku by ho v portrétu tiše přebíjelo `.bw-shell`'s vlastní
+   bezpodmínečné `display: flex` výš — přesně ta chyba, co appka už
+   jednou musela opravit u Souboje a znovu u Survival Night/BuddyZone.
+   ========================================== */
+@media (orientation: portrait) {
+  .bw-rotate-prompt {
+    display: flex;
+  }
+  .bw-shell {
+    display: none;
+  }
 }

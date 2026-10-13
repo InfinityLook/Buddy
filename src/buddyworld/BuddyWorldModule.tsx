@@ -28,6 +28,13 @@ import './BuddyWorldModule.css'
 // nepřítele, a zpátky dostane canvas ref a malou HUD strukturu,
 // kterou jen zobrazí. Pozice/kamera/souboj se tu v Reactovém stavu
 // vůbec neřeší.
+//
+// Landscape, stejný postup jako Survival Night/BuddyZone/Souboj: appka
+// se snaží telefon zamknout na šířku (screen.orientation.lock,
+// best-effort — nefunguje mimo fullscreen a vůbec na iOS Safari), ale
+// skutečnou zárukou je čistě CSS "otoč telefon" výzva v
+// BuddyWorldModule.css přes @media (orientation: portrait), co skutečný
+// obsah schová, dokud telefon doopravdy na šířku neleží.
 // ==========================================
 
 type Obrazovka = 'vyber' | 'hra'
@@ -68,40 +75,57 @@ export const BuddyWorldModule: React.FC = () => {
     ulozPostup(hud.hrac.level, hud.hrac.xp)
   }, [obrazovka, hud.hrac.level, hud.hrac.xp, ulozPostup])
 
+  useEffect(() => {
+    // DOM lib netypuje `.lock()` (pořád experimentální metoda) — místní
+    // cast stejný jako GamesHubModule.tsx/Ovladac.tsx/SurvivalModule.tsx
+    // jinde v appce.
+    const orientaceSZamkem = screen.orientation as ScreenOrientation & {
+      lock?: (orientace: string) => Promise<void>
+    }
+    orientaceSZamkem.lock?.('landscape').catch(() => {})
+  }, [])
+
   return (
     <div className="bw-page">
-      {obrazovka === 'vyber' && (
-        <VyberMaskota
-          aktivniMaskotId={aktivniMaskotId}
-          odemceneMaskoty={odemceneMaskoty}
-          onVybrat={vybratMaskota}
-          onPokracovat={() => setObrazovka('hra')}
-          onZpet={() => navigate('/hub')}
-        />
-      )}
+      <div className="bw-rotate-prompt" aria-hidden="true">
+        <span className="bw-rotate-ikona">🔄</span>
+        <p>Otoč telefon na šířku</p>
+      </div>
 
-      {obrazovka === 'hra' && (
-        <div className="bw-arena">
-          <div className="bw-arena-canvas" ref={containerRef}>
-            {selhalo && (
-              <div className="bw-arena-selhalo">
-                <p>3D vykreslení se na tomhle zařízení nepovedlo spustit.</p>
-              </div>
-            )}
-          </div>
-
-          <HUD
-            hud={hud}
-            maskot={maskot}
-            nepritelDef={nepritelDef}
-            onUtocit={utocit}
+      <div className="bw-shell">
+        {obrazovka === 'vyber' && (
+          <VyberMaskota
+            aktivniMaskotId={aktivniMaskotId}
+            odemceneMaskoty={odemceneMaskoty}
+            onVybrat={vybratMaskota}
+            onPokracovat={() => setObrazovka('hra')}
             onZpet={() => navigate('/hub')}
-            onZkusitZnovu={obnovitPoSmrti}
           />
+        )}
 
-          <VirtualniJoystick onZmena={nastavJoystick} />
-        </div>
-      )}
+        {obrazovka === 'hra' && (
+          <div className="bw-arena">
+            <div className="bw-arena-canvas" ref={containerRef}>
+              {selhalo && (
+                <div className="bw-arena-selhalo">
+                  <p>3D vykreslení se na tomhle zařízení nepovedlo spustit.</p>
+                </div>
+              )}
+            </div>
+
+            <HUD
+              hud={hud}
+              maskot={maskot}
+              nepritelDef={nepritelDef}
+              onUtocit={utocit}
+              onZpet={() => navigate('/hub')}
+              onZkusitZnovu={obnovitPoSmrti}
+            />
+
+            <VirtualniJoystick onZmena={nastavJoystick} />
+          </div>
+        )}
+      </div>
     </div>
   )
 }
