@@ -78,6 +78,7 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-quest-storage', storage: 'secure', label: 'Herní questy' },
   { key: 'schoolbuddy-inventar-storage', storage: 'secure', label: 'Herní batoh' },
   { key: 'schoolbuddy-vybaveni-storage', storage: 'secure', label: 'Herní vybavení' },
+  { key: 'schoolbuddy-buddyworld-storage', storage: 'secure', label: 'Buddy World' },
   { key: 'schoolbuddy-souboj-statistiky-storage', storage: 'secure', label: 'Statistiky Souboje' },
   { key: 'schoolbuddy-kalendar-storage', storage: 'secure', label: 'Kalendář' },
   { key: 'schoolbuddy-behani-storage', storage: 'secure', label: 'Běhání' },

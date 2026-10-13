@@ -76,6 +76,13 @@ export type ActivityKind =
   // dluhu do seznamu je čistě datový vstup bez přirozeného stropu,
   // stejná úvaha jako u Jídelníčku/Pitného režimu).
   | 'sporeni'
+  // Buddy World (src/buddyworld/) — nová, samostatná 3D RPG hra mimo
+  // appčinu dřívější "sekci Hry" (Buddyheim/Souboj/Buddyho Trh/
+  // Survival Night, dočasně schovanou kvůli Google Play v1 review).
+  // Vlastní kind, ne sdílení s Buddyheimovým 'battle' ani Survival
+  // Nightovým 'survival_kill' — tři různé hry, tři různá počítadla,
+  // stejná zásada jako 'souboj' vs. 'battle' výš.
+  | 'buddyworld'
 
 // Které ActivityKindy se počítají do fitnessXp (Fitness Roomův
 // žebříček, Fáze 4) — 'workout' je Form Check, zbytek jsou tři další
@@ -218,6 +225,8 @@ export const DEFAULT_BADGES: Badge[] = [
   { id: 'harmonie', title: 'Harmonie', description: 'Dokonči rozcvičku, strečink nebo jógu v 10 různých dnech.', icon: '🧘', unlockedAt: null },
   // Economy Roomova nová appka — Spořicí simulátor.
   { id: 'sporitel', title: 'Spořitel', description: 'Ulož 10 scénářů ve Spořicím simulátoru.', icon: '💹', unlockedAt: null },
+  // Buddy World — nová 3D RPG hra, první odznak za první souboj.
+  { id: 'buddy_world_objevitel', title: 'Objevitel', description: 'Poraz svého prvního nepřítele v Buddy Worldu.', icon: '🌲', unlockedAt: null },
 ]
 
 // Odznaky, které se odemykají počtem opakování dané činnosti. 'souboj'
@@ -261,6 +270,7 @@ const COUNT_BADGES: Partial<Record<ActivityKind, { badgeId: string; needed: numb
   posilovna: { badgeId: 'posilak', needed: 10 },
   mobilita: { badgeId: 'harmonie', needed: 10 },
   sporeni: { badgeId: 'sporitel', needed: 10 },
+  buddyworld: { badgeId: 'buddy_world_objevitel', needed: 1 },
 }
 
 // Označí odznak za odemčený, pokud ještě odemčený není

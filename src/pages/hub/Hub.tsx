@@ -844,6 +844,23 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
             </span>
             <span className="hub-quick-link-arrow" aria-hidden="true">›</span>
           </button>
+          {/* Buddy World — nová, samostatná 3D RPG (appčina routa
+              /buddy-world), nezávislá na dřívější, dočasně schované
+              sekci Hry (viz App.tsx's vlastní komentář). Ikona je jen
+              holý emoji, ne appčin obvyklý <img> ze
+              public/icons/hub-wheel/ — appka v týhle relaci nemá
+              nástroj na generování nové grafiky a nechce vymýšlet
+              neexistující cestu k obrázku. */}
+          <button type="button" className="hub-quick-link" onClick={() => navigate('/buddy-world')}>
+            <span className="hub-quick-link-icon hub-quick-link-icon--emoji" aria-hidden="true">
+              🌲
+            </span>
+            <span className="hub-quick-link-text">
+              <span className="hub-quick-link-title">Buddy World</span>
+              <span className="hub-quick-link-desc">3D dobrodružství s tvým společníkem</span>
+            </span>
+            <span className="hub-quick-link-arrow" aria-hidden="true">›</span>
+          </button>
         </div>
 
         {/* Spodní navigace — Fáze 4 Social nav reworku vytáhla tenhle

@@ -29,6 +29,12 @@ import AdminModule from '@/pages/admin/AdminModule.tsx'
 import SupportModule from '@/pages/support/SupportModule.tsx'
 const SocialModule = lazy(() => import('@/social/SocialModule'))
 const FeedModule = lazy(() => import('@/social/FeedModule'))
+// Buddy World je nová, samostatná 3D RPG — na rozdíl od pětice her
+// výš NENÍ součástí schované sekce Hry (appka to řešila
+// AskUserQuestionem s uživatelem, poté co appka zjistila appčin
+// Google Play embargo popsaný u GamesHubModule importu výš), takže
+// appčina routa /buddy-world zůstává hned živá, ne zakomentovaná.
+const BuddyWorldModule = lazy(() => import('@/buddyworld/BuddyWorldModule.tsx'))
 // Všech pět her (Buddyheim, Souboj, Buddyho Trh, Survival Night, Čtyři
 // království) je dočasně schovaných zároveň s GamesHubModule importem
 // výš — appka releasuje v1 na Google Play bez celé sekce Hry a doplní
@@ -303,6 +309,25 @@ export default function App() {
             <Route path="/hra/souboj" element={<Navigate to="/hub" replace />} />
             <Route path="/hra/survival-night" element={<Navigate to="/hub" replace />} />
             <Route path="/hra/deskova-hra" element={<Navigate to="/hub" replace />} />
+
+            {/* Buddy World — NOVÁ, hned živá 3D RPG, nezávislá na pětici
+                her výš. Vybráno přes AskUserQuestion s uživatelem poté,
+                co appka zjistila appčin Google Play v1 embargo (viz
+                komentáře nahoře) — Buddy World se tím dá zkoušet na
+                mobilu okamžitě, ne až poté, co se sekce Hry znovu
+                odkryje. */}
+            <Route
+              path="/buddy-world"
+              element={
+                dovnitr ? (
+                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
+                    <BuddyWorldModule />
+                  </Suspense>
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
 
             <Route
               path="/obchod"
