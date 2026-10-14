@@ -846,15 +846,15 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
           </button>
           {/* Buddy World — nová, samostatná 3D RPG (appčina routa
               /buddy-world), nezávislá na dřívější, dočasně schované
-              sekci Hry (viz App.tsx's vlastní komentář). Ikona je jen
-              holý emoji, ne appčin obvyklý <img> ze
-              public/icons/hub-wheel/ — appka v týhle relaci nemá
-              nástroj na generování nové grafiky a nechce vymýšlet
-              neexistující cestu k obrázku. */}
+              sekci Hry (viz App.tsx's vlastní komentář). Ikona je
+              appčina reálná koncept-ikona z BuddyWorld_ArtPack.zip
+              (data/koncept.ts's ui.ikona.buddy) — appka dřívější bare
+              emoji (appka v tehdejší relaci neměla nástroj na
+              generování nové grafiky) nahradila skutečným appčiným
+              <img>, stejná appčina konvence jako appčiny ostatní
+              quick-linky výš. */}
           <button type="button" className="hub-quick-link" onClick={() => navigate('/buddy-world')}>
-            <span className="hub-quick-link-icon hub-quick-link-icon--emoji" aria-hidden="true">
-              🌲
-            </span>
+            <img src="/buddyworld/koncept/ui/icons/buddy.svg" alt="" className="hub-quick-link-icon" />
             <span className="hub-quick-link-text">
               <span className="hub-quick-link-title">Buddy World</span>
               <span className="hub-quick-link-desc">3D dobrodružství s tvým společníkem</span>

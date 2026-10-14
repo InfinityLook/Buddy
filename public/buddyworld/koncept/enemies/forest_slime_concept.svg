@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<title>SLIME concept</title>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#1b2634"/><stop offset="100%" stop-color="#243b45"/>
+  </linearGradient>
+  <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity=".35"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity=".35"/>
+  </filter>
+</defs>
+<rect width="512" height="512" rx="36" fill="url(#bg)"/>
+
+<circle cx="256" cy="275" r="180" fill="#69d98c" opacity=".12"/>
+<ellipse cx="256" cy="422" rx="140" ry="20" fill="#000" opacity=".25"/>
+<g filter="url(#shadow)">
+<path d="M100 365 Q115 240 190 218 Q256 168 322 218 Q397 240 412 365 Q365 414 256 414 Q147 414 100 365Z" fill="#69d98c" stroke="#23583d" stroke-width="12"/>
+<ellipse cx="207" cy="310" rx="18" ry="27" fill="#fff"/><ellipse cx="305" cy="310" rx="18" ry="27" fill="#fff"/>
+<circle cx="211" cy="317" r="9" fill="#173b2c"/><circle cx="301" cy="317" r="9" fill="#173b2c"/>
+<path d="M220 359 Q256 377 292 359" fill="none" stroke="#23583d" stroke-width="9" stroke-linecap="round"/>
+<circle cx="165" cy="264" r="20" fill="#b9ffcf" opacity=".7"/>
+</g>
+<text x="256" y="465" text-anchor="middle" font-family="Arial,sans-serif" font-size="22" font-weight="700" fill="#f6f1e7">SLIME</text>
+
+</svg>

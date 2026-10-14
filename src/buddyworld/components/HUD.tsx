@@ -1,13 +1,21 @@
 import React from 'react'
 import { MaskotDef, NepritelDef } from '../types'
 import { BuddyWorldHud } from '../scene/useBuddyWorldScene'
+import { obrazekKonceptu } from '../data/koncept'
 
 // ==========================================
 // 2D HUD přes 3D scénu — hráčovo HP/XP/level, útočné tlačítko a
 // nepřítelovo HP (jen během boje). Tahle komponenta nic nekreslí
 // uvnitř Threejs, je to plain React/DOM přes scénu — stejná
 // konvence jako Survival Nightovo HUD.tsx.
+//
+// Útočné tlačítko a nepřítelův portrét appka zkusí vykreslit z
+// appčina BuddyWorld_ArtPack.zip (data/koncept.ts) — appka se vždycky
+// umí vrátit ke svému dřívějšímu emoji, pokud appka appku nenajde
+// (appčin budoucí druhý typ nepřítele bez vlastní koncept-art).
 // ==========================================
+
+const UTOK_IKONA = obrazekKonceptu('ui.ikona.utok')
 
 interface Props {
   hud: BuddyWorldHud
@@ -23,6 +31,7 @@ export const HUD: React.FC<Props> = ({ hud, maskot, nepritelDef, onUtocit, onZpe
   const xpProcenta = Math.max(0, Math.min(100, (hud.hrac.xp / hud.xpProDalsiUroven) * 100))
   const nepritelProcenta = Math.max(0, Math.min(100, (hud.nepritelHp / hud.nepritelMaxHp) * 100))
   const vBoji = hud.nepritelFaze !== 'klid' && hud.nepritelFaze !== 'mrtvy'
+  const nepritelIlustrace = obrazekKonceptu(`nepritel.${nepritelDef.id}`)
 
   return (
     <div className="bw-hud">
@@ -53,7 +62,12 @@ export const HUD: React.FC<Props> = ({ hud, maskot, nepritelDef, onUtocit, onZpe
       {vBoji && (
         <div className="bw-hud-nepritel">
           <span className="bw-hud-nepritel-jmeno">
-            {nepritelDef.ikona} {nepritelDef.jmeno}
+            {nepritelIlustrace ? (
+              <img src={nepritelIlustrace} alt="" className="bw-hud-nepritel-portret" />
+            ) : (
+              <span aria-hidden="true">{nepritelDef.ikona} </span>
+            )}
+            {nepritelDef.jmeno}
           </span>
           <div className="bw-hud-bar bw-hud-bar--nepritel">
             <div className="bw-hud-bar-vypln" style={{ width: `${nepritelProcenta}%` }} />
@@ -75,7 +89,12 @@ export const HUD: React.FC<Props> = ({ hud, maskot, nepritelDef, onUtocit, onZpe
           onClick={onUtocit}
           disabled={!hud.utokPripraven}
         >
-          ⚔️ Útok
+          {UTOK_IKONA ? (
+            <img src={UTOK_IKONA} alt="" className="bw-hud-utok-ikona" />
+          ) : (
+            <span aria-hidden="true">⚔️</span>
+          )}
+          <span className="bw-hud-utok-text">Útok</span>
         </button>
       </div>
 

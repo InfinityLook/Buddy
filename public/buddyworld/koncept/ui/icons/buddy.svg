@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<title>Buddy UI icon</title>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#1b2a38"/><stop offset="100%" stop-color="#243b45"/>
+  </linearGradient>
+  <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity=".35"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity=".35"/>
+  </filter>
+</defs>
+<rect width="512" height="512" rx="36" fill="url(#bg)"/>
+<circle cx="256" cy="256" r="205" fill="#ffffff" opacity=".06"/><circle cx="256" cy="245" r="110" fill="#ff9b4a" stroke="#fff0d6" stroke-width="12"/><path d="M165 180 L145 100 L215 145 M347 180 L367 100 L297 145" fill="#ff9b4a" stroke="#fff0d6" stroke-width="12" stroke-linejoin="round"/><ellipse cx="220" cy="250" rx="15" ry="22" fill="#24313c"/><ellipse cx="292" cy="250" rx="15" ry="22" fill="#24313c"/><path d="M220 300 Q256 325 292 300" fill="none" stroke="#24313c" stroke-width="10" stroke-linecap="round"/>
+</svg>

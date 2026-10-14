@@ -1,20 +1,41 @@
-# Buddy World — budoucí grafický balíček (`BuddyWorld_ArtPack.zip`)
+# Buddy World — grafický balíček (`BuddyWorld_ArtPack.zip`)
 
-Tenhle soubor dokumentuje, jaký grafický obsah Buddy World
-(`src/buddyworld/`) jednou očekává a jak se dá bezpečně doplnit —
-**ne** co už existuje. K datu psaní tohoto dokumentu
-`BuddyWorld_ArtPack.zip` ještě neexistuje a žádný ze souborů popsaných
-níž není na disku. Scéna (`scene/useBuddyWorldScene.ts`) proto dnes
-vždycky kreslí jen primitivní geometrii (koule, kapsle, kužel,
-dvanáctistěn) — stejná "low-poly, snadno nahraditelný placeholder"
-technika, jaká se už osvědčila jinde v appce (viz `game/explorace/
-usePlayerWorld.ts`).
+**`BuddyWorld_ArtPack.zip` už dorazil — ale jako čistě 2D vektorová
+koncept-grafika (SVG), ne jako 3D modely.** Appčin vlastní manifest
+(`ASSET_MANIFEST.json`) i README uvnitř balíčku to výslovně potvrzují:
+"These are original 2D concept/placeholders. They are not production
+3D GLB models, rigs, or animations." Appka ho proto rozdělila na dvě
+zcela nezávislé vrstvy:
 
-Skutečný, strojově čitelný registr cest je `src/buddyworld/data/
-assets.ts` — tenhle Markdown soubor je jen jeho lidsky čitelný doplněk
-pro toho, kdo balíček připravuje (pojmenování, formáty, kam co patří),
-ne druhý zdroj pravdy. Jakmile se nějaký asset doplní, aktualizuje se
-`dostupny: true` u odpovídající položky v `assets.ts`, ne tady.
+- **2D koncept-art (dorazilo, appka ho používá dnes)** — registr je
+  `src/buddyworld/data/koncept.ts` (`KONCEPT_ASSETY`/
+  `obrazekKonceptu()`), soubory leží pod `public/buddyworld/koncept/`.
+  Appka appku zapojila do svého výběru maskota (`VyberMaskota.tsx`),
+  HUD útočného tlačítka a nepřítelova portrétu (`HUD.tsx`), pozadí
+  appčiny výběrové obrazovky a Hubova quick-linku (`Hub.tsx`) — viz
+  CLAUDE.md's vlastní sekci "Buddy World — 2D koncept-art z
+  BuddyWorld_ArtPack.zip" pro appčin plný popis toho, co kde appka
+  vykresluje a proč.
+- **3D modely (`.glb`, appka na ně dál čeká)** — zbytek téhle stránky
+  popisuje přesně tohle: čistě 3D geometrii (postavy, maskoti,
+  nepřátelé, prostředí), kterou appčin balíček NEOBSAHUJE a kterou
+  appčina scéna (`scene/useBuddyWorldScene.ts`) proto dál vždycky
+  kreslí jako primitivní geometrii (koule, kapsle, kužel, dvanáctistěn)
+  — stejná "low-poly, snadno nahraditelný placeholder" technika, jaká
+  se už osvědčila jinde v appce (viz `game/explorace/
+  usePlayerWorld.ts`). Appčin README k balíčku appku na tohle výslovně
+  upozorňuje: "For the 3D world, use placeholder geometry until proper
+  GLB models and animations are prepared" — přesně appka tím
+  doporučením postupuje.
+
+Skutečný, strojově čitelný registr budoucích .glb cest je
+`src/buddyworld/data/assets.ts` — tenhle Markdown soubor je jen jeho
+lidsky čitelný doplněk pro toho, kdo balíček připravuje (pojmenování,
+formáty, kam co patří), ne druhý zdroj pravdy. Jakmile se nějaký .glb
+asset doplní, aktualizuje se `dostupny: true` u odpovídající položky v
+`assets.ts`, ne tady. (2D koncept-art appka dokumentuje samo v
+`data/koncept.ts` — v tabulce níž se nezmiňuje, protože je to
+zcela jiná, nezávislá vrstva.)
 
 ## Jak balíček zapojit
 

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<title>Workshop building concept</title>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#1b2a35"/><stop offset="100%" stop-color="#243b45"/>
+  </linearGradient>
+  <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity=".35"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity=".35"/>
+  </filter>
+</defs>
+<rect width="512" height="512" rx="36" fill="url(#bg)"/>
+
+<ellipse cx="256" cy="420" rx="160" ry="25" fill="#000" opacity=".25"/>
+<path d="M105 245 L256 115 L407 245Z" fill="#9b573d" stroke="#59392e" stroke-width="12" stroke-linejoin="round"/>
+<rect x="135" y="240" width="242" height="170" rx="8" fill="#d7b17b" stroke="#59392e" stroke-width="12"/>
+<rect x="220" y="304" width="72" height="106" fill="#624631"/>
+<rect x="162" y="273" width="42" height="48" fill="#bde8e5" stroke="#59392e" stroke-width="7"/>
+<rect x="308" y="273" width="42" height="48" fill="#bde8e5" stroke="#59392e" stroke-width="7"/>
+<path d="M90 247 L256 99 L422 247" fill="none" stroke="#e8c89a" stroke-width="10" stroke-linecap="round"/>
+<text x="256" y="466" text-anchor="middle" font-family="Arial,sans-serif" font-size="24" font-weight="700" fill="#f6f1e7">WORKSHOP / TOWN BUILDING</text>
+
+</svg>

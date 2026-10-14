@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<title>Map UI icon</title>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#1b2a38"/><stop offset="100%" stop-color="#243b45"/>
+  </linearGradient>
+  <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity=".35"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity=".35"/>
+  </filter>
+</defs>
+<rect width="512" height="512" rx="36" fill="url(#bg)"/>
+<circle cx="256" cy="256" r="205" fill="#ffffff" opacity=".06"/><path d="M105 145 L210 105 L315 145 L410 105 V365 L315 405 L210 365 L105 405Z" fill="#65c68c" stroke="#d7ffe3" stroke-width="12"/><path d="M210 105 V365 M315 145 V405" stroke="#2c7d5b" stroke-width="10"/><path d="M160 300 Q220 220 270 265 T360 195" fill="none" stroke="#fff1b9" stroke-width="15" stroke-linecap="round"/>
+</svg>

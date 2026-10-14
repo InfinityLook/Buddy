@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<title>Settings UI icon</title>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#1b2a38"/><stop offset="100%" stop-color="#243b45"/>
+  </linearGradient>
+  <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity=".35"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity=".35"/>
+  </filter>
+</defs>
+<rect width="512" height="512" rx="36" fill="url(#bg)"/>
+<circle cx="256" cy="256" r="205" fill="#ffffff" opacity=".06"/><circle cx="256" cy="256" r="80" fill="#9caec0" stroke="#eaf3fb" stroke-width="12"/><circle cx="256" cy="256" r="32" fill="#263746"/><path d="M238 105 H274 L287 145 L322 160 L359 140 L384 166 L364 203 L379 238 L419 250 V286 L379 298 L364 333 L384 370 L359 395 L322 375 L287 390 L274 430 H238 L225 390 L190 375 L153 395 L128 370 L148 333 L133 298 L93 286 V250 L133 238 L148 203 L128 166 L153 140 L190 160 L225 145Z" fill="none" stroke="#eaf3fb" stroke-width="12" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<title>Enchanted Forest environment concept</title>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0%" stop-color="#172c32"/><stop offset="100%" stop-color="#243b45"/>
+  </linearGradient>
+  <linearGradient id="shine" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity=".35"/><stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+    <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000000" flood-opacity=".35"/>
+  </filter>
+</defs>
+<rect width="512" height="512" rx="36" fill="url(#bg)"/>
+
+<circle cx="390" cy="85" r="38" fill="#ffd166" opacity=".85"/>
+<path d="M0 320 Q90 250 175 318 T350 302 T512 286 V512 H0Z" fill="#1f5a46"/>
+<path d="M0 385 Q105 320 220 385 T420 363 T512 390 V512 H0Z" fill="#143e35"/>
+<rect x="42" y="185" width="26" height="130" rx="9" fill="#5b4936"/><circle cx="55" cy="170" r="70" fill="#2d7c55"/><circle cx="40" cy="155" r="43.4" fill="#459963"/><rect x="117" y="205" width="26" height="130" rx="9" fill="#5b4936"/><circle cx="130" cy="190" r="85" fill="#2d7c55"/><circle cx="115" cy="175" r="52.7" fill="#459963"/><rect x="382" y="180" width="26" height="130" rx="9" fill="#5b4936"/><circle cx="395" cy="165" r="80" fill="#2d7c55"/><circle cx="380" cy="150" r="49.6" fill="#459963"/><rect x="457" y="225" width="26" height="130" rx="9" fill="#5b4936"/><circle cx="470" cy="210" r="70" fill="#2d7c55"/><circle cx="455" cy="195" r="43.4" fill="#459963"/><rect x="277" y="165" width="26" height="130" rx="9" fill="#5b4936"/><circle cx="290" cy="150" r="62" fill="#2d7c55"/><circle cx="275" cy="135" r="38.44" fill="#459963"/><rect x="27" y="295" width="26" height="130" rx="9" fill="#5b4936"/><circle cx="40" cy="280" r="55" fill="#2d7c55"/><circle cx="25" cy="265" r="34.1" fill="#459963"/><rect x="457" y="315" width="26" height="130" rx="9" fill="#5b4936"/><circle cx="470" cy="300" r="60" fill="#2d7c55"/><circle cx="455" cy="285" r="37.2" fill="#459963"/><path d="M235 512 Q250 420 282 365 Q302 330 330 304" fill="none" stroke="#b99b65" stroke-width="58" stroke-linecap="round"/><path d="M235 512 Q250 420 282 365 Q302 330 330 304" fill="none" stroke="#d8bd85" stroke-width="6" stroke-linecap="round"/>
+</svg>

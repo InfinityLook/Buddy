@@ -1,5 +1,6 @@
 import React from 'react'
 import { MASKOTI } from '../data/maskoti'
+import { obrazekKonceptu } from '../data/koncept'
 
 // ==========================================
 // Výběr aktivního maskota — zobrazuje všechny čtyři elementální
@@ -11,6 +12,16 @@ import { MASKOTI } from '../data/maskoti'
 // Tahle obrazovka appku žádá vybrat jen mezi odemčenými maskoty —
 // appka klik na zamčenou kartu tiše ignoruje, appka nic nenabízí
 // předstírat, co ještě neumí.
+//
+// Každá karta appku zkusí vykreslit reálnou 2D koncept-ilustraci z
+// appčina BuddyWorld_ArtPack.zip (data/koncept.ts's obrazekKonceptu) —
+// appka pro žádný dnešní maskot nemá hotový .glb model (viz
+// data/assets.ts), tahle ilustrace je appčina dočasná, appkou
+// nahraditelná vizuální identita, ne appčin finální 3D vzhled. Appka
+// se vždycky umí vrátit k appčině dřívější emoji ikoně, kterou appka
+// drží jako svůj fallback, nesmazala ji — pro případ, že appka
+// obrázek nenajde (appčin budoucí pátý maskot bez vlastní koncept-art
+// by jinak zůstal úplně bez ikony).
 // ==========================================
 
 interface Props {
@@ -38,6 +49,7 @@ export const VyberMaskota: React.FC<Props> = ({ aktivniMaskotId, odemceneMaskoty
         {MASKOTI.map((maskot) => {
           const odemceny = odemceneMaskoty.includes(maskot.id)
           const aktivni = maskot.id === aktivniMaskotId
+          const ilustrace = obrazekKonceptu(`maskot.${maskot.id}`)
 
           return (
             <button
@@ -60,7 +72,11 @@ export const VyberMaskota: React.FC<Props> = ({ aktivniMaskotId, odemceneMaskoty
                   🔒
                 </span>
               )}
-              <span className="bw-maskot-ikona-velka">{maskot.ikona}</span>
+              {ilustrace ? (
+                <img src={ilustrace} alt="" className="bw-maskot-ilustrace" />
+              ) : (
+                <span className="bw-maskot-ikona-velka">{maskot.ikona}</span>
+              )}
               <span className="bw-maskot-jmeno">{maskot.jmeno}</span>
               <span className="bw-maskot-element">{maskot.element}</span>
               <span className="bw-maskot-popis">{odemceny ? maskot.popis : 'Zatím zamčeno'}</span>

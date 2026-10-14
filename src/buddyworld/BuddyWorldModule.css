@@ -11,7 +11,16 @@
 .bw-page {
   position: fixed;
   inset: 0;
-  background: #10190f;
+  /* Appčin "Enchanted Forest" koncept-podklad z BuddyWorld_ArtPack.zip
+     (data/koncept.ts's prostredi.kouzelny-les) sedí na týhle úplně
+     vnější, pevně velké vrstvě, ne na appčině .bw-vyber (ta má jen
+     vlastní odsazení/scroll, žádné vlastní pozadí) — appčina tmavá
+     přechodová vrstva nad ní udržuje zbytek obrazovky čitelný. Appka
+     ho uvidí jen skrz prázdné pozadí .bw-vyber, protože jakmile appka
+     spustí hru, .bw-arena-canvas ho celé zakryje 3D plátnem. */
+  background:
+    linear-gradient(180deg, rgba(8, 14, 8, 0.58), rgba(8, 14, 8, 0.92)),
+    #10190f url('/buddyworld/koncept/environments/enchanted-forest.svg') center / cover no-repeat;
   overflow: hidden;
   /* appka řeší telefon na výšku i na šířku stejně jako jinde v appce —
      žádný natvrdo omezený rozměr, jen bezpečné okraje. */
@@ -128,10 +137,17 @@
   padding: 1.1rem 0.6rem 0.9rem;
   border-radius: 1rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  /* Appčin dark-fantasy-panel koncept-podklad (data/koncept.ts's
+     ui.pozadi.temny-panel) appka natáhne přes celou kartu; appčina
+     rgba vrstva nad ním zůstává appčina skutečná kontrastní plocha
+     pro text/ikonu výš — appka tím jen přidá hloubku/ornament karty,
+     ne jiný kontrast než dřív. */
+  background:
+    rgba(255, 255, 255, 0.04) url('/buddyworld/koncept/ui/backgrounds/dark-fantasy-panel.svg') center / cover
+      no-repeat;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  transition: border-color 0.15s, background-color 0.15s, transform 0.1s;
 }
 
 .bw-maskot-karta:active {
@@ -140,7 +156,13 @@
 
 .bw-maskot-karta--aktivni {
   border-color: var(--maskot-barva, #ff7a3d);
-  background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--maskot-barva, #ff7a3d) 22%, transparent), rgba(255, 255, 255, 0.04));
+  /* appka tu vrstvu nenahrazuje appčiným podkladem výš, jen ji doplní
+     o appčin vlastní barevný přísvit, ať aktivní karta appku ukazuje
+     stejnou dark-fantasy-panel grafiku jako každá jiná. */
+  background:
+    radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--maskot-barva, #ff7a3d) 30%, transparent), transparent),
+    rgba(255, 255, 255, 0.04) url('/buddyworld/koncept/ui/backgrounds/dark-fantasy-panel.svg') center / cover
+      no-repeat;
   box-shadow: 0 0 0 1px var(--maskot-barva, #ff7a3d) inset;
 }
 
@@ -151,6 +173,15 @@
 
 .bw-maskot-ikona-velka {
   font-size: 2.3rem;
+  filter: drop-shadow(0 0 10px var(--maskot-barva, transparent));
+}
+
+.bw-maskot-ilustrace {
+  width: 100%;
+  max-width: 6.4rem;
+  aspect-ratio: 1;
+  border-radius: 0.85rem;
+  object-fit: cover;
   filter: drop-shadow(0 0 10px var(--maskot-barva, transparent));
 }
 
@@ -347,10 +378,22 @@
 }
 
 .bw-hud-nepritel-jmeno {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
   text-align: center;
   font-size: 0.72rem;
   font-weight: 700;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+.bw-hud-nepritel-portret {
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 .bw-hud-maskot {
@@ -393,8 +436,21 @@
   font-size: 1rem;
   font-weight: 800;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.1rem;
+}
+
+.bw-hud-utok-ikona {
+  width: 1.9rem;
+  height: 1.9rem;
+  object-fit: contain;
+}
+
+.bw-hud-utok-text {
+  font-size: 0.68rem;
+  letter-spacing: 0.01em;
 }
 
 .bw-hud-utok--pripraven {
@@ -429,7 +485,11 @@
   gap: 0.9rem;
   padding: 1.6rem 1.8rem;
   border-radius: 1rem;
-  background: rgba(20, 28, 18, 0.9);
+  /* appčin stejný dark-fantasy-panel podklad jako appčiny maskotní
+     karty výš — jeden sdílený appčin UI-panel vizuál pro appku
+     "appčin panel/karta" obecně, ne druhý appčin vzhled navíc. */
+  background: rgba(20, 28, 18, 0.82) url('/buddyworld/koncept/ui/backgrounds/dark-fantasy-panel.svg') center / cover
+    no-repeat;
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
@@ -450,20 +510,6 @@
 
 .bw-hud-smrt-btn:active {
   transform: scale(0.97);
-}
-
-/* --- hub-quick-link, emoji varianta ikony pro Buddy Worldův vstup
-   v Hubu. Appka k němu nevymyslela žádný nový obrázkový soubor —
-   v týhle relaci nemá nástroj na generování grafiky (viz Hub.tsx's
-   vlastní komentář u tohohle tlačítka) — takže ikona je jen holý
-   emoji, ne appčin obvyklý <img>. --- */
-
-.hub-quick-link-icon--emoji {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.4));
 }
 
 /* ==========================================
