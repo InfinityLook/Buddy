@@ -711,3 +711,59 @@
     display: none;
   }
 }
+
+/* Buddy World v0.2 — panel rozvoje osady; nezakrývá ovládací joystick. */
+.bw-osada-panel {
+  position: absolute;
+  z-index: 18;
+  top: calc(4.3rem + env(safe-area-inset-top, 0px));
+  right: max(0.65rem, env(safe-area-inset-right, 0px));
+  width: min(17rem, 40vw);
+  color: #f5f2df;
+  font-size: 0.78rem;
+}
+.bw-osada-toggle, .bw-osada-detail {
+  background: rgba(15, 30, 23, 0.94);
+  color: #f5f2df;
+  border: 1px solid rgba(239, 205, 126, 0.55);
+  border-radius: 0.8rem;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+.bw-osada-toggle { width: 100%; padding: 0.6rem; font-weight: 700; }
+.bw-osada-detail { margin-top: 0.35rem; padding: 0.75rem; }
+.bw-osada-detail p { margin: 0.45rem 0; }
+.bw-osada-detail button { border: 0; border-radius: 0.5rem; padding: 0.55rem; width: 100%; font-weight: 700; background: #e8b85e; color: #18241b; }
+.bw-osada-detail button:disabled { opacity: 0.65; }
+.bw-osada-detail small { display: block; margin-top: 0.5rem; opacity: 0.8; }
+@media (max-height: 420px) {
+  .bw-osada-panel { top: 3.4rem; }
+  .bw-osada-detail { max-height: 55vh; overflow-y: auto; }
+}
+
+/* Samostatné tlačítko pro sběr, mimo joystick a soubojové akce. */
+.bw-sber-button {
+  position: absolute; z-index: 20; right: 1rem; bottom: 8.8rem;
+  padding: .65rem .85rem; border-radius: 1rem; border: 1px solid #e7c77a;
+  color: #fff4d5; background: rgba(24, 48, 32, .92);
+  font-weight: 700; touch-action: manipulation;
+}
+
+/* v0.5: inventář a crafting v mobilním panelu */
+.bw-osada-detail { max-height: min(65vh, 460px); overflow-y: auto; }
+.bw-osada-tabs { display: flex; gap: 0.35rem; margin-bottom: 0.6rem; }
+.bw-osada-tabs button { flex: 1; padding: 0.4rem; background: #3a4b38; color: #f5f2df; }
+.bw-osada-tabs button[aria-pressed="true"] { background: #e8b85e; color: #18241b; }
+.bw-crafting-list { display: grid; gap: 0.5rem; margin-top: 0.5rem; }
+.bw-crafting-recipe { border-top: 1px solid #65705a; padding-top: 0.5rem; }
+.bw-crafting-recipe small { margin: 0.2rem 0 0.4rem; }
+
+/* v0.8: ovládání potvrzení 3D náhledu nad herní plochou */
+.bw-preview-controls { position:absolute; z-index:22; bottom: max(5.5rem, env(safe-area-inset-bottom, 0px)); left:50%; transform:translateX(-50%); display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:.35rem; width:min(92vw, 420px); padding:.6rem; border-radius:1rem; background:rgba(15,30,23,.94); color:#fff; border:1px solid #d6b77b; font-size:.75rem; }
+.bw-preview-controls span { flex-basis:100%; text-align:center; }
+.bw-preview-controls button { padding:.45rem .65rem; border:1px solid #d6b77b; background:#2c4937; color:white; border-radius:.5rem; }
+.bw-preview-controls button:disabled { opacity:.45; }
+
+/* Buddy World v1.1 — dialog při přiblížení k obyvateli. */
+.bw-npc-dialog { position: absolute; z-index: 22; bottom: max(6rem, env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); width: min(19rem, 65vw); padding: .7rem; border-radius: .8rem; border: 1px solid #b9a77d; background: rgba(20, 30, 28, .94); color: #fff6e2; font-size: .85rem; text-align: center; pointer-events: auto; }
+.bw-npc-dialog p { margin: .4rem 0; }
+.bw-npc-dialog button { border: 0; border-radius: .5rem; padding: .45rem .8rem; background: #e8b85e; color: #172219; font-weight: 700; }

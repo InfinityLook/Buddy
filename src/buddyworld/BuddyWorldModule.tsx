@@ -7,6 +7,7 @@ import { maskotPodleId } from './data/maskoti'
 import { bossPodleId, VYCHOZI_BOSS_ID } from './data/bossove'
 import { hracStavZUrovne } from './leveling'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
+import { useVillageStore } from './useVillageStore'
 import './BuddyWorldModule.css'
 
 // ==========================================
@@ -60,6 +61,7 @@ export const BuddyWorldModule: React.FC = () => {
   const vybratMaskota = useBuddyWorldStore((s) => s.vybratMaskota)
   const ulozPostup = useBuddyWorldStore((s) => s.ulozPostup)
   const recordAction = useGamificationStore((s) => s.recordAction)
+  const zaznamenejVyhru = useVillageStore((s) => s.zaznamenejVyhru)
 
   const maskot = maskotPodleId(aktivniMaskotId)
   const bossDef = bossPodleId(VYCHOZI_BOSS_ID)
@@ -103,13 +105,19 @@ export const BuddyWorldModule: React.FC = () => {
             // ignoruje, appčin skutečný zdroj pravdy je od téhle
             // chvíle appčin hracStavRef uvnitř scény.
             pocatecniHracStav={hracStavZUrovne(level, xp)}
-            onZabitiNepritele={(xpOdmena) => recordAction('buddyworld', xpOdmena)}
+            onZabitiNepritele={(xpOdmena) => {
+              recordAction('buddyworld', xpOdmena)
+              zaznamenejVyhru(false)
+            }}
             // Poražení bosse appka zapisuje přes sdílený appčin kind
             // 'boss', ne 'buddyworld' — Buddyheim i Survival Night už
             // svého prvního bosse počítají přes tenhle stejný,
             // existující odznak (boss_slayer), appka proto
             // znovupoužívá stejné počítadlo, ne nový paralelní systém.
-            onZabitiBosse={(xpOdmena) => recordAction('boss', xpOdmena)}
+            onZabitiBosse={(xpOdmena) => {
+              recordAction('boss', xpOdmena)
+              zaznamenejVyhru(true)
+            }}
             onPostupZmena={ulozPostup}
             onZpet={() => navigate('/hub')}
           />

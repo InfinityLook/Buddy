@@ -1,7 +1,8 @@
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useBuddyWorldScene } from '../scene/useBuddyWorldScene'
 import { VirtualniJoystick } from '@/game/components/VirtualniJoystick'
 import { HUD } from './HUD'
+import { OsadaPanel } from './OsadaPanel'
 import { MaskotDef, BuddyWorldHracStav } from '../types'
 import { BossDef } from '../data/bossove'
 
@@ -57,13 +58,16 @@ export const BuddyWorldHra: React.FC<Props> = ({
   onPostupZmena,
   onZpet,
 }) => {
-  const { containerRef, selhalo, nastavJoystick, utocit, obranit, vyzvatBosse, obnovitPoSmrti, hud } = useBuddyWorldScene({
+  const { containerRef, selhalo, nastavJoystick, utocit, obranit, sebrat, postavit, presunout, potvrditStavbu, zrusitNahled, otocitNahled, nahledPlatny, vyzvatBosse, obnovitPoSmrti, hud, blizkyObyvatel } = useBuddyWorldScene({
     maskot,
     bossDef,
     pocatecniHracStav,
     onZabitiNepritele,
     onZabitiBosse,
   })
+
+  const [nahledAktivni, setNahledAktivni] = useState(false)
+  const [otevrenyDialog, setOtevrenyDialog] = useState<string | null>(null)
 
   // appka uloží appčin postup (level/XP), jakmile se doopravdy změní
   // — appčina komponenta existuje jen na téhle obrazovce, appka proto
@@ -84,6 +88,13 @@ export const BuddyWorldHra: React.FC<Props> = ({
         )}
       </div>
 
+      {blizkyObyvatel && <div className="bw-npc-dialog" role="region" aria-label="Rozhovor s obyvatelem">
+        <strong>{blizkyObyvatel.role} {blizkyObyvatel.jmeno}</strong>
+        {otevrenyDialog === blizkyObyvatel.id && <p>{blizkyObyvatel.dialog}</p>}
+        <button type="button" onClick={() => setOtevrenyDialog(
+          otevrenyDialog === blizkyObyvatel.id ? null : blizkyObyvatel.id
+        )}>{otevrenyDialog === blizkyObyvatel.id ? 'Zavřít' : 'Promluvit'}</button>
+      </div>}
       <HUD
         hud={hud}
         maskot={maskot}
@@ -95,6 +106,15 @@ export const BuddyWorldHra: React.FC<Props> = ({
         onZkusitZnovu={obnovitPoSmrti}
       />
 
+      <OsadaPanel onPostavit={(typ) => { postavit(typ); setNahledAktivni(true) }} onPresunout={(id) => { presunout(id); setNahledAktivni(true) }} />
+      {nahledAktivni && <div className="bw-preview-controls" role="group" aria-label="Náhled stavby">
+        <span>{nahledPlatny ? '🟢 Volné místo' : '🔴 Nelze umístit – změň polohu'}</span>
+        <button type="button" onClick={otocitNahled}>↻ Otočit</button>
+        <button type="button" disabled={!nahledPlatny} onClick={() => { potvrditStavbu(); setNahledAktivni(false) }}>✓ Potvrdit</button>
+        <button type="button" onClick={() => { zrusitNahled(); setNahledAktivni(false) }}>✕ Zrušit</button>
+      </div>}
+      <button type="button" className="bw-sber-button" onClick={sebrat}
+        aria-label="Sebrat dřevo nebo kámen v blízkosti hráče">🪵 Sebrat</button>
       <VirtualniJoystick onZmena={nastavJoystick} />
     </div>
   )

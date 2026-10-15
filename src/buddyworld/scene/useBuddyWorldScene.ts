@@ -1,3 +1,5 @@
+import { jeVolneMisto, jeVolneProPresun } from '../buildingPlacement'
+import type { StavitelnyTyp } from '../buildingPlacement'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { BossRuntimeStav, BuddyWorldHracStav, MaskotDef, NepritelDef, NepritelRuntimeStav, Pozice2D } from '../types'
@@ -28,6 +30,9 @@ import { BossDef } from '../data/bossove'
 import { nahodnyNepritel } from '../data/nepratele'
 import { jeMrtvyHrac, plneUzdravit, pripocistXp, utrzetPoskozeni } from '../leveling'
 import { klonGlbModelu, nacistGlbModel } from './assetLoader'
+import { useVillageStore } from '../useVillageStore'
+import { odemceneStavby } from '../villageBuildings'
+import { OBYVATELE } from '../data/obyvatele'
 
 // ==========================================
 // Buddy World — 3D svět, čistý Threejs mimo React (stejná zásada
@@ -244,8 +249,20 @@ interface UseBuddyWorldSceneResult {
   nastavJoystick: (x: number, z: number) => void
   utocit: () => void
   obranit: () => void
+  sebrat: () => void
+  postavit: (typ: StavitelnyTyp) => void
+  presunout: (id: string) => void
+  potvrditStavbu: () => void
+  zrusitNahled: () => void
+  otocitNahled: () => void
+  nahledPlatny: boolean
   vyzvatBosse: () => void
   obnovitPoSmrti: () => void
+  /** appka tím appčinu komponentu appkou informuje, který obyvatel je
+   *  zrovna nablízku hráči (appka s ním zrovna „promlouvá") — appka
+   *  se vrátí k appčině `null`, jakmile hráč z appčina okruhu NPC
+   *  odejde. appka nikdy nedrží víc než jednoho obyvatele zároveň. */
+  blizkyObyvatel: (typeof OBYVATELE)[number] | null
   hud: BuddyWorldHud
 }
 
@@ -343,6 +360,13 @@ export const useBuddyWorldScene = ({
   const obranaPozadavekRef = useRef(false)
   const vyzvatPozadavekRef = useRef(false)
   const obnovitPozadavekRef = useRef(false)
+  const sberPozadavekRef = useRef(false)
+  const staveniPozadavekRef = useRef<StavitelnyTyp | null>(null)
+  const presunPozadavekRef = useRef<string | null>(null)
+  const potvrditRef = useRef(false)
+  const rotaceRef = useRef(0)
+  const [nahledPlatny, setNahledPlatny] = useState(false)
+  const aktivniNahledRef = useRef<{ typ?: StavitelnyTyp; id?: string } | null>(null)
 
   const vychoziHud: BuddyWorldHud = {
     hrac: pocatecniHracStav,
@@ -368,6 +392,13 @@ export const useBuddyWorldScene = ({
    *  uvnitř herní smyčky níž, na stejném čase (performance.now()),
    *  který engine používá i pro cooldown nepřítele. Appka tím má jen
    *  jeden zdroj pravdy o čase, ne dva nesouhlasící hodiny. */
+  const sebrat = () => { sberPozadavekRef.current = true }
+  const postavit = (typ: StavitelnyTyp) => { aktivniNahledRef.current = { typ }; staveniPozadavekRef.current = null }
+  const presunout = (id: string) => { aktivniNahledRef.current = { id }; presunPozadavekRef.current = null }
+  const potvrditStavbu = () => { potvrditRef.current = true }
+  const zrusitNahled = () => { aktivniNahledRef.current = null; potvrditRef.current = false; setNahledPlatny(false) }
+  const otocitNahled = () => { rotaceRef.current = (rotaceRef.current + Math.PI / 2) % (2 * Math.PI) }
+
   const utocit = () => {
     utocitPozadavekRef.current = true
   }
@@ -389,6 +420,8 @@ export const useBuddyWorldScene = ({
   const obnovitPoSmrti = () => {
     obnovitPozadavekRef.current = true
   }
+
+  const [blizkyObyvatel, setBlizkyObyvatel] = useState<(typeof OBYVATELE)[number] | null>(null)
 
   useEffect(() => {
     const container = containerRef.current
@@ -540,6 +573,110 @@ export const useBuddyWorldScene = ({
     dilna.position.set(VESNICE_DILNA.x, 0, VESNICE_DILNA.z)
     scene.add(dilna)
 
+    // Obyvatelé osady — jednoduché nízkopolygonové figurky s vlastním
+    // bezpečným okruhem chůze. Není nutné načítat placené 3D assety.
+    const obyvatele = OBYVATELE.map((def, i) => {
+      const skupina = new THREE.Group()
+      const material = new THREE.MeshStandardMaterial({ color: def.barva, roughness: 0.8 })
+      const telo = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.82, 4, 8), material)
+      telo.position.y = 1.02
+      const hlava = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8),
+        new THREE.MeshStandardMaterial({ color: 0xf1c9a8, roughness: 0.85 }))
+      hlava.position.y = 1.84
+      const vlasy = new THREE.Mesh(new THREE.SphereGeometry(0.29, 10, 8),
+        new THREE.MeshStandardMaterial({ color: i === 0 ? 0x6d413c : i === 1 ? 0x35343c : 0xa25d31 }))
+      vlasy.scale.y = 0.47
+      vlasy.position.y = 2.04
+      skupina.add(telo, hlava, vlasy)
+      skupina.position.set(def.x, 0, def.z)
+      scene.add(skupina)
+      return { def, skupina, faze: i * 2.3 }
+    })
+
+    // Nové stavby se odemykají podle skutečné uložené úrovně osady.
+    // Vlastníme jejich meshe v této scéně a aktualizujeme je bez resetu
+    // hráče, nepřátel, kamery či WebGL rendereru.
+    const noveStavby = new THREE.Group()
+    scene.add(noveStavby)
+    let posledniUroven = -1
+    const obnovStavby = (uroven: number) => {
+      if (posledniUroven === uroven) return
+      posledniUroven = uroven
+      for (const dite of [...noveStavby.children]) {
+        noveStavby.remove(dite)
+        dite.traverse((obj) => {
+          const mesh = obj as THREE.Mesh
+          mesh.geometry?.dispose()
+          const material = mesh.material as THREE.Material | THREE.Material[] | undefined
+          if (Array.isArray(material)) material.forEach((m) => m.dispose())
+          else material?.dispose()
+        })
+      }
+      for (const stavba of odemceneStavby(uroven)) {
+        const skupina = new THREE.Group()
+        const zdi = new THREE.Mesh(
+          new THREE.BoxGeometry(stavba.sirka, stavba.vyska, stavba.hloubka),
+          new THREE.MeshStandardMaterial({ color: stavba.barvaZdi, roughness: 0.88 })
+        )
+        zdi.position.y = stavba.vyska / 2
+        const strecha = new THREE.Mesh(
+          new THREE.ConeGeometry(stavba.sirka * 0.83, 1.15, 4),
+          new THREE.MeshStandardMaterial({ color: stavba.barvaStrechy, roughness: 0.83 })
+        )
+        strecha.position.y = stavba.vyska + 0.58
+        strecha.rotation.y = Math.PI / 4
+        const dvere = new THREE.Mesh(
+          new THREE.BoxGeometry(0.6, 1.1, 0.08),
+          new THREE.MeshStandardMaterial({ color: '#5a3421', roughness: 0.95 })
+        )
+        dvere.position.set(0, 0.55, stavba.hloubka / 2 + 0.05)
+        skupina.add(zdi, strecha, dvere)
+        skupina.position.set(stavba.x, 0, stavba.z)
+        noveStavby.add(skupina)
+      }
+    }
+    // Vlastní hráčovy dekorace a stavby, uložené společně s inventářem.
+    const postavene = new THREE.Group()
+    scene.add(postavene)
+    let posledniStavby = useVillageStore.getState().umisteneStavby
+    const obnovUmistene = (stavby: typeof posledniStavby) => {
+      if (stavby === posledniStavby && postavene.children.length) return
+      posledniStavby = stavby
+      for (const dite of [...postavene.children]) {
+        postavene.remove(dite)
+        dite.traverse((obj) => {
+          const mesh = obj as THREE.Mesh
+          mesh.geometry?.dispose()
+          const m = mesh.material as THREE.Material | THREE.Material[] | undefined
+          if (Array.isArray(m)) m.forEach((v) => v.dispose())
+          else m?.dispose()
+        })
+      }
+      for (const stavba of stavby) {
+        const skupina = new THREE.Group()
+        if (stavba.typ === 'lucerna') {
+          const podstavec = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 1.4, 8), new THREE.MeshStandardMaterial({ color: '#5b4030' }))
+          podstavec.position.y = 0.7
+          const svetlo = new THREE.Mesh(new THREE.SphereGeometry(0.27, 10, 8), new THREE.MeshStandardMaterial({ color: '#ffda80', emissive: '#ffb84d', emissiveIntensity: 1.1 }))
+          svetlo.position.y = 1.5
+          skupina.add(podstavec, svetlo)
+        } else {
+          const kamen = stavba.typ === 'kamenny_blok'
+          const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.85, 1.1), new THREE.MeshStandardMaterial({ color: kamen ? '#a5a8ad' : '#8b5a31' }))
+          mesh.position.y = 0.425
+          skupina.add(mesh)
+        }
+        skupina.position.set(stavba.x, 0, stavba.z)
+        postavene.add(skupina)
+      }
+    }
+    obnovUmistene(posledniStavby)
+    const odhlasUmistene = useVillageStore.subscribe((stav) => {
+      if (stav.umisteneStavby !== posledniStavby) obnovUmistene(stav.umisteneStavby)
+    })
+    obnovStavby(useVillageStore.getState().uroven)
+    const odhlasStavby = useVillageStore.subscribe((stav) => obnovStavby(stav.uroven))
+
     // --- appka krystal: blízký, hned viditelný orientační bod,
     // appka ho zamění za GLB (prostredi/krystal.glb) po nahrání níž ---
     const krystal = new THREE.Group()
@@ -581,6 +718,28 @@ export const useBuddyWorldScene = ({
       dlazba.rotation.y = Math.atan2(dx, dz)
       dlazba.position.set((od.x + doBodu.x) / 2, 0.01, (od.z + doBodu.z) / 2)
       scene.add(dlazba)
+    }
+
+    // Interaktivní surovinové uzly. Vizuální tvary jsou záměrně jednoduché,
+    // aby sběr fungoval i bez stažení externích 3D modelů.
+    const suroviny: Array<{ typ: 'drevo' | 'kamen'; x: number; z: number; mesh: THREE.Group; dostupneOd: number }> = []
+    const poziceSurovin: Array<{ typ: 'drevo' | 'kamen'; x: number; z: number }> = [
+      { typ: 'drevo', x: 2, z: 2 }, { typ: 'kamen', x: -2, z: 2 },
+      { typ: 'drevo', x: 4, z: -3 }, { typ: 'kamen', x: -4, z: -3 },
+      { typ: 'drevo', x: 7, z: 3 }, { typ: 'kamen', x: -7, z: 3 },
+    ]
+    for (const uzel of poziceSurovin) {
+      const mesh = new THREE.Group()
+      const geometrie = uzel.typ === 'drevo'
+        ? new THREE.CylinderGeometry(0.23, 0.3, 0.9, 7)
+        : new THREE.DodecahedronGeometry(0.45)
+      const material = new THREE.MeshStandardMaterial({ color: uzel.typ === 'drevo' ? '#a46d39' : '#91a2ad' })
+      const telo = new THREE.Mesh(geometrie, material)
+      telo.position.y = uzel.typ === 'drevo' ? 0.48 : 0.43
+      mesh.add(telo)
+      mesh.position.set(uzel.x, 0, uzel.z)
+      scene.add(mesh)
+      suroviny.push({ ...uzel, mesh, dostupneOd: 0 })
     }
 
     // --- hráčova postava — primitivní "meeple" (kapsle + koule),
@@ -789,7 +948,15 @@ export const useBuddyWorldScene = ({
     }
     document.addEventListener('visibilitychange', onVisibility)
 
+    const nahledMaterial = new THREE.MeshStandardMaterial({ color: '#62e4a0', transparent: true, opacity: 0.48, depthWrite: false })
+    const nahledObjekt = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1.2, 1.2), nahledMaterial)
+    nahledObjekt.position.y = 0.6
+    nahledObjekt.visible = false
+    scene.add(nahledObjekt)
+    let platnyPosledne = false
+
     let posledniCas = performance.now()
+    let posledniNpcId = ''
     let hracPozice: Pozice2D = { ...HRAC_SPAWN_POZICE }
     let hracNatoceni = 0
     let vitezstviDoMs = -Infinity
@@ -803,12 +970,53 @@ export const useBuddyWorldScene = ({
     let fpsAktualni = 0
 
     const krok = (ted: number) => {
+      const aktivni = aktivniNahledRef.current
+      const x = Math.round((hracPozice.x + Math.sin(hracNatoceni) * 3) * 2) / 2
+      const z = Math.round((hracPozice.z + Math.cos(hracNatoceni) * 3) * 2) / 2
+      const stav = useVillageStore.getState()
+      const platny = !!aktivni && (aktivni.typ
+        ? jeVolneMisto(stav.umisteneStavby, x, z) && stav.inventar[aktivni.typ] > 0
+        : !!aktivni.id && jeVolneProPresun(stav.umisteneStavby, aktivni.id, x, z))
+      if (nahledObjekt) {
+        nahledObjekt.visible = !!aktivni
+        nahledObjekt.position.set(x, 0, z)
+        nahledObjekt.rotation.y = rotaceRef.current
+        const typ = aktivni?.typ ?? stav.umisteneStavby.find((b) => b.id === aktivni?.id)?.typ
+        nahledObjekt.scale.set(typ === 'lucerna' ? 0.35 : 1, 1, typ === 'lucerna' ? 0.35 : 1)
+        nahledMaterial.color.set(platny ? '#62e4a0' : '#ff6868')
+      }
+      if (platny !== platnyPosledne) { platnyPosledne = platny; setNahledPlatny(platny) }
+      if (potvrditRef.current) {
+        potvrditRef.current = false
+        if (platny && aktivni) {
+          const uspesne = aktivni.typ
+            ? useVillageStore.getState().postav(aktivni.typ, x, z)
+            : useVillageStore.getState().presun(aktivni.id!, x, z)
+          if (uspesne) { aktivniNahledRef.current = null; setNahledPlatny(false) }
+        }
+      }
+
       if (!bezi) return
       smycka = requestAnimationFrame(krok)
 
       const dt = Math.min((ted - posledniCas) / 1000, 0.1)
       posledniCas = ted
       const casMs = ted
+      // Pomalá lokální procházka. Každý obyvatel se drží v okruhu
+      // svého výchozího místa, mimo bojové zóny.
+      for (const npc of obyvatele) {
+        const faze = klidnyRezim ? 0 : ted * 0.00028 + npc.faze
+        npc.skupina.position.x = npc.def.x + Math.cos(faze) * 0.65
+        npc.skupina.position.z = npc.def.z + Math.sin(faze) * 0.65
+        npc.skupina.rotation.y = -faze
+      }
+      const nejblizsi = obyvatele.find(npc =>
+        Math.hypot(npc.skupina.position.x - hracPozice.x, npc.skupina.position.z - hracPozice.z) < 2.5)
+      const npcId = nejblizsi?.def.id ?? ''
+      if (npcId !== posledniNpcId) {
+        posledniNpcId = npcId
+        setBlizkyObyvatel(nejblizsi?.def ?? null)
+      }
 
       fpsPocetSnimku++
       if (ted - fpsOknoOdMs >= 1000) {
@@ -857,6 +1065,20 @@ export const useBuddyWorldScene = ({
           hracNatoceni += rozdil * Math.min(1, RYCHLOST_NATOCENI_HRACE * dt)
         }
 
+        if (sberPozadavekRef.current) {
+          sberPozadavekRef.current = false
+          const nyni = performance.now()
+          const nejblizsi = suroviny
+            .filter((uzel) => nyni >= uzel.dostupneOd)
+            .map((uzel) => ({ uzel, vzd: Math.hypot(uzel.x - hracPozice.x, uzel.z - hracPozice.z) }))
+            .sort((a, b) => a.vzd - b.vzd)[0]
+          if (nejblizsi && nejblizsi.vzd <= 2.4) {
+            useVillageStore.getState().seberSurovinu(nejblizsi.uzel.typ)
+            nejblizsi.uzel.dostupneOd = nyni + 15_000
+          }
+        }
+        const casSberu = performance.now()
+        for (const uzel of suroviny) uzel.mesh.visible = casSberu >= uzel.dostupneOd
         hrac.position.set(hracPozice.x, 0, hracPozice.z)
         hrac.rotation.y = hracNatoceni
 
@@ -1151,6 +1373,8 @@ export const useBuddyWorldScene = ({
       bezi = false
       cancelAnimationFrame(smycka)
       observer.disconnect()
+      odhlasStavby()
+      odhlasUmistene()
       document.removeEventListener('visibilitychange', onVisibility)
       container.removeEventListener('pointerdown', onPointerDown)
       window.removeEventListener('pointermove', onPointerMove)
@@ -1176,7 +1400,7 @@ export const useBuddyWorldScene = ({
     }
   }, [maskot, bossDef])
 
-  return { containerRef, selhalo, nastavJoystick, utocit, obranit, vyzvatBosse, obnovitPoSmrti, hud }
+  return { containerRef, selhalo, nastavJoystick, utocit, obranit, sebrat, postavit, presunout, potvrditStavbu, zrusitNahled, otocitNahled, nahledPlatny, vyzvatBosse, obnovitPoSmrti, hud, blizkyObyvatel }
 }
 
 /** appka porovná dva HUD objekty — appka tím zabrání zbytečnému
