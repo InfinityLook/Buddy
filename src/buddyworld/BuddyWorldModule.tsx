@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useBuddyWorldScene } from './scene/useBuddyWorldScene'
-import { VirtualniJoystick } from '@/game/components/VirtualniJoystick'
-import { HUD } from './components/HUD'
 import { VyberMaskota } from './components/VyberMaskota'
+import { BuddyWorldHra } from './components/BuddyWorldHra'
 import { useBuddyWorldStore } from './useBuddyWorldStore'
 import { maskotPodleId } from './data/maskoti'
 import { bossPodleId, VYCHOZI_BOSS_ID } from './data/bossove'
@@ -23,12 +21,23 @@ import './BuddyWorldModule.css'
 // hru hned vyzkoušenou na mobilu.
 //
 // Vlastní 3D scéna (useBuddyWorldScene.ts) si drží svou jedinou
-// requestAnimationFrame smyčku úplně sama, proto se k ní tahle
-// komponenta chová jako k černé skříňce: dá jí maskota a definici
-// bosse, a zpátky dostane canvas ref a malou HUD strukturu, kterou
-// jen zobrazí. Scéna si sama vybírá, s jakými běžnými nepřáteli se
-// hráč utká (viz data/nepratele.ts's nahodnyNepritel). Pozice/kamera/
-// souboj se tu v Reactovém stavu vůbec neřeší.
+// requestAnimationFrame smyčku úplně sama, proto se k ní appka chová
+// jako k černé skříňce: dá jí maskota a definici bosse, a zpátky
+// dostane canvas ref a malou HUD strukturu, kterou jen zobrazí. Scéna
+// si sama vybírá, s jakými běžnými nepřáteli se hráč utká (viz
+// data/nepratele.ts's nahodnyNepritel). Pozice/kamera/souboj se tu v
+// Reactovém stavu vůbec neřeší.
+//
+// Appka useBuddyWorldScene() VOLÁ JEN z appčiny samostatné komponenty
+// components/BuddyWorldHra.tsx, ne tady — appčin skutečný reálný test
+// na telefonu odhalil, že appčin useBuddyWorldScene() efekt běží jen
+// JEDNOU (pevná appčina závislost [maskot, bossDef], appka obojí
+// appčinu identitu nikdy nezmění), a tahle komponenta (BuddyWorldModule)
+// je appkou namountovaná už od appčiny obrazovky 'vyber', dřív než
+// appčin canvas div vůbec existuje. BuddyWorldHra appka namountuje
+// poprvé teprve při přepnutí na 'hra' obrazovku, kdy už appčin canvas
+// div v DOMu doopravdy existuje — viz komentář v tom souboru pro celé
+// vysvětlení.
 //
 // Landscape, stejný postup jako Survival Night/BuddyZone/Souboj: appka
 // se snaží telefon zamknout na šířku (screen.orientation.lock,
@@ -54,33 +63,6 @@ export const BuddyWorldModule: React.FC = () => {
 
   const maskot = maskotPodleId(aktivniMaskotId)
   const bossDef = bossPodleId(VYCHOZI_BOSS_ID)
-
-  const { containerRef, selhalo, nastavJoystick, utocit, obranit, vyzvatBosse, obnovitPoSmrti, hud } = useBuddyWorldScene({
-    maskot,
-    bossDef,
-    // appka tenhle hráčův stav spočte z trvale uloženého levelu/XP
-    // (hracStavZUrovne v leveling.ts) jen jednou, při prvním
-    // vykreslení scény (viz useBuddyWorldScene.ts's useEffect, který
-    // běží jen při změně maskota/bossDef) — pozdější renderování
-    // tuhle hodnotu ignoruje, appčin skutečný zdroj pravdy je od
-    // téhle chvíle appčin hracStavRef uvnitř scény.
-    pocatecniHracStav: hracStavZUrovne(level, xp),
-    onZabitiNepritele: (xpOdmena) => recordAction('buddyworld', xpOdmena),
-    // Poražení bosse appka zapisuje přes sdílený appčin kind 'boss',
-    // ne 'buddyworld' — Buddyheim i Survival Night už svého prvního
-    // bosse počítají přes tenhle stejný, existující odznak
-    // (boss_slayer), appka proto znovupoužívá stejné počítadlo, ne
-    // nový paralelní systém.
-    onZabitiBosse: (xpOdmena) => recordAction('boss', xpOdmena),
-  })
-
-  // appka uloží appčin postup (level/XP), jakmile se doopravdy změní
-  // — appka tak persistuje jen to, co appčin prototyp doopravdy
-  // používá, přesně jak appka zadání žádá.
-  useEffect(() => {
-    if (obrazovka !== 'hra') return
-    ulozPostup(hud.hrac.level, hud.hrac.xp)
-  }, [obrazovka, hud.hrac.level, hud.hrac.xp, ulozPostup])
 
   useEffect(() => {
     // DOM lib netypuje `.lock()` (pořád experimentální metoda) — místní
@@ -111,28 +93,26 @@ export const BuddyWorldModule: React.FC = () => {
         )}
 
         {obrazovka === 'hra' && (
-          <div className="bw-arena">
-            <div className="bw-arena-canvas" ref={containerRef}>
-              {selhalo && (
-                <div className="bw-arena-selhalo">
-                  <p>3D vykreslení se na tomhle zařízení nepovedlo spustit.</p>
-                </div>
-              )}
-            </div>
-
-            <HUD
-              hud={hud}
-              maskot={maskot}
-              bossDef={bossDef}
-              onUtocit={utocit}
-              onObranit={obranit}
-              onVyzvatBosse={vyzvatBosse}
-              onZpet={() => navigate('/hub')}
-              onZkusitZnovu={obnovitPoSmrti}
-            />
-
-            <VirtualniJoystick onZmena={nastavJoystick} />
-          </div>
+          <BuddyWorldHra
+            maskot={maskot}
+            bossDef={bossDef}
+            // appka tenhle hráčův stav spočte z trvale uloženého
+            // levelu/XP (hracStavZUrovne v leveling.ts) jen jednou,
+            // při prvním vykreslení BuddyWorldHra (appka ji mountuje
+            // poprvé přesně teď) — pozdější renderování tuhle hodnotu
+            // ignoruje, appčin skutečný zdroj pravdy je od téhle
+            // chvíle appčin hracStavRef uvnitř scény.
+            pocatecniHracStav={hracStavZUrovne(level, xp)}
+            onZabitiNepritele={(xpOdmena) => recordAction('buddyworld', xpOdmena)}
+            // Poražení bosse appka zapisuje přes sdílený appčin kind
+            // 'boss', ne 'buddyworld' — Buddyheim i Survival Night už
+            // svého prvního bosse počítají přes tenhle stejný,
+            // existující odznak (boss_slayer), appka proto
+            // znovupoužívá stejné počítadlo, ne nový paralelní systém.
+            onZabitiBosse={(xpOdmena) => recordAction('boss', xpOdmena)}
+            onPostupZmena={ulozPostup}
+            onZpet={() => navigate('/hub')}
+          />
         )}
       </div>
     </div>
