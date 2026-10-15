@@ -5,12 +5,19 @@ import {
   POSKOZENI_HRACE_MIN,
   POSKOZENI_HRACE_MAX,
   RESPAWN_PO_MS,
+  OBRANA_TRVANI_MS,
+  OBRANA_COOLDOWN_MS,
+  OBRANA_PODIL_POSKOZENI,
+  aktivujObranu,
+  jeObranaAktivni,
+  jeObranaPripravena,
   jePripravenUtok,
   krokAI,
   melByRespawnovat,
   omezNaOblast,
   pokusUtokHrace,
   pokusUtokNepritele,
+  redukujPoskozeniObranou,
   vytvorNepritelRuntime,
   vzdalenost2D,
 } from '@/buddyworld/combat/engine'
@@ -28,6 +35,10 @@ const DEF: NepritelDef = {
   cooldownUtokuMs: 1200,
   odmenaXp: 25,
   model: null,
+  barvaTela: '#2d1f3f',
+  barvaHalo: '#8b5cf6',
+  meritko: 1,
+  tvar: 'ostruha',
 }
 
 describe('vzdalenost2D', () => {
@@ -201,5 +212,69 @@ describe('jePripravenUtok', () => {
   it('je pravda, když jsou appčiny podmínky splněné zároveň', () => {
     const n = vytvorNepritelRuntime(DEF.id, DEF.maxHp, { x: 0, z: 0 })
     expect(jePripravenUtok(n, 0, -Infinity, 1000)).toBe(true)
+  })
+})
+
+describe('jeObranaAktivni', () => {
+  it('je pravda, dokud čas neuplynul', () => {
+    expect(jeObranaAktivni(5000, 4999)).toBe(true)
+  })
+
+  it('je nepravda přesně v okamžiku vypršení a po něm', () => {
+    expect(jeObranaAktivni(5000, 5000)).toBe(false)
+    expect(jeObranaAktivni(5000, 5001)).toBe(false)
+  })
+})
+
+describe('jeObranaPripravena', () => {
+  it('je nepravda, dokud cooldown neuplynul', () => {
+    expect(jeObranaPripravena(5000, 4999)).toBe(false)
+  })
+
+  it('je pravda přesně v okamžiku uplynutí cooldownu a po něm', () => {
+    expect(jeObranaPripravena(5000, 5000)).toBe(true)
+    expect(jeObranaPripravena(5000, 5001)).toBe(true)
+  })
+})
+
+describe('aktivujObranu', () => {
+  it('vrátí null, pokud cooldown ještě neuplynul — appka tím vylučuje nepřetržité bezplatné aktivování', () => {
+    expect(aktivujObranu(5000, 4999)).toBeNull()
+  })
+
+  it('aktivuje obranu a nastaví appčin nový cooldown, jakmile předchozí uplyne', () => {
+    const vysledek = aktivujObranu(5000, 5000)
+    expect(vysledek).not.toBeNull()
+    expect(vysledek?.obranaAktivniDoMs).toBe(5000 + OBRANA_TRVANI_MS)
+    expect(vysledek?.obranaCooldownDoMs).toBe(5000 + OBRANA_COOLDOWN_MS)
+  })
+
+  it('aktivuje i z úplně čerstvého stavu, kdy cooldown ještě nikdy neběžel (-Infinity)', () => {
+    const vysledek = aktivujObranu(-Infinity, 1000)
+    expect(vysledek).not.toBeNull()
+    expect(vysledek?.obranaAktivniDoMs).toBe(1000 + OBRANA_TRVANI_MS)
+  })
+
+  it('druhý pokus hned po aktivaci, ještě uvnitř nového cooldownu, znovu vrátí null — appka obranu nedovolí přetáčet', () => {
+    const prvni = aktivujObranu(-Infinity, 1000)
+    expect(prvni).not.toBeNull()
+    const druhy = aktivujObranu(prvni!.obranaCooldownDoMs, 1000 + OBRANA_TRVANI_MS)
+    expect(druhy).toBeNull()
+  })
+})
+
+describe('redukujPoskozeniObranou', () => {
+  it('nezmění poškození, pokud obrana není aktivní', () => {
+    expect(redukujPoskozeniObranou(20, false)).toBe(20)
+  })
+
+  it('sníží poškození na appčin podíl, pokud je obrana aktivní', () => {
+    expect(redukujPoskozeniObranou(20, true)).toBe(Math.round(20 * OBRANA_PODIL_POSKOZENI))
+  })
+
+  it('zredukuje poškození jen částečně, nikdy úplně na nulu — obrana zůstává skutečná taktická volba, ne neprůstřelnost', () => {
+    const redukovane = redukujPoskozeniObranou(10, true)
+    expect(redukovane).toBeGreaterThan(0)
+    expect(redukovane).toBeLessThan(10)
   })
 })

@@ -46,11 +46,22 @@ export interface MaskotDef {
   odemcenyOdZacatku: boolean
 }
 
-/** Jeden základní typ nepřítele. Appčin prototyp jich má jen jeden
- *  (bod 7 zadání — "jeden funkční nepřítel"), ale appka ji od
- *  začátku drží jako pole/tabulku, ať přidání druhého typu zůstane
+/** Tvar primitivní 3D siluety nepřítele — appka tím dá dvěma typům
+ *  viditelně odlišný vzhled i bez hotového modelu: 'ostruha' je
+ *  původní hranatá ikosahedronová silueta (appčin Stínový vlček),
+ *  'kapka' appka zplošťuje do blobovitého tvaru (appčina Lesní
+ *  slizena). appka tvar čte uvnitř scene/useBuddyWorldScene.ts's
+ *  generické mesh-továrny — další nový typ nepřítele proto
+ *  nepotřebuje nový kus appčina kódu, jen jednu novou hodnotu tady. */
+export type TvarNepritele = 'ostruha' | 'kapka'
+
+/** Jeden typ běžného nepřítele. appka ho od začátku drží jako
+ *  pole/tabulku (data/nepratele.ts), ať přidání dalšího typu zůstane
  *  jen nový záznam, ne druhý systém (stejná konvence jako appčiny
- *  postavy.ts/monsters.ts jinde v appce). */
+ *  postavy.ts/monsters.ts jinde v appce). appčina vizuální pole
+ *  (barvaTela/barvaHalo/meritko/tvar) čte appčina scéna přímo odsud,
+ *  ne natvrdo zapsané appčiny barvy — žádný nový typ proto nikdy
+ *  nemusí sahat do appčina 3D kódu. */
 export interface NepritelDef {
   id: string
   jmeno: string
@@ -65,6 +76,15 @@ export interface NepritelDef {
   cooldownUtokuMs: number
   odmenaXp: number
   model: string | null
+  /** Barva appčina "těla" primitivní siluety. */
+  barvaTela: string
+  /** Barva appčina prstence/záře kolem těla. */
+  barvaHalo: string
+  /** Měřítko appčiny celé siluety — appčin boss appku dostane výrazně
+   *  vyšší hodnotu, appka tím appku splní zadání "větší model nebo
+   *  výraznější silueta", ne jen appku vyšší appčin appka HP číslo. */
+  meritko: number
+  tvar: TvarNepritele
 }
 
 export type FazeNepritele = 'klid' | 'honi' | 'utoci' | 'mrtvy'
@@ -82,6 +102,21 @@ export interface NepritelRuntimeStav {
    *  poražen — appka ho nerespawnuje okamžitě, ať má hráč čas si
    *  vítězství všimnout, ne okamžitý reset beze zpětné vazby. */
   respawnOdMs: number
+}
+
+/** Aktuální stav bosse — rozšíření běžného NepritelRuntimeStav (appka
+ *  tím generické appčiny funkce — pokusUtokHrace/melByRespawnovat z
+ *  combat/engine.ts — znovupoužije pro bosse beze změny, nekopíruje
+ *  je), navíc tři pole, co appka potřebuje jen pro bosse: boss nikdy
+ *  automaticky nehoní appku, dokud ho hráč nevzbudí (probuzen); jednou
+ *  nastavená zuřivost zůstává pravdou do konce souboje (appka ji
+ *  nikdy nevypne zpátky); a vlastní čas posledního útoku pro druhý,
+ *  otřesový útok (posledniOtresUtokuMs), nezávislý na posledniUtokMs
+ *  appčina melee útoku. */
+export interface BossRuntimeStav extends NepritelRuntimeStav {
+  probuzen: boolean
+  zuri: boolean
+  posledniOtresUtokuMs: number
 }
 
 /** appčin hráčův postup — level/XP/HP. appka ho v tomhle prototypu

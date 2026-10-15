@@ -6,7 +6,7 @@ import { HUD } from './components/HUD'
 import { VyberMaskota } from './components/VyberMaskota'
 import { useBuddyWorldStore } from './useBuddyWorldStore'
 import { maskotPodleId } from './data/maskoti'
-import { nepritelPodleId, VYCHOZI_NEPRITEL_ID } from './data/nepratele'
+import { bossPodleId, VYCHOZI_BOSS_ID } from './data/bossove'
 import { hracStavZUrovne } from './leveling'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import './BuddyWorldModule.css'
@@ -25,9 +25,10 @@ import './BuddyWorldModule.css'
 // Vlastní 3D scéna (useBuddyWorldScene.ts) si drží svou jedinou
 // requestAnimationFrame smyčku úplně sama, proto se k ní tahle
 // komponenta chová jako k černé skříňce: dá jí maskota a definici
-// nepřítele, a zpátky dostane canvas ref a malou HUD strukturu,
-// kterou jen zobrazí. Pozice/kamera/souboj se tu v Reactovém stavu
-// vůbec neřeší.
+// bosse, a zpátky dostane canvas ref a malou HUD strukturu, kterou
+// jen zobrazí. Scéna si sama vybírá, s jakými běžnými nepřáteli se
+// hráč utká (viz data/nepratele.ts's nahodnyNepritel). Pozice/kamera/
+// souboj se tu v Reactovém stavu vůbec neřeší.
 //
 // Landscape, stejný postup jako Survival Night/BuddyZone/Souboj: appka
 // se snaží telefon zamknout na šířku (screen.orientation.lock,
@@ -52,19 +53,25 @@ export const BuddyWorldModule: React.FC = () => {
   const recordAction = useGamificationStore((s) => s.recordAction)
 
   const maskot = maskotPodleId(aktivniMaskotId)
-  const nepritelDef = nepritelPodleId(VYCHOZI_NEPRITEL_ID)
+  const bossDef = bossPodleId(VYCHOZI_BOSS_ID)
 
-  const { containerRef, selhalo, nastavJoystick, utocit, obnovitPoSmrti, hud } = useBuddyWorldScene({
+  const { containerRef, selhalo, nastavJoystick, utocit, obranit, vyzvatBosse, obnovitPoSmrti, hud } = useBuddyWorldScene({
     maskot,
-    nepritelDef,
+    bossDef,
     // appka tenhle hráčův stav spočte z trvale uloženého levelu/XP
     // (hracStavZUrovne v leveling.ts) jen jednou, při prvním
     // vykreslení scény (viz useBuddyWorldScene.ts's useEffect, který
-    // běží jen při změně maskota/nepritelDef) — pozdější renderování
+    // běží jen při změně maskota/bossDef) — pozdější renderování
     // tuhle hodnotu ignoruje, appčin skutečný zdroj pravdy je od
     // téhle chvíle appčin hracStavRef uvnitř scény.
     pocatecniHracStav: hracStavZUrovne(level, xp),
     onZabitiNepritele: (xpOdmena) => recordAction('buddyworld', xpOdmena),
+    // Poražení bosse appka zapisuje přes sdílený appčin kind 'boss',
+    // ne 'buddyworld' — Buddyheim i Survival Night už svého prvního
+    // bosse počítají přes tenhle stejný, existující odznak
+    // (boss_slayer), appka proto znovupoužívá stejné počítadlo, ne
+    // nový paralelní systém.
+    onZabitiBosse: (xpOdmena) => recordAction('boss', xpOdmena),
   })
 
   // appka uloží appčin postup (level/XP), jakmile se doopravdy změní
@@ -116,8 +123,10 @@ export const BuddyWorldModule: React.FC = () => {
             <HUD
               hud={hud}
               maskot={maskot}
-              nepritelDef={nepritelDef}
+              bossDef={bossDef}
               onUtocit={utocit}
+              onObranit={obranit}
+              onVyzvatBosse={vyzvatBosse}
               onZpet={() => navigate('/hub')}
               onZkusitZnovu={obnovitPoSmrti}
             />

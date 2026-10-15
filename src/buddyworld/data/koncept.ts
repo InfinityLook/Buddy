@@ -17,8 +17,8 @@
 // netknuté, appka jim nepřidala appčino obrázkové pole).
 //
 // `pouzito: false` appka drží pro koncept-art, pro kterou appka dnes
-// ještě nemá odpovídající appčin herní prvek (druhý typ nepřítele,
-// appčino budoucí městečko) — appka soubor na disk přesto zkopírovala
+// ještě nemá odpovídající appčin herní prvek (třetí typ běžného
+// nepřítele, appčino budoucí městečko) — appka soubor na disk přesto zkopírovala
 // (appčina "připrav integraci celého balíčku" zadání), jen appka ho
 // nikde nevykresluje, dokud appka ten herní prvek doopravdy nepostaví
 // (appčina stejná zásada jako `data/assets.ts`'s `dostupny: false`).
@@ -47,17 +47,22 @@ export const KONCEPT_ASSETY: KonceptAsset[] = [
   { klic: 'maskot.nyx', popis: 'Nyx — karta ve VyberMaskota.tsx', cesta: '/buddyworld/koncept/mascots/nyx.svg', pouzito: true },
   { klic: 'maskot.frost', popis: 'Frost — karta ve VyberMaskota.tsx', cesta: '/buddyworld/koncept/mascots/frost.svg', pouzito: true },
 
-  // --- appčin jediný dnešní nepřítel — appka appku vykresluje jako
-  // malý portrét vedle jeho HP v HUD.tsx ---
+  // --- appčini dva běžní nepřátelé — appka appku vykresluje jako
+  // malý portrét vedle jeho HP v HUD.tsx, podle toho, kterého typu je
+  // zrovna nejbližší živý slot v aréně ---
   { klic: 'nepritel.stinovy-vlcek', popis: 'Stínový vlček (Shadow Wolf) — portrét v HUD.tsx vedle jeho HP', cesta: '/buddyworld/koncept/enemies/shadow-wolf.svg', pouzito: true },
+  { klic: 'nepritel.lesni-slizena', popis: 'Lesní slizena (Forest Slime) — appčin druhý typ běžného nepřítele, portrét v HUD.tsx stejně jako vlček', cesta: '/buddyworld/koncept/enemies/forest_slime_concept.svg', pouzito: true },
 
-  // --- appčiny tři další nepřátelé z balíčku appka nemá v appčině
-  // NEPRATELE poli (data/nepratele.ts) — appka soubory zkopírovala,
-  // appka je ale nikde nevykresluje, dokud appka doopravdy nepostaví
-  // druhý typ nepřítele/bosse ---
-  { klic: 'nepritel.lesni-slizena', popis: 'Lesní slizena (Forest Slime) — appka zatím nemá tenhle druhý typ nepřítele v appčiných datech', cesta: '/buddyworld/koncept/enemies/forest_slime_concept.svg', pouzito: false },
+  // --- appčin boss — appka appku vykresluje jako vlastní, odlišně
+  // zbarvenou HP lištu v HUD.tsx, ne sdílí portrét s běžnými
+  // nepřáteli výš ---
+  { klic: 'nepritel.lesni-strazce-boss', popis: 'Lesní strážce (Forest Guardian) — appčin boss, portrét u jeho vlastní HP lišty v HUD.tsx', cesta: '/buddyworld/koncept/enemies/forest_guardian_boss_concept.svg', pouzito: true },
+
+  // --- appčin čtvrtý typ z balíčku appka nemá v appčině NEPRATELE
+  // poli (data/nepratele.ts) — appka soubor na disk zkopírovala,
+  // appka ho ale nikde nevykresluje, dokud appka doopravdy nepostaví
+  // třetí typ běžného nepřítele ---
   { klic: 'nepritel.krystalovy-golem', popis: 'Krystalový golem (Crystal Golem) — appka zatím nemá tenhle typ nepřítele v appčiných datech', cesta: '/buddyworld/koncept/enemies/crystal_golem_concept.svg', pouzito: false },
-  { klic: 'nepritel.lesni-strazce-boss', popis: 'Lesní strážce (Forest Guardian) — appčin budoucí boss, appka ho dnes nemá v appčiných datech', cesta: '/buddyworld/koncept/enemies/forest_guardian_boss_concept.svg', pouzito: false },
 
   // --- appčino prostředí — appka appku vykresluje jako appčino pozadí
   // appčiny výběrové obrazovky (.bw-page), appčin "vstup do Enchanted
@@ -70,13 +75,13 @@ export const KONCEPT_ASSETY: KonceptAsset[] = [
   { klic: 'budova.dilna', popis: 'Workshop — appčina budoucí "mestecko.zaklad" stavba (viz data/assets.ts), appka pro ni dnes nemá obrazovku', cesta: '/buddyworld/koncept/buildings/workshop_concept.svg', pouzito: false },
 
   // --- appčiny UI ikony — appka appku zapojila do appčina Útok
-  // tlačítka (HUD.tsx) a appčina Hub quick-linku (Hub.tsx); zbylé appka
-  // zkopírovala pro appčiny budoucí obrazovky, co dnes appka ještě
-  // nemá (appka nemá appčinu "obranu" akci v combat/engine.ts, appka
-  // nemá appčin inventář/quest/městečko/nastavení appčinu obrazovku) ---
+  // tlačítka, appčina Obrana tlačítka (obě v HUD.tsx) a appčina Hub
+  // quick-linku (Hub.tsx); zbylé appka zkopírovala pro appčiny
+  // budoucí obrazovky, co dnes appka ještě nemá (appka nemá appčin
+  // inventář/quest/městečko/nastavení appčinu obrazovku) ---
   { klic: 'ui.ikona.utok', popis: 'Appčino Útok tlačítko v HUD.tsx', cesta: '/buddyworld/koncept/ui/icons/attack.svg', pouzito: true },
   { klic: 'ui.ikona.buddy', popis: 'Appčin Hub quick-link na Buddy World (Hub.tsx)', cesta: '/buddyworld/koncept/ui/icons/buddy.svg', pouzito: true },
-  { klic: 'ui.ikona.obrana', popis: 'appka dnes nemá appčinu "obranu" jako samostatnou akci v combat/engine.ts', cesta: '/buddyworld/koncept/ui/icons/defend.svg', pouzito: false },
+  { klic: 'ui.ikona.obrana', popis: 'Appčino Obrana tlačítko v HUD.tsx', cesta: '/buddyworld/koncept/ui/icons/defend.svg', pouzito: true },
   { klic: 'ui.ikona.inventar', popis: 'appka dnes nemá appčinu inventář obrazovku', cesta: '/buddyworld/koncept/ui/icons/inventory.svg', pouzito: false },
   { klic: 'ui.ikona.mapa', popis: 'appka dnes nemá appčinu mapovou/cestovní obrazovku', cesta: '/buddyworld/koncept/ui/icons/map.svg', pouzito: false },
   { klic: 'ui.ikona.quest', popis: 'appka dnes nemá appčin questový systém', cesta: '/buddyworld/koncept/ui/icons/quest.svg', pouzito: false },

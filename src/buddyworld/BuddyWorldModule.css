@@ -396,6 +396,84 @@
   border: 1px solid rgba(255, 255, 255, 0.25);
 }
 
+/* --- bossí HP lišta — appka ji záměrně odlišuje od běžného
+   appka-nepritel bloku výš (jiná barva/šířka/zlatý okraj), ať je na
+   první pohled vidět, že appka proti běžnému nepříteli nebojuje.
+   Nikdy se nevykreslí zároveň s .bw-hud-nepritel — appka to vylučuje
+   už na úrovni HUD.tsx's podmínky. --- */
+
+.bw-hud-boss {
+  align-self: center;
+  margin-top: 0.6rem;
+  width: min(78%, 20rem);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.bw-hud-boss-jmeno {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  color: #ffd27a;
+}
+
+.bw-hud-boss-portret {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 210, 122, 0.5);
+}
+
+.bw-hud-boss-znacka {
+  color: #ff8a5a;
+}
+
+.bw-hud-bar--boss {
+  height: 1rem;
+  border: 1px solid rgba(255, 210, 122, 0.4);
+}
+
+.bw-hud-bar--boss .bw-hud-bar-vypln {
+  background: linear-gradient(90deg, #c23b22, #ffb347);
+}
+
+.bw-hud-boss--zuri .bw-hud-bar--boss {
+  border-color: #ff5a5a;
+  box-shadow: 0 0 14px rgba(255, 90, 90, 0.55);
+}
+
+/* --- "Vyzvat" výzva — appka ji ukáže jen v dosahu dormantního
+   (ještě nevzbuzeného) bosse, HUD.tsx appka řídí její viditelnost
+   celou přes hud.muzeVyzvatBosse. --- */
+
+.bw-hud-vyzvat {
+  pointer-events: auto;
+  align-self: center;
+  margin-top: 0.7rem;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 210, 122, 0.5);
+  background: rgba(60, 40, 20, 0.72);
+  color: #ffd27a;
+  font-size: 0.82rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: 0 0 16px rgba(255, 179, 71, 0.35);
+}
+
+.bw-hud-vyzvat:active {
+  transform: scale(0.96);
+}
+
 .bw-hud-maskot {
   position: absolute;
   top: calc(5.2rem + env(safe-area-inset-top));
@@ -423,6 +501,63 @@
   margin-top: auto;
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 1.1rem;
+}
+
+/* --- obranné tlačítko — appka ho vizuálně odlišuje od útočného
+   (modrozelený štít místo oranžovo-červeného meče) a drží o kousek
+   menší, ať útok zůstane hlavní, zdůrazněnou akcí. Appka jeho vzhled
+   celý řídí přes `disabled`/CSS modifikátory, čtené přímo z
+   hud.obranaAktivni/obranaPripravena — tlačítko samo nikdy nemá
+   natvrdo zapsaný appčin vlastní stav. --- */
+
+.bw-hud-obrana {
+  pointer-events: auto;
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  background: rgba(20, 45, 55, 0.55);
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.85rem;
+  font-weight: 800;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+}
+
+.bw-hud-obrana-ikona {
+  width: 1.5rem;
+  height: 1.5rem;
+  object-fit: contain;
+}
+
+.bw-hud-obrana-text {
+  font-size: 0.6rem;
+  letter-spacing: 0.01em;
+}
+
+.bw-hud-obrana:not(:disabled) {
+  border-color: #5ad1ff;
+  background: linear-gradient(135deg, #1f6b8a, #3fb6d6);
+  color: #fff;
+}
+
+.bw-hud-obrana--aktivni {
+  border-color: #9ef0ff;
+  box-shadow: 0 0 18px rgba(90, 209, 255, 0.65);
+}
+
+.bw-hud-obrana:active {
+  transform: scale(0.95);
+}
+
+.bw-hud-obrana:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 .bw-hud-utok {

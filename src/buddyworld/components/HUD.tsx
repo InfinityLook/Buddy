@@ -1,37 +1,54 @@
 import React from 'react'
-import { MaskotDef, NepritelDef } from '../types'
+import { MaskotDef } from '../types'
+import { BossDef } from '../data/bossove'
 import { BuddyWorldHud } from '../scene/useBuddyWorldScene'
 import { obrazekKonceptu } from '../data/koncept'
 
 // ==========================================
-// 2D HUD přes 3D scénu — hráčovo HP/XP/level, útočné tlačítko a
-// nepřítelovo HP (jen během boje). Tahle komponenta nic nekreslí
-// uvnitř Threejs, je to plain React/DOM přes scénu — stejná
-// konvence jako Survival Nightovo HUD.tsx.
+// 2D HUD přes 3D scénu — hráčovo HP/XP/level, útočné a obranné
+// tlačítko a HP toho, co je právě "ve hledáčku" (nejbližší běžný
+// nepřítel, nebo boss, pokud s ním souboj probíhá). Tahle komponenta
+// nic nekreslí uvnitř Threejs, je to plain React/DOM přes scénu —
+// stejná konvence jako Survival Nightovo HUD.tsx.
 //
-// Útočné tlačítko a nepřítelův portrét appka zkusí vykreslit z
+// Druhé pokračování vývoje (druhý typ nepřítele, boss, obrana) tuhle
+// komponentu přepsalo z appčina původního jediného `nepritelDef`
+// prop na čtení `hud.nepritelFocus`/`hud.bossFocus` — appka tím
+// nikdy neukáže víc než jednu HP lištu najednou (bossí a běžná se
+// navzájem vylučují, viz useBuddyWorldScene.ts's komentář u
+// BuddyWorldHud), a boss tak dostane svou vlastní, odlišně
+// zbarvenou lištu a jméno namísto sdílení appčiny obyčejné.
+//
+// Útočné/obranné tlačítko a portréty appka zkusí vykreslit z
 // appčina BuddyWorld_ArtPack.zip (data/koncept.ts) — appka se vždycky
-// umí vrátit ke svému dřívějšímu emoji, pokud appka appku nenajde
-// (appčin budoucí druhý typ nepřítele bez vlastní koncept-art).
+// umí vrátit ke svému dřívějšímu emoji, pokud appka appku nenajde.
 // ==========================================
 
 const UTOK_IKONA = obrazekKonceptu('ui.ikona.utok')
+const OBRANA_IKONA = obrazekKonceptu('ui.ikona.obrana')
 
 interface Props {
   hud: BuddyWorldHud
   maskot: MaskotDef
-  nepritelDef: NepritelDef
+  bossDef: BossDef
   onUtocit: () => void
+  onObranit: () => void
+  onVyzvatBosse: () => void
   onZpet: () => void
   onZkusitZnovu: () => void
 }
 
-export const HUD: React.FC<Props> = ({ hud, maskot, nepritelDef, onUtocit, onZpet, onZkusitZnovu }) => {
+export const HUD: React.FC<Props> = ({ hud, maskot, bossDef, onUtocit, onObranit, onVyzvatBosse, onZpet, onZkusitZnovu }) => {
   const hpProcenta = Math.max(0, Math.min(100, (hud.hrac.hp / hud.hrac.maxHp) * 100))
   const xpProcenta = Math.max(0, Math.min(100, (hud.hrac.xp / hud.xpProDalsiUroven) * 100))
-  const nepritelProcenta = Math.max(0, Math.min(100, (hud.nepritelHp / hud.nepritelMaxHp) * 100))
-  const vBoji = hud.nepritelFaze !== 'klid' && hud.nepritelFaze !== 'mrtvy'
-  const nepritelIlustrace = obrazekKonceptu(`nepritel.${nepritelDef.id}`)
+
+  const nepritelFocus = hud.nepritelFocus
+  const nepritelProcenta = nepritelFocus ? Math.max(0, Math.min(100, (nepritelFocus.hp / nepritelFocus.maxHp) * 100)) : 0
+  const nepritelIlustrace = nepritelFocus ? obrazekKonceptu(`nepritel.${nepritelFocus.def.id}`) : null
+
+  const bossFocus = hud.bossFocus
+  const bossProcenta = bossFocus ? Math.max(0, Math.min(100, (bossFocus.hp / bossFocus.maxHp) * 100)) : 0
+  const bossIlustrace = obrazekKonceptu(`nepritel.${bossDef.id}`)
 
   return (
     <div className="bw-hud">
@@ -59,20 +76,43 @@ export const HUD: React.FC<Props> = ({ hud, maskot, nepritelDef, onUtocit, onZpe
         </button>
       </div>
 
-      {vBoji && (
-        <div className="bw-hud-nepritel">
-          <span className="bw-hud-nepritel-jmeno">
-            {nepritelIlustrace ? (
-              <img src={nepritelIlustrace} alt="" className="bw-hud-nepritel-portret" />
+      {bossFocus ? (
+        <div className={`bw-hud-boss${bossFocus.zuri ? ' bw-hud-boss--zuri' : ''}`}>
+          <span className="bw-hud-boss-jmeno">
+            {bossIlustrace ? (
+              <img src={bossIlustrace} alt="" className="bw-hud-boss-portret" />
             ) : (
-              <span aria-hidden="true">{nepritelDef.ikona} </span>
+              <span aria-hidden="true">{bossDef.ikona} </span>
             )}
-            {nepritelDef.jmeno}
+            {bossDef.jmeno}
+            {bossFocus.zuri && <span className="bw-hud-boss-znacka"> ⚡ ZUŘÍ</span>}
           </span>
-          <div className="bw-hud-bar bw-hud-bar--nepritel">
-            <div className="bw-hud-bar-vypln" style={{ width: `${nepritelProcenta}%` }} />
+          <div className="bw-hud-bar bw-hud-bar--boss">
+            <div className="bw-hud-bar-vypln" style={{ width: `${bossProcenta}%` }} />
           </div>
         </div>
+      ) : (
+        nepritelFocus && (
+          <div className="bw-hud-nepritel">
+            <span className="bw-hud-nepritel-jmeno">
+              {nepritelIlustrace ? (
+                <img src={nepritelIlustrace} alt="" className="bw-hud-nepritel-portret" />
+              ) : (
+                <span aria-hidden="true">{nepritelFocus.def.ikona} </span>
+              )}
+              {nepritelFocus.def.jmeno}
+            </span>
+            <div className="bw-hud-bar bw-hud-bar--nepritel">
+              <div className="bw-hud-bar-vypln" style={{ width: `${nepritelProcenta}%` }} />
+            </div>
+          </div>
+        )
+      )}
+
+      {hud.muzeVyzvatBosse && (
+        <button type="button" className="bw-hud-vyzvat" onClick={onVyzvatBosse}>
+          <span aria-hidden="true">{bossDef.ikona}</span> Vyzvat {bossDef.jmeno}
+        </button>
       )}
 
       <div className="bw-hud-maskot" aria-hidden="true">
@@ -83,6 +123,21 @@ export const HUD: React.FC<Props> = ({ hud, maskot, nepritelDef, onUtocit, onZpe
       </div>
 
       <div className="bw-hud-spodni">
+        <button
+          type="button"
+          className={`bw-hud-obrana${hud.obranaAktivni ? ' bw-hud-obrana--aktivni' : ''}`}
+          onClick={onObranit}
+          disabled={!hud.obranaPripravena}
+          aria-label="Obrana"
+        >
+          {OBRANA_IKONA ? (
+            <img src={OBRANA_IKONA} alt="" className="bw-hud-obrana-ikona" />
+          ) : (
+            <span aria-hidden="true">🛡️</span>
+          )}
+          <span className="bw-hud-obrana-text">Obrana</span>
+        </button>
+
         <button
           type="button"
           className={`bw-hud-utok${hud.utokPripraven ? ' bw-hud-utok--pripraven' : ''}`}

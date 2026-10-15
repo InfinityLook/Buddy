@@ -21,6 +21,17 @@ export const POSKOZENI_HRACE_MIN = 8
 export const POSKOZENI_HRACE_MAX = 14
 export const RESPAWN_PO_MS = 6000
 
+// Appčina obrana — jedno zmáčknutí ji spustí na pevně dlouhou dobu
+// (appka ji nedrží podrženým tlačítkem), a mezi dvěma aktivacemi musí
+// uplynout cooldown. Appka tím vylučuje "nepřetržitou bezplatnou
+// obranu" ze zadání — bez cooldownu by šlo obranu drtivě přetáčet
+// bez skutečného omezení. Redukce poškození je úmyslně jen částečná
+// (55 % skrz, ne plná neprůstřelnost), ať obrana zůstane skutečnou
+// taktickou volbou, ne vypnutím poškození úplně.
+export const OBRANA_TRVANI_MS = 1600
+export const OBRANA_COOLDOWN_MS = 3500
+export const OBRANA_PODIL_POSKOZENI = 0.55
+
 export const vzdalenost2D = (a: Pozice2D, b: Pozice2D): number => Math.hypot(a.x - b.x, a.z - b.z)
 
 /** Omezí appčinu pozici na kruhovou herní oblast daného poloměru —
@@ -155,3 +166,36 @@ export const jePripravenUtok = (
   nepritel.faze !== 'mrtvy' &&
   vzdalenostKNepriteli <= DOSAH_UTOKU_HRACE &&
   casMs - posledniUtokHraceMs >= COOLDOWN_UTOKU_HRACE_MS
+
+/** Je obrana v tomhle snímku doopravdy aktivní — appka to počítá
+ *  vždycky znovu z reálného časového okna, ne z nějaké zvlášť
+ *  uložené "aktivní" vlajky. */
+export const jeObranaAktivni = (obranaAktivniDoMs: number, casMs: number): boolean => casMs < obranaAktivniDoMs
+
+/** Smí hráč obranu znovu aktivovat — appka pro appčin HUD, stejná
+ *  zásada jako jePripravenUtok výš (tlačítko nikdy nevypadá klikatelně,
+ *  i kdyby stejně nic neudělalo). */
+export const jeObranaPripravena = (obranaCooldownDoMs: number, casMs: number): boolean => casMs >= obranaCooldownDoMs
+
+export interface VysledekAktivaceObrany {
+  obranaAktivniDoMs: number
+  obranaCooldownDoMs: number
+}
+
+/** Appka zkusí obranu aktivovat — appka appku sama ověří appčin
+ *  cooldown (appka se nespoléhá na to, co už ověřilo UI, stejná
+ *  zásada jako appka pokusUtokHrace výš) a vrátí `null`, pokud ještě
+ *  neuplynul. */
+export const aktivujObranu = (obranaCooldownDoMs: number, casMs: number): VysledekAktivaceObrany | null => {
+  if (!jeObranaPripravena(obranaCooldownDoMs, casMs)) return null
+  return {
+    obranaAktivniDoMs: casMs + OBRANA_TRVANI_MS,
+    obranaCooldownDoMs: casMs + OBRANA_COOLDOWN_MS,
+  }
+}
+
+/** Sníží poškození podle obrany, pokud je doopravdy aktivní — scéna
+ *  ji volá vždy, bez ohledu na zdroj poškození (běžný nepřítel i
+ *  boss stejně). */
+export const redukujPoskozeniObranou = (poskozeni: number, obranaAktivni: boolean): number =>
+  obranaAktivni ? Math.round(poskozeni * OBRANA_PODIL_POSKOZENI) : poskozeni
