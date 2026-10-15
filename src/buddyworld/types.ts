@@ -80,9 +80,9 @@ export interface NepritelDef {
   barvaTela: string
   /** Barva appčina prstence/záře kolem těla. */
   barvaHalo: string
-  /** Měřítko appčiny celé siluety — appčin boss appku dostane výrazně
-   *  vyšší hodnotu, appka tím appku splní zadání "větší model nebo
-   *  výraznější silueta", ne jen appku vyšší appčin appka HP číslo. */
+  /** Měřítko celé siluety — boss dostane výrazně vyšší hodnotu, čímž
+   *  appka splní zadání "větší model nebo výraznější silueta", ne
+   *  jen vyšší HP číslo. */
   meritko: number
   tvar: TvarNepritele
 }

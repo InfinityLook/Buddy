@@ -27,6 +27,7 @@ import {
 import { BossDef } from '../data/bossove'
 import { nahodnyNepritel } from '../data/nepratele'
 import { jeMrtvyHrac, plneUzdravit, pripocistXp, utrzetPoskozeni } from '../leveling'
+import { klonGlbModelu, nacistGlbModel } from './assetLoader'
 
 // ==========================================
 // Buddy World — 3D svět, čistý Threejs mimo React (stejná zásada
@@ -67,8 +68,35 @@ import { jeMrtvyHrac, plneUzdravit, pripocistXp, utrzetPoskozeni } from '../leve
 // ho nikdy nehoní automaticky, dokud ho hráč nevzbudí "Vyzvat" akcí.
 // Dokud je boss aktivní (probuzen, žije), appka BĚŽNÉ nepřátele
 // zmrazí a schová — appčina odpověď na "zachovej čitelnost souboje na
-// mobilu": na obrazovce appka appku nikdy neukáže víc než jednu HP
-// lištu najednou.
+// mobilu": na obrazovce appka nikdy neukáže víc než jednu HP lištu
+// najednou.
+//
+// TŘETÍ POKRAČOVÁNÍ VÝVOJE (BuddyWorld_Complete_Project_Pack.zip,
+// Fáze 0+1) — "skoro prázdná scéna" ověřilo přečtení celého souboru
+// výš, ne hádání: canvas, kamera, z-index i CSS jsou v pořádku,
+// žádná chyba se tu nenašla. Skutečná příčina je obsahová řídkost —
+// svět měl jen 26 dekorací rozsetých po ploše s poloměrem 24, bez
+// jediného orientačního bodu (vesnice, cesta, krystal) a bez
+// rozdílu mezi "vesnicí" a "lesem". Tahle fáze to doplňuje: malá
+// vesnice (dvě chaty + dílna kolem appčina VESNICE_STRED), blízký
+// krystalový útvar hned u startu, hustší lesní dekorace (46 místo
+// 26) a viditelná cesta mezi spawnem a vesnicí.
+//
+// Appka teď nahrává skutečné .glb modely z ArtPacku
+// (public/buddyworld/…, viz scene/assetLoader.ts a data/assets.ts),
+// ale nikdy nenechá hráče čekat na prázdný snímek: nejdřív postaví
+// svou obvyklou primitivní náhradu, a jakmile se model doopravdy
+// nahraje, starou primitivu zahodí a nahradí ji novým GLB klonem
+// (klonGlbModelu). Selhání nahrávání appce nikdy nespadne jako
+// chyba — zůstane tiše u primitivy.
+//
+// Nepřítele a bosse tahle fáze záměrně nechává primitivní —
+// appčina vytvorNepritelMesh pevně svazuje telo/teloMaterial s
+// animací zásahu a pulzu v krok() smyčce výš, a přepsat tuhle vazbu
+// na GLB bezpečně by potřebovalo širší refaktor. Bezpečnější krok
+// je to teď odložit, ne to risknout napolo — zadání samo žádá
+// "zvol bezpečné řešení a zdokumentuj ho", přesně tohle rozhodnutí
+// to dělá.
 // ==========================================
 
 const RYCHLOST_POHYBU = 4.6 // herní jednotky za sekundu
@@ -97,6 +125,27 @@ const POCET_SLOTU_NEPRATEL = 2
  *  bod", ne nahodilá pozice jako u běžných nepřátel. */
 const BOSS_HAJ_POZICE: Pozice2D = { x: 0, z: -(POLOMER_SVETA * 0.78) }
 
+/** Appka kolem tohoto středu postaví malou vesnici (dvě chaty +
+ *  dílna) — první, blízký orientační bod hned u spawnu (appka
+ *  startuje hráče na {x:0, z:-4}, vesnice proto leží jen kousek
+ *  před ním). */
+const VESNICE_STRED: Pozice2D = { x: 0, z: 13 }
+const VESNICE_CHATA_1: Pozice2D = { x: -5, z: 13 }
+const VESNICE_CHATA_2: Pozice2D = { x: 5, z: 13 }
+const VESNICE_DILNA: Pozice2D = { x: 0, z: 18 }
+/** Vylučovací poloměr kolem vesnice — appka dekoraci (stromy/kameny)
+ *  do něj nikdy neumístí, ať nestojí appce doslova ve dveřích. */
+const VESNICE_POLOMER = 9
+
+/** Druhý, blízký orientační bod — krystal appka postaví hned u
+ *  startu, ne jen daleko u bossova háje. */
+const KRYSTAL_POZICE: Pozice2D = { x: 0, z: 4 }
+const KRYSTAL_POLOMER = 3.5
+
+/** Appka zvýšila dekoraci ze dřívějších 26 na tohle číslo — přímá
+ *  oprava appčina Fáze 0 auditu ("scéna je skoro prázdná"). */
+const POCET_DEKORACI = 46
+
 interface UseBuddyWorldSceneOptions {
   maskot: MaskotDef
   bossDef: BossDef
@@ -112,8 +161,8 @@ interface UseBuddyWorldSceneOptions {
   onZabitiBosse: (xpOdmena: number) => void
 }
 
-/** Zúžený appka "focus" tvar — HUD z něj potřebuje jen číslo appka
- *  HP/maxHp a fázi, ne celý appka runtime appka appky stav. */
+/** Zúžený "focus" tvar — HUD z něj potřebuje jen HP/maxHp a fázi,
+ *  ne celý runtime stav. */
 interface FocusNepritele {
   def: NepritelDef
   hp: number
@@ -144,6 +193,26 @@ export interface BuddyWorldHud {
   muzeVyzvatBosse: boolean
   obranaAktivni: boolean
   obranaPripravena: boolean
+  /** Jen pro dev build (import.meta.env.DEV) — appka v produkci
+   *  tohle pole vždy nastaví na undefined, ať HUD.tsx nemá co
+   *  zobrazit a Vite celý diagnostický JSX blok vyhodí z buildu
+   *  (ověřeno grepem nad dist/, stejný postup jako core/role/
+   *  devTools.ts). */
+  diagnostika?: BuddyWorldDiagnostika
+}
+
+/** Dev diagnostický přehled pro Fázi 0+1 (BuddyWorld_Complete_
+ *  Project_Pack.zip) — appka ho počítá pro audit "proč je scéna
+ *  prázdná" otázky (velikost plátna, kolik objektů appka doopravdy
+ *  vykreslila, který GLB model se nahrál a který spadl na appčinu
+ *  primitivní náhradu, appčin reálný FPS). */
+export interface BuddyWorldDiagnostika {
+  sirkaPlatna: number
+  vyskaPlatna: number
+  pocetDekoraciStromy: number
+  pocetDekoraciKameny: number
+  fps: number
+  stavAssetu: Record<string, 'nahravaji' | 'ok' | 'selhalo'>
 }
 
 interface UseBuddyWorldSceneResult {
@@ -303,6 +372,11 @@ export const useBuddyWorldScene = ({
     if (!container) return
 
     const klidnyRezim = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    // Appka nastaví tuhle vlajku na true přesně jednou, při odchodu
+    // — každý asynchronní callback z nacistGlbModel() ji zkontroluje
+    // dřív, než scénu znovu upraví, ať žádný GLB callback nedoběhne
+    // pozdě a nemutoval už uvolněnou scénu.
+    let odpojeno = false
 
     let renderer: THREE.WebGLRenderer
     try {
@@ -336,13 +410,22 @@ export const useBuddyWorldScene = ({
     zem.rotation.x = -Math.PI / 2
     scene.add(zem)
 
-    // --- dekorace (stromy/kameny), rozeseté mimo appčin střed a mimo
-    // bossův háj, ať appka jeho siluetu nikdy nezacloní ---
+    // --- dekorace (stromy/kameny), rozeseté mimo appčin střed, mimo
+    // bossův háj, mimo vesnici a mimo appčin krystal, ať appka
+    // žádnou siluetu nezacloní ---
     const dekorace = new THREE.Group()
     scene.add(dekorace)
     const volnaZonaKolem = (x: number, z: number, min: number) => Math.hypot(x, z) < min
     const blizkoHaje = (x: number, z: number) => Math.hypot(x - BOSS_HAJ_POZICE.x, z - BOSS_HAJ_POZICE.z) < 4.5
-    for (let i = 0; i < 26; i++) {
+    const blizkoVesnice = (x: number, z: number) => Math.hypot(x - VESNICE_STRED.x, z - VESNICE_STRED.z) < VESNICE_POLOMER
+    const blizkoKrystalu = (x: number, z: number) =>
+      Math.hypot(x - KRYSTAL_POZICE.x, z - KRYSTAL_POZICE.z) < KRYSTAL_POLOMER + 1.5
+    // Appka si ukládá nově postavené stromy a kameny podle typu do
+    // dvou samostatných polí — po nahrání GLB tím umí zaměnit jen
+    // primitivy daného typu, bez prohledávání celé skupiny znovu.
+    const dekoraceStromy: THREE.Group[] = []
+    const dekoraceKameny: THREE.Group[] = []
+    for (let i = 0; i < POCET_DEKORACI; i++) {
       let x = 0
       let z = 0
       let pokus = 0
@@ -352,7 +435,10 @@ export const useBuddyWorldScene = ({
         x = Math.cos(uhel) * polomer
         z = Math.sin(uhel) * polomer
         pokus++
-      } while (pokus < 12 && (volnaZonaKolem(x, z, 3.5) || blizkoHaje(x, z)))
+      } while (
+        pokus < 12 &&
+        (volnaZonaKolem(x, z, 3.5) || blizkoHaje(x, z) || blizkoVesnice(x, z) || blizkoKrystalu(x, z))
+      )
 
       const skupina = new THREE.Group()
       if (Math.random() > 0.35) {
@@ -367,6 +453,7 @@ export const useBuddyWorldScene = ({
         )
         koruna.position.y = 2.1
         skupina.add(kmen, koruna)
+        dekoraceStromy.push(skupina)
       } else {
         const kamen = new THREE.Mesh(
           new THREE.DodecahedronGeometry(0.3 + Math.random() * 0.3),
@@ -375,9 +462,93 @@ export const useBuddyWorldScene = ({
         kamen.position.y = 0.3
         kamen.rotation.set(Math.random(), Math.random(), Math.random())
         skupina.add(kamen)
+        dekoraceKameny.push(skupina)
       }
       skupina.position.set(x, 0, z)
       dekorace.add(skupina)
+    }
+
+    // --- appka vesnice: dvě chaty + dílna, primitivní "krabice +
+    // střecha" náhrady — appka je zamění za GLB (mestecko/zaklad a
+    // mestecko/dilna) hned po nahrání níž ---
+    const postavChatu = (pozice: Pozice2D): THREE.Group => {
+      const skupina = new THREE.Group()
+      const zed = new THREE.Mesh(
+        new THREE.BoxGeometry(2.2, 1.8, 2.2),
+        new THREE.MeshStandardMaterial({ color: '#8a6a4a', roughness: 0.9 })
+      )
+      zed.position.y = 0.9
+      const strecha = new THREE.Mesh(
+        new THREE.ConeGeometry(1.75, 1.3, 4),
+        new THREE.MeshStandardMaterial({ color: '#6b3a2a', roughness: 0.85 })
+      )
+      strecha.position.y = 2.45
+      strecha.rotation.y = Math.PI / 4
+      skupina.add(zed, strecha)
+      skupina.position.set(pozice.x, 0, pozice.z)
+      scene.add(skupina)
+      return skupina
+    }
+    const chata1 = postavChatu(VESNICE_CHATA_1)
+    const chata2 = postavChatu(VESNICE_CHATA_2)
+
+    const dilna = new THREE.Group()
+    const dilnaZed = new THREE.Mesh(
+      new THREE.BoxGeometry(3.2, 2.1, 2.6),
+      new THREE.MeshStandardMaterial({ color: '#7a7268', roughness: 0.9 })
+    )
+    dilnaZed.position.y = 1.05
+    const dilnaStrecha = new THREE.Mesh(
+      new THREE.CylinderGeometry(2.3, 2.3, 0.3, 4),
+      new THREE.MeshStandardMaterial({ color: '#4a4138', roughness: 0.85 })
+    )
+    dilnaStrecha.position.y = 2.25
+    dilnaStrecha.rotation.y = Math.PI / 4
+    dilna.add(dilnaZed, dilnaStrecha)
+    dilna.position.set(VESNICE_DILNA.x, 0, VESNICE_DILNA.z)
+    scene.add(dilna)
+
+    // --- appka krystal: blízký, hned viditelný orientační bod,
+    // appka ho zamění za GLB (prostredi/krystal.glb) po nahrání níž ---
+    const krystal = new THREE.Group()
+    const krystalMaterial = new THREE.MeshStandardMaterial({
+      color: '#7fd8e8',
+      emissive: '#3fb8d0',
+      emissiveIntensity: 0.8,
+      roughness: 0.25,
+      metalness: 0.3,
+    })
+    const krystalJadro = new THREE.Mesh(new THREE.OctahedronGeometry(0.9, 0), krystalMaterial)
+    krystalJadro.position.y = 1.1
+    krystal.add(krystalJadro, new THREE.PointLight('#3fb8d0', 1.3, 8))
+    krystal.position.set(KRYSTAL_POZICE.x, 0, KRYSTAL_POZICE.z)
+    scene.add(krystal)
+
+    // --- cesta: pár plochých, světlejších dlažebních pruhů mezi
+    // spawnem a vesnicí — appka tím hráči hned ukáže "kam jít", bez
+    // nutnosti slepě zkoumat celou mapu ---
+    const cestaMaterial = new THREE.MeshStandardMaterial({ color: '#8c7a5c', roughness: 1 })
+    const CESTA_BODY: Pozice2D[] = [
+      { x: 0, z: -3 },
+      { x: 0, z: 1 },
+      { x: 0, z: 6 },
+      { x: 0, z: 10 },
+      VESNICE_STRED,
+    ]
+    for (let i = 0; i < CESTA_BODY.length - 1; i++) {
+      const od = CESTA_BODY[i]
+      const doBodu = CESTA_BODY[i + 1]
+      const dx = doBodu.x - od.x
+      const dz = doBodu.z - od.z
+      const delka = Math.hypot(dx, dz)
+      const dlazba = new THREE.Mesh(new THREE.PlaneGeometry(1.6, delka), cestaMaterial)
+      dlazba.rotation.x = -Math.PI / 2
+      // Appka použila stejnou úhlovou konvenci jako hracNatoceni výš
+      // (atan2(dx, dz)) — jedna společná dohoda pro "kam to má
+      // koukat", ne druhá nezávislá.
+      dlazba.rotation.y = Math.atan2(dx, dz)
+      dlazba.position.set((od.x + doBodu.x) / 2, 0.01, (od.z + doBodu.z) / 2)
+      scene.add(dlazba)
     }
 
     // --- hráčova postava — primitivní "meeple" (kapsle + koule),
@@ -432,6 +603,86 @@ export const useBuddyWorldScene = ({
     const bossMesh = vytvorNepritelMesh(bossDef)
     bossMesh.skupina.position.set(BOSS_HAJ_POZICE.x, 0, BOSS_HAJ_POZICE.z)
     scene.add(bossMesh.skupina)
+
+    // --- appka teď zkusí nahradit primitivy skutečnými GLB modely
+    // z public/buddyworld/ (viz assetLoader.ts a data/assets.ts).
+    // Primitivum appka vykreslila hned výš, takže appka nikdy
+    // neukáže prázdný snímek, dokud čeká na síť — jakmile se model
+    // doopravdy nahraje, stará primitiva se zahodí (geometrie a
+    // materiál se uvolní) a appka ji nahradí novým GLB klonem (viz
+    // klonGlbModelu v assetLoader.ts). appka jen odstraní primitivní
+    // MESH děti dané skupiny — jakékoli světlo v ní zůstává
+    // nedotčené, ať appčina ambientní záře kolem skutečného modelu
+    // nezmizí.
+    //
+    // Nepřítele a bosse tahle fáze záměrně nechává primitivní, viz
+    // komentář v úvodu souboru výš (TŘETÍ POKRAČOVÁNÍ VÝVOJE) —
+    // appka ten krok odkládá, ne riskuje napolo. ---
+    const nahradMeshNaGlb = (skupina: THREE.Group, model: THREE.Group) => {
+      for (const dite of [...skupina.children]) {
+        if (!(dite as THREE.Mesh).isMesh) continue
+        skupina.remove(dite)
+        const mesh = dite as THREE.Mesh
+        if (mesh.geometry) mesh.geometry.dispose()
+        const material = mesh.material as THREE.Material | THREE.Material[] | undefined
+        if (Array.isArray(material)) material.forEach((m) => m.dispose())
+        else material?.dispose()
+      }
+      skupina.add(klonGlbModelu(model))
+    }
+
+    // Appka sleduje stav GLB assetů jen pro svůj dev diagnostický
+    // přehled v HUD.tsx. V produkci se tenhle přehled nikdy
+    // nezobrazí, hodnoty se ale počítají i tak, aby appka
+    // nepotřebovala druhou větev kódu jen pro dev build.
+    const stavGlbAssetu: Record<string, 'nahravaji' | 'ok' | 'selhalo'> = {
+      'prostredi.strom': 'nahravaji',
+      'prostredi.kamen': 'nahravaji',
+      'prostredi.krystal': 'nahravaji',
+      'mestecko.zaklad': 'nahravaji',
+      'mestecko.dilna': 'nahravaji',
+    }
+    if (maskot.model) stavGlbAssetu[`maskot.${maskot.id}`] = 'nahravaji'
+
+    nacistGlbModel('/buddyworld/prostredi/strom.glb').then((model) => {
+      stavGlbAssetu['prostredi.strom'] = model ? 'ok' : 'selhalo'
+      if (odpojeno || !model) return
+      for (const strom of dekoraceStromy) nahradMeshNaGlb(strom, model)
+    })
+    nacistGlbModel('/buddyworld/prostredi/kamen.glb').then((model) => {
+      stavGlbAssetu['prostredi.kamen'] = model ? 'ok' : 'selhalo'
+      if (odpojeno || !model) return
+      for (const kamen of dekoraceKameny) nahradMeshNaGlb(kamen, model)
+    })
+    nacistGlbModel('/buddyworld/prostredi/krystal.glb').then((model) => {
+      stavGlbAssetu['prostredi.krystal'] = model ? 'ok' : 'selhalo'
+      if (odpojeno || !model) return
+      nahradMeshNaGlb(krystal, model)
+    })
+    nacistGlbModel('/buddyworld/mestecko/zaklad.glb').then((model) => {
+      stavGlbAssetu['mestecko.zaklad'] = model ? 'ok' : 'selhalo'
+      if (odpojeno || !model) return
+      nahradMeshNaGlb(chata1, model)
+      nahradMeshNaGlb(chata2, model)
+    })
+    nacistGlbModel('/buddyworld/mestecko/dilna.glb').then((model) => {
+      stavGlbAssetu['mestecko.dilna'] = model ? 'ok' : 'selhalo'
+      if (odpojeno || !model) return
+      nahradMeshNaGlb(dilna, model)
+    })
+    // Buddy je výjimka z generické nahradMeshNaGlb výš — appka chce
+    // zachovat záři (buddyZar) i bodové světlo, ne je zahodit spolu
+    // s jádrem, takže odstraní jen samotné buddyJadro.
+    if (maskot.model) {
+      nacistGlbModel(maskot.model).then((model) => {
+        stavGlbAssetu[`maskot.${maskot.id}`] = model ? 'ok' : 'selhalo'
+        if (odpojeno || !model) return
+        buddy.remove(buddyJadro)
+        if (buddyJadro.geometry) buddyJadro.geometry.dispose()
+        buddyJadroMaterial.dispose()
+        buddy.add(klonGlbModelu(model))
+      })
+    }
 
     // --- resize ---
     const prizpusob = () => {
@@ -512,6 +763,13 @@ export const useBuddyWorldScene = ({
     let vitezstviDoMs = -Infinity
     let bossOtresDoMs = -Infinity
 
+    // FPS appka počítá jen pro dev diagnostický přehled (HUD.tsx),
+    // po celých sekundách, ne po snímku — appka tím v hudSeZmenil níž
+    // nevynutí re-render šedesátkrát za sekundu, jen jednou.
+    let fpsPocetSnimku = 0
+    let fpsOknoOdMs = performance.now()
+    let fpsAktualni = 0
+
     const krok = (ted: number) => {
       if (!bezi) return
       smycka = requestAnimationFrame(krok)
@@ -519,6 +777,13 @@ export const useBuddyWorldScene = ({
       const dt = Math.min((ted - posledniCas) / 1000, 0.1)
       posledniCas = ted
       const casMs = ted
+
+      fpsPocetSnimku++
+      if (ted - fpsOknoOdMs >= 1000) {
+        fpsAktualni = fpsPocetSnimku
+        fpsPocetSnimku = 0
+        fpsOknoOdMs = ted
+      }
 
       if (!jeMrtvyHrac(hracStavRef.current)) {
         const dopredny = { x: Math.sin(yaw), z: Math.cos(yaw) }
@@ -820,6 +1085,16 @@ export const useBuddyWorldScene = ({
         muzeVyzvatBosse: !mrtvy && melByProbuditBosse(bossRef.current, bossDef, vzdalenost2D(hracPozice, bossRef.current.pozice)),
         obranaAktivni: jeObranaAktivni(obranaAktivniDoMsRef.current, casMs),
         obranaPripravena: jeObranaPripravena(obranaCooldownDoMsRef.current, casMs),
+        diagnostika: import.meta.env.DEV
+          ? {
+              sirkaPlatna: container.clientWidth,
+              vyskaPlatna: container.clientHeight,
+              pocetDekoraciStromy: dekoraceStromy.length,
+              pocetDekoraciKameny: dekoraceKameny.length,
+              fps: fpsAktualni,
+              stavAssetu: { ...stavGlbAssetu },
+            }
+          : undefined,
       }
 
       if (hudSeZmenil(hudRef.current, novyHud)) {
@@ -832,6 +1107,7 @@ export const useBuddyWorldScene = ({
     smycka = requestAnimationFrame(krok)
 
     return () => {
+      odpojeno = true
       bezi = false
       cancelAnimationFrame(smycka)
       observer.disconnect()
@@ -882,4 +1158,9 @@ const hudSeZmenil = (stary: BuddyWorldHud, novy: BuddyWorldHud): boolean =>
   (stary.bossFocus?.hp ?? null) !== (novy.bossFocus?.hp ?? null) ||
   (stary.bossFocus?.faze ?? null) !== (novy.bossFocus?.faze ?? null) ||
   (stary.bossFocus?.probuzen ?? null) !== (novy.bossFocus?.probuzen ?? null) ||
-  (stary.bossFocus?.zuri ?? null) !== (novy.bossFocus?.zuri ?? null)
+  (stary.bossFocus?.zuri ?? null) !== (novy.bossFocus?.zuri ?? null) ||
+  // appka v produkci má diagnostika vždy undefined na obou stranách
+  // (undefined !== undefined je false), takže tahle appka řádka tam
+  // žádný extra re-render nevynutí — jen v dev buildu appka jednou
+  // za sekundu doopravdy aktualizuje FPS v HUD.tsx.
+  (stary.diagnostika?.fps ?? null) !== (novy.diagnostika?.fps ?? null)

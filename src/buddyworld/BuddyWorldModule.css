@@ -647,6 +647,55 @@
   transform: scale(0.97);
 }
 
+/* --- dev diagnostický přehled (Fáze 0+1, jen import.meta.env.DEV —
+   viz HUD.tsx a useBuddyWorldScene.ts's BuddyWorldDiagnostika) --- */
+
+.bw-hud-diag {
+  /* Absolutní pozice, ne flex dítě — margin-top: auto tady by jinak
+     soupeřilo s .bw-hud-spodni o volný prostor a posunulo spodní
+     tlačítka výš. */
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.6rem;
+  background: rgba(10, 16, 10, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  font-family: monospace;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  color: #c9f7c0;
+  max-width: 15.5rem;
+}
+
+.bw-hud-diag-nadpis {
+  margin: 0 0 0.2rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.bw-hud-diag p {
+  margin: 0;
+}
+
+.bw-hud-diag-assety {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bw-hud-diag-asset--ok {
+  color: #8df08d;
+}
+
+.bw-hud-diag-asset--nahravaji {
+  color: #f0d98d;
+}
+
+.bw-hud-diag-asset--selhalo {
+  color: #f08d8d;
+}
+
 /* ==========================================
    LANDSCAPE ZÁMEK — musí zůstat úplně na konci souboru. Při shodné
    specificitě vyhrává v CSS pořadí ve zdroji, takže dřívější umístění

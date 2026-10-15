@@ -243,6 +243,24 @@ export default defineConfig(({ command }) => {
                 expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 }
               }
             },
+            // Grafika — Buddy World (public/buddyworld/maskoti|nepratele|
+            // prostredi|mestecko/**.glb, ~230 kB za vše dnes nakopírované),
+            // stejným důvodem jako výš: /buddy-world otevře jen část
+            // uživatelů appky. .glb navíc v globPatterns vůbec není (jen
+            // js,css,html,png,svg,ico,woff2), takže by se do instalační
+            // precache nedostalo ani omylem — žádný globIgnores zápis
+            // proto není potřeba, jen tohle runtime caching pravidlo.
+            // Koncept-art SVG (public/buddyworld/koncept/**) tímhle
+            // pravidlem úmyslně NEprochází — ty jsou malé a zůstávají v
+            // běžné instalační precache (.svg v globPatterns je).
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/buddyworld/') && url.pathname.endsWith('.glb'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'buddyworld-runtime',
+                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 }
+              }
+            },
             // Mapové dlaždice OpenStreetMap pro Běhání/Kardio (src/miniapps/
             // behani/TrasaMapa.tsx) — cizí origin, ne tento web, proto url.
             // hostname místo pathname jako u ostatních pravidel výš. Server

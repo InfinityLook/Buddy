@@ -1,22 +1,21 @@
 // ==========================================
-// Buddy World — registr budoucích grafických assetů. Žádná z cest
-// tady NEEXISTUJE na disku dnes — appka nikde ve scéně nenačítá
-// žádný z nich, appka vždycky kreslí primitivum (koule/kapsle/kužel,
-// appčina "low-poly" technika stejná jako game/explorace/
-// usePlayerWorld.ts) a žádná cesta sem nemíří přes appčin
-// GLTFLoader/TextureLoader, dokud appka ten soubor doopravdy nemá —
-// appka tím dodržuje zadání ("nevytvářej fiktivní cesty k neexistujícím
-// souborům, neimportuj assety, které neexistují").
+// Buddy World — registr grafických assetů. Po Fázi 0+1
+// (BuddyWorld_Complete_Project_Pack.zip) už tohle neplatí beze
+// zbytku pro každý záznam: u těch, co appka označila
+// `dostupny: true`, GLTFLoader (scene/assetLoader.ts) skutečný
+// model doopravdy nahrává, a jen při selhání se vrátí k primitivě.
+// U zbylých (`dostupny: false`) pravidlo platí dál — buď soubor na
+// disku vůbec neexistuje (hrac.postava), nebo existuje, ale tahle
+// fáze ho záměrně nenahrává (nepritel.stinovy-vlcek a
+// nepritel.lesni-slizena — odloženo, viz useBuddyWorldScene.ts's
+// komentář "TŘETÍ POKRAČOVÁNÍ VÝVOJE").
 //
-// Jakmile appka obdrží BuddyWorld_ArtPack.zip, postup je: appka
-// rozbalí obsah do public/buddyworld/ podle cest tady, appka pak u
-// příslušné appčiny položky (data/maskoti.ts's `model`, data/nepratele.ts's
-// `model`, nebo tenhle appčin BUDOUCI_ASSET záznam) nastaví appku z
-// `null` na skutečnou appčinu cestu, a scéna (useBuddyWorldScene.ts)
-// appku při nejbližším appčinu refaktoru doplní o GLTFLoader pro
-// odpovídající appčinu položku — appka dnes žádný GLTFLoader-kód
-// nepíše dřív, než appka má co nahrávat, ať appka nenechává
-// nevyužitý, neodzkoušený kód ve scéně.
+// Postup pro další nový asset je stejný jako dřív: rozbalit balíček
+// do public/buddyworld/ podle cesty tady, nastavit `model`
+// (data/maskoti.ts / data/nepratele.ts) nebo tenhle záznam na
+// skutečnou cestu, přidat volání nacistGlbModel() do scény a
+// teprve POTOM přepsat `dostupny` na `true` — tenhle seznam vždycky
+// odráží, co scéna doopravdy zkusila nahrát, ne jen co leží na disku.
 //
 // Formáty: appka pro postavy/nepřátele/Buddy maskoty doporučuje .glb
 // (binary glTF, appka ho umí načíst jedním GLTFLoaderem bez dalších
@@ -40,19 +39,23 @@ export interface BudouciAsset {
 }
 
 export const BUDOUCI_ASSETY: BudouciAsset[] = [
-  { klic: 'maskot.ember', popis: 'Maskot Ember (oheň)', cesta: '/buddyworld/maskoti/ember.glb', format: 'glb', dostupny: false },
+  { klic: 'maskot.ember', popis: 'Maskot Ember (oheň)', cesta: '/buddyworld/maskoti/ember.glb', format: 'glb', dostupny: true },
   { klic: 'maskot.moss', popis: 'Maskot Moss (příroda)', cesta: '/buddyworld/maskoti/moss.glb', format: 'glb', dostupny: false },
   { klic: 'maskot.nyx', popis: 'Maskot Nyx (magie)', cesta: '/buddyworld/maskoti/nyx.glb', format: 'glb', dostupny: false },
   { klic: 'maskot.frost', popis: 'Maskot Frost (led)', cesta: '/buddyworld/maskoti/frost.glb', format: 'glb', dostupny: false },
   { klic: 'hrac.postava', popis: 'Hráčova postava (appka dnes kreslí primitivní "meeple")', cesta: '/buddyworld/postavy/hrac.glb', format: 'glb', dostupny: false },
-  { klic: 'nepritel.stinovy-vlcek', popis: 'Stínový vlček', cesta: '/buddyworld/nepratele/stinovy-vlcek.glb', format: 'glb', dostupny: false },
-  { klic: 'prostredi.strom', popis: 'Strom (Enchanted Forest)', cesta: '/buddyworld/prostredi/strom.glb', format: 'glb', dostupny: false },
-  { klic: 'prostredi.kamen', popis: 'Skála/kámen (Enchanted Forest)', cesta: '/buddyworld/prostredi/kamen.glb', format: 'glb', dostupny: false },
-  { klic: 'mestecko.zaklad', popis: 'První stavba městečka (základ)', cesta: '/buddyworld/mestecko/zaklad.glb', format: 'glb', dostupny: false },
+  { klic: 'nepritel.stinovy-vlcek', popis: 'Stínový vlček (soubor na disku existuje, scéna ho záměrně ještě nenahrává — viz useBuddyWorldScene.ts)', cesta: '/buddyworld/nepratele/stinovy-vlcek.glb', format: 'glb', dostupny: false },
+  { klic: 'nepritel.lesni-slizena', popis: 'Lesní slizena (soubor na disku existuje, scéna ho záměrně ještě nenahrává — viz useBuddyWorldScene.ts)', cesta: '/buddyworld/nepratele/lesni-slizena.glb', format: 'glb', dostupny: false },
+  { klic: 'prostredi.strom', popis: 'Strom (Enchanted Forest)', cesta: '/buddyworld/prostredi/strom.glb', format: 'glb', dostupny: true },
+  { klic: 'prostredi.kamen', popis: 'Skála/kámen (Enchanted Forest)', cesta: '/buddyworld/prostredi/kamen.glb', format: 'glb', dostupny: true },
+  { klic: 'prostredi.krystal', popis: 'Krystalový útvar (blízký orientační bod)', cesta: '/buddyworld/prostredi/krystal.glb', format: 'glb', dostupny: true },
+  { klic: 'mestecko.zaklad', popis: 'Chata městečka (základ)', cesta: '/buddyworld/mestecko/zaklad.glb', format: 'glb', dostupny: true },
+  { klic: 'mestecko.dilna', popis: 'Dílna městečka', cesta: '/buddyworld/mestecko/dilna.glb', format: 'glb', dostupny: true },
 ]
 
-/** appka vrátí `true`, jen pokud appka assett doopravdy má — dnes
- *  vždycky `false`, appka tím nutí scénu vždycky použít primitivní
- *  fallback. */
+/** appka vrátí `true`, jen pokud scéna model doopravdy nahrává
+ *  skutečným GLTFLoaderem (viz komentář u BUDOUCI_ASSETY výš) —
+ *  tenhle seznam appka ručně udržuje v souladu s tím, co
+ *  useBuddyWorldScene.ts skutečně volá. */
 export const jeAssetDostupny = (klic: string): boolean =>
   BUDOUCI_ASSETY.find((a) => a.klic === klic)?.dostupny ?? false

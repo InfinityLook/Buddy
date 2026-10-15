@@ -27,7 +27,14 @@ export const MASKOTI: MaskotDef[] = [
     ikona: '🔥',
     barvaJadro: '#ff7a3d',
     barvaZar: '#ffb347',
-    model: null,
+    // Fáze 0+1 (BuddyWorld_Complete_Project_Pack.zip): jediný maskot,
+    // co je dnes doopravdy odemčený, dostal i jediný skutečný GLB
+    // model — scéna (useBuddyWorldScene.ts) ho nahraje přes
+    // assetLoader.ts a primitivní "jádro + záře" zamění, jen až se
+    // model doopravdy nahraje. Moss/Nyx/Frost zůstávají null, i když
+    // jejich .glb soubory appka má na disku — nejsou odemčené, appka
+    // je tím nevyužívá zbytečně dřív, než na ně přijde řada.
+    model: '/buddyworld/maskoti/ember.glb',
     odemcenyOdZacatku: true,
   },
   {

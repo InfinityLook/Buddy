@@ -20,8 +20,13 @@ import { obrazekKonceptu } from '../data/koncept'
 // zbarvenou lištu a jméno namísto sdílení appčiny obyčejné.
 //
 // Útočné/obranné tlačítko a portréty appka zkusí vykreslit z
-// appčina BuddyWorld_ArtPack.zip (data/koncept.ts) — appka se vždycky
-// umí vrátit ke svému dřívějšímu emoji, pokud appka appku nenajde.
+// BuddyWorld_ArtPack.zip (data/koncept.ts) — appka se vždycky umí
+// vrátit ke svému dřívějšímu emoji, pokud daný obrázek nenajde.
+//
+// Třetí pokračování vývoje (Fáze 0+1, BuddyWorld_Complete_Project_
+// Pack.zip) sem přidalo poslední blok, dev diagnostický přehled —
+// ten se zobrazí jen v dev buildu (import.meta.env.DEV), nikdy v
+// produkci (viz useBuddyWorldScene.ts's BuddyWorldDiagnostika).
 // ==========================================
 
 const UTOK_IKONA = obrazekKonceptu('ui.ikona.utok')
@@ -161,6 +166,25 @@ export const HUD: React.FC<Props> = ({ hud, maskot, bossDef, onUtocit, onObranit
               Zkusit znovu
             </button>
           </div>
+        </div>
+      )}
+
+      {import.meta.env.DEV && hud.diagnostika && (
+        <div className="bw-hud-diag" aria-hidden="true">
+          <p className="bw-hud-diag-nadpis">🛠 Dev diagnostika (Fáze 0+1)</p>
+          <p>
+            Plátno: {hud.diagnostika.sirkaPlatna}×{hud.diagnostika.vyskaPlatna}px · {hud.diagnostika.fps} FPS
+          </p>
+          <p>
+            Dekorace: {hud.diagnostika.pocetDekoraciStromy} stromů, {hud.diagnostika.pocetDekoraciKameny} kamenů
+          </p>
+          <ul className="bw-hud-diag-assety">
+            {Object.entries(hud.diagnostika.stavAssetu).map(([klic, stav]) => (
+              <li key={klic} className={`bw-hud-diag-asset bw-hud-diag-asset--${stav}`}>
+                {klic}: {stav === 'nahravaji' ? '…nahrává se' : stav === 'ok' ? '✓ GLB OK' : '✗ fallback'}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

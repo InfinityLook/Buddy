@@ -182,10 +182,9 @@ export interface VysledekAktivaceObrany {
   obranaCooldownDoMs: number
 }
 
-/** Appka zkusí obranu aktivovat — appka appku sama ověří appčin
- *  cooldown (appka se nespoléhá na to, co už ověřilo UI, stejná
- *  zásada jako appka pokusUtokHrace výš) a vrátí `null`, pokud ještě
- *  neuplynul. */
+/** Appka zkusí obranu aktivovat — sama si ověří cooldown (nespoléhá
+ *  na to, co už ověřilo UI, stejná zásada jako u pokusUtokHrace výš)
+ *  a vrátí `null`, pokud ještě neuplynul. */
 export const aktivujObranu = (obranaCooldownDoMs: number, casMs: number): VysledekAktivaceObrany | null => {
   if (!jeObranaPripravena(obranaCooldownDoMs, casMs)) return null
   return {
