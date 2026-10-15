@@ -97,6 +97,16 @@ import { klonGlbModelu, nacistGlbModel } from './assetLoader'
 // je to teď odložit, ne to risknout napolo — zadání samo žádá
 // "zvol bezpečné řešení a zdokumentuj ho", přesně tohle rozhodnutí
 // to dělá.
+//
+// REÁLNÝ TEST NA TELEFONU (po Fázi 0+1 výš) odhalil skutečnou,
+// konkrétní vadu: úvodní záběr ukazoval jen rozmazanou zelenou/hnědou
+// plochu zblízka, ne čitelný les. Appčin dřívější seznam vyloučených
+// zón chránil střed světa, bossův háj, vesnici a krystal — ale ne
+// appčin skutečný spawn hráče ({x:0,z:-4}) ani appčinu výchozí
+// kameru, která sedí dalších 2,7 až 6 jednotek za ním (viz výpočet
+// níž u SPAWN_POLOMER). Strom tak mohl vzniknout doslova před
+// objektivem hned při prvním snímku — appka to teď řeší pátou
+// vyloučenou zónou kolem spawnu.
 // ==========================================
 
 const RYCHLOST_POHYBU = 4.6 // herní jednotky za sekundu
@@ -141,6 +151,19 @@ const VESNICE_POLOMER = 9
  *  startu, ne jen daleko u bossova háje. */
 const KRYSTAL_POZICE: Pozice2D = { x: 0, z: 4 }
 const KRYSTAL_POLOMER = 3.5
+
+/** Kde hráč začíná (a kam se vrátí po smrti) — jedno sdílené místo,
+ *  ne dva samostatné literály, co by se časem mohly rozejít. */
+const HRAC_SPAWN_POZICE: Pozice2D = { x: 0, z: -4 }
+
+/** Vyloučená zóna kolem spawnu — appka ji doplnila po reálném testu
+ *  na telefonu (viz komentář výš u "REÁLNÝ TEST NA TELEFONU"). appčina
+ *  kamera sedí při startu (yaw=0) 2,7 až 6 jednotek za hráčem podle
+ *  pitche (cos(pitch)*KAMERA_VZDALENOST, pitch jde od 0,12 do 1,1) —
+ *  appka poloměr 8 zvolila schválně větší, ať appku pokryje i
+ *  nejvzdálenější appčinu kamerovou pozici s rezervou, ne jen
+ *  přesně na hraně. */
+const SPAWN_POLOMER = 8
 
 /** Appka zvýšila dekoraci ze dřívějších 26 na tohle číslo — přímá
  *  oprava appčina Fáze 0 auditu ("scéna je skoro prázdná"). */
@@ -420,6 +443,11 @@ export const useBuddyWorldScene = ({
     const blizkoVesnice = (x: number, z: number) => Math.hypot(x - VESNICE_STRED.x, z - VESNICE_STRED.z) < VESNICE_POLOMER
     const blizkoKrystalu = (x: number, z: number) =>
       Math.hypot(x - KRYSTAL_POZICE.x, z - KRYSTAL_POZICE.z) < KRYSTAL_POLOMER + 1.5
+    // Pátá vyloučená zóna, kolem skutečného spawnu hráče (a tedy i
+    // appčiny výchozí kamery hned za ním) — viz komentář u
+    // SPAWN_POLOMER výš.
+    const blizkoSpawnu = (x: number, z: number) =>
+      Math.hypot(x - HRAC_SPAWN_POZICE.x, z - HRAC_SPAWN_POZICE.z) < SPAWN_POLOMER
     // Appka si ukládá nově postavené stromy a kameny podle typu do
     // dvou samostatných polí — po nahrání GLB tím umí zaměnit jen
     // primitivy daného typu, bez prohledávání celé skupiny znovu.
@@ -437,7 +465,11 @@ export const useBuddyWorldScene = ({
         pokus++
       } while (
         pokus < 12 &&
-        (volnaZonaKolem(x, z, 3.5) || blizkoHaje(x, z) || blizkoVesnice(x, z) || blizkoKrystalu(x, z))
+        (volnaZonaKolem(x, z, 3.5) ||
+          blizkoHaje(x, z) ||
+          blizkoVesnice(x, z) ||
+          blizkoKrystalu(x, z) ||
+          blizkoSpawnu(x, z))
       )
 
       const skupina = new THREE.Group()
@@ -758,7 +790,7 @@ export const useBuddyWorldScene = ({
     document.addEventListener('visibilitychange', onVisibility)
 
     let posledniCas = performance.now()
-    let hracPozice: Pozice2D = { x: 0, z: -4 }
+    let hracPozice: Pozice2D = { ...HRAC_SPAWN_POZICE }
     let hracNatoceni = 0
     let vitezstviDoMs = -Infinity
     let bossOtresDoMs = -Infinity
@@ -1026,7 +1058,7 @@ export const useBuddyWorldScene = ({
       if (obnovitPozadavekRef.current && mrtvy) {
         obnovitPozadavekRef.current = false
         hracStavRef.current = plneUzdravit(hracStavRef.current)
-        hracPozice = { x: 0, z: -4 }
+        hracPozice = { ...HRAC_SPAWN_POZICE }
         obranaAktivniDoMsRef.current = -Infinity
         obranaCooldownDoMsRef.current = -Infinity
         bossRef.current = obnovBosse(bossDef.id, bossDef.maxHp, BOSS_HAJ_POZICE)
