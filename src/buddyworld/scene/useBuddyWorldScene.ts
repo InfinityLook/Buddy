@@ -819,7 +819,15 @@ export const useBuddyWorldScene = ({
 
       if (!jeMrtvyHrac(hracStavRef.current)) {
         const dopredny = { x: Math.sin(yaw), z: Math.cos(yaw) }
-        const pravy = { x: dopredny.z, z: -dopredny.x }
+        // appčin "pravy" vektor appka počítá stejně jako Buddyheimovo
+        // usePlayerWorld.ts (pravy.crossVectors(dopredny, nahoru), tady
+        // bez Threejs objektu) — appka ho dřív měla s obráceným
+        // znaménkem (cross(nahoru, dopredny) místo cross(dopredny,
+        // nahoru)), což appku na appčině kameře obracelo doprava/doleva:
+        // appčin joystick doprava appku posouval na appčině obrazovce
+        // doleva, a appčin joystick doleva naopak doprava. Appčino
+        // dopředu/dozadu bylo appkou celou dobu správně.
+        const pravy = { x: -dopredny.z, z: dopredny.x }
 
         let vstupX = joystickRef.current.x
         let vstupZ = joystickRef.current.z
