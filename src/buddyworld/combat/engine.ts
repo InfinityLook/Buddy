@@ -1,3 +1,4 @@
+import { ZBRANE, Zbran, poskozeniZbrane } from './weapons'
 import { FazeNepritele, NepritelDef, NepritelRuntimeStav, Pozice2D } from '../types'
 
 // ==========================================
@@ -127,15 +128,16 @@ export const pokusUtokHrace = (
   vzdalenostKNepriteli: number,
   posledniUtokHraceMs: number,
   casMs: number,
-  nahodne: () => number = Math.random
+  nahodne: () => number = Math.random,
+  zbran: Zbran = 'mec'
 ): VysledekUtokuHrace => {
   if (nepritel.faze === 'mrtvy') return { provedeno: false, poskozeni: 0, nepritel, porazen: false }
-  if (vzdalenostKNepriteli > DOSAH_UTOKU_HRACE) return { provedeno: false, poskozeni: 0, nepritel, porazen: false }
-  if (casMs - posledniUtokHraceMs < COOLDOWN_UTOKU_HRACE_MS) {
+  if (vzdalenostKNepriteli > ZBRANE[zbran].dosah) return { provedeno: false, poskozeni: 0, nepritel, porazen: false }
+  if (casMs - posledniUtokHraceMs < ZBRANE[zbran].cooldownMs) {
     return { provedeno: false, poskozeni: 0, nepritel, porazen: false }
   }
 
-  const poskozeni = Math.round(POSKOZENI_HRACE_MIN + nahodne() * (POSKOZENI_HRACE_MAX - POSKOZENI_HRACE_MIN))
+  const poskozeni = poskozeniZbrane(zbran, nahodne())
   const novyHp = Math.max(0, nepritel.hp - poskozeni)
   const porazen = novyHp <= 0
 

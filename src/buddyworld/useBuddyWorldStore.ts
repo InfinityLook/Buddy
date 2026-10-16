@@ -40,7 +40,14 @@ export const useBuddyWorldStore = create<BuddyWorldState>()(
       aktivniMaskotId: VYCHOZI_MASKOT_ID,
       odemceneMaskoty: [VYCHOZI_MASKOT_ID],
 
-      ulozPostup: (level, xp) => set({ level, xp }),
+      ulozPostup: (level, xp) => set((stav) => {
+        const odemknout = [
+          ...(level >= 5 ? ['moss'] : []),
+          ...(level >= 10 ? ['nyx'] : []),
+          ...(level >= 20 ? ['frost'] : []),
+        ]
+        return { level, xp, odemceneMaskoty: [...new Set([...stav.odemceneMaskoty, ...odemknout])] }
+      }),
 
       vybratMaskota: (id) => {
         if (!get().odemceneMaskoty.includes(id)) return

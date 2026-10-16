@@ -65,7 +65,7 @@ export const overVillageProgress = (data: unknown): VillageProgress => {
 }
 
 /** Sběr ve světě: suroviny se připisují jen za úspěšnou interakci. */
-export type Surovina = 'drevo' | 'kamen'
+export type Surovina = 'drevo' | 'kamen' | 'krystaly'
 export const pridejSurovinu = (stav: VillageProgress, typ: Surovina, pocet = 1): VillageProgress => {
   if (!Number.isSafeInteger(pocet) || pocet < 1 || pocet > 10) return stav
   return { ...stav, [typ]: Math.min(1_000_000, stav[typ] + pocet) }

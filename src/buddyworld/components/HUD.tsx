@@ -1,3 +1,4 @@
+import { Zbran, ZBRANE } from '../combat/weapons'
 import React from 'react'
 import { MaskotDef } from '../types'
 import { BossDef } from '../data/bossove'
@@ -36,6 +37,8 @@ interface Props {
   hud: BuddyWorldHud
   maskot: MaskotDef
   bossDef: BossDef
+  vybranaZbran: Zbran
+  onZvolZbran: (zbran: Zbran) => void
   onUtocit: () => void
   onObranit: () => void
   onVyzvatBosse: () => void
@@ -43,7 +46,7 @@ interface Props {
   onZkusitZnovu: () => void
 }
 
-export const HUD: React.FC<Props> = ({ hud, maskot, bossDef, onUtocit, onObranit, onVyzvatBosse, onZpet, onZkusitZnovu }) => {
+export const HUD: React.FC<Props> = ({ hud, maskot, bossDef, vybranaZbran, onZvolZbran, onUtocit, onObranit, onVyzvatBosse, onZpet, onZkusitZnovu }) => {
   const hpProcenta = Math.max(0, Math.min(100, (hud.hrac.hp / hud.hrac.maxHp) * 100))
   const xpProcenta = Math.max(0, Math.min(100, (hud.hrac.xp / hud.xpProDalsiUroven) * 100))
 
@@ -127,6 +130,15 @@ export const HUD: React.FC<Props> = ({ hud, maskot, bossDef, onUtocit, onObranit
         <span className="bw-hud-maskot-jmeno">{maskot.jmeno}</span>
       </div>
 
+      <div className="bw-zbrane" role="group" aria-label="Výběr zbraně">
+        {Object.values(ZBRANE).map((z) => (
+          <button key={z.id} type="button" onClick={() => onZvolZbran(z.id)}
+            disabled={hud.hrac.level < z.minLevel} aria-pressed={vybranaZbran === z.id}
+            title={`${z.nazev} – dosah ${z.dosah} m, úroveň ${z.minLevel}`}>
+            {z.id === 'mec' ? '⚔️' : z.id === 'luk' ? '🏹' : '🪄'} {z.nazev}{hud.hrac.level < z.minLevel ? ` (Lv ${z.minLevel})` : ''}
+          </button>
+        ))}
+      </div>
       <div className="bw-hud-spodni">
         <button
           type="button"

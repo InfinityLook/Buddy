@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { NEPRATELE, VYCHOZI_NEPRITEL_ID, nahodnyNepritel, nepritelPodleId } from '@/buddyworld/data/nepratele'
+import { NEPRATELE, VYCHOZI_NEPRITEL_ID, nahodnyNepritel, nepritelPodleId, vyberRuzneNepratele } from '@/buddyworld/data/nepratele'
 
 describe('NEPRATELE', () => {
   it('drží alespoň dva odlišné typy běžných nepřátel', () => {
@@ -55,5 +55,28 @@ describe('nahodnyNepritel', () => {
   it('pokryje všechny typy rovnoměrně napříč celým rozsahem [0,1)', () => {
     const vysledky = new Set(NEPRATELE.map((_, i) => nahodnyNepritel(() => i / NEPRATELE.length)))
     expect(vysledky.size).toBe(NEPRATELE.length)
+  })
+})
+
+describe('Buddy World v2.4 — nové archetypy a rozmanité sloty', () => {
+  it('má čtyři unikátní typy nepřátel', () => {
+    expect(NEPRATELE).toHaveLength(4)
+    expect(new Set(NEPRATELE.map(n => n.id)).size).toBe(4)
+  })
+  it('krystalový brouk je pomalejší a odolnější než bludička', () => {
+    const brouk = nepritelPodleId('krystalovy-brouk')
+    const bludicka = nepritelPodleId('lesni-bludicka')
+    expect(brouk.maxHp).toBeGreaterThan(bludicka.maxHp)
+    expect(brouk.rychlost).toBeLessThan(bludicka.rychlost)
+    expect(brouk.poskozeni).toBeGreaterThan(bludicka.poskozeni)
+  })
+  it('nevybere stejný typ dvakrát do dvou slotů', () => {
+    const vysledek = vyberRuzneNepratele(2, () => 0)
+    expect(vysledek).toHaveLength(2)
+    expect(vysledek[0].id).not.toBe(vysledek[1].id)
+  })
+  it('omezuje počet na dostupné typy a zvládne nulu', () => {
+    expect(vyberRuzneNepratele(100, () => 0.5)).toHaveLength(4)
+    expect(vyberRuzneNepratele(0)).toHaveLength(0)
   })
 })

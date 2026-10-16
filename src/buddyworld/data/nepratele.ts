@@ -53,6 +53,21 @@ export const NEPRATELE: NepritelDef[] = [
     meritko: 0.9,
     tvar: 'kapka',
   },
+  // Krystalový brouk: pomalý obrněný protivník, který udeří tvrdě,
+  // ale hráč má čas před úderem ustoupit.
+  {
+    id: 'krystalovy-brouk', jmeno: 'Krystalový brouk', ikona: '💎',
+    maxHp: 105, poskozeni: 12, dosahUtoku: 1.6, dosahDetekce: 5.5,
+    rychlost: 0.9, cooldownUtokuMs: 2400, odmenaXp: 42, model: null,
+    barvaTela: '#315a73', barvaHalo: '#4ee7ff', meritko: 1.25, tvar: 'ostruha',
+  },
+  // Lesní bludička: křehká a rychlá, všimne si hráče na velkou vzdálenost.
+  {
+    id: 'lesni-bludicka', jmeno: 'Lesní bludička', ikona: '✨',
+    maxHp: 28, poskozeni: 5, dosahUtoku: 1.2, dosahDetekce: 9,
+    rychlost: 3.5, cooldownUtokuMs: 950, odmenaXp: 30, model: null,
+    barvaTela: '#663e86', barvaHalo: '#f2a7ff', meritko: 0.72, tvar: 'kapka',
+  },
 ]
 
 export const VYCHOZI_NEPRITEL_ID = 'stinovy-vlcek'
@@ -67,3 +82,15 @@ export const nepritelPodleId = (id: string): NepritelDef => NEPRATELE.find((n) =
  *  appčin pokusUtokHrace v combat/engine.ts. */
 export const nahodnyNepritel = (nahodne: () => number = Math.random): NepritelDef =>
   NEPRATELE[Math.floor(nahodne() * NEPRATELE.length) % NEPRATELE.length]
+
+/** Vybere různé typy do současně viditelných slotů (bez duplicit).
+ * Fisher–Yates shuffle; `nahodne` umožňuje deterministické testy. */
+export function vyberRuzneNepratele(pocet: number, nahodne: () => number = Math.random): NepritelDef[] {
+  const kandidati = [...NEPRATELE]
+  for (let i = kandidati.length - 1; i > 0; i--) {
+    const n = nahodne()
+    const j = Math.max(0, Math.min(i, Math.floor((Number.isFinite(n) ? n : 0) * (i + 1))))
+    ;[kandidati[i], kandidati[j]] = [kandidati[j], kandidati[i]]
+  }
+  return kandidati.slice(0, Math.max(0, Math.floor(pocet)))
+}

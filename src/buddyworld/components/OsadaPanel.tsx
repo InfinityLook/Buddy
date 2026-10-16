@@ -1,4 +1,5 @@
 import { UKOLY } from '../quests'
+import { zjistiPribeh } from '../storyProgress'
 import React, { useState } from 'react'
 import type { StavitelnyTyp } from '../buildingPlacement'
 import { useVillageStore } from '../useVillageStore'
@@ -23,6 +24,7 @@ export const OsadaPanel: React.FC<{ onPostavit: (typ: StavitelnyTyp) => void; on
   const [zalozka, setZalozka] = useState<'osada' | 'dilna' | 'staveni' | 'budovy' | 'ukoly'>('osada')
   const splneneUkoly = useVillageStore(s => s.splneneUkoly)
   const prevzitOdmenu = useVillageStore(s => s.prevzitOdmenu)
+  const pribeh = zjistiPribeh(splneneUkoly)
   const porazeniNepratele = useVillageStore(s => s.porazeniNepratele)
   const porazeniBossove = useVillageStore(s => s.porazeniBossove)
   const vylepsiOsadu = useVillageStore((s) => s.vylepsiOsadu)
@@ -56,13 +58,20 @@ export const OsadaPanel: React.FC<{ onPostavit: (typ: StavitelnyTyp) => void; on
             </>
           ) : <p>Dosáhl jsi nejvyšší úrovně osady!</p>)}
           {zalozka === 'ukoly' && <div className="bw-crafting-list">
-            <p>Promluv si s obyvateli prostřednictvím jejich příběhových úkolů.</p>
+            <p>📖 {pribeh.kapitola === 1 ? 'Kapitola I: Zrození údolí' : 'Kapitola II: Nový úsvit'}</p>
+            <label htmlFor="bw-pribeh-postup">Příběh: {pribeh.dokonceno}/{pribeh.celkem} úkolů ({pribeh.procent} %)</label>
+            <progress id="bw-pribeh-postup" value={pribeh.dokonceno} max={pribeh.celkem} style={{ width: '100%' }} />
+            {pribeh.dokoncenaHra && <div role="status" className="bw-pribeh-finale">
+              <strong>🌅 Konec kapitoly: Nový úsvit</strong>
+              <p>Společně s Buddym jsi zachránil údolí, ochránil jeho obyvatele a vybudoval nový domov. Dobrodružství může pokračovat volným hraním.</p>
+              <p>✓ Příběhové úkoly této verze dokončeny.</p>
+            </div>}
             {UKOLY.map((q, index) => {
               const dostupny = index === 0 || splneneUkoly.includes(UKOLY[index - 1].id)
               const splneny = splneneUkoly.includes(q.id)
               const pripraveny = q.hotovo({ uroven, drevo, kamen, krystaly, porazeniNepratele, porazeniBossove })
               return <div className="bw-crafting-recipe" key={q.id}>
-                <strong>{q.zadavatel}: {q.nazev}</strong>
+                <strong>{index < 8 ? 'I' : 'II'} · {q.zadavatel}: {q.nazev}</strong>
                 <p>{dostupny ? q.dialog : 'Nejprve dokonči předchozí úkol.'}</p>
                 {dostupny && <><small>{q.cil} Odměna: 🪵{q.odmena.drevo} 🪨{q.odmena.kamen} 💎{q.odmena.krystaly}</small>
                   <button type="button" disabled={splneny || !pripraveny} onClick={() => prevzitOdmenu(q.id)}>

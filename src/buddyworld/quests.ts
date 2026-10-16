@@ -1,6 +1,6 @@
 import type { VillageProgress } from './villageProgress'
 
-export type QuestId = 'prvni_kroky' | 'obrana_osady' | 'nova_vesnice' | 'zkouska_odvahy'
+export type QuestId = 'prvni_kroky' | 'obrana_osady' | 'nova_vesnice' | 'zkouska_odvahy' | 'cesta_k_mestu' | 'strazci_udoli' | 'novy_domov' | 'stiny_se_vraceji' | 'srdce_udoli' | 'hranice_temnoty' | 'posledni_straz' | 'novy_usvit'
 export interface QuestDefinition {
   id: QuestId
   nazev: string
@@ -28,6 +28,40 @@ export const UKOLY: QuestDefinition[] = [
     dialog: 'Za lesem čeká nebezpečný protivník. Připrav se a poraz prvního bosse.',
     cil: 'Poraz alespoň 1 bosse.', hotovo: s => s.porazeniBossove >= 1,
     odmena: { drevo: 8, kamen: 6, krystaly: 3 } },
+  { id: 'cesta_k_mestu', nazev: 'Cesta k městu', zadavatel: 'Stavitelka Mira',
+    dialog: 'Naše vesnice potřebuje kovárnu a obchod. Rozšiř osadu a přivedeme nové řemeslníky.',
+    cil: 'Dosáhni úrovně osady 3.', hotovo: s => s.uroven >= 3,
+    odmena: { drevo: 6, kamen: 6, krystaly: 2 } },
+  { id: 'strazci_udoli', nazev: 'Strážci údolí', zadavatel: 'Strážce Kael',
+    dialog: 'Nepřátelé se nevzdali. Potřebujeme, abys znovu pročistil okolní stezky.',
+    cil: 'Poraz celkem 10 běžných nepřátel.', hotovo: s => s.porazeniNepratele >= 10,
+    odmena: { drevo: 8, kamen: 8, krystaly: 3 } },
+  { id: 'novy_domov', nazev: 'Nový domov', zadavatel: 'Starostka Elara',
+    dialog: 'Z osady se stává městečko. Dokonči další rozšíření, aby se k nám mohli nastěhovat noví obyvatelé.',
+    cil: 'Dosáhni úrovně osady 4.', hotovo: s => s.uroven >= 4,
+    odmena: { drevo: 10, kamen: 10, krystaly: 4 } },
+  { id: 'stiny_se_vraceji', nazev: 'Stíny se vracejí', zadavatel: 'Strážce Kael',
+    dialog: 'Na hranicích údolí se znovu probouzí temná síla. Postav se druhému bossovi.',
+    cil: 'Poraz celkem 2 bossy.', hotovo: s => s.porazeniBossove >= 2,
+    odmena: { drevo: 12, kamen: 12, krystaly: 5 } },
+
+
+  { id: 'srdce_udoli', nazev: 'Srdce údolí', zadavatel: 'Stavitelka Mira',
+    dialog: 'Naše město je připravené růst. Dostaň osadu na nejvyšší úroveň a rozžehni naději.',
+    cil: 'Dosáhni úrovně osady 5.', hotovo: s => s.uroven >= 5,
+    odmena: { drevo: 15, kamen: 15, krystaly: 5 } },
+  { id: 'hranice_temnoty', nazev: 'Hranice temnoty', zadavatel: 'Strážce Kael',
+    dialog: 'Naše cesty jsou stále nebezpečné. Vyčisti okolí města, ať mohou obchodníci bezpečně projít.',
+    cil: 'Poraz celkem 20 běžných nepřátel.', hotovo: s => s.porazeniNepratele >= 20,
+    odmena: { drevo: 15, kamen: 15, krystaly: 6 } },
+  { id: 'posledni_straz', nazev: 'Poslední stráž', zadavatel: 'Strážce Kael',
+    dialog: 'V lesích se znovu objevila stará hrozba. Ukaž, že naše město dokáže odolat.',
+    cil: 'Poraz celkem 3 bossy.', hotovo: s => s.porazeniBossove >= 3,
+    odmena: { drevo: 18, kamen: 18, krystaly: 8 } },
+  { id: 'novy_usvit', nazev: 'Nový úsvit', zadavatel: 'Starostka Elara',
+    dialog: 'Údolí je zachráněné. Náš domov je připraven na další kapitolu dobrodružství!',
+    cil: 'Měj alespoň 20 dřeva a 20 kamenů.', hotovo: s => s.drevo >= 20 && s.kamen >= 20,
+    odmena: { drevo: 20, kamen: 20, krystaly: 10 } },
 ]
 
 export const overSplneneUkoly = (v: unknown): QuestId[] =>

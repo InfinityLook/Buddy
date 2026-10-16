@@ -1,3 +1,5 @@
+import { ODMENY_ZA_OBJEVENTI, overObjeveneOblasti, type IdOblasti } from './data/objevovani'
+import { POKLADY, lzeOtevritPoklad, overOtevrenePoklady } from './data/poklady'
 import { UKOLY, overSplneneUkoly, type QuestId } from './quests'
 import { obchoduj, vyzvedniProdukci, type ObchodniAkce } from './villageEconomy'
 import { StavitelnyTyp, UmistenaStavba, jeVolneMisto, overStavby, presunStavbu, odstranStavbu } from './buildingPlacement'
@@ -11,6 +13,10 @@ import {
 import { Inventar, PRAZDNY_INVENTAR, RECEPTY, overInventar, vyrobPredmet } from './crafting'
 
 interface VillageStore extends VillageProgress {
+  objeveneOblasti: IdOblasti[]
+  objevOblast: (id: IdOblasti) => boolean
+  otevrenePoklady: string[]
+  otevriPoklad: (id: string) => boolean
   splneneUkoly: QuestId[]
   prevzitOdmenu: (id: QuestId) => boolean
   posledniProdukce: number
@@ -31,12 +37,46 @@ export const useVillageStore = create<VillageStore>()(
   persist(
     (set) => ({
       ...VYCHOZI_OSADA,
+      otevrenePoklady: [],
+      objeveneOblasti: [],
+      objevOblast: (id) => {
+        let nove = false
+        set((stav) => {
+          if (stav.objeveneOblasti.includes(id) || !Object.hasOwn(ODMENY_ZA_OBJEVENTI, id)) return stav
+          nove = true
+          const odmena = ODMENY_ZA_OBJEVENTI[id]
+          return {
+            objeveneOblasti: [...stav.objeveneOblasti, id],
+            drevo: Math.min(1_000_000, stav.drevo + odmena.drevo),
+            kamen: Math.min(1_000_000, stav.kamen + odmena.kamen),
+            krystaly: Math.min(1_000_000, stav.krystaly + odmena.krystaly),
+          }
+        })
+        return nove
+      },
+      otevriPoklad: (id) => {
+        let otevreno = false
+        set((stav) => {
+          if (!lzeOtevritPoklad(id, stav.otevrenePoklady)) return stav
+          const poklad = POKLADY.find((p) => p.id === id)!
+          otevreno = true
+          return {
+            otevrenePoklady: [...stav.otevrenePoklady, id],
+            drevo: Math.min(1_000_000, stav.drevo + poklad.drevo),
+            kamen: Math.min(1_000_000, stav.kamen + poklad.kamen),
+            krystaly: Math.min(1_000_000, stav.krystaly + poklad.krystaly),
+          }
+        })
+        return otevreno
+      },
       splneneUkoly: [],
       prevzitOdmenu: (id) => {
         let prevzato = false
         set(s => {
           const ukol = UKOLY.find(q => q.id === id)
           if (!ukol || s.splneneUkoly.includes(id) || !ukol.hotovo(s)) return s
+          const poradi = UKOLY.findIndex(q => q.id === id)
+          if (poradi > 0 && !s.splneneUkoly.includes(UKOLY[poradi - 1].id)) return s
           prevzato = true
           return {
             splneneUkoly: [...s.splneneUkoly, id],
@@ -110,6 +150,8 @@ export const useVillageStore = create<VillageStore>()(
         posledniProdukce: s.posledniProdukce,
         umisteneStavby: s.umisteneStavby,
         splneneUkoly: s.splneneUkoly,
+        otevrenePoklady: s.otevrenePoklady,
+        objeveneOblasti: s.objeveneOblasti,
       }),
       merge: (saved, current) => ({
         ...current, ...overVillageProgress(saved),
@@ -121,6 +163,8 @@ export const useVillageStore = create<VillageStore>()(
         inventar: overInventar((saved as { inventar?: unknown } | null)?.inventar),
         umisteneStavby: overStavby((saved as { umisteneStavby?: unknown } | null)?.umisteneStavby),
         splneneUkoly: overSplneneUkoly((saved as { splneneUkoly?: unknown } | null)?.splneneUkoly),
+        otevrenePoklady: overOtevrenePoklady((saved as { otevrenePoklady?: unknown } | null)?.otevrenePoklady),
+        objeveneOblasti: overObjeveneOblasti((saved as { objeveneOblasti?: unknown } | null)?.objeveneOblasti),
       }),
     }
   )
