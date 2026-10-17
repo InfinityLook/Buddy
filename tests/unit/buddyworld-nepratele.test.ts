@@ -59,9 +59,9 @@ describe('nahodnyNepritel', () => {
 })
 
 describe('Buddy World v2.4 — nové archetypy a rozmanité sloty', () => {
-  it('má čtyři unikátní typy nepřátel', () => {
-    expect(NEPRATELE).toHaveLength(4)
-    expect(new Set(NEPRATELE.map(n => n.id)).size).toBe(4)
+  it('má sedm unikátních typů nepřátel (včetně Křišťálové mýtiny)', () => {
+    expect(NEPRATELE).toHaveLength(7)
+    expect(new Set(NEPRATELE.map(n => n.id)).size).toBe(7)
   })
   it('krystalový brouk je pomalejší a odolnější než bludička', () => {
     const brouk = nepritelPodleId('krystalovy-brouk')
@@ -76,7 +76,7 @@ describe('Buddy World v2.4 — nové archetypy a rozmanité sloty', () => {
     expect(vysledek[0].id).not.toBe(vysledek[1].id)
   })
   it('omezuje počet na dostupné typy a zvládne nulu', () => {
-    expect(vyberRuzneNepratele(100, () => 0.5)).toHaveLength(4)
+    expect(vyberRuzneNepratele(100, () => 0.5)).toHaveLength(7)
     expect(vyberRuzneNepratele(0)).toHaveLength(0)
   })
 })

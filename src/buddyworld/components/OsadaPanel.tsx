@@ -1,3 +1,4 @@
+import { FUNKCNI_BUDOVY, muzePostavitFunkcni } from '../funkcniBudovy'
 import { UKOLY } from '../quests'
 import { zjistiPribeh } from '../storyProgress'
 import React, { useState } from 'react'
@@ -15,6 +16,8 @@ export const OsadaPanel: React.FC<{ onPostavit: (typ: StavitelnyTyp) => void; on
   const kamen = useVillageStore((s) => s.kamen)
   const krystaly = useVillageStore((s) => s.krystaly)
   const inventar = useVillageStore((s) => s.inventar)
+  const funkcniBudovy = useVillageStore((s) => s.funkcniBudovy)
+  const postavFunkcniBudovu = useVillageStore((s) => s.postavFunkcniBudovu)
   const vyrob = useVillageStore((s) => s.vyrob)
   const umisteneStavby = useVillageStore((s) => s.umisteneStavby)
   const vyzvednoutProdukci = useVillageStore((s) => s.vyzvednoutProdukci)
@@ -81,6 +84,15 @@ export const OsadaPanel: React.FC<{ onPostavit: (typ: StavitelnyTyp) => void; on
             })}
           </div>}
           {zalozka === 'budovy' && <div className="bw-crafting-list">
+            <strong>Nové funkční budovy</strong>
+            {FUNKCNI_BUDOVY.map(b => <div className="bw-crafting-recipe" key={b.id}>
+              <strong>{b.nazev} {funkcniBudovy.includes(b.id) ? '✓ Postaveno' : ''}</strong>
+              <p>{b.popis}</p>
+              <small>Úroveň {b.uroven} · 🪵 {b.drevo} · 🪨 {b.kamen} · 💎 {b.krystaly}</small>
+              <button type="button" disabled={!muzePostavitFunkcni({ uroven, drevo, kamen, krystaly, porazeniNepratele, porazeniBossove }, funkcniBudovy, b.id)} onClick={() => { if (postavFunkcniBudovu(b.id)) setOznameni(`${b.nazev} byla postavena.`) }}>
+                {funkcniBudovy.includes(b.id) ? '✓ Hotovo' : 'Postavit budovu'}
+              </button>
+            </div>)}
             <div className="bw-crafting-recipe">
               <strong>🌾 Farma a sklad (úroveň 2)</strong>
               <p>Každých 5 minut vyrobí 2 dřeva a 1 kámen. Od úrovně 3 získáš 2 kameny. Maximálně 12 cyklů najednou.</p>
@@ -101,10 +113,11 @@ export const OsadaPanel: React.FC<{ onPostavit: (typ: StavitelnyTyp) => void; on
           {zalozka === 'dilna'  && <div className="bw-crafting-list">
             {RECEPTY.map((r) => {
               const odemceno = uroven >= r.minUroven
-              const dostupne = muzeVyrobit({ uroven, drevo, kamen, krystaly, porazeniNepratele: 0, porazeniBossove: 0 }, r)
+              const cenaReceptu = funkcniBudovy.includes('dilna') ? { ...r, drevo: Math.max(0, r.drevo - 1) } : r
+              const dostupne = muzeVyrobit({ uroven, drevo, kamen, krystaly, porazeniNepratele: 0, porazeniBossove: 0 }, cenaReceptu)
               return <div key={r.id} className="bw-crafting-recipe">
                 <strong>{r.nazev} × {inventar[r.id]}</strong>
-                <small>{r.popis} · 🪵 {r.drevo} · 🪨 {r.kamen} · 💎 {r.krystaly}</small>
+                <small>{r.popis} · 🪵 {cenaReceptu.drevo} · 🪨 {r.kamen} · 💎 {r.krystaly}</small>
                 <button type="button" disabled={!dostupne} onClick={() => vyrob(r.id)}>
                   {!odemceno ? `Odemkne se na úrovni ${r.minUroven}` : dostupne ? 'Vyrobit' : 'Nedostatek surovin'}
                 </button>

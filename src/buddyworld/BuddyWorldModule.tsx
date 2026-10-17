@@ -119,6 +119,7 @@ export const BuddyWorldModule: React.FC = () => {
               zaznamenejVyhru(true)
             }}
             onPostupZmena={ulozPostup}
+            onOdmenaVypravy={(xpOdmena) => recordAction('buddyworld', xpOdmena)}
             onZpet={() => navigate('/hub')}
           />
         )}

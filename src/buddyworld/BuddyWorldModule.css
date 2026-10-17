@@ -808,3 +808,92 @@
 .bw-navigace select,.bw-navigace button { max-width:100%; font-size:11px; border-radius:6px; padding:5px; background:#273f39; color:#fff4d3; border:1px solid #82978a; }
 .bw-navigace small { line-height:1.35; }
 @media(max-height:500px) { .bw-navigace { top:132px; width:120px; padding:4px; } }
+
+/* v3.2 – přístupný, rozbalovací příběhový deník; na mobilu nezakrývá celou hru */
+.bw-story-journal { position:absolute; left:max(.6rem,env(safe-area-inset-left,0px)); bottom:calc(5rem + env(safe-area-inset-bottom,0px)); z-index:22; width:min(290px,76vw); color:#f8edd3; font-size:12px; }
+.bw-story-journal > summary { display:inline-block; cursor:pointer; padding:9px 12px; border:1px solid #b9a679; border-radius:9px; background:rgba(13,30,27,.96); font-weight:700; list-style:none; }
+.bw-story-journal[open] { background:rgba(13,30,27,.97); border:1px solid #b9a679; border-radius:10px; }
+.bw-story-journal[open] > summary { border:0; border-bottom:1px solid #b9a679; border-radius:9px 9px 0 0; display:block; }
+.bw-story-journal-content { padding:10px 12px; max-height:min(54vh,390px); overflow-y:auto; overscroll-behavior:contain; }
+.bw-story-journal-content h3,.bw-story-journal-content h4 { margin:7px 0; color:#ffdf9d; }
+.bw-story-journal-content p { margin:5px 0 9px; line-height:1.45; }
+.bw-story-journal-content ol { padding-left:24px; margin:6px 0 12px; }
+.bw-story-journal-content li { padding:5px 0; border-bottom:1px solid rgba(255,255,255,.12); }
+.bw-story-journal-content li span,.bw-story-journal-content li small { display:block; margin-top:3px; }
+.bw-story-current { color:#d9ffc7; }
+@media(max-height:500px) { .bw-story-journal { bottom:12px; } .bw-story-journal-content { max-height:55vh; } }
+
+/* v3.3 – příběhové scény v deníku */
+.bw-story-scene { margin: 8px 0; padding: 8px 10px; border: 1px solid rgba(180,200,255,.25); border-radius: 10px; }
+.bw-story-scene summary { cursor: pointer; font-weight: 600; }
+.bw-story-scene p { margin: 7px 0; line-height: 1.5; }
+
+/* v3.4 – dobrovolné výpravy */
+.bw-side-quests { margin-top: 1.25rem; border-top: 1px solid rgba(255,255,255,.18); padding-top: .75rem; }
+.bw-side-quest { padding: .7rem; margin: .5rem 0; border-radius: .7rem; background: rgba(255,255,255,.06); display: grid; gap: .3rem; }
+.bw-side-quest small { opacity: .8; }
+.bw-side-quest button { justify-self: start; padding: .4rem .7rem; }
+.bw-side-quest button:disabled { opacity: .55; }
+
+/* v3.5: vedlejší úkoly přímo u zadavatelů */
+.bw-npc-sidequests { margin-top: .65rem; padding-top: .55rem; border-top: 1px solid rgba(255,255,255,.18); max-height: 36vh; overflow-y: auto; overscroll-behavior: contain; }
+.bw-npc-sidequest { padding: .5rem 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+.bw-npc-sidequest p { margin: .3rem 0; }
+.bw-npc-sidequest small { display: block; margin-bottom: .3rem; }
+.bw-npc-sidequest button:disabled { opacity: .6; cursor: not-allowed; }
+
+/* v3.6 — vztahy s obyvateli */
+.bw-npc-duvera { margin: 12px 0; padding: 10px; border: 1px solid rgba(145,210,255,.35); border-radius: 10px; background: rgba(14,35,60,.68); }
+.bw-npc-duvera p { margin: 6px 0; line-height: 1.4; }
+.bw-npc-duvera button { min-height: 40px; max-width: 100%; white-space: normal; }
+
+/* v3.7 — epizody přátelství */
+.bw-npc-pribeh { margin: 12px 0; padding: 10px; border: 1px solid rgba(255,220,146,.4); border-radius: 10px; background: rgba(48,34,19,.75); }
+.bw-npc-pribeh summary, .bw-npc-chronicle summary { cursor: pointer; padding: 6px 0; }
+.bw-npc-pribeh p, .bw-npc-chronicle p { line-height: 1.5; }
+.bw-npc-chronicle { border-top: 1px solid rgba(255,255,255,.2); padding-top: 10px; margin-top: 16px; }
+.bw-npc-chronicle details { padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+
+/* v3.8 – osobní výpravy */
+.bw-npc-vyprava { margin: 12px 0; padding: 12px; border: 1px solid rgba(129,218,202,.35); border-radius: 12px; background: rgba(15,32,43,.75); }
+.bw-npc-vyprava p { margin: 6px 0; }
+.bw-npc-vyprava button { min-height: 40px; }
+
+/* v3.9: kompaktní seznam relikvií, použitelný i na dotykovém displeji */
+.bw-relikvie-panel { position: absolute; left: 12px; top: 90px; z-index: 12; max-width: min(250px, 65vw); max-height: 42vh; overflow: auto; padding: 7px 10px; border: 1px solid rgba(125,218,248,.35); border-radius: 12px; background: rgba(10,19,35,.87); color: #eaf7ff; font-size: 12px; }
+.bw-relikvie-panel summary { cursor: pointer; font-weight: 700; }
+.bw-relikvie-panel p { margin: 7px 0; line-height: 1.35; }
+
+/* v4.0: závěrečná událost tří pečetí; na mobilu nezakrývá celou scénu. */
+.bw-pecete-panel { position:absolute; left:12px; top:135px; z-index:12; max-width:min(280px,72vw); max-height:38vh; overflow:auto; padding:7px 10px; border:1px solid rgba(255,213,119,.45); border-radius:12px; background:rgba(15,19,34,.9); color:#fff4d9; font-size:12px; }
+.bw-pecete-panel summary { cursor:pointer; font-weight:700; }
+.bw-pecete-panel p { margin:8px 0; line-height:1.4; }
+.bw-pecete-panel button { min-height:40px; padding:8px 12px; border-radius:8px; background:#e9bd70; color:#201829; font-weight:700; }
+.bw-pecete-panel button:disabled { opacity:.6; }
+
+/* v4.1: mobilní panel chrámové výpravy */
+.bw-chram-panel { position:absolute; left:12px; top:185px; z-index:12; max-width:min(280px,72vw); max-height:32vh; overflow:auto; padding:7px 10px; border:1px solid rgba(193,157,250,.55); border-radius:12px; background:rgba(19,17,37,.92); color:#f0e4ff; font-size:12px; }
+.bw-chram-panel summary { cursor:pointer; font-weight:700; }
+.bw-chram-panel p { margin:8px 0; line-height:1.4; }
+.bw-chram-panel button { min-height:40px; padding:8px 12px; border-radius:8px; background:#c4a2f1; color:#21182c; font-weight:700; }
+.bw-chram-panel button:disabled { opacity:.55; }
+
+/* v4.2: chrámová zkouška; panel lze na mobilu sbalit. */
+.bw-podzemi-panel { position:absolute; left:12px; top:235px; z-index:12; max-width:min(285px,76vw); max-height:32vh; overflow:auto; padding:7px 10px; border:1px solid rgba(120,220,255,.55); border-radius:12px; background:rgba(13,25,40,.94); color:#e5f8ff; font-size:12px; }
+.bw-podzemi-panel summary { cursor:pointer; font-weight:700; }
+.bw-podzemi-panel p { margin:8px 0; line-height:1.4; }
+.bw-podzemi-panel button { min-height:36px; margin:4px 0 4px 8px; padding:6px 10px; border-radius:8px; background:#93e5ee; color:#12252c; font-weight:700; }
+.bw-podzemi-panel button:disabled { opacity:.45; }
+
+/* v4.4 – chrámový strážce */
+.bw-strazce-boj progress{width:100%;height:12px;accent-color:#7b70e8}.bw-strazce-akce{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.bw-strazce-akce button{min-height:44px;flex:1}
+
+/* v4.7 – prostorové upozornění na útok chrámového strážce */
+.bw-varovani-utoku { color: #ffd6da; background: rgba(125,20,40,.75); border: 1px solid #ff6b80; padding: 8px 12px; border-radius: 10px; font-weight: 700; }
+
+/* v5.0: nastavení grafiky – nad 3D scénou, přístupné na dotyk */
+.bw-grafika-panel { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 12; max-width: min(260px, 70vw); padding: .5rem .7rem; border-radius: 12px; background: rgba(16, 23, 35, .94); color: #f3f5ff; font-size: 13px; border: 1px solid rgba(170, 196, 255, .3); }
+.bw-grafika-panel summary { cursor: pointer; font-weight: 600; }
+.bw-grafika-panel label { display: block; margin: .6rem 0 .3rem; }
+.bw-grafika-panel select { width: 100%; min-height: 40px; background: #1d293e; color: white; border: 1px solid #7e9ad1; border-radius: 8px; padding: .35rem; }
+.bw-grafika-panel p { margin: .5rem 0; }

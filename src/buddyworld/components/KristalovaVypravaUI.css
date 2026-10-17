@@ -1,0 +1,10 @@
+.bw-kv-ui{position:relative;z-index:12;color:#f5f1ff;font-family:inherit}
+.bw-kv-actions{display:flex;gap:8px;flex-wrap:wrap}
+.bw-kv-ui button{border:1px solid #9a7cce;background:#25203c;color:#fff;border-radius:12px;padding:10px 14px;min-height:44px;font:inherit;cursor:pointer}
+.bw-kv-ui button:focus-visible{outline:3px solid #e5bfff;outline-offset:2px}
+.bw-kv-card{background:rgba(20,17,40,.96);border:1px solid #9075b7;border-radius:16px;padding:16px;margin-top:10px;max-width:min(92vw,420px);box-shadow:0 12px 35px #0008}
+.bw-kv-card h3{margin:0 0 8px;font-size:1.05rem}
+.bw-kv-card p{line-height:1.5}
+.bw-kv-progress{display:flex;flex-wrap:wrap;gap:12px}
+.bw-kv-reward{font-size:.87rem;opacity:.9}
+@media(max-width:480px){.bw-kv-card{max-height:58vh;overflow-y:auto}}

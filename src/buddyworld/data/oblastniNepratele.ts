@@ -3,12 +3,15 @@ import { nepritelPodleId } from './nepratele'
 import { OBLASTI_SVETA } from './oblasti'
 
 /** Běžní protivníci se objevují v příslušných nebezpečných oblastech.
- * Vesnice a krystalová mýtina jsou zatím bezpečné; boss má vlastní spawn. */
+ * Vesnice je bezpečná; Křišťálová mýtina má vlastní protivníky; boss má vlastní spawn. */
 export const OBLASTNI_NEPRATELE = [
   { oblastId: 'stiny-lesa', nepritelId: 'stinovy-vlcek' },
   { oblastId: 'stiny-lesa', nepritelId: 'lesni-bludicka' },
   { oblastId: 'stiny-lesa', nepritelId: 'lesni-slizena' },
   { oblastId: 'stiny-lesa', nepritelId: 'krystalovy-brouk' },
+  { oblastId: 'kristalova-mytina', nepritelId: 'krystalovy-sliz' },
+  { oblastId: 'kristalova-mytina', nepritelId: 'magicka-mura' },
+  { oblastId: 'kristalova-mytina', nepritelId: 'krystalovy-skorpion' },
 ] as const
 
 export interface OblastniSpawn { def: NepritelDef; oblastId: string; pozice: Pozice2D }

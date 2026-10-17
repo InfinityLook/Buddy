@@ -1,4 +1,28 @@
+import { vytvorHlidaceRuin3D } from './hlidacRuin3D'
+import { vytvorFragmentyRuin3D } from './fragmentyRuin3D'
+import { vytvorZapomenuteRuiny3D } from './zapomenuteRuiny3D'
+import { vytvorMagickyLes3D } from './magickyLes3D'
+import { vytvorFunkcniBudovy3D } from './funkcniBudovy3D'
+import { BODY_STEZKY } from '../vedlejsiNastenka'
+import { CIL_POMOCI } from '../pomocObyvateli'
+import { dalsiRozliseni, novyStavRozliseni } from './adaptivniRozliseni'
+import { vytvorKristalovehoStrazce3D } from './kristalovyStrazce3D'
+import type { KristalovySouboj } from '../data/kristalovyStrazce'
+import { vytvorUlomkyMytiny } from './ulomkyMytiny'
+import { vytvorKristalovouMytinu } from './kristalovaMytina'
+import { branaVDosahu } from '../data/prechodyRegionu'
+import { animaceGlbModelu } from './assetLoader'
+import { vytvorStreamerRegionu } from './streamovaniRegionu'
+import { vytvorOvladacAnimaci, type OvladacAnimaci } from './animacePostav'
+import { vyberAnimaciHrace, prubehAnimace, fazeKroku, typAnimacePohybu } from './pohyboveAnimace'
+import { cilovyPixelRatio, nactiGrafickouKvalitu, PROFILY_KVALITY, UDALOST_KVALITY, jeGrafickaKvalita } from './grafickaKvalita'
+import { poziceStrazce, polomerUderu } from '../data/chramovyBoss'
+import type { RefObject } from 'react'
+import type { StavSouboje } from '../data/chramovyBoss'
 import { noveObjevenaOblast } from '../data/objevovani'
+import { CHRAM_POZICE } from '../data/chramStrazcu'
+import { CHRAMOVE_RUNY } from '../data/chramovePodzemi'
+import { RELIKVIE } from '../data/relikvie'
 import { POKLADY } from '../data/poklady'
 import { OBLASTI_SVETA } from '../data/oblasti'
 import { vytvorBojoveEfekty } from './combatVisuals'
@@ -37,7 +61,8 @@ import { jeMrtvyHrac, plneUzdravit, pripocistXp, utrzetPoskozeni } from '../leve
 import { klonGlbModelu, nacistGlbModel } from './assetLoader'
 import { useVillageStore } from '../useVillageStore'
 import { odemceneStavby } from '../villageBuildings'
-import { OBYVATELE } from '../data/obyvatele'
+import { vytvorVesnickeDekorace3D } from './vesnickeDekorace3D'
+import { OBYVATELE, type ObyvatelDef } from '../data/obyvatele'
 
 // ==========================================
 // Buddy World — 3D svět, čistý Threejs mimo React (stejná zásada
@@ -139,7 +164,7 @@ const BUDDY_AMPLITUDA = 0.14
  *  najednou — appčino "víc než jeden nepřítel" ze zadání, úmyslně
  *  malé číslo, ať zůstane souboj na mobilu čitelný, i kdyby appka
  *  (vzácně) oba sloty bojovaly zároveň. */
-const POCET_SLOTU_NEPRATEL = 2
+const POCET_SLOTU_NEPRATEL = 4
 
 /** Pevná pozice bossova háje — appčin appka "rozpoznatelný herní
  *  bod", ne nahodilá pozice jako u běžných nepřátel. */
@@ -180,6 +205,9 @@ const SPAWN_POLOMER = 8
 const POCET_DEKORACI = 46
 
 interface UseBuddyWorldSceneOptions {
+  kristalovySoubojRef?: RefObject<KristalovySouboj | null>
+  soubojStrazceRef?: RefObject<StavSouboje | null>
+  sebraneUlomkyRef?: RefObject<string[]>
   maskot: MaskotDef
   bossDef: BossDef
   pocatecniHracStav: BuddyWorldHracStav
@@ -187,7 +215,7 @@ interface UseBuddyWorldSceneOptions {
    *  appka tím nechá appku (BuddyWorldModule.tsx) rozhodnout o
    *  recordAction()/uložení postupu, tahle scéna appčin store vůbec
    *  appku nezná. */
-  onZabitiNepritele: (xpOdmena: number) => void
+  onZabitiNepritele: (xpOdmena: number, info?: { id: string; oblastId: string }) => void
   /** Zavolá se přesně jednou za každé poražení bosse — appka ho volá
    *  samostatně od onZabitiNepritele, ať si appka (BuddyWorldModule.tsx)
    *  mohla pro bossí výhru appku vybrat vlastní appčin ActivityKind. */
@@ -266,13 +294,10 @@ interface UseBuddyWorldSceneResult {
   nahledPlatny: boolean
   vyzvatBosse: () => void
   obnovitPoSmrti: () => void
-  /** appka tím appčinu komponentu appkou informuje, který obyvatel je
-   *  zrovna nablízku hráči (appka s ním zrovna „promlouvá") — appka
-   *  se vrátí k appčině `null`, jakmile hráč z appčina okruhu NPC
-   *  odejde. appka nikdy nedrží víc než jednoho obyvatele zároveň. */
-  blizkyObyvatel: (typeof OBYVATELE)[number] | null
   hud: BuddyWorldHud
+  blizkyObyvatel: ObyvatelDef | null
   poziceHrace: Pozice2D
+  projdiBranou: (id: string) => void
 }
 
 interface NepritelMesh {
@@ -346,6 +371,9 @@ interface SlotNepritele {
 export const useBuddyWorldScene = ({
   maskot,
   bossDef,
+  soubojStrazceRef,
+  kristalovySoubojRef,
+  sebraneUlomkyRef,
   pocatecniHracStav,
   onZabitiNepritele,
   onZabitiBosse,
@@ -354,6 +382,8 @@ export const useBuddyWorldScene = ({
   const [selhalo, setSelhalo] = useState(false)
   const [poziceHrace, setPoziceHrace] = useState<Pozice2D>({ ...HRAC_SPAWN_POZICE })
   const joystickRef = useRef({ x: 0, z: 0 })
+  const pozadavekBranyRef = useRef<string | null>(null)
+  const projdiBranou = (id: string) => { pozadavekBranyRef.current = id }
 
   const hracStavRef = useRef<BuddyWorldHracStav>(pocatecniHracStav)
   const bossRef = useRef<BossRuntimeStav>(vytvorBossRuntime(bossDef.id, bossDef.maxHp, BOSS_HAJ_POZICE))
@@ -448,15 +478,26 @@ export const useBuddyWorldScene = ({
     // pozdě a nemutoval už uvolněnou scénu.
     let odpojeno = false
 
+    let grafickaKvalita = nactiGrafickouKvalitu()
     let renderer: THREE.WebGLRenderer
     try {
-      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
+      renderer = new THREE.WebGLRenderer({ antialias: PROFILY_KVALITY[grafickaKvalita].antialias, powerPreference: 'high-performance' })
     } catch {
       setSelhalo(true)
       return
     }
 
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    let adaptivniStav = novyStavRozliseni(cilovyPixelRatio(grafickaKvalita, window.devicePixelRatio))
+    renderer.setPixelRatio(adaptivniStav.pomer)
+    const zmenaKvality = (udalost: Event) => {
+      const nova = (udalost as CustomEvent<unknown>).detail
+      if (!jeGrafickaKvalita(nova)) return
+      grafickaKvalita = nova
+      adaptivniStav = novyStavRozliseni(cilovyPixelRatio(nova, window.devicePixelRatio))
+      renderer.setPixelRatio(adaptivniStav.pomer)
+      renderer.setSize(container.clientWidth, container.clientHeight)
+    }
+    window.addEventListener(UDALOST_KVALITY, zmenaKvality)
     renderer.setSize(container.clientWidth, container.clientHeight)
     renderer.outputColorSpace = THREE.SRGBColorSpace
     container.appendChild(renderer.domElement)
@@ -500,6 +541,12 @@ export const useBuddyWorldScene = ({
       oblastiVizual.add(plocha, hranice)
     }
     scene.add(oblastiVizual)
+
+    const streamerRegionu = vytvorStreamerRegionu(scene)
+    const kristalovaMytina = vytvorKristalovouMytinu(scene)
+    const kristalovyStrazce3D = kristalovySoubojRef ? vytvorKristalovehoStrazce3D(scene, kristalovySoubojRef) : null
+    const ulomkyMytiny = vytvorUlomkyMytiny(scene)
+    let posledniStreamMs = -Infinity
 
     // --- dekorace (stromy/kameny), rozeseté mimo appčin střed, mimo
     // bossův háj, mimo vesnici a mimo appčin krystal, ať appka
@@ -607,6 +654,88 @@ export const useBuddyWorldScene = ({
     dilna.add(dilnaZed, dilnaStrecha)
     dilna.position.set(VESNICE_DILNA.x, 0, VESNICE_DILNA.z)
     scene.add(dilna)
+
+    // v9.5: vlastni proceduralni 3D budovy, bez cizich modelu/textur.
+    // Dílna v původní scéně je nyní vidět jen po zakoupení.
+    const funkcniModely = vytvorFunkcniBudovy3D()
+    scene.add(funkcniModely.sklad, funkcniModely.vez)
+    const synchronizujFunkcni = (postavene: readonly string[]) => {
+      dilna.visible = postavene.includes('dilna')
+      funkcniModely.sklad.visible = postavene.includes('sklad')
+      funkcniModely.vez.visible = postavene.includes('vez')
+    }
+    synchronizujFunkcni(useVillageStore.getState().funkcniBudovy)
+    const odhlasFunkcni = useVillageStore.subscribe((stav) => synchronizujFunkcni(stav.funkcniBudovy))
+
+    // v8.3: Náměstí osady, světelné body a nástěnka úkolů.
+    // Čistě vizuální orientační prvky: neodemykají questy ani nenahrazují NPC dialog.
+    // Umístění mimo hlavní průchozí osu a bez nových kolizních překážek.
+    const namesti = new THREE.Group()
+    const dlazbaNamesti = new THREE.Mesh(
+      new THREE.CircleGeometry(3.5, 24),
+      new THREE.MeshStandardMaterial({ color: '#98866b', roughness: 1, side: THREE.DoubleSide })
+    )
+    dlazbaNamesti.rotation.x = -Math.PI / 2
+    dlazbaNamesti.position.set(0, 0.022, 14)
+    namesti.add(dlazbaNamesti)
+    const vytvorLucernu = (x: number, z: number): void => {
+      const sloup = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.065, 0.10, 2.2, 7),
+        new THREE.MeshStandardMaterial({ color: '#594b3d', roughness: 0.9 })
+      )
+      sloup.position.set(x, 1.1, z)
+      const svetlo = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.24),
+        new THREE.MeshStandardMaterial({ color: '#ffdd94', emissive: '#ffc268', emissiveIntensity: 0.7 })
+      )
+      svetlo.position.set(x, 2.28, z)
+      namesti.add(sloup, svetlo)
+      // Bez PointLight pro každou lampu: šetrnější výkon na mobilu.
+    }
+    vytvorLucernu(-3.25, 10.6)
+    vytvorLucernu(3.25, 10.6)
+    const nastenka = new THREE.Group()
+    const materialNastenky = new THREE.MeshStandardMaterial({ color: '#775036', roughness: 0.94 })
+    const noha = new THREE.Mesh(new THREE.BoxGeometry(0.14, 1.7, 0.14), materialNastenky)
+    noha.position.y = 0.85
+    const deska = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.9, 0.13), materialNastenky)
+    deska.position.y = 1.6
+    const pergamen = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.04, 0.62),
+      new THREE.MeshStandardMaterial({ color: '#e8d9ae', roughness: 1, side: THREE.DoubleSide })
+    )
+    pergamen.position.set(0, 1.6, 0.075)
+    nastenka.add(noha, deska, pergamen)
+    nastenka.position.set(2.8, 0, 16.5)
+    namesti.add(nastenka)
+    scene.add(namesti)
+
+    // v8.6: Úkolové majáky přesně na pozicích použitých quest logikou.
+    // Pouze orientační 3D geometrie; neblokuje pohyb, nevyžaduje GLB assety.
+    const vytvorUkolovyMajak = (x: number, z: number, barva: string): void => {
+      const skupina = new THREE.Group()
+      const podstavec = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.38, 0.46, 0.18, 8),
+        new THREE.MeshStandardMaterial({ color: '#6d655e', roughness: 0.9 })
+      )
+      podstavec.position.y = 0.1
+      const krystal = new THREE.Mesh(
+        new THREE.OctahedronGeometry(0.33),
+        new THREE.MeshStandardMaterial({ color: barva, emissive: barva, emissiveIntensity: 0.48 })
+      )
+      krystal.position.y = 1.35
+      const tyc = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.045, 0.065, 1.0, 6),
+        new THREE.MeshStandardMaterial({ color: '#67523b', roughness: 0.95 })
+      )
+      tyc.position.y = 0.7
+      skupina.add(podstavec, tyc, krystal)
+      skupina.position.set(x, 0, z)
+      scene.add(skupina)
+    }
+    BODY_STEZKY.forEach(bod => vytvorUkolovyMajak(bod.x, bod.z, '#7ae4e7'))
+    vytvorUkolovyMajak(CIL_POMOCI.x, CIL_POMOCI.z, '#ffc67a')
+
 
     // Obyvatelé osady — jednoduché nízkopolygonové figurky s vlastním
     // bezpečným okruhem chůze. Není nutné načítat placené 3D assety.
@@ -755,6 +884,43 @@ export const useBuddyWorldScene = ({
       scene.add(dlazba)
     }
 
+    // v9.7: statické procedurální okolí návsi (ploty, keře, květiny, stromy).
+    scene.add(vytvorVesnickeDekorace3D())
+    scene.add(vytvorMagickyLes3D())
+    scene.add(vytvorZapomenuteRuiny3D())
+    scene.add(vytvorFragmentyRuin3D())
+    const hlidacRuin3D = vytvorHlidaceRuin3D()
+    scene.add(hlidacRuin3D.group)
+
+    // v8.2: Čitelné orientační body i bez externích GLB assetů.
+    // Směrové ukazatele jsou procedurální (žádné textury ani síťové požadavky).
+    // Zůstávají mimo osu hlavní cesty, aby neblokovaly průchod hráče.
+    const vytvorUkazatel = (x: number, z: number, cil: Pozice2D, barva: string): void => {
+      const ukazatel = new THREE.Group()
+      const drevo = new THREE.MeshStandardMaterial({ color: '#795335', roughness: 0.95 })
+      const znak = new THREE.MeshStandardMaterial({ color: barva, emissive: barva, emissiveIntensity: 0.35 })
+      const sloupek = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.14, 2.3, 6), drevo)
+      sloupek.position.y = 1.15
+      ukazatel.add(sloupek)
+      const rameno = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.28, 0.13), drevo)
+      rameno.position.set(0.38, 1.82, 0)
+      ukazatel.add(rameno)
+      const sipka = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.46, 3), znak)
+      sipka.rotation.z = -Math.PI / 2
+      sipka.position.set(1.08, 1.82, 0)
+      ukazatel.add(sipka)
+      const lucerna = new THREE.Mesh(new THREE.OctahedronGeometry(0.16), znak)
+      lucerna.position.y = 2.47
+      ukazatel.add(lucerna)
+      // Lokální +X směřuje na cíl, a to i pro záporné souřadnice.
+      ukazatel.rotation.y = -Math.atan2(cil.z - z, cil.x - x)
+      ukazatel.position.set(x, 0, z)
+      scene.add(ukazatel)
+    }
+    vytvorUkazatel(2.4, -1.5, VESNICE_STRED, '#f6d68a')
+    vytvorUkazatel(-2.5, 6.5, KRYSTAL_POZICE, '#79ddeb')
+    vytvorUkazatel(2.4, 9.5, VESNICE_STRED, '#f6d68a')
+
     // Interaktivní surovinové uzly. Vizuální tvary jsou záměrně jednoduché,
     // aby sběr fungoval i bez stažení externích 3D modelů.
     const suroviny: Array<{ typ: 'drevo' | 'kamen' | 'krystaly'; x: number; z: number; mesh: THREE.Group; dostupneOd: number }> = []
@@ -795,6 +961,121 @@ export const useBuddyWorldScene = ({
       scene.add(mesh)
       return { poklad, mesh }
     })
+
+    // Relikvie jsou skutečné 3D objekty; lze je aktivovat tlačítkem sběru.
+    const relikvieSceny = RELIKVIE.map(relikvie => {
+      const mesh = new THREE.Group()
+      const podstavec = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.68, 0.32, 8),
+        new THREE.MeshStandardMaterial({ color: '#637184', roughness: 0.7 }))
+      podstavec.position.y = 0.16
+      const runa = new THREE.Mesh(new THREE.OctahedronGeometry(0.46),
+        new THREE.MeshStandardMaterial({ color: '#77e8ff', emissive: '#0c7d9e', emissiveIntensity: 0.6 }))
+      runa.position.y = 0.87
+      mesh.add(podstavec, runa)
+      mesh.position.set(relikvie.x, 0, relikvie.z)
+      scene.add(mesh)
+      return { relikvie, mesh, runa }
+    })
+
+    // Starý chrám strážců — orientační kamenná brána a zářící oltář.
+    // Brána je dekorativní, interakci vyhodnocuje UI podle vzdálenosti.
+    const chram = new THREE.Group()
+    const kamenChramu = new THREE.MeshStandardMaterial({ color: '#85829c', roughness: 0.86 })
+    for (const x of [-1.6, 1.6]) {
+      const pilir = new THREE.Mesh(new THREE.BoxGeometry(0.8, 3.5, 0.85), kamenChramu)
+      pilir.position.set(x, 1.75, 0)
+      chram.add(pilir)
+    }
+    const preklad = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.75, 1.1), kamenChramu)
+    preklad.position.y = 3.6
+    chram.add(preklad)
+    const oltar = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1, 0.7, 8), kamenChramu)
+    oltar.position.set(0, 0.35, -1.4)
+    const svetlo = new THREE.Mesh(new THREE.OctahedronGeometry(0.42),
+      new THREE.MeshStandardMaterial({ color: '#d6b5ff', emissive: '#8546bb', emissiveIntensity: 0.8 }))
+    svetlo.position.set(0, 1.13, -1.4)
+    chram.add(oltar, svetlo)
+    chram.position.set(CHRAM_POZICE.x, 0, CHRAM_POZICE.z)
+    scene.add(chram)
+
+    // v4.3: Runy jsou viditelné přímo v prostoru, ne pouze v panelu.
+    // Jejich aktivaci stále bezpečně ověřuje existující Zustand akce.
+    const chramoveRunySceny = CHRAMOVE_RUNY.map((runa, index) => {
+      const skupina = new THREE.Group()
+      const podstavec = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.7, 0.35, 8), kamenChramu)
+      podstavec.position.y = 0.18
+      const jadro = new THREE.Mesh(new THREE.OctahedronGeometry(0.46),
+        new THREE.MeshStandardMaterial({ color: [0x9ce9ff, 0xffc67c, 0xc4a6ff][index], emissive: [0x197d9c, 0xa35a16, 0x6537b1][index], emissiveIntensity: 0.85 }))
+      jadro.position.y = 1.05
+      skupina.add(podstavec, jadro)
+      skupina.position.set(runa.pozice.x, 0, runa.pozice.z)
+      scene.add(skupina)
+      return { runa, skupina, jadro }
+    })
+
+    // v4.3: Průchozí vizuální síň pod širým nebem za chrámem.
+    // Nejde zatím o oddělený dungeon/instanci ani o boss arénu.
+    const sin = new THREE.Group()
+    const podlaha = new THREE.Mesh(new THREE.CylinderGeometry(3.4, 3.4, 0.18, 12),
+      new THREE.MeshStandardMaterial({ color: 0x44435e, roughness: 0.9 }))
+    podlaha.position.y = 0.10
+    sin.add(podlaha)
+    const svetelnyKruh = new THREE.Mesh(new THREE.TorusGeometry(2.35, 0.10, 8, 48),
+      new THREE.MeshStandardMaterial({ color: 0x8ce9ff, emissive: 0x3285bc, emissiveIntensity: 0.8 }))
+    svetelnyKruh.rotation.x = Math.PI / 2
+    svetelnyKruh.position.y = 0.25
+    sin.add(svetelnyKruh)
+    for (let i = 0; i < 6; i++) {
+      const uhel = i * Math.PI / 3
+      const pilir = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.43, 2.4, 7), kamenChramu)
+      pilir.position.set(Math.cos(uhel) * 2.7, 1.2, Math.sin(uhel) * 2.7)
+      sin.add(pilir)
+    }
+    const srdce = new THREE.Mesh(new THREE.IcosahedronGeometry(0.72),
+      new THREE.MeshStandardMaterial({ color: 0xc5b6ff, emissive: 0x7152bb, emissiveIntensity: 0.8 }))
+    srdce.position.y = 1.5
+    sin.add(srdce)
+    sin.position.set(18.5, 0, -13.5)
+    scene.add(sin)
+    // v4.5: Vizuální aréna chrámového strážce; HP a fáze čte ze stejného
+    // stavu jako panel v4.4. Nejde zatím o samostatný 3D hitbox/combat engine.
+    const arenaStrazce = new THREE.Group()
+    const podestaStrazce = new THREE.Mesh(new THREE.CylinderGeometry(4.3, 4.3, 0.22, 32),
+      new THREE.MeshStandardMaterial({ color: 0x24263d, roughness: 0.85 }))
+    podestaStrazce.position.y = 0.12
+    arenaStrazce.add(podestaStrazce)
+    const kruhStrazce = new THREE.Mesh(new THREE.TorusGeometry(3.7, 0.11, 8, 48),
+      new THREE.MeshStandardMaterial({ color: 0xffb76b, emissive: 0xb65721, emissiveIntensity: 0.9 }))
+    kruhStrazce.rotation.x = Math.PI / 2
+    kruhStrazce.position.y = 0.28
+    arenaStrazce.add(kruhStrazce)
+    // v4.7: Červený telegraph dosahu před každým úderem, časovaný stejnými Date.now() jako combat engine.
+    const varovnyKruh = new THREE.Mesh(
+      new THREE.RingGeometry(0.4, 1, 64),
+      new THREE.MeshBasicMaterial({ color: 0xff3d58, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false })
+    )
+    varovnyKruh.rotation.x = -Math.PI / 2
+    varovnyKruh.position.y = 0.31
+    varovnyKruh.visible = false
+    arenaStrazce.add(varovnyKruh)
+    for (let i = 0; i < 8; i++) {
+      const u = i * Math.PI / 4
+      const sloup = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.34, 2.6, 7), kamenChramu)
+      sloup.position.set(Math.cos(u) * 3.7, 1.3, Math.sin(u) * 3.7)
+      arenaStrazce.add(sloup)
+    }
+    const strazceTelo = new THREE.Mesh(new THREE.DodecahedronGeometry(1.1),
+      new THREE.MeshStandardMaterial({ color: 0x7561b8, emissive: 0x3c236c, emissiveIntensity: 0.85 }))
+    strazceTelo.position.y = 1.9
+    const pohyblivyStrazce = new THREE.Group()
+    pohyblivyStrazce.add(strazceTelo)
+    const strazceHalo = new THREE.Mesh(new THREE.TorusGeometry(1.35, 0.09, 8, 36),
+      new THREE.MeshStandardMaterial({ color: 0xffbb77, emissive: 0xaa4d22, emissiveIntensity: 0.8 }))
+    strazceHalo.position.y = 1.9
+    pohyblivyStrazce.add(strazceHalo)
+    arenaStrazce.add(pohyblivyStrazce)
+    arenaStrazce.position.set(CHRAM_POZICE.x + 6.5, 0, CHRAM_POZICE.z - 2)
+    scene.add(arenaStrazce)
 
     // --- hráčova postava — primitivní "meeple" (kapsle + koule),
     // snadno nahraditelná skutečným modelem, viz data/assets.ts ---
@@ -937,6 +1218,8 @@ export const useBuddyWorldScene = ({
     // Buddy je výjimka z generické nahradMeshNaGlb výš — appka chce
     // zachovat záři (buddyZar) i bodové světlo, ne je zahodit spolu
     // s jádrem, takže odstraní jen samotné buddyJadro.
+    let buddyAnimace: OvladacAnimaci | null = null
+    let posledniPoziceBuddy = new THREE.Vector2(buddy.position.x, buddy.position.z)
     if (maskot.model) {
       nacistGlbModel(maskot.model).then((model) => {
         stavGlbAssetu[`maskot.${maskot.id}`] = model ? 'ok' : 'selhalo'
@@ -944,7 +1227,10 @@ export const useBuddyWorldScene = ({
         buddy.remove(buddyJadro)
         if (buddyJadro.geometry) buddyJadro.geometry.dispose()
         buddyJadroMaterial.dispose()
-        buddy.add(klonGlbModelu(model))
+        const kopie = klonGlbModelu(model)
+        buddy.add(kopie)
+        buddyAnimace = vytvorOvladacAnimaci(kopie, animaceGlbModelu(maskot.model!))
+        buddyAnimace.prehraj('idle')
       })
     }
 
@@ -963,6 +1249,9 @@ export const useBuddyWorldScene = ({
     // --- otáčení kamerou tažením (myš i dotyk sjednoceně přes Pointer
     // Events) — joystick leží mimo tenhle DOM strom, takže dotyk na
     // něm sem nikdy nedorazí (viz VirtualniJoystick.tsx's komentář) ---
+    // Dotyk na canvasu nesmí posouvat stránku ani spouštět zoom prohlížeče.
+    const puvodniTouchAction = container.style.touchAction
+    container.style.touchAction = 'none'
     let otacecíPointerId: number | null = null
     let poslX = 0
     let poslY = 0
@@ -972,11 +1261,13 @@ export const useBuddyWorldScene = ({
     const onPointerDown = (e: PointerEvent) => {
       if (otacecíPointerId !== null) return
       otacecíPointerId = e.pointerId
+      if (e.pointerType === 'touch') e.preventDefault()
       poslX = e.clientX
       poslY = e.clientY
     }
     const onPointerMove = (e: PointerEvent) => {
       if (e.pointerId !== otacecíPointerId) return
+      if (e.pointerType === 'touch') e.preventDefault()
       const dx = e.clientX - poslX
       const dy = e.clientY - poslY
       poslX = e.clientX
@@ -1004,6 +1295,9 @@ export const useBuddyWorldScene = ({
     const onKeyUp = (e: KeyboardEvent) => klavesy.delete(e.key.toLowerCase())
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
+    // Po přepnutí aplikace nebo ztrátě fokusu nesmí zůstat WASD stisknuté.
+    const onWindowBlur = () => { klavesy.clear(); otacecíPointerId = null }
+    window.addEventListener('blur', onWindowBlur)
 
     // --- appka pozastaví appčinu smyčku, když je appka (tab) skrytá,
     // a znovu ji spustí při návratu — appčin výkonový požadavek na
@@ -1016,6 +1310,7 @@ export const useBuddyWorldScene = ({
       } else if (!bezi) {
         bezi = true
         posledniCas = performance.now()
+        adaptivniStav = novyStavRozliseni(cilovyPixelRatio(grafickaKvalita, window.devicePixelRatio))
         smycka = requestAnimationFrame(krok)
       }
     }
@@ -1033,6 +1328,10 @@ export const useBuddyWorldScene = ({
     let hracPozice: Pozice2D = { ...HRAC_SPAWN_POZICE }
     let posledniKontrolaObjeveniMs = -Infinity
     let hracNatoceni = 0
+    let hracAnimaceUtokDo = 0
+    let hracAnimaceZasahDo = 0
+    let hracPosledniHp = hracStavRef.current.hp
+    let hracAnimaceFaze = 0
     let vitezstviDoMs = -Infinity
     let bossOtresDoMs = -Infinity
 
@@ -1045,6 +1344,20 @@ export const useBuddyWorldScene = ({
 
     let posledniMinimapaMs = 0
     const krok = (ted: number) => {
+      // Přechod proběhne výhradně v herní smyčce a jen při dosažení brány.
+      const pozadavekBrany = pozadavekBranyRef.current
+      pozadavekBranyRef.current = null
+      if (pozadavekBrany && !jeMrtvyHrac(hracStavRef.current)) {
+        const brana = branaVDosahu(hracPozice, pozadavekBrany)
+        if (brana) {
+          hracPozice = { ...brana.cil }
+          joystickRef.current = { x: 0, z: 0 }
+          streamerRegionu.aktualizuj(hracPozice)
+          kristalovaMytina.aktualizuj(hracPozice)
+          setPoziceHrace({ ...hracPozice })
+        }
+      }
+
       const aktivni = aktivniNahledRef.current
       const x = Math.round((hracPozice.x + Math.sin(hracNatoceni) * 3) * 2) / 2
       const z = Math.round((hracPozice.z + Math.cos(hracNatoceni) * 3) * 2) / 2
@@ -1074,7 +1387,15 @@ export const useBuddyWorldScene = ({
       if (!bezi) return
       smycka = requestAnimationFrame(krok)
 
+      // Dynamické DPR pouze ve vyváženém profilu; úsporný/detailní respektují volbu hráče.
+      if (grafickaKvalita === 'vyvazeny') {
+        const predchoziPomer = adaptivniStav.pomer
+        adaptivniStav = dalsiRozliseni(adaptivniStav, ted - posledniCas, ted,
+          cilovyPixelRatio(grafickaKvalita, window.devicePixelRatio))
+        if (adaptivniStav.pomer !== predchoziPomer) renderer.setPixelRatio(adaptivniStav.pomer)
+      }
       const dt = Math.min((ted - posledniCas) / 1000, 0.1)
+      buddyAnimace?.krok(dt)
       posledniCas = ted
       const casMs = ted
       bojoveEfekty.krok(dt)
@@ -1153,7 +1474,15 @@ export const useBuddyWorldScene = ({
             .filter(({ poklad }) => !otevrene.includes(poklad.id))
             .map((t) => ({ ...t, vzd: Math.hypot(t.poklad.x - hracPozice.x, t.poklad.z - hracPozice.z) }))
             .sort((a, b) => a.vzd - b.vzd)[0]
-          // Jediné tlačítko interakce: vždy vybere nejbližší dostupný objekt.
+          const aktivovane = useVillageStore.getState().aktivovaneRelikvie
+          const nalez = relikvieSceny
+            .filter(({ relikvie }) => !aktivovane.includes(relikvie.id))
+            .map(r => ({ ...r, vzd: Math.hypot(r.relikvie.x - hracPozice.x, r.relikvie.z - hracPozice.z) }))
+            .sort((a, b) => a.vzd - b.vzd)[0]
+          // Nejbližší interaktivní objekt má přednost, včetně relikvií.
+          if (nalez && nalez.vzd <= 2.4 && (!truhla || nalez.vzd <= truhla.vzd) && (!nejblizsi || nalez.vzd <= nejblizsi.vzd)) {
+            useVillageStore.getState().aktivujRelikvii(nalez.relikvie.id)
+          } else
           if (truhla && truhla.vzd <= 2.4 && (!nejblizsi || truhla.vzd <= nejblizsi.vzd)) {
             useVillageStore.getState().otevriPoklad(truhla.poklad.id)
           } else if (nejblizsi && nejblizsi.vzd <= 2.4) {
@@ -1161,6 +1490,48 @@ export const useBuddyWorldScene = ({
             nejblizsi.uzel.dostupneOd = nyni + (nejblizsi.uzel.typ === 'krystaly' ? 45_000 : 15_000)
           }
         }
+        const aktivovaneRelikvie = useVillageStore.getState().aktivovaneRelikvie
+        for (const r of relikvieSceny) {
+          r.mesh.visible = !aktivovaneRelikvie.includes(r.relikvie.id)
+          r.runa.rotation.y += dt * 0.8
+        }
+        // Aktivované runy se přebarví; síň se objeví až po dokončení zkoušky.
+        const chramovyPostup = useVillageStore.getState()
+        for (const r of chramoveRunySceny) {
+          const aktivni = chramovyPostup.aktivovaneChramoveRuny.includes(r.runa.id)
+          r.jadro.rotation.y += dt * (aktivni ? 0.25 : 1.0)
+          r.jadro.scale.setScalar(aktivni ? 0.7 : 1)
+        }
+        sin.visible = chramovyPostup.dokoncenePodzemi
+        const strazceBoj = soubojStrazceRef?.current
+        arenaStrazce.visible = chramovyPostup.dokoncenePodzemi && !chramovyPostup.porazenChramovyStrazce
+        const zbyvaUder = strazceBoj?.faze === 'boj' ? strazceBoj.dalsiUtokMs - Date.now() : Infinity
+        varovnyKruh.visible = zbyvaUder > 0 && zbyvaUder <= 950
+        const polomer = strazceBoj ? polomerUderu(strazceBoj) : 3.1
+        varovnyKruh.scale.set(polomer, polomer, 1)
+        ;(varovnyKruh.material as THREE.MeshBasicMaterial).color.setHex(strazceBoj?.typUderu === 'vlna' ? 0x9d54ff : 0xff3d58)
+        if (varovnyKruh.visible) {
+          const material = varovnyKruh.material as THREE.MeshBasicMaterial
+          material.opacity = 0.14 + 0.25 * (1 - zbyvaUder / 950)
+        }
+        const pozBoss = poziceStrazce(strazceBoj ?? null)
+        pohyblivyStrazce.position.set(pozBoss.x - arenaStrazce.position.x, 0, pozBoss.z - arenaStrazce.position.z)
+        const stredUderu = strazceBoj?.cilUderu ?? pozBoss
+        varovnyKruh.position.x = stredUderu.x - arenaStrazce.position.x
+        varovnyKruh.position.z = stredUderu.z - arenaStrazce.position.z
+        strazceTelo.visible = strazceBoj?.faze !== 'vyhra'
+        strazceTelo.rotation.y += dt * (strazceBoj?.bossHp !== undefined && strazceBoj.bossHp <= 90 ? 1.9 : 0.7)
+        strazceTelo.position.y = 1.9 + Math.sin(ted * 0.0025) * 0.18
+        // v4.9: náznak nabíjení magie a zásahu bez dalšího rendereru.
+        const nabiji = zbyvaUder > 0 && zbyvaUder <= 950
+        strazceHalo.scale.setScalar(nabiji ? 1 + (1 - zbyvaUder / 950) * 0.45 : 1)
+        ;(strazceTelo.material as THREE.MeshStandardMaterial).emissiveIntensity = nabiji ? 1.2 : 0.85
+        strazceTelo.scale.setScalar(strazceBoj?.faze === 'boj' ? 0.65 + 0.35 * strazceBoj.bossHp / 180 : 1)
+        strazceHalo.rotation.z += dt * 0.55
+        kruhStrazce.rotation.z += dt * 0.12
+
+        srdce.rotation.y += dt * 0.6
+        srdce.position.y = 1.5 + Math.sin(ted * 0.0018) * 0.16
         const casSberu = performance.now()
         for (const uzel of suroviny) uzel.mesh.visible = casSberu >= uzel.dostupneOd
         const otevreneTruhly = useVillageStore.getState().otevrenePoklady
@@ -1172,7 +1543,34 @@ export const useBuddyWorldScene = ({
           const nova = noveObjevenaOblast(hracPozice, osada.objeveneOblasti)
           if (nova) osada.objevOblast(nova)
         }
-        hrac.position.set(hracPozice.x, 0, hracPozice.z)
+        // Procedurální fallback, dokud není dodán rigovaný GLB hráče.
+        // Je čistě vizuální: kolize i boj používají původní pozici.
+        const rychlostHrace = delkaVstupu > 0.001 ? Math.min(1, delkaVstupu) * RYCHLOST_POHYBU : 0
+        // Reakce na zásah je odvozena z reálné změny HP, bez zásahu do combat engine.
+        if (hracStavRef.current.hp < hracPosledniHp && hracStavRef.current.hp > 0) {
+          hracAnimaceZasahDo = casMs + 420
+        }
+        hracPosledniHp = hracStavRef.current.hp
+        const animaceHrace = vyberAnimaciHrace(rychlostHrace, casMs, {
+          mrtvy: jeMrtvyHrac(hracStavRef.current),
+          zasahDoMs: hracAnimaceZasahDo,
+          uhybDoMs: soubojStrazceRef?.current?.faze === 'boj' ? (soubojStrazceRef.current.uhybDoMs ?? 0) : 0,
+          utokDoMs: hracAnimaceUtokDo,
+        })
+        hracAnimaceFaze = fazeKroku(hracAnimaceFaze, rychlostHrace, dt)
+        const poskok = animaceHrace === 'walk' || animaceHrace === 'run'
+          ? Math.abs(Math.sin(hracAnimaceFaze)) * 0.065 : 0
+        const zasahFaze = prubehAnimace(casMs, hracAnimaceZasahDo, 420)
+        const uhybDoMs = soubojStrazceRef?.current?.uhybDoMs ?? 0
+        const uhybFaze = prubehAnimace(casMs, uhybDoMs, 700)
+        hracTelo.rotation.z = animaceHrace === 'dodge' ? Math.sin(uhybFaze * Math.PI) * 0.48
+          : animaceHrace === 'attack' ? Math.sin((hracAnimaceUtokDo - casMs) * 0.023) * 0.23
+          : animaceHrace === 'hit' ? Math.sin(zasahFaze * Math.PI) * 0.32 : 0
+        hracHlava.rotation.z = animaceHrace === 'hit' ? -0.18 * Math.sin(zasahFaze * Math.PI) : -hracTelo.rotation.z * 0.35
+        hracTelo.rotation.x = animaceHrace === 'death' ? -Math.PI * 0.42
+          : animaceHrace === 'dodge' ? -Math.sin(uhybFaze * Math.PI) * 0.32 : 0
+        hracHlava.rotation.x = animaceHrace === 'death' ? -Math.PI * 0.18 : 0
+        hrac.position.set(hracPozice.x, poskok, hracPozice.z)
         hrac.rotation.y = hracNatoceni
 
         // Appčina kamera obíhá kolem hráče po appčině kruhové dráze
@@ -1207,6 +1605,10 @@ export const useBuddyWorldScene = ({
          *  pro každý zdroj poškození zvlášť. */
         const zpusobPoskozeniHraci = (poskozeni: number) => {
           hracStavRef.current = utrzetPoskozeni(hracStavRef.current, redukujPoskozeniObranou(poskozeni, obranaAktivni))
+          if (jeMrtvyHrac(hracStavRef.current)) {
+            hracTelo.rotation.x = -Math.PI * 0.42
+            hracHlava.rotation.x = -Math.PI * 0.18
+          }
         }
 
         // --- požadavek na vzbuzení bosse ---
@@ -1299,6 +1701,7 @@ export const useBuddyWorldScene = ({
             const utokHrace = pokusUtokHrace(bossRef.current, vzdKBossovi, posledniUtokHraceRef.current, casMs, Math.random, zbranRef.current)
             if (utokHrace.provedeno) {
               posledniUtokHraceRef.current = casMs
+              hracAnimaceUtokDo = casMs + 380
               bojoveEfekty.utok(zbranRef.current, hrac.position, new THREE.Vector3(bossRef.current.pozice.x, 0, bossRef.current.pozice.z))
               bossRef.current = utokHrace.nepritel as BossRuntimeStav
               if (utokHrace.porazen) {
@@ -1322,13 +1725,14 @@ export const useBuddyWorldScene = ({
               const utokHrace = pokusUtokHrace(cilovySlot.runtime, nejmensiVzd, posledniUtokHraceRef.current, casMs, Math.random, zbranRef.current)
               if (utokHrace.provedeno) {
                 posledniUtokHraceRef.current = casMs
+                hracAnimaceUtokDo = casMs + 380
                 bojoveEfekty.utok(zbranRef.current, hrac.position, new THREE.Vector3(cilovySlot.runtime.pozice.x, 0, cilovySlot.runtime.pozice.z))
                 cilovySlot.runtime = utokHrace.nepritel
                 cilovySlot.hitDoMs = casMs + 220
                 if (utokHrace.porazen) {
                   vitezstviDoMs = casMs + 1400
                   hracStavRef.current = pripocistXp(hracStavRef.current, cilovySlot.def.odmenaXp)
-                  onZabitiNepritele(cilovySlot.def.odmenaXp)
+                  onZabitiNepritele(cilovySlot.def.odmenaXp, { id: `${cilovySlot.def.id}-${casMs}-${Math.random()}`, oblastId: cilovySlot.oblastId })
                 }
               }
             }
@@ -1373,7 +1777,7 @@ export const useBuddyWorldScene = ({
                 if (vysledek.porazen) {
                   vitezstviDoMs = casMs + 1400
                   hracStavRef.current = pripocistXp(hracStavRef.current, nejblizsi.slot.def.odmenaXp)
-                  onZabitiNepritele(nejblizsi.slot.def.odmenaXp)
+                  onZabitiNepritele(nejblizsi.slot.def.odmenaXp, { id: `${nejblizsi.slot.def.id}-${casMs}-${Math.random()}`, oblastId: nejblizsi.slot.oblastId })
                 }
               }
             }
@@ -1446,6 +1850,12 @@ export const useBuddyWorldScene = ({
         const lerpK = Math.min(1, 4.2 * dt)
         buddy.position.x += (cilBuddyX - buddy.position.x) * lerpK
         buddy.position.z += (cilBuddyZ - buddy.position.z) * lerpK
+        // Companion GLB animation is driven by actual world-space speed,
+        // not by joystick input. No animation clip => static fallback.
+        const aktualniBuddy = new THREE.Vector2(buddy.position.x, buddy.position.z)
+        const rychlostBuddy = dt > 0 ? Math.min(10, aktualniBuddy.distanceTo(posledniPoziceBuddy) / dt) : 0
+        posledniPoziceBuddy.copy(aktualniBuddy)
+        buddyAnimace?.prehraj(typAnimacePohybu(rychlostBuddy))
 
         const vBoji = vBojiNekdo || bossAktivni
         if (klidnyRezim) {
@@ -1469,6 +1879,8 @@ export const useBuddyWorldScene = ({
       if (obnovitPozadavekRef.current && mrtvy) {
         obnovitPozadavekRef.current = false
         hracStavRef.current = plneUzdravit(hracStavRef.current)
+        hracPosledniHp = hracStavRef.current.hp
+        hracAnimaceZasahDo = 0
         hracPozice = { ...HRAC_SPAWN_POZICE }
         obranaAktivniDoMsRef.current = -Infinity
         obranaCooldownDoMsRef.current = -Infinity
@@ -1543,6 +1955,16 @@ export const useBuddyWorldScene = ({
         setHud(novyHud)
       }
 
+      hlidacRuin3D.aktualizuj(ted, hracPozice)
+      kristalovyStrazce3D?.aktualizuj(Date.now())
+      ulomkyMytiny.aktualizuj(sebraneUlomkyRef?.current ?? [], ted)
+      // Dekorativní regiony streamujeme nejvýše jednou za 500 ms.
+      if (ted - posledniStreamMs >= 500) {
+        posledniStreamMs = ted
+        streamerRegionu.aktualizuj(hracPozice)
+        kristalovaMytina.aktualizuj(hracPozice)
+      }
+
       // Minimapa: React aktualizujeme nejvýše 5× za sekundu, nikoliv každý snímek.
       if (ted - posledniMinimapaMs >= 200) {
         posledniMinimapaMs = ted
@@ -1554,9 +1976,14 @@ export const useBuddyWorldScene = ({
 
     return () => {
       odpojeno = true
+      hlidacRuin3D.zrus()
+      buddyAnimace?.zrus()
       bezi = false
       cancelAnimationFrame(smycka)
+      window.removeEventListener(UDALOST_KVALITY, zmenaKvality)
       observer.disconnect()
+      container.style.touchAction = puvodniTouchAction
+      odhlasFunkcni()
       odhlasStavby()
       odhlasUmistene()
       document.removeEventListener('visibilitychange', onVisibility)
@@ -1566,7 +1993,12 @@ export const useBuddyWorldScene = ({
       window.removeEventListener('pointercancel', onPointerUp)
       window.removeEventListener('keydown', onKeyDown)
       window.removeEventListener('keyup', onKeyUp)
+      window.removeEventListener('blur', onWindowBlur)
 
+      kristalovyStrazce3D?.uvolni()
+      kristalovaMytina.uvolni()
+      ulomkyMytiny.uvolni()
+      streamerRegionu.uvolniVse()
       bojoveEfekty.uklidit()
       for (const slot of sloty) uvolniMesh(slot.mesh.skupina)
       uvolniMesh(bossMesh.skupina)
@@ -1585,7 +2017,7 @@ export const useBuddyWorldScene = ({
     }
   }, [maskot, bossDef])
 
-  return { containerRef, selhalo, nastavJoystick, utocit, pouzijBuddySchopnost, buddySkillCooldown, zvolZbran, obranit, sebrat, postavit, presunout, potvrditStavbu, zrusitNahled, otocitNahled, nahledPlatny, vyzvatBosse, obnovitPoSmrti, hud, blizkyObyvatel, poziceHrace }
+  return { containerRef, selhalo, nastavJoystick, utocit, pouzijBuddySchopnost, buddySkillCooldown, zvolZbran, obranit, sebrat, postavit, presunout, potvrditStavbu, zrusitNahled, otocitNahled, nahledPlatny, vyzvatBosse, obnovitPoSmrti, hud, blizkyObyvatel, poziceHrace, projdiBranou }
 }
 
 /** appka porovná dva HUD objekty — appka tím zabrání zbytečnému

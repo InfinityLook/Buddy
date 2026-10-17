@@ -46,6 +46,10 @@ const loader = new GLTFLoader()
 /** One Promise per URL — two calls for the same path never trigger a
  *  second network fetch. */
 const cache = new Map<string, Promise<THREE.Group | null>>()
+const animace = new Map<string, THREE.AnimationClip[]>()
+
+/** Clips associated with a loaded GLB; empty for current static placeholder models. */
+export const animaceGlbModelu = (cesta: string): readonly THREE.AnimationClip[] => animace.get(cesta) ?? []
 
 /** Loads one .glb file at `cesta`, caches the attempt, and resolves
  *  to its `scene` node with `ROTACE_Z_UP_NA_Y_UP` already applied.
@@ -60,6 +64,7 @@ export const nacistGlbModel = (cesta: string): Promise<THREE.Group | null> => {
     loader.load(
       cesta,
       (gltf) => {
+        animace.set(cesta, gltf.animations)
         const scena = gltf.scene
         scena.rotation.x = ROTACE_Z_UP_NA_Y_UP
         scena.traverse((obj) => {

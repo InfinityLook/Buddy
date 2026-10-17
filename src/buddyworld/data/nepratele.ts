@@ -68,6 +68,25 @@ export const NEPRATELE: NepritelDef[] = [
     rychlost: 3.5, cooldownUtokuMs: 950, odmenaXp: 30, model: null,
     barvaTela: '#663e86', barvaHalo: '#f2a7ff', meritko: 0.72, tvar: 'kapka',
   },
+  // Season 1 – obyvatelé Křišťálové mýtiny. Zatím procedurální 3D siluety.
+  {
+    id: 'krystalovy-sliz', jmeno: 'Krystalový sliz', ikona: '💠',
+    maxHp: 35, poskozeni: 4, dosahUtoku: 1.3, dosahDetekce: 4.5,
+    rychlost: 1.3, cooldownUtokuMs: 1700, odmenaXp: 18, model: null,
+    barvaTela: '#4ac6c4', barvaHalo: '#a8fff2', meritko: 0.75, tvar: 'kapka',
+  },
+  {
+    id: 'magicka-mura', jmeno: 'Magická můra', ikona: '🦋',
+    maxHp: 25, poskozeni: 5, dosahUtoku: 1.25, dosahDetekce: 6.5,
+    rychlost: 3.0, cooldownUtokuMs: 1150, odmenaXp: 26, model: null,
+    barvaTela: '#8763c8', barvaHalo: '#e5b7ff', meritko: 0.68, tvar: 'ostruha',
+  },
+  {
+    id: 'krystalovy-skorpion', jmeno: 'Krystalový škorpion', ikona: '🦂',
+    maxHp: 95, poskozeni: 11, dosahUtoku: 1.55, dosahDetekce: 5,
+    rychlost: 1.0, cooldownUtokuMs: 2300, odmenaXp: 48, model: null,
+    barvaTela: '#315b88', barvaHalo: '#80e9ff', meritko: 1.12, tvar: 'ostruha',
+  },
 ]
 
 export const VYCHOZI_NEPRITEL_ID = 'stinovy-vlcek'
