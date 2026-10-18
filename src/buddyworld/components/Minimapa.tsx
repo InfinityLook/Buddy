@@ -3,11 +3,11 @@ import { OBLASTI_SVETA } from '../data/oblasti'
 import type { Pozice2D } from '../types'
 import { cilNavigace, navigacniUdaje } from '../data/navigace'
 
-const ROZSAH = 24
+const ROZSAH = 38
 const STRED = 100
 const MERITKO = 94 / ROZSAH
 const sx = (x: number) => STRED + x * MERITKO
-const sy = (z: number) => STRED - z * MERITKO
+const sy = (z: number) => STRED + z * MERITKO
 
 interface Props {
   pozice: Pozice2D

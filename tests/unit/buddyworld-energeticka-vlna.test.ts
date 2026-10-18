@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { novySouboj, tikSouboje, polomerUderu, POLOMER_ENERGETICKE_VLNY, ARENA_STRAZCE_POZICE, type StavSouboje } from '@/buddyworld/data/chramovyBoss'
+import { novySouboj, tikSouboje, polomerUderu, POLOMER_ENERGETICKE_VLNY, ARENA_STRAZCE_POZICE, type StavSouboje } from '../../src/buddyworld/data/chramovyBoss'
 
 describe('v4.9 energetická vlna strážce', () => {
   it('začíná základním úderem', () => { expect(novySouboj(0).typUderu).toBe('uder') })

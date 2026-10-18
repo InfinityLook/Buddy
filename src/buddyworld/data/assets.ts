@@ -46,11 +46,48 @@ export const BUDOUCI_ASSETY: BudouciAsset[] = [
   { klic: 'hrac.postava', popis: 'Hráčova postava (appka dnes kreslí primitivní "meeple")', cesta: '/buddyworld/postavy/hrac.glb', format: 'glb', dostupny: false },
   { klic: 'nepritel.stinovy-vlcek', popis: 'Stínový vlček (soubor na disku existuje, scéna ho záměrně ještě nenahrává — viz useBuddyWorldScene.ts)', cesta: '/buddyworld/nepratele/stinovy-vlcek.glb', format: 'glb', dostupny: false },
   { klic: 'nepritel.lesni-slizena', popis: 'Lesní slizena (soubor na disku existuje, scéna ho záměrně ještě nenahrává — viz useBuddyWorldScene.ts)', cesta: '/buddyworld/nepratele/lesni-slizena.glb', format: 'glb', dostupny: false },
-  { klic: 'prostredi.strom', popis: 'Strom (Enchanted Forest)', cesta: '/buddyworld/prostredi/strom.glb', format: 'glb', dostupny: true },
-  { klic: 'prostredi.kamen', popis: 'Skála/kámen (Enchanted Forest)', cesta: '/buddyworld/prostredi/kamen.glb', format: 'glb', dostupny: true },
-  { klic: 'prostredi.krystal', popis: 'Krystalový útvar (blízký orientační bod)', cesta: '/buddyworld/prostredi/krystal.glb', format: 'glb', dostupny: true },
-  { klic: 'mestecko.zaklad', popis: 'Chata městečka (základ)', cesta: '/buddyworld/mestecko/zaklad.glb', format: 'glb', dostupny: true },
-  { klic: 'mestecko.dilna', popis: 'Dílna městečka', cesta: '/buddyworld/mestecko/dilna.glb', format: 'glb', dostupny: true },
+  // ČTVRTÉ POKRAČOVÁNÍ VÝVOJE (BuddyWorld_ArtPack_Vesnice_Les_v1.zip,
+  // public/buddyworld/artpack-v1/models/) nahradilo appčiných pět
+  // starých `prostredi.*`/`mestecko.*` záznamů (nedoložený původ,
+  // appka je smazala z disku) osmi nově vygenerovanými modely s
+  // doloženým původem (licenses/PROJECT_OUTPUT.md toho balíčku) —
+  // viz useBuddyWorldScene.ts's komentář "ČTVRTÉ POKRAČOVÁNÍ VÝVOJE"
+  // pro appčin výpočet měřítka a appčinu Y-up/Z-up poznámku.
+  { klic: 'mestecko.chata', popis: 'Vesnická chata (dvě appčiny chaty v appčiny vesnici)', cesta: '/buddyworld/artpack-v1/models/chata.glb', format: 'glb', dostupny: true },
+  { klic: 'mestecko.dilna', popis: 'Dílna městečka', cesta: '/buddyworld/artpack-v1/models/dilna.glb', format: 'glb', dostupny: true },
+  { klic: 'prostredi.dub', popis: 'Dub (jedna ze tří appčiných variant stromu v lese)', cesta: '/buddyworld/artpack-v1/models/dub.glb', format: 'glb', dostupny: true },
+  { klic: 'prostredi.jedle', popis: 'Jedle (jedna ze tří appčiných variant stromu v lese)', cesta: '/buddyworld/artpack-v1/models/jedle.glb', format: 'glb', dostupny: true },
+  { klic: 'prostredi.briza', popis: 'Bříza (jedna ze tří appčiných variant stromu v lese)', cesta: '/buddyworld/artpack-v1/models/briza.glb', format: 'glb', dostupny: true },
+  { klic: 'prostredi.kamen-maly', popis: 'Malý kámen (jedna ze dvou appčiných variant skály v lese)', cesta: '/buddyworld/artpack-v1/models/kamen-maly.glb', format: 'glb', dostupny: true },
+  { klic: 'prostredi.kamen-velky', popis: 'Velký kámen (jedna ze dvou appčiných variant skály v lese)', cesta: '/buddyworld/artpack-v1/models/kamen-velky.glb', format: 'glb', dostupny: true },
+  { klic: 'prostredi.krystaly', popis: 'Krystalový útvar (blízký orientační bod)', cesta: '/buddyworld/artpack-v1/models/krystaly.glb', format: 'glb', dostupny: true },
+
+  // Zbylých 20 modelů toho samého balíčku appka zkopírovala na disk
+  // zároveň s těmi osmi výš, ale scéna je (ještě) nenahrává žádným
+  // nacistGlbModel() voláním — PRO_CLAUDE.md jmenuje jen osm modelů
+  // výš jako přímou náhradu appčiných starých assetů, zbytek appka
+  // dokumentuje jako hotový-na-disku-ale-nezapojený, stejná appčina
+  // konvence jako hrac.postava/nepritel.stinovy-vlcek výš.
+  { klic: 'mestecko.zahonek', popis: 'Záhonek (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/zahonek.glb', format: 'glb', dostupny: false },
+  { klic: 'mestecko.studna', popis: 'Studna (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/studna.glb', format: 'glb', dostupny: false },
+  { klic: 'mestecko.lucerna', popis: 'Lucerna (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/lucerna.glb', format: 'glb', dostupny: false },
+  { klic: 'mestecko.plot', popis: 'Plot (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/plot.glb', format: 'glb', dostupny: false },
+  { klic: 'mestecko.roh-plotu', popis: 'Rohový plot (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/roh-plotu.glb', format: 'glb', dostupny: false },
+  { klic: 'mestecko.brana', popis: 'Brána (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/brana.glb', format: 'glb', dostupny: false },
+  { klic: 'mestecko.lavicka', popis: 'Lavička (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/lavicka.glb', format: 'glb', dostupny: false },
+  { klic: 'mestecko.bedna', popis: 'Bedna (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/bedna.glb', format: 'glb', dostupny: false },
+  { klic: 'mestecko.sud', popis: 'Sud (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/sud.glb', format: 'glb', dostupny: false },
+  { klic: 'mestecko.rozcestnik', popis: 'Rozcestník (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/rozcestnik.glb', format: 'glb', dostupny: false },
+  { klic: 'mestecko.mustek', popis: 'Můstek (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/mustek.glb', format: 'glb', dostupny: false },
+  { klic: 'mestecko.stanek', popis: 'Stánek (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/stanek.glb', format: 'glb', dostupny: false },
+  { klic: 'prostredi.parez', popis: 'Pařez (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/parez.glb', format: 'glb', dostupny: false },
+  { klic: 'prostredi.kmen', popis: 'Padlý kmen (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/kmen.glb', format: 'glb', dostupny: false },
+  { klic: 'prostredi.ker', popis: 'Keř (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/ker.glb', format: 'glb', dostupny: false },
+  { klic: 'prostredi.trava', popis: 'Trs trávy (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/trava.glb', format: 'glb', dostupny: false },
+  { klic: 'prostredi.houby', popis: 'Houby (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/houby.glb', format: 'glb', dostupny: false },
+  { klic: 'prostredi.kvetiny', popis: 'Květiny (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/kvetiny.glb', format: 'glb', dostupny: false },
+  { klic: 'prostredi.runovy-kamen', popis: 'Runový kámen (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/runovy-kamen.glb', format: 'glb', dostupny: false },
+  { klic: 'prostredi.koreneny-oblouk', popis: 'Kořenový oblouk (appka má na disku z artpack-v1, scéna ho ještě nenahrává)', cesta: '/buddyworld/artpack-v1/models/koreneny-oblouk.glb', format: 'glb', dostupny: false },
 ]
 
 /** appka vrátí `true`, jen pokud scéna model doopravdy nahrává

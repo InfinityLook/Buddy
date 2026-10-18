@@ -13,7 +13,7 @@ export const PribehovyDenik: React.FC = () => {
   const aktivni = aktivniUkol(vesnice.splneneUkoly, vesnice)
   const splnene = new Set(vesnice.splneneUkoly)
   return <details className="bw-story-journal">
-    <summary>📖 Příběh {splnene.size}/{UKOLY.length}</summary>
+    <summary>📖 Zakázky osady {splnene.size}/{UKOLY.length}</summary>
     <div className="bw-story-journal-content">
       <h3>Season 1 · Kronika údolí</h3>
       <p>Prozkoumávej svět, pomáhej obyvatelům a chraň rostoucí osadu.</p>
@@ -38,7 +38,7 @@ export const PribehovyDenik: React.FC = () => {
       </section>)}
       <section className="bw-side-quests">
         <h4>🌿 Vedlejší úkoly · {vesnice.splneneVedlejsiUkoly.length}/{VEDLEJSI_UKOLY.length}</h4>
-        <p>Dobrovolné výpravy obyvatel. Odměny lze vyzvednout jednou a neblokují hlavní příběh.</p>
+        <p>Výpravy obyvatel. Odměny lze vyzvednout jednou. Pro kapitolu Tváře našeho domova dokonči alespoň dvě.</p>
         {VEDLEJSI_UKOLY.map(ukol => {
           const splneno = vesnice.splneneVedlejsiUkoly.includes(ukol.id)
           const pripravena = lzePrevzitVedlejsiOdmenu(ukol.id, vesnice.splneneVedlejsiUkoly, vesnice)
@@ -64,7 +64,7 @@ export const PribehovyDenik: React.FC = () => {
           </details>
         })}
       </section>
-      {!aktivni && <p role="status">🌅 Příběhové úkoly dokončeny!</p>}
+      {!aktivni && <p role="status">✓ Zakázky osady dokončeny. Pokračuj v panelu Příběh.</p>}
     </div>
   </details>
 }

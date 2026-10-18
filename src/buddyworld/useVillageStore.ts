@@ -65,9 +65,9 @@ interface VillageStore extends VillageProgress {
   obchod: (akce: ObchodniAkce) => void
   inventar: Inventar
   umisteneStavby: UmistenaStavba[]
-  presun: (id: string, x: number, z: number) => boolean
+  presun: (id: string, x: number, z: number, rotace?: number) => boolean
   zbourat: (id: string) => void
-  postav: (typ: StavitelnyTyp, x: number, z: number) => boolean
+  postav: (typ: StavitelnyTyp, x: number, z: number, rotace?: number) => boolean
   vyrob: (id: keyof Inventar) => void
   zaznamenejVyhru: (boss: boolean) => void
   vylepsiOsadu: () => void
@@ -332,10 +332,10 @@ export const useVillageStore = create<VillageStore>()(
       },
       obchod: (akce) => set((s) => obchoduj(s, akce)),
       umisteneStavby: [],
-      presun: (id, x, z) => {
+      presun: (id, x, z, rotace) => {
         let uspesne = false
         set((s) => {
-          const dalsi = presunStavbu(s.umisteneStavby, id, x, z)
+          const dalsi = presunStavbu(s.umisteneStavby, id, x, z, rotace)
           if (dalsi.length === s.umisteneStavby.length &&
               dalsi.some((b) => b.id === id && b.x === x && b.z === z)) uspesne = true
           return { umisteneStavby: dalsi }
@@ -350,7 +350,7 @@ export const useVillageStore = create<VillageStore>()(
           inventar: { ...s.inventar, [stavba.typ]: Math.min(9999, s.inventar[stavba.typ] + 1) },
         }
       }),
-      postav: (typ, x, z) => {
+      postav: (typ, x, z, rotace) => {
         let uspesne = false
         set((s) => {
           if (!jeVolneMisto(s.umisteneStavby, x, z) || s.inventar[typ] < 1) return s
@@ -358,7 +358,7 @@ export const useVillageStore = create<VillageStore>()(
           return {
             inventar: { ...s.inventar, [typ]: s.inventar[typ] - 1 },
             umisteneStavby: [...s.umisteneStavby, {
-              id: `${Date.now()}-${s.umisteneStavby.length}`, typ, x, z,
+              id: `${Date.now()}-${s.umisteneStavby.length}`, typ, x, z, ...(rotace!==undefined&&Number.isFinite(rotace)?{rotace:((rotace%(2*Math.PI))+2*Math.PI)%(2*Math.PI)}:{}),
             }],
           }
         })

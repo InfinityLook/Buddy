@@ -1,3 +1,8 @@
+import { createCharacter } from './characters'
+import { herniCas, herniDatum, jePauza } from '../gameClock'
+import { WORLD_RADIUS, nactiCheckpoint, ulozCheckpoint } from '../checkpoint'
+import { useBuddyWorldStore } from '../useBuddyWorldStore'
+import { useAdventureStore } from '../adventure'
 import { vytvorHlidaceRuin3D } from './hlidacRuin3D'
 import { vytvorFragmentyRuin3D } from './fragmentyRuin3D'
 import { vytvorZapomenuteRuiny3D } from './zapomenuteRuiny3D'
@@ -57,12 +62,12 @@ import {
 } from '../combat/bossEngine'
 import { BossDef } from '../data/bossove'
 import { vytvorOblastniSpawny, poziceVOblasti } from '../data/oblastniNepratele'
-import { jeMrtvyHrac, plneUzdravit, pripocistXp, utrzetPoskozeni } from '../leveling'
+import { jeMrtvyHrac, plneUzdravit, utrzetPoskozeni } from '../leveling'
 import { klonGlbModelu, nacistGlbModel } from './assetLoader'
 import { useVillageStore } from '../useVillageStore'
 import { odemceneStavby } from '../villageBuildings'
 import { vytvorVesnickeDekorace3D } from './vesnickeDekorace3D'
-import { OBYVATELE, type ObyvatelDef } from '../data/obyvatele'
+import { OBYVATELE } from '../data/obyvatele'
 
 // ==========================================
 // Buddy World — 3D svět, čistý Threejs mimo React (stejná zásada
@@ -142,15 +147,62 @@ import { OBYVATELE, type ObyvatelDef } from '../data/obyvatele'
 // níž u SPAWN_POLOMER). Strom tak mohl vzniknout doslova před
 // objektivem hned při prvním snímku — appka to teď řeší pátou
 // vyloučenou zónou kolem spawnu.
+//
+// ČTVRTÉ POKRAČOVÁNÍ VÝVOJE (BuddyWorld_ArtPack_Vesnice_Les_v1.zip,
+// public/buddyworld/artpack-v1/models/) nahrazuje PĚT starých GLB s
+// nedoloženým původem (mestecko/zaklad.glb, mestecko/dilna.glb,
+// prostredi/strom.glb, prostredi/kamen.glb, prostredi/krystal.glb —
+// všech pět appka smazala z disku, viz jejich commit) osmi nově
+// vygenerovanými modely s doloženým původem (licenses/PROJECT_OUTPUT.
+// md toho balíčku): chata.glb a dilna.glb (dvě appčiny vesnické
+// budovy), dub/jedle/briza.glb (tři varianty stromu), kamen-maly/
+// kamen-velky.glb (dvě varianty kamene) a krystaly.glb.
+//
+// MĚŘÍTKO appka spočítala, ne naslepo přebrala starý .65/.48 faktor
+// (ten zadání explicitně zakazuje — patřil JINÉMU modelu s jiným
+// vlastním měřítkem). Appčin jediný už ověřený "pravdivý" rozměr v
+// téhle hře je postava samotná (scene/characters.ts's createCharacter:
+// hlava appky sahá do y=1.45+0.27=1.72, nohy na y≈0) — appka 1,72
+// appčiny jednotky vysoká postava už dnes čte jako "člověk", takže
+// appčin herní prostor je fakticky taky "1 jednotka ≈ 1 metr", stejně
+// jako nový balíček sám tvrdí o svých modelech (ASSET_MANIFEST.json's
+// "units"). Při měřítku 1.0 vychází chata.glb (3,865 m vysoká) na
+// ~2,25× appčiny postavy — věrohodná chata, appka proto NEPŘIDÁVÁ
+// žádný scale multiplikátor u žádného z osmi nových modelů. Appka to
+// spočítala aritmetikou z appčina skutečného manifestu, ne pohledem —
+// tahle sandbox nemá GPU/prohlížeč na doslovné vykreslení, stejná
+// mezera jako appčina Z-up/Y-up oprava výš, čestně zapsaná v CLAUDE.md.
+//
+// OSA appka u těchhle osmi modelů NEOTÁČÍ vůbec (`'y-up'` u
+// nacistGlbModel, viz assetLoader.ts) — appka appčiným vlastním
+// parserem potvrdila, že chata.glb i dub.glb mají appčinu výšku na Y,
+// ne na Z (asset.generator je appčin vlastní "source/generate.mjs",
+// ne starý trimesh), přesně jak appčin PRO_CLAUDE.md sám tvrdí
+// ("Modely mají +Y nahoru").
+//
+// VELIKOST nových stromů/kamenů (dub.glb má 4,34×5,1×3,47 m, výrazně
+// větší než stará primitivní koruna) appku donutila doplnit novou
+// kontrolu vzájemné vzdálenosti mezi dvěma náhodně rozesetými
+// dekoracemi — appčin starý kód měl jen vyloučené zóny kolem pevných
+// orientačních bodů (střed světa, bossův háj, vesnice, krystal,
+// spawn), žádnou kontrolu dvou dekorací NAVZÁJEM. S malou starou
+// primitivou by takový překryv zůstal neviditelný; s metrovým dubem
+// by dva sousední sloty mohly vážně proniknout jeden do druhého, viz
+// MIN_VZDALENOST_MEZI_DEKORACEMI níž. Typ dekorace v každém slotu
+// (který ze tří stromů/dvou kamenů appka použije) appka vybírá
+// deterministicky podle pořadí slotu (`i % 3`/`i % 2`), ne
+// Math.random() — appčin "pevně daný seed" pro zadáním zmíněnou
+// rozmanitost, ne pro samotnou pozici slotu (ta zůstává nezměněná,
+// appčin starý Math.random() scatter appka nemá důvod měnit).
 // ==========================================
 
 const RYCHLOST_POHYBU = 4.6 // herní jednotky za sekundu
 const CITLIVOST_OTOCENI = 0.0036
 const PITCH_MIN = 0.12
 const PITCH_MAX = 1.1
-export const POLOMER_SVETA = 24
+export const POLOMER_SVETA = WORLD_RADIUS
 
-const KAMERA_VZDALENOST = 6
+const KAMERA_VZDALENOST = 7.5
 const KAMERA_CIL_VYSKA = 1.25
 
 const RYCHLOST_NATOCENI_HRACE = 9 // appka natáčí postavu rychle, ne okamžitě (ať appku nevypadá robotické "cuknutí")
@@ -164,11 +216,11 @@ const BUDDY_AMPLITUDA = 0.14
  *  najednou — appčino "víc než jeden nepřítel" ze zadání, úmyslně
  *  malé číslo, ať zůstane souboj na mobilu čitelný, i kdyby appka
  *  (vzácně) oba sloty bojovaly zároveň. */
-const POCET_SLOTU_NEPRATEL = 4
+const POCET_SLOTU_NEPRATEL = 7
 
 /** Pevná pozice bossova háje — appčin appka "rozpoznatelný herní
  *  bod", ne nahodilá pozice jako u běžných nepřátel. */
-const BOSS_HAJ_POZICE: Pozice2D = { x: 0, z: -(POLOMER_SVETA * 0.78) }
+const BOSS_HAJ_POZICE: Pozice2D = { x: 0, z: -18.72 }
 
 /** Appka kolem tohoto středu postaví malou vesnici (dvě chaty +
  *  dílna) — první, blízký orientační bod hned u spawnu (appka
@@ -189,7 +241,7 @@ const KRYSTAL_POLOMER = 3.5
 
 /** Kde hráč začíná (a kam se vrátí po smrti) — jedno sdílené místo,
  *  ne dva samostatné literály, co by se časem mohly rozejít. */
-const HRAC_SPAWN_POZICE: Pozice2D = { x: 0, z: -4 }
+const HRAC_SPAWN_POZICE: Pozice2D = { x: 0, z: 12 }
 
 /** Vyloučená zóna kolem spawnu — appka ji doplnila po reálném testu
  *  na telefonu (viz komentář výš u "REÁLNÝ TEST NA TELEFONU"). appčina
@@ -203,6 +255,19 @@ const SPAWN_POLOMER = 8
 /** Appka zvýšila dekoraci ze dřívějších 26 na tohle číslo — přímá
  *  oprava appčina Fáze 0 auditu ("scéna je skoro prázdná"). */
 const POCET_DEKORACI = 46
+
+/** Minimální vzdálenost mezi dvěma náhodně rozesetými dekoracemi
+ *  (strom/kámen) navzájem — doplněno pro artpack-v1, viz appčin
+ *  komentář "VELIKOST nových stromů/kamenů" v úvodu souboru výš.
+ *  Dubova koruna appky má poloměr ~2,2 m (4,34 m šířka ÷ 2); dvě
+ *  takové appku vedle sebe by se při nulové kontrole mohly plně
+ *  překrýt, appka proto drží bezpečnou rezervu i pro dva sousední
+ *  velké stromy. */
+const MIN_VZDALENOST_MEZI_DEKORACEMI = 3.2
+
+/** Cesta ke všem 28 modelům z BuddyWorld_ArtPack_Vesnice_Les_v1.zip
+ *  (viz appčin úvodní komentář "ČTVRTÉ POKRAČOVÁNÍ VÝVOJE" výš). */
+const ARTPACK_V1 = '/buddyworld/artpack-v1/models'
 
 interface UseBuddyWorldSceneOptions {
   kristalovySoubojRef?: RefObject<KristalovySouboj | null>
@@ -277,12 +342,19 @@ export interface BuddyWorldDiagnostika {
 }
 
 interface UseBuddyWorldSceneResult {
+  // appka tenhle typ drží BEZ `| null` — stejná appčina konvence jako
+  // usePlayerWorld.ts/useSoubojScene.ts/useTrhScene.ts jinde v appce
+  // (`React.RefObject<HTMLDivElement>` i přes appčin `useRef<HTMLDivElement>(null)`
+  // o pár řádků níž), ať appčin <div ref={containerRef}> appku typově sedí.
   containerRef: React.RefObject<HTMLDivElement>
+  blizkyObyvatel: (typeof OBYVATELE)[number] | null
+  projdiBranou: (id: string) => void
+  pouzijBuddySchopnost: () => void
+  buddySkillCooldown: number
+  odpocinout: () => void
   selhalo: boolean
   nastavJoystick: (x: number, z: number) => void
   utocit: () => void
-  pouzijBuddySchopnost: () => void
-  buddySkillCooldown: number
   zvolZbran: (zbran: Zbran) => void
   obranit: () => void
   sebrat: () => void
@@ -295,9 +367,7 @@ interface UseBuddyWorldSceneResult {
   vyzvatBosse: () => void
   obnovitPoSmrti: () => void
   hud: BuddyWorldHud
-  blizkyObyvatel: ObyvatelDef | null
   poziceHrace: Pozice2D
-  projdiBranou: (id: string) => void
 }
 
 interface NepritelMesh {
@@ -433,12 +503,14 @@ export const useBuddyWorldScene = ({
 
   /** Jen naznačí požadavek na útok — skutečné, jediné vyhodnocení
    *  (dosah + cooldown, viz combat/engine.ts's pokusUtokHrace) proběhne
-   *  uvnitř herní smyčky níž, na stejném čase (performance.now()),
+   *  uvnitř herní smyčky níž, na stejném čase (herniCas()),
    *  který engine používá i pro cooldown nepřítele. Appka tím má jen
    *  jeden zdroj pravdy o čase, ne dva nesouhlasící hodiny. */
   const sebrat = () => { sberPozadavekRef.current = true }
-  const postavit = (typ: StavitelnyTyp) => { aktivniNahledRef.current = { typ }; staveniPozadavekRef.current = null }
-  const presunout = (id: string) => { aktivniNahledRef.current = { id }; presunPozadavekRef.current = null }
+  const odpocinekRef = useRef(false)
+  const odpocinout = () => { odpocinekRef.current = true }
+  const postavit = (typ: StavitelnyTyp) => { rotaceRef.current=0; aktivniNahledRef.current = { typ }; staveniPozadavekRef.current = null }
+  const presunout = (id: string) => { rotaceRef.current=useVillageStore.getState().umisteneStavby.find(b=>b.id===id)?.rotace??0; aktivniNahledRef.current = { id }; presunPozadavekRef.current = null }
   const potvrditStavbu = () => { potvrditRef.current = true }
   const zrusitNahled = () => { aktivniNahledRef.current = null; potvrditRef.current = false; setNahledPlatny(false) }
   const otocitNahled = () => { rotaceRef.current = (rotaceRef.current + Math.PI / 2) % (2 * Math.PI) }
@@ -471,7 +543,7 @@ export const useBuddyWorldScene = ({
     const container = containerRef.current
     if (!container) return
 
-    const klidnyRezim = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    let klidnyRezim = window.matchMedia('(prefers-reduced-motion: reduce)').matches || useAdventureStore.getState().reducedMotion
     // Appka nastaví tuhle vlajku na true přesně jednou, při odchodu
     // — každý asynchronní callback z nacistGlbModel() ji zkontroluje
     // dřív, než scénu znovu upraví, ať žádný GLB callback nedoběhne
@@ -494,6 +566,7 @@ export const useBuddyWorldScene = ({
       if (!jeGrafickaKvalita(nova)) return
       grafickaKvalita = nova
       adaptivniStav = novyStavRozliseni(cilovyPixelRatio(nova, window.devicePixelRatio))
+      for (const light of bodovaSvetla) light.visible = PROFILY_KVALITY[nova].efekty
       renderer.setPixelRatio(adaptivniStav.pomer)
       renderer.setSize(container.clientWidth, container.clientHeight)
     }
@@ -503,6 +576,7 @@ export const useBuddyWorldScene = ({
     container.appendChild(renderer.domElement)
 
     const scene = new THREE.Scene()
+    const bodovaSvetla: THREE.PointLight[] = []
     const bojoveEfekty = vytvorBojoveEfekty(scene)
     scene.background = new THREE.Color('#1c2a1a')
     scene.fog = new THREE.Fog('#243424', POLOMER_SVETA * 0.6, POLOMER_SVETA * 1.9)
@@ -564,10 +638,24 @@ export const useBuddyWorldScene = ({
     const blizkoSpawnu = (x: number, z: number) =>
       Math.hypot(x - HRAC_SPAWN_POZICE.x, z - HRAC_SPAWN_POZICE.z) < SPAWN_POLOMER
     // Appka si ukládá nově postavené stromy a kameny podle typu do
-    // dvou samostatných polí — po nahrání GLB tím umí zaměnit jen
-    // primitivy daného typu, bez prohledávání celé skupiny znovu.
-    const dekoraceStromy: THREE.Group[] = []
-    const dekoraceKameny: THREE.Group[] = []
+    // pěti samostatných polí (tři varianty stromu, dvě kamene) — po
+    // nahrání GLB tím umí zaměnit jen primitivy daného typu, bez
+    // prohledávání celé skupiny znovu. Typ appka volí deterministicky
+    // podle appčina pořadí slotu (`i % 3`/`i % 2`), ne Math.random() —
+    // viz appčin komentář "VELIKOST nových stromů/kamenů" v úvodu
+    // souboru výš.
+    const dekoraceDub: THREE.Group[] = []
+    const dekoraceJedle: THREE.Group[] = []
+    const dekoraceBriza: THREE.Group[] = []
+    const dekoraceKamenMaly: THREE.Group[] = []
+    const dekoraceKamenVelky: THREE.Group[] = []
+    // appka si drží i pozice všech zatím umístěných dekorací — nová
+    // šestá kontrola (`blizkoJineDekoraci`) appku nedovolí umístit
+    // dva sousední sloty blíž než MIN_VZDALENOST_MEZI_DEKORACEMI, ať
+    // se appčiny teď výrazně větší koruny/kameny vzájemně nepropíchnou.
+    const poziceDekoraci: Pozice2D[] = []
+    const blizkoJineDekoraci = (x: number, z: number) =>
+      poziceDekoraci.some((p) => Math.hypot(x - p.x, z - p.z) < MIN_VZDALENOST_MEZI_DEKORACEMI)
     for (let i = 0; i < POCET_DEKORACI; i++) {
       let x = 0
       let z = 0
@@ -584,8 +672,10 @@ export const useBuddyWorldScene = ({
           blizkoHaje(x, z) ||
           blizkoVesnice(x, z) ||
           blizkoKrystalu(x, z) ||
-          blizkoSpawnu(x, z))
+          blizkoSpawnu(x, z) ||
+          blizkoJineDekoraci(x, z))
       )
+      poziceDekoraci.push({ x, z })
 
       const skupina = new THREE.Group()
       if (Math.random() > 0.35) {
@@ -600,7 +690,8 @@ export const useBuddyWorldScene = ({
         )
         koruna.position.y = 2.1
         skupina.add(kmen, koruna)
-        dekoraceStromy.push(skupina)
+        const stromoveTypy = [dekoraceDub, dekoraceJedle, dekoraceBriza]
+        stromoveTypy[i % stromoveTypy.length].push(skupina)
       } else {
         const kamen = new THREE.Mesh(
           new THREE.DodecahedronGeometry(0.3 + Math.random() * 0.3),
@@ -609,15 +700,16 @@ export const useBuddyWorldScene = ({
         kamen.position.y = 0.3
         kamen.rotation.set(Math.random(), Math.random(), Math.random())
         skupina.add(kamen)
-        dekoraceKameny.push(skupina)
+        const kamenoveTypy = [dekoraceKamenMaly, dekoraceKamenVelky]
+        kamenoveTypy[i % kamenoveTypy.length].push(skupina)
       }
       skupina.position.set(x, 0, z)
       dekorace.add(skupina)
     }
 
     // --- appka vesnice: dvě chaty + dílna, primitivní "krabice +
-    // střecha" náhrady — appka je zamění za GLB (mestecko/zaklad a
-    // mestecko/dilna) hned po nahrání níž ---
+    // střecha" náhrady — appka je zamění za GLB (artpack-v1/models/
+    // chata.glb a dilna.glb) hned po nahrání níž ---
     const postavChatu = (pozice: Pozice2D): THREE.Group => {
       const skupina = new THREE.Group()
       const zed = new THREE.Mesh(
@@ -740,21 +832,11 @@ export const useBuddyWorldScene = ({
     // Obyvatelé osady — jednoduché nízkopolygonové figurky s vlastním
     // bezpečným okruhem chůze. Není nutné načítat placené 3D assety.
     const obyvatele = OBYVATELE.map((def, i) => {
-      const skupina = new THREE.Group()
-      const material = new THREE.MeshStandardMaterial({ color: def.barva, roughness: 0.8 })
-      const telo = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.82, 4, 8), material)
-      telo.position.y = 1.02
-      const hlava = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8),
-        new THREE.MeshStandardMaterial({ color: 0xf1c9a8, roughness: 0.85 }))
-      hlava.position.y = 1.84
-      const vlasy = new THREE.Mesh(new THREE.SphereGeometry(0.29, 10, 8),
-        new THREE.MeshStandardMaterial({ color: i === 0 ? 0x6d413c : i === 1 ? 0x35343c : 0xa25d31 }))
-      vlasy.scale.y = 0.47
-      vlasy.position.y = 2.04
-      skupina.add(telo, hlava, vlasy)
+      const character = createCharacter(def.barva, i===0?0x6d413c:i===1?0x35343c:0xa25d31)
+      const skupina=character.group
       skupina.position.set(def.x, 0, def.z)
       scene.add(skupina)
-      return { def, skupina, faze: i * 2.3 }
+      return { def, skupina, character, faze: i * 2.3 }
     })
 
     // Nové stavby se odemykají podle skutečné uložené úrovně osady.
@@ -826,11 +908,12 @@ export const useBuddyWorldScene = ({
           skupina.add(podstavec, svetlo)
         } else {
           const kamen = stavba.typ === 'kamenny_blok'
-          const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.85, 1.1), new THREE.MeshStandardMaterial({ color: kamen ? '#a5a8ad' : '#8b5a31' }))
+          const mesh = new THREE.Mesh(new THREE.BoxGeometry(kamen?1.1:1.5, 0.85, kamen?1.1:.7), new THREE.MeshStandardMaterial({ color: kamen ? '#a5a8ad' : '#8b5a31' }))
           mesh.position.y = 0.425
           skupina.add(mesh)
         }
         skupina.position.set(stavba.x, 0, stavba.z)
+        skupina.rotation.y=stavba.rotace??0
         postavene.add(skupina)
       }
     }
@@ -842,7 +925,7 @@ export const useBuddyWorldScene = ({
     const odhlasStavby = useVillageStore.subscribe((stav) => obnovStavby(stav.uroven))
 
     // --- appka krystal: blízký, hned viditelný orientační bod,
-    // appka ho zamění za GLB (prostredi/krystal.glb) po nahrání níž ---
+    // appka ho zamění za GLB (artpack-v1/models/krystaly.glb) po nahrání níž ---
     const krystal = new THREE.Group()
     const krystalMaterial = new THREE.MeshStandardMaterial({
       color: '#7fd8e8',
@@ -929,6 +1012,7 @@ export const useBuddyWorldScene = ({
     const poziceSurovin: Array<{ typ: 'drevo' | 'kamen' | 'krystaly'; x: number; z: number }> = [
       { typ: 'drevo', x: 2, z: 12 }, { typ: 'drevo', x: -3, z: 14 },
       { typ: 'drevo', x: 4, z: 16 }, { typ: 'drevo', x: -5, z: 10 },
+      { typ: 'kamen', x: -2, z: 9 }, { typ: 'kamen', x: 3, z: 8 },
       { typ: 'kamen', x: -11, z: -1 }, { typ: 'kamen', x: -15, z: -4 },
       { typ: 'kamen', x: -17, z: -1 }, { typ: 'kamen', x: -12, z: -7 },
       { typ: 'krystaly', x: 1, z: 4 }, { typ: 'krystaly', x: -1.5, z: 3 },
@@ -1049,7 +1133,7 @@ export const useBuddyWorldScene = ({
     kruhStrazce.rotation.x = Math.PI / 2
     kruhStrazce.position.y = 0.28
     arenaStrazce.add(kruhStrazce)
-    // v4.7: Červený telegraph dosahu před každým úderem, časovaný stejnými Date.now() jako combat engine.
+    // v4.7: Červený telegraph dosahu před každým úderem, časovaný stejnými herniDatum() jako combat engine.
     const varovnyKruh = new THREE.Mesh(
       new THREE.RingGeometry(0.4, 1, 64),
       new THREE.MeshBasicMaterial({ color: 0xff3d58, transparent: true, opacity: 0.2, side: THREE.DoubleSide, depthWrite: false })
@@ -1079,18 +1163,10 @@ export const useBuddyWorldScene = ({
 
     // --- hráčova postava — primitivní "meeple" (kapsle + koule),
     // snadno nahraditelná skutečným modelem, viz data/assets.ts ---
-    const hrac = new THREE.Group()
-    const hracTelo = new THREE.Mesh(
-      new THREE.CapsuleGeometry(0.32, 0.7, 4, 10),
-      new THREE.MeshStandardMaterial({ color: '#4a7fb5', roughness: 0.75 })
-    )
-    hracTelo.position.y = 0.75
-    const hracHlava = new THREE.Mesh(
-      new THREE.SphereGeometry(0.26, 16, 16),
-      new THREE.MeshStandardMaterial({ color: '#f0c9a0', roughness: 0.8 })
-    )
-    hracHlava.position.y = 1.42
-    hrac.add(hracTelo, hracHlava)
+    const playerCharacter=createCharacter('#4e8196')
+    const hrac=playerCharacter.group
+    const hracTelo=playerCharacter.body
+    const hracHlava=playerCharacter.head
     scene.add(hrac)
 
     // --- Buddy — maskotní společník, "jádro + záře", stejný vizuální
@@ -1181,36 +1257,60 @@ export const useBuddyWorldScene = ({
     // nezobrazí, hodnoty se ale počítají i tak, aby appka
     // nepotřebovala druhou větev kódu jen pro dev build.
     const stavGlbAssetu: Record<string, 'nahravaji' | 'ok' | 'selhalo'> = {
-      'prostredi.strom': 'nahravaji',
-      'prostredi.kamen': 'nahravaji',
-      'prostredi.krystal': 'nahravaji',
-      'mestecko.zaklad': 'nahravaji',
+      'mestecko.chata': 'nahravaji',
       'mestecko.dilna': 'nahravaji',
+      'prostredi.dub': 'nahravaji',
+      'prostredi.jedle': 'nahravaji',
+      'prostredi.briza': 'nahravaji',
+      'prostredi.kamen-maly': 'nahravaji',
+      'prostredi.kamen-velky': 'nahravaji',
+      'prostredi.krystaly': 'nahravaji',
     }
     if (maskot.model) stavGlbAssetu[`maskot.${maskot.id}`] = 'nahravaji'
 
-    nacistGlbModel('/buddyworld/prostredi/strom.glb').then((model) => {
-      stavGlbAssetu['prostredi.strom'] = model ? 'ok' : 'selhalo'
+    // appka u všech osmi volání níž přepíná `'y-up'` (druhý argument
+    // nacistGlbModel) — appčin vlastní parser potvrdil, že tenhle
+    // balíček (na rozdíl od staršího trimesh exportu) výšku modelu
+    // ukládá rovnou na Y, viz appčin velký komentář výš v téhle hlavičce.
+    // Žádný z osmi appka netočí a žádnému nepřidává scale
+    // multiplikátor (appčino měřítko=1.0, dovozené z postavy, viz výš).
+    nacistGlbModel(`${ARTPACK_V1}/dub.glb`, 'y-up').then((model) => {
+      stavGlbAssetu['prostredi.dub'] = model ? 'ok' : 'selhalo'
       if (odpojeno || !model) return
-      for (const strom of dekoraceStromy) nahradMeshNaGlb(strom, model)
+      for (const strom of dekoraceDub) nahradMeshNaGlb(strom, model)
     })
-    nacistGlbModel('/buddyworld/prostredi/kamen.glb').then((model) => {
-      stavGlbAssetu['prostredi.kamen'] = model ? 'ok' : 'selhalo'
+    nacistGlbModel(`${ARTPACK_V1}/jedle.glb`, 'y-up').then((model) => {
+      stavGlbAssetu['prostredi.jedle'] = model ? 'ok' : 'selhalo'
       if (odpojeno || !model) return
-      for (const kamen of dekoraceKameny) nahradMeshNaGlb(kamen, model)
+      for (const strom of dekoraceJedle) nahradMeshNaGlb(strom, model)
     })
-    nacistGlbModel('/buddyworld/prostredi/krystal.glb').then((model) => {
-      stavGlbAssetu['prostredi.krystal'] = model ? 'ok' : 'selhalo'
+    nacistGlbModel(`${ARTPACK_V1}/briza.glb`, 'y-up').then((model) => {
+      stavGlbAssetu['prostredi.briza'] = model ? 'ok' : 'selhalo'
+      if (odpojeno || !model) return
+      for (const strom of dekoraceBriza) nahradMeshNaGlb(strom, model)
+    })
+    nacistGlbModel(`${ARTPACK_V1}/kamen-maly.glb`, 'y-up').then((model) => {
+      stavGlbAssetu['prostredi.kamen-maly'] = model ? 'ok' : 'selhalo'
+      if (odpojeno || !model) return
+      for (const kamen of dekoraceKamenMaly) nahradMeshNaGlb(kamen, model)
+    })
+    nacistGlbModel(`${ARTPACK_V1}/kamen-velky.glb`, 'y-up').then((model) => {
+      stavGlbAssetu['prostredi.kamen-velky'] = model ? 'ok' : 'selhalo'
+      if (odpojeno || !model) return
+      for (const kamen of dekoraceKamenVelky) nahradMeshNaGlb(kamen, model)
+    })
+    nacistGlbModel(`${ARTPACK_V1}/krystaly.glb`, 'y-up').then((model) => {
+      stavGlbAssetu['prostredi.krystaly'] = model ? 'ok' : 'selhalo'
       if (odpojeno || !model) return
       nahradMeshNaGlb(krystal, model)
     })
-    nacistGlbModel('/buddyworld/mestecko/zaklad.glb').then((model) => {
-      stavGlbAssetu['mestecko.zaklad'] = model ? 'ok' : 'selhalo'
+    nacistGlbModel(`${ARTPACK_V1}/chata.glb`, 'y-up').then((model) => {
+      stavGlbAssetu['mestecko.chata'] = model ? 'ok' : 'selhalo'
       if (odpojeno || !model) return
       nahradMeshNaGlb(chata1, model)
       nahradMeshNaGlb(chata2, model)
     })
-    nacistGlbModel('/buddyworld/mestecko/dilna.glb').then((model) => {
+    nacistGlbModel(`${ARTPACK_V1}/dilna.glb`, 'y-up').then((model) => {
       stavGlbAssetu['mestecko.dilna'] = model ? 'ok' : 'selhalo'
       if (odpojeno || !model) return
       nahradMeshNaGlb(dilna, model)
@@ -1228,11 +1328,14 @@ export const useBuddyWorldScene = ({
         if (buddyJadro.geometry) buddyJadro.geometry.dispose()
         buddyJadroMaterial.dispose()
         const kopie = klonGlbModelu(model)
+        kopie.scale.setScalar(.48)
         buddy.add(kopie)
         buddyAnimace = vytvorOvladacAnimaci(kopie, animaceGlbModelu(maskot.model!))
         buddyAnimace.prehraj('idle')
       })
     }
+
+    scene.traverse(obj=>{if(obj instanceof THREE.PointLight){bodovaSvetla.push(obj);obj.visible=PROFILY_KVALITY[grafickaKvalita].efekty}})
 
     // --- resize ---
     const prizpusob = () => {
@@ -1259,7 +1362,7 @@ export const useBuddyWorldScene = ({
     let pitch = 0.5
 
     const onPointerDown = (e: PointerEvent) => {
-      if (otacecíPointerId !== null) return
+      if (otacecíPointerId !== null || jePauza()) return
       otacecíPointerId = e.pointerId
       if (e.pointerType === 'touch') e.preventDefault()
       poslX = e.clientX
@@ -1289,14 +1392,18 @@ export const useBuddyWorldScene = ({
     // klávesovým "repeat" nespamoval obranu). ---
     const klavesy = new Set<string>()
     const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.closest('input,textarea,select,[contenteditable]') || jePauza()) return
+      if ([' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) e.preventDefault()
       klavesy.add(e.key.toLowerCase())
-      if (e.key === 'Shift' && !e.repeat) obranaPozadavekRef.current = true
+      if (e.repeat) return
+      const action = e.code === 'Space' ? 'attack' : e.key === 'Shift' ? 'defend' : e.code === 'KeyE' ? 'interact' : e.code === 'KeyQ' ? 'buddy' : null
+      if (action) window.dispatchEvent(new CustomEvent('buddyworld:input', {detail: action}))
     }
     const onKeyUp = (e: KeyboardEvent) => klavesy.delete(e.key.toLowerCase())
     window.addEventListener('keydown', onKeyDown)
     window.addEventListener('keyup', onKeyUp)
     // Po přepnutí aplikace nebo ztrátě fokusu nesmí zůstat WASD stisknuté.
-    const onWindowBlur = () => { klavesy.clear(); otacecíPointerId = null }
+    const onWindowBlur = () => { klavesy.clear(); joystickRef.current = {x:0,z:0}; otacecíPointerId = null }
     window.addEventListener('blur', onWindowBlur)
 
     // --- appka pozastaví appčinu smyčku, když je appka (tab) skrytá,
@@ -1306,10 +1413,13 @@ export const useBuddyWorldScene = ({
     let smycka = 0
     const onVisibility = () => {
       if (document.hidden) {
+        ulozPozici()
+        klavesy.clear()
+        joystickRef.current = {x:0,z:0}
         bezi = false
       } else if (!bezi) {
         bezi = true
-        posledniCas = performance.now()
+        posledniCas = herniCas()
         adaptivniStav = novyStavRozliseni(cilovyPixelRatio(grafickaKvalita, window.devicePixelRatio))
         smycka = requestAnimationFrame(krok)
       }
@@ -1323,10 +1433,19 @@ export const useBuddyWorldScene = ({
     scene.add(nahledObjekt)
     let platnyPosledne = false
 
-    let posledniCas = performance.now()
+    let posledniCas = herniCas()
     let posledniNpcId = ''
-    let hracPozice: Pozice2D = { ...HRAC_SPAWN_POZICE }
+    const checkpoint = nactiCheckpoint()
+    let hracPozice: Pozice2D = checkpoint ? {...checkpoint.pozice} : { x: 0, z: 12 }
+    if (checkpoint) hracStavRef.current.hp = Math.min(checkpoint.hp, hracStavRef.current.maxHp)
+    let posledniUlozeni = 0
+    const ulozPozici = () => ulozCheckpoint(hracPozice, hracStavRef.current.hp)
     let posledniKontrolaObjeveniMs = -Infinity
+    setPoziceHrace({...hracPozice})
+    hrac.position.set(hracPozice.x,0,hracPozice.z)
+    buddy.position.set(hracPozice.x+1.1,1.3,hracPozice.z-1.9)
+    camera.position.set(hracPozice.x,KAMERA_CIL_VYSKA+Math.sin(pitch)*KAMERA_VZDALENOST,hracPozice.z-Math.cos(pitch)*KAMERA_VZDALENOST)
+    camera.lookAt(hracPozice.x,KAMERA_CIL_VYSKA,hracPozice.z)
     let hracNatoceni = 0
     let hracAnimaceUtokDo = 0
     let hracAnimaceZasahDo = 0
@@ -1339,11 +1458,28 @@ export const useBuddyWorldScene = ({
     // po celých sekundách, ne po snímku — appka tím v hudSeZmenil níž
     // nevynutí re-render šedesátkrát za sekundu, jen jednou.
     let fpsPocetSnimku = 0
-    let fpsOknoOdMs = performance.now()
+    let fpsOknoOdMs = herniCas()
     let fpsAktualni = 0
 
     let posledniMinimapaMs = 0
-    const krok = (ted: number) => {
+    let posledniPauzaRender = -Infinity
+    const krok = (_realTed: number) => {
+      const ted = herniCas()
+      klidnyRezim = window.matchMedia('(prefers-reduced-motion: reduce)').matches || useAdventureStore.getState().reducedMotion
+      // Keep the image visible while all simulation clocks are stopped.
+      if (jePauza()) { posledniCas = ted; if(_realTed-posledniPauzaRender>500){renderer.render(scene,camera);posledniPauzaRender=_realTed} if (bezi) smycka = requestAnimationFrame(krok); return }
+      posledniPauzaRender = -Infinity
+      const ulozenyHrac = useBuddyWorldStore.getState()
+      if (ulozenyHrac.level !== hracStavRef.current.level || ulozenyHrac.xp !== hracStavRef.current.xp) {
+        const levelUp = ulozenyHrac.level > hracStavRef.current.level
+        const maxHp = 60 + (ulozenyHrac.level - 1) * 8
+        hracStavRef.current = {level: ulozenyHrac.level, xp: ulozenyHrac.xp, maxHp, hp: levelUp ? maxHp : Math.min(maxHp, hracStavRef.current.hp)}
+      }
+      if (ted - posledniUlozeni > 5000) { ulozPozici(); posledniUlozeni = ted }
+      if (odpocinekRef.current) {
+        odpocinekRef.current = false
+        if (Math.hypot(hracPozice.x, hracPozice.z-13) <= 8.5) { hracStavRef.current = plneUzdravit(hracStavRef.current); ulozPozici() }
+      }
       // Přechod proběhne výhradně v herní smyčce a jen při dosažení brány.
       const pozadavekBrany = pozadavekBranyRef.current
       pozadavekBranyRef.current = null
@@ -1367,10 +1503,10 @@ export const useBuddyWorldScene = ({
         : !!aktivni.id && jeVolneProPresun(stav.umisteneStavby, aktivni.id, x, z))
       if (nahledObjekt) {
         nahledObjekt.visible = !!aktivni
-        nahledObjekt.position.set(x, 0, z)
+        nahledObjekt.position.set(x, .6, z)
         nahledObjekt.rotation.y = rotaceRef.current
         const typ = aktivni?.typ ?? stav.umisteneStavby.find((b) => b.id === aktivni?.id)?.typ
-        nahledObjekt.scale.set(typ === 'lucerna' ? 0.35 : 1, 1, typ === 'lucerna' ? 0.35 : 1)
+        nahledObjekt.scale.set(typ==='lucerna'?.35:typ==='prkna'?1.5:1.1,typ==='lucerna'?1.4:.85,typ==='lucerna'?.35:typ==='prkna'?.7:1.1)
         nahledMaterial.color.set(platny ? '#62e4a0' : '#ff6868')
       }
       if (platny !== platnyPosledne) { platnyPosledne = platny; setNahledPlatny(platny) }
@@ -1378,8 +1514,8 @@ export const useBuddyWorldScene = ({
         potvrditRef.current = false
         if (platny && aktivni) {
           const uspesne = aktivni.typ
-            ? useVillageStore.getState().postav(aktivni.typ, x, z)
-            : useVillageStore.getState().presun(aktivni.id!, x, z)
+            ? useVillageStore.getState().postav(aktivni.typ, x, z, rotaceRef.current)
+            : useVillageStore.getState().presun(aktivni.id!, x, z, rotaceRef.current)
           if (uspesne) { aktivniNahledRef.current = null; setNahledPlatny(false) }
         }
       }
@@ -1406,6 +1542,7 @@ export const useBuddyWorldScene = ({
         npc.skupina.position.x = npc.def.x + Math.cos(faze) * 0.65
         npc.skupina.position.z = npc.def.z + Math.sin(faze) * 0.65
         npc.skupina.rotation.y = -faze
+        npc.character.animate(faze*8,!klidnyRezim)
       }
       const nejblizsi = obyvatele.find(npc =>
         Math.hypot(npc.skupina.position.x - hracPozice.x, npc.skupina.position.z - hracPozice.z) < 2.5)
@@ -1464,7 +1601,7 @@ export const useBuddyWorldScene = ({
 
         if (sberPozadavekRef.current) {
           sberPozadavekRef.current = false
-          const nyni = performance.now()
+          const nyni = herniCas()
           const nejblizsi = suroviny
             .filter((uzel) => nyni >= uzel.dostupneOd)
             .map((uzel) => ({ uzel, vzd: Math.hypot(uzel.x - hracPozice.x, uzel.z - hracPozice.z) }))
@@ -1482,13 +1619,16 @@ export const useBuddyWorldScene = ({
           // Nejbližší interaktivní objekt má přednost, včetně relikvií.
           if (nalez && nalez.vzd <= 2.4 && (!truhla || nalez.vzd <= truhla.vzd) && (!nejblizsi || nalez.vzd <= nejblizsi.vzd)) {
             useVillageStore.getState().aktivujRelikvii(nalez.relikvie.id)
+            window.dispatchEvent(new CustomEvent('buddyworld:notice',{detail:'Relikvie aktivována: '+nalez.relikvie.nazev}))
           } else
           if (truhla && truhla.vzd <= 2.4 && (!nejblizsi || truhla.vzd <= nejblizsi.vzd)) {
             useVillageStore.getState().otevriPoklad(truhla.poklad.id)
+            window.dispatchEvent(new CustomEvent('buddyworld:notice',{detail:'Poklad otevřen. Suroviny jsou tvoje.'}))
           } else if (nejblizsi && nejblizsi.vzd <= 2.4) {
             useVillageStore.getState().seberSurovinu(nejblizsi.uzel.typ)
+            window.dispatchEvent(new CustomEvent('buddyworld:notice',{detail:({drevo:'Dřevo +1',kamen:'Kámen +1',krystaly:'Krystal +1'})[nejblizsi.uzel.typ]}))
             nejblizsi.uzel.dostupneOd = nyni + (nejblizsi.uzel.typ === 'krystaly' ? 45_000 : 15_000)
-          }
+          } else window.dispatchEvent(new CustomEvent('buddyworld:notice',{detail:'Přibliž se ke dřevu, kameni, krystalu nebo relikvii.'}))
         }
         const aktivovaneRelikvie = useVillageStore.getState().aktivovaneRelikvie
         for (const r of relikvieSceny) {
@@ -1505,7 +1645,7 @@ export const useBuddyWorldScene = ({
         sin.visible = chramovyPostup.dokoncenePodzemi
         const strazceBoj = soubojStrazceRef?.current
         arenaStrazce.visible = chramovyPostup.dokoncenePodzemi && !chramovyPostup.porazenChramovyStrazce
-        const zbyvaUder = strazceBoj?.faze === 'boj' ? strazceBoj.dalsiUtokMs - Date.now() : Infinity
+        const zbyvaUder = strazceBoj?.faze === 'boj' ? strazceBoj.dalsiUtokMs - herniDatum() : Infinity
         varovnyKruh.visible = zbyvaUder > 0 && zbyvaUder <= 950
         const polomer = strazceBoj ? polomerUderu(strazceBoj) : 3.1
         varovnyKruh.scale.set(polomer, polomer, 1)
@@ -1532,7 +1672,7 @@ export const useBuddyWorldScene = ({
 
         srdce.rotation.y += dt * 0.6
         srdce.position.y = 1.5 + Math.sin(ted * 0.0018) * 0.16
-        const casSberu = performance.now()
+        const casSberu = herniCas()
         for (const uzel of suroviny) uzel.mesh.visible = casSberu >= uzel.dostupneOd
         const otevreneTruhly = useVillageStore.getState().otevrenePoklady
         for (const truhla of truhly) truhla.mesh.visible = !otevreneTruhly.includes(truhla.poklad.id)
@@ -1551,17 +1691,22 @@ export const useBuddyWorldScene = ({
           hracAnimaceZasahDo = casMs + 420
         }
         hracPosledniHp = hracStavRef.current.hp
+        const specialEnd=soubojStrazceRef?.current?.faze==='boj'?soubojStrazceRef.current.uhybDoMs??0:kristalovySoubojRef?.current?.faze==='boj'?kristalovySoubojRef.current.uhybDoMs:0
+        const specialDodgeEnd=specialEnd>0?specialEnd-performance.timeOrigin:0
+        const specialAttack=soubojStrazceRef?.current?.faze==='boj'?soubojStrazceRef.current.posledniZasahMs:kristalovySoubojRef?.current?.faze==='boj'?kristalovySoubojRef.current.posledniUtokHraceMs:-Infinity
+        hracAnimaceUtokDo=Math.max(hracAnimaceUtokDo,specialAttack-performance.timeOrigin+380)
         const animaceHrace = vyberAnimaciHrace(rychlostHrace, casMs, {
           mrtvy: jeMrtvyHrac(hracStavRef.current),
           zasahDoMs: hracAnimaceZasahDo,
-          uhybDoMs: soubojStrazceRef?.current?.faze === 'boj' ? (soubojStrazceRef.current.uhybDoMs ?? 0) : 0,
+          uhybDoMs: specialDodgeEnd,
           utokDoMs: hracAnimaceUtokDo,
         })
         hracAnimaceFaze = fazeKroku(hracAnimaceFaze, rychlostHrace, dt)
+        playerCharacter.animate(hracAnimaceFaze,rychlostHrace>.01,prubehAnimace(casMs,hracAnimaceUtokDo,380))
         const poskok = animaceHrace === 'walk' || animaceHrace === 'run'
           ? Math.abs(Math.sin(hracAnimaceFaze)) * 0.065 : 0
         const zasahFaze = prubehAnimace(casMs, hracAnimaceZasahDo, 420)
-        const uhybDoMs = soubojStrazceRef?.current?.uhybDoMs ?? 0
+        const uhybDoMs = specialDodgeEnd
         const uhybFaze = prubehAnimace(casMs, uhybDoMs, 700)
         hracTelo.rotation.z = animaceHrace === 'dodge' ? Math.sin(uhybFaze * Math.PI) * 0.48
           : animaceHrace === 'attack' ? Math.sin((hracAnimaceUtokDo - casMs) * 0.023) * 0.23
@@ -1585,6 +1730,7 @@ export const useBuddyWorldScene = ({
         // podle toho rozhodne, jestli appka běžné nepřátele zmrazí a
         // schová (appčina "jen jedna HP lišta najednou" požadavka na
         // čitelnost).
+        const specialniBoj = soubojStrazceRef?.current?.faze === 'boj' || kristalovySoubojRef?.current?.faze === 'boj'
         const bossAktivni = bossRef.current.probuzen && bossRef.current.faze !== 'mrtvy'
 
         // --- obrana: appka zkusí vyhodnotit požadavek, appka sama
@@ -1604,7 +1750,7 @@ export const useBuddyWorldScene = ({
          *  redukci obranou — jedna společná funkce, ne samostatná
          *  pro každý zdroj poškození zvlášť. */
         const zpusobPoskozeniHraci = (poskozeni: number) => {
-          hracStavRef.current = utrzetPoskozeni(hracStavRef.current, redukujPoskozeniObranou(poskozeni, obranaAktivni))
+          hracStavRef.current = utrzetPoskozeni(hracStavRef.current, redukujPoskozeniObranou(poskozeni * (useAdventureStore.getState().difficulty === 'pribehova' ? 0.55 : 1) * (useVillageStore.getState().inventar.amulet>0?.9:1), obranaAktivni))
           if (jeMrtvyHrac(hracStavRef.current)) {
             hracTelo.rotation.x = -Math.PI * 0.42
             hracHlava.rotation.x = -Math.PI * 0.18
@@ -1667,8 +1813,14 @@ export const useBuddyWorldScene = ({
         // --- běžné nepřátele — appka je zmrazí/schová, dokud
         // probíhá souboj s bossem ---
         for (const slot of sloty) {
-          slot.mesh.skupina.visible = !bossAktivni && slot.runtime.faze !== 'mrtvy'
-          if (bossAktivni) continue
+          slot.mesh.skupina.visible = !bossAktivni && !specialniBoj && slot.runtime.faze !== 'mrtvy'
+          if (bossAktivni || specialniBoj) continue
+          const home = OBLASTI_SVETA.find(o=>o.id===slot.oblastId)!
+          const safe = Math.hypot(hracPozice.x,hracPozice.z-13)<8.5
+          if (safe || Math.hypot(slot.runtime.pozice.x-home.stred.x,slot.runtime.pozice.z-home.stred.z)>home.polomer+3) {
+            if (slot.runtime.faze!=='mrtvy') slot.runtime = {...slot.runtime, hp:slot.def.maxHp,pozice:{...home.stred},faze:'klid'}
+            continue
+          }
 
           slot.runtime = krokAI(
             slot.runtime, slot.def, hracPozice,
@@ -1706,7 +1858,7 @@ export const useBuddyWorldScene = ({
               bossRef.current = utokHrace.nepritel as BossRuntimeStav
               if (utokHrace.porazen) {
                 vitezstviDoMs = casMs + 1400
-                hracStavRef.current = pripocistXp(hracStavRef.current, bossDef.odmenaXp)
+                useBuddyWorldStore.getState().pridejXp(bossDef.odmenaXp)
                 onZabitiBosse(bossDef.odmenaXp)
               }
             }
@@ -1731,7 +1883,7 @@ export const useBuddyWorldScene = ({
                 cilovySlot.hitDoMs = casMs + 220
                 if (utokHrace.porazen) {
                   vitezstviDoMs = casMs + 1400
-                  hracStavRef.current = pripocistXp(hracStavRef.current, cilovySlot.def.odmenaXp)
+                  useBuddyWorldStore.getState().pridejXp(cilovySlot.def.odmenaXp)
                   onZabitiNepritele(cilovySlot.def.odmenaXp, { id: `${cilovySlot.def.id}-${casMs}-${Math.random()}`, oblastId: cilovySlot.oblastId })
                 }
               }
@@ -1752,7 +1904,7 @@ export const useBuddyWorldScene = ({
                 if (maskot.id === 'moss') hracStavRef.current = mossUzdraveni(hracStavRef.current)
                 if (vysledek.porazen) {
                   vitezstviDoMs = casMs + 1400
-                  hracStavRef.current = pripocistXp(hracStavRef.current, bossDef.odmenaXp)
+                  useBuddyWorldStore.getState().pridejXp(bossDef.odmenaXp)
                   onZabitiBosse(bossDef.odmenaXp)
                 }
               }
@@ -1776,7 +1928,7 @@ export const useBuddyWorldScene = ({
                 }
                 if (vysledek.porazen) {
                   vitezstviDoMs = casMs + 1400
-                  hracStavRef.current = pripocistXp(hracStavRef.current, nejblizsi.slot.def.odmenaXp)
+                  useBuddyWorldStore.getState().pridejXp(nejblizsi.slot.def.odmenaXp)
                   onZabitiNepritele(nejblizsi.slot.def.odmenaXp, { id: `${nejblizsi.slot.def.id}-${casMs}-${Math.random()}`, oblastId: nejblizsi.slot.oblastId })
                 }
               }
@@ -1942,8 +2094,12 @@ export const useBuddyWorldScene = ({
           ? {
               sirkaPlatna: container.clientWidth,
               vyskaPlatna: container.clientHeight,
-              pocetDekoraciStromy: dekoraceStromy.length,
-              pocetDekoraciKameny: dekoraceKameny.length,
+              // appka tu sčítá přes všechny tři/dva nové typy dekorace —
+              // tenhle dev přehled počítá kategorie ("kolik stromů"),
+              // ne jednotlivé varianty (dub/jedle/briza), takže
+              // BuddyWorldDiagnostika i HUD.tsx zůstávají beze změny.
+              pocetDekoraciStromy: dekoraceDub.length + dekoraceJedle.length + dekoraceBriza.length,
+              pocetDekoraciKameny: dekoraceKamenMaly.length + dekoraceKamenVelky.length,
               fps: fpsAktualni,
               stavAssetu: { ...stavGlbAssetu },
             }
@@ -1956,7 +2112,7 @@ export const useBuddyWorldScene = ({
       }
 
       hlidacRuin3D.aktualizuj(ted, hracPozice)
-      kristalovyStrazce3D?.aktualizuj(Date.now())
+      kristalovyStrazce3D?.aktualizuj(herniDatum())
       ulomkyMytiny.aktualizuj(sebraneUlomkyRef?.current ?? [], ted)
       // Dekorativní regiony streamujeme nejvýše jednou za 500 ms.
       if (ted - posledniStreamMs >= 500) {
@@ -1975,6 +2131,7 @@ export const useBuddyWorldScene = ({
     smycka = requestAnimationFrame(krok)
 
     return () => {
+      ulozPozici()
       odpojeno = true
       hlidacRuin3D.zrus()
       buddyAnimace?.zrus()
@@ -2017,7 +2174,7 @@ export const useBuddyWorldScene = ({
     }
   }, [maskot, bossDef])
 
-  return { containerRef, selhalo, nastavJoystick, utocit, pouzijBuddySchopnost, buddySkillCooldown, zvolZbran, obranit, sebrat, postavit, presunout, potvrditStavbu, zrusitNahled, otocitNahled, nahledPlatny, vyzvatBosse, obnovitPoSmrti, hud, blizkyObyvatel, poziceHrace, projdiBranou }
+  return { odpocinout, containerRef, selhalo, nastavJoystick, utocit, pouzijBuddySchopnost, buddySkillCooldown, zvolZbran, obranit, sebrat, postavit, presunout, potvrditStavbu, zrusitNahled, otocitNahled, nahledPlatny, vyzvatBosse, obnovitPoSmrti, hud, blizkyObyvatel, poziceHrace, projdiBranou }
 }
 
 /** appka porovná dva HUD objekty — appka tím zabrání zbytečnému

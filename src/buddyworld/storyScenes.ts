@@ -50,7 +50,7 @@ export const PRIBEHOVE_SCENY: Record<QuestId, StoryScene> = {
     'Kael: Stíny ustupují, ale jejich poslední tlupy ohrožují obchodní cesty.',
     'Kael: Vyčisti okolí města. Pak budeme mít sílu čelit poslední hrozbě.'
   ], po: ['Kael: Les je znovu tichý. Zbývá jediná cesta: do srdce starého háje.'] },
-  posledni_straz: { id: 'posledni_straz', misto: 'Háj strážce', pred: [
+  posledni_stráž: { id: 'posledni_stráž', misto: 'Háj strážce', pred: [
     'Elara: Před lety jsme odtud utíkali. Dnes tu stojíme společně.',
     'Kael: Postav se poslednímu strážci temnoty. My ochráníme vesnici.'
   ], po: ['Háj se rozjasní. Staré stromy poprvé po letech rozkvetou.', 'Buddy se otočí k vesnici. Dobrodružství ale ještě nekončí.'] },

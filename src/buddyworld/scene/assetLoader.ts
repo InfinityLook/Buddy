@@ -1,3 +1,4 @@
+import { assetUrl } from '../assetUrl'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
@@ -36,10 +37,35 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 // render and look at the result. Whether the models genuinely stand
 // upright on a real device is still an open check, named honestly in
 // CLAUDE.md's own write-up for this pass.
+//
+// NOT EVERY .glb THIS LOADER SEES NEEDS THAT FIX. The models that
+// arrived in BuddyWorld_ArtPack_Vesnice_Les_v1 (public/buddyworld/
+// artpack-v1/models/) are a different generator entirely —
+// asset.generator reads "Buddy World original procedural scenery
+// v1; source/generate.mjs", not trimesh — and parsing their own raw
+// POSITION accessor min/max the identical way (e.g. chata.glb's
+// vertical extent runs 0..3.865 on Y, with X/Z both symmetric around
+// 0; dub.glb runs 0..4.84 on Y the same way) confirms they're
+// already Y-up, exactly as this pack's own PRO_CLAUDE.md states
+// ("Modely mají +Y nahoru"). Applying ROTACE_Z_UP_NA_Y_UP to one of
+// these would un-fix a model that was never broken — it would map
+// (x, y, z) to (x, z, −y), sending a cottage's own 0..3.865 height
+// onto the Z axis and its ground-to-roof Y range onto −Z, i.e.
+// entirely below the XZ ground plane. `horniOsa` is the one new
+// parameter that lets a caller say so explicitly; every existing
+// call site below keeps passing nothing and keeps getting the exact
+// same default (`'z-trimesh'`) it always has.
 // ==========================================
 
 /** The computed Z-up → Y-up fix (see the file header for the math). */
 export const ROTACE_Z_UP_NA_Y_UP = -Math.PI / 2
+
+/** `'z-trimesh'` (default): the old trimesh/Python-exported models,
+ *  genuinely Z-up, need the −90°-around-X fix above. `'y-up'`: a
+ *  model whose own export already puts height on Y (confirmed by
+ *  parsing its real POSITION accessor, not assumed from a filename)
+ *  — no rotation at all. */
+export type HorniOsa = 'z-trimesh' | 'y-up'
 
 const loader = new GLTFLoader()
 
@@ -52,21 +78,23 @@ const animace = new Map<string, THREE.AnimationClip[]>()
 export const animaceGlbModelu = (cesta: string): readonly THREE.AnimationClip[] => animace.get(cesta) ?? []
 
 /** Loads one .glb file at `cesta`, caches the attempt, and resolves
- *  to its `scene` node with `ROTACE_Z_UP_NA_Y_UP` already applied.
- *  Never throws — a failed or unsupported load resolves to `null`
- *  and logs a warning, which is the one signal every caller uses to
- *  fall back to its own existing primitive mesh. */
-export const nacistGlbModel = (cesta: string): Promise<THREE.Group | null> => {
+ *  to its `scene` node with the up-axis fix for `horniOsa` already
+ *  applied (default `'z-trimesh'`, i.e. `ROTACE_Z_UP_NA_Y_UP` — every
+ *  call site written before the artpack-v1 pass keeps that behaviour
+ *  unchanged). Never throws — a failed or unsupported load resolves
+ *  to `null` and logs a warning, which is the one signal every
+ *  caller uses to fall back to its own existing primitive mesh. */
+export const nacistGlbModel = (cesta: string, horniOsa: HorniOsa = 'z-trimesh'): Promise<THREE.Group | null> => {
   const existujici = cache.get(cesta)
   if (existujici) return existujici
 
   const slib = new Promise<THREE.Group | null>((resolve) => {
     loader.load(
-      cesta,
+      assetUrl(cesta),
       (gltf) => {
         animace.set(cesta, gltf.animations)
         const scena = gltf.scene
-        scena.rotation.x = ROTACE_Z_UP_NA_Y_UP
+        if (horniOsa === 'z-trimesh') scena.rotation.x = ROTACE_Z_UP_NA_Y_UP
         scena.traverse((obj) => {
           const mesh = obj as THREE.Mesh
           if (mesh.isMesh) {

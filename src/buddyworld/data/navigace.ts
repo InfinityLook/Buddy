@@ -8,7 +8,7 @@ const UKOL_CIL: Partial<Record<QuestId, string>> = {
   zkouska_odvahy: 'haj-strazce', cesta_k_mestu: 'vesnice',
   strazci_udoli: 'stiny-lesa', novy_domov: 'vesnice',
   stiny_se_vraceji: 'haj-strazce', srdce_udoli: 'vesnice',
-  hranice_temnoty: 'stiny-lesa', 'posledni_straz': 'haj-strazce', novy_usvit: 'vesnice',
+  hranice_temnoty: 'stiny-lesa', 'posledni_stráž': 'haj-strazce', novy_usvit: 'vesnice',
 }
 export const oblastUkolu = (id: QuestId | undefined): string | null => id ? UKOL_CIL[id] ?? null : null
 export const cilNavigace = (id: string | null) => OBLASTI_SVETA.find(o => o.id === id) ?? null

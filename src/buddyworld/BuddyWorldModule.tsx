@@ -8,7 +8,9 @@ import { bossPodleId, VYCHOZI_BOSS_ID } from './data/bossove'
 import { hracStavZUrovne } from './leveling'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useVillageStore } from './useVillageStore'
+import { useAdventureStore } from './adventure'
 import './BuddyWorldModule.css'
+import './release.css'
 
 // ==========================================
 // Buddy World — orchestrátor obrazovek. Tahle hra je NOVÁ,
@@ -46,6 +48,21 @@ import './BuddyWorldModule.css'
 // skutečnou zárukou je čistě CSS "otoč telefon" výzva v
 // BuddyWorldModule.css přes @media (orientation: portrait), co skutečný
 // obsah schová, dokud telefon doopravdy na šířku neleží.
+//
+// v41 (integrace "Ozvěny údolí") přidala plnou 24misijní/6kapitolovou
+// kampaň a Buddyho pečovatelský/mincový systém (adventure.ts), vlastní
+// prolog a nový soubor release.css. Ten se importuje až PO
+// BuddyWorldModule.css, takže jeho pravidla (stejná specificita,
+// pozdější pořadí ve zdroji) vyhrávají, kde se obě dotknou stejné
+// třídy. Při integraci muselo celé release.css přejít z holých
+// pravidel (`:root`, bare `button`/`input`/`:focus-visible`) na
+// stejné, všude v souboru už dřív platné `.bw-page`-scoped pravidla —
+// v dodávce byla tahle appka původně jediná, samostatná stránka (celý
+// dokument), takže si tam `:root`/`button:focus-visible` mohla
+// dovolit. Tady by to appčin vědomý celoappkový outline:none
+// (viz styles/global.css) natrvalo přepsalo pro zbytek celé appky,
+// protože Vite jednou vložený CSS chunk po odchodu z téhle routy
+// nikdy neodstraní.
 // ==========================================
 
 type Obrazovka = 'vyber' | 'hra'
@@ -53,15 +70,19 @@ type Obrazovka = 'vyber' | 'hra'
 export const BuddyWorldModule: React.FC = () => {
   const navigate = useNavigate()
   const [obrazovka, setObrazovka] = useState<Obrazovka>('vyber')
+  const [intro, setIntro] = useState(false)
 
   const level = useBuddyWorldStore((s) => s.level)
   const xp = useBuddyWorldStore((s) => s.xp)
   const aktivniMaskotId = useBuddyWorldStore((s) => s.aktivniMaskotId)
   const odemceneMaskoty = useBuddyWorldStore((s) => s.odemceneMaskoty)
   const vybratMaskota = useBuddyWorldStore((s) => s.vybratMaskota)
-  const ulozPostup = useBuddyWorldStore((s) => s.ulozPostup)
   const recordAction = useGamificationStore((s) => s.recordAction)
   const zaznamenejVyhru = useVillageStore((s) => s.zaznamenejVyhru)
+  const seenIntro = useAdventureStore((s) => s.seenIntro)
+  const largeText = useAdventureStore((s) => s.largeText)
+  const reducedMotion = useAdventureStore((s) => s.reducedMotion)
+  const preferences = useAdventureStore((s) => s.preferences)
 
   const maskot = maskotPodleId(aktivniMaskotId)
   const bossDef = bossPodleId(VYCHOZI_BOSS_ID)
@@ -76,8 +97,25 @@ export const BuddyWorldModule: React.FC = () => {
     orientaceSZamkem.lock?.('landscape').catch(() => {})
   }, [])
 
+  useEffect(() => {
+    // Titulek záložky appka jinde nikde nemění (jediný výskyt
+    // `document.title` v celém src/ mimo tenhle soubor) — statické
+    // "Buddy" z index.html samo o sobě stačí, tady se jen krátce
+    // nahradí hezčím, ať hráč na záložce prohlížeče uvidí, co hraje.
+    // Při odchodu z téhle routy se musí vrátit zpátky, jinak by
+    // "Buddy World · Ozvěny údolí" zůstalo trvale nalepené i po
+    // návratu do Hubu. `document.documentElement.lang` tahle
+    // komponenta nikdy neměnila (zůstává staticky 'cs' z index.html),
+    // takže ho nemá co po sobě uklízet.
+    const puvodniTitulek = document.title
+    document.title = 'Buddy World · Ozvěny údolí'
+    return () => {
+      document.title = puvodniTitulek
+    }
+  }, [])
+
   return (
-    <div className="bw-page">
+    <div className={`bw-page ${largeText ? 'bw-large-text' : ''} ${reducedMotion ? 'bw-reduced-motion' : ''}`}>
       <div className="bw-rotate-prompt" aria-hidden="true">
         <span className="bw-rotate-ikona">🔄</span>
         <p>Otoč telefon na šířku</p>
@@ -89,7 +127,7 @@ export const BuddyWorldModule: React.FC = () => {
             aktivniMaskotId={aktivniMaskotId}
             odemceneMaskoty={odemceneMaskoty}
             onVybrat={vybratMaskota}
-            onPokracovat={() => setObrazovka('hra')}
+            onPokracovat={() => (seenIntro ? setObrazovka('hra') : setIntro(true))}
             onZpet={() => navigate('/hub')}
           />
         )}
@@ -118,10 +156,51 @@ export const BuddyWorldModule: React.FC = () => {
               recordAction('boss', xpOdmena)
               zaznamenejVyhru(true)
             }}
-            onPostupZmena={ulozPostup}
+            // v41 — tenhle prop appka vědomě nechává jako no-op, ne
+            // omylem zapomenutý. useBuddyWorldStore.ulozPostup (prosté
+            // set({level,xp}) přepsání) byl PŮVODNÍ, jediný způsob,
+            // jak appka level/XP ukládala — v41 ho nahradila novým,
+            // atomickým a odznámkovaným pridejXp(xp, id?) voláním
+            // přímo z míst, kde XP doopravdy vzniká (tady, výš, i
+            // uvnitř BuddyWorldHra.tsx u krystalů/bossů/expedic).
+            // Znovu navázat ulozPostup na stejný tok by appce vrátilo
+            // starou race/last-write-wins chybu ztráty XP, kterou
+            // pridejXp's dedup přes odmenyXp zavřel.
+            onPostupZmena={() => {}}
             onOdmenaVypravy={(xpOdmena) => recordAction('buddyworld', xpOdmena)}
             onZpet={() => navigate('/hub')}
           />
+        )}
+
+        {intro && (
+          <div className="bw-intro-shade">
+            <article className="bw-intro" role="dialog" aria-modal="true" aria-label="Prolog Ozvěny údolí">
+              <div className="bw-eyebrow">PROLOG · OZVĚNY ÚDOLÍ</div>
+              <h1>
+                Všechno začíná
+                <br />
+                jedním světlem.
+              </h1>
+              <p>
+                Údolí kdysi chránili tři strážci. Když jejich pečeť praskla, cesty zarostly a domovy
+                ztichly. Lidé si přestali vyprávět příběhy o návratu.
+              </p>
+              <p>Pak ses na starém mostě objevil ty. A vedle tebe se rozzářil malý společník.</p>
+              <p>„Nevíme, jestli dokážeme zachránit celý svět,“ řekla Elara. „Ale můžeme začít tímhle údolím.“</p>
+              <p className="bw-intro-note">Šest kapitol. Nový domov. A Buddy, který půjde celou cestu s tebou.</p>
+              <button
+                className="bw-primary"
+                onClick={() => {
+                  preferences({ seenIntro: true })
+                  setIntro(false)
+                  setObrazovka('hra')
+                }}
+              >
+                Vstoupit do údolí →
+              </button>
+              <button onClick={() => setIntro(false)}>Zpět k výběru</button>
+            </article>
+          </div>
         )}
       </div>
     </div>

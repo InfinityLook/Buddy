@@ -3,6 +3,8 @@ import { OBLASTI_SVETA } from './oblasti'
 
 /** Jednorázové odměny za první návštěvu oblasti. */
 export const ODMENY_ZA_OBJEVENTI = {
+  ruiny: {drevo:0,kamen:4,krystaly:2},
+  chram: {drevo:0,kamen:4,krystaly:3},
   vesnice: { drevo: 3, kamen: 0, krystaly: 0 },
   'kristalova-mytina': { drevo: 0, kamen: 0, krystaly: 2 },
   'stiny-lesa': { drevo: 2, kamen: 3, krystaly: 0 },

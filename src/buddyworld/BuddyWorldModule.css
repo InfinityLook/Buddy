@@ -740,16 +740,9 @@
   .bw-osada-detail { max-height: 55vh; overflow-y: auto; }
 }
 
-/* Samostatné tlačítko pro sběr, mimo joystick a soubojové akce.
-   `bottom` schválně výš, než reálně vychází z první appčiny úvahy
-   (8.8rem) — appčin skutečný vyrenderovaný test (viz CLAUDE.md,
-   integrace v3.1) ukázal, že appka tím 8.8rem tlačítko doopravdy
-   kryje přes .bw-buddy-skill-button (appčino odsazení 7.5rem + jeho
-   skutečná výška ~2.36rem appce dá vršek až k 9.86rem) — 10.5rem
-   appce dá doopravdy čistou mezeru nad tím tlačítkem, ne jen
-   teoretickou z holé aritmetiky appčiných rem hodnot. */
+/* Samostatné tlačítko pro sběr, mimo joystick a soubojové akce. */
 .bw-sber-button {
-  position: absolute; z-index: 20; right: 1rem; bottom: 10.5rem;
+  position: absolute; z-index: 20; right: 1rem; bottom: 8.8rem;
   padding: .65rem .85rem; border-radius: 1rem; border: 1px solid #e7c77a;
   color: #fff4d5; background: rgba(24, 48, 32, .92);
   font-weight: 700; touch-action: manipulation;

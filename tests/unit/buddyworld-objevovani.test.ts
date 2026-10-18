@@ -6,5 +6,5 @@ describe('Průzkum světa', () => {
   it('již objevené místo neodmění znovu', () => expect(noveObjevenaOblast({ x: 0, z: 13 }, ['vesnice'])).toBeNull())
   it('mimo oblasti neodměňuje', () => expect(noveObjevenaOblast({ x: 20, z: 20 }, [])).toBeNull())
   it('sanitizuje uložená data', () => expect(overObjeveneOblasti(['vesnice','vesnice','fake', 5])).toEqual(['vesnice']))
-  it('každá oblast má definované odměny', () => expect(Object.keys(ODMENY_ZA_OBJEVENTI)).toHaveLength(4))
+  it('každá oblast má definované odměny', () => expect(Object.keys(ODMENY_ZA_OBJEVENTI)).toHaveLength(6))
 })

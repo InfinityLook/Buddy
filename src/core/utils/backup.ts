@@ -80,6 +80,13 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-vybaveni-storage', storage: 'secure', label: 'Herní vybavení' },
   { key: 'schoolbuddy-buddyworld-storage', storage: 'secure', label: 'Buddy World' },
   { key: 'schoolbuddy-buddyworld-village-v1', storage: 'secure', label: 'Buddy World — osada' },
+  // v41 — Buddyho mince/jídlo/pečovatelský postup a hlavní 24misijní
+  // kampaň appka drží ve svém vlastním store (adventure.ts), ne v tom
+  // výš — appčin vlastní prefix (appka ho nezměnila, ať appčin
+  // saveBackup.ts zůstane platný) místo appčina obvyklého
+  // 'schoolbuddy-' je stejný, co appka odjakživa měla, nejde o appčinu
+  // chybu.
+  { key: 'buddyworld:adventure:v1', storage: 'secure', label: 'Buddy World — výprava' },
   { key: 'schoolbuddy-souboj-statistiky-storage', storage: 'secure', label: 'Statistiky Souboje' },
   { key: 'schoolbuddy-kalendar-storage', storage: 'secure', label: 'Kalendář' },
   { key: 'schoolbuddy-behani-storage', storage: 'secure', label: 'Běhání' },

@@ -59,7 +59,7 @@ describe('nahodnyNepritel', () => {
 })
 
 describe('Buddy World v2.4 — nové archetypy a rozmanité sloty', () => {
-  it('má sedm unikátních typů nepřátel (včetně Křišťálové mýtiny)', () => {
+  it('má sedm unikátních typů nepřátel', () => {
     expect(NEPRATELE).toHaveLength(7)
     expect(new Set(NEPRATELE.map(n => n.id)).size).toBe(7)
   })

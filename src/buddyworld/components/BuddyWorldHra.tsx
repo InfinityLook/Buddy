@@ -1,3 +1,12 @@
+import { CampaignPanel, Achievements } from './CampaignPanel'
+import { BuddyPanel } from './BuddyPanel'
+import { GameSettings } from './GameSettings'
+import { CAMPAIGN, currentMission, useAdventureStore, type CampaignProgress } from '../adventure'
+import { useBuddyWorldStore } from '../useBuddyWorldStore'
+import { herniCas, herniDatum, jePauza, nastavPauzu } from '../gameClock'
+import { playCue } from '../audio'
+import { SezonaPanel } from './SezonaPanel'
+import { type Pokrok } from '../milestones'
 import { oznamVizualniFaziHlidace } from '../scene/hlidacRuin3D'
 import { novyRealTimeHlidac, utokVRealnemCase, uhybVRealnemCase, tikHlidace, hlidacVaruje } from '../hlidacRealtime'
 import { HLIDAC_MAX_HP, vDosahuHlidace, nactiHlidace, ulozHlidace } from '../hlidacRuin'
@@ -88,6 +97,21 @@ import { BossDef } from '../data/bossove'
 // se skutečným, správně rozměřeným containerem.
 // ==========================================
 
+const PANEL_NAMES = {campaign:'Příběh', quests:'Deník', world:'Svět', town:'Osada', buddy:'Buddy', achievements:'Úspěchy', settings:'Nastavení', npc:'Rozhovor'}
+const PANEL_ICONS = {campaign:'✦', quests:'☷', world:'◎', town:'⌂', buddy:'♡', achievements:'✧', settings:'⚙'}
+function lehciSouboj<T extends {hracHp:number;faze:string}>(before:T,after:T):T {
+  if(after.hracHp>=before.hracHp)return after
+  const hp=Math.max(0,before.hracHp-Math.ceil((before.hracHp-after.hracHp)*(useAdventureStore.getState().difficulty==='pribehova'?.55:1)*(useVillageStore.getState().inventar.amulet>0?.9:1)))
+  return {...after,hracHp:hp,faze:hp<=0?'prohra':after.faze==='prohra'?'boj':after.faze}
+}
+function trapFocus(e:React.KeyboardEvent<HTMLElement>) {
+  if(e.key!=='Tab')return
+  const items=Array.from(e.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled),input:not([hidden]),select,textarea,summary,[tabindex="0"]')).filter(x=>x.getClientRects().length>0)
+  const first=items[0],last=items[items.length-1]
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus()}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus()}
+}
+
 interface Props {
   maskot: MaskotDef
   bossDef: BossDef
@@ -109,6 +133,12 @@ export const BuddyWorldHra: React.FC<Props> = ({
   onOdmenaVypravy,
   onZpet,
 }) => {
+  const [panel, setPanel] = useState<'campaign'|'quests'|'world'|'town'|'buddy'|'achievements'|'settings'|'npc'|null>('campaign')
+  const adventure = useAdventureStore()
+  const mission = currentMission(adventure.campaign)
+  const [toast, setToast] = useState('')
+  const [bossCooldown, setBossCooldown] = useState(0)
+  const bossBuddyRef = useRef(-Infinity)
   const [kristalovaVyprava, setKristalovaVyprava] = useState<KristalovaVyprava>(() => {
     return loadQuest('buddyworld-ztracene-svetlo-v1', nactiKristalovouVypravu, localStorage, validQuestShape)
   })
@@ -134,7 +164,7 @@ export const BuddyWorldHra: React.FC<Props> = ({
         kamen: Math.min(1_000_000, stav.kamen + VYPRAVA_ODMENA.kamen),
         krystaly: Math.min(1_000_000, stav.krystaly + VYPRAVA_ODMENA.krystaly),
       }))
-      onOdmenaVypravy(VYPRAVA_ODMENA.xp)
+      useBuddyWorldStore.getState().pridejXp(VYPRAVA_ODMENA.xp, 'crystal:1'); onOdmenaVypravy(VYPRAVA_ODMENA.xp)
       dokonceniOdmeny(localStorage, KLIC_ODMENY)
     }
   }
@@ -159,7 +189,7 @@ export const BuddyWorldHra: React.FC<Props> = ({
         kamen: Math.min(1_000_000, stav.kamen + DRUHA_ODMENA.kamen),
         krystaly: Math.min(1_000_000, stav.krystaly + DRUHA_ODMENA.krystaly),
       }))
-      onOdmenaVypravy(DRUHA_ODMENA.xp)
+      useBuddyWorldStore.getState().pridejXp(DRUHA_ODMENA.xp, 'crystal:2'); onOdmenaVypravy(DRUHA_ODMENA.xp)
       dokonceniOdmeny(localStorage, 'buddyworld-ozveny-krystalu-odmena-v1')
     }
   }
@@ -187,7 +217,7 @@ export const BuddyWorldHra: React.FC<Props> = ({
         kamen: Math.min(1_000_000, stav.kamen + TRETI_ODMENA.kamen),
         krystaly: Math.min(1_000_000, stav.krystaly + TRETI_ODMENA.krystaly),
       }))
-      onOdmenaVypravy(TRETI_ODMENA.xp)
+      useBuddyWorldStore.getState().pridejXp(TRETI_ODMENA.xp, 'crystal:3'); onOdmenaVypravy(TRETI_ODMENA.xp)
       dokonceniOdmeny(localStorage, 'buddyworld-srdce-mytiny-odmena-v1')
     }
   }
@@ -220,13 +250,13 @@ export const BuddyWorldHra: React.FC<Props> = ({
   const [kristalovySouboj, setKristalovySouboj] = useState<KristalovySouboj | null>(null)
   const kristalovySoubojRef = useRef<KristalovySouboj | null>(null)
   kristalovySoubojRef.current = kristalovySouboj
-  const [kristalovyCas, setKristalovyCas] = useState(() => Date.now())
+  const [kristalovyCas, setKristalovyCas] = useState(() => herniDatum())
   useEffect(() => {
     if (kristalovySouboj?.faze !== 'boj') return
     const timer = window.setInterval(() => {
-      const ted = Date.now()
+      const ted = herniDatum()
       setKristalovyCas(ted)
-      setKristalovySouboj(pred => pred ? tikKristalovehoStrazce(pred, ted, poziceHraceRef.current) : null)
+      if (!jePauza()) setKristalovySouboj(pred => pred ? lehciSouboj(pred, tikKristalovehoStrazce(pred, ted, poziceHraceRef.current)) : null)
     }, 150)
     return () => window.clearInterval(timer)
   }, [kristalovySouboj?.faze])
@@ -243,7 +273,7 @@ export const BuddyWorldHra: React.FC<Props> = ({
       kamen: Math.min(1_000_000, stav.kamen + KRYSTALOVY_ODMENA.kamen),
       krystaly: Math.min(1_000_000, stav.krystaly + KRYSTALOVY_ODMENA.krystaly),
     }))
-    onOdmenaVypravy(KRYSTALOVY_ODMENA.xp)
+    useBuddyWorldStore.getState().pridejXp(KRYSTALOVY_ODMENA.xp, 'boss:crystal'); onZabitiBosse(0); onOdmenaVypravy(KRYSTALOVY_ODMENA.xp)
   }, [kristalovySouboj?.faze, kristalovyBossPorazen, onOdmenaVypravy])
   const [soubojStrazce, setSoubojStrazce] = useState<StavSouboje | null>(null)
   // Stabilní reference propojuje panelový souboj s 3D vizualizací bez restartu rendereru.
@@ -252,7 +282,7 @@ export const BuddyWorldHra: React.FC<Props> = ({
   const [vyhraZapsana, setVyhraZapsana] = useState(false)
   const [vybranaZbran, setVybranaZbran] = useState<Zbran>('mec')
   const [navigaceId, setNavigaceId] = useState<string | null>(null)
-  const { containerRef, selhalo, nastavJoystick, utocit, pouzijBuddySchopnost, buddySkillCooldown, zvolZbran, obranit, sebrat, postavit, presunout, potvrditStavbu, zrusitNahled, otocitNahled, nahledPlatny, vyzvatBosse, obnovitPoSmrti, hud, blizkyObyvatel, poziceHrace, projdiBranou } = useBuddyWorldScene({
+  const { containerRef, selhalo, nastavJoystick, utocit, pouzijBuddySchopnost, buddySkillCooldown, zvolZbran, obranit, sebrat, postavit, presunout, potvrditStavbu, zrusitNahled, otocitNahled, nahledPlatny, vyzvatBosse, obnovitPoSmrti, hud, blizkyObyvatel, poziceHrace, projdiBranou, odpocinout } = useBuddyWorldScene({
     maskot,
     bossDef,
     soubojStrazceRef,
@@ -271,16 +301,24 @@ export const BuddyWorldHra: React.FC<Props> = ({
   // v6.8: Hlavní tlačítka HUD ovládají přímo aktivní 3D souboj.
   // Bez aktivního bosse zůstává původní boj proti běžným nepřátelům.
   const utokVeSvete = () => {
+    if (jePauza() || hud.mrtvyHrac) return
+    if (adventure.sound) playCue('attack')
+    if (soubojStrazceRef.current?.faze === 'boj') {setSoubojStrazce(s=>s?utokHrace(s,herniDatum(),poziceHraceRef.current):null);return}
+    if (hlidacOdemcen && !hlidacRuin.porazen && vDosahuHlidace(poziceHraceRef.current)) {utocNaHlidace();return}
     if (kristalovySoubojRef.current?.faze === 'boj') {
-      const ted = Date.now()
+      const ted = herniDatum()
       setKristalovySouboj(pred => pred ? zasahniKristalovehoStrazce(pred, ted, poziceHraceRef.current) : null)
       return
     }
     utocit()
   }
   const uhybVeSvete = () => {
+    if (jePauza() || hud.mrtvyHrac) return
+    if (adventure.sound) playCue('defend')
+    if (soubojStrazceRef.current?.faze === 'boj') {setSoubojStrazce(s=>s?uhni(s,herniDatum()):null);return}
+    if (hlidacOdemcen && !hlidacRuin.porazen && vDosahuHlidace(poziceHraceRef.current)) {uhybPredHlidacem();return}
     if (kristalovySoubojRef.current?.faze === 'boj') {
-      setKristalovySouboj(pred => pred ? uhniKristalovemuStrazci(pred, Date.now()) : null)
+      setKristalovySouboj(pred => pred ? uhniKristalovemuStrazci(pred, herniDatum()) : null)
       return
     }
     obranit()
@@ -319,7 +357,8 @@ export const BuddyWorldHra: React.FC<Props> = ({
   useEffect(() => {
     if (!hlidacOdemcen || hlidacRuin.porazen || hud.mrtvyHrac) return
     const timer = window.setInterval(() => {
-      const ted = performance.now()
+      if (jePauza()) return
+      const ted = herniCas()
       setHlidacHodiny(ted)
       const vysledek = tikHlidace(hlidacRuin, hlidacCasRef.current, poziceHraceRef.current, true, ted)
       hlidacCasRef.current = vysledek.rt
@@ -344,7 +383,7 @@ export const BuddyWorldHra: React.FC<Props> = ({
   }, [hlidacOdemcen, hlidacRuin, hud.mrtvyHrac])
   const utocNaHlidace = () => {
     if (hud.mrtvyHrac || !hlidacOdemcen) return
-    const vysledek = utokVRealnemCase(hlidacRuin, hlidacCasRef.current, poziceHraceRef.current, hlidacOdemcen, performance.now())
+    const vysledek = utokVRealnemCase(hlidacRuin, hlidacCasRef.current, poziceHraceRef.current, hlidacOdemcen, herniCas())
     const dalsi = vysledek.stav
     if (dalsi === hlidacRuin) return
     if (!ulozHlidace(dalsi)) { setZpravaHlidac('Postup střetnutí se nepodařilo uložit.'); return }
@@ -355,7 +394,7 @@ export const BuddyWorldHra: React.FC<Props> = ({
   }
   const uhybPredHlidacem = () => {
     if (hud.mrtvyHrac || !hlidacOdemcen || hlidacRuin.porazen || !vDosahuHlidace(poziceHraceRef.current)) return
-    const dalsi = uhybVRealnemCase(hlidacCasRef.current, performance.now())
+    const dalsi = uhybVRealnemCase(hlidacCasRef.current, herniCas())
     if (dalsi === hlidacCasRef.current) return
     hlidacCasRef.current = dalsi
     setZpravaHlidac('🛡️ Úhyb aktivní na krátké časové okno.')
@@ -396,25 +435,30 @@ export const BuddyWorldHra: React.FC<Props> = ({
   const [vybranaVolba, setVybranaVolba] = useState<{ npc: string; id: string } | null>(null)
   const [npcRozhodnuti, setNpcRozhodnuti] = useState(() => nactiRozhodnuti())
 
-  // appka uloží appčin postup (level/XP), jakmile se doopravdy změní
-  // — appčina komponenta existuje jen na téhle obrazovce, appka proto
+  // appka ohlásí appčin postup (level/XP) rodiči, jakmile se doopravdy
+  // změní — appčin skutečný zdroj pravdy zůstává useBuddyWorldStore
+  // (pridejXp), tohle jen hlásí JEHO aktuální hud.hrac.level/.xp výš;
+  // appčina komponenta existuje jen na téhle obrazovce, appka proto
   // nepotřebuje dřívější "if (obrazovka !== 'hra') return" appčinu
   // podmínku, appčin efekt se stejně spustí jen, dokud appka tahle
-  // komponenta zůstává namountovaná.
+  // komponenta zůstává namountovaná. Appčin BuddyWorldModule.tsx tohle
+  // vědomě přijímá jako no-op (viz tamní appčin komentář u
+  // onPostupZmena) — nic appku v téhle appce nerozbije, kdyby to
+  // nějaký budoucí appčin volající appku skutečně chtěl číst.
   useEffect(() => {
     onPostupZmena(hud.hrac.level, hud.hrac.xp)
   }, [hud.hrac.level, hud.hrac.xp, onPostupZmena])
 
   useEffect(() => {
     if (!soubojStrazce || soubojStrazce.faze !== 'boj') return
-    const timer = window.setInterval(() => setSoubojStrazce(prev => prev ? tikSouboje(prev, Date.now(), poziceHraceRef.current) : null), 150)
+    const timer = window.setInterval(() => {if(!jePauza()) setSoubojStrazce(prev => prev ? lehciSouboj(prev,tikSouboje(prev, herniDatum(), poziceHraceRef.current)) : null)}, 150)
     return () => window.clearInterval(timer)
   }, [soubojStrazce?.faze])
 
   useEffect(() => {
     if (soubojStrazce?.faze !== 'vyhra' || vyhraZapsana) return
     setVyhraZapsana(true)
-    if (vesnice.odmenChramovehoStrazce()) setZpravaNpc('🏆 Chrámový strážce poražen! Odměna připsána.')
+    if (vesnice.odmenChramovehoStrazce()) {useBuddyWorldStore.getState().pridejXp(300,'boss:temple'); onZabitiBosse(0); setZpravaNpc('🏆 Chrámový strážce poražen! Odměna připsána.'); setToast('Chrámový strážce padl. Údolí je svobodné.')}
   }, [soubojStrazce?.faze, vyhraZapsana, vesnice.odmenChramovehoStrazce])
 
   const [stezka, setStezka] = useState<StavStezky>(() => nactiStezku(localStorage))
@@ -441,17 +485,155 @@ export const BuddyWorldHra: React.FC<Props> = ({
   }, [pomoc, poziceHrace.x, poziceHrace.z])
   const [nastenkaOtevrena, setNastenkaOtevrena] = useState(false)
   const nastenkaVDosahu = muzeOtevritNastenku(poziceHrace)
+  const inVillage = Math.hypot(poziceHrace.x,poziceHrace.z-13)<=8.5
+  const progress:CampaignProgress = {...vesnice,care:adventure.careActions,placed:vesnice.umisteneStavby.length,
+    crystal1:kristalovaVyprava.faze==='dokoncena',crystal2:druhaVyprava.faze==='dokoncena',crystal3:tretiVyprava.faze==='dokoncena',
+    crystalBoss:kristalovyBossPorazen,forestBoss:vesnice.porazeniBossove-(kristalovyBossPorazen?1:0)-(vesnice.porazenChramovyStrazce?1:0)>0,forestDiscoveries:lesniObjevy.length,ruinsPuzzle:stavRuin.dokonceno,fragments:fragmentyRuin.length,
+    ruinsBoss:hlidacRuin.porazen,buildings:vesnice.funkcniBudovy.length,sideQuests:vesnice.splneneVedlejsiUkoly.length,relics:vesnice.aktivovaneRelikvie.length,
+    seals:vesnice.udalostiPeceti.includes(TRI_PECETE_ID),temple:vesnice.dokoncenyChram,dungeon:vesnice.dokoncenePodzemi,templeBoss:vesnice.porazenChramovyStrazce,
+    mainQuests:vesnice.splneneUkoly.length,puzzleWins:adventure.puzzleWins}
+  // v20 — appčin Pokrok pro appčin SezonaPanel (appka ho sama nikde
+  // nepočítá, appčin tvar sedí přímo na appčin stav, co appka už
+  // v téhle komponentě mohla, takže appka žádnou novou appčinu
+  // appka appku nepočítá podruhé): stavRuin/fragmentyRuin/lesniObjevy/
+  // hlidacRuin appka má od appčina vlastního useState výš.
+  const pokrokSezony:Pokrok = {ruiny:stavRuin.dokonceno,fragmenty:fragmentyRuin.length,lesniObjevy:lesniObjevy.length,hlidac:hlidacRuin.porazen}
+  const navigateTo=(id:string)=>{setNavigaceId(id);setPanel(null);setToast('Cíl je vyznačen zlatou linkou na minimapě.')}
+  const interact=()=>{if(jePauza()||hud.mrtvyHrac)return;if(fragmentRuinVDosahu){seberFragmentRuin();return}if(lesniObjevVDosahu){prozkoumejLes();return}if(ulomekVDosahu){seberUlomek();return}sebrat()}
+  const aktivniVelkySouboj = kristalovySouboj?.faze==='boj' || soubojStrazce?.faze==='boj'
+  const crystalActive=kristalovySouboj?.faze==='boj'||kristalovySouboj?.faze==='prohra'
+  const templeActive=soubojStrazce?.faze==='boj'||soubojStrazce?.faze==='prohra'
+  const ruinActive=hlidacOdemcen&&!hlidacRuin.porazen&&vDosahuHlidace(poziceHrace)
+  const bossHudDef=crystalActive?{...bossDef,id:'krystalovy-strazce',jmeno:'Krystalový strážce',maxHp:KRYSTALOVY_STRAZCE_HP}:templeActive?{...bossDef,id:'chramovy-strazce',jmeno:'Chrámový strážce',maxHp:STRAZCE_MAX_HP}:ruinActive?{...bossDef,id:'hlidac-ruin',jmeno:'Hlídač ruin',maxHp:HLIDAC_MAX_HP}:bossDef
+  let hudProSouboj=ruinActive?{...hud,utokPripraven:true,bossFocus:{def:bossHudDef,hp:hlidacRuin.hp,maxHp:HLIDAC_MAX_HP,faze:'utoci' as const,probuzen:true,zuri:false}}:hud
+  const special=crystalActive?kristalovySouboj:templeActive?soubojStrazce:null
+  if(special){const last=crystalActive?kristalovySouboj!.posledniUtokHraceMs:soubojStrazce!.posledniZasahMs
+    const inRange=crystalActive?hracDosahneNaBosse(poziceHrace,poziceKristalovehoStrazce(kristalovySouboj!)):vzdalenostOdStrazce(poziceHrace,soubojStrazce)<=DOSAH_UTOKU
+    hudProSouboj={...hud,hrac:{...hud.hrac,hp:special.hracHp,maxHp:100},mrtvyHrac:special.faze==='prohra',nepritelFocus:null,bossFocus:{def:bossHudDef,hp:special.bossHp,maxHp:bossHudDef.maxHp,faze:'utoci',probuzen:true,zuri:special.bossHp<=bossHudDef.maxHp/2},utokPripraven:inRange&&herniDatum()-last>=650,muzeVyzvatBosse:false,obranaAktivni:(special.uhybDoMs??0)>herniDatum(),obranaPripravena:herniDatum()-(special.posledniUhybMs??-Infinity)>=1800}
+  }
+  const bossWarning=crystalActive&&kristalovySouboj&&kristalovyUtokVaruje(kristalovySouboj,herniDatum())?'Krystalový útok — ustup nebo uhni!':templeActive&&stavVarovani(soubojStrazce,herniDatum())?'Chrámový útok — ustup nebo uhni!':''
+  const opakovatSouboj=()=>{if(crystalActive){setKristalovySouboj(novyKristalovySouboj(herniDatum()));return}if(templeActive){setSoubojStrazce(novySouboj(herniDatum()));return}obnovitPoSmrti()}
+  const buddyAction=()=>{
+    if(jePauza()||hud.mrtvyHrac)return
+    if(!aktivniVelkySouboj){pouzijBuddySchopnost();return}
+    if(herniCas()-bossBuddyRef.current<14000)return
+    const inRange=crystalActive?hracDosahneNaBosse(poziceHrace,poziceKristalovehoStrazce(kristalovySouboj!)):vzdalenostOdStrazce(poziceHrace,soubojStrazce)<=5
+    if(!inRange){setToast('Buddy potřebuje být blíž ke strážci.');return}
+    bossBuddyRef.current=herniCas();if(adventure.sound)playCue('buddy')
+    const hit=<T extends {bossHp:number;hracHp:number;faze:string}>(s:T):T=>{const hp=Math.max(0,s.bossHp-buddyElementPoskozeni(hud.hrac.level,maskot.id));return{...s,bossHp:hp,hracHp:maskot.id==='moss'?Math.min(100,s.hracHp+12):s.hracHp,faze:hp===0?'vyhra':s.faze}}
+    if(crystalActive)setKristalovySouboj(s=>s?hit(s):null);else setSoubojStrazce(s=>s?hit(s):null)
+  }
+  const inputRef=useRef<(action:string)=>void>(()=>{})
+  inputRef.current=action=>{if(action==='attack')utokVeSvete();if(action==='defend')uhybVeSvete();if(action==='interact')interact();if(action==='buddy')buddyAction()}
+  useEffect(()=>{
+    const listener=(e:Event)=>inputRef.current((e as CustomEvent<string>).detail)
+    const notice=(e:Event)=>setToast((e as CustomEvent<string>).detail)
+    const key=(e:KeyboardEvent)=>{if(e.key==='Escape'){setPanel(p=>p?null:'settings');(document.activeElement as HTMLElement)?.blur()}}
+    window.addEventListener('buddyworld:input',listener);window.addEventListener('buddyworld:notice',notice);window.addEventListener('keydown',key)
+    const t=setInterval(()=>setBossCooldown(Math.max(0,Math.ceil((bossBuddyRef.current+14000-herniCas())/1000))),200)
+    return()=>{window.removeEventListener('buddyworld:input',listener);window.removeEventListener('buddyworld:notice',notice);window.removeEventListener('keydown',key);clearInterval(t)}
+  },[])
+  useEffect(()=>{nastavPauzu('menu',panel!==null);nastavJoystick(0,0);if(panel)setTimeout(()=>document.querySelector<HTMLElement>('.bw-drawer header button')?.focus(),0);return()=>nastavPauzu('menu',false)},[panel])
+  useEffect(()=>{const media=matchMedia('(orientation: portrait)');const update=()=>{nastavPauzu('hidden',document.hidden);nastavPauzu('portrait',media.matches)};update();document.addEventListener('visibilitychange',update);media.addEventListener('change',update);return()=>{document.removeEventListener('visibilitychange',update);media.removeEventListener('change',update);nastavPauzu('hidden',false);nastavPauzu('portrait',false)}},[])
+  useEffect(()=>{nastavPauzu('boss-defeat',crystalActive&&kristalovySouboj?.faze==='prohra'||templeActive&&soubojStrazce?.faze==='prohra');return()=>nastavPauzu('boss-defeat',false)},[kristalovySouboj?.faze,soubojStrazce?.faze])
+  useEffect(()=>{if(!toast)return;const t=setTimeout(()=>setToast(''),3800);return()=>clearTimeout(t)},[toast])
+  useEffect(()=>{for(const id of adventure.campaign){const m=CAMPAIGN.find(m=>m.id===id);if(m)useBuddyWorldStore.getState().pridejXp(m.xp,'campaign:'+id)}},[adventure.campaign])
+  useEffect(()=>{for(const id of vesnice.splneneUkoly)useBuddyWorldStore.getState().pridejXp(15,'main:'+id)},[vesnice.splneneUkoly])
+  useEffect(()=>{if(adventure.campaign.length){setToast('Příběhový úkol splněn. Odměna je tvoje.');if(adventure.sound)playCue('reward')}},[adventure.campaign.length])
   return (
     <div className="bw-arena">
-      <div className="bw-arena-canvas" ref={containerRef}>
+<div className="bw-arena-canvas" ref={containerRef}>
         {selhalo && (
           <div className="bw-arena-selhalo">
             <p>3D vykreslení se na tomhle zařízení nepovedlo spustit.</p>
           </div>
         )}
       </div>
-
-      <section className="bw-nastenka-panel" aria-label="Nástěnka úkolů">
+<div className="bw-top-wash"/>
+<Minimapa pozice={poziceHrace} objevene={vesnice.objeveneOblasti} navigaceId={navigaceId} />
+<div className="bw-mission-tracker"><span className="bw-eyebrow">{mission?'KAPITOLA '+mission.chapter+' / 6':'SEASON 1 · DOKONČENO'}</span><button onClick={()=>setPanel('campaign')}>{mission?.name??'Nový úsvit'} <span>↗</span></button><small>{mission?.goal??'Údolí zůstává otevřené pro tvá další dobrodružství.'}</small></div>
+{/* AktivniUkolHud vedle appčina "KAPITOLA" trackeru appku kompaktně
+    ukazuje PŮVODNÍ, vesnický hlavní úkol (vesnice.splneneUkoly z
+    questTracker.ts) — nezávislý appčin úkolový systém od appčiny v41
+    campaign (adventure.ts) výš, obojí zároveň legitimně koexistuje. */}
+<AktivniUkolHud />
+<div className="bw-location-label">{oblastNaPozici(poziceHrace)?.nazev??'Cesty údolí'} <span>{adventure.coins} <b>◉</b></span></div>
+<nav className="bw-main-menu" aria-label="Herní panely">{(['campaign','quests','world','town','buddy','achievements','settings'] as const).map(id=><button key={id} className="bw-menu-button" title={PANEL_NAMES[id]} aria-label={PANEL_NAMES[id]} aria-pressed={panel===id} onClick={()=>setPanel(panel===id?null:id)}><span>{PANEL_ICONS[id]}</span><small>{PANEL_NAMES[id]}</small></button>)}</nav>
+<HUD
+        hud={hudProSouboj}
+        maskot={maskot}
+        bossDef={bossHudDef}
+        vybranaZbran={vybranaZbran}
+        onZvolZbran={(zbran) => { if (zbranJeDostupna(zbran, hud.hrac.level)) { setVybranaZbran(zbran); zvolZbran(zbran) } }}
+        onUtocit={utokVeSvete}
+        onObranit={uhybVeSvete}
+        onVyzvatBosse={vyzvatBosse}
+        onZpet={()=>setPanel('settings')}
+        onZkusitZnovu={opakovatSouboj}
+      />
+{nahledAktivni && <div className="bw-preview-controls" role="group" aria-label="Náhled stavby">
+        <span>{nahledPlatny ? '🟢 Volné místo' : '🔴 Nelze umístit – změň polohu'}</span>
+        <button type="button" onClick={otocitNahled}>↻ Otočit</button>
+        <button type="button" disabled={!nahledPlatny} onClick={() => { potvrditStavbu(); setNahledAktivni(false) }}>✓ Potvrdit</button>
+        <button type="button" onClick={() => { zrusitNahled(); setNahledAktivni(false) }}>✕ Zrušit</button>
+      </div>}
+<div className="bw-world-interactions">{blizkyObyvatel&&<button onClick={()=>{setPanel('npc');setOtevrenyDialog(blizkyObyvatel.id)}}>💬 {blizkyObyvatel.jmeno}</button>}
+{fragmentRuinVDosahu && <button type="button" disabled={hud.mrtvyHrac} onClick={seberFragmentRuin}>🗝️ Sebrat: {fragmentRuinVDosahu.nazev}</button>}
+{lesniObjevVDosahu && <button type="button" onClick={prozkoumejLes} disabled={hud.mrtvyHrac} aria-label="Prozkoumat magický krystal lesa">💎 Prozkoumat: {lesniObjevVDosahu.nazev}</button>}
+{ulomekVDosahu && <button type="button" onClick={seberUlomek} disabled={hud.mrtvyHrac} aria-label="Sebrat krystalový úlomek">
+        💎 Sebrat úlomek (+{ODMENA_ULOMKU} krystal)
+      </button>}
+{zpravaHlidac&&vDosahuHlidace(poziceHrace)&&<p role="status">{zpravaHlidac}</p>}
+{hlidacOdemcen&&!hlidacRuin.porazen&&vDosahuHlidace(poziceHrace)&&<p className="bw-combat-warning">{hlidacVaruje(hlidacCasRef.current,hlidacHodiny)?'⚠ ÚTOK — UHNI!':'Hlídač ruin · sleduj červený kruh'}</p>}
+{aktivniVelkySouboj&&bossWarning&&<p className="bw-combat-warning">⚠ {bossWarning}</p>}
+</div>
+<button type="button" className="bw-sber-button" onClick={interact}
+        aria-label="Sebrat dřevo, kámen nebo krystaly v blízkosti hráče">🪵 Sebrat</button>
+<button type="button" className="bw-buddy-skill-button" onClick={buddyAction}
+        disabled={(aktivniVelkySouboj?bossCooldown:buddySkillCooldown) > 0 || hud.mrtvyHrac}
+        aria-label="Buddyho bojová schopnost, dosah pět metrů">
+        🦊 Buddy {(aktivniVelkySouboj?bossCooldown:buddySkillCooldown) > 0 ? `(${aktivniVelkySouboj?bossCooldown:buddySkillCooldown} s)` : `✨ ${buddyElementPoskozeni(hud.hrac.level, maskot.id)} HP`}
+      </button>
+<VirtualniJoystick onZmena={nastavJoystick} />
+{toast&&<div className="bw-toast" role="status">{toast}</div>}
+{panel!==null&&<div className="bw-drawer-shade" onPointerDown={e=>{if(e.target===e.currentTarget)setPanel(null)}}><aside className="bw-drawer" role="dialog" aria-modal="true" aria-label={PANEL_NAMES[panel!]} onKeyDown={trapFocus}><header><div><div className="bw-eyebrow">VÝPRAVA JE POZASTAVENÁ</div><strong>{PANEL_NAMES[panel!]}</strong></div><button onClick={()=>setPanel(null)} aria-label="Zavřít panel">✕</button></header><div className="bw-drawer-body">
+{panel==='campaign'&&<CampaignPanel progress={progress} inVillage={inVillage} onNavigate={navigateTo}/>}
+{panel==='quests'&&<><h2>Krystalové výpravy</h2><KristalovaVypravaUI stav={kristalovaVyprava} region={oblastNaPozici(poziceHrace)?.id === 'vesnice' ? 'buddy_vesnice' : oblastNaPozici(poziceHrace)?.id ?? ''} onAkce={vypravaAkce} />
+{druhaVyprava.faze !== 'zamcena' && <details className="bw-objevovani" aria-label="Ozvěny krystalů">
+        <summary>📜 Ozvěny krystalů {druhaVyprava.faze === 'dokoncena' ? '✓' : ''}</summary>
+        <div className="bw-objevovani-seznam">
+          <p>{popisDruhe(druhaVyprava)}</p>
+          <small>Odměna: {DRUHA_ODMENA.xp} XP · 💎 {DRUHA_ODMENA.krystaly} · 🪵 {DRUHA_ODMENA.drevo} · 🪨 {DRUHA_ODMENA.kamen}</small>
+          {druhaVyprava.faze === 'pripravena' && oblastNaPozici(poziceHrace)?.id === 'vesnice' &&
+            <button type="button" onClick={() => druhaAkce({ type: 'zahajit' })}>💬 Přijmout úkol od Elary</button>}
+          {druhaVyprava.faze === 'navrat' && oblastNaPozici(poziceHrace)?.id === 'vesnice' &&
+            <button type="button" onClick={() => druhaAkce({ type: 'prevzit', region: 'buddy_vesnice' })}>🎁 Převzít odměnu od Elary</button>}
+        </div>
+      </details>}
+{tretiVyprava.faze !== 'zamcena' && <details className="bw-objevovani" aria-label="Srdce mýtiny">
+        <summary>💠 Srdce mýtiny {tretiVyprava.faze === 'dokoncena' ? '✓' : ''}</summary>
+        <div className="bw-objevovani-seznam">
+          <p>{popisTreti(tretiVyprava)}</p>
+          <small>Odměna: {TRETI_ODMENA.xp} XP · 💎 {TRETI_ODMENA.krystaly} · 🪵 {TRETI_ODMENA.drevo} · 🪨 {TRETI_ODMENA.kamen}</small>
+          {tretiVyprava.faze === 'pripravena' && oblastNaPozici(poziceHrace)?.id === 'vesnice' &&
+            <button type="button" onClick={() => tretiAkce({ type: 'zahajit' })}>💬 Promluvit s Elarou o signálu</button>}
+          {tretiVyprava.faze === 'pruzkum' && oblastNaPozici(poziceHrace)?.id === 'kristalova-mytina' &&
+            <button type="button" onClick={() => tretiAkce({ type: 'prozkoumat', region: 'kristalova_mytina' })}>💠 Prozkoumat magický signál</button>}
+          {tretiVyprava.faze === 'navrat' && oblastNaPozici(poziceHrace)?.id === 'vesnice' &&
+            <button type="button" onClick={() => tretiAkce({ type: 'prevzit', region: 'buddy_vesnice' })}>🎁 Předat Elarě zprávu</button>}
+        </div>
+      </details>}
+<details className="bw-objevovani" aria-label="První hratelná výprava">
+        <summary>🎯 První výprava {krokyPrvniVypravy(kristalovaVyprava).filter(k => k.splneno).length}/4</summary>
+        <div className="bw-objevovani-seznam">
+          <p role="status">{dalsiDemoKrok(kristalovaVyprava)?.pokyn ?? 'Výprava dokončena! Ověř, že postup zůstal zachován i po opětovném otevření hry.'}</p>
+          {krokyPrvniVypravy(kristalovaVyprava).map(k =>
+            <div key={k.id}>{k.splneno ? '✓' : '○'} {k.nazev}</div>
+          )}
+          <small>Průvodce pouze zobrazuje skutečný stav úkolu; nepřiděluje odměny ani nepřeskakuje kroky.</small>
+        </div>
+      </details>
+<small role="status">💎 Úlomky mýtiny: {sebraneUlomky.length}/{ULOMKY_MYTINY.length}</small><h2>Obyvatelé a kronika</h2><p>Hlavní úkoly z kroniky odevzdávej u obyvatel nebo v Osadě → Úkoly.</p><section className="bw-nastenka-panel" aria-label="Nástěnka úkolů">
         <button type="button" disabled={!nastenkaVDosahu} aria-expanded={nastenkaOtevrena && nastenkaVDosahu}
           onClick={() => setNastenkaOtevrena(v => !v)}>
           📜 Nástěnka úkolů {nastenkaVDosahu ? '— prohlédnout' : `— ${Math.ceil(vzdalenostOdNastenky(poziceHrace))} m`}
@@ -501,32 +683,105 @@ export const BuddyWorldHra: React.FC<Props> = ({
           )}
         </div>}
       </section>
-      <details className="bw-objevovani" aria-label="První hratelná výprava">
-        <summary>🎯 První výprava {krokyPrvniVypravy(kristalovaVyprava).filter(k => k.splneno).length}/4</summary>
+<KronikaSveta
+        kristalova={kristalovaVyprava.faze === 'dokoncena'}
+        druha={druhaVyprava.faze === 'dokoncena'}
+        treti={tretiVyprava.faze === 'dokoncena'}
+        kael={vesnice.kaelTraining.prevzato}
+      />
+<PribehovyDenik /></>}
+{panel==='world'&&<><h2>Mapa údolí</h2><p>Vyber cíl a sleduj zlatou linku na minimapě. Sever je nahoře.</p><div className="bw-navigace" aria-label="Navigace po světě">
+        <label htmlFor="bw-navigace-cil">🧭 Cíl cesty</label>
+        <select id="bw-navigace-cil" value={navigaceId ?? ''} onChange={e => setNavigaceId(e.target.value || null)}>
+          <option value="">Bez navigace</option>
+          {OBLASTI_SVETA.filter(o => vesnice.objeveneOblasti.includes(o.id as typeof vesnice.objeveneOblasti[number])).map(o =>
+            <option key={o.id} value={o.id}>{o.symbol} {o.nazev}</option>)}
+        </select>
+        {doporucenaOblast && !navigaceId && <button type="button" onClick={() => setNavigaceId(doporucenaOblast)}>📜 Navigovat k úkolu</button>}
+        {navigacniStav && <small role="status">{navigacniStav.dosazeno ? '✓ Jsi v cíli' : `${Math.round(navigacniStav.vzdalenost)} m · ${Math.round(navigacniStav.stupne)}° od severu`}</small>}
+      </div>
+<details className="bw-objevovani" aria-label="Průzkum světa">
+        <summary>🧭 Svět {vesnice.objeveneOblasti.length}/{OBLASTI_SVETA.length}</summary>
         <div className="bw-objevovani-seznam">
-          <p role="status">{dalsiDemoKrok(kristalovaVyprava)?.pokyn ?? 'Výprava dokončena! Ověř, že postup zůstal zachován i po opětovném otevření hry.'}</p>
-          {krokyPrvniVypravy(kristalovaVyprava).map(k =>
-            <div key={k.id}>{k.splneno ? '✓' : '○'} {k.nazev}</div>
-          )}
-          <small>Průvodce pouze zobrazuje skutečný stav úkolu; nepřiděluje odměny ani nepřeskakuje kroky.</small>
+          {OBLASTI_SVETA.map((oblast) => {
+            const objevena = vesnice.objeveneOblasti.includes(oblast.id as typeof vesnice.objeveneOblasti[number])
+            return <div key={oblast.id}>{objevena ? `${oblast.symbol} ${oblast.nazev} ✓` : '🔒 Neobjevená oblast'}</div>
+          })}
+          <small>Nové oblasti objevíš vstupem na jejich území. Za první návštěvu získáš suroviny.</small>
         </div>
       </details>
-      <details className="bw-grafika-panel">
-        <summary>⚙️ Grafika</summary>
-        <label htmlFor="bw-kvalita">Kvalita 3D scény</label>
-        <select id="bw-kvalita" value={grafickaKvalita} onChange={e => {
-          const nova = e.target.value as GrafickaKvalita
-          setGrafickaKvalita(nova)
-          ulozGrafickouKvalitu(nova)
-        }}>
-          <option value="usporny">Úsporná</option>
-          <option value="vyvazeny">Vyvážená</option>
-          <option value="detailni">Detailní</option>
-        </select>
-        <p>{PROFILY_KVALITY[grafickaKvalita].popis}</p>
-        <small>Změna rozlišení je okamžitá. Vyhlazování hran se plně změní po opětovném otevření hry.</small>
+<details className="bw-objevovani" aria-label="Cestovní brány">
+        <summary>🚪 Cestovní brány</summary>
+        <div className="bw-objevovani-seznam">
+          {BRANY_REGIONU.map(brana => {
+            const vzd = Math.hypot(poziceHrace.x - brana.pozice.x, poziceHrace.z - brana.pozice.z)
+            const cil = OBLASTI_SVETA.find(o => o.id === brana.kam)
+            return <div key={brana.id}>
+              <span>{cil?.symbol} {cil?.nazev} · {Math.round(vzd)} m od brány </span>
+              <button type="button" disabled={vzd > DOSAH_BRANY || hud.mrtvyHrac} onClick={() => projdiBranou(brana.id)}>Projít</button>
+            </div>
+          })}
+          <small>Brány zkracují cestu mezi místy ve stejném údolí. Použij je přímo u vyznačeného středu oblasti.</small>
+        </div>
+      </details><details><summary>Polohy relikvií a pokladů</summary>{RELIKVIE.map(r=><p key={r.id}>{vesnice.aktivovaneRelikvie.includes(r.id)?'✓':'◇'} {r.nazev}: {r.x}, {r.z}</p>)}<p>Souřadnice hráče: {poziceHrace.x.toFixed(1)}, {poziceHrace.z.toFixed(1)}</p></details><details className="bw-objevovani" aria-label="Krystalový strážce">
+        <summary>💎⚔️ Krystalový strážce {kristalovyBossPorazen ? '✓' : ''}</summary>
+        <div className="bw-objevovani-seznam">
+          {tretiVyprava.faze !== 'dokoncena' ? <p>Nejdříve dokonči výpravu Srdce mýtiny.</p> : kristalovyBossPorazen ?
+            <p>🏆 Strážce mýtiny byl poražen. První vítězství je zaznamenáno.</p> : <>
+              <p>Aréna leží v Křišťálové mýtině. Přibliž se na {KRYSTALOVY_ARENA_DOSAH} m od středu mýtiny. V druhé fázi strážce sesílá energetické vlny.</p>
+              <small>Odměna za první vítězství: {KRYSTALOVY_ODMENA.xp} XP · 💎 {KRYSTALOVY_ODMENA.krystaly} · 🪨 {KRYSTALOVY_ODMENA.kamen}</small>
+              {(!kristalovySouboj || kristalovySouboj.faze === 'prohra') && <button type="button" disabled={!lzeVyzvatKristalovehoStrazce(tretiVyprava.faze === 'dokoncena', kristalovyBossPorazen, poziceHrace)} onClick={() => { setKristalovySouboj(novyKristalovySouboj(herniDatum())); setPanel(null) }}>⚔️ {kristalovySouboj ? 'Zkusit znovu' : 'Vyzvat Krystalového strážce'}</button>}
+              {kristalovySouboj && <div className="bw-strazce-boj" aria-live="polite">
+                <p>Strážce: {kristalovySouboj.bossHp}/{KRYSTALOVY_STRAZCE_HP} HP {kristalovySouboj.bossHp <= KRYSTALOVY_STRAZCE_HP / 2 ? '🔥 Zuřivost' : ''}</p>
+                <progress max={KRYSTALOVY_STRAZCE_HP} value={kristalovySouboj.bossHp} />
+                <p>Hráč: {kristalovySouboj.hracHp}/{KRYSTALOVY_HRAC_HP} HP · Aréna: {vzdalenostOdKristaloveAreny(poziceHrace).toFixed(1)} m</p>
+                <progress max={KRYSTALOVY_HRAC_HP} value={kristalovySouboj.hracHp} />
+                {kristalovyUtokVaruje(kristalovySouboj, kristalovyCas) && <p role="status">⚠️ {kristalovySouboj.utok === 'vlna' ? 'Energetická vlna (dosah 5 m)' : 'Krystalové ostří (dosah 3,1 m)'} — uhni nebo uteč!</p>}
+                {kristalovySouboj.faze === 'boj' && <div className="bw-strazce-akce">
+                  <button type="button" disabled={!hracDosahneNaBosse(poziceHrace, poziceKristalovehoStrazce(kristalovySouboj))} onClick={() => setKristalovySouboj(pred => pred ? zasahniKristalovehoStrazce(pred, herniDatum(), poziceHraceRef.current) : null)}>⚔️ Útok (také HUD)</button>
+                  <button type="button" onClick={() => setKristalovySouboj(pred => pred ? uhniKristalovemuStrazci(pred, herniDatum()) : null)}>💨 Úhyb (také HUD)</button>
+                  <button type="button" onClick={() => setKristalovySouboj(null)}>Odejít</button>
+                </div>}
+                {kristalovySouboj.faze === 'prohra' && <p>Strážce tě porazil. Zkus to znovu.</p>}
+                {kristalovySouboj.faze === 'vyhra' && <p>🏆 Strážce padl!</p>}
+              </div>}
+            </>}
+        </div>
       </details>
-      <details className="bw-relikvie-panel">
+<details className="bw-lesni-objevy" aria-label="Objevy magického lesa">
+        <summary>🌲 Tajemství magického lesa {lesniObjevy.length}/{LESNI_OBJEVY.length}</summary>
+        {LESNI_OBJEVY.map(objev => <p key={objev.id}>{lesniObjevy.includes(objev.id) ? `✓ ${objev.nazev}: ${objev.pribeh}` : '🔒 Neobjevený krystal'}</p>)}
+        {lesniZprava && <p role="status">{lesniZprava}</p>}
+      </details>
+<details className="bw-lesni-objevy" aria-label="Zapomenuté ruiny">
+        <summary>🏛️ Zapomenuté ruiny {stavRuin.dokonceno ? '✓' : '🔒'}</summary>
+        <p>Legenda: Kořeny probudí světlo a světlo uchová paměť.</p>
+        <p>{stavRuin.dokonceno ? '✓ Vzpomínka strážců odhalena.' : `Aktivované runy: ${stavRuin.poradi.length}/3`}</p>
+        {vDosahuRuin(poziceHrace) && !stavRuin.dokonceno ? (
+          <div role="group" aria-label="Runová hádanka">
+            {RUNY.map(id => <button key={id} type="button" disabled={hud.mrtvyHrac} onClick={() => aktivujRunuRuin(id)}>{RUNOVE_NAZVY[id]}</button>)}
+          </div>
+        ) : !stavRuin.dokonceno ? <small>Přibliž se k runovému kameni v ruinách.</small> : null}
+        {zpravaRuin && <p role="status">{zpravaRuin}</p>}
+      </details>
+<details className="bw-lesni-objevy" aria-label="Výprava Ztracené fragmenty">
+        <summary>🗝️ Ztracené fragmenty {fragmentyRuin.length}/{FRAGMENTY_RUIN.length}</summary>
+        {!stavRuin.dokonceno ? <p>🔒 Nejprve vyřeš runovou hádanku v ruinách.</p> : <>
+          <p>Najdi tři památky dávných strážců v okolí ruin.</p>
+          {FRAGMENTY_RUIN.map(f => <p key={f.id}>{fragmentyRuin.includes(f.id) ? `✓ ${f.nazev}: ${f.pribeh}` : `◇ ${f.nazev} — dosud nenalezeno`}</p>)}
+          {fragmentyRuin.length === FRAGMENTY_RUIN.length && <p>✓ Příběhová výprava dokončena.</p>}
+        </>}
+        {zpravaFragmenty && <p role="status">{zpravaFragmenty}</p>}
+      </details>
+<details className="bw-lesni-objevy" aria-label="Výprava Hlídač ruin">
+        <summary>⚔️ Hlídač ruin {hlidacRuin.porazen ? '✓' : '🔒'}</summary>
+        {!hlidacOdemcen ? <p>Nejprve dokonči runovou hádanku a sesbírej všechny tři fragmenty.</p> : <>
+          <p>{hlidacRuin.porazen ? '✓ Pečeť strážců získána. První střetnutí dokončeno.' : `Hlídač čeká u ruin. Síla: ${hlidacRuin.hp}/${HLIDAC_MAX_HP} · Tvoje ochrana: ${hlidacRuin.ochrana}/3 · ${hlidacVaruje(hlidacCasRef.current, hlidacHodiny) ? hlidacCasRef.current.druhUderu === 'rychly' ? '⚠️ RYCHLÝ ÚTOK – UHNI!' : '⚠️ ÚTOK SE BLÍŽÍ – UHNI!' : 'Sleduj jeho útoky v reálném čase'}`}</p>
+          <small>Časovaný souboj: sleduj červené varování a včas uhni. Sleduj vyznačenou oblast zásahu, ustup z kruhu nebo uhni. Odměnu za jeho přísahu získáš v příběhu.</small>
+        </>}
+        {zpravaHlidac && <p role="status">{zpravaHlidac}</p>}
+      </details>
+<details className="bw-relikvie-panel">
         <summary>🔮 Relikvie {vesnice.aktivovaneRelikvie.length}/{RELIKVIE.length}</summary>
         <p>Najdi zářící obelisky ve světě a aktivuj je tlačítkem sběru.</p>
         {RELIKVIE.map(r => <p key={r.id}>
@@ -534,7 +789,7 @@ export const BuddyWorldHra: React.FC<Props> = ({
           {vesnice.aktivovaneRelikvie.includes(r.id) && <small> — {r.popis}</small>}
         </p>)}
       </details>
-      <details className="bw-pecete-panel">
+<details className="bw-pecete-panel">
         <summary>✨ Probuzení strážců {vesnice.udalostiPeceti.includes(TRI_PECETE_ID) ? '✓' : `${vesnice.aktivovaneRelikvie.length}/${RELIKVIE.length}`}</summary>
         {jsouPeceteAktivni(vesnice.aktivovaneRelikvie) ? <>
           {TRI_PECETE_PRIBEH.map((text, i) => <p key={i}>{text}</p>)}
@@ -545,24 +800,7 @@ export const BuddyWorldHra: React.FC<Props> = ({
           }}>{vesnice.udalostiPeceti.includes(TRI_PECETE_ID) ? '✓ Událost dokončena' : '✨ Probudit strážce'}</button>
         </> : <p>Aktivuj všechny tři relikvie, aby se odhalilo tajemství dávných strážců.</p>}
       </details>
-      <details className="bw-chram-panel">
-        <summary>⚔️ Chrámový strážce {vesnice.porazenChramovyStrazce ? '✓' : ''}</summary>
-        {!vesnice.dokoncenePodzemi ? <p>Nejdříve dokonči chrámovou zkoušku.</p> : vesnice.porazenChramovyStrazce ? <p>🏆 Strážce poražen. Odměna získána.</p> : <>
-          <p>Prostorový souboj: přibliž se k modelu v 3D aréně pro útok, ustup mimo dosah strážce nebo použij úhyb. Ve druhé fázi útočí rychleji.</p>
-          {!soubojStrazce || soubojStrazce.faze === 'prohra' ? <button type="button" disabled={!lzeVyzvatStrazce(vesnice.dokoncenePodzemi, vesnice.porazenChramovyStrazce, poziceHrace)} onClick={() => { setVyhraZapsana(false); setSoubojStrazce(novySouboj(Date.now())) }}>⚔️ {soubojStrazce ? 'Zkusit znovu' : 'Vyzvat strážce u chrámu'}</button> : null}
-          {soubojStrazce && <div className="bw-strazce-boj" aria-live="polite">
-            <p>Strážce: {soubojStrazce.bossHp}/{STRAZCE_MAX_HP} HP {soubojStrazce.bossHp <= STRAZCE_MAX_HP / 2 ? '🔥 Zuřivost' : ''}</p>
-            <progress max={STRAZCE_MAX_HP} value={soubojStrazce.bossHp} />
-            {stavVarovani(soubojStrazce, Date.now()) && <p className="bw-varovani-utoku" role="status">⚠️ {soubojStrazce.typUderu === 'vlna' ? 'Energetická vlna (fialová)' : 'Plošný úder (červený)'}! Dosah {polomerUderu(soubojStrazce).toFixed(1)} m. Zbývá {((zbyvaDoUtoku(soubojStrazce, Date.now()) ?? 0) / 1000).toFixed(1)} s — uteč z vyznačené oblasti nebo uhni.</p>}
-            <p>Hráč: {soubojStrazce.hracHp}/{HRAC_MAX_HP} HP · Vzdálenost od strážce: {vzdalenostOdStrazce(poziceHrace, soubojStrazce).toFixed(1)} m</p>
-            <progress max={HRAC_MAX_HP} value={soubojStrazce.hracHp} />
-            {soubojStrazce.faze === 'boj' && <div className="bw-strazce-akce"><button type="button" disabled={vzdalenostOdStrazce(poziceHrace, soubojStrazce) > DOSAH_UTOKU} onClick={() => setSoubojStrazce(s => s ? utokHrace(s, Date.now(), poziceHraceRef.current) : null)}>⚔️ Útok zblízka</button><button type="button" onClick={() => setSoubojStrazce(s => s ? kryjSe(s, Date.now()) : null)}>🛡️ Kryt</button><button type="button" onClick={() => setSoubojStrazce(s => s ? uhni(s, Date.now()) : null)}>💨 Úhyb (také HUD)</button><button type="button" onClick={() => setSoubojStrazce(null)}>Odejít</button></div>}
-            {soubojStrazce.faze === 'prohra' && <p>Strážce tě porazil. Připrav se a zkus to znovu.</p>}
-            {soubojStrazce.faze === 'vyhra' && <p>🏆 Strážce padl. Získáváš 25 kamenů a 35 krystalů!</p>}
-          </div>}
-        </>}
-      </details>
-      <details className="bw-chram-panel">
+<details className="bw-chram-panel">
         <summary>🏛️ Starý chrám strážců {vesnice.dokoncenyChram ? '✓' : ''}</summary>
         {!vesnice.udalostiPeceti.includes(TRI_PECETE_ID) ?
           <p>Nejprve aktivuj všechny relikvie a dokonči Probuzení strážců.</p> : <>
@@ -576,7 +814,7 @@ export const BuddyWorldHra: React.FC<Props> = ({
           </button>
         </>}
       </details>
-      <details className="bw-podzemi-panel">
+<details className="bw-podzemi-panel">
         <summary>🗝️ Chrámové podzemí {vesnice.dokoncenePodzemi ? '✓' : `${vesnice.aktivovaneChramoveRuny.length}/${CHRAMOVE_RUNY.length}`}</summary>
         {!vesnice.dokoncenyChram ? <p>Nejprve prozkoumej oltář Starého chrámu.</p> : <>
           <p>Aktivuj tři runy ve správném pořadí. Každá vyžaduje přiblížení na {DOSAH_RUNY} m.</p>
@@ -594,18 +832,54 @@ export const BuddyWorldHra: React.FC<Props> = ({
           {vesnice.dokoncenePodzemi && PODZEMI_PRIBEH.map((radek, i) => <p key={i}>{radek}</p>)}
         </>}
       </details>
-      {blizkyObyvatel && <div className="bw-npc-dialog" role="region" aria-label="Rozhovor s obyvatelem">
+<details className="bw-chram-panel">
+        <summary>⚔️ Chrámový strážce {vesnice.porazenChramovyStrazce ? '✓' : ''}</summary>
+        {!vesnice.dokoncenePodzemi ? <p>Nejdříve dokonči chrámovou zkoušku.</p> : vesnice.porazenChramovyStrazce ? <p>🏆 Strážce poražen. Odměna získána.</p> : <>
+          <p>Prostorový souboj: přibliž se k modelu v 3D aréně pro útok, ustup mimo dosah strážce nebo použij úhyb. Ve druhé fázi útočí rychleji.</p>
+          {!soubojStrazce || soubojStrazce.faze === 'prohra' ? <button type="button" disabled={!lzeVyzvatStrazce(vesnice.dokoncenePodzemi, vesnice.porazenChramovyStrazce, poziceHrace)} onClick={() => { setVyhraZapsana(false); setSoubojStrazce(novySouboj(herniDatum())); setPanel(null) }}>⚔️ {soubojStrazce ? 'Zkusit znovu' : 'Vyzvat strážce u chrámu'}</button> : null}
+          {soubojStrazce && <div className="bw-strazce-boj" aria-live="polite">
+            <p>Strážce: {soubojStrazce.bossHp}/{STRAZCE_MAX_HP} HP {soubojStrazce.bossHp <= STRAZCE_MAX_HP / 2 ? '🔥 Zuřivost' : ''}</p>
+            <progress max={STRAZCE_MAX_HP} value={soubojStrazce.bossHp} />
+            {stavVarovani(soubojStrazce, herniDatum()) && <p className="bw-varovani-utoku" role="status">⚠️ {soubojStrazce.typUderu === 'vlna' ? 'Energetická vlna (fialová)' : 'Plošný úder (červený)'}! Dosah {polomerUderu(soubojStrazce).toFixed(1)} m. Zbývá {((zbyvaDoUtoku(soubojStrazce, herniDatum()) ?? 0) / 1000).toFixed(1)} s — uteč z vyznačené oblasti nebo uhni.</p>}
+            <p>Hráč: {soubojStrazce.hracHp}/{HRAC_MAX_HP} HP · Vzdálenost od strážce: {vzdalenostOdStrazce(poziceHrace, soubojStrazce).toFixed(1)} m</p>
+            <progress max={HRAC_MAX_HP} value={soubojStrazce.hracHp} />
+            {soubojStrazce.faze === 'boj' && <div className="bw-strazce-akce"><button type="button" disabled={vzdalenostOdStrazce(poziceHrace, soubojStrazce) > DOSAH_UTOKU} onClick={() => setSoubojStrazce(s => s ? utokHrace(s, herniDatum(), poziceHraceRef.current) : null)}>⚔️ Útok zblízka</button><button type="button" onClick={() => setSoubojStrazce(s => s ? kryjSe(s, herniDatum()) : null)}>🛡️ Kryt</button><button type="button" onClick={() => setSoubojStrazce(s => s ? uhni(s, herniDatum()) : null)}>💨 Úhyb (také HUD)</button><button type="button" onClick={() => setSoubojStrazce(null)}>Odejít</button></div>}
+            {soubojStrazce.faze === 'prohra' && <p>Strážce tě porazil. Připrav se a zkus to znovu.</p>}
+            {soubojStrazce.faze === 'vyhra' && <p>🏆 Strážce padl. Získáváš 25 kamenů a 35 krystalů!</p>}
+          </div>}
+        </>}
+      </details>
+<SezonaPanel pokrok={pokrokSezony} /></>}
+{panel==='town'&&<OsadaPanel embedded onPostavit={(typ) => { postavit(typ); setNahledAktivni(true); setPanel(null) }} onPresunout={(id) => { presunout(id); setNahledAktivni(true); setPanel(null) }} />}
+{panel==='buddy'&&<BuddyPanel maskot={maskot}/>}
+{panel==='achievements'&&<Achievements progress={progress}/>}
+{panel==='settings'&&<><GameSettings inVillage={inVillage} onRest={odpocinout} onExit={onZpet}/><details className="bw-grafika-panel">
+        <summary>⚙️ Grafika</summary>
+        <label htmlFor="bw-kvalita">Kvalita 3D scény</label>
+        <select id="bw-kvalita" value={grafickaKvalita} onChange={e => {
+          const nova = e.target.value as GrafickaKvalita
+          setGrafickaKvalita(nova)
+          ulozGrafickouKvalitu(nova)
+        }}>
+          <option value="usporny">Úsporná</option>
+          <option value="vyvazeny">Vyvážená</option>
+          <option value="detailni">Detailní</option>
+        </select>
+        <p>{PROFILY_KVALITY[grafickaKvalita].popis}</p>
+        <small>Změna rozlišení je okamžitá. Vyhlazování hran se plně změní po opětovném otevření hry.</small>
+      </details></>}
+{panel==='npc'&&<>{blizkyObyvatel && <div className="bw-npc-dialog" role="region" aria-label="Rozhovor s obyvatelem">
         <strong>{blizkyObyvatel.role} {blizkyObyvatel.jmeno}</strong>
         {otevrenyDialog === blizkyObyvatel.id && <div>
           {ukolNpc ? scenaUkolu(ukolNpc.id).pred.map((radek, i) => <p key={i}>{radek}</p>) : <p>{blizkyObyvatel.dialog}</p>}
           <section className="bw-npc-volby" aria-label="Témata rozhovoru">
             <strong>💬 Na co se chceš zeptat?</strong>
             {volbyProNpc(blizkyObyvatel.id).map(volba =>
-              <button key={volba.id} type="button" aria-pressed={vybranaVolba != null && vybranaVolba.npc === blizkyObyvatel.id && vybranaVolba.id === volba.id}
+              <button key={volba.id} type="button" aria-pressed={vybranaVolba?.npc === blizkyObyvatel.id && vybranaVolba?.id === volba.id}
                 onClick={() => { const ulozeno = ulozRozhodnuti(blizkyObyvatel.id, volba.id); if (ulozeno) { if (blizkyObyvatel.id === 'kael' && volba.id === 'vycvik') vesnice.zahajKaelTraining(); if (blizkyObyvatel.id === 'mira' && volba.id === 'stavba') vesnice.zahajMiraStavbu(); setNpcRozhodnuti(ulozeno); setVybranaVolba({ npc: blizkyObyvatel.id, id: volba.id }) } else setZpravaNpc('Rozhodnutí se nepodařilo uložit.') }}>{volba.otazka}</button>
             )}
-            {vybranaVolba != null && vybranaVolba.npc === blizkyObyvatel.id &&
-              <p role="status">{odpovedNpc(blizkyObyvatel.id, vybranaVolba.id)}</p>}
+            {vybranaVolba?.npc === blizkyObyvatel.id &&
+              <p role="status">{odpovedNpc(blizkyObyvatel.id, vybranaVolba?.id)}</p>}
             {npcRozhodnuti[blizkyObyvatel.id] && <p className="bw-npc-vzpominka">🧠 {reakceNaRozhodnuti(blizkyObyvatel.id, npcRozhodnuti[blizkyObyvatel.id])}</p>}
           </section>
           {blizkyObyvatel.id === 'elara' && <section className="bw-elara-pribeh" aria-label="Elařino pátrání po krystalech">
@@ -708,170 +982,9 @@ export const BuddyWorldHra: React.FC<Props> = ({
         <button type="button" onClick={() => { setZpravaNpc(''); setOtevrenyDialog(
           otevrenyDialog === blizkyObyvatel.id ? null : blizkyObyvatel.id
         ) }}>{otevrenyDialog === blizkyObyvatel.id ? 'Zavřít' : 'Promluvit'}</button>
-      </div>}
-      <details className="bw-objevovani" aria-label="Průzkum světa">
-        <summary>🧭 Svět {vesnice.objeveneOblasti.length}/{OBLASTI_SVETA.length}</summary>
-        <div className="bw-objevovani-seznam">
-          {OBLASTI_SVETA.map((oblast) => {
-            const objevena = vesnice.objeveneOblasti.includes(oblast.id as typeof vesnice.objeveneOblasti[number])
-            return <div key={oblast.id}>{objevena ? `${oblast.symbol} ${oblast.nazev} ✓` : '🔒 Neobjevená oblast'}</div>
-          })}
-          <small>Nové oblasti objevíš vstupem na jejich území. Za první návštěvu získáš suroviny.</small>
-        </div>
-      </details>
-      <details className="bw-objevovani" aria-label="Cestovní brány">
-        <summary>🚪 Cestovní brány</summary>
-        <div className="bw-objevovani-seznam">
-          {BRANY_REGIONU.map(brana => {
-            const vzd = Math.hypot(poziceHrace.x - brana.pozice.x, poziceHrace.z - brana.pozice.z)
-            const cil = OBLASTI_SVETA.find(o => o.id === brana.kam)
-            return <div key={brana.id}>
-              <span>{cil?.symbol} {cil?.nazev} · {Math.round(vzd)} m od brány </span>
-              <button type="button" disabled={vzd > DOSAH_BRANY || hud.mrtvyHrac} onClick={() => projdiBranou(brana.id)}>Projít</button>
-            </div>
-          })}
-          <small>Brány zkracují cestu v současné prototypové mapě. Nové samostatné regiony budou přidány později.</small>
-        </div>
-      </details>
-      <Minimapa pozice={poziceHrace} objevene={vesnice.objeveneOblasti} navigaceId={navigaceId} />
-      <div className="bw-navigace" aria-label="Navigace po světě">
-        <label htmlFor="bw-navigace-cil">🧭 Cíl cesty</label>
-        <select id="bw-navigace-cil" value={navigaceId ?? ''} onChange={e => setNavigaceId(e.target.value || null)}>
-          <option value="">Bez navigace</option>
-          {OBLASTI_SVETA.filter(o => vesnice.objeveneOblasti.includes(o.id as typeof vesnice.objeveneOblasti[number])).map(o =>
-            <option key={o.id} value={o.id}>{o.symbol} {o.nazev}</option>)}
-        </select>
-        {doporucenaOblast && !navigaceId && <button type="button" onClick={() => setNavigaceId(doporucenaOblast)}>📜 Navigovat k úkolu</button>}
-        {navigacniStav && <small role="status">{navigacniStav.dosazeno ? '✓ Jsi v cíli' : `${Math.round(navigacniStav.vzdalenost)} m · ${Math.round(navigacniStav.stupne)}° od severu`}</small>}
-      </div>
-      <KristalovaVypravaUI stav={kristalovaVyprava} region={oblastNaPozici(poziceHrace)?.id === 'vesnice' ? 'buddy_vesnice' : oblastNaPozici(poziceHrace)?.id ?? ''} onAkce={vypravaAkce} />
-      {druhaVyprava.faze !== 'zamcena' && <details className="bw-objevovani" aria-label="Ozvěny krystalů">
-        <summary>📜 Ozvěny krystalů {druhaVyprava.faze === 'dokoncena' ? '✓' : ''}</summary>
-        <div className="bw-objevovani-seznam">
-          <p>{popisDruhe(druhaVyprava)}</p>
-          <small>Odměna: {DRUHA_ODMENA.xp} XP · 💎 {DRUHA_ODMENA.krystaly} · 🪵 {DRUHA_ODMENA.drevo} · 🪨 {DRUHA_ODMENA.kamen}</small>
-          {druhaVyprava.faze === 'pripravena' && oblastNaPozici(poziceHrace)?.id === 'vesnice' &&
-            <button type="button" onClick={() => druhaAkce({ type: 'zahajit' })}>💬 Přijmout úkol od Elary</button>}
-          {druhaVyprava.faze === 'navrat' && oblastNaPozici(poziceHrace)?.id === 'vesnice' &&
-            <button type="button" onClick={() => druhaAkce({ type: 'prevzit', region: 'buddy_vesnice' })}>🎁 Převzít odměnu od Elary</button>}
-        </div>
-      </details>}
-      {tretiVyprava.faze !== 'zamcena' && <details className="bw-objevovani" aria-label="Srdce mýtiny">
-        <summary>💠 Srdce mýtiny {tretiVyprava.faze === 'dokoncena' ? '✓' : ''}</summary>
-        <div className="bw-objevovani-seznam">
-          <p>{popisTreti(tretiVyprava)}</p>
-          <small>Odměna: {TRETI_ODMENA.xp} XP · 💎 {TRETI_ODMENA.krystaly} · 🪵 {TRETI_ODMENA.drevo} · 🪨 {TRETI_ODMENA.kamen}</small>
-          {tretiVyprava.faze === 'pripravena' && oblastNaPozici(poziceHrace)?.id === 'vesnice' &&
-            <button type="button" onClick={() => tretiAkce({ type: 'zahajit' })}>💬 Promluvit s Elarou o signálu</button>}
-          {tretiVyprava.faze === 'pruzkum' && oblastNaPozici(poziceHrace)?.id === 'kristalova-mytina' &&
-            <button type="button" onClick={() => tretiAkce({ type: 'prozkoumat', region: 'kristalova_mytina' })}>💠 Prozkoumat magický signál</button>}
-          {tretiVyprava.faze === 'navrat' && oblastNaPozici(poziceHrace)?.id === 'vesnice' &&
-            <button type="button" onClick={() => tretiAkce({ type: 'prevzit', region: 'buddy_vesnice' })}>🎁 Předat Elarě zprávu</button>}
-        </div>
-      </details>}
-      <details className="bw-objevovani" aria-label="Krystalový strážce">
-        <summary>💎⚔️ Krystalový strážce {kristalovyBossPorazen ? '✓' : ''}</summary>
-        <div className="bw-objevovani-seznam">
-          {tretiVyprava.faze !== 'dokoncena' ? <p>Nejdříve dokonči výpravu Srdce mýtiny.</p> : kristalovyBossPorazen ?
-            <p>🏆 Strážce mýtiny byl poražen. První vítězství je zaznamenáno.</p> : <>
-              <p>Aréna leží v Křišťálové mýtině. Přibliž se na {KRYSTALOVY_ARENA_DOSAH} m od středu mýtiny. V druhé fázi strážce sesílá energetické vlny.</p>
-              <small>Odměna za první vítězství: {KRYSTALOVY_ODMENA.xp} XP · 💎 {KRYSTALOVY_ODMENA.krystaly} · 🪨 {KRYSTALOVY_ODMENA.kamen}</small>
-              {(!kristalovySouboj || kristalovySouboj.faze === 'prohra') && <button type="button" disabled={!lzeVyzvatKristalovehoStrazce(tretiVyprava.faze === 'dokoncena', kristalovyBossPorazen, poziceHrace)} onClick={() => setKristalovySouboj(novyKristalovySouboj(Date.now()))}>⚔️ {kristalovySouboj ? 'Zkusit znovu' : 'Vyzvat Krystalového strážce'}</button>}
-              {kristalovySouboj && <div className="bw-strazce-boj" aria-live="polite">
-                <p>Strážce: {kristalovySouboj.bossHp}/{KRYSTALOVY_STRAZCE_HP} HP {kristalovySouboj.bossHp <= KRYSTALOVY_STRAZCE_HP / 2 ? '🔥 Zuřivost' : ''}</p>
-                <progress max={KRYSTALOVY_STRAZCE_HP} value={kristalovySouboj.bossHp} />
-                <p>Hráč: {kristalovySouboj.hracHp}/{KRYSTALOVY_HRAC_HP} HP · Aréna: {vzdalenostOdKristaloveAreny(poziceHrace).toFixed(1)} m</p>
-                <progress max={KRYSTALOVY_HRAC_HP} value={kristalovySouboj.hracHp} />
-                {kristalovyUtokVaruje(kristalovySouboj, kristalovyCas) && <p role="status">⚠️ {kristalovySouboj.utok === 'vlna' ? 'Energetická vlna (dosah 5 m)' : 'Krystalové ostří (dosah 3,1 m)'} — uhni nebo uteč!</p>}
-                {kristalovySouboj.faze === 'boj' && <div className="bw-strazce-akce">
-                  <button type="button" disabled={!hracDosahneNaBosse(poziceHrace, poziceKristalovehoStrazce(kristalovySouboj))} onClick={() => setKristalovySouboj(pred => pred ? zasahniKristalovehoStrazce(pred, Date.now(), poziceHraceRef.current) : null)}>⚔️ Útok (také HUD)</button>
-                  <button type="button" onClick={() => setKristalovySouboj(pred => pred ? uhniKristalovemuStrazci(pred, Date.now()) : null)}>💨 Úhyb (také HUD)</button>
-                  <button type="button" onClick={() => setKristalovySouboj(null)}>Odejít</button>
-                </div>}
-                {kristalovySouboj.faze === 'prohra' && <p>Strážce tě porazil. Zkus to znovu.</p>}
-                {kristalovySouboj.faze === 'vyhra' && <p>🏆 Strážce padl!</p>}
-              </div>}
-            </>}
-        </div>
-      </details>
-      <AktivniUkolHud />
-      <KronikaSveta
-        kristalova={kristalovaVyprava.faze === 'dokoncena'}
-        druha={druhaVyprava.faze === 'dokoncena'}
-        treti={tretiVyprava.faze === 'dokoncena'}
-        kael={vesnice.kaelTraining.prevzato}
-      />
-      <PribehovyDenik />
-      <HUD
-        hud={hud}
-        maskot={maskot}
-        bossDef={bossDef}
-        vybranaZbran={vybranaZbran}
-        onZvolZbran={(zbran) => { if (zbranJeDostupna(zbran, hud.hrac.level)) { setVybranaZbran(zbran); zvolZbran(zbran) } }}
-        onUtocit={utokVeSvete}
-        onObranit={uhybVeSvete}
-        onVyzvatBosse={vyzvatBosse}
-        onZpet={onZpet}
-        onZkusitZnovu={obnovitPoSmrti}
-      />
-
-      <OsadaPanel onPostavit={(typ) => { postavit(typ); setNahledAktivni(true) }} onPresunout={(id) => { presunout(id); setNahledAktivni(true) }} />
-      {nahledAktivni && <div className="bw-preview-controls" role="group" aria-label="Náhled stavby">
-        <span>{nahledPlatny ? '🟢 Volné místo' : '🔴 Nelze umístit – změň polohu'}</span>
-        <button type="button" onClick={otocitNahled}>↻ Otočit</button>
-        <button type="button" disabled={!nahledPlatny} onClick={() => { potvrditStavbu(); setNahledAktivni(false) }}>✓ Potvrdit</button>
-        <button type="button" onClick={() => { zrusitNahled(); setNahledAktivni(false) }}>✕ Zrušit</button>
-      </div>}
-      <details className="bw-lesni-objevy" aria-label="Zapomenuté ruiny">
-        <summary>🏛️ Zapomenuté ruiny {stavRuin.dokonceno ? '✓' : '🔒'}</summary>
-        <p>Legenda: Kořeny probudí světlo a světlo uchová paměť.</p>
-        <p>{stavRuin.dokonceno ? '✓ Vzpomínka strážců odhalena.' : `Aktivované runy: ${stavRuin.poradi.length}/3`}</p>
-        {vDosahuRuin(poziceHrace) && !stavRuin.dokonceno ? (
-          <div role="group" aria-label="Runová hádanka">
-            {RUNY.map(id => <button key={id} type="button" disabled={hud.mrtvyHrac} onClick={() => aktivujRunuRuin(id)}>{RUNOVE_NAZVY[id]}</button>)}
-          </div>
-        ) : !stavRuin.dokonceno ? <small>Přibliž se k runovému kameni v ruinách.</small> : null}
-        {zpravaRuin && <p role="status">{zpravaRuin}</p>}
-      </details>
-      <details className="bw-lesni-objevy" aria-label="Výprava Ztracené fragmenty">
-        <summary>🗝️ Ztracené fragmenty {fragmentyRuin.length}/{FRAGMENTY_RUIN.length}</summary>
-        {!stavRuin.dokonceno ? <p>🔒 Nejprve vyřeš runovou hádanku v ruinách.</p> : <>
-          <p>Najdi tři památky dávných strážců v okolí ruin.</p>
-          {FRAGMENTY_RUIN.map(f => <p key={f.id}>{fragmentyRuin.includes(f.id) ? `✓ ${f.nazev}: ${f.pribeh}` : `◇ ${f.nazev} — dosud nenalezeno`}</p>)}
-          {fragmentyRuin.length === FRAGMENTY_RUIN.length && <p>✓ Příběhová výprava dokončena.</p>}
-        </>}
-        {zpravaFragmenty && <p role="status">{zpravaFragmenty}</p>}
-      </details>
-      {fragmentRuinVDosahu && <button type="button" disabled={hud.mrtvyHrac} onClick={seberFragmentRuin}>🗝️ Sebrat: {fragmentRuinVDosahu.nazev}</button>}
-      <details className="bw-lesni-objevy" aria-label="Výprava Hlídač ruin">
-        <summary>⚔️ Hlídač ruin {hlidacRuin.porazen ? '✓' : '🔒'}</summary>
-        {!hlidacOdemcen ? <p>Nejprve dokonči runovou hádanku a sesbírej všechny tři fragmenty.</p> : <>
-          <p>{hlidacRuin.porazen ? '✓ Pečeť strážců získána. První střetnutí dokončeno.' : `Hlídač čeká u ruin. Síla: ${hlidacRuin.hp}/${HLIDAC_MAX_HP} · Tvoje ochrana: ${hlidacRuin.ochrana}/3 · ${hlidacVaruje(hlidacCasRef.current, hlidacHodiny) ? hlidacCasRef.current.druhUderu === 'rychly' ? '⚠️ RYCHLÝ ÚTOK – UHNI!' : '⚠️ ÚTOK SE BLÍŽÍ – UHNI!' : 'Sleduj jeho útoky v reálném čase'}`}</p>
-          <small>Časovaný souboj: sleduj červené varování a včas uhni. Hlídač se vizuálně natáčí a vyráží vpřed; kolize a dosah jsou zatím pevně dané. Bez XP.</small>
-        </>}
-        {zpravaHlidac && <p role="status">{zpravaHlidac}</p>}
-      </details>
-      {hlidacOdemcen && !hlidacRuin.porazen && vDosahuHlidace(poziceHrace) && <button type="button" disabled={hud.mrtvyHrac} onClick={utocNaHlidace}>⚔️ Zasáhnout hlídače ({hlidacRuin.hp}/{HLIDAC_MAX_HP})</button>}
-      {hlidacOdemcen && !hlidacRuin.porazen && vDosahuHlidace(poziceHrace) && <button type="button" disabled={hud.mrtvyHrac} onClick={uhybPredHlidacem}>🛡️ Uhnout</button>}
-      {lesniObjevVDosahu && <button type="button" onClick={prozkoumejLes} disabled={hud.mrtvyHrac} aria-label="Prozkoumat magický krystal lesa">💎 Prozkoumat: {lesniObjevVDosahu.nazev}</button>}
-      <details className="bw-lesni-objevy" aria-label="Objevy magického lesa">
-        <summary>🌲 Tajemství magického lesa {lesniObjevy.length}/{LESNI_OBJEVY.length}</summary>
-        {LESNI_OBJEVY.map(objev => <p key={objev.id}>{lesniObjevy.includes(objev.id) ? `✓ ${objev.nazev}: ${objev.pribeh}` : '🔒 Neobjevený krystal'}</p>)}
-        {lesniZprava && <p role="status">{lesniZprava}</p>}
-      </details>
-      {ulomekVDosahu && <button type="button" onClick={seberUlomek} disabled={hud.mrtvyHrac} aria-label="Sebrat krystalový úlomek">
-        💎 Sebrat úlomek (+{ODMENA_ULOMKU} krystal)
-      </button>}
-      <small role="status">💎 Úlomky mýtiny: {sebraneUlomky.length}/{ULOMKY_MYTINY.length}</small>
-      <button type="button" className="bw-sber-button" onClick={sebrat}
-        aria-label="Sebrat dřevo, kámen nebo krystaly v blízkosti hráče">🪵 Sebrat</button>
-      <button type="button" className="bw-buddy-skill-button" onClick={pouzijBuddySchopnost}
-        disabled={buddySkillCooldown > 0 || hud.mrtvyHrac}
-        aria-label="Buddyho bojová schopnost, dosah pět metrů">
-        🦊 Buddy {buddySkillCooldown > 0 ? `(${buddySkillCooldown} s)` : `✨ ${buddyElementPoskozeni(hud.hrac.level, maskot.id)} HP`}
-      </button>
-      <VirtualniJoystick onZmena={nastavJoystick} />
-    </div>
+      </div>}{!blizkyObyvatel&&<p>Promluv si s obyvateli přímo ve vesnici.</p>}</>}
+</div></aside></div>}
+</div>
   )
 }
 

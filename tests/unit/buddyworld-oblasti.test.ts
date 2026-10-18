@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { OBLASTI_SVETA, oblastNaPozici } from '../../src/buddyworld/data/oblasti'
 
 describe('Buddy World – oblasti mapy', () => {
-  it('má čtyři unikátní oblasti s platnými poloměry', () => {
-    expect(OBLASTI_SVETA).toHaveLength(4)
-    expect(new Set(OBLASTI_SVETA.map(o => o.id)).size).toBe(4)
+  it('má šest unikátních oblastí s platnými poloměry', () => {
+    expect(OBLASTI_SVETA).toHaveLength(6)
+    expect(new Set(OBLASTI_SVETA.map(o => o.id)).size).toBe(6)
     expect(OBLASTI_SVETA.every(o => o.polomer > 0)).toBe(true)
   })
   it('najde vesnici v jejím středu', () => {

@@ -15,14 +15,9 @@ describe('v7.0 – prostorové kolize a úhyb', () => {
     expect(vZasahoveZone({x: 4,z: 4}, {x: 0,z: 4}, 3.1)).toBe(false)
   })
   it('dodge protects only during its active window', () => {
-    const s = novyKristalovySouboj(1000)
-    // dalsiUtokMs je 3600 — útok se doopravdy vyhodnotí až tam, nikdy dřív
-    // (tikKristalovehoStrazce před ním vrací jen pohybový stav). uhybDoMs
-    // skončí v 3100, tedy dřív, než útok vůbec dorazí — appka proto testuje
-    // na 3700 (po skutečném vyhodnocení útoku, s úhybem už promlčeným),
-    // ne na 3200, kde appka před odpraveným útokem nikdy nic neodečte.
+    const s = { ...novyKristalovySouboj(1000), dalsiUtokMs: 2600 }
     const dodge = uhniKristalovemuStrazci(s, 2500)
     expect(tikKristalovehoStrazce(dodge, 2600, {x:0,z:4}).hracHp).toBe(s.hracHp)
-    expect(tikKristalovehoStrazce(dodge, 3700, {x:0,z:4}).hracHp).toBeLessThan(s.hracHp)
+    expect(tikKristalovehoStrazce({ ...dodge, dalsiUtokMs: 3200 }, 3200, {x:0,z:4}).hracHp).toBeLessThan(s.hracHp)
   })
 })

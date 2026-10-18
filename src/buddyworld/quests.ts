@@ -1,6 +1,6 @@
 import type { VillageProgress } from './villageProgress'
 
-export type QuestId = 'prvni_kroky' | 'obrana_osady' | 'nova_vesnice' | 'zkouska_odvahy' | 'cesta_k_mestu' | 'strazci_udoli' | 'novy_domov' | 'stiny_se_vraceji' | 'srdce_udoli' | 'hranice_temnoty' | 'posledni_straz' | 'novy_usvit'
+export type QuestId = 'prvni_kroky' | 'obrana_osady' | 'nova_vesnice' | 'zkouska_odvahy' | 'cesta_k_mestu' | 'strazci_udoli' | 'novy_domov' | 'stiny_se_vraceji' | 'srdce_udoli' | 'hranice_temnoty' | 'posledni_stráž' | 'novy_usvit'
 export interface QuestDefinition {
   id: QuestId
   nazev: string
@@ -54,7 +54,7 @@ export const UKOLY: QuestDefinition[] = [
     dialog: 'Naše cesty jsou stále nebezpečné. Vyčisti okolí města, ať mohou obchodníci bezpečně projít.',
     cil: 'Poraz celkem 20 běžných nepřátel.', hotovo: s => s.porazeniNepratele >= 20,
     odmena: { drevo: 15, kamen: 15, krystaly: 6 } },
-  { id: 'posledni_straz', nazev: 'Poslední stráž', zadavatel: 'Strážce Kael',
+  { id: 'posledni_stráž', nazev: 'Poslední stráž', zadavatel: 'Strážce Kael',
     dialog: 'V lesích se znovu objevila stará hrozba. Ukaž, že naše město dokáže odolat.',
     cil: 'Poraz celkem 3 bossy.', hotovo: s => s.porazeniBossove >= 3,
     odmena: { drevo: 18, kamen: 18, krystaly: 8 } },

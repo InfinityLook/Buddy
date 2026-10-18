@@ -4,10 +4,6 @@ export interface JournalStorage {
   setItem(key: string, value: string): void
 }
 export type StavOdmeny = 'nezahajeno' | 'rezervovano' | 'dokonceno' | 'neznamy'
-/** Čte pouze přes getItem — appka proto bere jen `Pick<JournalStorage, 'getItem'>`, ne
- *  celé JournalStorage (to vyžaduje i setItem, co tahle funkce nikdy nevolá); appka tím
- *  dovolí i doopravdy read-only volajícímu (viz rewardDiagnostics.ts) poslat bezpečné
- *  úložiště bez setItem, a každé reálné JournalStorage sem pořád jde poslat beze změny. */
 export function stavOdmeny(storage: Pick<JournalStorage, 'getItem'>, key: string): StavOdmeny {
   try {
     const value = storage.getItem(key)

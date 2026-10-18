@@ -15,8 +15,8 @@ export interface Recept {
 export const RECEPTY: readonly Recept[] = [
   { id: 'prkna', nazev: 'Dřevěná prkna', minUroven: 1, drevo: 3, kamen: 0, krystaly: 0, popis: 'Základní stavební materiál' },
   { id: 'kamenny_blok', nazev: 'Kamenný blok', minUroven: 1, drevo: 0, kamen: 3, krystaly: 0, popis: 'Pevný stavební materiál' },
-  { id: 'lucerna', nazev: 'Lucerna', minUroven: 2, drevo: 2, kamen: 2, krystaly: 0, popis: 'Dekorace pro osadu' },
-  { id: 'amulet', nazev: 'Magický amulet', minUroven: 4, drevo: 2, kamen: 3, krystaly: 2, popis: 'Vzácný magický předmět' },
+  { id: 'lucerna', nazev: 'Lucerna', minUroven: 1, drevo: 2, kamen: 2, krystaly: 0, popis: 'Dekorace pro osadu' },
+  { id: 'amulet', nazev: 'Magický amulet', minUroven: 4, drevo: 2, kamen: 3, krystaly: 2, popis: 'Nošený amulet snižuje zranění z běžných i velkých bossích útoků o 10 %' },
 ]
 export const muzeVyrobit = (stav: VillageProgress, recept: Recept): boolean =>
   stav.uroven >= recept.minUroven && stav.drevo >= recept.drevo &&

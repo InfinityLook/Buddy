@@ -45,8 +45,8 @@ export const MASKOTI: MaskotDef[] = [
     ikona: '🌿',
     barvaJadro: '#4fae5e',
     barvaZar: '#8fd99a',
-    model: null,
-    odemcenyOdZacatku: false,
+    model: '/buddyworld/maskoti/moss.glb',
+    odemcenyOdZacatku: true,
   },
   {
     id: 'nyx',
@@ -56,8 +56,8 @@ export const MASKOTI: MaskotDef[] = [
     ikona: '🔮',
     barvaJadro: '#8b5cf6',
     barvaZar: '#c4b5fd',
-    model: null,
-    odemcenyOdZacatku: false,
+    model: '/buddyworld/maskoti/nyx.glb',
+    odemcenyOdZacatku: true,
   },
   {
     id: 'frost',
@@ -67,8 +67,8 @@ export const MASKOTI: MaskotDef[] = [
     ikona: '❄️',
     barvaJadro: '#5ec9f0',
     barvaZar: '#b8e8f7',
-    model: null,
-    odemcenyOdZacatku: false,
+    model: '/buddyworld/maskoti/frost.glb',
+    odemcenyOdZacatku: true,
   },
 ]
 

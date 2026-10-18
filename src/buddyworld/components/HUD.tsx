@@ -1,3 +1,4 @@
+import { assetUrl } from '../assetUrl'
 import { Zbran, ZBRANE } from '../combat/weapons'
 import React from 'react'
 import { MaskotDef } from '../types'
@@ -88,7 +89,7 @@ export const HUD: React.FC<Props> = ({ hud, maskot, bossDef, vybranaZbran, onZvo
         <div className={`bw-hud-boss${bossFocus.zuri ? ' bw-hud-boss--zuri' : ''}`}>
           <span className="bw-hud-boss-jmeno">
             {bossIlustrace ? (
-              <img src={bossIlustrace} alt="" className="bw-hud-boss-portret" />
+              <img src={assetUrl(bossIlustrace)} alt="" className="bw-hud-boss-portret" />
             ) : (
               <span aria-hidden="true">{bossDef.ikona} </span>
             )}
@@ -104,7 +105,7 @@ export const HUD: React.FC<Props> = ({ hud, maskot, bossDef, vybranaZbran, onZvo
           <div className="bw-hud-nepritel">
             <span className="bw-hud-nepritel-jmeno">
               {nepritelIlustrace ? (
-                <img src={nepritelIlustrace} alt="" className="bw-hud-nepritel-portret" />
+                <img src={assetUrl(nepritelIlustrace)} alt="" className="bw-hud-nepritel-portret" />
               ) : (
                 <span aria-hidden="true">{nepritelFocus.def.ikona} </span>
               )}
@@ -148,7 +149,7 @@ export const HUD: React.FC<Props> = ({ hud, maskot, bossDef, vybranaZbran, onZvo
           aria-label="Obrana"
         >
           {OBRANA_IKONA ? (
-            <img src={OBRANA_IKONA} alt="" className="bw-hud-obrana-ikona" />
+            <img src={assetUrl(OBRANA_IKONA)} alt="" className="bw-hud-obrana-ikona" />
           ) : (
             <span aria-hidden="true">🛡️</span>
           )}
@@ -162,7 +163,7 @@ export const HUD: React.FC<Props> = ({ hud, maskot, bossDef, vybranaZbran, onZvo
           disabled={!hud.utokPripraven}
         >
           {UTOK_IKONA ? (
-            <img src={UTOK_IKONA} alt="" className="bw-hud-utok-ikona" />
+            <img src={assetUrl(UTOK_IKONA)} alt="" className="bw-hud-utok-ikona" />
           ) : (
             <span aria-hidden="true">⚔️</span>
           )}

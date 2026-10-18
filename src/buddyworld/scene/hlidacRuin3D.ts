@@ -1,3 +1,4 @@
+import { herniCas } from '../gameClock'
 /** v10.6: nenáročné procedurální animace hlídače; pozice zásahu zůstává fixní. */
 import * as THREE from 'three'
 import { HLIDAC_OBLAST_ZASAHU, polomerUderu, type DruhUderu } from '../hlidacRealtime'
@@ -51,7 +52,7 @@ export function vytvorHlidaceRuin3D() {
       const p = (udalost as CustomEvent<HlidacVizualniDetail>).detail?.stredUderu
       zamcenyStred = p && Number.isFinite(p.x) && Number.isFinite(p.z) ? {x:p.x,z:p.z} : null
     } else { zamcenyStred = null }
-    efektDo = performance.now() + (nova === 'utok' ? 500 : nova === 'zasah' || nova === 'uhyb' ? 400 : 0)
+    efektDo = herniCas() + (nova === 'utok' ? 500 : nova === 'zasah' || nova === 'uhyb' ? 400 : 0)
   }
   if (typeof window !== 'undefined') window.addEventListener(HLIDAC_VIZUALNI_UDALOST, zmenFazi)
   const aktualizuj = (ted: number, hrac: {x:number;z:number}) => {

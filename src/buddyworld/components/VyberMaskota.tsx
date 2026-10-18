@@ -1,95 +1,16 @@
-import React from 'react'
+import { assetUrl } from '../assetUrl'
+import type { CSSProperties } from 'react'
 import { MASKOTI } from '../data/maskoti'
-import { obrazekKonceptu } from '../data/koncept'
-
-// ==========================================
-// Výběr aktivního maskota — zobrazuje všechny čtyři elementální
-// společníky (EMBER/MOSS/NYX/FROST), i když dnes doopravdy odemčený
-// a hratelný je jen EMBER. Zbylé tři appka ukazuje jako viditelné,
-// ale zamčené — appka je "vidí, nepoužije", ne appka je skryje,
-// stejná zásada jako jinde v kódu (VIP šablony, locked achievementy).
-//
-// Tahle obrazovka appku žádá vybrat jen mezi odemčenými maskoty —
-// appka klik na zamčenou kartu tiše ignoruje, appka nic nenabízí
-// předstírat, co ještě neumí.
-//
-// Každá karta appku zkusí vykreslit reálnou 2D koncept-ilustraci z
-// appčina BuddyWorld_ArtPack.zip (data/koncept.ts's obrazekKonceptu) —
-// appka pro žádný dnešní maskot nemá hotový .glb model (viz
-// data/assets.ts), tahle ilustrace je appčina dočasná, appkou
-// nahraditelná vizuální identita, ne appčin finální 3D vzhled. Appka
-// se vždycky umí vrátit k appčině dřívější emoji ikoně, kterou appka
-// drží jako svůj fallback, nesmazala ji — pro případ, že appka
-// obrázek nenajde (appčin budoucí pátý maskot bez vlastní koncept-art
-// by jinak zůstal úplně bez ikony).
-// ==========================================
-
-interface Props {
-  aktivniMaskotId: string
-  odemceneMaskoty: string[]
-  onVybrat: (id: string) => void
-  onPokracovat: () => void
-  onZpet: () => void
-}
-
-export const VyberMaskota: React.FC<Props> = ({ aktivniMaskotId, odemceneMaskoty, onVybrat, onPokracovat, onZpet }) => {
-  return (
-    <div className="bw-vyber">
-      <div className="bw-vyber-hlavicka">
-        <button type="button" className="bw-vyber-zpet" onClick={onZpet} aria-label="Zpět do Hubu">
-          ←
-        </button>
-        <div className="bw-vyber-titul">
-          <h1>Buddy World</h1>
-          <p>Vyber si svého společníka</p>
-        </div>
-      </div>
-
-      <div className="bw-vyber-mrizka">
-        {MASKOTI.map((maskot) => {
-          const odemceny = odemceneMaskoty.includes(maskot.id)
-          const aktivni = maskot.id === aktivniMaskotId
-          const ilustrace = obrazekKonceptu(`maskot.${maskot.id}`)
-
-          return (
-            <button
-              key={maskot.id}
-              type="button"
-              className={`bw-maskot-karta${aktivni ? ' bw-maskot-karta--aktivni' : ''}${
-                odemceny ? '' : ' bw-maskot-karta--zamceno'
-              }`}
-              style={{ '--maskot-barva': maskot.barvaJadro } as React.CSSProperties}
-              onClick={() => odemceny && onVybrat(maskot.id)}
-              disabled={!odemceny}
-            >
-              {aktivni && (
-                <span className="bw-maskot-znacka bw-maskot-znacka--aktivni" aria-hidden="true">
-                  ✓
-                </span>
-              )}
-              {!odemceny && (
-                <span className="bw-maskot-znacka" aria-hidden="true">
-                  🔒
-                </span>
-              )}
-              {ilustrace ? (
-                <img src={ilustrace} alt="" className="bw-maskot-ilustrace" />
-              ) : (
-                <span className="bw-maskot-ikona-velka">{maskot.ikona}</span>
-              )}
-              <span className="bw-maskot-jmeno">{maskot.jmeno}</span>
-              <span className="bw-maskot-element">{maskot.element}</span>
-              <span className="bw-maskot-popis">{odemceny ? maskot.popis : 'Zatím zamčeno'}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      <div className="bw-vyber-spodek">
-        <button type="button" className="bw-vyber-pokracovat" onClick={onPokracovat}>
-          ▶ Pokračovat
-        </button>
-      </div>
-    </div>
-  )
+import { useBuddyWorldStore } from '../useBuddyWorldStore'
+import { CAMPAIGN, useAdventureStore } from '../adventure'
+interface Props {aktivniMaskotId:string;odemceneMaskoty:string[];onVybrat:(id:string)=>void;onPokracovat:()=>void;onZpet:()=>void}
+export function VyberMaskota({aktivniMaskotId,onVybrat,onPokracovat}:Props) {
+ const level=useBuddyWorldStore(s=>s.level),a=useAdventureStore()
+ return <main className="bw-title-screen">
+  <header className="bw-title-nav"><span className="bw-wordmark">✦ BUDDY WORLD</span><span className="bw-title-version">SEASON 1 <i/> OZVĚNY ÚDOLÍ</span></header>
+  <section className="bw-title-copy"><div className="bw-eyebrow">MALÝ SPOLEČNÍK. VELKÉ DOBRODRUŽSTVÍ.</div><h1>Každý svět potřebuje<br/><em>svého Buddyho.</em></h1><p>Vydej se do kouzelného údolí. Obnov svůj domov, odhal příběh strážců a najdi přítele na celou cestu.</p></section>
+  <div className="bw-mascot-heading"><strong>Koho vezmeš s sebou?</strong><span>Čtyři povahy. Čtyři skutečné schopnosti.</span></div>
+  <div className="bw-mascot-grid">{MASKOTI.map(m=><button type="button" key={m.id} onClick={()=>onVybrat(m.id)} aria-pressed={aktivniMaskotId===m.id} className={`bw-companion ${aktivniMaskotId===m.id?'is-selected':''}`} style={{'--companion':m.barvaJadro} as CSSProperties}><span className="bw-companion-number">0{MASKOTI.indexOf(m)+1}<b>{aktivniMaskotId===m.id?'✓':'↗'}</b></span><img src={assetUrl(`/buddyworld/koncept/mascots/${m.id}.svg`)} alt=""/><div className="bw-companion-name"><strong>{m.jmeno}</strong><span>{m.element}</span></div><p>{m.id==='ember'?'Ohnivý úder a hoření':m.id==='moss'?'Léčivý dotek přírody':m.id==='nyx'?'Silný magický výboj':'Ledový úder a zpomalení'}</p></button>)}</div>
+  <footer className="bw-title-footer"><div><strong>{a.campaign.length?`Tvá výprava · úroveň ${level}`:'Nový příběh čeká na tebe.'}</strong><span>{a.campaign.length?`${a.campaign.length}/${CAMPAIGN.length} příběhových úkolů splněno`:'3D průzkum · budování města · souboje v reálném čase'}</span></div><button className="bw-primary" onClick={onPokracovat}>{a.seenIntro?'Pokračovat ve výpravě':'Začít dobrodružství'} <span>→</span></button></footer>
+ </main>
 }

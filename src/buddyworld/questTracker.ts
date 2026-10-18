@@ -33,5 +33,5 @@ const CILE: Partial<Record<QuestId, Cil>> = {
   stiny_se_vraceji: { hodnota: s => s.porazeniBossove, pozadovano: 2 },
   srdce_udoli: { hodnota: s => s.uroven, pozadovano: 5 },
   hranice_temnoty: { hodnota: s => s.porazeniNepratele, pozadovano: 20 },
-  posledni_straz: { hodnota: s => s.porazeniBossove, pozadovano: 3 },
+  posledni_stráž: { hodnota: s => s.porazeniBossove, pozadovano: 3 },
 }

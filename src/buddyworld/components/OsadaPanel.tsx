@@ -9,7 +9,7 @@ import { cenaRozsireni, lzeRozsirit, MAX_UROVEN_OSADY } from '../villageProgress
 
 const NAZVY = ['Malá osada', 'Vesnice', 'Rozvinutá vesnice', 'Městečko', 'Fantasy město']
 
-export const OsadaPanel: React.FC<{ onPostavit: (typ: StavitelnyTyp) => void; onPresunout: (id: string) => void }> = ({ onPostavit, onPresunout }) => {
+export const OsadaPanel: React.FC<{ onPostavit: (typ: StavitelnyTyp) => void; onPresunout: (id: string) => void; embedded?: boolean }> = ({ onPostavit, onPresunout, embedded = false }) => {
   const [otevreno, setOtevreno] = useState(false)
   const uroven = useVillageStore((s) => s.uroven)
   const drevo = useVillageStore((s) => s.drevo)
@@ -41,7 +41,7 @@ export const OsadaPanel: React.FC<{ onPostavit: (typ: StavitelnyTyp) => void; on
         onClick={() => setOtevreno((v) => !v)}>
         🏡 {NAZVY[uroven - 1]} · {uroven}/{MAX_UROVEN_OSADY}
       </button>
-      {otevreno && (
+      {(otevreno || embedded) && (
         <div id="bw-osada-detail" className="bw-osada-detail">
           <div className="bw-osada-tabs">
             <button type="button" aria-pressed={zalozka === 'osada'} onClick={() => setZalozka('osada')}>Osada</button>
@@ -61,13 +61,13 @@ export const OsadaPanel: React.FC<{ onPostavit: (typ: StavitelnyTyp) => void; on
             </>
           ) : <p>Dosáhl jsi nejvyšší úrovně osady!</p>)}
           {zalozka === 'ukoly' && <div className="bw-crafting-list">
-            <p>📖 {pribeh.kapitola === 1 ? 'Kapitola I: Zrození údolí' : 'Kapitola II: Nový úsvit'}</p>
-            <label htmlFor="bw-pribeh-postup">Příběh: {pribeh.dokonceno}/{pribeh.celkem} úkolů ({pribeh.procent} %)</label>
+            <p>📖 Zakázky osady</p>
+            <label htmlFor="bw-pribeh-postup">Zakázky: {pribeh.dokonceno}/{pribeh.celkem} úkolů ({pribeh.procent} %)</label>
             <progress id="bw-pribeh-postup" value={pribeh.dokonceno} max={pribeh.celkem} style={{ width: '100%' }} />
             {pribeh.dokoncenaHra && <div role="status" className="bw-pribeh-finale">
-              <strong>🌅 Konec kapitoly: Nový úsvit</strong>
-              <p>Společně s Buddym jsi zachránil údolí, ochránil jeho obyvatele a vybudoval nový domov. Dobrodružství může pokračovat volným hraním.</p>
-              <p>✓ Příběhové úkoly této verze dokončeny.</p>
+              <strong>✓ Všechny zakázky osady jsou hotové</strong>
+              <p>Osada má dost zásob a bezpečné stezky. Pokračuj v panelu Příběh a uzavři celou výpravu společně s Buddym.</p>
+              <p>✓ Dokončeno všech 12 zakázek osady.</p>
             </div>}
             {UKOLY.map((q, index) => {
               const dostupny = index === 0 || splneneUkoly.includes(UKOLY[index - 1].id)
