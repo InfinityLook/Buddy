@@ -1,3 +1,4 @@
+import { STORY as FRONTIER_STORY } from './frontier/content'
 import { FUNKCNI_BUDOVY, muzePostavitFunkcni, overFunkcniBudovy, type FunkcniBudovaId } from './funkcniBudovy'
 import { MIRA_STAVBA_ODMENA, fazeMiraStavby, overMiraStavba, type MiraStavba } from './miraStavba'
 import { KAEL_VYCVIK_ODMENA, overKaelTraining, stavVycvikuV2, type KaelTrainingProgress } from './kaelTrainingV2'
@@ -26,6 +27,8 @@ import {
 import { Inventar, PRAZDNY_INVENTAR, RECEPTY, overInventar, vyrobPredmet } from './crafting'
 
 interface VillageStore extends VillageProgress {
+  odmenyVypravV42: string[]
+  odmenVypravuV42: (id: string) => void
   funkcniBudovy: FunkcniBudovaId[]
   postavFunkcniBudovu: (id: FunkcniBudovaId) => boolean
   miraStavba: MiraStavba
@@ -78,6 +81,16 @@ export const useVillageStore = create<VillageStore>()(
   persist(
     (set) => ({
       ...VYCHOZI_OSADA,
+      odmenyVypravV42: [],
+      odmenVypravuV42: id => set(s => {
+        if (s.odmenyVypravV42.includes(id) || !FRONTIER_STORY.some(q => q.id === id)) return s
+        return {
+          odmenyVypravV42: [...s.odmenyVypravV42, id],
+          drevo: Math.min(1_000_000, s.drevo + 4),
+          kamen: Math.min(1_000_000, s.kamen + 3),
+          krystaly: Math.min(1_000_000, s.krystaly + 1),
+        }
+      }),
       funkcniBudovy: [],
       postavFunkcniBudovu: (id) => {
         let ok = false
@@ -376,6 +389,7 @@ export const useVillageStore = create<VillageStore>()(
       name: 'schoolbuddy-buddyworld-village-v1',
       storage: createJSONStorage(() => secureStorage),
       partialize: (s) => ({
+        odmenyVypravV42: s.odmenyVypravV42,
         funkcniBudovy: s.funkcniBudovy,
         kaelTraining: s.kaelTraining,
         miraStavba: s.miraStavba,
@@ -400,6 +414,9 @@ export const useVillageStore = create<VillageStore>()(
       }),
       merge: (saved, current) => ({
         ...current, ...overVillageProgress(saved),
+        odmenyVypravV42: Array.isArray((saved as { odmenyVypravV42?: unknown } | null)?.odmenyVypravV42)
+          ? [...new Set((saved as { odmenyVypravV42: string[] }).odmenyVypravV42.filter(id => FRONTIER_STORY.some(q => q.id === id)))]
+          : [],
         funkcniBudovy: overFunkcniBudovy((saved as { funkcniBudovy?: unknown } | null)?.funkcniBudovy),
         kaelTraining: overKaelTraining((saved as { kaelTraining?: unknown } | null)?.kaelTraining),
         miraStavba: overMiraStavba((saved as { miraStavba?: unknown } | null)?.miraStavba),

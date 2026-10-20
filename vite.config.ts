@@ -151,6 +151,15 @@ export default defineConfig(({ command }) => {
           // /hra/trh otevře jen část hráčů appky. Zbytek deskova-hra/
           // (Čtyři království, pár kB) zůstává v běžné precache, protože
           // je zanedbatelně malý.
+          //
+          // buddyworld/artpack-v46/painted-materials.png (malovaný
+          // textury atlas pro appčin Frontier — viz frontier/art46.ts,
+          // ~3,2 MB) musí z precache ven ze dvou důvodů najednou: je to
+          // .png (na rozdíl od .glb appka v globPatterns vůbec nemá), a
+          // appčin výchozí limit workboxu je stejně jen 2 MiB o kus níž
+          // zvednutý appkou na 3 MiB, což 3,22 MB souboru ani tak
+          // nestačí. Runtime caching pravidlo níž ho dostane do appčiny
+          // cache, jen jakmile ho appka doopravdy potřebuje.
           globIgnores: [
             '**/js/auto-update.js',
             '**/mediapipe/**',
@@ -158,6 +167,7 @@ export default defineConfig(({ command }) => {
             '**/souboj/postavy/**',
             '**/survival/**',
             '**/deskova-hra/trh-*',
+            '**/buddyworld/artpack-v46/**',
           ],
           navigateFallbackDenylist: [/^\/api\//, /^\/version\.json$/, /^\/js\//],
           // Precache staré verze se po aktivaci nového SW smaže,
@@ -244,21 +254,37 @@ export default defineConfig(({ command }) => {
               }
             },
             // Grafika — Buddy World (public/buddyworld/maskoti|nepratele|
-            // prostredi|mestecko/**.glb, ~230 kB za vše dnes nakopírované),
-            // stejným důvodem jako výš: /buddy-world otevře jen část
-            // uživatelů appky. .glb navíc v globPatterns vůbec není (jen
-            // js,css,html,png,svg,ico,woff2), takže by se do instalační
-            // precache nedostalo ani omylem — žádný globIgnores zápis
-            // proto není potřeba, jen tohle runtime caching pravidlo.
-            // Koncept-art SVG (public/buddyworld/koncept/**) tímhle
-            // pravidlem úmyslně NEprochází — ty jsou malé a zůstávají v
-            // běžné instalační precache (.svg v globPatterns je).
+            // prostredi|mestecko|artpack-v1/**.glb, 34 souborů dnes
+            // nakopírovaných), stejným důvodem jako výš: /buddy-world
+            // otevře jen část uživatelů appky. .glb navíc v globPatterns
+            // vůbec není (jen js,css,html,png,svg,ico,woff2), takže by
+            // se do instalační precache nedostalo ani omylem — žádný
+            // globIgnores zápis proto není potřeba, jen tohle runtime
+            // caching pravidlo. maxEntries 50 dává appce rezervu nad
+            // dnešních 34 souborů pro další appčiny modely bez potřeby
+            // znovu zvedat limit. Koncept-art SVG (public/buddyworld/
+            // koncept/**, artpack-v47/**) tímhle pravidlem úmyslně
+            // NEprochází — jsou malé a zůstávají v běžné instalační
+            // precache (.svg v globPatterns je).
             {
               urlPattern: ({ url }) => url.pathname.startsWith('/buddyworld/') && url.pathname.endsWith('.glb'),
               handler: 'CacheFirst',
               options: {
                 cacheName: 'buddyworld-runtime',
-                expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 }
+                expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 * 24 * 365 }
+              }
+            },
+            // Malovaný textury atlas appčina Frontieru (public/buddyworld/
+            // artpack-v46/painted-materials.png, ~3,2 MB) — vyloučený z
+            // instalační precache výš (globIgnores), appka ho sem dostane
+            // teprve při prvním otevření appčina Frontieru a od té chvíle
+            // jede z cache, přesně jako appčiny ostatní velké herní assety.
+            {
+              urlPattern: ({ url }) => url.pathname === '/buddyworld/artpack-v46/painted-materials.png',
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'buddyworld-art46-runtime',
+                expiration: { maxEntries: 1, maxAgeSeconds: 60 * 60 * 24 * 365 }
               }
             },
             // Mapové dlaždice OpenStreetMap pro Běhání/Kardio (src/miniapps/

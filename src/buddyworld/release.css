@@ -39,3 +39,9 @@
 @media(max-width:700px) and (orientation:landscape){.bw-main-menu>button{width:38px;min-width:35px}.bw-main-menu>button small{font-size:7px}.bw-title-screen{padding:12px 20px;gap:8px}.bw-companion img{height:60px}.bw-title-copy h1{font-size:26px}.bw-companion>p{font-size:8px}.bw-title-footer>div>span{max-width:220px}.bw-mission-tracker small{display:none}.bw-hud-nepritel{top:138px}.bw-zbrane{bottom:190px}.bw-title-copy>p{display:none}.bw-mascot-heading span{display:none}}
 @media(orientation:portrait){.bw-shell{display:none}.bw-rotate-prompt{display:flex}}
 @media(prefers-reduced-motion:reduce){.bw-page *{animation-duration:0s!important;transition-duration:0s!important}}
+
+/* v47 original vector portraits, jade / brass presentation shared with the game. */
+.bw-companion{background:linear-gradient(155deg,#31544b,#153b37);border-color:#c3a66d66}
+.bw-companion.is-selected{border-color:#e9ca87;box-shadow:inset 0 0 40px #dabb6f12,0 0 0 1px #e9ca8733}
+.bw-title-copy h1{font-family:Georgia,serif;letter-spacing:-.025em}
+.bw-title-copy h1 em{color:#ebcc8a}.bw-wordmark{color:#f0d9a5}

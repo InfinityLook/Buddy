@@ -40,10 +40,10 @@ export interface KonceptAsset {
 export const KONCEPT_ASSETY: KonceptAsset[] = [
   // --- čtyři maskoti — appka je vykresluje v kartě VyberMaskota.tsx
   // (odemčeného i zamčeného stejně) ---
-  { klic: 'maskot.ember', popis: 'Ember — karta ve VyberMaskota.tsx', cesta: '/buddyworld/koncept/mascots/ember.svg', pouzito: true },
-  { klic: 'maskot.moss', popis: 'Moss — karta ve VyberMaskota.tsx', cesta: '/buddyworld/koncept/mascots/moss.svg', pouzito: true },
-  { klic: 'maskot.nyx', popis: 'Nyx — karta ve VyberMaskota.tsx', cesta: '/buddyworld/koncept/mascots/nyx.svg', pouzito: true },
-  { klic: 'maskot.frost', popis: 'Frost — karta ve VyberMaskota.tsx', cesta: '/buddyworld/koncept/mascots/frost.svg', pouzito: true },
+  { klic: 'maskot.ember', popis: 'Ember — karta ve VyberMaskota.tsx', cesta: '/buddyworld/artpack-v47/ember.svg', pouzito: true },
+  { klic: 'maskot.moss', popis: 'Moss — karta ve VyberMaskota.tsx', cesta: '/buddyworld/artpack-v47/moss.svg', pouzito: true },
+  { klic: 'maskot.nyx', popis: 'Nyx — karta ve VyberMaskota.tsx', cesta: '/buddyworld/artpack-v47/nyx.svg', pouzito: true },
+  { klic: 'maskot.frost', popis: 'Frost — karta ve VyberMaskota.tsx', cesta: '/buddyworld/artpack-v47/frost.svg', pouzito: true },
 
   // --- dva běžní nepřátelé — appka je vykresluje jako malý portrét
   // vedle jejich HP v HUD.tsx, podle toho, který typ je zrovna

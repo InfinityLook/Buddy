@@ -121,6 +121,15 @@ interface Props {
   onPostupZmena: (level: number, xp: number) => void
   onOdmenaVypravy: (xp: number) => void
   onZpet: () => void
+  // v47 — appka tenhle prop přidala, aby appčin nový FrontierGame (hlavní
+  // appčina hra od téhle dodávky) mohl appce otevřít tuhle PŮVODNÍ appku
+  // jen jako "osadu/kroniku", bez appčiny vlastní, nové kampaně (campaign
+  // panel) nad ní — appčin BuddyWorldModule.tsx appku takhle volá přesně
+  // tehdy, když appka přes FrontierGame's onVillage zvolí appčinu starou
+  // appku, ne appčinu novou. Appka to řeší jen appčiným omezením, které
+  // appčiny tři panely se appce vůbec ukážou (town/buddy/settings), ne
+  // novým appčiným stavem.
+  villageOnly?: boolean
 }
 
 export const BuddyWorldHra: React.FC<Props> = ({
@@ -132,8 +141,9 @@ export const BuddyWorldHra: React.FC<Props> = ({
   onPostupZmena,
   onOdmenaVypravy,
   onZpet,
+  villageOnly = false,
 }) => {
-  const [panel, setPanel] = useState<'campaign'|'quests'|'world'|'town'|'buddy'|'achievements'|'settings'|'npc'|null>('campaign')
+  const [panel, setPanel] = useState<'campaign'|'quests'|'world'|'town'|'buddy'|'achievements'|'settings'|'npc'|null>(villageOnly ? 'town' : 'campaign')
   const adventure = useAdventureStore()
   const mission = currentMission(adventure.campaign)
   const [toast, setToast] = useState('')
@@ -551,14 +561,19 @@ export const BuddyWorldHra: React.FC<Props> = ({
       </div>
 <div className="bw-top-wash"/>
 <Minimapa pozice={poziceHrace} objevene={vesnice.objeveneOblasti} navigaceId={navigaceId} />
-<div className="bw-mission-tracker"><span className="bw-eyebrow">{mission?'KAPITOLA '+mission.chapter+' / 6':'SEASON 1 · DOKONČENO'}</span><button onClick={()=>setPanel('campaign')}>{mission?.name??'Nový úsvit'} <span>↗</span></button><small>{mission?.goal??'Údolí zůstává otevřené pro tvá další dobrodružství.'}</small></div>
+{/* v47 — appka celý appčin "KAPITOLA" tracker schová v appčině villageOnly
+    režimu (FrontierGame's "Osada/kronika" bez appčiny nové kampaně nad
+    ní) — appčin mission tracker patří appčině nové, v41 kampani
+    (adventure.ts), co appka v téhle appčině obrazovce vůbec neukazuje. */}
+{!villageOnly && <div className="bw-mission-tracker"><span className="bw-eyebrow">{mission?'KAPITOLA '+mission.chapter+' / 6':'SEASON 1 · DOKONČENO'}</span><button onClick={()=>setPanel('campaign')}>{mission?.name??'Nový úsvit'} <span>↗</span></button><small>{mission?.goal??'Údolí zůstává otevřené pro tvá další dobrodružství.'}</small></div>}
 {/* AktivniUkolHud vedle appčina "KAPITOLA" trackeru appku kompaktně
     ukazuje PŮVODNÍ, vesnický hlavní úkol (vesnice.splneneUkoly z
     questTracker.ts) — nezávislý appčin úkolový systém od appčiny v41
-    campaign (adventure.ts) výš, obojí zároveň legitimně koexistuje. */}
+    campaign (adventure.ts) výš, obojí zároveň legitimně koexistuje. Ten
+    appka ukazuje i v villageOnly režimu, protože patří appčině osadě. */}
 <AktivniUkolHud />
 <div className="bw-location-label">{oblastNaPozici(poziceHrace)?.nazev??'Cesty údolí'} <span>{adventure.coins} <b>◉</b></span></div>
-<nav className="bw-main-menu" aria-label="Herní panely">{(['campaign','quests','world','town','buddy','achievements','settings'] as const).map(id=><button key={id} className="bw-menu-button" title={PANEL_NAMES[id]} aria-label={PANEL_NAMES[id]} aria-pressed={panel===id} onClick={()=>setPanel(panel===id?null:id)}><span>{PANEL_ICONS[id]}</span><small>{PANEL_NAMES[id]}</small></button>)}</nav>
+<nav className="bw-main-menu" aria-label="Herní panely">{(villageOnly?(['town','buddy','settings'] as const):(['campaign','quests','world','town','buddy','achievements','settings'] as const)).map(id=><button key={id} className="bw-menu-button" title={PANEL_NAMES[id]} aria-label={PANEL_NAMES[id]} aria-pressed={panel===id} onClick={()=>setPanel(panel===id?null:id)}><span>{PANEL_ICONS[id]}</span><small>{PANEL_NAMES[id]}</small></button>)}</nav>
 <HUD
         hud={hudProSouboj}
         maskot={maskot}

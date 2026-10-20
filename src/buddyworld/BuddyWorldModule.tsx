@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { VyberMaskota } from './components/VyberMaskota'
 import { BuddyWorldHra } from './components/BuddyWorldHra'
+import { FrontierGame } from './frontier/FrontierGame'
 import { useBuddyWorldStore } from './useBuddyWorldStore'
 import { maskotPodleId } from './data/maskoti'
 import { bossPodleId, VYCHOZI_BOSS_ID } from './data/bossove'
@@ -40,7 +41,9 @@ import './release.css'
 // appčin canvas div vůbec existuje. BuddyWorldHra appka namountuje
 // poprvé teprve při přepnutí na 'hra' obrazovku, kdy už appčin canvas
 // div v DOMu doopravdy existuje — viz komentář v tom souboru pro celé
-// vysvětlení.
+// vysvětlení. Nová FrontierGame (v47) má vlastní, nezávislý scénický
+// hook (frontier/useFrontierScene.ts) se stejnou vlastností, proto ji
+// appka taky renderuje přímo tady, bez zvláštního obalu.
 //
 // Landscape, stejný postup jako Survival Night/BuddyZone/Souboj: appka
 // se snaží telefon zamknout na šířku (screen.orientation.lock,
@@ -63,6 +66,24 @@ import './release.css'
 // (viz styles/global.css) natrvalo přepsalo pro zbytek celé appky,
 // protože Vite jednou vložený CSS chunk po odchodu z téhle routy
 // nikdy neodstraní.
+//
+// v47 ("Malovaný svět") přidala druhou, samostatnou hlavní hru —
+// frontier/FrontierGame.tsx, s vlastním save klíčem
+// (buddyworld:frontier:v42, uvnitř frontier/store.ts) a vlastním
+// procedurálním grafickým systémem (frontier/art46.ts + art47.ts, nad
+// malovaným atlasem v public/buddyworld/artpack-v46/). FrontierGame je
+// teď appčina výchozí obrazovka po výběru maskota; dřívější appka
+// (BuddyWorldHra, "Ozvěny údolí") zůstává dál dostupná jako "Osada /
+// kronika" — FrontierGame nabízí vlastní tlačítko (onVillage), které
+// appku přepne tímhle směrem.
+//
+// Dodávkové BuddyWorldModule.tsx (v47) appka vědomě NEpřevzala 1:1 —
+// jeho vlastní VyberMaskota's onZpet byl no-op (appka by ztratila
+// cestu zpátky do Hubu) a appka vůbec neměla appčin title-cleanup
+// efekt (appčin "Buddy World · Malovaný svět" titulek záložky by
+// appce zůstal natrvalo nalepený i po návratu do Hubu) — appka to
+// tady vědomě napsala znovu, se zachováním obojího ze svojí starší,
+// už fungující verze tohohle souboru.
 // ==========================================
 
 type Obrazovka = 'vyber' | 'hra'
@@ -71,6 +92,16 @@ export const BuddyWorldModule: React.FC = () => {
   const navigate = useNavigate()
   const [obrazovka, setObrazovka] = useState<Obrazovka>('vyber')
   const [intro, setIntro] = useState(false)
+  // v47 — appka drží výběr mezi novou FrontierGame a dřívější appkou
+  // (Osada / kronika) jako dva malé plošné přepínače, ne jako třetí
+  // hodnotu Obrazovka — appka to řeší zvlášť, protože oba stavy
+  // existují jen "uvnitř" obrazovky 'hra' a FrontierGame's vlastní
+  // onVillage(full) callback appce navíc rozlišuje, jestli hráč chtěl
+  // plnou kroniku (villageOnly=false), nebo jen rychlý pohled na
+  // osadu (villageOnly=true, appka tím BuddyWorldHra appce zúží jen
+  // na town/buddy/settings panely).
+  const [osada, setOsada] = useState(false)
+  const [plnaKronika, setPlnaKronika] = useState(false)
 
   const level = useBuddyWorldStore((s) => s.level)
   const xp = useBuddyWorldStore((s) => s.xp)
@@ -103,12 +134,14 @@ export const BuddyWorldModule: React.FC = () => {
     // "Buddy" z index.html samo o sobě stačí, tady se jen krátce
     // nahradí hezčím, ať hráč na záložce prohlížeče uvidí, co hraje.
     // Při odchodu z téhle routy se musí vrátit zpátky, jinak by
-    // "Buddy World · Ozvěny údolí" zůstalo trvale nalepené i po
-    // návratu do Hubu. `document.documentElement.lang` tahle
-    // komponenta nikdy neměnila (zůstává staticky 'cs' z index.html),
-    // takže ho nemá co po sobě uklízet.
+    // "Buddy World · Malovaný svět" zůstalo trvale nalepené i po
+    // návratu do Hubu — přesně tohle dodávkové (v47) BuddyWorldModule
+    // neřešilo, appka to tady při vlastním přepsání souboru vědomě
+    // zachovala. `document.documentElement.lang` tahle komponenta
+    // nikdy neměnila (zůstává staticky 'cs' z index.html), takže ho
+    // nemá co po sobě uklízet.
     const puvodniTitulek = document.title
-    document.title = 'Buddy World · Ozvěny údolí'
+    document.title = 'Buddy World · Malovaný svět'
     return () => {
       document.title = puvodniTitulek
     }
@@ -128,11 +161,30 @@ export const BuddyWorldModule: React.FC = () => {
             odemceneMaskoty={odemceneMaskoty}
             onVybrat={vybratMaskota}
             onPokracovat={() => (seenIntro ? setObrazovka('hra') : setIntro(true))}
+            // Dodávkové (v47) VyberMaskota's onZpet byl no-op — appka by
+            // tím ztratila cestu zpátky do Hubu. Appka to tady vědomě
+            // zachovala ze svojí starší verze.
             onZpet={() => navigate('/hub')}
           />
         )}
 
-        {obrazovka === 'hra' && (
+        {/* v47 — appka FrontierGame appce nastavila jako výchozí appčinu
+            obrazovku po výběru maskota; dřívější appka ("Osada/kronika")
+            zůstává appce dál dostupná přes FrontierGame's vlastní
+            onVillage tlačítko, appku appka appce otevře nastavením
+            osada=true (a plnaKronika podle toho, co appka přes onVillage
+            dostala). */}
+        {obrazovka === 'hra' && !osada && (
+          <FrontierGame
+            onVillage={(full = false) => {
+              setPlnaKronika(full)
+              setOsada(true)
+            }}
+            onExit={() => setObrazovka('vyber')}
+          />
+        )}
+
+        {obrazovka === 'hra' && osada && (
           <BuddyWorldHra
             maskot={maskot}
             bossDef={bossDef}
@@ -143,6 +195,11 @@ export const BuddyWorldModule: React.FC = () => {
             // ignoruje, appčin skutečný zdroj pravdy je od téhle
             // chvíle appčin hracStavRef uvnitř scény.
             pocatecniHracStav={hracStavZUrovne(level, xp)}
+            // v47 — appka BuddyWorldHra otevřela jen v zúženém režimu
+            // "osada/kronika" (town/buddy/settings panely, ne appčina
+            // nová v41 kampaň), dokud hráč přes FrontierGame's vlastní
+            // onVillage(true) nezvolil plnou kroniku.
+            villageOnly={!plnaKronika}
             onZabitiNepritele={(xpOdmena) => {
               recordAction('buddyworld', xpOdmena)
               zaznamenejVyhru(false)
@@ -168,7 +225,10 @@ export const BuddyWorldModule: React.FC = () => {
             // pridejXp's dedup přes odmenyXp zavřel.
             onPostupZmena={() => {}}
             onOdmenaVypravy={(xpOdmena) => recordAction('buddyworld', xpOdmena)}
-            onZpet={() => navigate('/hub')}
+            onZpet={() => {
+              setOsada(false)
+              setPlnaKronika(false)
+            }}
           />
         )}
 
