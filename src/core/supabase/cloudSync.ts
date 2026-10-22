@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import { useGamificationStore } from '@/core/store/useGamificationStore'
-import { useProfileStore } from '@/pages/profil/hooks/useProfileData'
+import { DEFAULT_BADGES, useGamificationStore } from '@/core/store/useGamificationStore'
+import { DEFAULT_PROFILE, useProfileStore } from '@/pages/profil/hooks/useProfileData'
 import { isSupabaseConfigured } from './client'
 import { mergeSnapshots, snapshotsEqual } from './merge'
 import { useAccount } from './auth'
@@ -93,6 +93,62 @@ const applyLocally = (snapshot: CloudSnapshot) => {
 let userId: string | null = null
 let pushTimer: number | null = null
 let inFlight = false
+
+// Odhazitelné bookkeeping (localStorage přímo, ne Zustand) — stejná
+// kategorie jako sync kurzory v core/supabase/recordSync.ts/
+// financeSync.ts, nepatří do BACKUP_STORES, nepotřebuje migraci.
+//
+// Pamatuje si, KTERÉMU účtu patří gamifikace/profil, co teď leží v
+// místních storech. Bez týhle kontroly by přepnutí účtu na jednom
+// zařízení (audit #2+#3 — sdílený rodinný tablet, druhý člověk se
+// přihlásí na stejném telefonu...) vedlo k tomu, že appka "vyšší
+// vyhrává" mergem přepíše NOVÉHO účtu skutečné XP/odznaky/profil
+// zbylými čísly PŘEDCHOZÍHO účtu — a tenhle sloučený (zkontaminovaný)
+// stav by se ještě poslal zpátky do cloudu pod NOVÝM účtem.
+const UCET_KLIC = 'schoolbuddy-cloud-sync-ucet'
+
+const resetniPriNeshodeUctu = (noveUserId: string) => {
+  const posledniVlastnik = localStorage.getItem(UCET_KLIC)
+  // `null` znamená "appka si na tomhle zařízení ještě nikoho
+  // nepamatuje" (čerstvý telefon, nebo appka až teď poprvé přihlásila
+  // skutečný účet poté, co uživatel hrál offline) — tam se lokální
+  // offline postup má sloučit s cloudem, ne zahodit, takže reset
+  // schválně NEPROBĚHNE.
+  if (posledniVlastnik && posledniVlastnik !== noveUserId) {
+    useGamificationStore.setState({
+      xp: 0,
+      level: 1,
+      streakDays: 0,
+      lastActiveDate: null,
+      badges: DEFAULT_BADGES,
+      counters: {},
+      fitnessXp: 0,
+      xpLog: [],
+    })
+    // Jméno a motto se resetují na PRÁZDNÝ řetězec, ne na
+    // DEFAULT_PROFILE's kosmetický placeholder ("Uživatel"/motto věta)
+    // — mergeSnapshots's own pravidlo pro tahle dvě pole je "neprázdné
+    // místní vyhrává" (viz merge.ts), takže kdyby appka resetovala na
+    // neprázdný placeholder, ten by se tvářil jako "uživatelova
+    // skutečná volba" a navždycky by vyhrál nad B's SKUTEČNÝM
+    // cloudovým jménem/mottem — B by viděl "Uživatel" natrvalo místo
+    // svého vlastního jména, dokud by ho sám znovu nezadal. Prázdný
+    // řetězec appce naopak dovolí tomu samému existujícímu pravidlu,
+    // ať normálně propustí B's reálnou cloudovou hodnotu. (Honest
+    // UI-fallback pro tu vzácnou kombinaci "B ještě NIKDY nesynchronizoval
+    // vůbec" je dole v runSync, ne tady — tam, kde appka vidí VÝSLEDEK
+    // mergu, ne jen tenhle jeden lokální reset.)
+    useProfileStore.getState().updateProfile({
+      name: '',
+      motto: '',
+      bio: DEFAULT_PROFILE.bio,
+      frameId: DEFAULT_PROFILE.frameId,
+      pinnedBadges: DEFAULT_PROFILE.pinnedBadges,
+    })
+    lastPushed = null
+  }
+  localStorage.setItem(UCET_KLIC, noveUserId)
+}
 // Poslední úspěšně odeslaný stav — brání zbytečným zápisům
 let lastPushed: CloudSnapshot | null = null
 
@@ -140,8 +196,27 @@ const runSync = async (): Promise<void> => {
       return
     }
 
+    // Nejdřív zkontroluj, čí gamifikace/profil v místních storech teď
+    // doopravdy leží — AŽ POTOM stahovat/slučovat/posílat. Jinak by se
+    // kontrola mohla stihnout pozdě a stejně by proběhl jeden merge
+    // pod cizím účtem, než se stav vyprázdní.
+    resetniPriNeshodeUctu(userId)
+
     const remote = await fetchSnapshot(userId)
-    const merged = mergeSnapshots(localSnapshot(), remote)
+    const slouceny = mergeSnapshots(localSnapshot(), remote)
+
+    // Čestná záchranná síť přesně pro tu jednu zbylou vzácnou kombinaci
+    // resetniPriNeshodeUctu's own prázdného jména/motta výš: tenhle
+    // účet ještě NIKDY nikde nesynchronizoval (remote je null nebo má
+    // samo taky prázdné jméno), takže appka tu nemá co SKUTEČNÉHO
+    // stáhnout — DEFAULT_PROFILE's placeholder je tady správný, žádné
+    // riziko, že by přepsal/odeslal něčí reálná data, protože merged
+    // je v téhle chvíli nejvýš jen tenhle jeden, už vyprázdněný účet.
+    const merged = {
+      ...slouceny,
+      displayName: slouceny.displayName.trim() || DEFAULT_PROFILE.name,
+      motto: slouceny.motto.trim() || DEFAULT_PROFILE.motto,
+    }
 
     applyLocally(merged)
     await pushSnapshot(userId, merged)

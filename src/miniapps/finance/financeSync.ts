@@ -55,6 +55,35 @@ const nactiKurzor = (): number => {
 
 const ulozKurzor = (cas: number) => localStorage.setItem(CURSOR_KEY, String(cas))
 
+// Odvozený, sousední klíč — ne druhý store, stejná kategorie jako
+// kurzor samotný: odhazitelné bookkeeping, ne uživatelská data, takže
+// nepatří do BACKUP_STORES a nepotřebuje migraci.
+//
+// Pamatuje si, KTERÉMU účtu patří data, co teď leží v místních
+// storech Economy Roomu. Bez týhle kontroly by přepnutí účtu na
+// jednom zařízení (audit #2+#3 — sdílený rodinný tablet, druhý člověk
+// se přihlásí na stejném telefonu...) vedlo k tomu, že appka
+// sloučí/odešle zbylé lokální transakce/peněženky PŘEDCHOZÍHO účtu
+// pod NOVÝM user_id — reálný únik finančních dat mezi účty, ne
+// teoretický risk. Stejná oprava jako core/supabase/recordSync.ts.
+const UCET_KLIC = `${CURSOR_KEY}-ucet`
+
+const resetniPriNeshodeUctu = (userId: string) => {
+  const posledniVlastnik = localStorage.getItem(UCET_KLIC)
+  // `null` znamená "appka si na tomhle zařízení ještě nikoho
+  // nepamatuje" (čerstvý telefon, nebo appka až teď poprvé přihlásila
+  // skutečný účet poté, co uživatel hrál offline) — tam se lokální
+  // offline postup má sloučit s cloudem, ne zahodit, takže reset
+  // schválně NEPROBĚHNE.
+  if (posledniVlastnik && posledniVlastnik !== userId) {
+    for (const tabulka of tabulky()) {
+      tabulka.setLocal([])
+    }
+    ulozKurzor(0)
+  }
+  localStorage.setItem(UCET_KLIC, userId)
+}
+
 type SoftDeletable = { id: string; updatedAt: number; deletedAt: number | null }
 
 interface TabulkaSync<T extends SoftDeletable> {
@@ -291,6 +320,12 @@ const runSync = async (): Promise<void> => {
   setStatus({ status: 'connecting', error: null })
 
   try {
+    // Nejdřív zkontroluj, čí data v místních storech teď doopravdy
+    // leží — AŽ POTOM číst kurzor/posílat/stahovat. Jinak by se
+    // kontrola mohla stihnout pozdě a stejně by proběhl jeden merge
+    // pod cizím účtem, než se stav vyprázdní.
+    resetniPriNeshodeUctu(userId)
+
     // Čas TĚSNĚ PŘED průchodem, ne po něm — konzervativní volba: pár
     // řádků se příště pošle/stáhne znovu (upsert je idempotentní), ale
     // nikdy nic nevznikne během průchodu a neprojde bez povšimnutí.
