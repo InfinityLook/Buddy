@@ -84,8 +84,7 @@ const slouc = <T extends SoftDeletable>(lokalni: T[], vzdalene: T[]): T[] => {
 const syncOneTable = async <T extends SoftDeletable>(userId: string, cfg: TabulkaSync<T>, kurzor: number) => {
   if (!supabase) return
 
-  const lokalni = cfg.getLocal()
-  const kOdeslani = lokalni.filter((item) => item.updatedAt > kurzor)
+  const kOdeslani = cfg.getLocal().filter((item) => item.updatedAt > kurzor)
 
   if (kOdeslani.length > 0) {
     const { error } = await supabase.from(cfg.table).upsert(
@@ -105,16 +104,26 @@ const syncOneTable = async <T extends SoftDeletable>(userId: string, cfg: Tabulk
 
   const stazene = (data ?? []).map(cfg.fromRow)
   if (stazene.length > 0) {
-    cfg.setLocal(slouc(lokalni, stazene))
+    // Čte ŽIVÝ stav znovu, těsně před mergem — ne zmrazenou kopii
+    // zachycenou na začátku téhle funkce před dvěma awaity výš (upsert,
+    // pak select). Bez tohohle by jakákoli místní úprava (přidání
+    // transakce, smazání rozpočtu...), co se stihne mezi začátkem téhle
+    // funkce a tímhle řádkem, zmizela — merge o ní vůbec nevěděl, takže
+    // ji `setLocal` dole přepsal, jako by nikdy nenastala.
+    cfg.setLocal(slouc(cfg.getLocal(), stazene))
   }
 }
 
 const tabulky = (): TabulkaSync<any>[] => {
-  const state = getRawFinanceState()
-
+  // `getLocal` čte `getRawFinanceState()` ČERSTVĚ při každém volání, ne
+  // jednou zachycený `state` pro celý pětitabulkový průchod — jinak by
+  // `syncOneTable` nad druhou až pátou tabulkou dostávalo zmrazenou
+  // kopii z chvíle, kdy `tabulky()` samo proběhlo, ne aktuální obsah
+  // storu v okamžiku, kdy se na tu tabulku skutečně dostala řada (viz
+  // oprava `syncOneTable` výš — obojí musí platit zároveň).
   const transactions: TabulkaSync<Transaction> = {
     table: 'finance_transactions',
-    getLocal: () => state.transactions,
+    getLocal: () => getRawFinanceState().transactions,
     setLocal: (items) => setRawFinanceState({ transactions: items }),
     toRow: (userId, t) => ({
       id: t.id,
@@ -150,7 +159,7 @@ const tabulky = (): TabulkaSync<any>[] => {
 
   const wallets: TabulkaSync<Wallet> = {
     table: 'finance_wallets',
-    getLocal: () => state.wallets,
+    getLocal: () => getRawFinanceState().wallets,
     setLocal: (items) => setRawFinanceState({ wallets: items }),
     toRow: (userId, w) => ({
       id: w.id,
@@ -174,7 +183,7 @@ const tabulky = (): TabulkaSync<any>[] => {
 
   const budgets: TabulkaSync<Budget> = {
     table: 'finance_budgets',
-    getLocal: () => state.budgets,
+    getLocal: () => getRawFinanceState().budgets,
     setLocal: (items) => setRawFinanceState({ budgets: items }),
     // last_exceeded_notified_month musí být v obou směrech — chybělo tu
     // dřív, takže "už jsem tenhle měsíc upozornil" flag zmizel, kdykoli
@@ -205,7 +214,7 @@ const tabulky = (): TabulkaSync<any>[] => {
 
   const recurring: TabulkaSync<RecurringTransaction> = {
     table: 'finance_recurring',
-    getLocal: () => state.recurring,
+    getLocal: () => getRawFinanceState().recurring,
     setLocal: (items) => setRawFinanceState({ recurring: items }),
     toRow: (userId, r) => ({
       id: r.id,
@@ -237,7 +246,7 @@ const tabulky = (): TabulkaSync<any>[] => {
 
   const goals: TabulkaSync<FinanceGoal> = {
     table: 'finance_goals',
-    getLocal: () => state.goals,
+    getLocal: () => getRawFinanceState().goals,
     setLocal: (items) => setRawFinanceState({ goals: items }),
     toRow: (userId, g) => ({
       id: g.id,

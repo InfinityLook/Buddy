@@ -99,8 +99,7 @@ export const vytvorZaznamovySync = (
   const syncOneTable = async (userId: string, cfg: TabulkaSync<any>, kurzor: number) => {
     if (!supabase) return
 
-    const lokalni = cfg.getLocal()
-    const kOdeslani = lokalni.filter((item) => item.updatedAt > kurzor)
+    const kOdeslani = cfg.getLocal().filter((item) => item.updatedAt > kurzor)
 
     if (kOdeslani.length > 0) {
       const { error } = await supabase.from(cfg.table).upsert(
@@ -120,7 +119,13 @@ export const vytvorZaznamovySync = (
 
     const stazene = (data ?? []).map(cfg.fromRow)
     if (stazene.length > 0) {
-      cfg.setLocal(slouc(lokalni, stazene))
+      // Čte ŽIVÝ stav znovu, těsně před mergem — ne zmrazenou kopii
+      // zachycenou na začátku téhle funkce před dvěma awaity výš (upsert,
+      // pak select). Bez tohohle by jakákoli místní úprava (přidání
+      // úkolu, smazání cíle...), co se stihne mezi začátkem téhle
+      // funkce a tímhle řádkem, zmizela — merge o ní vůbec nevěděl, takže
+      // ji `setLocal` dole přepsal, jako by nikdy nenastala.
+      cfg.setLocal(slouc(cfg.getLocal(), stazene))
     }
   }
 

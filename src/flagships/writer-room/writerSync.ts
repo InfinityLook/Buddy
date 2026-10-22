@@ -43,35 +43,34 @@ const fromRowGeneric = <T extends Kniha | Scenar | Komiks>(r: Record<string, any
 
 const { useSyncStatus: useWriterSyncStatus, syncNow: syncWriterNow, start: startWriterSync } = vytvorZaznamovySync(
   'schoolbuddy-writer-sync-cursor',
-  () => {
-    const knihyState = getRawBookWriterState()
-    const scenareState = getRawScreenplayWriterState()
-    const komiksyState = getRawComicWriterState()
-
-    return [
-      {
-        table: 'writer_knihy',
-        getLocal: () => knihyState.knihy,
-        setLocal: (items: Kniha[]) => setRawBookWriterState({ knihy: items }),
-        toRow: toRowGeneric<Kniha>,
-        fromRow: fromRowGeneric<Kniha>,
-      },
-      {
-        table: 'writer_scenare',
-        getLocal: () => scenareState.scenare,
-        setLocal: (items: Scenar[]) => setRawScreenplayWriterState({ scenare: items }),
-        toRow: toRowGeneric<Scenar>,
-        fromRow: fromRowGeneric<Scenar>,
-      },
-      {
-        table: 'writer_komiksy',
-        getLocal: () => komiksyState.komiksy,
-        setLocal: (items: Komiks[]) => setRawComicWriterState({ komiksy: items }),
-        toRow: toRowGeneric<Komiks>,
-        fromRow: fromRowGeneric<Komiks>,
-      },
-    ]
-  },
+  // `getLocal` čte `getRawXWriterState()` ČERSTVĚ při každém volání, ne
+  // jednou zachycenou kopii pro celý trojtabulkový průchod — jinak by
+  // `recordSync.ts`'s `syncOneTable` nad druhou/třetí tabulkou dostávalo
+  // zmrazený stav z chvíle, kdy tahle funkce sama proběhla, ne aktuální
+  // obsah storu v okamžiku, kdy se na tu tabulku skutečně dostala řada.
+  () => [
+    {
+      table: 'writer_knihy',
+      getLocal: () => getRawBookWriterState().knihy,
+      setLocal: (items: Kniha[]) => setRawBookWriterState({ knihy: items }),
+      toRow: toRowGeneric<Kniha>,
+      fromRow: fromRowGeneric<Kniha>,
+    },
+    {
+      table: 'writer_scenare',
+      getLocal: () => getRawScreenplayWriterState().scenare,
+      setLocal: (items: Scenar[]) => setRawScreenplayWriterState({ scenare: items }),
+      toRow: toRowGeneric<Scenar>,
+      fromRow: fromRowGeneric<Scenar>,
+    },
+    {
+      table: 'writer_komiksy',
+      getLocal: () => getRawComicWriterState().komiksy,
+      setLocal: (items: Komiks[]) => setRawComicWriterState({ komiksy: items }),
+      toRow: toRowGeneric<Komiks>,
+      fromRow: fromRowGeneric<Komiks>,
+    },
+  ],
   (posluchac) => {
     // Jedno společné zpožděné odeslání pro všechny tři appky Writer's
     // Roomu — psaní v jedné appce (třeba každý znak v Knize) by jinak

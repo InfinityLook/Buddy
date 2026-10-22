@@ -170,57 +170,56 @@ const fromRowBarvaDne = (r: Record<string, any>): BarvaDneZaznam => ({
 
 const { useSyncStatus: useSkolaSyncStatus, syncNow: syncSkolaNow, start: startSkolaSync } = vytvorZaznamovySync(
   'schoolbuddy-skola-sync-cursor',
-  () => {
-    const rozvrhState = useRozvrhStore.getState()
-    const znamkyState = getRawZnamkyState()
-    const planerState = getRawStudyPlannerState()
-    const kalendarState = useKalendarStore.getState()
-
-    return [
-      {
-        table: 'rozvrh_hodiny',
-        getLocal: () => rozvrhState.hodiny,
-        setLocal: (items: HodinaRozvrhu[]) => useRozvrhStore.setState({ hodiny: items }),
-        toRow: toRowHodina,
-        fromRow: fromRowHodina,
-      },
-      {
-        table: 'rozvrh_dochazka',
-        getLocal: () => rozvrhState.dochazkaZaznamy,
-        setLocal: (items: DochazkaZaznam[]) => useRozvrhStore.setState({ dochazkaZaznamy: items }),
-        toRow: toRowDochazka,
-        fromRow: fromRowDochazka,
-      },
-      {
-        table: 'znamky_predmety',
-        getLocal: () => znamkyState.predmety,
-        setLocal: (items: Predmet[]) => setRawZnamkyState({ predmety: items }),
-        toRow: toRowPredmet,
-        fromRow: fromRowPredmet,
-      },
-      {
-        table: 'planer_ukoly',
-        getLocal: () => planerState.tasks,
-        setLocal: (items: StudyTask[]) => setRawStudyPlannerState({ tasks: items }),
-        toRow: toRowUkol,
-        fromRow: fromRowUkol,
-      },
-      {
-        table: 'kalendar_udalosti',
-        getLocal: () => kalendarState.udalosti,
-        setLocal: (items: Udalost[]) => useKalendarStore.setState({ udalosti: items }),
-        toRow: toRowUdalost,
-        fromRow: fromRowUdalost,
-      },
-      {
-        table: 'kalendar_barvy_dne',
-        getLocal: () => kalendarState.barvyDniZaznamy,
-        setLocal: (items: BarvaDneZaznam[]) => useKalendarStore.setState({ barvyDniZaznamy: items }),
-        toRow: toRowBarvaDne,
-        fromRow: fromRowBarvaDne,
-      },
-    ]
-  },
+  // `getLocal` čte `.getState()`/`getRawXState()` ČERSTVĚ při každém
+  // volání, ne jednou zachycenou kopii pro celý šestitabulkový průchod
+  // — jinak by `recordSync.ts`'s `syncOneTable` nad druhou až šestou
+  // tabulkou dostávalo zmrazený stav z chvíle, kdy tahle funkce sama
+  // proběhla, ne aktuální obsah storu v okamžiku, kdy se na tu tabulku
+  // skutečně dostala řada.
+  () => [
+    {
+      table: 'rozvrh_hodiny',
+      getLocal: () => useRozvrhStore.getState().hodiny,
+      setLocal: (items: HodinaRozvrhu[]) => useRozvrhStore.setState({ hodiny: items }),
+      toRow: toRowHodina,
+      fromRow: fromRowHodina,
+    },
+    {
+      table: 'rozvrh_dochazka',
+      getLocal: () => useRozvrhStore.getState().dochazkaZaznamy,
+      setLocal: (items: DochazkaZaznam[]) => useRozvrhStore.setState({ dochazkaZaznamy: items }),
+      toRow: toRowDochazka,
+      fromRow: fromRowDochazka,
+    },
+    {
+      table: 'znamky_predmety',
+      getLocal: () => getRawZnamkyState().predmety,
+      setLocal: (items: Predmet[]) => setRawZnamkyState({ predmety: items }),
+      toRow: toRowPredmet,
+      fromRow: fromRowPredmet,
+    },
+    {
+      table: 'planer_ukoly',
+      getLocal: () => getRawStudyPlannerState().tasks,
+      setLocal: (items: StudyTask[]) => setRawStudyPlannerState({ tasks: items }),
+      toRow: toRowUkol,
+      fromRow: fromRowUkol,
+    },
+    {
+      table: 'kalendar_udalosti',
+      getLocal: () => useKalendarStore.getState().udalosti,
+      setLocal: (items: Udalost[]) => useKalendarStore.setState({ udalosti: items }),
+      toRow: toRowUdalost,
+      fromRow: fromRowUdalost,
+    },
+    {
+      table: 'kalendar_barvy_dne',
+      getLocal: () => useKalendarStore.getState().barvyDniZaznamy,
+      setLocal: (items: BarvaDneZaznam[]) => useKalendarStore.setState({ barvyDniZaznamy: items }),
+      toRow: toRowBarvaDne,
+      fromRow: fromRowBarvaDne,
+    },
+  ],
   (posluchac) => {
     useRozvrhStore.subscribe(posluchac)
     subscribeZnamkyStore(posluchac)
