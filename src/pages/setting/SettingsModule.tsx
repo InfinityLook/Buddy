@@ -4,6 +4,7 @@ import { signOut } from '@/core/supabase/auth'
 import { useAuthStore } from '@/core/store/useAuthStore'
 import { useHasPermission } from '@/core/role'
 import { useCloudStatus, syncNow } from '@/core/supabase/cloudSync'
+import { flushVsechnySynchronizace } from '@/core/supabase/flushAllSync'
 import { APP_VERSION, applyUpdateNow, checkForUpdates, hasNewerVersion } from '@/core/utils/registerSW'
 import { importDataFromJson, restoreFullBackup } from '@/core/utils/backup'
 import {
@@ -93,6 +94,10 @@ export const SettingsModule: React.FC = () => {
   const [sekce, setSekce] = useState<Sekce | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [updateChecking, setUpdateChecking] = useState(false)
+  // Odhlašování teď čeká na vynucený flush (viz handleLogout) — "Odhlásit
+  // se" tedy poprvé v appce není instantní, uživatel to musí vidět, ne
+  // jen klepnout a čekat na nic.
+  const [odhlasujiSe, setOdhlasujiSe] = useState(false)
   // Zálohování dat — rozbalovací akordeon na hlavní stránce (na rozdíl
   // od pěti položek menu výš appka tohle nikam dál nenavigujue, jen
   // schovává/ukazuje beze změny stránky).
@@ -114,8 +119,22 @@ export const SettingsModule: React.FC = () => {
   // Odhlášení musí ukončit i relaci v Supabase, ne jen místní příznak —
   // jinak by relace zůstala v prohlížeči a po obnovení stránky by se
   // appka tvářila, že je uživatel pořád přihlášený.
-  const handleLogout = () => {
+  //
+  // Audit #2+#3, Část A: appka musí nejdřív vynutit okamžitý flush
+  // všech pěti synchronizačních strojů (core/supabase/flushAllSync.ts)
+  // — jakmile se relace přepne, RLS appce znemožní odeslat data pod
+  // starou identitou, takže flush musí doběhnout PŘED signOut(), ne po
+  // něm. Právě proto je odhlášení poprvé neinstantní — "Odesílám
+  // poslední změny…" výš místo rovnou zmizelé obrazovky.
+  const handleLogout = async () => {
+    if (odhlasujiSe) return
     if (!window.confirm('Opravdu se chceš odhlásit?')) return
+
+    setOdhlasujiSe(true)
+    showToast('Odesílám poslední změny…')
+
+    await flushVsechnySynchronizace()
+
     void signOut()
     logout()
     navigate('/')
@@ -461,8 +480,8 @@ export const SettingsModule: React.FC = () => {
       )}
 
       <section className="settings-card">
-        <button className="settings-danger-btn" onClick={handleLogout}>
-          🚪 Odhlásit se
+        <button className="settings-danger-btn" onClick={handleLogout} disabled={odhlasujiSe}>
+          {odhlasujiSe ? 'Odesílám poslední změny…' : '🚪 Odhlásit se'}
         </button>
       </section>
 
