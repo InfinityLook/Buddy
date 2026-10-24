@@ -13,6 +13,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // ==========================================
 
 export default defineConfig({
+  // Audit #5 — vite.config.ts appce definuje __APP_VERSION__/__APP_BUILD_ID__
+  // (čte je z public/version.json pro skutečný build), ale vitest.config.ts
+  // je záměrně samostatná, minimální konfigurace bez téhle logiky. Testy,
+  // co volají core/utils/backup.ts's own collectFullBackup() (čte
+  // __APP_VERSION__ přímo), bez téhle definice spadnou na "ReferenceError:
+  // __APP_VERSION__ is not defined" — appka tu hodnotu v testech nikdy
+  // nepotřebuje skutečnou, jen aby vůbec existovala.
+  define: {
+    __APP_VERSION__: JSON.stringify('test'),
+    __APP_BUILD_ID__: JSON.stringify('test'),
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

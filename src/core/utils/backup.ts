@@ -36,6 +36,17 @@ interface BackupStore {
   // false = do souboru se store zabalí, ale zpátky se nikdy nezapíše.
   // Výchozí je true.
   restorable?: boolean
+  // Audit #5 — 'json' (výchozí) čeká, že hodnota v úložišti je JSON text:
+  // do zálohy se uloží rozparsovaná (čitelná) a při obnově znovu
+  // serializovaná, stejně jako appka dělala vždycky u všech ostatních
+  // položek. 'text' je pro pár appčiných vlastních klíčů, co ukládají
+  // čistý, ne-JSON řetězec (např. Buddy Worldovo own 'claimed' — one-time
+  // reward zámek, viz BuddyWorldHra.tsx) — bez tohohle rozlišení by
+  // JSON.parse('claimed') spadl a appka by tenhle klíč ze zálohy tiše
+  // vynechala (JSON.parse('"claimed"') by prošel, ale appka by tím
+  // nahradila appčinu vlastní přesnou '===' porovnávanou hodnotu jinou,
+  // ne-shodující se — obojí by rozbilo appčin zámek).
+  encoding?: 'json' | 'text'
 }
 
 // Katalog všeho, co se zálohuje. Když přibude miniaplikace s vlastním
@@ -87,6 +98,35 @@ export const BACKUP_STORES: BackupStore[] = [
   // 'schoolbuddy-' je stejný, co appka odjakživa měla, nejde o appčinu
   // chybu.
   { key: 'buddyworld:adventure:v1', storage: 'secure', label: 'Buddy World — výprava' },
+  // Audit #5 — appka tu dřív znala jen 3 ze skutečných 11 persistovaných
+  // klíčů Buddy Worldu. Tyhle níž appka drží přímo v syrovém localStorage
+  // (ne přes secureStorage ani Zustand's own persist jako výš), proto
+  // storage: 'raw' — appčin vlastní GameSettings.tsx's own "Stáhnout
+  // zálohu" (src/buddyworld/saveBackup.ts) je skenuje podle prefixu a
+  // dávno je zálohuje správně; tenhle celoaplikační katalog je teď
+  // doplňuje, ať je appčina "Zálohování dat" záloha (Nastavení) stejně
+  // úplná jako appčina vlastní vnitřní.
+  //
+  // Frontier je appčin nejobsáhlejší Buddy World store — zlato, střepy,
+  // vybavení, vylepšení, bestiář, příběh/mise, uložené regiony, pouto
+  // s Buddym, loadouty (viz src/buddyworld/frontier/store.ts).
+  { key: 'buddyworld:frontier:v42', storage: 'raw', label: 'Buddy World — Frontier' },
+  // Appčin jediný ne-JSON Buddy World klíč — 'claimed', ne JSON (viz
+  // BackupStore's own komentář u encoding výš).
+  { key: 'buddyworld-kristalovy-strazce-v1', storage: 'raw', label: 'Buddy World — Krystalový strážce', encoding: 'text' },
+  { key: 'buddyworld:magicky-les-objevy:v1', storage: 'raw', label: 'Buddy World — objevy v Magickém lese' },
+  { key: 'buddyworld:hlidac-ruin:v1', storage: 'raw', label: 'Buddy World — Hlídač ruin' },
+  { key: 'buddyworld:checkpoint:v1', storage: 'raw', label: 'Buddy World — checkpoint' },
+  { key: 'buddyworld:fragmenty-ruin:v1', storage: 'raw', label: 'Buddy World — fragmenty ruin' },
+  { key: 'buddyworld-mytina-ulomky-v1', storage: 'raw', label: 'Buddy World — úlomky v mýtině' },
+  { key: 'buddyworld:ruiny-hadanka:v1', storage: 'raw', label: 'Buddy World — hádanka v ruinách' },
+  // Záměrně NENÍ v katalogu: 'buddyworld-graficka-kvalita-v1' (appčina
+  // volba kvality 3D scény — úsporná/vyvážená/detailní). Appka ji
+  // nepovažuje za uživatelská data, ale za appčino nastavení naladěné na
+  // konkrétní zařízení — obnova na jiném telefonu by appku tiše mohla
+  // přepnout na úroveň, co dané zařízení nezvládne (výkon/baterie), bez
+  // varování. Stejná úvaha jako appčino už existující vyřazení sync
+  // kurzorů z tohohle katalogu.
   { key: 'schoolbuddy-souboj-statistiky-storage', storage: 'secure', label: 'Statistiky Souboje' },
   { key: 'schoolbuddy-kalendar-storage', storage: 'secure', label: 'Kalendář' },
   { key: 'schoolbuddy-behani-storage', storage: 'secure', label: 'Běhání' },
@@ -177,6 +217,16 @@ export const collectFullBackup = async (): Promise<BackupEnvelope> => {
 
   for (const [store, raw] of precteno) {
     if (raw === null) continue // store, do kterého uživatel ještě nesáhl
+
+    // Audit #5 — 'text' store (appčin own 'claimed' zámek) appka
+    // nerozparsovává vůbec, nese do zálohy přesně tu samou hodnotu, co
+    // leží v úložišti. JSON.parse('claimed') by spadl, a tím pádem by
+    // tenhle klíč ze zálohy tiše vypadl úplně stejně, jako to dělal před
+    // touhle opravou.
+    if (store.encoding === 'text') {
+      data[store.key] = raw
+      continue
+    }
 
     try {
       data[store.key] = JSON.parse(raw)
@@ -271,8 +321,17 @@ export const restoreFullBackup = async (incoming: unknown): Promise<RestoreResul
       const value = envelope.data.data[store.key]
       if (value === undefined) continue
 
+      // Audit #5 — 'text' store appka zapisuje zpátky přesně tak, jak
+      // leží v záloze, ne JSON.stringify(value) (to by appčin own
+      // 'claimed' zámek přepsalo na '"claimed"' a appka by ho tím
+      // rozbila — appčina vlastní '===' porovnávaná hodnota by se
+      // najednou neshodovala s ničím). Poškozená/cizí záloha s jiným než
+      // řetězcovým typem appka tiše vynechá, stejně jako by to udělala
+      // s chybějící hodnotou.
+      if (store.encoding === 'text' && typeof value !== 'string') continue
+
       try {
-        await writeStore(store, JSON.stringify(value))
+        await writeStore(store, store.encoding === 'text' ? (value as string) : JSON.stringify(value))
         restored.push(store.label)
       } catch (error) {
         console.error(`Store ${store.key} se nepodařilo obnovit:`, error)
