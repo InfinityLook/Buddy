@@ -64,6 +64,7 @@ import { useAuthStore } from '@/core/store/useAuthStore'
 import { setupRoleDevTools, startRoleSync, useHasPermission } from '@/core/role'
 import { useAppliedTheme } from '@/core/theme'
 import { useAutoFullscreen } from '@/core/hooks/useAutoFullscreen'
+import { melByZamekniPriSkryti } from '@/core/utils/biometricLockGuard'
 import { startInbox } from '@/social/inbox'
 import { startPresence } from '@/social/presence'
 import { startLoginNotify } from '@/core/security/loginNotify'
@@ -92,6 +93,24 @@ export default function App() {
 
   useAppliedTheme()
   useAutoFullscreen()
+
+  // Audit #9 — appka zámek znovu "zapne" (odemceno zpět na false) při
+  // KAŽDÉM skrytí appky (uzamčení telefonu, přepnutí na jinou appku),
+  // ne jen při appčině vlastním startu. Bez týhle appka zůstávala
+  // odemčená natrvalo po celou dobu běhu JS procesu — uzamčená appka
+  // se po návratu z pozadí otevřela rovnou dovnitř, žádné další
+  // ověření appka nevyžadovala. Viz core/utils/biometricLockGuard.ts
+  // pro celé zdůvodnění, proč appka kontroluje AKTUÁLNÍ nastavení
+  // biometrie, ne appčin jednorázový vyzadovaloZamekPriStartu.
+  useEffect(() => {
+    const naSkryti = () => {
+      if (melByZamekniPriSkryti(document.visibilityState, profile.security)) {
+        setOdemceno(false)
+      }
+    }
+    document.addEventListener('visibilitychange', naSkryti)
+    return () => document.removeEventListener('visibilitychange', naSkryti)
+  }, [profile.security.biometrics, profile.security.biometricCredentialId])
 
   const dovnitr = isSupabaseConfigured ? stavUctu === 'signed-in' : isAuthed
   const smiAdmin = useHasPermission('admin.panel')
