@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import Login from './pages/login/Login.tsx'
+import NoveHeslo from './pages/login/NoveHeslo.tsx'
 import Hub from './pages/hub/Hub.tsx'
 import AppModule from '@/pages/app/AppModule.tsx'
 import SchoolRoomModule from '@/flagships/school-room/SchoolRoomModule.tsx'
@@ -124,6 +125,12 @@ export default function App() {
     <BootGate>
       {cekaSeNaOdpoved ? (
         <div className="app-suspense-fallback">Přihlašuji…</div>
+      ) : stavUctu === 'password-recovery' ? (
+        // Audit #8 — odkaz na obnovu zapomenutého hesla. Appka tuhle
+        // větev úmyslně dává PŘED biometrický zámek: appka sem dorazí
+        // čerstvě z e-mailu, ne z návratu k dřív uzamčené relaci, takže
+        // appka biometrii vůbec nevyžaduje.
+        <NoveHeslo />
       ) : dovnitr && potrebujeOdemceni ? (
         <BiometricLock
           credentialId={profile.security.biometricCredentialId as string}

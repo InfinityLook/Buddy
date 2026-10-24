@@ -26,6 +26,11 @@ export type AccountStatus =
   | 'anonymous'
   // Skutečný účet s e-mailem
   | 'signed-in'
+  // Uživatel dorazil z odkazu na obnovu zapomenutého hesla (audit #8) —
+  // appka ho musí poslat na formulář s novým heslem, ne rovnou do appky.
+  // Viz startAuthWatch()/dokoncitObnovuHesla() níž a App.tsx's novou
+  // větev před <BrowserRouter>.
+  | 'password-recovery'
 
 interface AccountState {
   status: AccountStatus
@@ -55,6 +60,12 @@ const HLASKY: { vzor: RegExp; text: string }[] = [
   { vzor: /email not confirmed/i, text: 'E-mail ještě není potvrzený. Mrkni do schránky.' },
   { vzor: /user already registered|already been registered/i, text: 'Na tenhle e-mail už účet existuje. Zkus se přihlásit.' },
   { vzor: /password should be at least/i, text: 'Heslo musí mít aspoň 6 znaků.' },
+  // Audit #8 — appčiny vlastní hlášky pro dokoncitObnovuHesla(): appka
+  // obě vrací ze stejného updateUser({ password }) volání jako normální
+  // chyby registrace, jen s jiným zněním, takže je appka rozlišuje tady,
+  // ne vymýšlením nového textu bez ohledu na to, co appka doopravdy vrátí.
+  { vzor: /different from the old password/i, text: 'Nové heslo musí být jiné než to staré.' },
+  { vzor: /session.*missing|invalid.*session|session.*expired|session_not_found/i, text: 'Odkaz na obnovu hesla vypršel nebo už byl použitý. Zkus si vyžádat nový.' },
   { vzor: /unable to validate email|invalid format/i, text: 'E-mail nevypadá správně.' },
   { vzor: /rate limit|too many requests/i, text: 'Moc pokusů za sebou. Zkus to za chvíli.' },
   { vzor: /failed to fetch|network/i, text: 'Nepovedlo se spojit se serverem. Jsi online?' },
@@ -145,7 +156,12 @@ export const signOut = async (): Promise<AuthVysledek> => {
   }
 }
 
-/** Odkaz na obnovu hesla. */
+/**
+ * Odkaz na obnovu hesla. Appka ho po kliknutí v e-mailu přivede zpátky
+ * na appčin vlastní původ (window.location.origin, appka žádnou
+ * konkrétní cestu nevyžaduje) — startAuthWatch() níž appku poznaná
+ * přes appčin PASSWORD_RECOVERY event, ne přes URL samotnou.
+ */
 export const resetPassword = async (email: string): Promise<AuthVysledek> => {
   if (!supabase) return NENI_CLOUD
 
@@ -154,6 +170,31 @@ export const resetPassword = async (email: string): Promise<AuthVysledek> => {
       redirectTo: window.location.origin,
     })
     if (error) throw error
+    return { ok: true }
+  } catch (err) {
+    return { ok: false, chyba: prelozChybu(err) }
+  }
+}
+
+/**
+ * Dokončí obnovu hesla (audit #8) — appka sem dorazí ze stavu
+ * 'password-recovery', poté co startAuthWatch() rozpoznal appčin odkaz
+ * z resetPassword()'s e-mailu. Po úspěchu appka appku vrátí zpátky na
+ * 'signed-in' — relace založená odkazem je po nastavení nového hesla
+ * stejně platná, jako by se uživatel přihlásil normálně.
+ */
+export const dokoncitObnovuHesla = async (noveHeslo: string): Promise<AuthVysledek> => {
+  if (!supabase) return NENI_CLOUD
+
+  try {
+    const { data, error } = await supabase.auth.updateUser({ password: noveHeslo })
+    if (error) throw error
+
+    useAccount.setState({
+      status: 'signed-in',
+      userId: data.user?.id ?? null,
+      email: data.user?.email ?? null,
+    })
     return { ok: true }
   } catch (err) {
     return { ok: false, chyba: prelozChybu(err) }
@@ -190,5 +231,28 @@ export const startAuthWatch = (): void => {
   }
 
   void supabase.auth.getSession().then(({ data }) => zapis(data.session?.user ?? null))
-  supabase.auth.onAuthStateChange((_udalost, relace) => zapis(relace?.user ?? null))
+
+  supabase.auth.onAuthStateChange((udalost, relace) => {
+    // Audit #8 — appka odkaz na obnovu hesla pozná přes appčin vlastní
+    // PASSWORD_RECOVERY event, ne přes běžné zapsání uživatele: appka ho
+    // musí poslat na formulář s novým heslem (App.tsx), ne rovnou dovnitř.
+    if (udalost === 'PASSWORD_RECOVERY') {
+      useAccount.setState({
+        status: 'password-recovery',
+        userId: relace?.user?.id ?? null,
+        email: relace?.user?.email ?? null,
+      })
+      return
+    }
+
+    // Appka ve stavu "čeká na nové heslo" nesmí být ambientním eventem
+    // (TOKEN_REFRESHED, opakovaná INITIAL_SESSION — appka drží tu samou
+    // relaci z odkazu dál) tiše vrácená zpátky na 'signed-in' dřív, než
+    // si uživatel nové heslo doopravdy nastaví. Appka z toho stavu pustí
+    // jen SIGNED_OUT — appčino vlastní tlačítko "Zpět na přihlášení" v
+    // NoveHeslo.tsx, ne ambientní obnova relace appkou samotnou.
+    if (useAccount.getState().status === 'password-recovery' && udalost !== 'SIGNED_OUT') return
+
+    zapis(relace?.user ?? null)
+  })
 }

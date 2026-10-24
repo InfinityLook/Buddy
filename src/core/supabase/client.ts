@@ -23,9 +23,12 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        // Aplikace nepoužívá přihlášení přes odkaz v e-mailu, takže není
-        // co vytahovat z adresy — a ušetří se zbytečná práce při startu.
-        detectSessionInUrl: false,
+        // Audit #8 — appka přihlášení přes odkaz v e-mailu POUŽÍVÁ: obnovu
+        // zapomenutého hesla (core/supabase/auth.ts's resetPassword()
+        // odešle odkaz, dokoncitObnovuHesla() ho dokončí). Bez tohoto appka
+        // token z adresy vůbec nepřečte a odkaz z e-mailu nikam nevede —
+        // appka byla s `false` úplně rozbitá.
+        detectSessionInUrl: true,
       },
     })
   : null
