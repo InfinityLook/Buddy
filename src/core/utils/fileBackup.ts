@@ -103,7 +103,14 @@ export const restoreFilesFromZip = async (soubory: Map<string, Blob>, envelope: 
   let obnoveno = 0
   await Promise.all(
     [...soubory.entries()].map(async ([id, blob]) => {
-      const mime = mimeById.get(id) ?? blob.type ?? 'application/octet-stream'
+      // Audit #6 — appka tu měla `??` tam, kde patří `||`: Blob.type
+      // nikdy není null/undefined, nejhůř prázdný řetězec (přesně to,
+      // co JSZip skutečně vrací — nezachovává typ blobu při balení,
+      // jen bajty), takže `blob.type ?? 'application/octet-stream'`
+      // na prázdný řetězec nikdy nespadne — appka tím pádem při
+      // chybějících metadatech vždycky skončila s prázdným typem, ne
+      // s bezpečným výchozím.
+      const mime = mimeById.get(id) || blob.type || 'application/octet-stream'
       const typovany = mime === blob.type ? blob : new Blob([blob], { type: mime })
       try {
         await putFileBlob(id, typovany)
