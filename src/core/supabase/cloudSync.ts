@@ -34,6 +34,27 @@ export const useCloudStatus = create<CloudState>(() => ({
 
 const setStatus = (patch: Partial<CloudState>) => useCloudStatus.setState(patch)
 
+// Audit #4: "Výchozí místní jméno Uživatel přebíjí skutečné jméno
+// z cloudu" — na čerstvém zařízení je useProfileStore's own výchozí
+// stav DEFAULT_PROFILE.name/.motto, a to jsou NEPRÁZDNÉ placeholdery
+// (na rozdíl od bio/frameId/pinnedBadges, co mají už správně prázdné
+// sentinely ''/null/[]). mergeSnapshots's own "neprázdné místní
+// vyhrává" pravidlo pak neupravený placeholder bere jako uživatelovu
+// vědomou volbu — a sloučený výsledek se hned posílá zpátky do
+// databáze (runSync), takže appka tím PŘEPÍŠE reálné jméno/motto
+// v cloudu, ne jen lokálně.
+//
+// `jeProfilNastaven` je to, co appku naučí rozdíl mezi "pořád
+// nedotčený placeholder" a "uživatel si tohle doopravdy zvolil" —
+// profile.profilNastaven, pokud appka tenhle profil uložila PO téhle
+// opravě (viz updateProfile v useProfileData.ts), jinak (`??`,
+// chybějící pole u staršího profilu) zpětně-kompatibilní odhad podle
+// toho, jestli se uložené jméno/motto vůbec liší od placeholderu —
+// existující uživatel, co si jméno/motto dřív upravil, tím nic
+// neztratí, i bez výslovně uložené vlajky.
+const jeProfilNastaven = (profile: { name: string; motto: string; profilNastaven?: boolean }): boolean =>
+  profile.profilNastaven ?? (profile.name !== DEFAULT_PROFILE.name || profile.motto !== DEFAULT_PROFILE.motto)
+
 // Poskládá snímek z toho, co je právě v místních storech
 const localSnapshot = (): CloudSnapshot => {
   const game = useGamificationStore.getState()
@@ -44,9 +65,16 @@ const localSnapshot = (): CloudSnapshot => {
     if (badge.unlockedAt) badges[badge.id] = badge.unlockedAt
   }
 
+  const touched = jeProfilNastaven(profile)
+
   return {
-    displayName: profile.name,
-    motto: profile.motto,
+    // Nedotčený placeholder appka do mergu posílá jako prázdný
+    // řetězec — stejný "merge-neutrální" tvar, co bio/frameId/
+    // pinnedBadges už dřív správně měly, a se kterým mergeSnapshots's
+    // existující pravidlo zachází přesně tak, jak má: nic
+    // nechránit, pustit skrz reálnou cloudovou hodnotu.
+    displayName: touched ? profile.name : '',
+    motto: touched ? profile.motto : '',
     bio: profile.bio,
     frameId: profile.frameId,
     pinnedBadges: profile.pinnedBadges,
@@ -144,6 +172,12 @@ const resetniPriNeshodeUctu = (noveUserId: string) => {
       bio: DEFAULT_PROFILE.bio,
       frameId: DEFAULT_PROFILE.frameId,
       pinnedBadges: DEFAULT_PROFILE.pinnedBadges,
+      // Audit #4: bez výslovného `false` by tenhle samý patch (obsahuje
+      // name/motto) spustil updateProfile's own automatické
+      // `profilNastaven: true` — a nové, ještě nedotčené B's zařízení
+      // by se tvářilo jako "už si jméno/motto doopravdy zvolilo",
+      // přesně tomu, čemu má tenhle reset zabránit.
+      profilNastaven: false,
     })
     lastPushed = null
   }

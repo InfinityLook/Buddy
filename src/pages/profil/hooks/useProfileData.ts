@@ -50,6 +50,18 @@ export interface ProfileData {
   pinnedBadges: string[]
   security: ProfileSecurity
   readNotifications: string[]
+  // Audit #4: appka musí rozlišit "uživatel na tomhle zařízení jméno/
+  // motto ještě nikdy doopravdy neuložil" (čerstvý profil, pořád nese
+  // DEFAULT_PROFILE's placeholder) od "tohle si doopravdy zvolil" —
+  // bez týhle vlajky by core/supabase/cloudSync.ts's own
+  // mergeSnapshots (přes merge.ts's own "neprázdné vyhrává" pravidlo)
+  // brávalo neupravený placeholder jako vědomou volbu, a navždy by jím
+  // přepsalo reálné cloudové jméno/motto — i ZPĚT do databáze.
+  // Nastavuje se automaticky v updateProfile, chybí (undefined) u
+  // profilů uložených před touhle vlajkou — localSnapshot() si tam
+  // "touched" bezpečně dopočítá z toho, že se jméno/motto liší od
+  // placeholderu (viz cloudSync.ts).
+  profilNastaven?: boolean
 }
 
 // Výchozí avatar je vložené SVG, ne odkaz na CDN — appka má fungovat
@@ -160,7 +172,21 @@ export const useProfileStore = create<ProfileState>()(
     (set) => ({
       profile: DEFAULT_PROFILE,
 
-      updateProfile: (patch) => set((state) => ({ profile: { ...state.profile, ...patch } })),
+      updateProfile: (patch) =>
+        set((state) => ({
+          profile: {
+            ...state.profile,
+            ...patch,
+            // Audit #4: uložení jména/motta je to jediné místo, kde se
+            // placeholder stává (nebo nestává) vědomou volbou — appka
+            // to tu vyhodnotí automaticky, ať na to nemusí myslet každý
+            // volající (OsobniUdajeSekce.tsx dnes jediný, ale i budoucí).
+            // `?? true`, ne přímo `true`, ať cloudSync.ts's own
+            // resetniPriNeshodeUctu může ve STEJNÉM patchi výslovně
+            // poslat `profilNastaven: false` a appka ho nepřepíše zpět.
+            ...('name' in patch || 'motto' in patch ? { profilNastaven: patch.profilNastaven ?? true } : {}),
+          },
+        })),
 
       updateSecurity: (patch) =>
         set((state) => ({

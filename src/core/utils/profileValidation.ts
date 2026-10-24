@@ -22,6 +22,9 @@ export const ProfileSchema = v.object({
   pinnedBadges: v.optional(v.array(v.string()), []),
   security: ProfileSecuritySchema,
   readNotifications: v.array(v.string()),
+  // Audit #4 — chybí (undefined) u profilů uložených dřív, appka to
+  // bezpečně dopočítá při čtení (core/supabase/cloudSync.ts).
+  profilNastaven: v.optional(v.boolean()),
 })
 
 // Pomocná funkce pro bezpečné ověření profilu načteného ze storage

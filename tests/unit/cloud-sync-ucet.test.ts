@@ -44,13 +44,11 @@ describe('cloudSync — reset gamifikace/profilu při přepnutí na jiný účet
       fitnessXp: 0,
       xpLog: [],
     })
-    useProfileStore.getState().updateProfile({
-      name: DEFAULT_PROFILE.name,
-      motto: DEFAULT_PROFILE.motto,
-      bio: DEFAULT_PROFILE.bio,
-      frameId: DEFAULT_PROFILE.frameId,
-      pinnedBadges: DEFAULT_PROFILE.pinnedBadges,
-    })
+    // Přímo setState, ne updateProfile — ten by (audit #4's own novou
+    // logikou) sám nastavil profilNastaven: true, protože patch
+    // obsahuje name/motto. Čistá výchozí základna musí být "ještě
+    // nikdy nedotčená", ne "zrovna uložená".
+    useProfileStore.setState({ profile: { ...DEFAULT_PROFILE, profilNastaven: false } })
     // Výchozí vzdálený snímek je "ještě nikdy nesynchronizoval" (null) —
     // konkrétní test si ho přepíše, kde na tom záleží (druhý test, B's
     // skutečný cloud stav).
@@ -154,6 +152,84 @@ describe('cloudSync — reset gamifikace/profilu při přepnutí na jiný účet
     expect(useProfileStore.getState().profile.motto).toBe(DEFAULT_PROFILE.motto)
     // A hlavně: Áčkovo jméno se ani v téhle kombinaci nikam nepropašovalo.
     expect(useProfileStore.getState().profile.name).not.toBe('Áček')
+  })
+
+  it('audit #4: čerstvé zařízení synchronizující PRVNÍ KRÁT proti existujícímu účtu ukáže skutečné cloudové jméno, ne placeholder', async () => {
+    // Tohle je přesně ten scénář, co audit #4 popisuje jako chybu:
+    // zařízení nikdy předtím nic nesynchronizovalo (žádný zaznamenaný
+    // vlastník, resetniPriNeshodeUctu se tu vůbec nespustí), takže
+    // useProfileStore.profile pořád nese DEFAULT_PROFILE's placeholder
+    // ('Uživatel'). Bez opravy by merge.ts's "neprázdné vyhrává"
+    // pravidlo vzalo neupravený placeholder jako vědomou volbu a
+    // navždy by jím přepsalo (i ZPĚT do databáze) existující, skutečné
+    // cloudové jméno/motto.
+    const { syncNow } = await import('@/core/supabase/cloudSync')
+
+    // Čerstvý profil na tomhle zařízení — profilNastaven: false,
+    // jméno/motto zůstávají na DEFAULT_PROFILE's placeholderu (žádný
+    // updateProfile tu ještě nikdy neproběhl).
+    expect(useProfileStore.getState().profile.profilNastaven).toBe(false)
+    expect(useProfileStore.getState().profile.name).toBe(DEFAULT_PROFILE.name)
+
+    ensureSessionMock.mockResolvedValue('ucet-c')
+    fetchSnapshotMock.mockResolvedValue({
+      displayName: 'Céčko',
+      motto: 'Céčkovo skutečné cloudové motto',
+      bio: 'Céčkovo skutečné bio',
+      frameId: 'zlaty',
+      pinnedBadges: ['prvni_krok'],
+      xp: 1200,
+      level: 6,
+      streakDays: 9,
+      lastActiveDate: null,
+      badges: {},
+      counters: {},
+      fitnessXp: 0,
+    })
+
+    await syncNow()
+
+    // Skutečné cloudové jméno/motto vyhrálo, ne placeholder.
+    expect(useProfileStore.getState().profile.name).toBe('Céčko')
+    expect(useProfileStore.getState().profile.motto).toBe('Céčkovo skutečné cloudové motto')
+    expect(useProfileStore.getState().profile.bio).toBe('Céčkovo skutečné bio')
+    expect(useProfileStore.getState().profile.frameId).toBe('zlaty')
+    expect(useProfileStore.getState().profile.pinnedBadges).toEqual(['prvni_krok'])
+
+    // A hlavně: appka neposlala zkontaminovaný (placeholder) profil
+    // ZPĚT do databáze pod tímhle účtem — to by poškodilo zdroj pravdy
+    // pro úplně všechna zařízení toho uživatele, ne jen tohle jedno.
+    expect(pushSnapshotMock).toHaveBeenCalledWith(
+      'ucet-c',
+      expect.objectContaining({ displayName: 'Céčko', motto: 'Céčkovo skutečné cloudové motto' })
+    )
+  })
+
+  it('audit #4: dříve přizpůsobený profil BEZ vlajky (uložený před touhle opravou) se pořád chová jako "nastavený"', async () => {
+    // Zpětná kompatibilita bez migrace: appka pro profil uložený dřív
+    // (profilNastaven je undefined) musí správně odvodit "dotčeno" z
+    // toho, že jméno/motto se liší od DEFAULT_PROFILE's placeholderu —
+    // a tohle "dotčeno" musí přežít i merge s cloudem, kde cloud sám
+    // nemá nic skutečného k nabídnutí (null snímek).
+    const { syncNow } = await import('@/core/supabase/cloudSync')
+
+    // Simulace profilu uloženého PŘED touhle opravou — žádné
+    // updateProfile volání (to by vlajku nastavilo), přímý setState
+    // bez profilNastaven vůbec, jako starý soubor ze storage.
+    useProfileStore.setState({
+      profile: { ...DEFAULT_PROFILE, name: 'Dávný Déček', motto: 'Déčkovo staré motto', profilNastaven: undefined },
+    })
+    expect(useProfileStore.getState().profile.profilNastaven).toBeUndefined()
+
+    ensureSessionMock.mockResolvedValue('ucet-d')
+    fetchSnapshotMock.mockResolvedValue(null)
+
+    await syncNow()
+
+    // Déčkovo dřív uložené jméno/motto se nezahodilo ani nepřepsalo
+    // placeholderem jen proto, že appka o vlajce neví.
+    expect(useProfileStore.getState().profile.name).toBe('Dávný Déček')
+    expect(useProfileStore.getState().profile.motto).toBe('Déčkovo staré motto')
   })
 
   it('opětovné přihlášení TOHO SAMÉHO účtu žádný reset nespustí', async () => {
