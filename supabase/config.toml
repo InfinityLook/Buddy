@@ -1,0 +1,11 @@
+# Minimální konfigurace pro Supabase CLI, odkazující na živý projekt
+# "SChoolBuddy-System" (project_id fsrjlxxaehijbflueuin, region eu-west-1).
+# Appka sama o sobě lokální Supabase stack nepoužívá — tento soubor
+# existuje jen proto, aby `supabase/migrations/` šlo reprodukovatelně
+# aplikovat přes `supabase db push`/`supabase migration up`, viz
+# migrations/README.md.
+
+project_id = "fsrjlxxaehijbflueuin"
+
+[db]
+major_version = 17

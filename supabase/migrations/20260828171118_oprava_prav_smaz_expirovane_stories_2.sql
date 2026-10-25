@@ -1,0 +1,1 @@
+revoke execute on function public.smaz_expirovane_stories() from anon;
