@@ -32,6 +32,7 @@ import { VzhledARamecekSekce } from './components/VzhledARamecekSekce'
 import { ZabezpeceniSekce } from './components/ZabezpeceniSekce'
 import { SoukromiSocialSekce } from './components/SoukromiSocialSekce'
 import { JazykSekce } from './components/JazykSekce'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './SettingsModule.css'
 
 // ==========================================
@@ -82,6 +83,13 @@ const CLOUD_LABELS: Record<string, string> = {
 
 export const SettingsModule: React.FC = () => {
   const navigate = useNavigate()
+
+  // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — jedno surfaceId pro
+  // celý modul, sdílené mezi oběma vykreslovacími větvemi níž (menu i
+  // otevřená podobrazovka jsou stejná stránka /nastaveni, jen jinak
+  // vykreslená), ne dvě samostatné motivované plochy.
+  const { rootAttributes } = useSurfaceAppearance('settings')
+
   const { logout } = useAuthStore()
   const smiAdmin = useHasPermission('admin.panel')
   const smiModerovat = useHasPermission('moderation.content')
@@ -256,7 +264,9 @@ export const SettingsModule: React.FC = () => {
 
   if (sekce) {
     return (
-      <div className="settings-page">
+      <div className="settings-page buddy-theme-scope" {...rootAttributes}>
+        <SurfaceBackdrop surfaceId="settings" />
+
         <div className="settings-top-bar">
           <button className="settings-back-btn" onClick={() => setSekce(null)}>
             ← Zpět do nastavení
@@ -279,7 +289,9 @@ export const SettingsModule: React.FC = () => {
   }
 
   return (
-    <div className="settings-page">
+    <div className="settings-page buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="settings" />
+
       <div className="settings-top-bar">
         <button className="settings-back-btn" onClick={() => navigate('/profil')}>
           ← Zpět na profil

@@ -1,5 +1,6 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react'
 import * as api from '@/social/api'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 // Lazy — stejný důvod jako SettingsModule.tsx's dřívější přímé volání:
 // appka (Nastavení není za React.lazy) nechce natáhnout celé Social API
@@ -39,7 +40,12 @@ export const SoukromiSocialSekce: React.FC<Props> = ({ onToast }) => {
   const prepnout = (id: Akordeon) => setOtevreno((s) => (s === id ? null : id))
 
   return (
-    <>
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od /nastaveni (themeParent).
+    // Víc než jedna karta → .settings-sekce-wrap zachovává stejnou
+    // mezeru, co měly dřív jako přímé flex potomky .settings-page
+    // uvnitř prázdného Fragmentu (viz SettingsModule.css's komentář).
+    <SurfaceThemeScope surfaceId="settings-privacy" className="settings-sekce-wrap">
       {/* Soukromí — přepínač veřejný/soukromý účet + skrýt online stav.
           Plain sloupce profiles.soukromy/skryt_online (social/api.ts),
           žádná zvláštní databázová funkce — stejné právo jako na
@@ -150,7 +156,7 @@ export const SoukromiSocialSekce: React.FC<Props> = ({ onToast }) => {
           </Suspense>
         )}
       </section>
-    </>
+    </SurfaceThemeScope>
   )
 }
 

@@ -1,6 +1,7 @@
 import React from 'react'
 import { useZvukStore } from '@/core/store/useZvukStore'
 import type { ZvukKategorie } from '@/core/store/useZvukStore'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 // ==========================================
 // Nastavení — Zvuk. Čtyři nezávislé posuvníky hlasitosti — appka
@@ -29,29 +30,33 @@ export const ZvukSekce: React.FC = () => {
   const setHlasitost = useZvukStore((s) => s.setHlasitost)
 
   return (
-    <section className="settings-card">
-      {POSUVNIKY.map((p) => (
-        <div key={p.kategorie} className="settings-zvuk-radek">
-          <div className="settings-zvuk-hlava">
-            <span className="settings-zvuk-ikona" aria-hidden="true">{p.ikona}</span>
-            <div>
-              <span className="settings-toggle-title">{p.nazev}</span>
-              <span className="settings-toggle-sub">{p.popis}</span>
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od /nastaveni (themeParent).
+    <SurfaceThemeScope surfaceId="settings-sound">
+      <section className="settings-card">
+        {POSUVNIKY.map((p) => (
+          <div key={p.kategorie} className="settings-zvuk-radek">
+            <div className="settings-zvuk-hlava">
+              <span className="settings-zvuk-ikona" aria-hidden="true">{p.ikona}</span>
+              <div>
+                <span className="settings-toggle-title">{p.nazev}</span>
+                <span className="settings-toggle-sub">{p.popis}</span>
+              </div>
+              <span className="settings-zvuk-procent">{hodnoty[p.kategorie]}%</span>
             </div>
-            <span className="settings-zvuk-procent">{hodnoty[p.kategorie]}%</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={hodnoty[p.kategorie]}
+              onChange={(e) => setHlasitost(p.kategorie, Number(e.target.value))}
+              className="settings-zvuk-slider"
+              aria-label={p.nazev}
+            />
           </div>
-          <input
-            type="range"
-            min={0}
-            max={100}
-            value={hodnoty[p.kategorie]}
-            onChange={(e) => setHlasitost(p.kategorie, Number(e.target.value))}
-            className="settings-zvuk-slider"
-            aria-label={p.nazev}
-          />
-        </div>
-      ))}
-    </section>
+        ))}
+      </section>
+    </SurfaceThemeScope>
   )
 }
 

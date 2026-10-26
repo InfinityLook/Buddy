@@ -19,19 +19,35 @@
   --app-green: var(--accent-green);
 }
 
+/* Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — .app-page dostává
+   .buddy-theme-scope, co appčiny globální tokeny výš přepisuje na
+   motivem vybrané hodnoty (features/appearance/buddy-theme-tokens.css).
+   Zdejší lokální aliasy (--app-bg a spol.) by bez tohohle druhého
+   pravidla zůstaly zamrzlé na tom, co platilo při načtení stránky —
+   stejná oprava jako ProfilModule.css/.profil-page.buddy-theme-scope. */
+.app-page.buddy-theme-scope {
+  --app-bg: var(--bg-base);
+  --app-card-border: var(--border-subtle);
+  --app-text-main: var(--text-primary);
+  --app-text-muted: var(--text-secondary);
+
+  --app-cyan: var(--accent-cyan);
+  --app-green: var(--accent-green);
+}
+
 /* ------------------------------------------
    .app-page — appčina VLASTNÍ vrstva, jen pro AppModule.tsx (ne pro
    FlagshipShell.tsx, co .app-container používá rovnou bez tohohle
-   obalu). Stejný dvouvrstvý "fotka + ztmavovací gradient" vzor jako
-   Hub.tsx/HubModule.css's .hub-bg/.hub-bg-overlay — appka ho tu
-   nepřebírá přes sdílenou třídu schválně, ať žádný ze šesti vlajkových
-   Roomů fantasy fotku na pozadí nedostane jen jako vedlejší efekt.
+   obalu).
 
-   Obrázek appka znovu nepřidávala — hub-buddyzone.png (dodaný asset
-   "hub-inspired-background-art.png" vyšel po appčině vlastním resize
-   na 720px širokoúhlý, optimize=True pipeline, viz public/backgrounds/
-   README.md, byte-for-byte identicky se souborem, co appka má uložený
-   už od dřívějšího BuddyZone konceptu a dosud ho nikde nepoužívala).
+   Buddy v2: appka tu dřív měla vlastní dvouvrstvý "fotka + ztmavovací
+   gradient" vzor (.app-page-bg/.app-page-bg-overlay, stejný jako Hub.tsx
+   /HubModule.css's .hub-bg/.hub-bg-overlay), natvrdo na hub-buddyzone.png
+   — appka obě vrstvy smazala úplně a nahradila jednotným SurfaceBackdrop
+   (viz CLAUDE.md "Vzhled aplikace", AppModule.tsx), co pozadí vybírá
+   podle aktuálního motivu. Nikdo ze šesti vlajkových Roomů ho nedostane
+   jen jako vedlejší efekt — FlagshipShell.tsx svoje .app-container dál
+   používá bez .app-page obalu, SurfaceBackdrop appka přidala jen sem.
    ------------------------------------------ */
 .app-page {
   position: relative;
@@ -39,26 +55,6 @@
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
-}
-
-.app-page-bg {
-  position: absolute;
-  inset: 0;
-  background-image: url('/backgrounds/hub-buddyzone.png');
-  background-size: cover;
-  background-position: center 22%;
-}
-
-.app-page-bg-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(8, 8, 18, 0.74) 0%,
-    rgba(10, 8, 20, 0.52) 30%,
-    rgba(10, 8, 20, 0.6) 62%,
-    rgba(6, 6, 14, 0.9) 100%
-  );
 }
 
 .app-container {
@@ -70,8 +66,8 @@
   -webkit-overflow-scrolling: touch;
   background: var(--app-bg);
   background-image:
-    radial-gradient(circle at 50% 0%, rgba(138, 92, 246, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 90%, rgba(53, 196, 240, 0.1) 0%, transparent 40%);
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent-violet) 15%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 80% 90%, color-mix(in srgb, var(--accent-cyan) 10%, transparent) 0%, transparent 40%);
   color: var(--app-text-main);
   /* Stejná oprava jako ProfilModule.css's vlastní komentář — AppBottomNav
      je sticky flex prvek, co si svoji výšku rezervuje sám, ne fixed
@@ -88,13 +84,13 @@
 }
 
 /* Uvnitř .app-page appka svůj vlastní radiální gradient nahrazuje
-   skutečnou fotkou za ním (.app-page-bg výš) — FlagshipShell.tsx's
-   .app-container.fs-page (bez předka .app-page) si ten původní
-   gradient drží beze změny, viz selektor specificity (dvě třídy +
-   potomek > jedna třída) výš. Appka taky zúžila .app-container na
-   100% rodiče místo druhého 100vh řetězce — oba by dnes vyšly
-   vizuálně stejně, ale appka radši jeden spolehlivý zdroj výšky
-   (.app-page) než dva zřetězené viewport jednotky. */
+   skutečným motivovaným pozadím za ním (SurfaceBackdrop, viz výš) —
+   FlagshipShell.tsx's .app-container.fs-page (bez předka .app-page)
+   si ten původní gradient drží beze změny, viz selektor specificity
+   (dvě třídy + potomek > jedna třída) výš. Appka taky zúžila
+   .app-container na 100% rodiče místo druhého 100vh řetězce — oba by
+   dnes vyšly vizuálně stejně, ale appka radši jeden spolehlivý zdroj
+   výšky (.app-page) než dva zřetězené viewport jednotky. */
 .app-page > .app-container {
   height: 100%;
   background-image: none;
@@ -115,7 +111,10 @@
   justify-content: space-between;
   gap: 0.6rem;
   flex-shrink: 0;
-  background: rgba(10, 14, 28, 0.38);
+  /* Buddy v2: sklovitý panel sdílí stejný appčin token jako
+     RewardModule.css's .reward-header, ne vlastní tmavomodrý odstín —
+     oba teď sedí na stejném, motivem správně obarveném základu. */
+  background: var(--bg-glass);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 0.6rem 0.7rem;
@@ -137,7 +136,7 @@
   width: 40px;
   height: 40px;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent-orange) 32%, var(--app-card-border));
   color: var(--app-text-main);
   padding: 0;
@@ -149,7 +148,7 @@
 }
 
 .app-back-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--text-primary) 12%, transparent);
   border-color: color-mix(in srgb, var(--accent-orange) 55%, var(--border-strong));
   box-shadow: 0 0 14px color-mix(in srgb, var(--accent-orange) 35%, transparent);
 }
@@ -195,7 +194,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent-orange) 32%, var(--app-card-border));
   color: var(--app-text-main);
   display: flex;
@@ -208,7 +207,7 @@
 }
 
 .app-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: color-mix(in srgb, var(--text-primary) 12%, transparent);
   border-color: color-mix(in srgb, var(--accent-orange) 55%, var(--border-strong));
   box-shadow: 0 0 14px color-mix(in srgb, var(--accent-orange) 35%, transparent);
 }
@@ -223,7 +222,9 @@
   padding: 0 4px;
   border-radius: 9px;
   background: var(--accent-red);
-  color: #fff;
+  /* Buddy v2: text na červeném odznaku, ne natvrdo bílá — appčin
+     dedikovaný token pro popředí na barevné ploše, stejně jako jinde. */
+  color: var(--text-on-accent);
   font-size: 0.65rem;
   font-weight: 800;
   line-height: 18px;
@@ -294,9 +295,15 @@
   display: flex;
   flex-direction: column;
   background: var(--app-bg);
+  /* Buddy v2: stejné dva tokeny jako .app-container výš místo
+     natvrdo dané fialové/cyan — appka tu dnes žádný SurfaceBackdrop
+     nekreslí (je to identita konkrétní miniaplikace, ne launcheru),
+     ale appčiny existující tokeny dávají při dnešní výchozí paletě
+     stejnou hodnotu, takže migrace nic neměnila a je bezpečná
+     i do budoucna. */
   background-image:
-    radial-gradient(circle at 50% 0%, rgba(138, 92, 246, 0.15) 0%, transparent 50%),
-    radial-gradient(circle at 80% 90%, rgba(53, 196, 240, 0.1) 0%, transparent 40%);
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent-violet) 15%, transparent) 0%, transparent 50%),
+    radial-gradient(circle at 80% 90%, color-mix(in srgb, var(--accent-cyan) 10%, transparent) 0%, transparent 40%);
   color: var(--app-text-main);
   box-sizing: border-box;
 }

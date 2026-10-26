@@ -1,4 +1,5 @@
 import React from 'react'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 interface Props {
   onToast: (zprava: string) => void
@@ -30,41 +31,45 @@ const JAZYKY: JazykOption[] = [
 
 export const JazykSekce: React.FC<Props> = ({ onToast }) => {
   return (
-    <section className="settings-card">
-      <p className="settings-card-sub settings-jazyk-popis">
-        Appka zatím umí jen česky — každý text v ní je napevno v češtině. Další jazyky appka plánuje, ale zatím nic
-        nepřekládají.
-      </p>
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od /nastaveni (themeParent).
+    <SurfaceThemeScope surfaceId="settings-language">
+      <section className="settings-card">
+        <p className="settings-card-sub settings-jazyk-popis">
+          Appka zatím umí jen česky — každý text v ní je napevno v češtině. Další jazyky appka plánuje, ale zatím nic
+          nepřekládají.
+        </p>
 
-      {JAZYKY.map((jazyk) => (
-        <div
-          key={jazyk.kod}
-          className={`settings-toggle-row ${jazyk.dostupny ? '' : 'settings-toggle-row--soon'}`}
-        >
-          <div className="settings-toggle-text">
-            <span className="settings-toggle-title">
-              {jazyk.vlajka} {jazyk.nazev}
-              {!jazyk.dostupny && <span className="settings-badge-soon">BRZY</span>}
-            </span>
+        {JAZYKY.map((jazyk) => (
+          <div
+            key={jazyk.kod}
+            className={`settings-toggle-row ${jazyk.dostupny ? '' : 'settings-toggle-row--soon'}`}
+          >
+            <div className="settings-toggle-text">
+              <span className="settings-toggle-title">
+                {jazyk.vlajka} {jazyk.nazev}
+                {!jazyk.dostupny && <span className="settings-badge-soon">BRZY</span>}
+              </span>
+            </div>
+
+            {jazyk.dostupny ? (
+              <span className="settings-jazyk-stav je-aktivni" aria-label="Aktuální jazyk appky">
+                ✓
+              </span>
+            ) : (
+              <button
+                type="button"
+                className="settings-jazyk-stav je-zamceno"
+                aria-label={`${jazyk.nazev} appka zatím nepodporuje`}
+                onClick={() => onToast('Tenhle jazyk appka zatím nepodporuje.')}
+              >
+                🔒
+              </button>
+            )}
           </div>
-
-          {jazyk.dostupny ? (
-            <span className="settings-jazyk-stav je-aktivni" aria-label="Aktuální jazyk appky">
-              ✓
-            </span>
-          ) : (
-            <button
-              type="button"
-              className="settings-jazyk-stav je-zamceno"
-              aria-label={`${jazyk.nazev} appka zatím nepodporuje`}
-              onClick={() => onToast('Tenhle jazyk appka zatím nepodporuje.')}
-            >
-              🔒
-            </button>
-          )}
-        </div>
-      ))}
-    </section>
+        ))}
+      </section>
+    </SurfaceThemeScope>
   )
 }
 

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 interface Props {
   onToast: (zprava: string) => void
@@ -41,52 +42,56 @@ export const OsobniUdajeSekce: React.FC<Props> = ({ onToast }) => {
   }
 
   return (
-    <section className="settings-card">
-      <form className="settings-form" onSubmit={handleSave}>
-        <label className="settings-field">
-          <span>Jméno</span>
-          <input
-            value={form.name}
-            onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-            placeholder="Tvoje jméno"
-          />
-        </label>
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od /nastaveni (themeParent).
+    <SurfaceThemeScope surfaceId="settings-personal">
+      <section className="settings-card">
+        <form className="settings-form" onSubmit={handleSave}>
+          <label className="settings-field">
+            <span>Jméno</span>
+            <input
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="Tvoje jméno"
+            />
+          </label>
 
-        <label className="settings-field">
-          <span>E-mail</span>
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-            placeholder="tvuj@email.cz"
-            autoComplete="email"
-          />
-        </label>
+          <label className="settings-field">
+            <span>E-mail</span>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder="tvuj@email.cz"
+              autoComplete="email"
+            />
+          </label>
 
-        <label className="settings-field">
-          <span>Motto</span>
-          <input
-            value={form.motto}
-            onChange={(e) => setForm((f) => ({ ...f, motto: e.target.value }))}
-            placeholder="Tvoje osobní motto"
-          />
-        </label>
+          <label className="settings-field">
+            <span>Motto</span>
+            <input
+              value={form.motto}
+              onChange={(e) => setForm((f) => ({ ...f, motto: e.target.value }))}
+              placeholder="Tvoje osobní motto"
+            />
+          </label>
 
-        <label className="settings-field">
-          <span>O mně</span>
-          <textarea
-            className="settings-textarea"
-            value={form.bio}
-            maxLength={300}
-            rows={3}
-            onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
-            placeholder="Pár vět o sobě — zájmy, oblíbený předmět, cokoli chceš"
-          />
-        </label>
+          <label className="settings-field">
+            <span>O mně</span>
+            <textarea
+              className="settings-textarea"
+              value={form.bio}
+              maxLength={300}
+              rows={3}
+              onChange={(e) => setForm((f) => ({ ...f, bio: e.target.value }))}
+              placeholder="Pár vět o sobě — zájmy, oblíbený předmět, cokoli chceš"
+            />
+          </label>
 
-        <button type="submit" className="settings-save-btn">Uložit změny</button>
-      </form>
-    </section>
+          <button type="submit" className="settings-save-btn">Uložit změny</button>
+        </form>
+      </section>
+    </SurfaceThemeScope>
   )
 }
 

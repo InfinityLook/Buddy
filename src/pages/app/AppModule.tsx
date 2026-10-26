@@ -13,6 +13,7 @@ import {
   useNotificationItems,
 } from '@/pages/profil/components/ProfilNotifications'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 // Panel upozornění je sdílený s profilem včetně svých stylů. Import je
 // tady schválně explicitní — kdyby profil někdy přestal být načítaný
 // hned při startu, tenhle řádek zajistí, že panel nezůstane bez vzhledu.
@@ -25,6 +26,11 @@ interface AppModuleProps {
 
 export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   const navigate = useNavigate()
+
+  // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — jen pro mřížku /apps
+  // dole, ne pro otevřenou miniaplikaci na celou obrazovku (ta je
+  // pořád identitou toho KONKRÉTNÍHO miniaplikace, ne launcheru).
+  const { rootAttributes } = useSurfaceAppearance('apps-launcher')
 
   // Načtení globálního stavu ze Zustand storu
   const { apps, activeAppId, returnPath, setActiveAppId, markAppOpened } = useAppStore()
@@ -103,11 +109,17 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
     // vlajkovými Roomy) — proto appka fantasy pozadí dává právě sem,
     // ne na sdílenou třídu. Žádný Room si tak nahraditelné pozadí
     // nevynutí, i když přes ně prochází stejný .app-header/.app-icon-btn
-    // sjednocený vzhled (viz AppModule.css). Stejný dvouvrstvý "fotka +
-    // ztmavovací gradient" vzor jako Hub.tsx's .hub-bg/.hub-bg-overlay.
-    <div className="app-page">
-      <div className="app-page-bg" aria-hidden="true" />
-      <div className="app-page-bg-overlay" aria-hidden="true" />
+    // sjednocený vzhled (viz AppModule.css).
+    //
+    // Buddy v2: appka tu dvě natvrdo dané vrstvy pozadí (.app-page-bg/
+    // .app-page-bg-overlay, stejný dvouvrstvý "fotka + ztmavovací
+    // gradient" vzor jako Hub.tsx's .hub-bg/.hub-bg-overlay) smazala
+    // úplně a nahradila jednotným SurfaceBackdrop (viz CLAUDE.md
+    // "Vzhled aplikace") — appka ho dává jen sem, ne do fullscreen
+    // zobrazení miniaplikace výš, protože to je identita té KONKRÉTNÍ
+    // appky, ne launcheru.
+    <div className="app-page buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="apps-launcher" />
 
       <div className="app-container">
         <AppHeader

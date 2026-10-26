@@ -1,4 +1,5 @@
 import React from 'react'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 // ==========================================
 // Nastavení — Tutorial. Appka ještě nemá rozhodnuto, jak má tahle
@@ -11,19 +12,23 @@ import React from 'react'
 
 export const TutorialSekce: React.FC = () => {
   return (
-    <section className="settings-card">
-      <p className="settings-card-sub">
-        Tahle sekce zatím nedělá nic — obsah tutorialu appka ještě nemá hotový, doplní se později.
-      </p>
-      <div className="settings-toggle-row settings-toggle-row--soon">
-        <div className="settings-toggle-text">
-          <span className="settings-toggle-title">
-            🔮 Úvodní tutorial appky
-            <span className="settings-badge-soon">BRZY</span>
-          </span>
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od /nastaveni (themeParent).
+    <SurfaceThemeScope surfaceId="settings-tutorial">
+      <section className="settings-card">
+        <p className="settings-card-sub">
+          Tahle sekce zatím nedělá nic — obsah tutorialu appka ještě nemá hotový, doplní se později.
+        </p>
+        <div className="settings-toggle-row settings-toggle-row--soon">
+          <div className="settings-toggle-text">
+            <span className="settings-toggle-title">
+              🔮 Úvodní tutorial appky
+              <span className="settings-badge-soon">BRZY</span>
+            </span>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </SurfaceThemeScope>
   )
 }
 

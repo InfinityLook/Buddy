@@ -14,6 +14,7 @@ import {
   VIP_PLANS,
   itemsByCategory,
 } from './catalog'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './ShopModule.css'
 
 // ==========================================
@@ -29,6 +30,10 @@ import './ShopModule.css'
 
 export const ShopModule: React.FC = () => {
   const navigate = useNavigate()
+
+  // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — Obchod je samostatný
+  // modul s vlastním surfaceId, stejně jako apps-launcher/settings.
+  const { rootAttributes } = useSurfaceAppearance('shop')
 
   const {
     balance,
@@ -47,7 +52,9 @@ export const ShopModule: React.FC = () => {
   const kategorie = SHOP_CATEGORIES.find((c) => c.id === activeCategory)
 
   return (
-    <div className="shop-page">
+    <div className="shop-page buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="shop" />
+
       <div className="shop-top-bar">
         <div>
           <button className="shop-back-btn" onClick={() => navigate('/hub')}>
