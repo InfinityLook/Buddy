@@ -57,6 +57,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useBuddyWorldScene } from '../scene/useBuddyWorldScene'
 import { VirtualniJoystick } from '@/game/components/VirtualniJoystick'
 import { HUD } from './HUD'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import { AktivniUkolHud } from './AktivniUkolHud'
 import { useVillageStore } from '../useVillageStore'
 import { ukolProObyvatele, stavUkolu } from '../npcQuests'
@@ -611,7 +612,13 @@ export const BuddyWorldHra: React.FC<Props> = ({
       </button>
 <VirtualniJoystick onZmena={nastavJoystick} />
 {toast&&<div className="bw-toast" role="status">{toast}</div>}
-{panel!==null&&<div className="bw-drawer-shade" onPointerDown={e=>{if(e.target===e.currentTarget)setPanel(null)}}><aside className="bw-drawer" role="dialog" aria-modal="true" aria-label={PANEL_NAMES[panel!]} onKeyDown={trapFocus}><header><div><div className="bw-eyebrow">VÝPRAVA JE POZASTAVENÁ</div><strong>{PANEL_NAMES[panel!]}</strong></div><button onClick={()=>setPanel(null)} aria-label="Zavřít panel">✕</button></header><div className="bw-drawer-body">
+{/* Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — appčin modální panelový
+    systém (Příběh/Deník/Svět/Osada/Buddy/Úspěchy/Nastavení/Rozhovor)
+    je "view" podobrazovka se zděděným themeParent: 'buddyworld-entry'
+    (viz themeCatalog.ts, stejný vzor jako HUD.tsx těsně nad ní): appka
+    ji obaluje jen do <SurfaceThemeScope>, žádný <SurfaceBackdrop> ani
+    ruční rootAttributes. */}
+{panel!==null&&<SurfaceThemeScope surfaceId="buddyworld-panel"><div className="bw-drawer-shade" onPointerDown={e=>{if(e.target===e.currentTarget)setPanel(null)}}><aside className="bw-drawer" role="dialog" aria-modal="true" aria-label={PANEL_NAMES[panel!]} onKeyDown={trapFocus}><header><div><div className="bw-eyebrow">VÝPRAVA JE POZASTAVENÁ</div><strong>{PANEL_NAMES[panel!]}</strong></div><button onClick={()=>setPanel(null)} aria-label="Zavřít panel">✕</button></header><div className="bw-drawer-body">
 {panel==='campaign'&&<CampaignPanel progress={progress} inVillage={inVillage} onNavigate={navigateTo}/>}
 {panel==='quests'&&<><h2>Krystalové výpravy</h2><KristalovaVypravaUI stav={kristalovaVyprava} region={oblastNaPozici(poziceHrace)?.id === 'vesnice' ? 'buddy_vesnice' : oblastNaPozici(poziceHrace)?.id ?? ''} onAkce={vypravaAkce} />
 {druhaVyprava.faze !== 'zamcena' && <details className="bw-objevovani" aria-label="Ozvěny krystalů">
@@ -998,7 +1005,7 @@ export const BuddyWorldHra: React.FC<Props> = ({
           otevrenyDialog === blizkyObyvatel.id ? null : blizkyObyvatel.id
         ) }}>{otevrenyDialog === blizkyObyvatel.id ? 'Zavřít' : 'Promluvit'}</button>
       </div>}{!blizkyObyvatel&&<p>Promluv si s obyvateli přímo ve vesnici.</p>}</>}
-</div></aside></div>}
+</div></aside></div></SurfaceThemeScope>}
 </div>
   )
 }

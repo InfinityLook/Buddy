@@ -5,6 +5,7 @@ import { MaskotDef } from '../types'
 import { BossDef } from '../data/bossove'
 import { BuddyWorldHud } from '../scene/useBuddyWorldScene'
 import { obrazekKonceptu } from '../data/koncept'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 // ==========================================
 // 2D HUD přes 3D scénu — hráčovo HP/XP/level, útočné a obranné
@@ -60,6 +61,16 @@ export const HUD: React.FC<Props> = ({ hud, maskot, bossDef, vybranaZbran, onZvo
   const bossIlustrace = obrazekKonceptu(`nepritel.${bossDef.id}`)
 
   return (
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" podobrazovka se
+    // zděděným themeParent: 'buddyworld-entry' (viz themeCatalog.ts),
+    // stejný už zavedený vzor jako admin.tsx's sedm panelů a
+    // SkolaStatistiky.tsx/SkolaUpozorneni.tsx: appka ji obaluje jen do
+    // <SurfaceThemeScope>, žádný <SurfaceBackdrop> ani ruční
+    // rootAttributes. Tenhle 2D HUD overlay (stav zdraví/XP/zbraně,
+    // tlačítka útoku/obrany) se kreslí nad opravdovou appčinou 3D
+    // scénou (useBuddyWorldScene.ts), ne nad plochou katalogovou
+    // fotkou — motiv proto správně zdědí od svého rodiče 'buddyworld-entry'.
+    <SurfaceThemeScope surfaceId="buddyworld-hud">
     <div className="bw-hud">
       <div className="bw-hud-horni">
         <div className="bw-hud-hrac">
@@ -201,5 +212,6 @@ export const HUD: React.FC<Props> = ({ hud, maskot, bossDef, vybranaZbran, onZvo
         </div>
       )}
     </div>
+    </SurfaceThemeScope>
   )
 }

@@ -10,6 +10,7 @@ import { hracStavZUrovne } from './leveling'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useVillageStore } from './useVillageStore'
 import { useAdventureStore } from './adventure'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import './BuddyWorldModule.css'
 import './release.css'
 
@@ -148,6 +149,17 @@ export const BuddyWorldModule: React.FC = () => {
   }, [])
 
   return (
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — appka tu obaluje jen
+    // do <SurfaceThemeScope> (barevné tokeny), BEZ <SurfaceBackdrop>
+    // (vlastní obrázek pozadí) — appka má tu totiž už svou vlastní,
+    // schválně zvolenou scenérii (BuddyWorldModule.css's vlastní "dark
+    // forest"/Enchanted Forest SVG pozadí), appčin katalog navíc appku
+    // potvrzuje: 'buddyworld-entry' má backgroundMode: 'none', což
+    // u SurfaceBackdropu znamená appkou nikdy nevykreslený obrázek —
+    // appka tu reálnou 3D scénu/Threejs canvas (FrontierGame/BuddyWorldHra)
+    // má jako appčinu vlastní "pozadí" místo appčiny ploché katalogové
+    // fotky. Stejná výjimka jako appčin FeedModule.tsx/BootGate.tsx.
+    <SurfaceThemeScope surfaceId="buddyworld-entry">
     <div className={`bw-page ${largeText ? 'bw-large-text' : ''} ${reducedMotion ? 'bw-reduced-motion' : ''}`}>
       <div className="bw-rotate-prompt" aria-hidden="true">
         <span className="bw-rotate-ikona">🔄</span>
@@ -264,6 +276,7 @@ export const BuddyWorldModule: React.FC = () => {
         )}
       </div>
     </div>
+    </SurfaceThemeScope>
   )
 }
 

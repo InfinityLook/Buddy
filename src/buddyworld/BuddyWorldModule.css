@@ -6,6 +6,21 @@
    čte sdílené CSS proměnné (var(--text-primary) apod.) jen tam, kde
    doopravdy ladí s appčiným zbytkem appky — jinak má vlastní, tmavý
    lesní palet, ať sedí k appčině scéně (stínový les).
+
+   Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — BuddyWorldModule.tsx,
+   HUD.tsx a panelový systém v BuddyWorldHra.tsx jsou obalené do
+   <SurfaceThemeScope> (surfaceId buddyworld-entry/-hud/-panel), ať mají
+   správné data atributy a katalogový záznam pro případné budoucí
+   rozšíření. OBSAH tohoto CSS souboru se ale nemigruje na sdílené
+   accent-*/text-*/bg-* proměnné. Skutečná kontrola to potvrzuje: v celém
+   souboru je jen 7 výskytů var(--…), a všech 7 patří lokální proměnné
+   --maskot-barva (per-maskotí barva, ne appčin globální motiv) —
+   header o kus výš už tvrdil, že appka tu má svou vlastní, appkou
+   neovlivněnou tmavou lesní paletu, tahle kontrola to jen dokládá jako
+   skutečný, ne jen deklarovaný stav. Appka tenhle soubor nechává tak,
+   jak je — stejná výjimka jako appčina terminálová konzole v
+   AdminModule.css (.admin-konzole-log) nebo celý FrontierGame.tsx/
+   frontier.css, jen v měřítku celého souboru místo jedné malé sekce.
    ========================================== */
 
 .bw-page {
