@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { nactiTikety, nactiZpravyTiketu, poslatZpravuTiketu, sledovatZpravyTiketu, vyriditTiket, zalozitTiket } from '@/core/support/api'
 import type { Tiket, ZpravaTiketu } from '@/core/support/types'
 import { useHasPermission } from '@/core/role'
+import { SurfaceBackdrop, SurfaceThemeScope, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './SupportModule.css'
 
 const cas = (iso: string) =>
@@ -20,6 +21,7 @@ const cas = (iso: string) =>
 export const SupportModule: React.FC = () => {
   const navigate = useNavigate()
   const smiAdmin = useHasPermission('admin.panel')
+  const { rootAttributes } = useSurfaceAppearance('support')
 
   const [tikety, setTikety] = useState<Tiket[]>([])
   const [nacita, setNacita] = useState(true)
@@ -80,7 +82,8 @@ export const SupportModule: React.FC = () => {
   }
 
   return (
-    <div className="support-page">
+    <div className="support-page buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="support" />
       <div className="support-top-bar">
         <button className="support-back-btn" onClick={() => navigate('/nastaveni')}>
           ← Zpět do nastavení
@@ -160,6 +163,7 @@ export const SupportModule: React.FC = () => {
   )
 }
 
+
 const VlakloTiketu: React.FC<{ tiket: Tiket; smiAdmin: boolean; onZpet: () => void }> = ({ tiket, smiAdmin, onZpet }) => {
   const [zpravy, setZpravy] = useState<ZpravaTiketu[]>([])
   const [nacita, setNacita] = useState(true)
@@ -212,6 +216,7 @@ const VlakloTiketu: React.FC<{ tiket: Tiket; smiAdmin: boolean; onZpet: () => vo
   }
 
   return (
+    <SurfaceThemeScope surfaceId="support-conversation">
     <div className="support-page support-page--vlakno">
       <div className="support-top-bar">
         <button className="support-back-btn" onClick={onZpet}>
@@ -260,6 +265,7 @@ const VlakloTiketu: React.FC<{ tiket: Tiket; smiAdmin: boolean; onZpet: () => vo
         </button>
       </form>
     </div>
+    </SurfaceThemeScope>
   )
 }
 

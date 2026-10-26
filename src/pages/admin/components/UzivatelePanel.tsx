@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import * as adminApi from '../api'
 import { ROLE_REGISTRY, VIP_DURATIONS } from '@/core/role'
 import { NASTAVITELNE_ROLE, NastavitelnaRole, UcetRadek } from '../types'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 const STRANKA = 30
 
@@ -84,6 +85,7 @@ export const UzivatelePanel: React.FC = () => {
   }
 
   return (
+    <SurfaceThemeScope surfaceId="admin-users">
     <div className="admin-prehled">
       <section className="admin-card">
         <span className="admin-card-title">Uživatelé</span>
@@ -169,5 +171,6 @@ export const UzivatelePanel: React.FC = () => {
 
       {hlaska && <div className="admin-toast">{hlaska}</div>}
     </div>
+    </SurfaceThemeScope>
   )
 }

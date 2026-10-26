@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useBuddyVoice } from './useBuddyVoice'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './BuddyOverlay.css'
 
 interface Props {
@@ -32,9 +33,11 @@ export const BuddyOverlay: React.FC<Props> = ({ voice, onZavrit }) => {
   }
 
   const mikrofonZakazan = stav === 'posloucha' || stav === 'premysli'
+  const { rootAttributes } = useSurfaceAppearance('buddy-assistant')
 
   return (
-    <div className="buddy-overlay">
+    <div className="buddy-overlay buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="buddy-assistant" />
       <div className="buddy-scrim" onClick={onZavrit} />
 
       <div className="buddy-panel">

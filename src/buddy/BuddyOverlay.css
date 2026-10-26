@@ -11,6 +11,10 @@
   justify-content: center;
 }
 
+/* Buddy v2 — clona nad zbytkem appky (i nad vlastním SurfaceBackdrop
+   obrázkem výš), schválně pevně tmavá, ne motivový token — stejná
+   výjimka, co appka už dřív uznala u téměř neprůhledných toastů:
+   má jen ztlumit, co je pod ní, ne vypadat jako appčin vlastní panel. */
 .buddy-scrim {
   position: absolute;
   inset: 0;
@@ -31,6 +35,8 @@
   height: min(78vh, 640px);
   display: flex;
   flex-direction: column;
+  /* Téměř neprůhledné pozadí panelu zůstává pevné — appčin už dřív
+     uznaný výjimka pro toasty/dialogy (viz SocialModule.css). */
   background: rgba(14, 11, 26, 0.97);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
@@ -56,7 +62,7 @@
   font-size: 1rem;
   font-weight: 800;
   color: var(--accent-cyan);
-  text-shadow: 0 0 12px rgba(53, 196, 240, 0.5);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--accent-cyan) 50%, transparent);
 }
 
 .buddy-close-btn {
@@ -66,7 +72,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.07);
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   cursor: pointer;
@@ -114,7 +120,7 @@
 .buddy-bublina.je-moje {
   background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
   border-color: transparent;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 @keyframes buddy-bublina-vstup {
@@ -153,7 +159,7 @@
   font-size: 1.6rem;
   background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
   border: none;
-  color: #fff;
+  color: var(--text-on-accent);
   cursor: pointer;
   box-shadow: var(--shadow-glow-cyan);
   transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
@@ -163,16 +169,18 @@
 .buddy-mic-btn:disabled { cursor: default; }
 
 /* Poslouchá — sytější a s pulzujícím prstencem okolo, ať je na první
-   pohled jasné, že appka teď snímá hlas. */
+   pohled jasné, že appka teď snímá hlas. #f87171 je nejbližší, ne
+   přesná shoda s --accent-red (#ef4444) — appka migruje na token i tak,
+   ať "poslouchám" zůstane červeno-růžový signál i v jiném motivu. */
 .buddy-mic-btn--posloucha {
-  background: linear-gradient(135deg, #f87171, #ec4899);
-  box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.5);
+  background: linear-gradient(135deg, var(--accent-red), var(--accent-magenta));
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-red) 50%, transparent);
   animation: buddy-mic-posloucha 1.4s ease-in-out infinite;
 }
 
 @keyframes buddy-mic-posloucha {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(248, 113, 113, 0.45); }
-  50% { box-shadow: 0 0 0 14px rgba(248, 113, 113, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent-red) 45%, transparent); }
+  50% { box-shadow: 0 0 0 14px transparent; }
 }
 
 .buddy-mic-btn--premysli {
@@ -191,11 +199,11 @@
 
 @keyframes buddy-mic-mluvi {
   0%, 100% { box-shadow: var(--shadow-glow-cyan); }
-  50% { box-shadow: 0 0 52px rgba(138, 92, 246, 0.55); }
+  50% { box-shadow: 0 0 52px color-mix(in srgb, var(--accent-violet) 55%, transparent); }
 }
 
 .buddy-mic-btn--chyba {
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
   box-shadow: none;
 }
 

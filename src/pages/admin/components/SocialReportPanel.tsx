@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import * as socialApi from '@/social/api'
 import * as adminApi from '../api'
 import type { Hlaseni } from '@/social/types'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 // ==========================================
 // Hlášení ze Socialu, admin verze.
@@ -129,6 +130,7 @@ export const SocialReportPanel: React.FC = () => {
   }
 
   return (
+    <SurfaceThemeScope surfaceId="admin-reports">
     <section className="admin-card">
       <div className="admin-card-head">
         <span className="admin-card-title">SocialReport ({cekajicich} čeká)</span>
@@ -271,5 +273,6 @@ export const SocialReportPanel: React.FC = () => {
 
       {hlaska && <div className="admin-toast">{hlaska}</div>}
     </section>
+    </SurfaceThemeScope>
   )
 }

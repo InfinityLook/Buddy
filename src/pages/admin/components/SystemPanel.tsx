@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { nactiChybyAplikace } from '../api'
 import { APP_BUILD_ID } from '@/core/utils/registerSW'
 import type { ChybaAplikace } from '../types'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 const STRANKA = 50
 
@@ -37,6 +38,7 @@ export const SystemPanel: React.FC = () => {
   }
 
   return (
+    <SurfaceThemeScope surfaceId="admin-system">
     <div className="admin-prehled">
       <section className="admin-card">
         <span className="admin-card-title">Chyby aplikace</span>
@@ -82,5 +84,6 @@ export const SystemPanel: React.FC = () => {
         )}
       </section>
     </div>
+    </SurfaceThemeScope>
   )
 }

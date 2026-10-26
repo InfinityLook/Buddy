@@ -10,6 +10,7 @@ import { KonzolePanel } from './components/KonzolePanel'
 import { ADMIN_TABS, AdminTab, AdminTabDef } from './types'
 import { MODERATOR_ROLE, ADMIN_ROLE, useHasPermission } from '@/core/role'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './AdminModule.css'
 
 // ==========================================
@@ -57,6 +58,7 @@ export const AdminModule: React.FC = () => {
   const navigate = useNavigate()
   const smiAdmin = useHasPermission('admin.panel')
   const smiModerovat = useHasPermission('moderation.content')
+  const { rootAttributes } = useSurfaceAppearance('admin')
 
   const viditelneTaby = useMemo(
     () => ADMIN_TABS.filter((t) => (t.permission === 'admin.panel' ? smiAdmin : smiAdmin || smiModerovat)),
@@ -81,7 +83,8 @@ export const AdminModule: React.FC = () => {
     aktivniTab && (aktivniTab.permission === 'admin.panel' ? smiAdmin : smiAdmin || smiModerovat)
 
   return (
-    <div className="admin-page">
+    <div className="admin-page buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="admin" />
       <div className="admin-top-bar">
         <button
           className="admin-back-btn"

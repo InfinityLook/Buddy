@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { spustPrikaz } from '../commands'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 interface Radek {
   typ: 'prikaz' | 'vystup'
@@ -39,6 +40,7 @@ export const KonzolePanel: React.FC = () => {
   }
 
   return (
+    <SurfaceThemeScope surfaceId="admin-console">
     <section className="admin-card admin-konzole">
       <div className="admin-konzole-log">
         {radky.map((r, i) => (
@@ -61,5 +63,6 @@ export const KonzolePanel: React.FC = () => {
         <button type="submit">Spustit</button>
       </form>
     </section>
+    </SurfaceThemeScope>
   )
 }

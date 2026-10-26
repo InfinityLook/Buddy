@@ -5,6 +5,7 @@ import { PodporaNavod } from './napoveda/PodporaNavod'
 import { ProfilNavod } from './napoveda/ProfilNavod'
 import { ZalohujemiNavod } from './napoveda/ZalohujemiNavod'
 import { ZvukVzhledNavod } from './napoveda/ZvukVzhledNavod'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 
 type TypNapovedy = 'hub' | 'profil' | 'zvukVzhled' | 'zalohovani' | 'podpora'
 
@@ -61,6 +62,7 @@ const POLOZKY_NAPOVEDY: PoložkaNapovědy[] = [
 
 export const NapovedaSekce: React.FC = () => {
   const [vybranaNapoveda, setVybranaNapoveda] = useState<TypNapovedy | null>(null)
+  const { rootAttributes } = useSurfaceAppearance('help')
 
   const onVratit = () => setVybranaNapoveda(null)
 
@@ -82,7 +84,8 @@ export const NapovedaSekce: React.FC = () => {
   }
 
   return (
-    <div className="settings-page">
+    <div className="settings-page buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="help" />
       <section className="settings-card">
         <div className="settings-card-head">
           <span className="settings-card-icon blue" aria-hidden="true">📘</span>

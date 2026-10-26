@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { nactiAuditLog } from '../api'
 import type { AuditLogRadek } from '../types'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 const STRANKA = 50
 
@@ -62,6 +63,7 @@ export const AuditLogPanel: React.FC = () => {
   }
 
   return (
+    <SurfaceThemeScope surfaceId="admin-audit">
     <div className="admin-prehled">
       <section className="admin-card">
         <span className="admin-card-title">Audit log</span>
@@ -101,5 +103,6 @@ export const AuditLogPanel: React.FC = () => {
         )}
       </section>
     </div>
+    </SurfaceThemeScope>
   )
 }

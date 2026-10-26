@@ -3,6 +3,7 @@ import * as adminApi from '../api'
 import { nactiAplikaceMetriky, AplikaceMetriky } from '../metrics'
 import { AdminPrehled, AktivitaPodleDruhu, RustovyDen, TopOdznak, ZdrojMetrik } from '../types'
 import { DEFAULT_BADGES } from '@/core/store/useGamificationStore'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 // Kolik dní zpátky ukazuje růstový graf — dost na trend, málo na to,
 // aby se sloupce na mobilu nezmáčkly k nerozeznání (viz POCET_VZORKU výš).
@@ -107,6 +108,7 @@ export const PrehledPanel: React.FC = () => {
   }, [zdroj])
 
   return (
+    <SurfaceThemeScope surfaceId="admin-overview">
     <div className="admin-prehled">
       {/* Stavový přehled */}
       <section className="admin-card">
@@ -261,5 +263,6 @@ export const PrehledPanel: React.FC = () => {
         )}
       </section>
     </div>
+    </SurfaceThemeScope>
   )
 }

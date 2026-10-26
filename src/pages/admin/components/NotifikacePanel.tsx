@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { nactiOznameni, poslatOznameni, smazatOznameni } from '@/core/notifications/api'
 import type { Oznameni } from '@/core/notifications/types'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 const MAX_DELKA = 500
 
@@ -61,6 +62,7 @@ export const NotifikacePanel: React.FC = () => {
   }
 
   return (
+    <SurfaceThemeScope surfaceId="admin-notifications">
     <div className="admin-prehled">
       <section className="admin-card">
         <span className="admin-card-title">Nové oznámení</span>
@@ -116,5 +118,6 @@ export const NotifikacePanel: React.FC = () => {
 
       {hlaska && <div className="admin-toast">{hlaska}</div>}
     </div>
+    </SurfaceThemeScope>
   )
 }
