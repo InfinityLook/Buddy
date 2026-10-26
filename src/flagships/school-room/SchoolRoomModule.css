@@ -27,7 +27,7 @@
   border-radius: 999px;
   margin-top: -0.3rem;
   background: linear-gradient(90deg, var(--accent-cyan), transparent 85%);
-  box-shadow: 0 0 14px rgba(53, 196, 240, 0.55);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--accent-cyan) 55%, transparent);
 }
 
 .sr-panel-hlavicka h2 {
@@ -89,7 +89,7 @@
    první pohled, ne jen z toho, že se řádek vůbec zobrazil. */
 .sr-riziko-pilulka {
   display: inline-block;
-  background: rgba(219, 39, 119, 0.16);
+  background: color-mix(in srgb, var(--accent-magenta) 16%, transparent);
   color: var(--accent-magenta);
   padding: 0.15rem 0.55rem;
   border-radius: 999px;

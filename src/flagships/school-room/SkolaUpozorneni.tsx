@@ -4,6 +4,7 @@ import { AppIcon } from '@/pages/app/components/AppIcon'
 import { useNotificationItems } from '@/pages/profil/components/ProfilNotifications'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import '@/pages/app/AppModule.css'
 import './SchoolRoomModule.css'
 
@@ -23,6 +24,11 @@ export const SkolaUpozorneni: React.FC = () => {
   const notifications = useNotificationItems()
 
   return (
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — stejná výjimka jako
+    // SkolaStatistiky.tsx: "view" podobrazovka se zděděným themeParent:
+    // 'school-room', obalená jen do <SurfaceThemeScope>, žádný
+    // <SurfaceBackdrop>.
+    <SurfaceThemeScope surfaceId="school-alerts">
     <div className="app-container">
       <header className="app-header">
         <button className="app-back-btn" aria-label="Zpět" onClick={() => navigate('/skola')}>
@@ -70,6 +76,7 @@ export const SkolaUpozorneni: React.FC = () => {
           nese sama. */}
       <AppBottomNav />
     </div>
+    </SurfaceThemeScope>
   )
 }
 

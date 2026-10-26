@@ -12,6 +12,7 @@ import { PRAH_RIZIKA_DOCHAZKY, spocitejDochazkuPodlePredmetu } from '@/miniapps/
 import { spocitejTrendZnamek } from './skolaStats'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import '@/pages/app/AppModule.css'
 import './SchoolRoomModule.css'
 
@@ -78,6 +79,13 @@ export const SkolaStatistiky: React.FC = () => {
   }
 
   return (
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" podobrazovka se
+    // zděděným themeParent: 'school-room' (viz themeCatalog.ts), stejný
+    // vzor jako admin.tsx's sedm panelů a SupportModule.tsx's rozhovor:
+    // appka ji obaluje jen do <SurfaceThemeScope>, žádný <SurfaceBackdrop>
+    // ani ruční rootAttributes — vlastní obrázek pozadí nemá, dědí motiv
+    // od School Roomu samotného.
+    <SurfaceThemeScope surfaceId="school-stats">
     <div className="app-container">
       <header className="app-header">
         <button className="app-back-btn" aria-label="Zpět" onClick={() => navigate('/skola')}>
@@ -310,6 +318,7 @@ export const SkolaStatistiky: React.FC = () => {
           jinde appku zbavuje nutnosti cokoli dolaďovat v odsazení. */}
       <AppBottomNav />
     </div>
+    </SurfaceThemeScope>
   )
 }
 
