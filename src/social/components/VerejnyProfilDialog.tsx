@@ -13,6 +13,7 @@ import { useOnlineFriends } from '../presence'
 import * as api from '../api'
 import type { Prispevek, VerejnyProfil, VztahSledovani } from '../types'
 import type { SocialStav } from '../useSocial'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 interface Props {
   userId: string
@@ -115,7 +116,12 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
   const zobrazovaneMrizky = prispevky.filter((p) => (tab === 'video' ? p.mediaType === 'video' : p.mediaType === 'image'))
 
   return (
-    <>
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od Social (social-home).
+    // .social-overlay zůstává position:fixed vůči viewportu beze změny —
+    // isolation:isolate appčina (.buddy-theme-scope) containing block pro
+    // position:fixed nemění (viz appčin rozbor u SocialModule.tsx).
+    <SurfaceThemeScope surfaceId="public-profile">
       <div className="social-overlay" onClick={onZavrit} />
       <div className="social-dialog social-profil-dialog">
         {nacita ? (
@@ -359,6 +365,6 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
           }}
         />
       )}
-    </>
+    </SurfaceThemeScope>
   )
 }

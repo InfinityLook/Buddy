@@ -5,6 +5,7 @@ import { VerejnyProfilDialog } from './components/VerejnyProfilDialog'
 import { SocialIcon } from './components/SocialIcon'
 import { useSocial } from './useSocial'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import './SocialModule.css'
 import './FeedModule.css'
 
@@ -98,57 +99,69 @@ export const FeedModule: React.FC = () => {
   const [otevrenyProfil, setOtevrenyProfil] = useState<string | null>(null)
 
   return (
-    <div className="social-page">
-      <div className="feed-bg" aria-hidden="true" />
-      <div className="feed-bg-overlay" aria-hidden="true" />
-      <div className="feed-nebe" aria-hidden="true">
-        {HVEZDY.map((h, i) => (
-          <span
-            key={`hvezda-${i}`}
-            className="feed-hvezda"
-            style={{ top: h.top, left: h.left, animationDelay: `${h.zpozdeniS}s` }}
-          />
-        ))}
-        {JISKRY.map((j, i) => (
-          <span
-            key={`jiskra-${i}`}
-            className="feed-jiskra"
-            style={{ left: j.left, animationDelay: `${j.zpozdeniS}s` }}
-          />
-        ))}
-      </div>
-
-      <div className="social-top-bar">
-        <button className="social-back-btn" onClick={() => navigate('/hub')}>
-          ← Zpět do Hubu
-        </button>
-        <div className="feed-title-row">
-          <span className="feed-title-icon" aria-hidden="true">
-            <SocialIcon name="chat" size={20} />
-          </span>
-          <h1 className="social-title">Feed</h1>
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — appka tu obaluje jen
+    // do <SurfaceThemeScope> (barevné tokeny), BEZ <SurfaceBackdrop>
+    // (vlastní obrázek pozadí) — appka má tu totiž už svou vlastní,
+    // schválně zvolenou scenérii (.feed-bg/.feed-bg-overlay/.feed-nebe
+    // výš, hub-soumrak.png + hvězdy/jiskry místo Three.js), přímou
+    // odpověď na dřívější požadavek ("ty kolečka běhají furt po
+    // pozadí, změníme to na jiný efekt?") — appka ji teď nepřepisuje
+    // katalogovým "feed" pozadím jen proto, že existuje. Stejný appkou
+    // už zavedený vzor jako .app-fullscreen-view (AppModule.css)
+    // o krok dřív.
+    <SurfaceThemeScope surfaceId="feed">
+      <div className="social-page">
+        <div className="feed-bg" aria-hidden="true" />
+        <div className="feed-bg-overlay" aria-hidden="true" />
+        <div className="feed-nebe" aria-hidden="true">
+          {HVEZDY.map((h, i) => (
+            <span
+              key={`hvezda-${i}`}
+              className="feed-hvezda"
+              style={{ top: h.top, left: h.left, animationDelay: `${h.zpozdeniS}s` }}
+            />
+          ))}
+          {JISKRY.map((j, i) => (
+            <span
+              key={`jiskra-${i}`}
+              className="feed-jiskra"
+              style={{ left: j.left, animationDelay: `${j.zpozdeniS}s` }}
+            />
+          ))}
         </div>
+
+        <div className="social-top-bar">
+          <button className="social-back-btn" onClick={() => navigate('/hub')}>
+            ← Zpět do Hubu
+          </button>
+          <div className="feed-title-row">
+            <span className="feed-title-icon" aria-hidden="true">
+              <SocialIcon name="chat" size={20} />
+            </span>
+            <h1 className="social-title">Feed</h1>
+          </div>
+        </div>
+
+        {stav.nacita ? (
+          <p className="social-empty-note social-empty-note--stred">Načítám…</p>
+        ) : (
+          <DomuPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />
+        )}
+
+        {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
+
+        {otevrenyProfil && (
+          <VerejnyProfilDialog
+            userId={otevrenyProfil}
+            stav={stav}
+            onOtevritChat={() => navigate('/social?zalozka=chaty')}
+            onZavrit={() => setOtevrenyProfil(null)}
+          />
+        )}
+
+        <AppBottomNav />
       </div>
-
-      {stav.nacita ? (
-        <p className="social-empty-note social-empty-note--stred">Načítám…</p>
-      ) : (
-        <DomuPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />
-      )}
-
-      {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
-
-      {otevrenyProfil && (
-        <VerejnyProfilDialog
-          userId={otevrenyProfil}
-          stav={stav}
-          onOtevritChat={() => navigate('/social?zalozka=chaty')}
-          onZavrit={() => setOtevrenyProfil(null)}
-        />
-      )}
-
-      <AppBottomNav />
-    </div>
+    </SurfaceThemeScope>
   )
 }
 

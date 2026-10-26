@@ -12,6 +12,7 @@ import { nastavOtevrenyChat } from './inbox'
 import { useAmbientScene } from './scene/useAmbientScene'
 import { najdiPodleKodu } from './api'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './SocialModule.css'
 
 // ==========================================
@@ -64,6 +65,16 @@ export const SocialModule: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const stav = useSocial()
   const tajnyStav = useTajnyChat()
+
+  // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — jedno surfaceId pro
+  // celý modul, napříč všemi třemi vykreslovacími větvemi níž (otevřený
+  // chat/tajný chat/trojice záložek jsou stejná obrazovka /social, jen
+  // jinak vykreslená). .social-ambient (Three.js plátno) zůstává beze
+  // změny přímo pod .buddy-theme-scope's novým isolation:isolate —
+  // position:fixed appky si containing block nemění (jen z-indexové
+  // pořadí teď počítá appka uvnitř .social-page's vlastní stackovací
+  // kontext), appka proto nemusela měnit žádný z-index jinde.
+  const { rootAttributes } = useSurfaceAppearance('social-home')
 
   // Výchozí záložka jde přebít parametrem v URL (?zalozka=chaty) — stejný
   // vzor jako AppModule.tsx's ?kategorie=. Inicializátor tu je, aby
@@ -172,7 +183,8 @@ export const SocialModule: React.FC = () => {
   const { containerRef: ambientRef } = useAmbientScene()
 
   return (
-    <div className="social-page">
+    <div className="social-page buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="social-home" />
       <div
         ref={ambientRef}
         className={`social-ambient ${chat || tajnyChat ? 'je-skryty' : ''}`}

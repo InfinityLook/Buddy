@@ -9,8 +9,8 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   background:
-    radial-gradient(circle at 15% 8%, rgba(53, 196, 240, 0.18) 0%, transparent 38%),
-    radial-gradient(circle at 85% 20%, rgba(138, 92, 246, 0.18) 0%, transparent 36%),
+    radial-gradient(circle at 15% 8%, color-mix(in srgb, var(--accent-cyan) 18%, transparent) 0%, transparent 38%),
+    radial-gradient(circle at 85% 20%, color-mix(in srgb, var(--accent-violet) 18%, transparent) 0%, transparent 36%),
     var(--bg-base);
   color: var(--text-primary);
   /* Krok 19: AppBottomNav je sticky flex prvek, co si svou výšku
@@ -180,8 +180,10 @@
   margin: 0 0.75rem 0.4rem;
   padding: 0.4rem 0.6rem;
   border-radius: 10px;
-  background: rgba(167, 139, 250, 0.1);
-  border: 1px solid rgba(167, 139, 250, 0.25);
+  /* #a78bfa není přesný --accent-violet (#8a5cf6), ale stejná fialová
+     rodina — nejbližší motivový token pro appčin Tajný chat banner. */
+  background: color-mix(in srgb, var(--accent-violet) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-violet) 25%, transparent);
   color: var(--text-secondary);
 }
 
@@ -190,8 +192,8 @@
   font-size: 0.62rem;
   font-weight: 700;
   color: var(--text-primary);
-  background: rgba(167, 139, 250, 0.18);
-  border: 1px solid rgba(167, 139, 250, 0.35);
+  background: color-mix(in srgb, var(--accent-violet) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-violet) 35%, transparent);
   border-radius: 6px;
   padding: 0.15rem 0.3rem;
 }
@@ -233,8 +235,8 @@
 }
 
 .social-row--volba.is-vybrany {
-  background: rgba(53, 196, 240, 0.12);
-  border-color: rgba(53, 196, 240, 0.4);
+  background: color-mix(in srgb, var(--accent-cyan) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent-cyan) 40%, transparent);
 }
 
 .social-row--chat:active,
@@ -253,8 +255,8 @@
 /* Nepřečtený chat dostane svítící okraj — má vyskočit z výčtu dřív, než
    si člověk začne číst náhledy zpráv jeden po druhém. */
 .social-row--chat.ma-neprectene {
-  border-color: rgba(53, 196, 240, 0.35);
-  box-shadow: 0 0 0 1px rgba(53, 196, 240, 0.15) inset;
+  border-color: color-mix(in srgb, var(--accent-cyan) 35%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-cyan) 15%, transparent) inset;
 }
 
 /* ---------- menu v Nastavení (NastaveniPanel.tsx) ---------- */
@@ -350,6 +352,12 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--sa-a), var(--sa-b));
+  /* Buddy v2 — barva iniciály zůstává pevně bílá, ne motivový token.
+     --sa-a/--sa-b jsou hash odvozený od id (viz avatarColor.ts), ne
+     appčin vybraný motiv — bílá je pojistka, která se čte na jakékoli
+     z těch náhodných dvojic barev, kde "nejbližší textový token" nemá
+     smysl počítat (--text-on-accent je kalibrovaný na appčinu VLASTNÍ
+     accent barvu motivu, ne na libovolný hash). */
   color: #fff;
   font-size: 0.85rem;
   font-weight: 800;
@@ -400,6 +408,13 @@
 
 .social-avatar-wrap.je-tlumeny .social-avatar-prstenec { display: none; }
 
+/* Buddy v2 — appka tu schválně NEMIGRUJE na motivový accent token.
+   Komentář výš ("Zablokovaný účet je schválně bez barvy") platí
+   i vůči appčině vlastní paletě motivů — bod celé věty je, že zablokovaný
+   avatar nemá ŽÁDNOU barvu, ne jinou barvu podle zvoleného motivu.
+   Neutrální bílá při nízké opacitě je navíc jediná volba, co zůstane
+   stejně "bez barvy" na tmavém i světlém motivu zároveň (any-themed
+   semi-transparent panel token tu neexistuje). */
 .social-avatar-wrap.je-tlumeny .social-avatar {
   background: rgba(255, 255, 255, 0.08);
   color: var(--text-muted);
@@ -469,8 +484,14 @@
 .social-btn--small { padding: 0.32rem 0.6rem; font-size: 0.68rem; }
 .social-btn--full { width: 100%; margin-top: 0.3rem; }
 
+/* Buddy v2 — "skleněné" pozadí počítané z appčina vlastního
+   --text-primary (přes color-mix), ne z pevné bílé. Stejný vzor, co už
+   appka dřív použila u .app-icon-btn/.profil-icon-btn — na tmavém
+   motivu --text-primary vychází světlý, na světlém zas tmavý, takže
+   "jemně zvýrazni proti podkladu" zůstane pravda v obou režimech,
+   zatímco natvrdo bílá na světlém motivu by naopak vzhled vyšedla. */
 .social-btn--tlumene {
-  background: rgba(255, 255, 255, 0.09);
+  background: color-mix(in srgb, var(--text-primary) 9%, transparent);
   color: var(--text-primary);
   border: 1px solid var(--border-subtle);
 }
@@ -483,15 +504,15 @@
   width: 32px;
   height: 32px;
   border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.07);
+  background: color-mix(in srgb, var(--text-primary) 7%, transparent);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.social-icon-btn--ano { color: var(--accent-green); border-color: rgba(16, 185, 129, 0.35); }
-.social-icon-btn--ne { color: var(--accent-red); border-color: rgba(239, 68, 68, 0.3); }
+.social-icon-btn--ano { color: var(--accent-green); border-color: color-mix(in srgb, var(--accent-green) 35%, transparent); }
+.social-icon-btn--ne { color: var(--accent-red); border-color: color-mix(in srgb, var(--accent-red) 30%, transparent); }
 
 /* Krátké odskočení, když se tlačítko právě přepnulo (kopírování kódu do
    fajfky) — bez toho by změna ikony byla nenápadná do ztracena. */
@@ -593,7 +614,7 @@
   padding: 0.05rem 0.28rem;
   border-radius: var(--radius-pill);
   background: var(--accent-magenta);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 0.55rem;
   font-weight: 800;
   text-align: center;
@@ -676,6 +697,12 @@
 
 /* ---------- story: nahrání ---------- */
 
+/* Buddy v2 — appka schválně NEMIGRUJE appčiny černé/bílé barvy uvnitř
+   celoobrazovkových prohlížečů fotky/videa/kamery níž (.social-story-
+   dialog, .social-story-prohlizec, .social-reel-*). Jsou to pojistné
+   barvy nad LIBOVOLNÝM obsahem média (fotka, video, živý kamerový
+   náhled), ne nad appčiným vlastním motivovaným panelem — stejná
+   výjimka, co appka už dřív uznala u téměř neprůhledných toastů. */
 .social-story-dialog {
   position: fixed;
   inset: 0;
@@ -741,7 +768,9 @@
 
 .social-story-chyba {
   margin: 0;
-  color: #f87171;
+  /* #f87171 není přesný --accent-red (#ef4444), ale stejná červená
+     rodina — nejbližší motivový token pro chybovou hlášku. */
+  color: var(--accent-red);
   font-size: 0.8rem;
 }
 
@@ -1013,8 +1042,14 @@
   display: flex;
 }
 
+/* #f43f5e není přesný --accent-red (#ef4444), ale stejná červená
+   rodina (blíž než --accent-magenta) — nejbližší token pro "lajknuto"
+   srdce, i když zbytek téhle sekce zůstává schválně bílá/šedá (viz
+   komentář u .social-prispevek-lajk-radek níž) — tahle barva totiž
+   NENÍ pojistka proti černému pozadí, ale appčin vlastní sémantický
+   signál "lajknuto", stejně jako kdekoli jinde appka čte --accent-red. */
 .social-prispevek-lajk-btn.je-lajknuto {
-  color: #f43f5e;
+  color: var(--accent-red);
 }
 
 .social-prispevek-lajk-pocet {
@@ -1109,7 +1144,7 @@
 }
 
 .social-prispevek-komentar-lajk.je-lajknuto {
-  color: #f43f5e;
+  color: var(--accent-red);
 }
 
 .social-prispevek-komentar-smazat {
@@ -1293,19 +1328,30 @@
    gradientu na appčinu zlatou (stejný dvoubarevný pár jako
    RoomCarousel.tsx's GRADIENTY.gold), ať "Nejnovější"/"Pro tebe"
    sedí vedle appčiny gold = hlavní/aktivní barvy zbytku appky
-   (hlavičkové tlačítko "Vstoupit" na /apps, appčiny ikony v hlavičce). */
+   (hlavičkové tlačítko "Vstoupit" na /apps, appčiny ikony v hlavičce).
+   Buddy v2 — stejná dvojice jako .feed-title-icon ve FeedModule.css:
+   oba konce gradientu i barva textu jen odstíny --accent-orange
+   (remapováno na appčin --buddy-warning) a --text-on-accent, ne pevně
+   "zlaté" bez ohledu na vybraný motiv. */
 .social-domu-rezim-btn.is-aktivni {
-  background: linear-gradient(120deg, #a16207, #eab308);
+  background: linear-gradient(
+    120deg,
+    color-mix(in srgb, var(--accent-orange) 65%, black),
+    var(--accent-orange)
+  );
   box-shadow: 0 0 10px color-mix(in srgb, var(--accent-orange) 45%, transparent);
-  color: #0b0a06;
+  color: var(--text-on-accent);
   font-weight: 700;
 }
 
+/* Buddy v2 — appčino "skleněné" pozadí z --text-primary (stejný vzor
+   jako .social-icon-btn výš), ne pevná bílá — na světlém motivu by
+   natvrdo bílé pozadí naopak zesvětlilo karty místo jemného zvýraznění. */
 .social-domu-pridat-story-btn {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
   padding: 0.35rem 0.7rem;
@@ -1318,7 +1364,7 @@
 }
 
 .social-domu-pridat-story-btn:active {
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
   border-color: color-mix(in srgb, var(--accent-orange) 55%, var(--border-strong));
   transform: scale(0.96);
 }
@@ -1528,10 +1574,13 @@
   transform: scale(0.9);
 }
 
+/* Buddy v2 — "lajknuto" je appčin vlastní sémantický signál (ne pojistka
+   proti podkladu jako zbytek téhle sekce nad médiem), proto přes
+   --accent-red stejně jako .social-prispevek-lajk-btn.je-lajknuto výš. */
 .social-feed-akce-btn.je-lajknuto .social-feed-akce-kruh {
-  color: #f43f5e;
-  border-color: color-mix(in srgb, #f43f5e 45%, transparent);
-  box-shadow: 0 0 12px rgba(244, 63, 94, 0.45);
+  color: var(--accent-red);
+  border-color: color-mix(in srgb, var(--accent-red) 45%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-red) 45%, transparent);
 }
 
 /* Uložený příspěvek appka barví cyanem, ne stejnou růžovou jako lajk —
@@ -1643,7 +1692,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
+  /* Buddy v2 — stejný "skleněný" --text-primary vzor jako .social-icon-btn
+     výš, ne pevná bílá (ta na světlém motivu kolečko naopak zesvětlí). */
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
   border: 1px solid var(--border-subtle);
   color: var(--text-muted);
 }
@@ -1741,6 +1792,10 @@
   gap: 0.7rem;
 }
 
+/* QR kód je vykreslený jako černé moduly na bílém podkladu (knihovna
+   qrcode), appka nemigruje na motivový token — čtečka QR kódů
+   potřebuje skutečný světlý "quiet zone" kolem kódu, ne appčinu tmavou
+   paletu, jinak by kód na telefonu kamerou nešel přečíst. */
 .social-qr {
   width: 72px;
   height: 72px;
@@ -1846,13 +1901,16 @@
   min-width: 0;
 }
 
+/* #34d399 není přesný --accent-green (#10b981), ale stejná zelená
+   rodina — appka ji migruje na token, ať appčina "online" barva sedí
+   s motivem, ne jen s dřívější pevnou paletou. */
 .social-online-tecka {
   flex-shrink: 0;
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #34d399;
-  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.25);
+  background: var(--accent-green);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-green) 25%, transparent);
 }
 
 /* Rohová tečka na avataru (SocialAvatar.tsx's `online` prop) —
@@ -1871,7 +1929,7 @@
   max-width: 13px;
   aspect-ratio: 1;
   border-radius: 50%;
-  background: #34d399;
+  background: var(--accent-green);
   border: 2px solid var(--bg-base);
 }
 
@@ -1916,7 +1974,7 @@
 .social-ikona-volba:active { transform: scale(0.94); }
 
 .social-ikona-volba.is-vybrana {
-  background: rgba(53, 196, 240, 0.14);
+  background: color-mix(in srgb, var(--accent-cyan) 14%, transparent);
   border-color: var(--accent-cyan);
 }
 
@@ -1977,11 +2035,13 @@
 .social-bublina.je-moje {
   background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
   border-color: transparent;
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
+/* Buddy v2 — "skleněné" pozadí z --text-primary, ne pevná bílá (stejný
+   vzor jako appčiny ostatní "glass" prvky mimo médium výš). */
 .social-bublina.je-smazana {
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
   border-style: dashed;
   color: var(--text-muted);
   font-style: italic;
@@ -2112,6 +2172,10 @@
   padding: 0.3rem;
 }
 
+/* Buddy v2 — appčin "skleněný" tón z --text-primary (ne pevná bílá) —
+   stejná glass-vrstva funguje jako zjasnění nad PANEL i nad gradientovou
+   "je-moje" bublinou zároveň, nezávisle na tom, jaká přesně barva je
+   zrovna pod ní. */
 .social-hlasovka-prehrat {
   flex-shrink: 0;
   width: 30px;
@@ -2121,7 +2185,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.16);
+  background: color-mix(in srgb, var(--text-primary) 16%, transparent);
   color: inherit;
   cursor: pointer;
 }
@@ -2132,7 +2196,7 @@
   flex: 1;
   height: 3px;
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.22);
+  background: color-mix(in srgb, var(--text-primary) 22%, transparent);
   overflow: hidden;
 }
 
@@ -2156,12 +2220,14 @@
   align-items: center;
 }
 
+/* #f87171 není přesný --accent-red (#ef4444), ale stejná červená
+   rodina — nejbližší token pro "nahrává se" tečku. */
 .social-nahravani-tecka {
   flex-shrink: 0;
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #f87171;
+  background: var(--accent-red);
   animation: social-nahravani-tep 1.2s ease-in-out infinite;
 }
 
@@ -2201,7 +2267,7 @@
   border-left: 2px solid currentColor;
   opacity: 0.75;
   border-radius: 2px;
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
 }
 
 .social-bublina-citace-jmeno { font-size: 0.6rem; font-weight: 700; }
@@ -2283,7 +2349,7 @@
 }
 
 .social-reakce-pil.je-moje {
-  background: rgba(53, 196, 240, 0.16);
+  background: color-mix(in srgb, var(--accent-cyan) 16%, transparent);
   border-color: var(--accent-cyan);
 }
 
@@ -2432,7 +2498,7 @@
 .social-duvod:active { transform: scale(0.97); }
 
 .social-duvod.is-vybrany {
-  background: rgba(53, 196, 240, 0.14);
+  background: color-mix(in srgb, var(--accent-cyan) 14%, transparent);
   border-color: var(--accent-cyan);
   color: var(--text-primary);
 }
@@ -2669,21 +2735,24 @@
 }
 
 .social-profil-role-tag--moderator {
-  background: rgba(53, 196, 240, 0.18);
+  background: color-mix(in srgb, var(--accent-cyan) 18%, transparent);
   color: var(--accent-cyan);
-  border: 1px solid rgba(53, 196, 240, 0.4);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 40%, transparent);
 }
 
+/* #f87171 není přesný --accent-red (#ef4444), ale stejná červená
+   rodina — appka ji migruje na token pro konzistenci se zbytkem appky. */
 .social-profil-role-tag--admin {
-  background: rgba(248, 113, 113, 0.18);
-  color: #f87171;
-  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: color-mix(in srgb, var(--accent-red) 18%, transparent);
+  color: var(--accent-red);
+  border: 1px solid color-mix(in srgb, var(--accent-red) 40%, transparent);
 }
 
 /* Soukromý účet — neutrální, ne barva role: neznamená žádné oprávnění,
-   jen že sledování čeká na schválení a příspěvky jsou skryté. */
+   jen že sledování čeká na schválení a příspěvky jsou skryté. Buddy v2 —
+   appčin "skleněný" tón z --text-primary, ne pevná bílá. */
 .social-profil-role-tag--soukromy {
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
   color: var(--text-secondary);
   border: 1px solid var(--border-subtle);
 }
@@ -2741,11 +2810,14 @@
   align-self: flex-start;
   padding: 0.25rem 0.6rem;
   border-radius: 10px;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: color-mix(in srgb, var(--accent-red) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-red) 30%, transparent);
   font-size: 0.8rem;
   font-weight: 800;
-  color: #fca5a5;
+  /* Světlejší odstín --accent-red (míchaný s bílou), ne plná barva —
+     stejný "zesvětlit pro čitelnost na vlastním tónovaném pozadí" trik
+     jako .social-hashtag výš. */
+  color: color-mix(in srgb, var(--accent-red) 45%, white);
 }
 
 .social-profil-serie span {
@@ -2964,7 +3036,7 @@
 }
 
 /* Nevyřízené drží pozornost, vyřízená ustoupí do pozadí */
-.social-hlaseni.is-nevyrizeno { border-color: rgba(245, 158, 11, 0.4); }
+.social-hlaseni.is-nevyrizeno { border-color: color-mix(in srgb, var(--accent-orange) 40%, transparent); }
 .social-hlaseni.is-vyreseno,
 .social-hlaseni.is-zamitnuto { opacity: 0.62; }
 
@@ -2997,7 +3069,7 @@
   margin: 0.15rem 0;
   padding: 0.4rem 0.55rem;
   border-left: 2px solid var(--border-strong);
-  background: rgba(255, 255, 255, 0.04);
+  background: color-mix(in srgb, var(--text-primary) 4%, transparent);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-size: 0.72rem;
   line-height: 1.4;

@@ -4,6 +4,7 @@ import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { getXpForNextLevel } from '@/core/utils/gamificationUtils'
 import { nactiOznameni, sledovatOznameni, nactiAktivituPrispevku, sledovatAktivituPrispevku } from '@/core/notifications/api'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 export interface NotificationItem {
   id: string
@@ -155,7 +156,9 @@ export const ProfilNotifications: React.FC<ProfilNotificationsProps> = ({
   const notifications = useNotificationItems()
 
   return (
-    <>
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od Profilu (profile).
+    <SurfaceThemeScope surfaceId="notifications">
       <div className={`profil-dropdown-overlay ${open ? 'open' : ''}`} onClick={onClose} />
       <div className={`profil-notif-dropdown ${open ? 'open' : ''}`}>
         <div className="profil-notif-header">
@@ -166,7 +169,7 @@ export const ProfilNotifications: React.FC<ProfilNotificationsProps> = ({
         </div>
         <div className="profil-notif-list">
           {notifications.length === 0 ? (
-            <p style={{ color: '#94a3b8', fontSize: '0.75rem', padding: '0.6rem' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', padding: '0.6rem' }}>
               Zatím tu nic není. Jakmile se do něčeho pustíš, dám ti vědět. 🔔
             </p>
           ) : (
@@ -189,6 +192,6 @@ export const ProfilNotifications: React.FC<ProfilNotificationsProps> = ({
           )}
         </div>
       </div>
-    </>
+    </SurfaceThemeScope>
   )
 }

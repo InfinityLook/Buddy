@@ -10,6 +10,7 @@ import {
 } from '../tajnyChatCrypto'
 import { CASOVACE_TAJNEHO_CHATU } from '../types'
 import type { TajnaZprava, TajnyChat } from '../types'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 interface Props {
   chat: TajnyChat
@@ -164,6 +165,9 @@ export const TajnyChatView: React.FC<Props> = ({ chat, mujId, rekni, onZpet, onZ
   }
 
   return (
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od Social (social-home).
+    <SurfaceThemeScope surfaceId="secret-chat">
     <div className="social-chat-view">
       <header className="social-chat-header">
         <button className="social-icon-btn" onClick={onZpet} aria-label="Zpět na tajné chaty">
@@ -248,5 +252,6 @@ export const TajnyChatView: React.FC<Props> = ({ chat, mujId, rekni, onZpet, onZ
         </button>
       </form>
     </div>
+    </SurfaceThemeScope>
   )
 }

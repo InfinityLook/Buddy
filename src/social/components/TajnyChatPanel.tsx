@@ -3,6 +3,7 @@ import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import * as api from '../api'
 import type { TajnyChatStav } from '../useTajnyChat'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 interface Props {
   tajnyStav: TajnyChatStav
@@ -65,6 +66,9 @@ export const TajnyChatPanel: React.FC<Props> = ({ tajnyStav, rekni, onOtevrit })
   }
 
   return (
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od Social (social-home).
+    <SurfaceThemeScope surfaceId="secret-chat">
     <div className="social-panel">
       <section className="social-card">
         <span className="social-card-label">
@@ -177,5 +181,6 @@ export const TajnyChatPanel: React.FC<Props> = ({ tajnyStav, rekni, onOtevrit })
         )}
       </section>
     </div>
+    </SurfaceThemeScope>
   )
 }

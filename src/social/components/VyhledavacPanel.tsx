@@ -5,6 +5,7 @@ import { PrispevekProhlizec } from './PrispevekProhlizec'
 import * as api from '../api'
 import type { SocialStav } from '../useSocial'
 import type { PratelskyNavrh, Prispevek, SocialProfil } from '../types'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 interface Props {
   stav: SocialStav
@@ -118,6 +119,9 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil, initHa
   }
 
   return (
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od Social (social-home).
+    <SurfaceThemeScope surfaceId="people-search">
     <div className="social-panel">
       {/* Najít lidi podle jména, nebo příspěvky podle #hashtagu — appka
           pozná, co uživatel chce, ze samotného "#" na začátku, žádný
@@ -285,5 +289,6 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil, initHa
         />
       )}
     </div>
+    </SurfaceThemeScope>
   )
 }

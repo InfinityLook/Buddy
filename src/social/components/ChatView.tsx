@@ -15,6 +15,7 @@ import {
 } from '../types'
 import type { SocialStav } from '../useSocial'
 import { requestNotificationPermission } from '@/core/utils/notify'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 // Podepsaný odkaz na fotku/video se vyžaduje jednou za bublinu, ne při
 // každém vykreslení — vlastní malá komponenta místo inline logiky přímo
@@ -572,6 +573,13 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
     : 0
 
   return (
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od Social (social-home). Dialogy
+    // uvnitř (NahlasitDialog/SpravaSkupinyDialog/PrispevekProhlizec) jsou
+    // vykreslené jako podmíněné překryvy přímo v téhle komponentě —
+    // vlastní obalení nepotřebují, zdědí tenhle scope stejně jako zbytek
+    // obsahu.
+    <SurfaceThemeScope surfaceId="chat-conversation">
     <div className="social-chat-view">
       <header className="social-chat-header">
         <button className="social-icon-btn" onClick={onZpet} aria-label="Zpět na chaty">
@@ -1038,5 +1046,6 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
         />
       )}
     </div>
+    </SurfaceThemeScope>
   )
 }

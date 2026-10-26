@@ -13,6 +13,7 @@ import { SocialIcon } from '@/social/components/SocialIcon'
 import * as socialApi from '@/social/api'
 import { profilOdkaz } from '@/social/shareLink'
 import type { Prispevek, SbirkaUlozenych, VztahSledovani } from '@/social/types'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import '@/social/SocialModule.css'
 
 // ==========================================
@@ -139,6 +140,9 @@ export const ProfilSocialniSekce: React.FC = () => {
   const zobrazovaneMrizky = prispevky.filter((p) => (tab === 'video' ? p.mediaType === 'video' : p.mediaType === 'image'))
 
   return (
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od Profilu (profile).
+    <SurfaceThemeScope surfaceId="friends">
     <div className="social-panel">
       {/* Počty — appčina obdoba IG "Followers/Following/Posts" řádku.
           Vlastní profil nemá tlačítko "Sledovat" (to dává smysl jen na
@@ -458,6 +462,7 @@ export const ProfilSocialniSekce: React.FC = () => {
         />
       )}
     </div>
+    </SurfaceThemeScope>
   )
 }
 

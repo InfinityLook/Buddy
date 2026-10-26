@@ -62,8 +62,16 @@
   height: 38px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: linear-gradient(135deg, #a16207, #eab308);
-  color: #0b0a06;
+  /* Buddy v2 — oba konce gradientu i barva textu jen odstíny
+     --accent-orange (remapováno na appčin --buddy-warning), ne pevně
+     "zlaté" bez ohledu na vybraný motiv. box-shadow níž už --accent-orange
+     četl odjakživa, appka tu jen dorovnala zbytek stejného odznaku. */
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent-orange) 65%, black),
+    var(--accent-orange)
+  );
+  color: var(--text-on-accent);
   box-shadow: 0 0 14px color-mix(in srgb, var(--accent-orange) 45%, transparent);
 }
 
@@ -82,6 +90,14 @@
   pointer-events: none;
 }
 
+/* Buddy v2 — appka schválně NEMIGRUJE appčiny bílé/zlaté barvy hvězd a
+   jisker níž na motivové tokeny. .feed-bg výš je appčin vlastní, pevný
+   obrázek (hub-soumrak.png), co se s vybraným motivem nemění — appka ho
+   dřív schválně nepřepsala katalogovým "feed" pozadím (viz FeedModule.tsx's
+   vlastní komentář). Hvězdy/jiskry jsou tedy dekorace sladěná s tímhle
+   JEDNÍM, neměnným soumrakovým nebem, ne s appčiným právě vybraným
+   motivem — motivová barva by proti němu časem (u jiného motivu, než
+   zlatý/teplý) čistě vizuálně nesouhlasila. */
 .feed-hvezda {
   position: absolute;
   width: 3px;

@@ -5,6 +5,7 @@ import { TajnyChatPanel } from './TajnyChatPanel'
 import * as api from '../api'
 import { useOnlineFriends } from '../presence'
 import { normalizeText } from '@/core/utils/text'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import type { SocialStav } from '../useSocial'
 import type { TajnyChatStav } from '../useTajnyChat'
 
@@ -120,16 +121,26 @@ export const ChatyPanel: React.FC<Props> = ({ stav, tajnyStav, onOtevritChat, on
   // zpět" vzor jako NastaveniPanel.tsx.
   if (volba === 'tajne') {
     return (
-      <div className="social-panel">
-        <button className="social-back-btn" onClick={zavritMenu}>
-          ← Zpět do chatů
-        </button>
-        <TajnyChatPanel tajnyStav={tajnyStav} rekni={stav.rekni} onOtevrit={onOtevritTajnyChat} />
-      </div>
+      // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+      // vlastního backdropu, jen dědí motiv od Social (social-home).
+      // TajnyChatPanel.tsx níž se obaluje do VLASTNÍHO surfaceId
+      // (secret-chat) — appka tu drží "chat-list", protože uživatel je
+      // pořád v záložce Chaty, jen o úroveň hlouběji.
+      <SurfaceThemeScope surfaceId="chat-list">
+        <div className="social-panel">
+          <button className="social-back-btn" onClick={zavritMenu}>
+            ← Zpět do chatů
+          </button>
+          <TajnyChatPanel tajnyStav={tajnyStav} rekni={stav.rekni} onOtevrit={onOtevritTajnyChat} />
+        </div>
+      </SurfaceThemeScope>
     )
   }
 
   return (
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
+    // vlastního backdropu, jen dědí motiv od Social (social-home).
+    <SurfaceThemeScope surfaceId="chat-list">
     <div className="social-panel">
       <section className="social-card">
         <div className="social-card-head">
@@ -333,5 +344,6 @@ export const ChatyPanel: React.FC<Props> = ({ stav, tajnyStav, onOtevritChat, on
         )}
       </section>
     </div>
+    </SurfaceThemeScope>
   )
 }
