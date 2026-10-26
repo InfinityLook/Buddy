@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { APP_VERSION, applyUpdateNow, hasNewerVersion } from '@/core/utils/registerSW'
 import mascot from '@/assets/mascot.png'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import './BootGate.css'
 
 // ==========================================
@@ -139,26 +140,36 @@ export const BootGate: React.FC<BootGateProps> = ({ children }) => {
   if (ready) return <>{children}</>
 
   return (
-    <div className="boot-gate" role="status" aria-live="polite">
-      <div className="boot-gate-inner">
-        <img src={mascot} alt="" className="boot-gate-mascot" />
+    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — appka tu obaluje jen
+    // do <SurfaceThemeScope> (barevné tokeny), BEZ <SurfaceBackdrop>
+    // (vlastní obrázek pozadí) — appka má tu totiž už svou vlastní,
+    // schválně zvolenou scenérii (background-image v BootGate.css —
+    // fotka s lampami přestěhovaná z Hubu, přímo komentovaná jako "sem
+    // dává smysl, maskot na ní stojí v prostředí"), stejná výjimka jako
+    // appka už uznala u Feedu (FeedModule.tsx) — appka ji nepřepisuje
+    // katalogovým "boot" pozadím jen proto, že existuje.
+    <SurfaceThemeScope surfaceId="boot">
+      <div className="boot-gate" role="status" aria-live="polite">
+        <div className="boot-gate-inner">
+          <img src={mascot} alt="" className="boot-gate-mascot" />
 
-        <div className="boot-gate-brand">
-          <span className="boot-gate-mark">✦</span>
-          <span className="boot-gate-name">Buddy</span>
+          <div className="boot-gate-brand">
+            <span className="boot-gate-mark">✦</span>
+            <span className="boot-gate-name">Buddy</span>
+          </div>
+
+          <div className="boot-gate-bar" aria-hidden="true">
+            <span className="boot-gate-bar-fill" />
+          </div>
+
+          <p className="boot-gate-status">
+            {phase === 'updating' ? 'Stahuji novou verzi…' : 'Kontroluji aktualizace…'}
+          </p>
         </div>
 
-        <div className="boot-gate-bar" aria-hidden="true">
-          <span className="boot-gate-bar-fill" />
-        </div>
-
-        <p className="boot-gate-status">
-          {phase === 'updating' ? 'Stahuji novou verzi…' : 'Kontroluji aktualizace…'}
-        </p>
+        <span className="boot-gate-version">verze {APP_VERSION}</span>
       </div>
-
-      <span className="boot-gate-version">verze {APP_VERSION}</span>
-    </div>
+    </SurfaceThemeScope>
   )
 }
 

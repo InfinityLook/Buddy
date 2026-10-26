@@ -18,6 +18,14 @@
      stojí v prostředí, ne na prázdném pozadí.
      Když soubor chybí, zůstanou vidět přechody pod ním. */
   background-color: var(--bg-base);
+  /* Buddy v2 (viz SurfaceThemeScope výjimka v BootGate.tsx) — tahle
+     fotka a scrim zůstávají, jen appčiny vlastní ambientní "záře" (ty
+     dvě radial-gradient kolečka) a nakonec fallback přechod přimíchají
+     motivové tokeny místo natvrdo daných barev, ať sednou na zvolený
+     motiv i na zařízení, kde se fotka nenahraje. Tmavý scrim
+     (rgba(5,8,18,...)) zůstává natvrdo — jeho jediný úkol je ztlumit
+     fotku pod sebou, ne vypadat jako appčin vlastní panel (stejná
+     výjimka jako appka uznala u toastů/.buddy-scrim). */
   background-image:
     linear-gradient(
       180deg,
@@ -27,9 +35,9 @@
       rgba(5, 8, 18, 0.92) 100%
     ),
     url('/backgrounds/hub-bg.png'),
-    radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.22) 0%, transparent 40%),
-    radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.18) 0%, transparent 35%),
-    linear-gradient(180deg, #060a16 0%, #0b1430 48%, #101c3d 100%);
+    radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--accent-violet) 22%, transparent) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, color-mix(in srgb, var(--accent-cyan) 18%, transparent) 0%, transparent 35%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-base) 90%, black) 0%, var(--bg-base) 48%, color-mix(in srgb, var(--bg-base) 85%, black) 100%);
   background-size: cover;
   background-position: center bottom;
   background-repeat: no-repeat;
@@ -70,7 +78,7 @@
 
 .boot-gate-mark {
   color: var(--accent-cyan);
-  text-shadow: 0 0 12px rgba(53, 196, 240, 0.6);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--accent-cyan) 60%, transparent);
 }
 
 /* Neurčitý ukazatel — nevíme, jak dlouho stahování potrvá,
@@ -92,7 +100,7 @@
   width: 40%;
   border-radius: var(--radius-pill);
   background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
-  box-shadow: 0 0 12px rgba(53, 196, 240, 0.5);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-cyan) 50%, transparent);
   animation: boot-gate-slide 1.2s ease-in-out infinite;
 }
 

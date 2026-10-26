@@ -13,7 +13,11 @@
   justify-content: center;
   padding: 24px;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 0%, #131b30 0%, var(--bg-base) 60%);
+  /* Buddy v2 — stejná oprava jako Login.css: natvrdo daná tmavě modrá
+     by na jiném než chladném modrém motivu vypadala jako cizí studený
+     kruh pod kartou, appka proto míchá appčin vlastní --accent-cyan
+     token přímo do --bg-base. */
+  background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent-cyan) 10%, var(--bg-base)) 0%, var(--bg-base) 60%);
 }
 
 .biometric-lock-glow {
@@ -73,6 +77,8 @@
   line-height: 1.5;
 }
 
+/* Buddy v2 — barva textu je jen zesvětlená, čitelná verze appčina
+   --accent-red na tónovaném pozadí, stejně jako .login-error. */
 .biometric-lock-error {
   width: 100%;
   margin: 0 0 16px;
@@ -80,9 +86,9 @@
   border-radius: var(--radius-sm);
   font-size: 0.75rem;
   line-height: 1.45;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.32);
-  color: #ffb4b4;
+  background: color-mix(in srgb, var(--accent-red) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-red) 32%, transparent);
+  color: color-mix(in srgb, var(--accent-red) 55%, white);
 }
 
 .biometric-lock-btn {

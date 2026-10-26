@@ -2,6 +2,7 @@ import { useState, FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { isSupabaseConfigured } from '@/core/supabase/client'
 import { registerAccount, resetPassword, signIn } from '@/core/supabase/auth'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './Login.css'
 
 interface LoginProps {
@@ -25,6 +26,8 @@ export default function Login({ onLogin }: LoginProps) {
     onLogin()
     navigate('/hub')
   }
+
+  const { rootAttributes } = useSurfaceAppearance('login')
 
   const odeslat = async (e: FormEvent) => {
     e.preventDefault()
@@ -76,7 +79,8 @@ export default function Login({ onLogin }: LoginProps) {
   }
 
   return (
-    <div className="login-screen">
+    <div className="login-screen buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="login" />
       <div className="login-glow login-glow--cyan" aria-hidden="true" />
       <div className="login-glow login-glow--violet" aria-hidden="true" />
 
@@ -89,9 +93,13 @@ export default function Login({ onLogin }: LoginProps) {
                 fill="url(#brand-gradient)"
               />
               <defs>
+                {/* Buddy v2 — CSS proměnné se v SVG prezentačních atributech
+                    jako stop-color řeší přes kaskádu stejně jako v CSS,
+                    takže appka tu může odkázat přímo na motivové tokeny
+                    místo natvrdo daných #35c4f0/#8a5cf6. */}
                 <linearGradient id="brand-gradient" x1="3" y1="2" x2="21" y2="20">
-                  <stop offset="0" stopColor="#35c4f0" />
-                  <stop offset="1" stopColor="#8a5cf6" />
+                  <stop offset="0" stopColor="var(--accent-cyan)" />
+                  <stop offset="1" stopColor="var(--accent-violet)" />
                 </linearGradient>
               </defs>
             </svg>

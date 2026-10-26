@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { overBiometrii } from '@/core/utils/biometrics'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './BiometricLock.css'
 
 // ==========================================
@@ -19,6 +20,7 @@ interface BiometricLockProps {
 export const BiometricLock: React.FC<BiometricLockProps> = ({ onUnlock, onVypnoutZamek, credentialId }) => {
   const [probiha, setProbiha] = useState(false)
   const [chyba, setChyba] = useState(false)
+  const { rootAttributes } = useSurfaceAppearance('biometric-lock')
 
   const zkusitOdemknout = async () => {
     setProbiha(true)
@@ -30,7 +32,8 @@ export const BiometricLock: React.FC<BiometricLockProps> = ({ onUnlock, onVypnou
   }
 
   return (
-    <div className="biometric-lock" role="status" aria-live="polite">
+    <div className="biometric-lock buddy-theme-scope" role="status" aria-live="polite" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="biometric-lock" />
       <div className="biometric-lock-glow biometric-lock-glow--cyan" aria-hidden="true" />
       <div className="biometric-lock-glow biometric-lock-glow--violet" aria-hidden="true" />
 

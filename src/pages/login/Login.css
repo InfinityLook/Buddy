@@ -7,7 +7,12 @@
   justify-content: center;
   padding: 24px;
   overflow: hidden;
-  background: radial-gradient(circle at 50% 0%, #131b30 0%, var(--bg-base) 60%);
+  /* Buddy v2 — natvrdo daná tmavě modrá (#131b30) by na jiném než
+     chladném modrém motivu (zlatý/lesní/světlý) vypadala jako cizí
+     studený kruh pod kartou — appka proto míchá malý podíl appčina
+     vlastního --accent-cyan tokenu přímo do --bg-base, ať jemná
+     vinětace zůstane, ale sedí na barvu zvoleného motivu. */
+  background: radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent-cyan) 10%, var(--bg-base)) 0%, var(--bg-base) 60%);
 }
 
 .login-glow {
@@ -116,7 +121,7 @@
 
 .login-field input:focus-visible {
   border-color: var(--accent-cyan);
-  box-shadow: 0 0 0 3px rgba(53, 196, 240, 0.18);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cyan) 18%, transparent);
 }
 
 .login-forgot {
@@ -226,16 +231,20 @@
   line-height: 1.45;
 }
 
+/* Buddy v2 — barva textu uvnitř (#ffb4b4/#a5e4fa) je jen zesvětlená,
+   čitelná verze appčina --accent-red/--accent-cyan na tónovaném pozadí,
+   ne vlastní odstín — color-mix s bílou dá stejný efekt i na jiném
+   motivu, kde by samotný token na vlastním pozadí byl špatně čitelný. */
 .login-error {
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.32);
-  color: #ffb4b4;
+  background: color-mix(in srgb, var(--accent-red) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-red) 32%, transparent);
+  color: color-mix(in srgb, var(--accent-red) 55%, white);
 }
 
 .login-note {
-  background: rgba(53, 196, 240, 0.1);
-  border: 1px solid rgba(53, 196, 240, 0.28);
-  color: #a5e4fa;
+  background: color-mix(in srgb, var(--accent-cyan) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 28%, transparent);
+  color: color-mix(in srgb, var(--accent-cyan) 45%, white);
 }
 
 .login-submit:disabled {
@@ -247,7 +256,7 @@
   width: 100%;
   padding: 0.75rem;
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   font-family: inherit;
