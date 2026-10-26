@@ -13,57 +13,42 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  /* Plochá barva appka drží jen jako záložní stav, než se .reward-bg
-     (fotka níž) stihne natáhnout — appka ji schválně nechala tmavou,
-     ne barevnou jako dřív, ať na zlomek vteřiny mezi vykreslením a
-     načtením fotky nebliká nic nápadného. */
+  /* Plochá barva appka drží jen jako záložní stav, než se motivový
+     obrázek (Buddy v2 SurfaceBackdrop, viz RewardModule.tsx a CLAUDE.md
+     "Vzhled aplikace") stihne natáhnout — .buddy-theme-scope ji navíc
+     sama vždycky drží jako skutečné pozadí stránky, proto appka tuhle
+     hodnotu nechala barvou samotného motivu (var(--bg-base), teď
+     theme-aware), ne natvrdo tmavou jako dřív, ať mezi vykreslením a
+     načtením obrázku nebliká barva z jiného motivu, než je zrovna
+     vybraný. */
   background: var(--bg-base);
   color: var(--text-primary);
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Pozadí Achievementů — noční hradní scéna (měsíc, drak, vodopád),
-   appka dostala hotovou fotku od uživatele, ne holý gradient jako
-   dřív. position: fixed, ne absolute — appka tu na rozdíl od Hubu
-   nemá oddělený vnější "rám" (appka ho tu nepotřebuje; .reward-page
-   je zároveň scrollující kontejner i jediný předek appčiny fotky),
-   fixed appce kotví vrstvu vůči viewportu bez ohledu na to, kam v DOM
-   appka ji zasadí — appka ověřila, že žádný předek .reward-page
-   nenastavuje transform/filter/contain, co by appce tenhle kotevní
-   bod přebral (global.css má podobné vlastnosti jen uvnitř
-   @keyframes appčina view-transition efektu, ne na trvalém předkovi).
-   Appčina fotka je sama o sobě tmavá dole (vysoký, úzký formát —
-   hradní scéna nahoře, tma dole, přesně tam, kam appka klade kartu
-   odznaků), proto appka svůj vlastní přitmavovací gradient
-   (.reward-bg-overlay) drží mírný, ne tak silný jako u Hubu. */
-.reward-bg {
-  position: fixed;
-  inset: 0;
-  background-image: url('/backgrounds/achievementy-noc.png');
-  background-size: cover;
-  background-position: center top;
-}
+/* Pozadí Achievementů — appka si dřív drželа vlastní natvrdo danou
+   noční hradní fotku (.reward-bg) a svůj vlastní přitmavovací
+   gradient (.reward-bg-overlay). Buddy v2 integrace (viz CLAUDE.md
+   "Vzhled aplikace") obě vrstvy nahradila jednotným SurfaceBackdrop
+   (RewardModule.tsx), co stejným způsobem jako Hub/Profil kreslí
+   obrázek podle zvoleného motivu, ne natvrdo jeden konkrétní —
+   appka proto .reward-bg/.reward-bg-overlay smazala úplně, ne jen
+   schovala: byly by to dvě mrtvé, nikým nevykreslené třídy, co by
+   jen klamně předstíraly, že appka ještě pořád má svoji vlastní
+   fotku jako fallback. SurfaceBackdrop samo řeší pozici/rozměry
+   (position: absolute; inset: 0; z-index: -1, viz
+   buddy-theme-tokens.css), appka tu žádnou vlastní CSS pro to
+   nepotřebuje. */
 
-.reward-bg-overlay {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(6, 9, 20, 0.38) 0%,
-    rgba(6, 9, 20, 0.22) 30%,
-    rgba(6, 9, 20, 0.5) 65%,
-    rgba(6, 9, 20, 0.82) 100%
-  );
-}
-
-/* Skutečný obsah appka drží v samostatné vrstvě nad .reward-bg*
-   (position: relative + z-index: 1 appku dostane nad obě fixed
-   pozadí appce bez ohledu na pořadí appčiných vrstev v DOM) — dřív
-   tenhle padding/flex/gap/max-width nesl .reward-page samotná, appka
-   je sem přesunula, protože .reward-page teď má jen tři přímé děti
-   (.reward-bg, .reward-bg-overlay, .reward-content), ne celý obsah
-   stránky napřímo. */
+/* Skutečný obsah appka drží v samostatné vrstvě nad SurfaceBackdropem
+   (position: relative + z-index: 1 appku dostane nad podkladový
+   obrázek bez ohledu na pořadí v DOM, i když .buddy-theme-scope's
+   vlastní isolation: isolate by appce stejný výsledek dala i bez
+   tohohle — appka ho nechala jako výslovnou pojistku) — dřív tenhle
+   padding/flex/gap/max-width nesl .reward-page samotná, appka je sem
+   přesunula, protože .reward-page teď má jen dva přímé děti
+   (SurfaceBackdrop, .reward-content), ne celý obsah stránky napřímo. */
 .reward-content {
   position: relative;
   z-index: 1;
@@ -90,7 +75,11 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  background: rgba(10, 14, 28, 0.38);
+  /* Stejná skleněná plocha jako .reward-badge-card níž (i stejný
+     blur(16px)) — appka tu dřív měla svůj vlastní natvrdo daný tmavý
+     odstín místo sdíleného var(--bg-glass) tokenu, teď obojí sedí na
+     jedné, motivem správně obarvené barvě. */
+  background: var(--bg-glass);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 0.5rem 0.7rem;
@@ -99,7 +88,13 @@
 
 .reward-icon-btn {
   position: relative;
-  background: rgba(255, 255, 255, 0.03);
+  /* Stejná "sklo" technika jako jinde v appce (color-mix s text-primary
+     místo natvrdo bílé) — appka tím appce nezmění, jak tlačítko
+     vypadá dnes (zlatý soumrak/neonová noc mají text-primary skoro
+     bílý, takže výsledek je shodný), jen appka ho uděla správně i pro
+     Čistý den, kde by natvrdo bílý tón proti světlému podkladu
+     zmizel. */
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: 50%;
   width: 36px;
@@ -115,7 +110,7 @@
 }
 
 .reward-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.09);
+  background: color-mix(in srgb, var(--text-primary) 9%, transparent);
   transform: translateY(-1px);
 }
 
@@ -151,7 +146,16 @@
   font-weight: 800;
   letter-spacing: -0.02em;
   line-height: 1.1;
-  background: linear-gradient(100deg, #4cc9f0 0%, #35c4f0 40%, #6aa8ff 100%);
+  /* Appka dřív měla tři natvrdo dané odstíny modré/azurové — appka je
+     nahradila gradientem postaveným jen ze dvou skutečných motivových
+     přízvuků (cyan → violet), stejná dvojice, co appka ladí logo
+     i jinde v appce (viz Hub). */
+  background: linear-gradient(
+    100deg,
+    var(--accent-cyan) 0%,
+    color-mix(in srgb, var(--accent-cyan) 50%, var(--accent-violet) 50%) 50%,
+    var(--accent-violet) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -190,11 +194,16 @@
 .reward-skeleton {
   display: inline-block;
   border-radius: var(--radius-sm);
+  /* Stejná color-mix s text-primary jako appka drží u .reward-icon-btn
+     výš — "zesvětlit" lesk uprostřed znamená v tmavém motivu přidat
+     bílou, v Čistém dni (světlý motiv) přidat skutečnou barvu textu
+     taky, jen slaběji, takže pruh zůstává skutečně vidět jako lesk,
+     ne zmizí v bílém podkladu. */
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 25%,
-    rgba(255, 255, 255, 0.14) 50%,
-    rgba(255, 255, 255, 0.05) 75%
+    color-mix(in srgb, var(--text-primary) 5%, transparent) 25%,
+    color-mix(in srgb, var(--text-primary) 14%, transparent) 50%,
+    color-mix(in srgb, var(--text-primary) 5%, transparent) 75%
   );
   background-size: 200% 100%;
   animation: reward-skeleton-shimmer 1.6s ease-in-out infinite;
@@ -257,7 +266,11 @@
   gap: 0.6rem;
   flex: 1;
   min-width: 0;
-  background: rgba(21, 31, 56, 0.3);
+  /* Stejná sdílená skleněná barva jako .reward-header/.reward-badge-card
+     (var(--bg-glass)) místo appčina vlastního natvrdo daného tmavě
+     modrého odstínu — appka tím kartu levelu/série (dole) dostala na
+     stejný motivem správně obarvený základ jako zbytek stránky. */
+  background: var(--bg-glass);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 0.4rem 0.6rem 0.4rem 0.4rem;
@@ -271,7 +284,7 @@
   justify-content: center;
   gap: 0.05rem;
   flex-shrink: 0;
-  background: rgba(21, 31, 56, 0.3);
+  background: var(--bg-glass);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 0.35rem 0.55rem;
@@ -296,7 +309,12 @@
   position: absolute;
   inset: -7px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(167, 139, 250, 0.4) 0%, rgba(34, 211, 238, 0.18) 45%, transparent 72%);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--accent-violet) 40%, transparent) 0%,
+    color-mix(in srgb, var(--accent-cyan) 18%, transparent) 45%,
+    transparent 72%
+  );
   animation: reward-level-halo-dech 3.4s ease-in-out infinite;
   pointer-events: none;
 }
@@ -369,6 +387,16 @@
   min-width: 0;
 }
 
+/* .reward-level-eyebrow/.reward-level-xp's text-shadow (a 0 1px 5px
+   natvrdo černý stín, dole u .reward-streak-num/.reward-streak-label
+   stejný) appka záměrně nechala — jde o stejnou "neutrální pojistka
+   čitelnosti proti nepředvídatelnému podkladu" roli jako appčiny
+   zůstávající elevation box-shadow hodnoty (viz appčin komentář
+   u .profil-level-box v ProfilModule.css), ne o skutečnou barvu
+   samotného textu (tu už appka drží přes var(--text-muted)/
+   var(--text-secondary), což v Čistém dni správně ztmavne). V Čistém
+   dni (světlý motiv) tahle drobná černá stopa jen prakticky zmizí
+   proti světlému podkladu — neškodí, nic nepřebarvuje natvrdo bíle. */
 .reward-level-eyebrow {
   font-size: 0.6rem;
   font-weight: 700;
@@ -387,7 +415,7 @@
   display: block;
   height: 5px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
   overflow: hidden;
   margin-top: 0.1rem;
 }
@@ -397,7 +425,7 @@
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
-  box-shadow: 0 0 8px rgba(34, 211, 238, 0.55);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-cyan) 55%, transparent);
   transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -482,7 +510,7 @@
   font-weight: 800;
   color: var(--accent-cyan);
   white-space: nowrap;
-  text-shadow: 0 0 10px rgba(34, 211, 238, 0.6);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent-cyan) 60%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -588,9 +616,9 @@
 }
 
 .reward-badge-card.is-unlocked {
-  border-color: rgba(16, 185, 129, 0.35);
+  border-color: color-mix(in srgb, var(--accent-green) 35%, transparent);
   background:
-    linear-gradient(135deg, rgba(16, 185, 129, 0.1), transparent 60%),
+    linear-gradient(135deg, color-mix(in srgb, var(--accent-green) 10%, transparent), transparent 60%),
     var(--bg-glass);
 }
 
@@ -606,6 +634,9 @@
   width: 28px;
   height: 28px;
   border-radius: 50%;
+  /* Natvrdo černá pozadí appka nechala stejně jako u .profil-level-box
+     (ProfilModule.css) — malé "zapadlé" kolečko, ne barevný přízvuk,
+     co by se musel řídit motivem. */
   background: rgba(0, 0, 0, 0.25);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
@@ -619,15 +650,17 @@
 
 .reward-badge-pin.je-pripnuty {
   opacity: 1;
-  background: rgba(53, 196, 240, 0.16);
+  background: color-mix(in srgb, var(--accent-cyan) 16%, transparent);
   border-color: var(--accent-cyan);
   color: var(--accent-cyan);
 }
 
 .reward-badge-pin:disabled { cursor: default; }
 
-/* Odznakovou ikonu appka drží jako flex box — holé emoji (badge.icon)
-   i ikona zámku (SocialIcon, u zamčených) tak sedí na stejné ose. */
+/* Odznakovou ikonu appka drží jako flex box — BadgeThemeIcon (Buddy v2,
+   viz RewardModule.tsx a CLAUDE.md "Vzhled aplikace") i u odemčeného
+   i u zamčeného odznaku vykresluje <img>, ne holé emoji/ikonu zámku
+   jako dřív, tak appka obojí sedí na stejné ose beze změny. */
 .reward-badge-icon {
   font-size: 1.4rem;
   line-height: 1.2;

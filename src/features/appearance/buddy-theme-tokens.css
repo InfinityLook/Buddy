@@ -1,0 +1,131 @@
+/* Local scope only. Never put these rules on :root. */
+.buddy-theme-scope[data-buddy-theme="zlaty-soumrak"] {
+  --buddy-bg: #090F1E;
+  --buddy-panel: #0D1729;
+  --buddy-raised: #172438;
+  --buddy-text: #F4F3EF;
+  --buddy-muted: #B5C2D4;
+  --buddy-accent: #E8BD70;
+  --buddy-accent-2: #FFC966;
+  --buddy-on-accent: #1B1409;
+  --buddy-border: #8F794E;
+  --buddy-control-border: #8F794E;
+  --buddy-glow: rgba(232,189,112,.24);
+  --buddy-scheme: dark;
+  --buddy-glass: rgba(13,23,41,0.96);
+  --buddy-success: #7EE6B2;
+  --buddy-danger: #FFB2BE;
+  --buddy-warning: #FFD27B;
+  --buddy-info: #A9D9FF;
+  --buddy-scene-overlay: rgba(9,15,30,0.72);
+}
+.buddy-theme-scope[data-buddy-theme="neonova-noc"] {
+  --buddy-bg: #070C19;
+  --buddy-panel: #0B1528;
+  --buddy-raised: #15253B;
+  --buddy-text: #F0F6FF;
+  --buddy-muted: #B0C7DE;
+  --buddy-accent: #64E8F7;
+  --buddy-accent-2: #EC8DF8;
+  --buddy-on-accent: #061721;
+  --buddy-border: #448A9C;
+  --buddy-control-border: #448A9C;
+  --buddy-glow: rgba(70,230,250,.28);
+  --buddy-scheme: dark;
+  --buddy-glass: rgba(11,21,40,0.96);
+  --buddy-success: #7EE6B2;
+  --buddy-danger: #FFB2BE;
+  --buddy-warning: #FFD27B;
+  --buddy-info: #A9D9FF;
+  --buddy-scene-overlay: rgba(7,12,25,0.72);
+}
+.buddy-theme-scope[data-buddy-theme="polarni-zare"] {
+  --buddy-bg: #0A1427;
+  --buddy-panel: #101F36;
+  --buddy-raised: #203449;
+  --buddy-text: #F2F8FD;
+  --buddy-muted: #B7D1E4;
+  --buddy-accent: #B4F6DF;
+  --buddy-accent-2: #D7EDFF;
+  --buddy-on-accent: #0D2730;
+  --buddy-border: #7FAAB7;
+  --buddy-control-border: #7FAAB7;
+  --buddy-glow: rgba(168,245,221,.23);
+  --buddy-scheme: dark;
+  --buddy-glass: rgba(16,31,54,0.96);
+  --buddy-success: #7EE6B2;
+  --buddy-danger: #FFB2BE;
+  --buddy-warning: #FFD27B;
+  --buddy-info: #A9D9FF;
+  --buddy-scene-overlay: rgba(10,20,39,0.72);
+}
+.buddy-theme-scope[data-buddy-theme="lesni-klid"] {
+  --buddy-bg: #091710;
+  --buddy-panel: #10231A;
+  --buddy-raised: #1D3528;
+  --buddy-text: #F1F5EB;
+  --buddy-muted: #BDCEBA;
+  --buddy-accent: #DFB37A;
+  --buddy-accent-2: #D0DFA4;
+  --buddy-on-accent: #1B1B0D;
+  --buddy-border: #8C7952;
+  --buddy-control-border: #8C7952;
+  --buddy-glow: rgba(219,177,119,.20);
+  --buddy-scheme: dark;
+  --buddy-glass: rgba(16,35,26,0.96);
+  --buddy-success: #7EE6B2;
+  --buddy-danger: #FFB2BE;
+  --buddy-warning: #FFD27B;
+  --buddy-info: #A9D9FF;
+  --buddy-scene-overlay: rgba(9,23,16,0.72);
+}
+.buddy-theme-scope[data-buddy-theme="cisty-den"] {
+  --buddy-bg: #F8F7FD;
+  --buddy-panel: #FFFFFF;
+  --buddy-raised: #EFECFA;
+  --buddy-text: #201C3D;
+  --buddy-muted: #625D79;
+  --buddy-accent: #6046C2;
+  --buddy-accent-2: #7C64D1;
+  --buddy-on-accent: #FFFFFF;
+  --buddy-border: #B6AAD5;
+  --buddy-control-border: #827599;
+  --buddy-glow: rgba(96,70,194,.12);
+  --buddy-scheme: light;
+  --buddy-glass: rgba(255,255,255,0.96);
+  --buddy-success: #18764A;
+  --buddy-danger: #B91C38;
+  --buddy-warning: #805500;
+  --buddy-info: #175BA5;
+  --buddy-scene-overlay: rgba(248,247,253,0.8);
+}
+
+.buddy-theme-scope {
+  --bg-base: var(--buddy-bg); --bg-panel: var(--buddy-panel);
+  --bg-panel-raised: var(--buddy-raised); --bg-glass: var(--buddy-glass);
+  --text-primary: var(--buddy-text); --text-secondary: var(--buddy-muted);
+  --text-muted: var(--buddy-muted); --text-on-accent: var(--buddy-on-accent);
+  --border-subtle: var(--buddy-border); --border-strong: var(--buddy-control-border);
+  --accent-cyan: var(--buddy-accent); --accent-violet: var(--buddy-accent-2);
+  --accent-green: var(--buddy-success); --accent-red: var(--buddy-danger);
+  --accent-orange: var(--buddy-warning); --accent-magenta: var(--buddy-accent-2);
+  --shadow-glow-cyan: 0 0 28px var(--buddy-glow);
+  --shadow-glow-violet: 0 0 22px var(--buddy-glow);
+  position: relative; isolation: isolate; color-scheme: var(--buddy-scheme);
+  color: var(--buddy-text); background-color: var(--buddy-bg); min-width: 0;
+}
+.buddy-theme-backdrop { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; border-radius: inherit; }
+.buddy-theme-backdrop picture, .buddy-theme-backdrop img { width: 100%; height: 100%; display: block; }
+.buddy-theme-backdrop img { object-fit: cover; }
+.buddy-theme-backdrop[data-scenery="true"]::after { content: ''; position:absolute; inset:0; background: var(--buddy-scene-overlay); }
+.buddy-theme-scope :where(button, input, textarea, select):focus-visible {
+  outline: 3px solid var(--buddy-accent); outline-offset: 3px;
+}
+.buddy-themed-icon { display: inline-block; object-fit: contain; flex-shrink: 0; }
+.buddy-theme-scope :where(input, textarea, select) { color-scheme: var(--buddy-scheme); }
+@media (prefers-reduced-motion: reduce) { .buddy-theme-scope *, .buddy-theme-scope *::before, .buddy-theme-scope *::after { animation: none !important; transition: none !important; } }
+@media print { .buddy-theme-backdrop { display:none; } }
+
+/* World and overlay roots must not cover the renderer underneath. */
+.buddy-theme-scope[data-buddy-backdrop="none"] { background-color:transparent; }
+.buddy-theme-scope :where(.buddy-live-panel) { background:var(--buddy-glass); color:var(--buddy-text); border:1px solid var(--buddy-border); }

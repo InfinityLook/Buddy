@@ -160,6 +160,16 @@ export default defineConfig(({ command }) => {
           // zvednutý appkou na 3 MiB, což 3,22 MB souboru ani tak
           // nestačí. Runtime caching pravidlo níž ho dostane do appčiny
           // cache, jen jakmile ho appka doopravdy potřebuje.
+          //
+          // buddy-themes/** (Buddy v2 per-obrazovkové motivy, viz
+          // CLAUDE.md "Vzhled aplikace" — 5 motivů × 72 obrazovek plus
+          // odznaky, ~37 MB/4266 souborů dnes) stejným důvodem jako
+          // mediapipe/mapa-sveta/postavy výš: drtivá většina souborů
+          // patří motivům a obrazovkám, co uživatel vůbec neotevře
+          // (appka zatím zapojila jen Profil a Achievementy — viz
+          // appčin komentář u wiredSurfaceIds v
+          // VzhledARamecekSekce.tsx), takže by appka všem instalujícím
+          // stahovala desítky MB grafiky, co 99 % z nich nikdy neuvidí.
           globIgnores: [
             '**/js/auto-update.js',
             '**/mediapipe/**',
@@ -168,6 +178,7 @@ export default defineConfig(({ command }) => {
             '**/survival/**',
             '**/deskova-hra/trh-*',
             '**/buddyworld/artpack-v46/**',
+            '**/buddy-themes/**',
           ],
           navigateFallbackDenylist: [/^\/api\//, /^\/version\.json$/, /^\/js\//],
           // Precache staré verze se po aktivaci nového SW smaže,
@@ -196,6 +207,28 @@ export default defineConfig(({ command }) => {
               options: {
                 cacheName: 'mediapipe-runtime',
                 expiration: { maxEntries: 12, maxAgeSeconds: 60 * 60 * 24 * 365 }
+              }
+            },
+            // Grafika — Buddy v2 per-obrazovkové motivy (public/buddy-themes/**,
+            // viz CLAUDE.md "Vzhled aplikace"), vyloučená z instalační
+            // precache výš (globIgnores) stejným důvodem jako mediapipe
+            // výš, jen appka tu na rozdíl od miniaplikačních assetů
+            // nemůže omezit pravidlo na jednu konkrétní cestu/route —
+            // motivy appka postupně zapojuje obrazovku po obrazovce
+            // (zatím Profil a Achievementy), ne appku jako celek
+            // najednou, takže tohle pravidlo chytá celou /buddy-themes/
+            // větev bez ohledu na to, která konkrétní obrazovka si
+            // zrovna svůj obrázek/ikonu/odznak natahuje. maxEntries 500
+            // dává appce rezervu nad reálnou dnešní potřebou (2 zapojené
+            // obrazovky × 5 motivů × pár souborů + 47 odznaků × 5 motivů
+            // ≈ 350) — appka ho bude muset zvednout, až přibydou další
+            // zapojené obrazovky z appčina staženého plánu.
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/buddy-themes/'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'buddy-themes-runtime',
+                expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 365 }
               }
             },
             // Mapa světa (~400 kB) stejným důvodem jako mediapipe výš:

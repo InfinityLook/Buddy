@@ -13,6 +13,8 @@ import {
 import { sklonujDen } from '@/core/utils/text'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
+import { BadgeThemeIcon } from '@/features/appearance/BadgeThemeIcon'
 import './RewardModule.css'
 
 // Kolik odznaků smí být na veřejném profilu vystavených najednou — víc
@@ -38,6 +40,11 @@ export const RewardModule: React.FC = () => {
   const navigate = useNavigate()
   const { level, xp, streakDays, badges, xpLog, hydratovano } = useGamificationStore()
   const { profile, updateProfile } = useProfileData()
+  // Buddy v2 integrace (per-obrazovkové motivy, viz CLAUDE.md sekce
+  // "Vzhled aplikace") — themeId appka potřebuje přímo (ne jen přes
+  // rootAttributes) kvůli BadgeThemeIcon níž, který pro každý odznak
+  // potřebuje vědět, KTERÝ z pěti motivů zrovna vykresluje.
+  const { themeId, rootAttributes } = useSurfaceAppearance('achievements')
 
   const prepnoutPripnuti = (badgeId: string) => {
     const jePripnuty = profile.pinnedBadges.includes(badgeId)
@@ -101,11 +108,15 @@ export const RewardModule: React.FC = () => {
   const unlockedCount = badges.filter((badge) => badge.unlockedAt !== null).length
 
   return (
-    <div className="reward-page">
-      {/* Pozadí — fixed vrstvy, viz appčin vlastní komentář u .reward-bg
-          v RewardModule.css */}
-      <div className="reward-bg" aria-hidden="true" />
-      <div className="reward-bg-overlay" aria-hidden="true" />
+    <div className="reward-page buddy-theme-scope" {...rootAttributes}>
+      {/* Pozadí — appka ji nahradila jednotným SurfaceBackdrop (Buddy v2,
+          viz CLAUDE.md "Vzhled aplikace") místo dvou natvrdo daných
+          vrstev .reward-bg/.reward-bg-overlay — appka obě staré třídy
+          smazala úplně z RewardModule.css (ne jen schovala), protože
+          SurfaceBackdrop samo řeší i neúspěšný fallback (tiše se
+          nevykreslí, .buddy-theme-scope si svoje plné pozadí —
+          var(--bg-base) — drží i bez něj). */}
+      <SurfaceBackdrop surfaceId="achievements" />
 
       <div className="reward-content">
         {/* Hlavička — appka ji přestavěla do stejného jazyka jako Hub
@@ -266,8 +277,15 @@ export const RewardModule: React.FC = () => {
                   key={badge.id}
                   className={`reward-badge-card ${unlocked ? 'is-unlocked' : 'is-locked'}`}
                 >
+                  {/* Odznaková grafika — Buddy v2 (viz CLAUDE.md "Vzhled
+                      aplikace"): BadgeThemeIcon appka nikdy nepoužívá
+                      jako zdroj pravdy o odemčení, jen jako skin —
+                      `unlocked` sem jde přesně to samé, co appka už
+                      počítala výš (badge.unlockedAt !== null), komponenta
+                      sama jen vybere grafiku podle motivu (nebo locked.svg
+                      pro zamčený/neznámý odznak), neuděluje nic navíc. */}
                   <span className="reward-badge-icon" aria-hidden="true">
-                    {unlocked ? badge.icon : <SocialIcon name="lock" size={18} />}
+                    <BadgeThemeIcon badgeId={badge.id} themeId={themeId} unlocked={unlocked} size={24} />
                   </span>
                   <div className="reward-badge-text">
                     <span className="reward-badge-title">{badge.title}</span>

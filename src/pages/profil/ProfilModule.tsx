@@ -14,6 +14,7 @@ import { ProfilNotifications, useNotificationItems } from './components/ProfilNo
 import { ProfilIcon } from './components/ProfilIcon'
 import { ProfilToast } from './components/ProfilToast'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './ProfilModule.css'
 
 // Lazy — viz komentář nahoře v ProfilSocialniSekce.tsx: tenhle soubor
@@ -29,6 +30,12 @@ export const ProfilModule: React.FC = () => {
   // zpátky na 'user' — tag proto vždycky odpovídá skutečně platné roli,
   // ne tomu, co je poslední uložené.
   const aktivniRole = useActiveRole()
+  // Buddy v2 integrace (per-obrazovkové motivy, viz CLAUDE.md sekce
+  // "Vzhled aplikace") — rootAttributes nese data-buddy-theme pro
+  // .buddy-theme-scope CSS proměnné, SurfaceBackdrop níž je volitelné
+  // pozadí podle zvoleného motivu (appka ho zkusí, při chybě tiše
+  // spadne na dekorativní gradient, který .profil-page má odjakživa).
+  const { rootAttributes } = useSurfaceAppearance('profile')
   const notifications = useNotificationItems()
   const maNeprectene = notifications.some((n) => !profile.readNotifications.includes(n.id))
 
@@ -107,7 +114,8 @@ export const ProfilModule: React.FC = () => {
   const progressPercent = getLevelProgress(xp)
 
   return (
-    <div className="profil-page">
+    <div className="profil-page buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="profile" />
       {/* Top Bar — ikony místo emoji (🔔/⚙️), stejná kruhová tlačítka
           jako Apps/Social, ne napůl hotový inline styl na textovém
           odkazu jak dřív mělo zpět tlačítko. */}

@@ -3,6 +3,7 @@ import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { useHasPermission } from '@/core/role'
 import { useThemeStore, VSECHNY_VZHLEDY } from '@/core/theme'
 import { AVATAR_FRAMES } from '@/social/avatarFrames'
+import { AppearancePicker } from '@/features/appearance/AppearancePicker'
 
 interface Props {
   onToast: (zprava: string) => void
@@ -14,6 +15,22 @@ interface Props {
 // uvnitř JEDNOHO modulu — appka je slučuje, protože obě řeší přesně
 // tu samou otázku ("jak vypadá můj profil/appka"), jen jinou jeho
 // část. Logika/mřížky samotné jsou beze změny, jen přesunuté sem.
+//
+// Třetí akordeon (Motivy obrazovek, Buddy v2 — viz CLAUDE.md "Vzhled
+// aplikace") je NOVÝ, SAMOSTATNÝ systém, ne náhrada "Vzhledu aplikace"
+// výš — appka obě drží vedle sebe, ne jedno místo druhého:
+//   • "Vzhled aplikace" (nahoře) je appčin původní, jediný globální
+//     přepínač — jedna z 5 barevných palet platí NAJEDNOU pro CELOU
+//     appku (core/theme/, document.documentElement.style.setProperty)
+//     a dosud se nedotýká pozadí/ikon jednotlivých obrazovek.
+//   • "Motivy obrazovek" (dole) nechá appku zvolit motiv PRO JEDNOTLIVOU
+//     obrazovku zvlášť (nebo jen jeden společný — appka to appce
+//     v AppearancePicker samotném nabízí), s vlastním obrázkem pozadí
+//     a ikonami pro tu konkrétní obrazovku (useAppearanceStore,
+//     features/appearance/) — appka to teprve postupně, obrazovku po
+//     obrazovce, zapojuje do zbytku appky (viz appčin komentář u
+//     wiredSurfaceIds níž), proto appka appce nabízí jen Profil a
+//     Achievementy, ne všech appkou popsaných 72 obrazovek najednou.
 // ==========================================
 
 export const VzhledARamecekSekce: React.FC<Props> = ({ onToast }) => {
@@ -23,6 +40,7 @@ export const VzhledARamecekSekce: React.FC<Props> = ({ onToast }) => {
   const setThemeId = useThemeStore((s) => s.setThemeId)
   const [otevrenoVzhled, setOtevrenoVzhled] = useState(false)
   const [otevrenoRamecek, setOtevrenoRamecek] = useState(false)
+  const [otevrenoMotivy, setOtevrenoMotivy] = useState(false)
 
   const vybratVzhled = (id: (typeof VSECHNY_VZHLEDY)[number]['id'], vip: boolean, nazev: string) => {
     if (vip && !smiPremium) {
@@ -171,6 +189,44 @@ export const VzhledARamecekSekce: React.FC<Props> = ({ onToast }) => {
               )
             })}
           </div>
+        )}
+      </section>
+
+      {/* Motivy obrazovek — Buddy v2 (viz appčin komentář u importu
+          výš). wiredSurfaceIds appka omezuje na obrazovky, co už
+          doopravdy mají .buddy-theme-scope + SurfaceBackdrop zapojené
+          (zatím Profil a Achievementy) — AppearancePicker sám o sobě
+          zná motivy pro všech 72 appkou popsaných obrazovek, appka ho
+          proto bez tohohle omezení nechce nabízet na appky, kde by
+          vybraný motiv zatím neměl žádný viditelný efekt. */}
+      <section className="settings-card">
+        <button
+          type="button"
+          className="settings-accordion-hlava"
+          onClick={() => setOtevrenoMotivy((v) => !v)}
+          aria-expanded={otevrenoMotivy}
+        >
+          <span
+            className="settings-card-icon"
+            style={{ background: 'linear-gradient(135deg, #e8bd70, #7c64d1)' }}
+            aria-hidden="true"
+          >
+            🪄
+          </span>
+          <div>
+            <h2 className="settings-card-title">Motivy obrazovek</h2>
+            <p className="settings-card-sub">Samostatný vzhled pro Profil a Achievementy — appka je postupně přidává i jinam</p>
+          </div>
+          <span className={`settings-accordion-sipka ${otevrenoMotivy ? 'je-otevreno' : ''}`} aria-hidden="true">
+            ›
+          </span>
+        </button>
+
+        {otevrenoMotivy && (
+          <AppearancePicker
+            wiredSurfaceIds={['profile', 'achievements']}
+            availablePermissions={smiPremium ? ['cosmetics.premium'] : []}
+          />
         )}
       </section>
     </>

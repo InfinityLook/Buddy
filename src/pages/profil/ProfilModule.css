@@ -25,6 +25,31 @@
   --profil-radius-md: var(--radius-md);
 }
 
+/* Buddy v2 integrace (per-obrazovkové motivy, viz CLAUDE.md "Vzhled
+   aplikace") — KRITICKÁ oprava, bez které by .buddy-theme-scope na
+   .profil-page vůbec nic neviditelně neudělal. Aliasy výš (--profil-bg,
+   --c-cyan, …) matchují jen :root, takže jejich vypočtená hodnota se
+   zmrazí vůči NEMOTIVOVANÝM globálním tokenům a odtud se jen nezávazně
+   dědí dál — hlubší .buddy-theme-scope přepis --bg-base/--accent-cyan
+   samotných na tom nic nezmění, dokud tyhle lokální aliasy appka
+   nezopakuje přímo uvnitř scope. Hodnoty jsou stejné jako výš, jen
+   teď skutečně reagují na zvolený motiv (včetně Čistého dne). */
+.profil-page.buddy-theme-scope {
+  --profil-bg: var(--bg-base);
+  --profil-card-bg: var(--bg-glass);
+  --profil-card-border: var(--border-subtle);
+  --c-cyan: var(--accent-cyan);
+  --c-purple: var(--accent-violet);
+  --c-green: var(--accent-green);
+  --c-amber: var(--accent-orange);
+  --c-pink: var(--accent-magenta);
+  --c-fire: var(--accent-red);
+  --profil-text-main: var(--text-primary);
+  --profil-text-sub: var(--text-secondary);
+  --profil-radius-lg: var(--radius-lg);
+  --profil-radius-md: var(--radius-md);
+}
+
 /* Zástupný stav, dokud se stahuje lazy ProfilSocialniSekce.tsx (celé Social
    API) — viz React.lazy v ProfilModule.tsx. */
 .profil-lazy-fallback {
@@ -53,7 +78,10 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  /* Stín elevace je napříč motivy (včetně Čistého dne) záměrně
+     neutrálně černý — var(--shadow-card) je PŘESNĚ tahle hodnota,
+     už definovaná v styles/global.css. */
+  box-shadow: var(--shadow-card);
 }
 
 /* Cover fotka — full-bleed přes horní okraj karty, proto záporný okraj
@@ -82,6 +110,10 @@
   color: var(--text-muted);
 }
 
+/* Natvrdo černý scrim + bílá ikona zůstávají — tohle sedí na
+   LIBOVOLNÉ uživatelovy cover fotce, ne na motivovaném panelu appky,
+   takže se nemá přelaďovat podle zvoleného motivu (stejná výjimka,
+   jako integrační zadání dává "barvám herního světa"). */
 .profil-banner-edit {
   position: absolute;
   bottom: 0.4rem;
@@ -115,12 +147,17 @@
   align-items: center;
 }
 
+/* Barvy u .profil-badge/.profil-role-tag míchají akcent s --text-primary
+   místo fixního světlého hexu — v Čistém dni (světlý motiv) je
+   --text-primary tmavý, takže namíchaný text zůstane čitelný i na
+   bledě-tónovaném pozadí stejného odstínu, kde by původní natvrdo
+   světlý hex (#c4b5fd apod.) zmizel v nízkém kontrastu. */
 .profil-badge {
   font-size: 0.55rem;
   font-weight: 800;
-  background: rgba(138, 92, 246, 0.2);
-  color: #c4b5fd;
-  border: 1px solid rgba(138, 92, 246, 0.4);
+  background: color-mix(in srgb, var(--accent-violet) 20%, transparent);
+  color: color-mix(in srgb, var(--accent-violet) 85%, var(--text-primary));
+  border: 1px solid color-mix(in srgb, var(--accent-violet) 40%, transparent);
   padding: 0.1rem 0.45rem;
   border-radius: 12px;
 }
@@ -136,21 +173,21 @@
 }
 
 .profil-role-tag--vip {
-  background: rgba(251, 191, 36, 0.18);
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: color-mix(in srgb, var(--accent-orange) 18%, transparent);
+  color: color-mix(in srgb, var(--accent-orange) 85%, var(--text-primary));
+  border: 1px solid color-mix(in srgb, var(--accent-orange) 40%, transparent);
 }
 
 .profil-role-tag--moderator {
-  background: rgba(53, 196, 240, 0.18);
-  color: #35c4f0;
-  border: 1px solid rgba(53, 196, 240, 0.4);
+  background: color-mix(in srgb, var(--accent-cyan) 18%, transparent);
+  color: color-mix(in srgb, var(--accent-cyan) 85%, var(--text-primary));
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 40%, transparent);
 }
 
 .profil-role-tag--admin {
-  background: rgba(248, 113, 113, 0.18);
-  color: #f87171;
-  border: 1px solid rgba(248, 113, 113, 0.4);
+  background: color-mix(in srgb, var(--accent-red) 18%, transparent);
+  color: color-mix(in srgb, var(--accent-red) 85%, var(--text-primary));
+  border: 1px solid color-mix(in srgb, var(--accent-red) 40%, transparent);
 }
 
 .profil-user-info h2 {
@@ -186,10 +223,10 @@
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--c-cyan), var(--c-purple));
-  color: #fff;
+  color: var(--text-on-accent);
   font-weight: 900;
   font-size: 0.85rem;
-  box-shadow: 0 0 12px rgba(53, 196, 240, 0.45);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-cyan) 45%, transparent);
 }
 
 .profil-level-info {
@@ -212,10 +249,13 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Míchání s --text-primary (ne natvrdo bílá) — v Čistém dni je
+   --text-primary tmavý, takže tahle "jemná linka" zůstane tmavě-jemná
+   (ne bílá-na-bílé, kde by úplně zmizela). */
 .profil-progress-bg {
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
   border-radius: 10px;
   overflow: hidden;
   margin-top: 0.2rem;
@@ -224,8 +264,8 @@
 /* Stejný "brand" gradient jako hub-level__fill / hub-brand__name */
 .profil-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #35c4f0, #8a5cf6, #ec4899);
-  box-shadow: 0 0 8px rgba(138, 92, 246, 0.5);
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-violet), var(--accent-magenta));
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-violet) 50%, transparent);
   border-radius: 10px;
 }
 
@@ -240,8 +280,8 @@
   align-items: center;
   text-align: center;
   gap: 0.1rem;
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: color-mix(in srgb, var(--accent-red) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-red) 30%, transparent);
   border-radius: 10px;
   padding: 0.4rem 0.5rem;
 }
@@ -261,8 +301,8 @@
 .profil-streak-val {
   font-size: 1.1rem;
   font-weight: 800;
-  color: #fca5a5;
-  text-shadow: 0 0 10px rgba(252, 165, 165, 0.4);
+  color: color-mix(in srgb, var(--accent-red) 85%, var(--text-primary));
+  text-shadow: 0 0 10px color-mix(in srgb, var(--accent-red) 40%, transparent);
 }
 
 .profil-streak-sub {
@@ -325,15 +365,28 @@
   margin-bottom: 0.15rem;
 }
 
-.profil-item-icon svg { color: #fff; }
+.profil-item-icon svg { color: var(--text-on-accent); }
 
-.profil-item-icon.gold   { background: linear-gradient(135deg, #d97706, #fbbf24); }
-.profil-item-icon.purple { background: linear-gradient(135deg, #7c3aed, #a855f7); }
-.profil-item-icon.blue   { background: linear-gradient(135deg, #0284c7, #38bdf8); }
-.profil-item-icon.yellow { background: linear-gradient(135deg, #ca8a04, #facc15); }
-.profil-item-icon.green  { background: linear-gradient(135deg, #059669, #34d399); }
-.profil-item-icon.cyan   { background: linear-gradient(135deg, #0284c7, #38bdf8); }
-.profil-item-icon.amber  { background: linear-gradient(135deg, #d97706, #fbbf24); }
+/* Sedm kategorií se slévá na čtyři skutečně odlišné akcenty appky —
+   blue/cyan a gold/amber/yellow byly i v původních natvrdo hexech
+   stejná dvojice, jen psaná dvakrát. Tmavší→světlejší stejný odstín
+   (color-mix s černou) nahrazuje dřívější dvojici dvou příbuzných,
+   ale nezávislých hexů — vizuálně blízké, teď navíc motivované. */
+.profil-item-icon.gold,
+.profil-item-icon.amber,
+.profil-item-icon.yellow {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-orange) 70%, black), var(--accent-orange));
+}
+.profil-item-icon.purple {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-violet) 70%, black), var(--accent-violet));
+}
+.profil-item-icon.blue,
+.profil-item-icon.cyan {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-cyan) 70%, black), var(--accent-cyan));
+}
+.profil-item-icon.green {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent-green) 70%, black), var(--accent-green));
+}
 
 .profil-item-title {
   font-size: 0.58rem;
@@ -350,7 +403,7 @@
 }
 
 .profil-goal-item {
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--text-primary) 3%, transparent);
   border: 1px solid var(--profil-card-border);
   border-radius: var(--profil-radius-md);
   padding: 0.35rem 0.5rem;
@@ -387,17 +440,17 @@
 
 .profil-goal-item .profil-progress-fill,
 .profil-progress-fill.cyan {
-  background: linear-gradient(90deg, #35c4f0, #8a5cf6);
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-violet));
   box-shadow: 0 0 6px var(--c-cyan);
 }
 
 .profil-progress-fill.green {
-  background: linear-gradient(90deg, #059669, #34d399);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-green) 70%, black), var(--accent-green));
   box-shadow: 0 0 6px var(--c-green);
 }
 
 .profil-progress-fill.purple {
-  background: linear-gradient(90deg, #7c3aed, #a855f7);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-violet) 70%, black), var(--accent-violet));
   box-shadow: 0 0 6px var(--c-purple);
 }
 
@@ -409,7 +462,7 @@
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
   border: 1px solid var(--profil-card-border);
   color: var(--profil-text-main);
   display: flex;
@@ -428,8 +481,8 @@
 }
 
 .profil-icon-btn.active {
-  background: rgba(53, 196, 240, 0.18);
-  border-color: rgba(53, 196, 240, 0.5);
+  background: color-mix(in srgb, var(--accent-cyan) 18%, transparent);
+  border-color: color-mix(in srgb, var(--accent-cyan) 50%, transparent);
   color: var(--c-cyan);
 }
 
@@ -520,9 +573,9 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #35c4f0, #8a5cf6);
+  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
   border: 2px solid var(--profil-bg);
-  color: #fff;
+  color: var(--text-on-accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -542,10 +595,13 @@
   left: 50%;
   bottom: calc(1rem + env(safe-area-inset-bottom));
   transform: translate(-50%, 16px);
-  background: rgba(23, 25, 48, 0.9);
+  /* Panelová barva motivu, ne natvrdo tmavě-modrá — v Čistém dni by
+     fixní tmavý hex vytvořil rušivou tmavou skvrnu nad jinak světlou
+     stránkou (přesně "tmavá pole" varování z integračního zadání). */
+  background: color-mix(in srgb, var(--bg-panel) 90%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(53, 196, 240, 0.3);
+  border: 1px solid color-mix(in srgb, var(--accent-cyan) 30%, transparent);
   color: var(--profil-text-main);
   font-size: 0.72rem;
   font-weight: 700;
@@ -589,7 +645,7 @@
   top: 3rem;
   right: 0.75rem;
   width: min(280px, 82vw);
-  background: rgba(18, 20, 38, 0.9);
+  background: color-mix(in srgb, var(--bg-panel) 90%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--profil-card-border);
@@ -632,7 +688,7 @@
   gap: 0.4rem;
   background: none;
   border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid color-mix(in srgb, var(--text-primary) 4%, transparent);
   padding: 0.5rem 0.6rem;
   text-align: left;
   cursor: pointer;
@@ -641,7 +697,7 @@
 }
 
 .profil-notif-item:active {
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
 }
 
 .profil-notif-item:last-child {
@@ -691,9 +747,9 @@
   /* Přetažení na konci seznamu nemá hýbat stránkou pod ním */
   overscroll-behavior: contain;
   background:
-    radial-gradient(circle at 15% 10%, rgba(138, 92, 246, 0.22) 0%, transparent 40%),
-    radial-gradient(circle at 85% 20%, rgba(53, 196, 240, 0.18) 0%, transparent 35%),
-    radial-gradient(circle at 50% 95%, rgba(236, 72, 153, 0.13) 0%, transparent 45%),
+    radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--accent-violet) 22%, transparent) 0%, transparent 40%),
+    radial-gradient(circle at 85% 20%, color-mix(in srgb, var(--accent-cyan) 18%, transparent) 0%, transparent 35%),
+    radial-gradient(circle at 50% 95%, color-mix(in srgb, var(--accent-magenta) 13%, transparent) 0%, transparent 45%),
     var(--profil-bg);
   color: var(--profil-text-main);
   /* AppBottomNav (Fáze 4 Social nav reworku) je `position: sticky`
@@ -732,7 +788,7 @@
   font-size: 1.4rem;
   font-weight: 800;
   color: var(--c-cyan);
-  text-shadow: 0 0 18px rgba(53, 196, 240, 0.45);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--accent-cyan) 45%, transparent);
   margin: 0;
   letter-spacing: -0.3px;
 }
@@ -780,7 +836,7 @@
   align-items: center;
   justify-content: center;
   font-size: 0.9rem;
-  background: rgba(255, 255, 255, 0.06);
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
   border: 1px solid var(--profil-card-border);
 }
 
@@ -800,7 +856,7 @@
 .profil-xp-bar-bg {
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
   border-radius: 10px;
   overflow: hidden;
   margin-top: 0.15rem;
