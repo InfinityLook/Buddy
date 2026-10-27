@@ -148,13 +148,17 @@
   gap: 0.4rem;
 }
 
+/* Stejná oprava jako .admin-stat-card v AdminModule.css (Buddy v2,
+   "Čistý den") — border přemigrován na color-mix s --text-primary,
+   background: rgba(0,0,0,.2) zůstává natvrdo (ztmavuje stejně
+   spolehlivě na obou typech motivu). */
 .support-tiket-radek {
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
   text-align: left;
   background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent);
   border-radius: var(--radius-sm);
   padding: 0.55rem 0.7rem;
   color: inherit;

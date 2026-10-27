@@ -408,15 +408,20 @@
 
 .social-avatar-wrap.je-tlumeny .social-avatar-prstenec { display: none; }
 
-/* Buddy v2 — appka tu schválně NEMIGRUJE na motivový accent token.
-   Komentář výš ("Zablokovaný účet je schválně bez barvy") platí
-   i vůči appčině vlastní paletě motivů — bod celé věty je, že zablokovaný
-   avatar nemá ŽÁDNOU barvu, ne jinou barvu podle zvoleného motivu.
-   Neutrální bílá při nízké opacitě je navíc jediná volba, co zůstane
-   stejně "bez barvy" na tmavém i světlém motivu zároveň (any-themed
-   semi-transparent panel token tu neexistuje). */
+/* Buddy v2 (přehodnoceno pro "Čistý den") — komentář výš ("Zablokovaný
+   účet je schválně bez barvy") stále platí, jen příkaz pod ním byl
+   chybný: appka si tu dřív myslela, že natvrdo bílá při nízké opacitě
+   zůstane "bez barvy" na JAKÉMKOLI motivu — pravda to bylo jen dokud
+   existovaly samé tmavé motivy. Na "Čistý den" (světlé pozadí panelu)
+   je bílá na 8% opacitě proti bílému/téměř bílému podkladu prakticky
+   neviditelná, takže zablokovaný avatar vypadal jako prázdný kruh, ne
+   jako "kruh bez barvy". color-mix s --text-primary dá na tmavém
+   motivu pořád stejně světlý, téměř neutrální nádech (--text-primary
+   tam vychází světlý), na světlém motivu ale tmavý nádech — "bez
+   barvy, ale viditelně" tak platí v obou režimech zároveň, přesně jak
+   appka od začátku chtěla. */
 .social-avatar-wrap.je-tlumeny .social-avatar {
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
   color: var(--text-muted);
 }
 
@@ -2552,7 +2557,15 @@
   background: none;
   font: inherit;
   font-weight: 700;
-  color: color-mix(in srgb, var(--accent-orange) 85%, #fff);
+  /* Buddy v2 (přehodnoceno pro "Čistý den") — appka tu dřív míchala
+     --accent-orange s pevnou bílou (zesvětlení pro čitelnost); na
+     "Čistém dni" je --accent-orange (--buddy-warning) naopak tmavý
+     a sytý, takže bílá ho zesvětlila zpátky do nečitelné barvy proti
+     vlastnímu, taky světlému pozadí. Míchání s --text-primary dá na
+     tmavých motivech stejný efekt jako dřív (--text-primary tam
+     vychází světlý), na "Čistém dni" naopak ztmaví (--text-primary
+     tam vychází tmavý) — appka tak zůstává čitelná v obou režimech. */
+  color: color-mix(in srgb, var(--accent-orange) 85%, var(--text-primary));
   cursor: pointer;
 }
 
@@ -2814,10 +2827,11 @@
   border: 1px solid color-mix(in srgb, var(--accent-red) 30%, transparent);
   font-size: 0.8rem;
   font-weight: 800;
-  /* Světlejší odstín --accent-red (míchaný s bílou), ne plná barva —
-     stejný "zesvětlit pro čitelnost na vlastním tónovaném pozadí" trik
-     jako .social-hashtag výš. */
-  color: color-mix(in srgb, var(--accent-red) 45%, white);
+  /* Odstín --accent-red smíchaný s --text-primary (Buddy v2,
+     přehodnoceno pro "Čistý den"), ne plná barva ani pevná bílá —
+     stejný "zesvětli/ztmav pro čitelnost na vlastním tónovaném pozadí"
+     trik jako .social-hashtag výš, popsaný tam i s důvodem. */
+  color: color-mix(in srgb, var(--accent-red) 45%, var(--text-primary));
 }
 
 .social-profil-serie span {

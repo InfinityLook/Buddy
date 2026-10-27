@@ -112,6 +112,20 @@
 }
 @keyframes rc-sweep { to { transform: rotate(360deg); } }
 
+/* Buddy v2 (nalezeno a opraveno při přehodnocení pro "Čistý den") —
+   .rc-tag je matný tmavý "skleněný" štítek PŘES libovolnou fotku
+   karty, ne přes motivový panel appky — stejná výjimka jako u
+   celoobrazovkových prohlížečů fotky/videa v SocialModule.css
+   (štítek musí zůstat čitelný bez ohledu na to, jak světlá/tmavá je
+   ta DANÁ fotka, ne podle zvoleného motivu appky). background/border
+   proto zůstávají správně natvrdo — chybou ale bylo color:
+   var(--text-secondary): na "Čistém dni" je --text-secondary tmavý,
+   což proti pevně tmavému pozadí štítku dávalo dva tmavé tóny na
+   sobě, téměř nečitelné. Oprava: pevná světlá barva ze stejné
+   rodiny, co už tento soubor používá ve .rc-tag--photo (#bdeeff) a
+   v .rc-desc/.rc-naposledy níž (rgba(242, 245, 251, …)) — štítek tak
+   zapadá mezi appčiny ostatní "vždycky čitelné světlé popisky nad
+   fotkou". */
 .rc-tag {
   position: absolute;
   top: 14px;
@@ -124,7 +138,7 @@
   border-radius: var(--radius-pill);
   background: rgba(6, 9, 18, 0.5);
   border: 1px solid rgba(255, 255, 255, 0.16);
-  color: var(--text-secondary);
+  color: rgba(242, 245, 251, 0.78);
   backdrop-filter: blur(8px);
 }
 .rc-tag--photo { background: rgba(53, 196, 240, 0.16); border-color: rgba(53, 196, 240, 0.42); color: #bdeeff; }
@@ -142,6 +156,16 @@
   mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
 }
 @keyframes rc-spin { to { transform: rotate(360deg); } }
+/* Buddy v2 (nalezeno a opraveno při přehodnocení pro "Čistý den") —
+   .rc-icon-badge je kolečko PŘES appčinu libovolnou fotku karty, stejná
+   "pevně temná skleněná vrstva" rodina jako .rc-tag/.rc-arrow v tomhle
+   souboru, ne appčin motivový panel. var(--bg-base) se tu dřív myslelo
+   jako "appčino tmavé pozadí, bezpečné kdekoli" — na "Čistém dni" ale
+   --bg-base vychází světlé, takže appka dostala skoro bílé kolečko s
+   bílou ikonou (color: #fff; hned nad tím zůstává natvrdo), prakticky
+   neviditelnou. Appka nahradila pevným tmavým odstínem ze stejné rodiny
+   jako .rc-tag's rgba(6, 9, 18, 0.5) — appčin #fff nahoře zůstává beze
+   změny, zase čitelný na obou motivech. */
 .rc-icon-badge {
   position: absolute;
   inset: 5px;
@@ -151,7 +175,7 @@
   justify-content: center;
   color: #fff;
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-  background: var(--bg-base);
+  background: rgba(10, 14, 26, 0.85);
 }
 .rc-particle { position: absolute; width: 4px; height: 4px; border-radius: 50%; background: #fff; opacity: 0; animation: rc-particle-float 3.2s ease-in-out infinite; }
 .rc-particle:nth-of-type(2) { top: -6px; left: 46%; animation-delay: 0s; }
@@ -186,8 +210,23 @@
 
 /* Hlavní akce karty — teplý zlatý gradient (var(--accent-orange), ne
    natvrdo hex, ať appka zůstala poslušná core/theme/themes.ts; druhý
-   bod gradientu je stejná barva zesvětlená přes color-mix s bílou, ne
-   druhý literál) místo dřívější bílé/tmavé pilulky. */
+   bod gradientu je stejná barva míchaná přes color-mix) místo
+   dřívější bílé/tmavé pilulky.
+   Buddy v2 (přehodnoceno pro "Čistý den") — druhý bod appka dřív
+   míchala směrem k bílé (zesvětlení druhého konce gradientu). Text
+   nad ním je ale --text-on-accent, pevně kalibrovaný tak, aby
+   kontrastoval proti VLASTNÍ accent barvě (tmavý na světlém accentu
+   dřívějších čtyř motivů, bílý na tmavém --accent-orange = #805500
+   "Čistého dne"). Na "Čistém dni" tak druhý, zesvětlený konec
+   gradientu (zesvětlená #805500) proti pevně bílému --text-on-accent
+   ztratil kontrast — oprava proto míchá druhý bod k černé:
+   --accent-orange dřívějších čtyř tmavých motivů je už sám o sobě
+   světlý, takže ztmavení druhého konce dá stejný "lesklý přechod"
+   dojem jako dřív, jen na druhou stranu, a na "Čistém dni" tím oba
+   konce gradientu zůstanou dost tmavé, ať pevně bílý --text-on-accent
+   nad nimi zůstane čitelný po celé ploše tlačítka. Stejný vzor (mix
+   k černé, ne k bílé) už správně používá .feed-title-icon ve
+   FeedModule.css, ze stejného důvodu. */
 .rc-enter-btn {
   position: relative;
   align-self: flex-start;
@@ -201,7 +240,7 @@
   font-size: 14px;
   font-weight: 700;
   color: var(--text-on-accent);
-  background: linear-gradient(135deg, var(--accent-orange), color-mix(in srgb, var(--accent-orange) 55%, white));
+  background: linear-gradient(135deg, var(--accent-orange), color-mix(in srgb, var(--accent-orange) 55%, black));
   cursor: pointer;
   overflow: hidden;
   margin-top: 2px;
@@ -230,6 +269,17 @@
 .rc-enter-label { position: relative; z-index: 1; }
 .rc-enter-btn svg { position: relative; z-index: 1; }
 
+/* Buddy v2 (nalezeno a opraveno při přehodnocení pro "Čistý den") —
+   .rc-arrow je pevně temné sklo (background: rgba(10, 14, 26, ...)
+   beze změny, appka to nikdy nevázala na appčin motivový panel) nad
+   libovolnou fotkou karty, ale ikona uvnitř se dřív barvila přes
+   var(--text-primary) — na tmavém motivu to vycházelo světlé (sedí),
+   na "Čistém dni" ale --text-primary vychází TMAVÉ, takže appka
+   kreslila tmavou šipku na tmavém skle — prakticky neviditelnou.
+   Appka nahradila pevnou světlou barvou ze stejné rodiny jako
+   .rc-tag's rgba(242, 245, 251, ...), ať appčina šipka zůstane
+   viditelná bez ohledu na zvolený motiv, stejně jako appčino pevně
+   temné sklo kolem ní. */
 .rc-arrow {
   position: absolute;
   top: calc(50% - 24px);
@@ -244,7 +294,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-primary);
+  color: rgba(242, 245, 251, 0.92);
   cursor: pointer;
   z-index: 10;
   transition: background 180ms ease, border-color 180ms ease, transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -259,6 +309,16 @@
 .rc-arrow--right { right: 14px; }
 
 .rc-progress-row { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 0 0; flex-shrink: 0; }
+/* Buddy v2 (nalezeno a opraveno při přehodnocení pro "Čistý den") —
+   na rozdíl od .rc-tag/.rc-arrow/.rc-icon-badge výš, co sedí PŘES
+   appčinu libovolnou fotku karty, .rc-progress-row (a tedy i
+   .rc-dots-track/.rc-dot-slot v něm) je až sourozenec za .rc-stage
+   (viz RoomCarousel.tsx), tedy na appčině normálním motivovém pozadí
+   stránky — border: 1px solid var(--border-subtle) tu proto zůstává
+   beze změny. Appka ale měla natvrdo bílou rgba na pozadí stopy i
+   puntíku, což proti appčinu "Čistého dne" bílému/téměř bílému
+   pozadí prakticky mizelo. color-mix s --text-primary dá appce
+   stejně jemný nádech na obou typech motivu. */
 .rc-dots-track {
   position: relative;
   display: flex;
@@ -266,7 +326,7 @@
   gap: 7px;
   padding: 7px 10px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.05);
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
   border: 1px solid var(--border-subtle);
   backdrop-filter: blur(8px);
 }
@@ -276,7 +336,7 @@
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.22);
+  background: color-mix(in srgb, var(--text-primary) 22%, transparent);
   cursor: pointer;
   position: relative;
   z-index: 2;

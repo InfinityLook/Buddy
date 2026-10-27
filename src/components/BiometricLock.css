@@ -77,8 +77,17 @@
   line-height: 1.5;
 }
 
-/* Buddy v2 — barva textu je jen zesvětlená, čitelná verze appčina
-   --accent-red na tónovaném pozadí, stejně jako .login-error. */
+/* Buddy v2 (přehodnoceno pro "Čistý den") — barva textu je zesvětlená/
+   ztmavená, čitelná verze appčina --accent-red na tónovaném pozadí,
+   stejně jako .login-error — appka míchá s --text-primary, ne s pevnou
+   bílou: appčiny tmavé motivy mají --accent-red (--buddy-danger) už
+   samy o sobě světlý (pastelová růžová na tmavém pozadí), takže míchání
+   s --text-primary (tam taky světlý) zůstane stejně světlé jako dřív.
+   "Čistý den" má ale --accent-red naopak tmavý a sytý (kalibrovaný na
+   čitelnost proti bílému panelu) — appčina dřívější pevná bílá by ho
+   zesvětlila zpátky do nečitelné růžové na vlastním pozadí; míchání
+   s --text-primary (tam tmavý) ho naopak ztmaví, takže zůstane čitelný
+   přesně tam, kde ho appka potřebuje. */
 .biometric-lock-error {
   width: 100%;
   margin: 0 0 16px;
@@ -88,7 +97,7 @@
   line-height: 1.45;
   background: color-mix(in srgb, var(--accent-red) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent-red) 32%, transparent);
-  color: color-mix(in srgb, var(--accent-red) 55%, white);
+  color: color-mix(in srgb, var(--accent-red) 55%, var(--text-primary));
 }
 
 .biometric-lock-btn {

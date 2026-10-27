@@ -352,11 +352,17 @@
   gap: 0.3rem;
 }
 
+/* Prázdná/neaktivní stopa grafového sloupce — Buddy v2 (přehodnoceno
+   pro "Čistý den"): pevná bílá na 8% opacitě byla proti bílému/téměř
+   bílému panelu "Čistého dne" prakticky nerozeznatelná, takže zbyla
+   jen prázdné místo tam, kde měla být vidět stopa. color-mix s
+   --text-primary dá appce stejný jemný nádech v obou režimech
+   (světlý na tmavém motivu, tmavý na světlém). */
 .sr-graf-sloupec {
   width: 100%;
   min-height: 4px;
   border-radius: 3px 3px 0 0;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
 }
 
 .sr-graf-sloupec--aktivni {

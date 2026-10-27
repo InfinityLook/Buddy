@@ -262,6 +262,14 @@
   gap: 0.45rem;
 }
 
+/* background: rgba(0,0,0,.2) zůstává natvrdo (ztmavuje libovolný
+   podklad stejně na tmavém i světlém motivu — appka to dřív potvrdila
+   i u vlastního scrimu/toastů). Border appka ale přemigrovala na
+   color-mix s --text-primary (Buddy v2, přehodnoceno pro "Čistý
+   den") — pevná bílá na 8% opacitě byla proti kartě, ztmavené stejnou
+   20% černou na bílém panelu "Čistého dne" do světle šedého tónu,
+   prakticky nerozeznatelná; appka tím ztratila jemné obrysové
+   zvýraznění, co u téhle karty chtěla. */
 .admin-stat-card {
   display: flex;
   flex-direction: column;
@@ -269,7 +277,7 @@
   gap: 0.1rem;
   padding: 0.5rem 0.2rem;
   background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent);
   border-radius: var(--radius-sm);
 }
 
@@ -488,13 +496,16 @@
   overflow-y: auto;
 }
 
+/* Stejná oprava jako .admin-stat-card výš (Buddy v2, "Čistý den") —
+   border přemigrován na color-mix s --text-primary ze stejného
+   důvodu, background: rgba(0,0,0,.2) zůstává natvrdo. */
 .admin-report {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
   padding: 0.6rem;
   background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent);
   border-radius: var(--radius-md);
 }
 

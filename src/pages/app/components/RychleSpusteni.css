@@ -142,9 +142,14 @@
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+/* Výchozí/fallback hover obrys (dlaždice bez vlastní ikonové barvy
+   níž) — Buddy v2 (přehodnoceno pro "Čistý den"): pevná bílá na 18%
+   opacitě byla proti bílému panelu "Čistého dne" málo viditelná;
+   color-mix s --text-primary dá appce viditelný, ale stejně jemný
+   obrys na jakémkoli motivu. */
 .rs-dlazdice:hover {
   transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.18);
+  border-color: color-mix(in srgb, var(--text-primary) 18%, transparent);
 }
 
 /* Barva při hoveru se řídí tím, jakou .rs-dlazdice-ikona dlaždice
