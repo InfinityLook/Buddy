@@ -3658,6 +3658,119 @@ export const SURFACES = {
     "customizable": true,
     "group": "Hlavní moduly"
   },
+  "hub": {
+    "id": "hub",
+    "name": "Hub",
+    "kind": "module",
+    "shortName": "Hub",
+    "subtitle": "Hlavní obrazovka po přihlášení",
+    "route": "/hub",
+    "parentRoom": null,
+    "defaultScenery": false,
+    "variants": {
+      "zlaty-soumrak": {
+        "id": "hub--zlaty-soumrak",
+        "surfaceId": "hub",
+        "themeId": "zlaty-soumrak",
+        "assets": {
+          "icon": "/buddy-themes/surfaces/hub/zlaty-soumrak/icon.svg",
+          "tile": "/buddy-themes/surfaces/hub/zlaty-soumrak/tile.svg",
+          "iconPng": "/buddy-themes/surfaces/hub/zlaty-soumrak/icon.png",
+          "tilePng": "/buddy-themes/surfaces/hub/zlaty-soumrak/tile.png",
+          "backgroundMobile": "/buddy-themes/surfaces/hub/zlaty-soumrak/background-mobile.svg",
+          "backgroundTablet": "/buddy-themes/surfaces/hub/zlaty-soumrak/background-tablet.svg",
+          "ornament": "/buddy-themes/surfaces/hub/zlaty-soumrak/ornament.svg"
+        },
+        "preview": "previews/hub/zlaty-soumrak.webp",
+        "scenery": {
+          "mobile": "/buddy-themes/shared/zlaty-soumrak/scene-mobile.webp",
+          "tablet": "/buddy-themes/shared/zlaty-soumrak/scene-tablet.webp"
+        }
+      },
+      "neonova-noc": {
+        "id": "hub--neonova-noc",
+        "surfaceId": "hub",
+        "themeId": "neonova-noc",
+        "assets": {
+          "icon": "/buddy-themes/surfaces/hub/neonova-noc/icon.svg",
+          "tile": "/buddy-themes/surfaces/hub/neonova-noc/tile.svg",
+          "iconPng": "/buddy-themes/surfaces/hub/neonova-noc/icon.png",
+          "tilePng": "/buddy-themes/surfaces/hub/neonova-noc/tile.png",
+          "backgroundMobile": "/buddy-themes/surfaces/hub/neonova-noc/background-mobile.svg",
+          "backgroundTablet": "/buddy-themes/surfaces/hub/neonova-noc/background-tablet.svg",
+          "ornament": "/buddy-themes/surfaces/hub/neonova-noc/ornament.svg"
+        },
+        "preview": "previews/hub/neonova-noc.webp",
+        "scenery": {
+          "mobile": "/buddy-themes/shared/neonova-noc/scene-mobile.webp",
+          "tablet": "/buddy-themes/shared/neonova-noc/scene-tablet.webp"
+        }
+      },
+      "polarni-zare": {
+        "id": "hub--polarni-zare",
+        "surfaceId": "hub",
+        "themeId": "polarni-zare",
+        "assets": {
+          "icon": "/buddy-themes/surfaces/hub/polarni-zare/icon.svg",
+          "tile": "/buddy-themes/surfaces/hub/polarni-zare/tile.svg",
+          "iconPng": "/buddy-themes/surfaces/hub/polarni-zare/icon.png",
+          "tilePng": "/buddy-themes/surfaces/hub/polarni-zare/tile.png",
+          "backgroundMobile": "/buddy-themes/surfaces/hub/polarni-zare/background-mobile.svg",
+          "backgroundTablet": "/buddy-themes/surfaces/hub/polarni-zare/background-tablet.svg",
+          "ornament": "/buddy-themes/surfaces/hub/polarni-zare/ornament.svg"
+        },
+        "preview": "previews/hub/polarni-zare.webp",
+        "scenery": {
+          "mobile": "/buddy-themes/shared/polarni-zare/scene-mobile.webp",
+          "tablet": "/buddy-themes/shared/polarni-zare/scene-tablet.webp"
+        }
+      },
+      "lesni-klid": {
+        "id": "hub--lesni-klid",
+        "surfaceId": "hub",
+        "themeId": "lesni-klid",
+        "assets": {
+          "icon": "/buddy-themes/surfaces/hub/lesni-klid/icon.svg",
+          "tile": "/buddy-themes/surfaces/hub/lesni-klid/tile.svg",
+          "iconPng": "/buddy-themes/surfaces/hub/lesni-klid/icon.png",
+          "tilePng": "/buddy-themes/surfaces/hub/lesni-klid/tile.png",
+          "backgroundMobile": "/buddy-themes/surfaces/hub/lesni-klid/background-mobile.svg",
+          "backgroundTablet": "/buddy-themes/surfaces/hub/lesni-klid/background-tablet.svg",
+          "ornament": "/buddy-themes/surfaces/hub/lesni-klid/ornament.svg"
+        },
+        "preview": "previews/hub/lesni-klid.webp",
+        "scenery": {
+          "mobile": "/buddy-themes/shared/lesni-klid/scene-mobile.webp",
+          "tablet": "/buddy-themes/shared/lesni-klid/scene-tablet.webp"
+        }
+      },
+      "cisty-den": {
+        "id": "hub--cisty-den",
+        "surfaceId": "hub",
+        "themeId": "cisty-den",
+        "assets": {
+          "icon": "/buddy-themes/surfaces/hub/cisty-den/icon.svg",
+          "tile": "/buddy-themes/surfaces/hub/cisty-den/tile.svg",
+          "iconPng": "/buddy-themes/surfaces/hub/cisty-den/icon.png",
+          "tilePng": "/buddy-themes/surfaces/hub/cisty-den/tile.png",
+          "backgroundMobile": "/buddy-themes/surfaces/hub/cisty-den/background-mobile.svg",
+          "backgroundTablet": "/buddy-themes/surfaces/hub/cisty-den/background-tablet.svg",
+          "ornament": "/buddy-themes/surfaces/hub/cisty-den/ornament.svg"
+        },
+        "preview": "previews/hub/cisty-den.webp",
+        "scenery": {
+          "mobile": "/buddy-themes/shared/cisty-den/scene-mobile.webp",
+          "tablet": "/buddy-themes/shared/cisty-den/scene-tablet.webp"
+        }
+      }
+    },
+    "themeParent": null,
+    "inheritFromCaller": false,
+    "backgroundMode": "none",
+    "permission": null,
+    "customizable": true,
+    "group": "Hlavní moduly"
+  },
   "profile": {
     "id": "profile",
     "name": "Profil",

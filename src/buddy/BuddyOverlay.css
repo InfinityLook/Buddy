@@ -35,9 +35,18 @@
   height: min(78vh, 640px);
   display: flex;
   flex-direction: column;
-  /* Téměř neprůhledné pozadí panelu zůstává pevné — appčin už dřív
-     uznaný výjimka pro toasty/dialogy (viz SocialModule.css). */
-  background: rgba(14, 11, 26, 0.97);
+  /* Buddy v2 — appka migrovala na var(--bg-panel-raised), appčinu
+     vlastní plně neprůhlednou panelovou barvu. Starší komentář tu
+     tvrdil, že pevná tmavá rgba je appčina uznaná výjimka "stejná
+     jako u toastů" — appka tuhle domněnku ale přesně u toastů samých
+     později vyvrátila (.settings-toast/.shop-toast/.support-toast —
+     stejná pevná tmavá rgba proti zděděné --text-primary dávala na
+     "Čistém dni" dvě tmavé vrstvy na sobě). Panel tu nese --text-
+     secondary/--text-primary popisky (včetně psacího vstupu níž)
+     stejným způsobem, takže appka opravu přenesla i sem. .buddy-scrim
+     výš (jen clona POD panelem, bez vlastního textu) žádnou opravu
+     nepotřebuje — appčin starší komentář tam zůstává přesný. */
+  background: var(--bg-panel-raised);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   box-shadow: var(--shadow-card);

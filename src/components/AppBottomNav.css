@@ -30,12 +30,20 @@
    prosvítal — vypadalo by to jako chyba vykreslení. Přechod do barvy
    pozadí z toho udělá čitelný spodní pruh a zároveň naznačí, že nad ním
    obsah pokračuje. Sahá až k okrajům kontejneru, proto záporné odsazení
-   o jeho vnitřní okraj. */
+   o jeho vnitřní okraj.
+   Buddy v2 — appka natvrdo danou tmavě modrou (rgba(6,10,22,...), skoro
+   přesně --bg-base's dřívější jediná výchozí hodnota #0a0e1a) přemigrovala
+   na appčin vlastní --bg-base token: appčin komentář výš sám říká, že
+   gradient má "přejít do barvy pozadí", takže appka ho teď míchá přímo
+   z téhle barvy, ne z jejího natvrdo zapsaného přibližného opisu — na
+   jiném než chladném tmavém motivu (zlatý/lesní/"Čistý den") appka
+   touhle opravou zajistí, že pruh doopravdy zapadne do appčina vlastního
+   motivového pozadí, ne že proti němu zůstane cizí tmavá skvrna. */
 .app-bottom-nav::before {
   content: '';
   position: absolute;
   inset: -0.9rem -1rem calc(-1.25rem - env(safe-area-inset-bottom)) -1rem;
-  background: linear-gradient(180deg, rgba(6, 10, 22, 0) 0%, rgba(6, 10, 22, 0.88) 42%);
+  background: linear-gradient(180deg, transparent 0%, color-mix(in srgb, var(--bg-base) 88%, transparent) 42%);
   pointer-events: none;
   z-index: -1;
 }
@@ -133,6 +141,15 @@
 }
 
 @media (pointer: fine) {
+  /* Buddy v2 — šipka pluje nad libovolným obsahem appčiny aktuální
+     stránky (Hub's fotka, Apps mřížka, Profil, kterýkoli vlajkový
+     Room), ne nad jedním pevným pozadím appky — appka proto natvrdo
+     danou tmavě modrou (rgba(14,19,36,...)) přemigrovala na appčin
+     vlastní --bg-base token stejným způsobem jako appčiny ostatní
+     "sklovité" prvky nad proměnlivým podkladem (viz Hub.tsx's
+     .hub-icon-btn) — appčin vlastní --text-secondary uvnitř tak zůstane
+     čitelný na obou motivech appky, ne jen na tom appčin dřívější
+     natvrdo daný tón zrovna napodoboval. */
   .modul-sipka {
     display: flex;
     align-items: center;
@@ -144,7 +161,7 @@
     height: 36px;
     border-radius: 50%;
     border: 1px solid var(--border-strong);
-    background: rgba(14, 19, 36, 0.7);
+    background: color-mix(in srgb, var(--bg-base) 70%, transparent);
     color: var(--text-secondary);
     cursor: pointer;
     z-index: 5;

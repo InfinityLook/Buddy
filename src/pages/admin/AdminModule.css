@@ -602,12 +602,18 @@
 .admin-report-stav--vyreseno { color: var(--accent-green); }
 .admin-report-stav--zamitnuto { color: var(--accent-red); }
 
+/* Buddy v2 — pevné tmavě navy pozadí appka migrovala na
+   --bg-panel-raised. color: var(--text-primary) na řádku níž byl vždycky
+   motivovaný, jen pozadí ne — na "Čistém dni" to dávalo tmavý text na
+   (taky pevně) tmavém podkladu, stejná chyba jako appčin .social-toast
+   v SocialModule.css, i když tahle verze měla vlastní color: deklaraci,
+   ne jen zdědění. */
 .admin-toast {
   position: fixed;
   left: 50%;
   bottom: calc(1.5rem + env(safe-area-inset-bottom));
   transform: translateX(-50%);
-  background: rgba(18, 20, 38, 0.95);
+  background: var(--bg-panel-raised);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   padding: 0.5rem 0.9rem;

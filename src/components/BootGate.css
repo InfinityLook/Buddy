@@ -19,20 +19,25 @@
      Když soubor chybí, zůstanou vidět přechody pod ním. */
   background-color: var(--bg-base);
   /* Buddy v2 (viz SurfaceThemeScope výjimka v BootGate.tsx) — tahle
-     fotka a scrim zůstávají, jen appčiny vlastní ambientní "záře" (ty
-     dvě radial-gradient kolečka) a nakonec fallback přechod přimíchají
-     motivové tokeny místo natvrdo daných barev, ať sednou na zvolený
-     motiv i na zařízení, kde se fotka nenahraje. Tmavý scrim
-     (rgba(5,8,18,...)) zůstává natvrdo — jeho jediný úkol je ztlumit
-     fotku pod sebou, ne vypadat jako appčin vlastní panel (stejná
-     výjimka jako appka uznala u toastů/.buddy-scrim). */
+     fotka zůstává, scrim nad ní appka ale přemigrovala na
+     --buddy-scene-overlay (stejný token/stejný případ jako Hub.tsx's
+     .hub-bg-overlay). Starší komentář tu scrim označoval za appčinu
+     uznanou výjimku "jako u toastů/.buddy-scrim" — ale .boot-gate-name/
+     .boot-gate-status/.boot-gate-version (appčin vlastní text přímo
+     uvnitř .boot-gate-inner) dědí appčinu --text-primary/--text-
+     secondary/--text-muted PŘÍMO odsud, bez mezilehlého appkou
+     odděleného panelu typu .buddy-panel — appka tak tuhle scrim
+     potřebuje stejně jako Hub/Feed, aby se na "Čistém dni" rozjasnila
+     s textem, ne zůstala natvrdo tmavá proti tmavě obrácenému textu.
+     Appčiny vlastní ambientní "záře" (ty dvě radial-gradient kolečka)
+     a appčin fallback přechod níž už motivové tokeny správně měly. */
   background-image:
     linear-gradient(
       180deg,
-      rgba(5, 8, 18, 0.88) 0%,
-      rgba(5, 8, 18, 0.45) 35%,
-      rgba(5, 8, 18, 0.55) 70%,
-      rgba(5, 8, 18, 0.92) 100%
+      var(--buddy-scene-overlay) 0%,
+      color-mix(in srgb, var(--buddy-scene-overlay) 65%, transparent) 35%,
+      color-mix(in srgb, var(--buddy-scene-overlay) 78%, transparent) 70%,
+      var(--buddy-scene-overlay) 100%
     ),
     url('/backgrounds/hub-bg.png'),
     radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--accent-violet) 22%, transparent) 0%, transparent 40%),
@@ -82,13 +87,19 @@
 }
 
 /* Neurčitý ukazatel — nevíme, jak dlouho stahování potrvá,
-   takže pruh jezdí, místo aby předstíral procenta. */
+   takže pruh jezdí, místo aby předstíral procenta.
+   Prázdná dráha baru stojí přímo na appčině --buddy-scene-overlay
+   (fotka+scrim výš u .boot-gate) — na "Čistém dni" je tenhle overlay
+   skoro bílý (rgba(248,247,253,0.8)), takže natvrdo bílá dráha na 9%
+   by na něm skoro zmizela (stejný problém appka řešila u Hub.tsx's
+   .hub-level-progress — prázdná dráha coby appčina dekorace, ne text,
+   proto --text-primary namísto --bg-base). */
 .boot-gate-bar {
   position: relative;
   width: 100%;
   height: 4px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.09);
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
   overflow: hidden;
 }
 

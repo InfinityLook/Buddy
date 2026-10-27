@@ -8,6 +8,7 @@ import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import {
   getLevelFromXp,
   getLevelProgress,
@@ -495,13 +496,28 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
     bgRef.current.style.transform = ''
   }
 
+  // Buddy v2 integrace (per-obrazovkové motivy, viz CLAUDE.md sekce
+  // "Vzhled aplikace") — appka dřív byla jediná hlavní obrazovka bez
+  // .buddy-theme-scope vůbec, takže volba motivu v Nastavení na Hub
+  // neměla žádný viditelný dopad (var(--text-primary) tu vždycky
+  // zůstávala při staré, natvrdo dané appčině hodnotě). rootAttributes
+  // nese data-buddy-theme, podle kterého .buddy-theme-scope přemapuje
+  // appčiny proměnné na vybraný motiv. SurfaceBackdrop appka tu
+  // nechává s backgroundMode: 'none' (viz themeCatalog.ts's "hub" záznam)
+  // — appka si svoji vlastní fotku soumraku (.hub-bg/.hub-bg-overlay
+  // níž) i nadále zachovává přes všechny motivy, ne generické
+  // per-motivové kulisy, co appka má pro ostatní obrazovky.
+  const { rootAttributes } = useSurfaceAppearance('hub')
+
   return (
     <div
-      className="hub-page"
+      className="hub-page buddy-theme-scope"
+      {...rootAttributes}
       onPointerMove={sledujParalaxu}
       onPointerLeave={resetujParalaxu}
       onPointerCancel={resetujParalaxu}
     >
+      <SurfaceBackdrop surfaceId="hub" />
       {/* Fixní pozadí — fotka soumraku nad horami + ztmavovací gradient
           kvůli čitelnosti hlavičky/karet, ne holý gradient appky jako
           dřív (viz hub-bg.css's vlastní komentář pro proč a jak moc

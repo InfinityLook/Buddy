@@ -602,12 +602,13 @@
   max-width: min(420px, calc(100vw - 2rem));
   padding: 0.6rem 0.9rem;
   border-radius: var(--radius-pill);
-  /* Buddy v2: natvrdo daná tmavá barva tu zůstává schválně, stejně
-     jako identická hodnota v Admin/Nastavení/Podpoře/Social/Exam Prep/
-     Souboji — hláška potřebuje zaručeně tmavé, čitelné pozadí bez
-     ohledu na motiv (stejná "pojistka", ne appčina vizuální identita,
-     logika jako u natvrdo černých stínů jinde v appce). */
-  background: rgba(18, 20, 38, 0.95);
+  /* Buddy v2 — pevná tmavě navy appka migrovala na --bg-panel-raised:
+     explicitní color: var(--text-primary) níž byl vždycky motivovaný,
+     jen pozadí ne, takže na "Čistém dni" to dávalo tmavý text na
+     (taky pevně) tmavém podkladu. Stejná chyba, jakou appka opravila
+     v Admin/Nastavení/Podpoře/Social — tahle stará poznámka na ni
+     sama ukázala. */
+  background: var(--bg-panel-raised);
   border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-card);
   color: var(--text-primary);

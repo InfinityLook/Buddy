@@ -202,11 +202,14 @@ export const VzhledARamecekSekce: React.FC<Props> = ({ onToast }) => {
       {/* Motivy obrazovek — Buddy v2 (viz appčin komentář u importu
           výš). wiredSurfaceIds appka omezuje na obrazovky, co už
           doopravdy mají .buddy-theme-scope + SurfaceBackdrop zapojené
-          (zatím Profil, Achievementy, Aplikace, Obchod a Nastavení) —
+          (Hub, Profil, Achievementy, Aplikace, Obchod a Nastavení) —
           AppearancePicker sám o sobě zná motivy pro všech 72 appkou
           popsaných obrazovek, appka ho proto bez tohohle omezení
           nechce nabízet na appky, kde by vybraný motiv zatím neměl
-          žádný viditelný efekt. */}
+          žádný viditelný efekt. Hub appka přidala do seznamu — dřív
+          to byla jediná hlavní obrazovka bez .buddy-theme-scope
+          vůbec, volba motivu tam neměla žádný dopad (viz Hub.tsx's
+          vlastní komentář). */}
       <section className="settings-card">
         <button
           type="button"
@@ -223,7 +226,7 @@ export const VzhledARamecekSekce: React.FC<Props> = ({ onToast }) => {
           </span>
           <div>
             <h2 className="settings-card-title">Motivy obrazovek</h2>
-            <p className="settings-card-sub">Samostatný vzhled pro Profil, Achievementy, Aplikace, Obchod a Nastavení — appka je postupně přidává i jinam</p>
+            <p className="settings-card-sub">Samostatný vzhled pro Hub, Profil, Achievementy, Aplikace, Obchod a Nastavení — appka je postupně přidává i jinam</p>
           </div>
           <span className={`settings-accordion-sipka ${otevrenoMotivy ? 'je-otevreno' : ''}`} aria-hidden="true">
             ›
@@ -232,7 +235,7 @@ export const VzhledARamecekSekce: React.FC<Props> = ({ onToast }) => {
 
         {otevrenoMotivy && (
           <AppearancePicker
-            wiredSurfaceIds={['profile', 'achievements', 'apps-launcher', 'shop', 'settings']}
+            wiredSurfaceIds={['hub', 'profile', 'achievements', 'apps-launcher', 'shop', 'settings']}
             availablePermissions={smiPremium ? ['cosmetics.premium'] : []}
           />
         )}

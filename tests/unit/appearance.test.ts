@@ -36,12 +36,12 @@ describe('appearance preferences and inheritance', () => {
     expect(resolveSurfaceScenery(p, 'school-room')).toBe(false)
     expect(resolveSurfaceScenery(p, 'document-editor')).toBe(true)
   })
-  it('has 72 unique surfaces and exactly 360 complete combinations', () => {
-    expect(new Set(SURFACE_IDS).size).toBe(72)
+  it('has 73 unique surfaces and exactly 365 complete combinations', () => {
+    expect(new Set(SURFACE_IDS).size).toBe(73)
     expect(SURFACE_IDS.filter((id) => SURFACES[id].kind === 'room')).toHaveLength(6)
     expect(SURFACE_IDS.filter((id) => SURFACES[id].kind === 'app')).toHaveLength(24)
     const keys = SURFACE_IDS.flatMap((id) => THEME_IDS.map((theme) => SURFACES[id].variants[theme].id))
-    expect(new Set(keys).size).toBe(360)
+    expect(new Set(keys).size).toBe(365)
   })
   it('rejects prototype properties as IDs', () => {
     for (const key of ['constructor', '__proto__', 'toString', 'unknown']) {

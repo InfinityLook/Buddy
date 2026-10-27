@@ -32,15 +32,25 @@
   pointer-events: none;
 }
 
+/* Buddy v2 — appka migrovala na --buddy-scene-overlay (per-motiv
+   token, viz Hub.tsx's .hub-bg-overlay — stejná pevná fotka
+   hub-soumrak.png, stejný důvod). .social-title nad tímhle overlayem
+   zůstává zděděné motivové --text-primary, a natvrdo tmavý overlay
+   na "Čistém dni" dávalo tmavý text na taky tmavém, nikdy se
+   nerozjasňujícím podkladu — appčina stejná chyba, co appka opravila
+   u Hubu, jen tu ještě nedohledaná. .feed-hvezda/.feed-jiskra níž
+   appka naopak nechává beze změny — appčin vlastní komentář tam řeší
+   jinou otázku (shoda dekorace s pevnou obrázkovou paletou obrázku
+   samotného), ne appčin kontrast proti textu nad ní. */
 .feed-bg-overlay {
   position: fixed;
   inset: 0;
   z-index: 0;
   background: linear-gradient(
     180deg,
-    rgba(6, 9, 20, 0.74) 0%,
-    rgba(6, 9, 20, 0.56) 32%,
-    rgba(6, 9, 20, 0.86) 100%
+    var(--buddy-scene-overlay) 0%,
+    color-mix(in srgb, var(--buddy-scene-overlay) 76%, transparent) 32%,
+    var(--buddy-scene-overlay) 100%
   );
   pointer-events: none;
 }

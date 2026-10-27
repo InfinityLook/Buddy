@@ -206,7 +206,11 @@
   left: 50%;
   bottom: calc(1.5rem + env(safe-area-inset-bottom));
   transform: translateX(-50%);
-  background: rgba(18, 20, 38, 0.95);
+  /* Buddy v2 — pevná tmavě navy appka migrovala na --bg-panel-raised;
+     color: var(--text-primary) níž byl vždycky motivovaný, jen pozadí
+     ne — stejná chyba, jakou appka opravila u .shop-toast/.social-toast/
+     .admin-toast/.settings-toast (dark-on-dark na "Čistém dni"). */
+  background: var(--bg-panel-raised);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
   padding: 0.5rem 0.9rem;

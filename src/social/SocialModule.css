@@ -2110,11 +2110,16 @@
   object-fit: cover;
 }
 
+/* Buddy v2 — "skleněné" pozadí z --text-primary, ne pevná bílá (stejný
+   vzor jako .social-bublina.je-smazana výš) — bublina s médiem sedí
+   v appčině vlastní motivované konverzaci, ne nad médiem/kamerou jako
+   .social-media-pulz pulzující placeholder bez tohohle by na
+   "Čistém dni" zmizel do bílé bubliny kolem něj. */
 .social-media-nacita {
   width: 180px;
   height: 140px;
   border-radius: calc(var(--radius-md) - 3px);
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--text-primary) 8%, transparent);
   animation: social-media-pulz 1.4s ease-in-out infinite;
 }
 
@@ -2452,6 +2457,17 @@
   to { opacity: 1; }
 }
 
+/* Buddy v2 — pevné tmavě fialové #0e0b1a appka migrovala na
+   --bg-panel-raised. .social-dialog je generická skořápka pro desítky
+   dialogů po celém Social (NahlasitDialog, SdiletPrispevekDialog,
+   SledujiciDialog, ...) — text uvnitř (nadpis, tlačítka) dědí appčin
+   --text-primary z .buddy-theme-scope, žádné vlastní barvení nemá,
+   takže pevné tmavé pozadí dávalo na "Čistém dni" tmavý text na tmavém
+   podkladu, ne jen na téhle jedné komponentě, ale na KAŽDÉM dialogu
+   postaveném na téhle třídě. .social-overlay (zešednutí pod dialogem)
+   appka nechává pevně tmavé záměrně — ztmavení podkladu patří k dialogu
+   jako takovému, ne appčinu motivu (stejná konvence jako nativní
+   <dialog> backdrop), proto tam žádná změna. */
 .social-dialog {
   position: fixed;
   left: 50%;
@@ -2465,7 +2481,7 @@
   gap: 0.5rem;
   padding: 1rem;
   border-radius: var(--radius-xl);
-  background: rgba(14, 11, 26, 0.97);
+  background: var(--bg-panel-raised);
   border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-card);
   animation: social-dialog-vstup 0.22s cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -2741,10 +2757,16 @@
   border-radius: 12px;
 }
 
+/* Buddy v2 — appka migrovala na --accent-orange, stejně jako sousední
+   --admin/--moderator tagy hned pod/nad touhle třídou (viz výš/níž) —
+   pevné #fbbf24 bylo to jediné z trojice, co na motiv nereagovalo, a
+   na "Čistém dni" (kde se text čte na téměř bílém panelu) dávalo
+   světlý zlatý text na téměř bílém pozadí, nízký kontrast ten jediný
+   motiv, co z celé pětice má světlé pozadí. */
 .social-profil-role-tag--vip {
-  background: rgba(251, 191, 36, 0.18);
-  color: #fbbf24;
-  border: 1px solid rgba(251, 191, 36, 0.4);
+  background: color-mix(in srgb, var(--accent-orange) 18%, transparent);
+  color: var(--accent-orange);
+  border: 1px solid color-mix(in srgb, var(--accent-orange) 40%, transparent);
 }
 
 .social-profil-role-tag--moderator {
@@ -2801,10 +2823,14 @@
   color: var(--text-muted);
 }
 
+/* Buddy v2 — stopa XP lišty appka přesunula na color-mix s --text-primary;
+   pevná bílá na 10% opacitě byla proti bílému/téměř bílému panelu
+   "Čistého dne" prakticky nerozeznatelná od podkladu, stejná chyba jako
+   appčiny jiné progress stopy (viz Growth/School Roomův stejný fix). */
 .social-profil-xp-bar-bg {
   width: 100%;
   height: 4px;
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
   border-radius: 10px;
   overflow: hidden;
   margin-top: 0.25rem;
@@ -3028,7 +3054,14 @@
   max-width: min(420px, calc(100vw - 2rem));
   padding: 0.6rem 0.9rem;
   border-radius: var(--radius-pill);
-  background: rgba(18, 20, 38, 0.96);
+  /* Buddy v2 — pevná tmavě navy #121226-ish appka migrovala na
+     --bg-panel-raised: text appka nikde v tomhle pravidle výslovně
+     nebarví, dědí appčin --text-primary z .buddy-theme-scope, takže
+     pevné tmavé pozadí na "Čistém dni" dávalo tmavý text na tmavém
+     podkladu — appka ho nikdo nepřečetl. --bg-panel-raised se s
+     --text-primary mění vždycky společně, stejně jako appčiny ostatní
+     panely (viz .social-hlaseni níž). */
+  background: var(--bg-panel-raised);
   border: 1px solid var(--border-strong);
   box-shadow: var(--shadow-card);
   font-size: 0.7rem;

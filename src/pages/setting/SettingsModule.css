@@ -364,11 +364,15 @@
   left: 50%;
   bottom: calc(1.5rem + env(safe-area-inset-bottom));
   transform: translateX(-50%);
-  /* Buddy v2: natvrdo daná tmavá barva tu zůstává schválně, stejně
-     jako identická hodnota v Obchodě/Admin/Podpoře/Social/Exam Prep/
-     Souboji — hláška potřebuje zaručeně tmavé, čitelné pozadí bez
-     ohledu na motiv. */
-  background: rgba(18, 20, 38, 0.95);
+  /* Buddy v2 — pevná tmavě navy appka migrovala na --bg-panel-raised.
+     Text tu appka nikde v tomhle pravidle nebarví, dědí appčin
+     --text-primary z .buddy-theme-scope, takže pevné tmavé pozadí na
+     "Čistém dni" dávalo tmavý text na (taky pevně) tmavém podkladu —
+     appka ho nikdo nepřečetla. Stejná chyba, jaká appka opravila
+     u .social-toast/.admin-toast — tahle appčina stará komentářová
+     poznámka ("stejně jako identická hodnota v Obchodě/Admin/...")
+     ukázala na celou rodinu stejně postižených hlášek napříč appkou. */
+  background: var(--bg-panel-raised);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-pill);
   padding: 0.5rem 1rem;
@@ -580,11 +584,15 @@
   font-weight: 800;
   padding: 0.06rem 0.35rem;
   border-radius: var(--radius-pill);
-  /* Buddy v2: pozadí natvrdo černé (pojistka, stejná logika jako výš),
-     text natvrdo zlatý — appčina pevná "VIP" barva, stejná jako jinde
-     v appce (role/vip's vlastní tone, ne appčin motiv). */
-  background: rgba(0, 0, 0, 0.45);
-  color: #fbbf24;
+  /* Buddy v2 — appka migrovala na --accent-orange, stejně jako appčiny
+     ostatní VIP/role tagy (.social-profil-role-tag--vip). Pevné #fbbf24
+     na pevně černém podkladu bylo na dark motivech čitelné, ale appka na
+     "Čistém dni" potřebuje tmavší odstín zlaté (to --accent-orange na
+     tomhle motivu právě dělá), ne jen zesvětlit podklad — proto appka
+     místo natvrdo černé zvolila tonální podklad odvozený přímo z barvy
+     textu. */
+  background: color-mix(in srgb, var(--accent-orange) 25%, transparent);
+  color: var(--accent-orange);
 }
 
 .settings-theme-check {

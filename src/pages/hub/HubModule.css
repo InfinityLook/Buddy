@@ -25,15 +25,30 @@
   background-position: center 30%;
 }
 
+/* Buddy v2 — appka migrovala na --buddy-scene-overlay (per-motiv token,
+   definovaný v buddy-theme-tokens.css přímo pro přesně tenhle účel —
+   ztmavovací/zesvětlovací vrstva přes atmosférickou fotku). Pevná tmavě
+   navy appka byla fajn, dokud Hub žádný motiv neznal (appka ho teprve
+   teď přes .buddy-theme-scope zapojila, viz Hub.tsx's vlastní
+   komentář) — čtyři tmavé motivy mají --buddy-scene-overlay podobně
+   tmavý jako appčina stará natvrdo daná hodnota, takže appka tam
+   vizuálně nic nemění, ale "Čistý den" má svůj vlastní, appkou už
+   dřív připravený téměř bílý overlay (appka ho jen dosud nikde
+   nepoužívala) — appka tím fotku zesvětlí přesně tam, kde appka tenhle
+   motiv zvolila, ne jen nechá tmavý navy overlay dál kazit čitelnost
+   appčina tmavého textu nad světlým motivem. Tvar gradientu appka
+   zachovává (tmavší na krajích, světlejší uprostřed), jen appka
+   škáluje přes color-mix s appčiným vlastním tokenem místo pevné
+   barvy. */
 .hub-bg-overlay {
   position: absolute;
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(6, 9, 20, 0.72) 0%,
-    rgba(6, 9, 20, 0.52) 28%,
-    rgba(6, 9, 20, 0.6) 60%,
-    rgba(6, 9, 20, 0.88) 100%
+    var(--buddy-scene-overlay) 0%,
+    color-mix(in srgb, var(--buddy-scene-overlay) 72%, transparent) 28%,
+    color-mix(in srgb, var(--buddy-scene-overlay) 83%, transparent) 60%,
+    var(--buddy-scene-overlay) 100%
   );
 }
 
@@ -84,12 +99,19 @@
    "Social"). Odhlášení je v Nastavení (settings-danger-btn tam), appka
    bez toho neměla jinou cestu ven z účtu.
    ------------------------------------------ */
+/* Buddy v2 — appka migrovala na --bg-base, ne pevnou tmavě navy. Hub
+   teď doopravdy zná appčin motiv (viz výš) a hlavička sedí nad appčinou
+   vlastní fotkou soumraku/overlayem, ne appčiným plochým panelem —
+   proto appka volí barvu podle --bg-base (appčino "jak tmavá/světlá
+   appka celkově cítí daný motiv"), ne --text-primary jako jinde, ať
+   "sklo" zůstane sklem (tmavý motiv = tmavší sklo, "Čistý den" =
+   světlejší sklo), ne obráceně barveno textovou barvou. */
 .hub-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 0.75rem;
-  background: rgba(10, 14, 28, 0.38);
+  background: color-mix(in srgb, var(--bg-base) 55%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   padding: 0.6rem 0.7rem;
@@ -152,9 +174,15 @@
   flex-shrink: 0;
 }
 
+/* Buddy v2 — appka migrovala na --bg-base, stejná logika jako
+   .hub-header výš (appka chce "sklo", co sedí na motivu — pevná bílá
+   byla na "Čistém dni" prakticky stejně světlá jako appčin už dřív
+   světlý overlay za ní, takže se kolečko ztratilo; --bg-base appce
+   dává tmavý odstín na tmavých motivech / světlý na "Čistém dni",
+   pořád rozeznatelné proti ikoně v --text-primary uvnitř). */
 .hub-icon-btn {
   position: relative;
-  background: rgba(255, 255, 255, 0.03);
+  background: color-mix(in srgb, var(--bg-base) 8%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: 50%;
   width: 40px;
@@ -170,7 +198,7 @@
 }
 
 .hub-icon-btn:hover {
-  background: rgba(255, 255, 255, 0.09);
+  background: color-mix(in srgb, var(--bg-base) 24%, transparent);
   transform: translateY(-1px);
 }
 
@@ -180,6 +208,11 @@
    tu je") skutečným číslem nepřečtených — appka ho stropuje na "9+"
    v Hub.tsx, ne tady v CSS, ať appka u jedné cifry nemá zbytečně
    širokou kapsli. */
+/* Buddy v2 — barva čísla na odznaku byla pevně #fff; .social-odznak
+   (SocialModule.css) má přesně stejný tvar (malý počítadlový odznak
+   na var(--accent-magenta)) a appka tam text barví přes
+   var(--text-on-accent) — kalibrovaný přímo na kontrast s accent
+   barvou, ne natvrdo bílý. Appka to teď sjednotila. */
 .hub-icon-badge {
   position: absolute;
   top: -2px;
@@ -190,7 +223,7 @@
   border-radius: 999px;
   background: var(--accent-magenta);
   border: 1.5px solid var(--bg-base);
-  color: #fff;
+  color: var(--text-on-accent);
   font-size: 0.62rem;
   font-weight: 700;
   line-height: 1;
@@ -238,14 +271,21 @@
    ze skutečných rozměrů toho, co nahrazují (hub-level-hex-wrap je
    58px kruh) — ne z odhadu, ať appka při přepnutí skeleton→reálný
    obsah neposkočí. */
+/* Buddy v2 — appka migrovala na --text-primary místo pevné bílé.
+   Šimrající pruh appka teď kreslí do karet barvených podle --bg-base
+   (viz .hub-hero-level/-streak níž) — na čtyřech tmavých motivech
+   zůstává appčin efekt stejný (světlý pruh přes tmavou kartu), na
+   "Čistém dni" appka pruh obrací (tmavý přes světlou kartu) — appka
+   tím zachová skutečný viditelný "šimr", ne skoro neviditelnou bílou
+   přes appčinu vlastní bílou kartu. */
 .hub-skeleton {
   display: inline-block;
   border-radius: var(--radius-sm);
   background: linear-gradient(
     90deg,
-    rgba(255, 255, 255, 0.05) 25%,
-    rgba(255, 255, 255, 0.14) 50%,
-    rgba(255, 255, 255, 0.05) 75%
+    color-mix(in srgb, var(--text-primary) 5%, transparent) 25%,
+    color-mix(in srgb, var(--text-primary) 14%, transparent) 50%,
+    color-mix(in srgb, var(--text-primary) 5%, transparent) 75%
   );
   background-size: 200% 100%;
   animation: hub-skeleton-shimmer 1.6s ease-in-out infinite;
@@ -335,6 +375,12 @@
   margin-right: 0.3rem;
 }
 
+/* Buddy v2 — appka pozadí obou karet (level i série) migrovala ze
+   stejné pevné tmavě navy hodnoty jako .hub-header výš (appčin
+   komentář tam) na color-mix s var(--bg-base) — obě karty nesou
+   appčin motivový --text-primary obsah, takže appka potřebuje
+   podklad, co se s motivem skutečně mění, ne jednu natvrdo tmavou
+   hodnotu. */
 .hub-hero-level {
   position: relative;
   display: flex;
@@ -342,7 +388,7 @@
   gap: 0.6rem;
   flex: 1;
   min-width: 0;
-  background: rgba(21, 31, 56, 0.3);
+  background: color-mix(in srgb, var(--bg-base) 45%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 0.4rem 0.6rem 0.4rem 0.4rem;
@@ -356,7 +402,7 @@
   justify-content: center;
   gap: 0.05rem;
   flex-shrink: 0;
-  background: rgba(21, 31, 56, 0.3);
+  background: color-mix(in srgb, var(--bg-base) 45%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 0.35rem 0.55rem;
@@ -383,12 +429,17 @@
   justify-content: center;
 }
 
+/* Buddy v2 — appka halo kolem šestiúhelníku dřív kopírovala pevnou
+   fialovo-tyrkysovou dvojici ručně, místo aby appka použila appčiny
+   vlastní var(--accent-violet)/var(--accent-cyan) tokeny — stejná
+   dvojice, co appka hned pod tím používá na XP výplni samotné
+   (appčin komentář výš: halo má "stejný duch" jako ta výplň). */
 .hub-level-hex-wrap::before {
   content: '';
   position: absolute;
   inset: -7px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(167, 139, 250, 0.4) 0%, rgba(34, 211, 238, 0.18) 45%, transparent 72%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--accent-violet) 40%, transparent) 0%, color-mix(in srgb, var(--accent-cyan) 18%, transparent) 45%, transparent 72%);
   animation: hub-level-halo-dech 3.4s ease-in-out infinite;
   pointer-events: none;
 }
@@ -480,11 +531,15 @@
   text-shadow: 0 1px 5px rgba(0, 0, 0, 0.4);
 }
 
+/* Buddy v2 — appka prázdnou dráhu baru migrovala z
+   natvrdo bílé na color-mix s var(--text-primary), stejný vzorec
+   jako .hub-skeleton — appka jen potřebuje "viditelný podklad", ne
+   konkrétní kontrast proti popředí. */
 .hub-level-progress {
   display: block;
   height: 5px;
   border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.1);
+  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
   overflow: hidden;
   margin-top: 0.1rem;
 }
@@ -494,12 +549,16 @@
    zvláštní JS navíc, appka tím pádem dostává efekt zdarma při KAŽDÉ
    změně progressPercent, nejen při otevření +XP bubliny. Jemný glow
    appce dává pocit, že výplň sama svítí, ne jen roste. */
+/* Buddy v2 — záře kolem výplně kopírovala appčin --accent-cyan jako
+   pevnou hodnotu; appka ji teď bere přímo z toho tokenu, ať záře a
+   výplň (co do var(--accent-cyan) appka taky vede) na každém motivu
+   zůstanou skutečně stejná barva. */
 .hub-level-progress-fill {
   display: block;
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
-  box-shadow: 0 0 8px rgba(34, 211, 238, 0.55);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--accent-cyan) 55%, transparent);
   transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -703,6 +762,16 @@
    neotevře, tak nepozná žádný rozdíl. "A kolem kruhu se objeví slabé
    světlo" appka dociluje zesílením na plnou opacity: 1, viz pravidlo
    .hub-wheel.je-otevrene::before níž. */
+/* Buddy v2 — appka záři/prstence Buddy Core kola dřív měla ze dvou
+   polovin: appka border-top/bottom-color (níž, .hub-wheel-ring-*)
+   už vedla přes var(--accent-orange), ale border-left/right-color a
+   všechny glow/filter appka dál kopírovala natvrdo jako rgb(245,
+   158, 11) — přesně appčina DEFAULT hodnota toho tokenu. Na
+   "Čistém dni" ale --accent-orange (přes --buddy-warning) appce
+   vychází na appku tmavě hnědou, ne na zářivou ambru — appka tak
+   měla na jednom prstenci doopravdy dva různě zbarvené poloviny.
+   Appka teď celou rodinu appčiny color-mix s var(--accent-orange)
+   drží jednotně. */
 .hub-wheel::before {
   content: '';
   position: absolute;
@@ -710,8 +779,8 @@
   border-radius: 50%;
   background: radial-gradient(
     circle,
-    rgba(245, 158, 11, 0.4) 0%,
-    rgba(245, 158, 11, 0.16) 45%,
+    color-mix(in srgb, var(--accent-orange) 40%, transparent) 0%,
+    color-mix(in srgb, var(--accent-orange) 16%, transparent) 45%,
     transparent 72%
   );
   opacity: 0.55;
@@ -767,7 +836,7 @@
   width: 100%;
   height: 100%;
   display: block;
-  filter: drop-shadow(0 4px 16px rgba(245, 158, 11, 0.35));
+  filter: drop-shadow(0 4px 16px color-mix(in srgb, var(--accent-orange) 35%, transparent));
 }
 
 @keyframes hub-core-pulse {
@@ -848,8 +917,8 @@
   width: 58%;
   aspect-ratio: 1;
   border-top-color: var(--accent-orange);
-  border-left-color: rgba(245, 158, 11, 0.3);
-  filter: drop-shadow(0 0 5px rgba(245, 158, 11, 0.4));
+  border-left-color: color-mix(in srgb, var(--accent-orange) 30%, transparent);
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--accent-orange) 40%, transparent));
   animation: hub-ring-cw 25s linear infinite;
 }
 
@@ -857,8 +926,8 @@
   width: 40%;
   aspect-ratio: 1;
   border-bottom-color: var(--accent-orange);
-  border-right-color: rgba(245, 158, 11, 0.25);
-  filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.35));
+  border-right-color: color-mix(in srgb, var(--accent-orange) 25%, transparent);
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent-orange) 35%, transparent));
   animation: hub-ring-ccw 13s linear infinite;
 }
 
@@ -1049,7 +1118,7 @@
   margin: -3px 0 0 -3px;
   border-radius: 50%;
   background: var(--accent-orange);
-  box-shadow: 0 0 6px 2px rgba(245, 158, 11, 0.75);
+  box-shadow: 0 0 6px 2px color-mix(in srgb, var(--accent-orange) 75%, transparent);
   opacity: 0;
   animation: hub-castice-vybuch 0.38s ease-out forwards;
 }
@@ -1146,12 +1215,17 @@
   gap: 0.5rem;
 }
 
+/* Buddy v2 — appka pozadí rychlé karty migrovala ze stejné pevné tmavě
+   navy appky jako appčiny karty výš (.hub-hero-level/.hub-hero-
+   streak) na color-mix s var(--bg-base) — identický appčin důvod:
+   appka nese motivový --text-primary text, takže potřebuje podklad,
+   co se motivem skutečně hýbe. */
 .hub-quick-link {
   display: flex;
   align-items: center;
   gap: 0.7rem;
   width: 100%;
-  background: rgba(21, 31, 56, 0.3);
+  background: color-mix(in srgb, var(--bg-base) 45%, transparent);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 0.6rem 0.8rem;
@@ -1163,7 +1237,7 @@
 }
 
 .hub-quick-link:hover {
-  background: rgba(21, 31, 56, 0.45);
+  background: color-mix(in srgb, var(--bg-base) 60%, transparent);
   border-color: var(--border-strong);
 }
 
