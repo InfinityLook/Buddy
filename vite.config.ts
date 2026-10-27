@@ -179,6 +179,16 @@ export default defineConfig(({ command }) => {
             '**/deskova-hra/trh-*',
             '**/buddyworld/artpack-v46/**',
             '**/buddy-themes/**',
+            // hub-themes/** (appkou dodaný grafický balíček "5 motivů"
+            // pro Hub konkrétně — pozadí, kolo, quick-linky, viz
+            // Hub.tsx's/HubModule.css's vlastní komentáře u `variant`/
+            // --hub-wallpaper) — appka ho vyloučila stejným důvodem
+            // jako buddy-themes/** výš: 317 souborů/13 MB appka nechce
+            // stahovat do instalační precache všem, Hub otevře každý
+            // přihlášený uživatel, ale fotky/ikony se stáhnou jen
+            // jednou, a appka je pak servíruje z běhové cache (runtime
+            // caching pravidlo níž), ne z instalačního balíčku appky.
+            '**/hub-themes/**',
           ],
           navigateFallbackDenylist: [/^\/api\//, /^\/version\.json$/, /^\/js\//],
           // Precache staré verze se po aktivaci nového SW smaže,
@@ -228,6 +238,21 @@ export default defineConfig(({ command }) => {
               handler: 'CacheFirst',
               options: {
                 cacheName: 'buddy-themes-runtime',
+                expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 365 }
+              }
+            },
+            // hub-themes/** (balíček "5 motivů" konkrétně pro Hub — pozadí,
+            // kolo, quick-linky, viz Hub.tsx/HubModule.css vlastní komentáře
+            // u `variant`/`--hub-wallpaper`) — stejným důvodem jako
+            // buddy-themes-runtime výš: appka ho stáhne za běhu (při prvním
+            // otevření /hub), ne při instalaci appky, a pak ho servíruje
+            // z téhle běhové cache. maxEntries 500 dává rezervu nad reálnou
+            // potřebou (317 souborů balíčku).
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/hub-themes/'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'hub-themes-runtime',
                 expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 365 }
               }
             },

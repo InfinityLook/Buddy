@@ -16,13 +16,28 @@
    gradient jako dřív. Tmavší uprostřed obrazovky, kde sedí karty (ne
    jen na okrajích) — první verze měla gradient nejtmavší jen nahoře/
    dole a nechávala střed skoro nedotčený, což dělalo text karet přes
-   krajinku hůř čitelný, než mělo. */
+   krajinku hůř čitelný, než mělo.
+
+   Grafický balíček "5 motivů" (public/hub-themes/) — appka tu teď
+   fotku čte přes dvě appkou nastavené CSS proměnné (--hub-wallpaper/
+   --hub-wallpaper-wide), ne natvrdo jeden fixní url(). Hub.tsx je
+   nastavuje přímo na tomhle <div> inline stylem podle vybraného motivu
+   (SURFACES.hub.variants[themeId].assets.backgroundMobile/
+   backgroundTablet v themeCatalog.ts) — appka proměnné dává fallback
+   na původní soumrakovou fotku, ať appka nikdy neskončí s prázdným
+   pozadím, i kdyby se inline styl z nějakého důvodu nenastavil. */
 .hub-bg {
   position: absolute;
   inset: 0;
-  background-image: url('/backgrounds/hub-soumrak.png');
+  background-image: var(--hub-wallpaper, url('/backgrounds/hub-soumrak.png'));
   background-size: cover;
   background-position: center 30%;
+}
+
+@media (min-width: 768px) {
+  .hub-bg {
+    background-image: var(--hub-wallpaper-wide, var(--hub-wallpaper, url('/backgrounds/hub-soumrak.png')));
+  }
 }
 
 /* Buddy v2 — appka migrovala na --buddy-scene-overlay (per-motiv token,

@@ -70,7 +70,13 @@ export function AppearancePicker({ availablePermissions = [], wiredSurfaceIds }:
         {target !== 'all' && <SurfaceThemeIcon surfaceId={target} themeId={previewId} tile size={80} />}
         <div><h3>{preview.name}</h3><p>{target === 'all' ? 'Pro všechny obrazovky bez vlastního motivu.' : SURFACES[target].name}</p></div>
       </div>
-      {target !== 'all' && <label className="buddy-appearance-scenery"><input type="checkbox" checked={scenery} onChange={(e) => setSceneryDraft(e.target.checked)} /> Scénické pozadí z Hubu</label>}
+      {/* Appka tenhle přepínač ukazuje jen pro obrazovky, co SurfaceBackdrop
+          doopravdy vykresluje (backgroundMode !== 'none') — jinak by
+          přepínač vypadal funkčně, ale neměl by žádný viditelný dopad
+          (Hub má backgroundMode: 'none', vlastní pozadí si řeší sám
+          mimo tenhle generický mechanismus, viz hub's vlastní komentář
+          v themeCatalog.ts a Hub.tsx). */}
+      {target !== 'all' && SURFACES[target].backgroundMode !== 'none' && <label className="buddy-appearance-scenery"><input type="checkbox" checked={scenery} onChange={(e) => setSceneryDraft(e.target.checked)} /> Scénické pozadí z Hubu</label>}
       <div className="buddy-appearance-actions">
         <button type="button" className="buddy-appearance-apply" disabled={!changed} onClick={() => {
           if (target === 'all' && draft !== 'inherit') setGlobal(draft)

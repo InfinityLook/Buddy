@@ -8,7 +8,7 @@ import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
-import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
+import { SurfaceBackdrop, themeAssetUrl, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import {
   getLevelFromXp,
   getLevelProgress,
@@ -326,6 +326,26 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
     setBuddyOpen(false)
   }
 
+  // Buddy v2 integrace (per-obrazovkové motivy, viz CLAUDE.md sekce
+  // "Vzhled aplikace") — appka dřív byla jediná hlavní obrazovka bez
+  // .buddy-theme-scope vůbec, takže volba motivu v Nastavení na Hub
+  // neměla žádný viditelný dopad. rootAttributes nese data-buddy-theme,
+  // podle kterého .buddy-theme-scope přemapuje appčiny proměnné na
+  // vybraný motiv. SurfaceBackdrop appka tu nechává s backgroundMode:
+  // 'none' (viz themeCatalog.ts's "hub" záznam) — appka si svoji
+  // vlastní fotku (.hub-bg/.hub-bg-overlay níž) i nadále řeší sama, ne
+  // generickou <picture> kulisu, co appka má pro ostatní obrazovky.
+  //
+  // Grafický balíček "5 motivů" (public/hub-themes/) appce dodal
+  // SKUTEČNÉ, appkou dřív chybějící assety přesně pro tenhle záznam —
+  // appka `variant` (SURFACES.hub.variants[themeId], viz
+  // useSurfaceAppearance's vlastní návratovou hodnotu) používá níž na
+  // fotce pozadí, všech čtyřech paprscích kola, prostředním tlačítku a
+  // dvou quick-linkách (Shop/Achievementy) — appka tím pádem všechny
+  // tyhle obrázky mění podle vybraného motivu, místo pěti appkou dřív
+  // natvrdo daných cest do /icons/hub-wheel/.
+  const { rootAttributes, variant } = useSurfaceAppearance('hub')
+
   // Čtyři paprsky kolem prostředního tlačítka — appka tu dřív měla
   // šest (AI/Apps/Shop/Achievementy/Rooms/Social), ale Shop a Achievementy z
   // kola odešly: appka si nechala potvrdit, že obě svítí dost často
@@ -350,18 +370,22 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
   // procenta (top/left) a JS úhly (pro Krok 6 níž) jsou dva různé
   // způsoby, jak vyjádřit totéž rozestavění, a appka je nemá jak
   // spočítat jedno z druhého bez zbytečné komplikace navíc.
+  //
+  // Ikony appka teď čte z `variant.assets` (balíček "5 motivů", viz
+  // appčin komentář u useSurfaceAppearance výš) — každý paprsek má
+  // svůj vlastní, appkou generovaný "*-button" obrázek (celé tlačítko
+  // s rámečkem, ne jen holá ikona), ne appčiny dřívější natvrdo dané
+  // cesty do /icons/hub-wheel/.
   const kolo: KoloPaprsek[] = [
-    { id: 'ai', nazev: 'AI', ikona: '/icons/hub-wheel/ai.png', uhel: 0, onClick: otevritBuddyho },
-    { id: 'apps', nazev: 'Apps', ikona: '/icons/hub-wheel/apps.png', uhel: 90, onClick: handleAppsClick },
-    { id: 'rooms', nazev: 'Rooms', ikona: '/icons/hub-wheel/rooms.png', uhel: 180, onClick: handleAppsClick },
+    { id: 'ai', nazev: 'AI', ikona: themeAssetUrl(variant.assets.aiButton), uhel: 0, onClick: otevritBuddyho },
+    { id: 'apps', nazev: 'Apps', ikona: themeAssetUrl(variant.assets.appsButton), uhel: 90, onClick: handleAppsClick },
+    { id: 'rooms', nazev: 'Rooms', ikona: themeAssetUrl(variant.assets.roomsButton), uhel: 180, onClick: handleAppsClick },
     // Krok 18: "Social" přejmenováno na "Feed" a přesměrováno z celého
     // SocialModule (vlastní pětice spodních záložek) na FeedModule.tsx
     // ("jen zeď", bez Socialovy vlastní navigace) — appka Chat a Hledat
     // už má přímo v AppBottomNav.tsx odkudkoli, takže jediné, co tenhle
     // paprsek doopravdy ještě nabízel navíc, byla samotná záložka Domů.
-    // Ikonu appka ponechala beze změny (/icons/hub-wheel/social.png) —
-    // appka v týhle relaci nemá nástroj na generování nové grafiky.
-    { id: 'social', nazev: 'Feed', ikona: '/icons/hub-wheel/social.png', uhel: 270, onClick: () => prejit('/feed') },
+    { id: 'social', nazev: 'Feed', ikona: themeAssetUrl(variant.assets.feedButton), uhel: 270, onClick: () => prejit('/feed') },
   ]
 
   // Krok 6: appka teď paprsek pod prstem nehledá podle toho, nad kterým
@@ -496,18 +520,8 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
     bgRef.current.style.transform = ''
   }
 
-  // Buddy v2 integrace (per-obrazovkové motivy, viz CLAUDE.md sekce
-  // "Vzhled aplikace") — appka dřív byla jediná hlavní obrazovka bez
-  // .buddy-theme-scope vůbec, takže volba motivu v Nastavení na Hub
-  // neměla žádný viditelný dopad (var(--text-primary) tu vždycky
-  // zůstávala při staré, natvrdo dané appčině hodnotě). rootAttributes
-  // nese data-buddy-theme, podle kterého .buddy-theme-scope přemapuje
-  // appčiny proměnné na vybraný motiv. SurfaceBackdrop appka tu
-  // nechává s backgroundMode: 'none' (viz themeCatalog.ts's "hub" záznam)
-  // — appka si svoji vlastní fotku soumraku (.hub-bg/.hub-bg-overlay
-  // níž) i nadále zachovává přes všechny motivy, ne generické
-  // per-motivové kulisy, co appka má pro ostatní obrazovky.
-  const { rootAttributes } = useSurfaceAppearance('hub')
+  // (rootAttributes/variant appka čte výš, hned před polem `kolo` —
+  // tady by byla jen druhá, duplicitní volání useSurfaceAppearance.)
 
   return (
     <div
@@ -525,8 +539,27 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
           kvůli jemné paralaxe — appka pozici posouvá přímo přes
           DOM styl (sledujParalaxu/resetujParalaxu výš), ne přes React
           state, ať pohyb kurzoru/prstu nevyvolává re-render celého
-          Hubu desítky za vteřinu. */}
-      <div ref={bgRef} className="hub-bg" aria-hidden="true" />
+          Hubu desítky za vteřinu.
+
+          Balíček "5 motivů" — fotka samotná teď jde přes appkou
+          nastavené CSS proměnné (--hub-wallpaper/--hub-wallpaper-wide,
+          viz jejich vlastní komentář v HubModule.css), ne přes appčin
+          dřívější jediný natvrdo daný url(). Appka je nastavuje přímo
+          tady inline stylem, ne přes .hub-page's rootAttributes/
+          data-buddy-theme — SurfaceBackdrop výš má pro "hub" záznam
+          backgroundMode: 'none' (appka svoje vlastní, bohatší pozadí
+          s paralaxou/overlay/dim vrstvami nechce nahrazovat appčinou
+          obecnou <picture> kulisou), takže appka fotku dodává sama,
+          přímo z `variant.assets`. */}
+      <div
+        ref={bgRef}
+        className="hub-bg"
+        aria-hidden="true"
+        style={{
+          '--hub-wallpaper': `url(${themeAssetUrl(variant.assets.backgroundMobile)})`,
+          '--hub-wallpaper-wide': `url(${themeAssetUrl(variant.assets.backgroundTablet)})`,
+        } as React.CSSProperties}
+      />
       <div className="hub-bg-overlay" aria-hidden="true" />
       {/* Krok 9: "Když menu otevřeš: pozadí lehce ztmavne... Když menu
           zavřeš: pozadí se zase rozjasní." — appka to řeší jako třetí,
@@ -792,7 +825,7 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
               aria-label={kolootevreno ? 'Zavřít menu' : 'Otevřít menu'}
               aria-expanded={kolootevreno}
             >
-              <img src="/icons/hub-wheel/buddy-core.png" alt="" />
+              <img src={themeAssetUrl(variant.assets.coreButton)} alt="" />
             </button>
 
             {kolo.map((paprsek) => {
@@ -839,13 +872,14 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
             kartu místo malého kolečka ve věnci. Mezi nimi a kolem dřív
             appka ještě měla "Dnešní cíl" kartu (Krok 13) — na
             uživatelovu žádost ji appka odstranila úplně, Hub teď pod
-            kolem nese jen tyhle dvě karty. Appka ikony ponechala
-            beze změny (stejné medailonky, co appka měla i v kole,
-            public/icons/hub-wheel/shop.png a rewards.png) — appka v
-            týhle relaci nemá nástroj na generování nové grafiky. */}
+            kolem nese jen tyhle dvě karty. Balíček "5 motivů" appce
+            dodal i appkou generované, per-motivové ikony pro tyhle dvě
+            ikony (icons/shop.png, icons/trophy.png v public/hub-themes/
+            <motiv>/) — appka je čte přes `variant.assets`, stejně jako
+            kolo výš, místo appčiných dřívějších natvrdo daných cest. */}
         <div className="hub-quick-links">
           <button type="button" className="hub-quick-link" onClick={() => navigate('/obchod')}>
-            <img src="/icons/hub-wheel/shop.png" alt="" className="hub-quick-link-icon" />
+            <img src={themeAssetUrl(variant.assets.shopIcon)} alt="" className="hub-quick-link-icon" />
             <span className="hub-quick-link-text">
               <span className="hub-quick-link-title">Shop</span>
               <span className="hub-quick-link-desc">Kredity, VIP a kosmetika</span>
@@ -853,7 +887,7 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
             <span className="hub-quick-link-arrow" aria-hidden="true">›</span>
           </button>
           <button type="button" className="hub-quick-link" onClick={handleAchievementsClick}>
-            <img src="/icons/hub-wheel/rewards.png" alt="" className="hub-quick-link-icon" />
+            <img src={themeAssetUrl(variant.assets.trophyIcon)} alt="" className="hub-quick-link-icon" />
             <span className="hub-quick-link-text">
               <span className="hub-quick-link-title">Achievementy</span>
               <span className="hub-quick-link-desc">Úroveň, série a odznaky</span>

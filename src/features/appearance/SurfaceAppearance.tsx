@@ -8,7 +8,15 @@ import './buddy-theme-tokens.css'
 export const themeAssetUrl = (path: string): string =>
   `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`
 
-export function useSurfaceAppearance(id: SurfaceId, callerId?: SurfaceId) {
+// <K extends SurfaceId> (ne jen `id: SurfaceId`) je to, co dovolí volajícímu
+// se svým vlastním literálem (`useSurfaceAppearance('hub')` v Hub.tsx) dostat
+// zpátky `variant` zúžený přesně na SURFACES['hub']['variants'][...] — se
+// starým, negenerickým podpisem by TS spočítal `variant` jako sjednocení přes
+// všech 73 surfaces (appka by nemohla sáhnout na hub-specifické klíče jako
+// `aiButton`, protože ty na drtivé většině ostatních surfaces neexistují).
+// Volání s obecným `surfaceId: SurfaceId` (SurfaceBackdrop/SurfaceThemeScope
+// níž) se chová přesně jako dřív — K se tam zúží zpátky na celé SurfaceId.
+export function useSurfaceAppearance<K extends SurfaceId>(id: K, callerId?: SurfaceId) {
   const globalThemeId = useAppearanceStore((state) => state.globalThemeId)
   const overrides = useAppearanceStore((state) => state.surfaceOverrides)
   const ownScenery = useAppearanceStore((state) => state.sceneryOverrides[id])
@@ -17,7 +25,13 @@ export function useSurfaceAppearance(id: SurfaceId, callerId?: SurfaceId) {
     themeId,
     scenery: ownScenery ?? SURFACES[id].defaultScenery,
     theme: THEME_FAMILIES[themeId],
-    variant: SURFACES[id].variants[themeId],
+    // `as` je tu nutný, ne kosmetický — appka generickou funkci typuje
+    // podle `id: K`, ale TS vevnitř těla generické funkce počítá
+    // `SURFACES[id]` podle celého omezení K (= SurfaceId), ne podle
+    // konkrétního literálu z volajícího místa (to se vyřeší až mimo
+    // tělo funkce, na volání samém) — appka proto sama potvrzuje typ,
+    // o kterém `id: K` už ví, že je pravdivý za běhu.
+    variant: SURFACES[id].variants[themeId] as (typeof SURFACES)[K]['variants'][BuddyThemeId],
     rootAttributes: { 'data-buddy-theme': themeId, 'data-buddy-surface': id, 'data-buddy-backdrop': SURFACES[id].backgroundMode },
   }
 }
