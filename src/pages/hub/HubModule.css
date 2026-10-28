@@ -951,6 +951,41 @@
   opacity: 0.9;
 }
 
+/* Krok 10 — skutečný obrázek spojovacího prstence (orbitPng), ne jen
+   CSS kroužek jako výš. Appka velikost 76,8 % šířky kola NESPOČÍTALA
+   oknem/odhadem: v samotném PNG (512×512) leží prstenec s diamantovými
+   značkami na poloměru ≈ 220 px = 43 % jeho vlastní šířky od středu
+   (appka si to ověřila přímo v pixelech), a appčiny čtyři paprsky sedí
+   na poloměru přesně 33 % šířky kola (viz souřadnice 17/50/83 %
+   u .hub-wheel-petal--* výš) — 33 / 43 ≈ 0,768, proto 76,8 %. Appka
+   obrázek nerotuje (na rozdíl od .hub-wheel-ring-* výš) — značky by se
+   jinak odchýlily od paprsků, které appka drží na pevném místě.
+   Zavřeno = schováno (nic by nespojoval), otevřeno = postupně
+   zjasní spolu s paprsky samými. */
+.hub-wheel-orbit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 76.8%;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  transition-delay: 0.1s;
+}
+
+.hub-wheel-orbit img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hub-wheel.je-otevrene .hub-wheel-orbit {
+  opacity: 1;
+}
+
 @keyframes hub-ring-cw {
   from {
     transform: translate(-50%, -50%) rotate(0deg);

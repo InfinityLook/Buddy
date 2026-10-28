@@ -794,6 +794,21 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
               <span className="hub-wheel-ring-inner" />
             </span>
 
+            {/* Krok 10 (reakce na uživatelskou zpětnou vazbu) — appka
+                měla `variant.assets.orbitPng` hotový v katalogu od
+                integrace balíčku, jen ho nikdy nikde nevykreslila.
+                Jde o zlatý spojovací prstenec se čtyřmi diamantovými
+                značkami přesně v místech, kde paprsky sedí (R = 33 %
+                šířky kola) — appka rozměr 76,8 % šířky kola nespočítala
+                odhadem, ale přímo z pixelů obrázku (prstenec v něm leží
+                na poloměru ≈ 43 % jeho vlastní šířky, viz appčin
+                komentář u .hub-wheel-orbit v HubModule.css). Appka ho
+                v zavřeném stavu schovává (nic by nespojoval) a ukazuje
+                ho jen s otevřeným kolem, stejně jako paprsky samy. */}
+            <span className="hub-wheel-orbit" aria-hidden="true">
+              <img src={themeAssetUrl(variant.assets.orbitPng)} alt="" />
+            </span>
+
             {/* Krok 7: dvanáct jiskřiček, co z prstenu "vybuchnou" ven —
                 appka je vykresluje jen během přechodu (vybranyId !== null),
                 ne pořád schované v DOM, ať appka nenosí 12 navíc prvků na
