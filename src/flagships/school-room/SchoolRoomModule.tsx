@@ -363,6 +363,7 @@ export const SchoolRoomModule: React.FC = () => {
   return (
     <>
       <FlagshipShell
+        surfaceId="school-room"
         nazev="School Room"
         popisHlavicky="Škola na jednom místě"
         ikonaHlavicky="layers"

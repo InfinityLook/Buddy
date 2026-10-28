@@ -134,6 +134,7 @@ export const GrowthRoomModule: React.FC = () => {
   return (
     <>
       <FlagshipShell
+        surfaceId="growth-room"
         nazev="Growth Room"
         popisHlavicky="Rosti krok za krokem"
         ikonaHlavicky="goal-tracker"

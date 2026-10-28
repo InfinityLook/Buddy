@@ -165,6 +165,7 @@ export const EconomyRoomModule: React.FC = () => {
   return (
     <>
       <FlagshipShell
+        surfaceId="economy-room"
         nazev="Economy Room"
         popisHlavicky="Peníze pod kontrolou"
         ikonaHlavicky="finance"

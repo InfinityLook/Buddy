@@ -134,6 +134,7 @@ export const MusicRoomModule: React.FC = () => {
   return (
     <>
       <FlagshipShell
+        surfaceId="music-room"
         nazev="Music Room"
         popisHlavicky="Tvoř beaty, nahrávky a skladby"
         ikonaHlavicky="music"

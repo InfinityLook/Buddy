@@ -9,6 +9,8 @@ import {
   useNotificationItems,
 } from '@/pages/profil/components/ProfilNotifications'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
 import type { FlagshipVelkaKarta } from './types'
 // Sdílený s Profilem/Aplikacemi stejně jako AppModule.tsx dělá u svého
 // vlastního importu — jinak by panel notifikací zůstal bez vzhledu.
@@ -17,6 +19,13 @@ import '@/pages/app/AppModule.css'
 import './FlagshipShell.css'
 
 interface Props {
+  /** Buddy v2 — appka šestice vlajkových appek sdílí tenhle jeden shell,
+   *  takže appka chtěla jedno místo, co napojí SurfaceBackdrop/
+   *  buddy-theme-scope na všech šest naráz, místo šesti kopií stejných
+   *  tří řádků v každém Module.tsx zvlášť — každá Room appce pošle svoje
+   *  vlastní surfaceId (economy-room/fitness-room/growth-room/
+   *  music-room/school-room/writer-room). */
+  surfaceId: SurfaceId
   nazev: string
   popisHlavicky: string
   ikonaHlavicky: string
@@ -75,6 +84,7 @@ interface Props {
 // ==========================================
 
 export const FlagshipShell: React.FC<Props> = ({
+  surfaceId,
   nazev,
   popisHlavicky,
   ikonaHlavicky,
@@ -88,12 +98,15 @@ export const FlagshipShell: React.FC<Props> = ({
   const { profile, markNotificationRead } = useProfileData()
   const notifications = useNotificationItems()
   const unreadCount = notifications.filter((item) => !profile.readNotifications.includes(item.id)).length
+  const { rootAttributes } = useSurfaceAppearance(surfaceId)
 
   const prejit = useModulovyPrechod()
   const jitNaRoom = (cesta: string, smer: 'vpravo' | 'vlevo') => prejit(cesta, undefined, smer)
 
   return (
-    <div className="app-container fs-page">
+    <div className="app-container fs-page buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId={surfaceId} />
+
       <header className="app-header">
         <button className="app-back-btn" aria-label="Zpět" onClick={() => navigate('/apps')}>
           <AppIcon name="arrow-left" size={18} />

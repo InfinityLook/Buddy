@@ -502,6 +502,7 @@ export const FitnessRoomModule: React.FC = () => {
   return (
     <>
       <FlagshipShell
+        surfaceId="fitness-room"
         nazev="Fitness Room"
         popisHlavicky="Trénuj chytře"
         ikonaHlavicky="dumbbell"

@@ -123,6 +123,7 @@ export const WriterRoomModule: React.FC = () => {
   return (
     <>
       <FlagshipShell
+        surfaceId="writer-room"
         nazev="Writer's Room"
         popisHlavicky="Piš knihy, scénáře i komiksy"
         ikonaHlavicky="book"
