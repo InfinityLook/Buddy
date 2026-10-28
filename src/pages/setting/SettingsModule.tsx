@@ -32,7 +32,7 @@ import { VzhledARamecekSekce } from './components/VzhledARamecekSekce'
 import { ZabezpeceniSekce } from './components/ZabezpeceniSekce'
 import { SoukromiSocialSekce } from './components/SoukromiSocialSekce'
 import { JazykSekce } from './components/JazykSekce'
-import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
+import { SurfaceBackdrop, SurfaceThemeScope, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './SettingsModule.css'
 
 // ==========================================
@@ -322,7 +322,13 @@ export const SettingsModule: React.FC = () => {
       {/* Zálohování dat — přesunuté sem z Hubu, teď jako rozbalovací
           akordeon místo natrvalo otevřené karty. Stejná logika (export
           do .zip i s obsahem souborů, obnova ze souboru, historie
-          posledních snímků), beze změny. */}
+          posledních snímků), beze změny.
+          Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — zabalené jen do
+          <SurfaceThemeScope surfaceId="settings-backup">, stejný vzor
+          jako ostatních sedm settings-* sekcí (žádný vlastní
+          <SurfaceBackdrop>, akordeon dědí motiv z nadřazené obrazovky
+          Nastavení, kde je ta vlastní pozadí). */}
+      <SurfaceThemeScope surfaceId="settings-backup">
       <section className="settings-card">
         <button
           type="button"
@@ -399,6 +405,7 @@ export const SettingsModule: React.FC = () => {
           </>
         )}
       </section>
+      </SurfaceThemeScope>
 
       {/* Synchronizace a Verze aplikace */}
       <section className="settings-card">
