@@ -909,23 +909,11 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
             </span>
             <span className="hub-quick-link-arrow" aria-hidden="true">›</span>
           </button>
-          {/* Buddy World — nová, samostatná 3D RPG (appčina routa
-              /buddy-world), nezávislá na dřívější, dočasně schované
-              sekci Hry (viz App.tsx's vlastní komentář). Ikona je
-              appčina reálná koncept-ikona z BuddyWorld_ArtPack.zip
-              (data/koncept.ts's ui.ikona.buddy) — appka dřívější bare
-              emoji (appka v tehdejší relaci neměla nástroj na
-              generování nové grafiky) nahradila skutečným appčiným
-              <img>, stejná appčina konvence jako appčiny ostatní
-              quick-linky výš. */}
-          <button type="button" className="hub-quick-link" onClick={() => navigate('/buddy-world')}>
-            <img src="/buddyworld/koncept/ui/icons/buddy.svg" alt="" className="hub-quick-link-icon" />
-            <span className="hub-quick-link-text">
-              <span className="hub-quick-link-title">Buddy World</span>
-              <span className="hub-quick-link-desc">3D dobrodružství s tvým společníkem</span>
-            </span>
-            <span className="hub-quick-link-arrow" aria-hidden="true">›</span>
-          </button>
+          {/* Buddy World quick-link byl odstraněný spolu s celou sekcí
+              Hry — appka teď nikde v Hubu žádnou hru nenabízí (viz
+              App.tsx's vlastní komentář u BuddyWorldModule importu).
+              Vratné: appčin zdrojový soubor src/buddyworld/ zůstal
+              nedotčený, jen appka tohle tlačítko přestala vykreslovat. */}
         </div>
 
         {/* Spodní navigace — Fáze 4 Social nav reworku vytáhla tenhle

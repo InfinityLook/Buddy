@@ -12,14 +12,17 @@ import EconomyRoomModule from '@/flagships/economy-room/EconomyRoomModule.tsx'
 import GrowthRoomModule from '@/flagships/growth-room/GrowthRoomModule.tsx'
 import MusicRoomModule from '@/flagships/music-room/MusicRoomModule.tsx'
 import WriterRoomModule from '@/flagships/writer-room/WriterRoomModule.tsx'
-// Celá sekce Hry (GamesHubModule a všech pět her pod ní) je dočasně
-// schovaná pro v1 vydání na Google Play — appka ji v review vůbec
-// neukazuje, aby recenzent neviděl nic nedokončeného/neotestovaného,
-// a doplní se až v navazujícím updatu. Stejný "hide, keep documented,
-// one-line revert" postup jako dřívější schování Buddyheimu/Souboje
-// jednotlivě — jen teď pro celou sekci najednou. Návrat: odkomentovat
-// tenhle import + pět importů her níž, vrátit šest routy /hra* zpátky
-// na jejich skutečné komponenty, a vrátit kartu "Hry" v Hub.tsx.
+// Appka je teď úplně bez her — uživatel se rozhodl appku pustit bez
+// žádné hry vůbec, ne jen bez téhle jedné sekce (dřívější Google Play
+// embargo schovalo jen pětici pod GamesHubModule a nechalo živé
+// Buddy World; tahle appčina rozhodnutí šla dál a schovala i to).
+// Vratné: žádný ze šesti souborů her (GamesHubModule a jejích pět +
+// BuddyWorldModule, viz druhý komentář níž u jeho importu) nebyl
+// smazaný ani upravený — jen lazy importy zakomentované a routy
+// vrácené na /hub. Návrat: odkomentovat tenhle import + pět importů
+// her níž + BuddyWorldModule import, vrátit sedm routy /hra*+
+// /buddy-world zpátky na jejich skutečné komponenty, a vrátit kartu
+// "Hry" + quick-link "Buddy World" v Hub.tsx.
 // import GamesHubModule from '@/pages/games/GamesHubModule.tsx'
 import ProfilModule from '@/pages/profil/ProfilModule.tsx'
 import RewardModule from '@/pages/reward/RewardModule.tsx'
@@ -30,21 +33,11 @@ import AdminModule from '@/pages/admin/AdminModule.tsx'
 import SupportModule from '@/pages/support/SupportModule.tsx'
 const SocialModule = lazy(() => import('@/social/SocialModule'))
 const FeedModule = lazy(() => import('@/social/FeedModule'))
-// Buddy World je nová, samostatná 3D RPG — na rozdíl od pětice her
-// výš NENÍ součástí schované sekce Hry (appka to řešila
-// AskUserQuestionem s uživatelem, poté co appka zjistila appčin
-// Google Play embargo popsaný u GamesHubModule importu výš), takže
-// appčina routa /buddy-world zůstává hned živá, ne zakomentovaná.
-const BuddyWorldModule = lazy(() => import('@/buddyworld/BuddyWorldModule.tsx'))
-// Všech pět her (Buddyheim, Souboj, Buddyho Trh, Survival Night, Čtyři
-// království) je dočasně schovaných zároveň s GamesHubModule importem
-// výš — appka releasuje v1 na Google Play bez celé sekce Hry a doplní
-// ji v navazujícím updatu, kdy se appka jen nasadí znovu na živý web
-// bez nového review (appka je TWA/PWA, review testuje nativní obal,
-// ne živý obsah webu). Žádný z pěti souborů her nebyl smazaný ani
-// upravený — jen jejich lazy import zakomentovaný tady a routa pod
-// nimi vrácená na /hub. Návrat: odkomentovat všech pět importů +
-// vrátit šest routy /hra* na GamesHubModule.tsx (viz import výš).
+// Buddy World — appčina samostatná 3D RPG, dřív jediná živá hra i po
+// Google Play embargu (appka to tehdy řešila AskUserQuestionem).
+// Schovaná teď spolu s ní zmíněnou pěticí výš (appčin plný komentář
+// tam) — vratné stejným "odkomentuj" vzorem.
+// const BuddyWorldModule = lazy(() => import('@/buddyworld/BuddyWorldModule.tsx'))
 // const SurvivalModule = lazy(() => import('@/survival/SurvivalModule'))
 // const GameModule = lazy(() => import('@/game/GameModule.tsx'))
 // const CtyriKralovstvi = lazy(() => import('@/boardgame/CtyriKralovstvi.tsx'))
@@ -322,38 +315,20 @@ export default function App() {
               }
             />
 
-            {/* Celá sekce Hry (/hra a všech pět her pod ní) je schovaná
-                pro v1 releasu na Google Play — viz komentář u GamesHubModule
+            {/* Appka je úplně bez her (/hra a jejích pět + Buddy World
+                samotné na /buddy-world) — viz komentář u GamesHubModule
                 importu nahoře. Bare <Navigate>, ne ternary na dovnitr: appka
                 nerozlišuje, jestli je uživatel přihlášený, jen ho pošle
                 na /hub, odkud appčin vlastní dovnitr-gate případně
-                doputuje až na /. Žádná z pěti her tím nezmizela ze
-                zdrojáků, jen je dočasně nedosažitelná přes přímé URL. */}
+                doputuje až na /. Žádná z šesti her tím nezmizela ze
+                zdrojáků, jen je nedosažitelná přes přímé URL. */}
             <Route path="/hra" element={<Navigate to="/hub" replace />} />
             <Route path="/hra/buddyheim" element={<Navigate to="/hub" replace />} />
             <Route path="/hra/trh" element={<Navigate to="/hub" replace />} />
             <Route path="/hra/souboj" element={<Navigate to="/hub" replace />} />
             <Route path="/hra/survival-night" element={<Navigate to="/hub" replace />} />
             <Route path="/hra/deskova-hra" element={<Navigate to="/hub" replace />} />
-
-            {/* Buddy World — NOVÁ, hned živá 3D RPG, nezávislá na pětici
-                her výš. Vybráno přes AskUserQuestion s uživatelem poté,
-                co appka zjistila appčin Google Play v1 embargo (viz
-                komentáře nahoře) — Buddy World se tím dá zkoušet na
-                mobilu okamžitě, ne až poté, co se sekce Hry znovu
-                odkryje. */}
-            <Route
-              path="/buddy-world"
-              element={
-                dovnitr ? (
-                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
-                    <BuddyWorldModule />
-                  </Suspense>
-                ) : (
-                  <Navigate to="/" replace />
-                )
-              }
-            />
+            <Route path="/buddy-world" element={<Navigate to="/hub" replace />} />
 
             <Route
               path="/obchod"
