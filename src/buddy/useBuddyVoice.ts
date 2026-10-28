@@ -45,6 +45,13 @@ export const useBuddyVoice = (): UseBuddyVoiceResult => {
   const [chybaText, setChybaText] = useState<string | null>(null)
 
   const rozpoznavaniRef = useRef<SpeechRecognition | null>(null)
+  // Pořadové číslo rozjetého požadavku na server — zastavit()/unmount ho
+  // zvednou, takže starší odpověď (ta, co přišla POZDĚ, třeba po zavření
+  // panelu) se po doběhnutí fetch() prostě zahodí, ne přečte nahlas.
+  // Bez tohohle by appka mohla Buddyho rozmluvit i po jeho skrytí — stejná
+  // past jako nezrušený setTimeout/listener jinde v appce.
+  const requestSeqRef = useRef(0)
+  const mountedRef = useRef(true)
   const zpravyRef = useRef<BuddyZprava[]>([])
   zpravyRef.current = zpravy
 
@@ -61,6 +68,7 @@ export const useBuddyVoice = (): UseBuddyVoiceResult => {
   }
 
   const zastavit = useCallback(() => {
+    requestSeqRef.current += 1
     zastavitRozpoznavani()
     zastavitSyntezu()
     setStav('necinny')
@@ -114,10 +122,14 @@ export const useBuddyVoice = (): UseBuddyVoiceResult => {
 
   const posliDoServeru = useCallback(
     async (noveZpravy: BuddyZprava[]) => {
+      const requestSeq = ++requestSeqRef.current
       setStav('premysli')
       setChybaText(null)
 
       const vysledek = await zeptejSeBuddyho(noveZpravy)
+      // Appka byla mezitím zastavená/zavřená, nebo stihla odeslat další
+      // zprávu — tahle odpověď už nikoho nezajímá.
+      if (!mountedRef.current || requestSeq !== requestSeqRef.current) return
 
       if (!vysledek.ok || !vysledek.text) {
         setChybaText(vysledek.chyba ?? 'Buddy teď neodpovídá.')
@@ -192,9 +204,15 @@ export const useBuddyVoice = (): UseBuddyVoiceResult => {
 
   // Úklid při odchodu z Hubu (zavření overlaye Buddyho) — bez tohohle
   // by mikrofon zůstal poslouchat a Buddy by dál mluvil na pozadí,
-  // stejná past jako u kamery ve Form Checku.
+  // stejná past jako u kamery ve Form Checku. requestSeqRef se zvedá i
+  // tady, ne jen v zastavit() — appka tím zahodí i odpověď, co dorazí
+  // PO unmountu (zavření Buddyho overlaye), bez ohledu na to, jestli
+  // zastavit() stihla být zavolaná dřív.
   useEffect(() => {
+    mountedRef.current = true
     return () => {
+      mountedRef.current = false
+      requestSeqRef.current += 1
       zastavitRozpoznavani()
       zastavitSyntezu()
     }

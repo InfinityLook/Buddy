@@ -189,6 +189,17 @@ export default defineConfig(({ command }) => {
             // jednou, a appka je pak servíruje z běhové cache (runtime
             // caching pravidlo níž), ne z instalačního balíčku appky.
             '**/hub-themes/**',
+            // buddy-3d/** (balíček "Buddy 3D — 5 motivů" pro hlasového
+            // Buddyho, viz src/buddy3d/) stejným důvodem jako buddy-themes/
+            // hub-themes výš: appka natáhne vždycky jen JEDEN model
+            // (aktivní motiv, BuddyActor.ts's vlastní setTheme), nikdy
+            // všech pět najednou, takže by appka všem instalujícím
+            // stahovala ~8 MB modelů/posterů, co 4/5 z nich nikdy
+            // nepoužije. .glb appka v globPatterns vůbec nemá (jen
+            // js,css,html,png,svg,ico,woff2), takže by se modely do
+            // precache nedostaly ani omylem — tenhle zápis proto chrání
+            // jen postery (.png).
+            '**/buddy-3d/**',
           ],
           navigateFallbackDenylist: [/^\/api\//, /^\/version\.json$/, /^\/js\//],
           // Precache staré verze se po aktivaci nového SW smaže,
@@ -254,6 +265,22 @@ export default defineConfig(({ command }) => {
               options: {
                 cacheName: 'hub-themes-runtime',
                 expiration: { maxEntries: 500, maxAgeSeconds: 60 * 60 * 24 * 365 }
+              }
+            },
+            // Hlasový Buddy ve 3D (public/buddy-3d/models/*.glb +
+            // posters/*.png, viz src/buddy3d/BuddyActor.ts) — vyloučený
+            // z instalační precache výš (globIgnores) stejným důvodem
+            // jako buddy-themes/hub-themes výš. Appka ho stáhne až při
+            // prvním kliknutí na AI (BuddyActor.ts's setTheme natáhne
+            // jen aktivní motiv, ne všech pět), a od té chvíle jede z
+            // téhle běhové cache. maxEntries 15 dává rezervu nad
+            // dnešních 10 souborů (5 modelů + 5 posterů).
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/buddy-3d/'),
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'buddy-3d-runtime',
+                expiration: { maxEntries: 15, maxAgeSeconds: 60 * 60 * 24 * 365 }
               }
             },
             // Mapa světa (~400 kB) stejným důvodem jako mediapipe výš:

@@ -5,6 +5,7 @@ import { SocialIcon } from '@/social/components/SocialIcon'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import { useBuddyVoice } from '@/buddy/useBuddyVoice'
 import { BuddyOverlay } from '@/buddy/BuddyOverlay'
+import { resolveBuddyTheme } from '@/buddy3d/types'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
@@ -344,7 +345,7 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
   // dvou quick-linkách (Shop/Achievementy) — appka tím pádem všechny
   // tyhle obrázky mění podle vybraného motivu, místo pěti appkou dřív
   // natvrdo daných cest do /icons/hub-wheel/.
-  const { rootAttributes, variant } = useSurfaceAppearance('hub')
+  const { rootAttributes, variant, themeId: hubThemeId } = useSurfaceAppearance('hub')
 
   // Čtyři paprsky kolem prostředního tlačítka — appka tu dřív měla
   // šest (AI/Apps/Shop/Achievementy/Rooms/Social), ale Shop a Achievementy z
@@ -919,9 +920,10 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
         {/* Spodní navigace — Fáze 4 Social nav reworku vytáhla tenhle
             blok do sdílené komponenty (src/components/AppBottomNav.tsx),
             appka ji teď vykresluje i mimo Hub (Apps/Profil/Nastavení).
-            Bez vlastního onTal propu — lišta si bere úplně svou vlastní
-            instanci useBuddyVoice, nezávislou na Hubovu vlastní (paprsek
-            "AI" v kole výš), stejně jako na každé jiné stránce. */}
+            Hlasový Buddy (useBuddyVoice/BuddyOverlay) appka z týhle
+            lišty úplně odstranila — viz AppBottomNav.tsx's vlastní
+            komentář u `.app-nav-orb` — AI jde otevřít JEN Hubovým
+            kruhovým menu (paprsek "AI" výš), nikde jinde. */}
         <AppBottomNav />
 
         <ProfilNotifications
@@ -931,7 +933,27 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
           onClose={() => setNotifOpen(false)}
         />
 
-        {buddyOpen && <BuddyOverlay voice={buddyVoice} onZavrit={zavritBuddyho} />}
+        {/* 3D Buddy (balíček "Buddy 3D — 5 motivů", viz src/buddy3d/) —
+            BuddyOverlay.tsx je teď jen lazy adapter na Buddy3DOverlay,
+            appka mu ale musí sama předat KTERÝ ze 5 motivů se má
+            zobrazit. `hubThemeId` appka už čte výš pro kolo/pozadí
+            (useSurfaceAppearance('hub')), takže appka tu NEzakládá
+            druhý motivový store ani nehádá motiv z CSS barev — jen
+            znovu použije tu samou, už vyřešenou hodnotu. resolveBuddyTheme
+            je appkou dodaná bezpečná pojistka (ne nutná typová konverze —
+            BuddyThemeId/Buddy3DThemeId mají identickou pětici hodnot),
+            co se vrátí k výchozímu Zlatému soumraku, kdyby se obě appčiny
+            samostatně udržované pětice ID někdy rozešly. baseUrl appka
+            posílá, ať appčiny modely najdou cestu i při nasazení appky
+            do podadresáře, ne jen na doméně samé. */}
+        {buddyOpen && (
+          <BuddyOverlay
+            voice={buddyVoice}
+            onZavrit={zavritBuddyho}
+            themeId={resolveBuddyTheme(hubThemeId)}
+            baseUrl={import.meta.env.BASE_URL}
+          />
+        )}
       </div>
     </div>
   )

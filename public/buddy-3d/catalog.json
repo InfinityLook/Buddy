@@ -1,0 +1,261 @@
+{
+  "version": 1,
+  "defaultTheme": "zlaty-soumrak",
+  "themes": [
+    {
+      "id": "zlaty-soumrak",
+      "name": "Zlatý soumrak",
+      "coat": "#20324b",
+      "trim": "#ffbd61",
+      "secondary": "#d88849",
+      "strap": "#8c5c3d",
+      "fur": "#343a46",
+      "white": "#fff4df",
+      "inner": "#c78984",
+      "eye": "#63bcff",
+      "bg": "#0b1322",
+      "accent": "#e8bd70",
+      "detail": "sun",
+      "model": "/buddy-3d/models/buddy-zlaty-soumrak.glb",
+      "bytes": 1580872,
+      "triangles": 57886,
+      "drawCalls": 50,
+      "animations": [
+        "Spawn",
+        "Idle",
+        "Walk",
+        "Jump",
+        "Wave",
+        "Listen",
+        "Think",
+        "Talk",
+        "Happy",
+        "Pet",
+        "Sleep",
+        "Confused",
+        "Despawn"
+      ]
+    },
+    {
+      "id": "neonova-noc",
+      "name": "Neonová noc",
+      "coat": "#14263e",
+      "trim": "#51e4f4",
+      "secondary": "#ce7bff",
+      "strap": "#2d425c",
+      "fur": "#26374c",
+      "white": "#e3f1fb",
+      "inner": "#ae84bb",
+      "eye": "#55eeef",
+      "bg": "#080f20",
+      "accent": "#64e8f7",
+      "detail": "neon",
+      "model": "/buddy-3d/models/buddy-neonova-noc.glb",
+      "bytes": 1575272,
+      "triangles": 58086,
+      "drawCalls": 50,
+      "animations": [
+        "Spawn",
+        "Idle",
+        "Walk",
+        "Jump",
+        "Wave",
+        "Listen",
+        "Think",
+        "Talk",
+        "Happy",
+        "Pet",
+        "Sleep",
+        "Confused",
+        "Despawn"
+      ]
+    },
+    {
+      "id": "polarni-zare",
+      "name": "Polární záře",
+      "coat": "#b4cede",
+      "trim": "#83f6df",
+      "secondary": "#a3b7ff",
+      "strap": "#64889d",
+      "fur": "#647d93",
+      "white": "#f5fbff",
+      "inner": "#b7b0d0",
+      "eye": "#4eaee1",
+      "bg": "#101e32",
+      "accent": "#b4f6df",
+      "detail": "snow",
+      "model": "/buddy-3d/models/buddy-polarni-zare.glb",
+      "bytes": 1564700,
+      "triangles": 57728,
+      "drawCalls": 50,
+      "animations": [
+        "Spawn",
+        "Idle",
+        "Walk",
+        "Jump",
+        "Wave",
+        "Listen",
+        "Think",
+        "Talk",
+        "Happy",
+        "Pet",
+        "Sleep",
+        "Confused",
+        "Despawn"
+      ]
+    },
+    {
+      "id": "lesni-klid",
+      "name": "Lesní klid",
+      "coat": "#38594e",
+      "trim": "#b2df9a",
+      "secondary": "#e0b576",
+      "strap": "#946c4c",
+      "fur": "#414947",
+      "white": "#f6efdc",
+      "inner": "#b6887b",
+      "eye": "#72cfae",
+      "bg": "#101e1b",
+      "accent": "#b5e0a3",
+      "detail": "leaf",
+      "model": "/buddy-3d/models/buddy-lesni-klid.glb",
+      "bytes": 1579160,
+      "triangles": 58546,
+      "drawCalls": 50,
+      "animations": [
+        "Spawn",
+        "Idle",
+        "Walk",
+        "Jump",
+        "Wave",
+        "Listen",
+        "Think",
+        "Talk",
+        "Happy",
+        "Pet",
+        "Sleep",
+        "Confused",
+        "Despawn"
+      ]
+    },
+    {
+      "id": "cisty-den",
+      "name": "Čistý den",
+      "coat": "#e2e9ec",
+      "trim": "#5485f1",
+      "secondary": "#f1bc5c",
+      "strap": "#8b9bac",
+      "fur": "#647082",
+      "white": "#fffcf4",
+      "inner": "#d5a5a4",
+      "eye": "#508edb",
+      "bg": "#eef3f8",
+      "accent": "#436de2",
+      "detail": "spark",
+      "model": "/buddy-3d/models/buddy-cisty-den.glb",
+      "bytes": 1568240,
+      "triangles": 57694,
+      "drawCalls": 50,
+      "animations": [
+        "Spawn",
+        "Idle",
+        "Walk",
+        "Jump",
+        "Wave",
+        "Listen",
+        "Think",
+        "Talk",
+        "Happy",
+        "Pet",
+        "Sleep",
+        "Confused",
+        "Despawn"
+      ]
+    }
+  ],
+  "clips": [
+    {
+      "name": "Spawn",
+      "duration": 1.1,
+      "loop": false,
+      "description": "Objevení a pozdrav"
+    },
+    {
+      "name": "Idle",
+      "duration": 3,
+      "loop": true,
+      "description": "Dýchání, mrkání a ocas"
+    },
+    {
+      "name": "Walk",
+      "duration": 0.9,
+      "loop": true,
+      "description": "Chůze na místě; posun řídí aplikace"
+    },
+    {
+      "name": "Jump",
+      "duration": 1.2,
+      "loop": false,
+      "description": "Příprava, výskok a dopad"
+    },
+    {
+      "name": "Wave",
+      "duration": 1.8,
+      "loop": false,
+      "description": "Zamávání packou"
+    },
+    {
+      "name": "Listen",
+      "duration": 2.6,
+      "loop": true,
+      "description": "Naslouchání a naklonění hlavy"
+    },
+    {
+      "name": "Think",
+      "duration": 3,
+      "loop": true,
+      "description": "Přemýšlení s packou u brady"
+    },
+    {
+      "name": "Talk",
+      "duration": 2,
+      "loop": true,
+      "description": "Stylizovaný pohyb čelisti a gestikulace"
+    },
+    {
+      "name": "Happy",
+      "duration": 1.6,
+      "loop": false,
+      "description": "Radost a malé poskočení"
+    },
+    {
+      "name": "Pet",
+      "duration": 2,
+      "loop": false,
+      "description": "Reakce na pohlazení"
+    },
+    {
+      "name": "Sleep",
+      "duration": 4,
+      "loop": true,
+      "description": "Zavřené oči a klidné dýchání"
+    },
+    {
+      "name": "Confused",
+      "duration": 2,
+      "loop": false,
+      "description": "Zvědavé naklonění hlavy"
+    },
+    {
+      "name": "Despawn",
+      "duration": 0.7,
+      "loop": false,
+      "description": "Rozloučení a zmizení"
+    }
+  ],
+  "notes": [
+    "Walk is an in-place animation. Use the included controller for screen movement.",
+    "Talk is stylised jaw motion; no phoneme-based lip synchronisation is claimed.",
+    "No external meshes, textures, fonts, recordings or animation packs are included."
+  ]
+}
