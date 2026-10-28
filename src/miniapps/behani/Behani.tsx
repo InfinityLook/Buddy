@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useTelesneMiry } from '@/flagships/fitness-room/useTelesneMiry'
 import { serazenoPodleData } from '@/flagships/fitness-room/telesneMiryStats'
 import { TrasaMapa } from './TrasaMapa'
@@ -39,6 +40,8 @@ const formatDatum = (iso: string): string =>
 // jako Form Checkovo gate/session/end.
 // ==========================================
 export const Behani: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('behani')
+
   const behani = useBehani()
   const miry = useTelesneMiry()
 
@@ -191,7 +194,8 @@ export const Behani: React.FC = () => {
   if (obrazovka === 'probiha') {
     const tempoZive = tempoSekundNaKm(vzdalenostM, trvani)
     return (
-      <div className="behani-page">
+      <div className="behani-page buddy-theme-scope" {...rootAttributes}>
+        <SurfaceBackdrop surfaceId="behani" />
         <TrasaMapa trasa={trasa} vyska={260} />
         <div className="behani-zive-karta">
           <div className="behani-zive-radek">

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useFinance } from './useFinance'
 import { mistniDatum } from '@/core/utils/date'
 import { stahnoutBlob } from '@/core/utils/download'
@@ -170,6 +171,8 @@ const NahledUctenky: React.FC<{ receiptId: string; receiptMime: string | null }>
 }
 
 export const Finance: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('finance')
+
   const {
     seznam,
     pocetCelkem,
@@ -472,7 +475,8 @@ export const Finance: React.FC = () => {
   const donutData = donutTyp === 'vydaj' ? kategorieVydaje : kategoriePrijmy
 
   return (
-    <div className="fin-app">
+    <div className="fin-app buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="finance" />
       <div className="fin-header">
         <h2>Finance</h2>
         <div className="fin-header-akce">

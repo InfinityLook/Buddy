@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { usePoseEngine } from './usePoseEngine'
 import {
   useFormCheck,
@@ -39,6 +40,8 @@ const VSECHNY_NAROCNOSTI: Narocnost[] = ['lehka', 'stredni', 'tezka']
 const noveOkruhId = () => `okruh-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
 
 export const FormCheck: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('form-check')
+
   // Cvik se smí měnit, jen dokud kamera neběží — engine.stav === 'vypnuto'
   // (viz usePoseEngine.ts's vlastní komentář o tom, kdy se cvikRef čte).
   // Výchozí hodnota je předvýběr z cvičebního plánu (Fitness Roomovo
@@ -328,7 +331,8 @@ export const FormCheck: React.FC = () => {
   }
 
   return (
-    <div className="fc-app">
+    <div className="fc-app buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="form-check" />
       <div className="fc-header">
         <h2>Form Check</h2>
         <button

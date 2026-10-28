@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useFlashcards } from './useFlashcards'
 import { ALL_DECKS, DEFAULT_DECK, MAX_KRABICE } from './types'
 import './Flashcards.css'
@@ -6,6 +7,8 @@ import './Flashcards.css'
 type FormMode = { kind: 'closed' } | { kind: 'add' } | { kind: 'edit' }
 
 export const Flashcards: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('flashcards')
+
   const {
     currentCard,
     currentIndex,
@@ -78,7 +81,8 @@ export const Flashcards: React.FC = () => {
   }
 
   return (
-    <div className="flashcards-app">
+    <div className="flashcards-app buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="flashcards" />
       <div className="fc-header">
         <h2>Flashcards</h2>
         <button className="fc-add-btn" onClick={openAdd}>

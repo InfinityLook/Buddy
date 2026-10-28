@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useBookWriter } from './useBookWriter'
 import {
   Kniha,
@@ -28,6 +29,8 @@ import { useHasPermission } from '@/core/role'
 import './BookWriter.css'
 
 export const BookWriter: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('book-writer')
+
   const {
     knihy,
     addKniha,
@@ -69,7 +72,8 @@ export const BookWriter: React.FC = () => {
 
   if (!aktivniKniha) {
     return (
-      <div className="bw-app">
+      <div className="bw-app buddy-theme-scope" {...rootAttributes}>
+        <SurfaceBackdrop surfaceId="book-writer" />
         <div className="bw-header">
           <h2>📖 Kniha</h2>
         </div>

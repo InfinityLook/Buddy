@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useComicWriter } from './useComicWriter'
 import {
   celkovyPocetPanelu,
@@ -29,6 +30,8 @@ import { useHasPermission } from '@/core/role'
 import './ComicWriter.css'
 
 export const ComicWriter: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('comic-writer')
+
   const {
     komiksy,
     addKomiks,
@@ -74,7 +77,8 @@ export const ComicWriter: React.FC = () => {
 
   if (!aktivni) {
     return (
-      <div className="cw-app">
+      <div className="cw-app buddy-theme-scope" {...rootAttributes}>
+        <SurfaceBackdrop surfaceId="comic-writer" />
         <div className="cw-header">
           <h2>💥 Komiks</h2>
         </div>

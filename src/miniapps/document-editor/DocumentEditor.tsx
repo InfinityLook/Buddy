@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { Header } from './components/Header'
 import { MenuNav } from './components/MenuNav'
 import { MainToolbar } from './components/MainToolbar'
@@ -14,6 +15,8 @@ import './DocumentEditor.css'
 const AUTOSAVE_DELAY = 1200
 
 export const DocumentEditor: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('document-editor')
+
   const editorRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<ActiveTab>('editor')
   const [showMore, setShowMore] = useState(false)
@@ -63,7 +66,8 @@ export const DocumentEditor: React.FC = () => {
   }, [autosaveCurrent])
 
   return (
-    <div className="doc-editor-container">
+    <div className="doc-editor-container buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="document-editor" />
       <header className="doc-header">
         <Header />
         <div className="tab-switcher">

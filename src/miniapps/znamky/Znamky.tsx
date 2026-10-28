@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useZnamky } from './useZnamky'
 import {
   MAX_ZNAMKA,
@@ -19,6 +20,8 @@ const dnesniDatumIso = (): string => {
 }
 
 export const Znamky: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('znamky')
+
   const { predmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku, nastavCilPredmetu } = useZnamky()
 
   const [formPredmetOtevreny, setFormPredmetOtevreny] = useState(false)
@@ -107,7 +110,8 @@ export const Znamky: React.FC = () => {
   }
 
   return (
-    <div className="znamky">
+    <div className="znamky buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="znamky" />
       <div className="znamky-souhrn">
         <div className="znamky-souhrn-cislo">
           <span className="znamky-souhrn-hodnota">

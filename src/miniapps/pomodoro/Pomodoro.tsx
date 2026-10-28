@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { usePomodoro } from './usePomodoro'
 import { LIMITS, MODE_COLORS, MODE_LABELS, TimerMode, spocitejSouhrnPodlePredmetu } from './types'
 import './Pomodoro.css'
@@ -10,6 +11,8 @@ const RING_RADIUS = 78
 const RING_CIRCUMFERENCE = 2 * Math.PI * RING_RADIUS
 
 export const Pomodoro: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('pomodoro')
+
   const {
     mode,
     timeLeft,
@@ -38,7 +41,8 @@ export const Pomodoro: React.FC = () => {
   const color = MODE_COLORS[mode]
 
   return (
-    <div className="pomodoro-app">
+    <div className="pomodoro-app buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="pomodoro" />
       <div className="pomo-header">
         <h2>Pomodoro Timer</h2>
         <button

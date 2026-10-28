@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useScreenplayWriter } from './useScreenplayWriter'
 import {
   nadpisSceny,
@@ -32,6 +33,8 @@ import { useHasPermission } from '@/core/role'
 import './ScreenplayWriter.css'
 
 export const ScreenplayWriter: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('screenplay-writer')
+
   const {
     scenare,
     addScenar,
@@ -76,7 +79,8 @@ export const ScreenplayWriter: React.FC = () => {
 
   if (!aktivni) {
     return (
-      <div className="sw-app">
+      <div className="sw-app buddy-theme-scope" {...rootAttributes}>
+        <SurfaceBackdrop surfaceId="screenplay-writer" />
         <div className="sw-header">
           <h2>🎬 Scénář</h2>
         </div>

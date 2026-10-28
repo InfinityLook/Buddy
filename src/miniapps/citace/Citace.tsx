@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { stahnoutTextovySoubor } from '@/core/utils/download'
 import { useCitace } from './useCitace'
 import {
@@ -15,6 +16,8 @@ const PRAZDNY_FORM = { autor: '', nazev: '', rok: '', vydavatelNeboWeb: '', url:
 const CELY_SEZNAM_ID = '__cely-seznam__'
 
 export const Citace: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('citace')
+
   const { citace, aktivniStyl, pridatCitaci, upravitCitaci, smazatCitaci, nastavStyl } = useCitace()
   const [typ, setTyp] = useState<TypZdroje>('kniha')
   const [form, setForm] = useState(PRAZDNY_FORM)
@@ -98,7 +101,8 @@ export const Citace: React.FC = () => {
   }
 
   return (
-    <div className="citace">
+    <div className="citace buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="citace" />
       <div className="citace-styl-radek" role="group" aria-label="Citační styl">
         {STYLY_CITACI.map((s) => (
           <button

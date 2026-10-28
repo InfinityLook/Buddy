@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useFileManager, useImageThumbnails } from './useFileManager'
 import {
   ALL_FOLDERS,
@@ -22,6 +23,8 @@ const TYPE_ICONS: Record<FileKind, string> = {
 }
 
 export const FileManager: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('file-manager')
+
   const {
     files,
     totalCount,
@@ -103,7 +106,8 @@ export const FileManager: React.FC = () => {
   }
 
   return (
-    <div className="fm-app">
+    <div className="fm-app buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="file-manager" />
       <div className="fm-header">
         <h2>File Manager</h2>
         <button className="fm-add-btn" onClick={() => inputRef.current?.click()} disabled={busy}>

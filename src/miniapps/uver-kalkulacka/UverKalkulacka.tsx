@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { plural } from '@/core/utils/pluralCZ'
 import { useUverKalkulacka } from './useUverKalkulacka'
 import { sestavAmortizacniPlan, vypocitejAnuitniSplatku, celkovyPreplatek, simulujSplaceniDluhu } from './types'
@@ -10,6 +11,8 @@ const formatKc = (n: number) => `${Math.round(n).toLocaleString('cs-CZ')} Kč`
 type Zalozka = 'jedna' | 'vic'
 
 export const UverKalkulacka: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('uver-kalkulacka')
+
   const { dluhy, pridatDluh, smazatDluh } = useUverKalkulacka()
   const [zalozka, setZalozka] = useState<Zalozka>('jedna')
 
@@ -79,7 +82,8 @@ export const UverKalkulacka: React.FC = () => {
   const maxZbyvaDluhu = Math.max(1, celkovyPocatecniDluh, ...rocniBodyDluhu.map((b) => b.zbyva))
 
   return (
-    <div className="uver">
+    <div className="uver buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="uver-kalkulacka" />
       <div className="uver-zalozky" role="tablist" aria-label="Splátkový kalkulátor">
         <button
           role="tab"

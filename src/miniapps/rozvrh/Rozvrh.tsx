@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { stahnoutBlob } from '@/core/utils/download'
 import { requestNotificationPermission } from '@/core/utils/notify'
 import { useRozvrh } from './useRozvrh'
@@ -23,6 +24,8 @@ type Zalozka = 'rozvrh' | 'dochazka'
 const PRAZDNY_FORM = { den: 1 as DenVTydnu, casOd: '08:00', casDo: '09:40', predmet: '', mistnost: '', vyucujici: '' }
 
 export const Rozvrh: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('rozvrh')
+
   const { hodiny, dochazka, pridatHodinu, updateHodinu, smazatHodinu, oznacitDochazku } = useRozvrh()
   const [zalozka, setZalozka] = useState<Zalozka>('rozvrh')
   const [formOtevreny, setFormOtevreny] = useState(false)
@@ -120,7 +123,8 @@ export const Rozvrh: React.FC = () => {
   }
 
   return (
-    <div className="rozvrh">
+    <div className="rozvrh buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="rozvrh" />
       <div className="rozvrh-zalozky" role="tablist">
         <button
           role="tab"

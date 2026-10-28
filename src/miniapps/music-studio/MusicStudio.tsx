@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useMusicStudio } from './useMusicStudio'
 import { useBeatSequencer } from './useBeatSequencer'
 import { getFileBlob, putFileBlob } from '@/core/utils/fileStorage'
@@ -184,6 +185,8 @@ const Vlna: React.FC<{ vrcholy: number[]; pozice?: number }> = ({ vrcholy, pozic
 type Zalozka = 'beat' | 'nahravani' | 'skladby'
 
 export const MusicStudio: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('music-studio')
+
   const {
     patterns,
     recordings,
@@ -199,7 +202,8 @@ export const MusicStudio: React.FC = () => {
   const [zalozka, setZalozka] = useState<Zalozka>('beat')
 
   return (
-    <div className="ms-app">
+    <div className="ms-app buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="music-studio" />
       <div className="ms-header">
         <h2>Music Studio</h2>
       </div>

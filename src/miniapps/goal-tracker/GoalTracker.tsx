@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useGoalTracker } from './useGoalTracker'
 import { useHasPermission } from '@/core/role'
 import { sdilejText } from '@/core/utils/sdileni'
@@ -25,6 +26,8 @@ import {
 import './GoalTracker.css'
 
 export const GoalTracker: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('goal-tracker')
+
   const {
     activeGoals,
     archivedGoals,
@@ -410,7 +413,8 @@ export const GoalTracker: React.FC = () => {
   }
 
   return (
-    <div className="gt-app">
+    <div className="gt-app buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="goal-tracker" />
       <div className="gt-header">
         <h2>Goal Tracker</h2>
         <div className="gt-header-actions">

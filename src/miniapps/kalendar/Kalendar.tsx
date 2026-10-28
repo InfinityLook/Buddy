@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { naFormatDatumu, NAZVY_MESICU, rozlozeniMesice, useKalendar } from './useKalendar'
 import { BARVY_DNE, BarvaDne, MOZNOSTI_OPAKOVANI, NAZEV_OPAKOVANI, Opakovani } from './types'
 import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
@@ -30,6 +31,8 @@ const zobrazitDatum = (datum: string): string => {
 }
 
 export const Kalendar: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('kalendar')
+
   const {
     rok,
     mesic,
@@ -93,7 +96,8 @@ export const Kalendar: React.FC = () => {
   }
 
   return (
-    <div className="kalendar">
+    <div className="kalendar buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="kalendar" />
       <header className="kalendar-hlavicka">
         <button className="kalendar-sipka" onClick={() => jitMesicem(-1)} aria-label="Předchozí měsíc">
           ‹

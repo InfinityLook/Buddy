@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { plural } from '@/core/utils/pluralCZ'
 import { useSporiciSimulator } from './useSporiciSimulator'
 import { simulujSporeni, vypocitejPotrebnyMesicniVklad } from './types'
@@ -13,6 +14,8 @@ const rokyGenitiv = (r: number) => (r === 1 ? 'roku' : 'let')
 const rokyLokativ = (r: number) => (r === 1 ? 'roce' : 'letech')
 
 export const SporiciSimulator: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('sporici-simulator')
+
   const { scenare, ulozitScenar, smazatScenar } = useSporiciSimulator()
 
   const [pocatecniVklad, setPocatecniVklad] = useState('10000')
@@ -55,7 +58,8 @@ export const SporiciSimulator: React.FC = () => {
   }
 
   return (
-    <div className="spsim">
+    <div className="spsim buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="sporici-simulator" />
       <p className="spsim-disclaimer">
         📊 Jde o simulaci s pevně zadaným úrokem, ne investiční radu — skutečné zhodnocení se
         v čase mění a appka žádná reálná tržní data nesleduje.

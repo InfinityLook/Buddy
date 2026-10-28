@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { plural } from '@/core/utils/pluralCZ'
 import { usePosilovna } from './usePosilovna'
 import { odemkniOdpocinekZvuk, ohlasKonecOdpocinku } from './odpocinekZvuk'
@@ -40,6 +41,8 @@ const formatOdpocinek = (sekund: number): string => {
 // doopravdy zvednuto. Žádná kamera, žádné GPS, kompletně zdarma.
 // ==========================================
 export const Posilovna: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('posilovna')
+
   const posilovna = usePosilovna()
 
   const [cviky, setCviky] = useState<CvikVSezeni[]>([])
@@ -163,7 +166,8 @@ export const Posilovna: React.FC = () => {
   const nazvyRekordu = Object.keys(rekordy).sort((a, b) => a.localeCompare(b, 'cs'))
 
   return (
-    <div className="posilovna-page">
+    <div className="posilovna-page buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="posilovna" />
       <h2 className="posilovna-nadpis">Posilovna</h2>
       <p className="posilovna-podtitul">Zapiš si série ručně — pro cviky, co kamera ověřit neumí.</p>
 

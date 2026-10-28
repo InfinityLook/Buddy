@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useQuickNotes } from './useQuickNotes'
 import { ALL_NOTES, NOTE_CATEGORIES, NOTE_SORT_MODES, Note, NoteCategory, NoteSortMode, SORT_LABELS } from './types'
 import './QuickNotes.css'
 
 export const QuickNotes: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('quick-notes')
+
   const {
     notes,
     totalCount,
@@ -58,7 +61,8 @@ export const QuickNotes: React.FC = () => {
   }
 
   return (
-    <div className="qn-app">
+    <div className="qn-app buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="quick-notes" />
       <div className="qn-header">
         <h2>Quick Notes</h2>
         <button className="qn-add-btn" onClick={isFormOpen ? closeForm : openAdd}>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 
 import { DashboardTab } from './components/DashboardTab'
@@ -15,6 +16,8 @@ type TabType = 'dashboard' | 'subjects' | 'flashcards' | 'simulator'
 // takže tohle druhé šipkové tlačítko vedlo do stejného místa a jen
 // zabíralo místo. Viz stejná oprava v document-editor/components/Header.tsx.
 export const ExamPrepApp: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('exam-prep')
+
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
 
   // Gamifikace
@@ -25,7 +28,8 @@ export const ExamPrepApp: React.FC = () => {
   const goToSubjects = () => setActiveTab('subjects')
 
   return (
-    <div className="examprep-container">
+    <div className="examprep-container buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="exam-prep" />
       {/* Header */}
       <header className="examprep-header">
         <div className="examprep-title-group">

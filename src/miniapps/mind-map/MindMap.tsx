@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useMindMap } from './useMindMap'
 import { NODE_HEIGHT, NODE_WIDTH, edgePath } from './layout'
 import { BARVY_UZLU, BarvaUzlu } from './types'
@@ -17,6 +18,8 @@ const NAZEV_BARVY: Record<BarvaUzlu, string> = {
 }
 
 export const MindMap: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('mind-map')
+
   const {
     layout,
     selectedId,
@@ -117,7 +120,8 @@ export const MindMap: React.FC = () => {
   }
 
   return (
-    <div className="mm-app">
+    <div className="mm-app buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="mind-map" />
       <div className="mm-header">
         <h2>Mind Map</h2>
         <span className="mm-badge">

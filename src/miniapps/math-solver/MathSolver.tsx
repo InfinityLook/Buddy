@@ -1,4 +1,5 @@
 import React from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useMathSolver } from './useMathSolver'
 import './MathSolver.css'
 
@@ -35,6 +36,8 @@ const EXTRAS: { label: string; insert: string }[] = [
 ]
 
 export const MathSolver: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('math-solver')
+
   const {
     expression,
     result,
@@ -59,7 +62,8 @@ export const MathSolver: React.FC = () => {
   }
 
   return (
-    <div className="ms-app">
+    <div className="ms-app buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="math-solver" />
       <div className="ms-header">
         <h2>Math Solver</h2>
         <span className="ms-badge">Nástroje</span>

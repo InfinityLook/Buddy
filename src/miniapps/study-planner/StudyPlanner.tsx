@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useStudyPlanner } from './useStudyPlanner'
 import {
   StudyTask,
@@ -14,6 +15,8 @@ import { sklonujUkoly, zbyvaSloveso } from '@/core/utils/text'
 import './StudyPlanner.css'
 
 export const StudyPlanner: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('study-planner')
+
   const {
     visibleTasks,
     totalCount,
@@ -79,7 +82,8 @@ export const StudyPlanner: React.FC = () => {
   }
 
   return (
-    <div className="sp-app">
+    <div className="sp-app buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="study-planner" />
       <div className="sp-header">
         <h2>Planer</h2>
         <button className="sp-add-btn" onClick={isFormOpen ? closeForm : openAdd}>
