@@ -84,50 +84,8 @@
   box-shadow: var(--shadow-card);
 }
 
-/* Cover fotka — full-bleed přes horní okraj karty, proto záporný okraj
-   přesně rovný jejímu vlastnímu paddingu (0.5rem 0.75rem výš). Bez
-   nastavené fotky ukazuje jen tichou výzvu, ne prázdné místo, co
-   vypadá jako chyba. */
-.profil-banner {
-  position: relative;
-  height: 84px;
-  margin: -0.5rem -0.75rem 0.15rem;
-  border: none;
-  border-radius: var(--profil-radius-lg) var(--profil-radius-lg) 0 0;
-  background-color: var(--bg-panel-raised);
-  background-size: cover;
-  background-position: center;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0;
-}
-
-.profil-banner-hint {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
-/* Natvrdo černý scrim + bílá ikona zůstávají — tohle sedí na
-   LIBOVOLNÉ uživatelovy cover fotce, ne na motivovaném panelu appky,
-   takže se nemá přelaďovat podle zvoleného motivu (stejná výjimka,
-   jako integrační zadání dává "barvám herního světa"). */
-.profil-banner-edit {
-  position: absolute;
-  bottom: 0.4rem;
-  right: 0.5rem;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.7rem;
-}
+/* Cover fotka appka na žádost zrušila úplně (ProfilModule.tsx) — karta
+   teď začíná rovnou .profil-user-main, žádný horní full-bleed pruh. */
 
 /* Vystředěný "IG styl" — avatar nahoře uprostřed, jméno/bio pod ním,
    ne řádek avatar-vlevo/text-vpravo jaký měl profil dřív. Zbytek karty
