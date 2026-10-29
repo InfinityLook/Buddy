@@ -150,6 +150,31 @@ describe('restoreFilesFromZip — oprava MIME fallbacku (audit #6)', () => {
     expect(blob!.type).toBe('audio/webm')
   })
 
+  it('blob z přílohy Planerova úkolu (vnořený v tasks[].prilohy[]) dostane svůj typ odtamtud', async () => {
+    const soubory = new Map<string, Blob>([['planer-priloha-1', new Blob(['pdf obsah'])]])
+    const envelope = {
+      format: 'schoolbuddy-backup',
+      version: 1,
+      createdAt: new Date().toISOString(),
+      appVersion: 'test',
+      data: {
+        'schoolbuddy-study-planner-storage': {
+          state: {
+            tasks: [
+              { id: 't1', prilohy: [{ id: 'planer-priloha-1', nazev: 'zadani.pdf', mime: 'application/pdf' }] },
+              { id: 't2', prilohy: [] },
+            ],
+          },
+          version: 0,
+        },
+      },
+    }
+
+    await restoreFilesFromZip(soubory, envelope)
+    const blob = await getFileBlob('planer-priloha-1')
+    expect(blob!.type).toBe('application/pdf')
+  })
+
   it('neobnovitelný soubor (putFileBlob selže) se nezapočítá, ale nezastaví zbytek', async () => {
     const soubory = new Map<string, Blob>([['a', new Blob(['x'], { type: 'text/plain' })]])
     const envelope = { format: 'schoolbuddy-backup', version: 1, createdAt: '', appVersion: 'test', data: {} }

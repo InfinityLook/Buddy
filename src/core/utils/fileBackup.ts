@@ -87,7 +87,11 @@ export const importZipBackup = async (file: File): Promise<NactenaZipZaloha> => 
  * (core/utils/fileStorage.ts) s odděleným prostorem id, takže mime
  * mapa je jen sjednocení obou — druhý zdroj přidaný ve chvíli, kdy
  * Music Room potřeboval přesně tu samou schopnost, co File Manager
- * už měl.
+ * už měl. Třetí zdroj, Planerovy přílohy (PrilohaUkolu, viz
+ * study-planner/types.ts), přidaný School Roomovou Fází 1 — na rozdíl
+ * od prvních dvou leží vnořené uvnitř KAŽDÉHO úkolu (tasks[].prilohy[]),
+ * ne jako jedno ploché pole na kořeni storu, proto appka musí nejdřív
+ * flatMap přes všechny úkoly.
  */
 export const restoreFilesFromZip = async (soubory: Map<string, Blob>, envelope: unknown): Promise<number> => {
   const data = (envelope as { data?: Record<string, unknown> } | null)?.data
@@ -98,7 +102,12 @@ export const restoreFilesFromZip = async (soubory: Map<string, Blob>, envelope: 
   const recordings =
     (msRaw as { state?: { recordings?: { id: string; mime: string }[] } } | undefined)?.state?.recordings ?? []
 
-  const mimeById = new Map([...files, ...recordings].map((f) => [f.id, f.mime]))
+  const spRaw = data?.['schoolbuddy-study-planner-storage']
+  const spTasks =
+    (spRaw as { state?: { tasks?: { prilohy?: { id: string; mime: string }[] }[] } } | undefined)?.state?.tasks ?? []
+  const prilohy = spTasks.flatMap((t) => t.prilohy ?? [])
+
+  const mimeById = new Map([...files, ...recordings, ...prilohy].map((f) => [f.id, f.mime]))
 
   let obnoveno = 0
   await Promise.all(

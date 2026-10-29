@@ -329,3 +329,216 @@
   line-height: 1.45;
   color: #94a3b8;
 }
+
+/* ------------------------------------------
+   POHLEDY (Vše/Dnes/Týden/Nestihnuté/Předměty) — School Room: dokončený
+   systém pro studium, Fáze 1. Stejný tvar jako .sp-filter-chip o pár
+   řádků výš, jen jiná barva aktivního stavu, ať se dvě různé dimenze
+   (pohled × stav dokončení) na obrazovce nepletou.
+   ------------------------------------------ */
+.sp-views {
+  display: flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.sp-view-chip {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+  padding: 0.2rem 0.55rem;
+  border-radius: 12px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sp-view-chip.active {
+  background: rgba(56, 189, 248, 0.2);
+  color: #7dd3fc;
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+/* Odhad času / počet příloh / kolikrát posunuto — drobné odznaky vedle
+   termínu v náhledu karty, nic z toho nenese vlastní interaktivitu
+   (to by znamenalo <button> uvnitř .sp-details-btn, co je samo <button>
+   — neplatné HTML). */
+.sp-meta-badge {
+  font-size: 0.58rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.sp-posunuto-badge {
+  color: #fbbf24;
+}
+
+/* "→ Posunout na dnes" — na rozdíl od odznaků výš je tohle doopravdy
+   tlačítko, proto žije v .sp-card-actions (sourozenec .sp-details-btn),
+   ne uvnitř náhledu karty samotné. */
+.sp-posun-btn {
+  color: #38bdf8;
+}
+
+/* ------------------------------------------
+   DETAIL ÚKOLU — rozšířeno z pouhých podúkolů (.sp-podukoly) o
+   poznámku a přílohy. .sp-detail obaluje všechny tři sekce, ať appka
+   mezi nimi dá jednotnou mezeru.
+   ------------------------------------------ */
+.sp-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.3rem 0 0 1.6rem;
+}
+
+.sp-detail-sekce {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  padding: 0.4rem 0.5rem;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.sp-detail-nadpis {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #c084fc;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.sp-poznamka-textarea {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  color: #e2e8f0;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.72rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.sp-poznamka-ulozit-btn {
+  align-self: flex-start;
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  color: #c084fc;
+  font-weight: 700;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  cursor: pointer;
+}
+
+.sp-priloha-radek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.sp-priloha-nazev {
+  font-size: 0.72rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp-priloha-akce {
+  display: flex;
+  gap: 0.1rem;
+  flex-shrink: 0;
+}
+
+/* Skrytý, ale přístupný (stejný vzorec jako Financí .fin-uctenka-input)
+   — spouští se přes <label htmlFor>, ne display:none, to by vyřadilo
+   soubor i z klávesnicové navigace. */
+.sp-priloha-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sp-priloha-pridat-btn {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #7dd3fc;
+  font-weight: 700;
+  font-size: 0.65rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-top: 0.1rem;
+}
+
+/* ------------------------------------------
+   POKROČILÁ POLE formuláře — odhad/plán/opakování/poznámka, schovaná
+   za přepínač, ať obyčejné přidání úkolu zůstane rychlé jako dřív.
+   ------------------------------------------ */
+.sp-pokrocile-toggle {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 0.65rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.1rem 0;
+}
+
+.sp-pokrocile {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sp-pole-label {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.65rem;
+  color: #94a3b8;
+}
+
+.sp-pole-label input,
+.sp-pole-label select,
+.sp-pole-label textarea {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+/* ------------------------------------------
+   "Předměty" pohled — úkoly seskupené podle předmětu, každá skupina
+   se svým nadpisem nad vlastním seznamem karet.
+   ------------------------------------------ */
+.sp-skupina {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.sp-skupina-nadpis {
+  margin: 0.2rem 0 0;
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #a855f7;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}

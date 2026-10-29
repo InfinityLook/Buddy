@@ -12,6 +12,9 @@ import { NastrojeSheet } from '../shared/NastrojeSheet'
 import type { FlagshipDlazdice, FlagshipVelkaKarta } from '../shared/types'
 import { useSkolaCil } from './useSkolaCil'
 import { spocitejMinutyDnes, spocitejMinutyTyden } from './skolaCilStats'
+import { sestavChytrySouhrn, vetaODnesnimKroku, vetaONejblizsimTerminu } from './chytrySouhrn'
+import { nastavAktivniPredmetZPlanovace } from '@/miniapps/pomodoro/usePomodoro'
+import type { StudyTask } from '@/miniapps/study-planner/types'
 import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
 import { PRAH_RIZIKA_DOCHAZKY, hodinyDnes, spocitejDochazkuPodlePredmetu } from '@/miniapps/rozvrh/types'
 import { useZnamky } from '@/miniapps/znamky/useZnamky'
@@ -69,7 +72,7 @@ export const SchoolRoomModule: React.FC = () => {
   // duch jako Growth Roomovy "Moje cíle" — čte přímo store hooky, žádný
   // nový store ani zvláštní stats.ts modul, protože všechny tři hodnoty
   // (pendingCount, udalosti, completedSessions) už appky samy počítají.
-  const { pendingCount } = useStudyPlanner()
+  const { tasks: planerUkoly, pendingCount } = useStudyPlanner()
   const { udalosti } = useKalendar()
   const { completedSessions, sessionLog } = usePomodoro()
 
@@ -143,6 +146,20 @@ export const SchoolRoomModule: React.FC = () => {
   const otevritMiniaplikaci = (id: string) => {
     setActiveAppId(id, '/skola')
     navigate('/apps')
+  }
+
+  // Chytrý souhrn — School Roomova úvodní věta (viz chytrySouhrn.ts),
+  // první panel pokoje, počítaná ze stejného dnešního data (ted),
+  // co appka už jinde na týhle obrazovce obnovuje každou minutu.
+  const chytrySouhrn = useMemo(() => sestavChytrySouhrn(planerUkoly, dnesniStr), [planerUkoly, dnesniStr])
+
+  // "▶ Soustředit se" přímo ze souhrnu — appka nejdřív Pomodoru předá,
+  // nad kterým úkolem se běžící soustředění zapisuje (stejná funkce,
+  // jakou dál používá i StudyPlanner.tsx's vlastní tlačítko u úkolu),
+  // a teprve pak deep-linkem otevře Pomodoro.
+  const spustitSoustredeniNadUkolem = (task: StudyTask) => {
+    nastavAktivniPredmetZPlanovace(`${task.subject}: ${task.topic}`)
+    otevritMiniaplikaci('pomodoro')
   }
 
   const dlazdice: FlagshipDlazdice[] = [
@@ -382,6 +399,29 @@ export const SchoolRoomModule: React.FC = () => {
             sdílená přebarvená hlavička pro všech šest Roomů — ta zůstává
             záměrně stejná jako dřív, FlagshipShell.tsx se nemění. */}
         <div className="sr-accent-pruh" aria-hidden="true" />
+
+        {/* Chytrý souhrn — appka ho ukazuje jako první věc po otevření
+            pokoje (viz chytrySouhrn.ts), ne až pod "Moje přehled".
+            Obě věty appka skládá z reálných Planerových dat, žádný
+            vymyšlený text. */}
+        <div className="sr-panel sr-chytry-souhrn">
+          <div className="sr-panel-hlavicka">
+            <h2>🧭 Chytrý souhrn</h2>
+            <p>Co ti dneska nejvíc pomůže</p>
+          </div>
+
+          <p className="sr-souhrn-veta">{vetaONejblizsimTerminu(chytrySouhrn)}</p>
+          <p className="sr-souhrn-veta sr-souhrn-veta--krok">{vetaODnesnimKroku(chytrySouhrn)}</p>
+
+          {chytrySouhrn.dnesniKrok && (
+            <button
+              className="sr-souhrn-soustredit-btn"
+              onClick={() => spustitSoustredeniNadUkolem(chytrySouhrn.dnesniKrok!)}
+            >
+              ▶ Soustředit se na tohle
+            </button>
+          )}
+        </div>
 
         {/* "Moje přehled" — School Room je poslední z pokojů, co dostal
             vlastní panel s reálnými daty (Fitness/Economy/Growth/Music

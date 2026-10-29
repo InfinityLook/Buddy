@@ -8,15 +8,39 @@ import {
   DEMO_TASK_IDS,
   DEMO_TASK_TOPICS,
   INITIAL_TASKS,
+  Opakovani,
   Podukol,
+  PRIORITY_WEIGHT,
+  PrilohaUkolu,
   StudyTask,
   TaskFilter,
   TaskPriority,
+  TaskView,
+  dalsiTerminOpakovani,
+  jeVRozsahu,
+  patriKeDni,
   todayIso,
+  tydenniRozsah,
 } from './types'
 
 // XP odměna za dokončení studijního úkolu
 const XP_PER_COMPLETED_TASK = 10
+
+// Vstup pro přidání/úpravu úkolu — od Fáze 1 (School Room: dokončený
+// systém pro studium) jeden datový balík místo pěti+ pozičních
+// argumentů, co by se dál rozrůstaly s každým dalším nepovinným polem
+// (stejný "loose data bag" tvar appka používá i jinde, např. Financí
+// vstup transakce).
+export interface VstupUkolu {
+  subject: string
+  topic: string
+  dueDate: string
+  priority: TaskPriority
+  estimateMinutes?: number | null
+  planDate?: string | null
+  opakovani?: Opakovani
+  poznamka?: string
+}
 
 interface StudyPlannerState {
   tasks: StudyTask[]
@@ -24,18 +48,16 @@ interface StudyPlannerState {
   // nejvýš jedno za den, ať appka nenotifikuje při každém návratu.
   lastReminderDate: string | null
   toggleTask: (id: string) => void
-  addTask: (subject: string, topic: string, dueDate: string, priority: TaskPriority) => void
-  updateTask: (
-    id: string,
-    subject: string,
-    topic: string,
-    dueDate: string,
-    priority: TaskPriority
-  ) => void
+  addTask: (vstup: VstupUkolu) => void
+  updateTask: (id: string, vstup: VstupUkolu) => void
   deleteTask: (id: string) => void
   pridatPodukol: (taskId: string, text: string) => void
   prepnoutPodukol: (taskId: string, podukolId: string) => void
   smazatPodukol: (taskId: string, podukolId: string) => void
+  posunoutUkol: (id: string, novyTermin: string) => void
+  pridatPrilohu: (taskId: string, priloha: PrilohaUkolu) => void
+  smazatPrilohu: (taskId: string, prilohaId: string) => void
+  nastavPoznamku: (taskId: string, text: string) => void
 }
 
 const isDemoTask = (task: StudyTask) =>
@@ -58,31 +80,69 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
       tasks: INITIAL_TASKS,
       lastReminderDate: null,
 
+      // Opakující se úkol appka při splnění nerecykluje donekonečna na
+      // stejném místě — vytvoří NOVOU instanci s posunutým termínem
+      // (dalsiTerminOpakovani) a teprve tu PŮVODNÍ, co uživatel doopravdy
+      // udělal, označí za hotovou. Historie tak zůstává čitelná (appka
+      // uvidí, kolikrát se úkol skutečně splnil), ne jedna věčně se
+      // posunující položka. Zpětné odškrtnutí (hotovo→nehotovo) novou
+      // instanci nemaže ani nevytváří — jen vrátí tu jednu zpátky na
+      // nehotovo, přesně jako u neopakujícího se úkolu.
       toggleTask: (id) =>
         set((state) => {
           const task = state.tasks.find((t) => t.id === id)
-          // XP jen za odškrtnutí (splnění) úkolu, ne za jeho zpětné odškrtnutí.
-          // recordAction, ne holé addXp — počítadlo splněných úkolů a XP se
-          // tak nemůžou rozejít, stejně jako u ostatních miniapek.
-          if (task && !task.completed) {
+          if (!task) return state
+
+          if (!task.completed) {
+            // recordAction, ne holé addXp — počítadlo splněných úkolů a XP se
+            // tak nemůžou rozejít, stejně jako u ostatních miniapek.
             useGamificationStore.getState().recordAction('task', XP_PER_COMPLETED_TASK)
+
+            if (task.opakovani && task.opakovani !== 'zadne') {
+              const ted = Date.now()
+              const dalsiVyskyt: StudyTask = {
+                ...task,
+                id: `${ted}-${Math.random().toString(36).slice(2, 7)}`,
+                dueDate: dalsiTerminOpakovani(task.dueDate, task.opakovani),
+                planDate: null,
+                completed: false,
+                podukoly: [],
+                prilohy: [],
+                posunuto: 0,
+                puvodniTermin: null,
+                createdAt: new Date(ted).toISOString(),
+                updatedAt: ted,
+                deletedAt: null,
+              }
+              return {
+                tasks: [
+                  dalsiVyskyt,
+                  ...state.tasks.map((t) => (t.id === id ? { ...t, completed: true, updatedAt: ted } : t)),
+                ],
+              }
+            }
           }
+
           return {
             tasks: state.tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed, updatedAt: Date.now() } : t)),
           }
         }),
 
-      addTask: (subject, topic, dueDate, priority) => {
-        if (!subject.trim() || !topic.trim()) return
+      addTask: (vstup) => {
+        if (!vstup.subject.trim() || !vstup.topic.trim()) return
 
         const ted = Date.now()
         const newTask: StudyTask = {
           id: `${ted}-${Math.random().toString(36).slice(2, 7)}`,
-          subject: subject.trim(),
-          topic: topic.trim(),
-          dueDate: dueDate || todayIso(),
-          priority,
+          subject: vstup.subject.trim(),
+          topic: vstup.topic.trim(),
+          dueDate: vstup.dueDate || todayIso(),
+          priority: vstup.priority,
           completed: false,
+          estimateMinutes: vstup.estimateMinutes ?? null,
+          planDate: vstup.planDate ?? null,
+          opakovani: vstup.opakovani ?? 'zadne',
+          poznamka: vstup.poznamka?.trim() || undefined,
           createdAt: new Date(ted).toISOString(),
           updatedAt: ted,
           deletedAt: null,
@@ -98,18 +158,22 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
         requestNotificationPermission()
       },
 
-      updateTask: (id, subject, topic, dueDate, priority) => {
-        if (!subject.trim() || !topic.trim()) return
+      updateTask: (id, vstup) => {
+        if (!vstup.subject.trim() || !vstup.topic.trim()) return
 
         set((state) => ({
           tasks: state.tasks.map((task) =>
             task.id === id
               ? {
                   ...task,
-                  subject: subject.trim(),
-                  topic: topic.trim(),
-                  dueDate: dueDate || task.dueDate,
-                  priority,
+                  subject: vstup.subject.trim(),
+                  topic: vstup.topic.trim(),
+                  dueDate: vstup.dueDate || task.dueDate,
+                  priority: vstup.priority,
+                  estimateMinutes: vstup.estimateMinutes ?? null,
+                  planDate: vstup.planDate ?? null,
+                  opakovani: vstup.opakovani ?? 'zadne',
+                  poznamka: vstup.poznamka?.trim() || undefined,
                   updatedAt: Date.now(),
                 }
               : task
@@ -164,6 +228,60 @@ const useStudyPlannerStore = create<StudyPlannerState>()(
             t.id === taskId
               ? { ...t, podukoly: (t.podukoly ?? []).filter((p) => p.id !== podukolId), updatedAt: Date.now() }
               : t
+          ),
+        })),
+
+      // "Nestihnuté" pohled's "→ Posunout" tlačítko — appka si první
+      // posun zapamatuje jako puvodniTermin a dál ho už nepřepisuje, ať
+      // zůstane čitelné, kolikrát se úkol doopravdy odsunul, ne jen
+      // jaký je jeho aktuální (N-tý) termín.
+      posunoutUkol: (id, novyTermin) =>
+        set((state) => {
+          const ted = Date.now()
+          return {
+            tasks: state.tasks.map((t) =>
+              t.id === id
+                ? {
+                    ...t,
+                    puvodniTermin: t.puvodniTermin ?? t.dueDate,
+                    posunuto: (t.posunuto ?? 0) + 1,
+                    dueDate: novyTermin,
+                    updatedAt: ted,
+                  }
+                : t
+            ),
+          }
+        }),
+
+      // Appka tu sama žádný soubor nenahrává ani nemaže — to dělá
+      // volající komponenta (StudyPlanner.tsx) přes core/utils/
+      // fileStorage.ts, stejné dělení odpovědnosti jako Financí účtenky
+      // (Finance.tsx). Store jen drží metadata.
+      pridatPrilohu: (taskId, priloha) =>
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId ? { ...t, prilohy: [...(t.prilohy ?? []), priloha], updatedAt: Date.now() } : t
+          ),
+        })),
+
+      smazatPrilohu: (taskId, prilohaId) =>
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? { ...t, prilohy: (t.prilohy ?? []).filter((p) => p.id !== prilohaId), updatedAt: Date.now() }
+              : t
+          ),
+        })),
+
+      // Vlastní, zvlášť vystavená akce pro poznámku — stejný "loose
+      // merge-by-id, jen to jedno pole, co se doopravdy změnilo" tvar
+      // jako Goal Trackerovo nastavPoznamku. Appka ji nechce schovanou
+      // jen uvnitř celého updateTask (ten by muselo volat i formulář
+      // detailu, co poznámku jinak nemění).
+      nastavPoznamku: (taskId, text) =>
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId ? { ...t, poznamka: text.trim() || undefined, updatedAt: Date.now() } : t
           ),
         })),
     }),
@@ -247,18 +365,37 @@ export const setupStudyPlannerReminders = (): void => {
 
 // Nesplněné napřed, uvnitř podle termínu a při shodě podle priority.
 // Úkol po termínu tak nikdy nezapadne pod ten, co je až za měsíc.
-const PRIORITY_WEIGHT: Record<TaskPriority, number> = { Vysoká: 0, Střední: 1, Nízká: 2 }
-
+// PRIORITY_WEIGHT appka dřív měla jen tady jako svou soukromou
+// konstantu — teď žije v types.ts, ať chytrySouhrn.ts (School Room)
+// nemůže mít druhou, časem rozešlou se kopii.
 const compareTasks = (a: StudyTask, b: StudyTask) => {
   if (a.completed !== b.completed) return a.completed ? 1 : -1
   if (a.dueDate !== b.dueDate) return a.dueDate.localeCompare(b.dueDate)
   return PRIORITY_WEIGHT[a.priority] - PRIORITY_WEIGHT[b.priority]
 }
 
+export interface SkupinaPodlePredmetu {
+  predmet: string
+  tasks: StudyTask[]
+}
+
 export const useStudyPlanner = () => {
-  const { tasks: vsechnyTasks, toggleTask, addTask, updateTask, deleteTask, pridatPodukol, prepnoutPodukol, smazatPodukol } =
-    useStudyPlannerStore()
+  const {
+    tasks: vsechnyTasks,
+    toggleTask,
+    addTask,
+    updateTask,
+    deleteTask,
+    pridatPodukol,
+    prepnoutPodukol,
+    smazatPodukol,
+    posunoutUkol,
+    pridatPrilohu,
+    smazatPrilohu,
+    nastavPoznamku,
+  } = useStudyPlannerStore()
   const [filter, setFilter] = useState<TaskFilter>('Vše')
+  const [view, setView] = useState<TaskView>('vse')
 
   // Smazané (deletedAt) úkoly appka drží v úložišti dál jen kvůli
   // synchronizaci mezi zařízeními — kdokoli appku volá jako dřív je
@@ -271,14 +408,50 @@ export const useStudyPlanner = () => {
   // není. Smazané se ale vyfiltrují vždycky, bez ohledu na tohle.
   const tasks = useMemo(() => vsechnyTasks.filter((t) => !t.deletedAt), [vsechnyTasks])
 
+  // Pohled (Dnes/Týden/Nestihnuté/Předměty/Vše) vybírá PODMNOŽINU
+  // úkolů podle data — appka ho kombinuje (ne nahrazuje) se stávajícím
+  // Vše/Nesplněné/Splněné filtrem stavu dokončení níž.
+  const dnesniStr = todayIso()
+  const tasksPodleView = useMemo(() => {
+    if (view === 'dnes') return tasks.filter((t) => patriKeDni(t, dnesniStr))
+    if (view === 'tyden') {
+      const { od, doo } = tydenniRozsah()
+      return tasks.filter((t) => jeVRozsahu(t.planDate ?? t.dueDate, od, doo))
+    }
+    if (view === 'nestihnute') {
+      return tasks.filter((t) => !t.completed && /^\d{4}-\d{2}-\d{2}$/.test(t.dueDate) && t.dueDate < dnesniStr)
+    }
+    return tasks
+  }, [tasks, view, dnesniStr])
+
   const visibleTasks = useMemo(() => {
-    const filtered = tasks.filter((task) => {
-      if (filter === 'Nesplněné') return !task.completed
-      if (filter === 'Splněné') return task.completed
-      return true
-    })
+    // "Nestihnuté" je samo o sobě definicí "nesplněné" — appka tam
+    // dokončovací filtr nevynucuje, i kdyby byl zrovna "Splněné"
+    // (prázdný výsledek by jen matl, ne pomohl).
+    const filtered =
+      view === 'nestihnute'
+        ? tasksPodleView
+        : tasksPodleView.filter((task) => {
+            if (filter === 'Nesplněné') return !task.completed
+            if (filter === 'Splněné') return task.completed
+            return true
+          })
     return [...filtered].sort(compareTasks)
-  }, [tasks, filter])
+  }, [tasksPodleView, filter, view])
+
+  // "Předměty" pohled — appka úkoly seskupí podle předmětu abecedně,
+  // ne že by nutila vybrat jeden konkrétní předmět napřed.
+  const skupinyPodlePredmetu = useMemo((): SkupinaPodlePredmetu[] => {
+    const mapa = new Map<string, StudyTask[]>()
+    for (const t of visibleTasks) {
+      const klic = t.subject || 'Bez předmětu'
+      if (!mapa.has(klic)) mapa.set(klic, [])
+      mapa.get(klic)!.push(t)
+    }
+    return [...mapa.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0], 'cs'))
+      .map(([predmet, tasksVPredmetu]) => ({ predmet, tasks: tasksVPredmetu }))
+  }, [visibleTasks])
 
   const pendingCount = tasks.filter((task) => !task.completed).length
   const overdueCount = tasks.filter(
@@ -288,11 +461,14 @@ export const useStudyPlanner = () => {
   return {
     tasks,
     visibleTasks,
+    skupinyPodlePredmetu,
     totalCount: tasks.length,
     pendingCount,
     overdueCount,
     filter,
     setFilter,
+    view,
+    setView,
     toggleTask,
     addTask,
     updateTask,
@@ -300,5 +476,9 @@ export const useStudyPlanner = () => {
     pridatPodukol,
     prepnoutPodukol,
     smazatPodukol,
+    posunoutUkol,
+    pridatPrilohu,
+    smazatPrilohu,
+    nastavPoznamku,
   }
 }

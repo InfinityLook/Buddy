@@ -12,6 +12,34 @@ export interface Podukol {
   hotovo: boolean
 }
 
+export interface PrilohaUkolu {
+  id: string
+  nazev: string
+  mime: string
+}
+
+// Opakování úkolu — appka při zaškrtnutí opakujícího se úkolu nevytočí
+// obyčejné "hotovo", ale (viz useStudyPlanner.ts's toggleTask) vytvoří
+// DALŠÍ výskyt s posunutým termínem a teprve PŮVODNÍ instanci, co
+// uživatel doopravdy udělal, označí za hotovou — stejný "dokončení
+// vytvoří další výskyt" vzorec, jaký TickTick/Todoist u opakovaných
+// úkolů používají, ne appka, co jednu položku navždy posouvá dokola.
+export type Opakovani = 'zadne' | 'tydne' | 'mesicne'
+
+export const OPAKOVANI_LABELS: Record<Opakovani, string> = {
+  zadne: 'Jednorázově',
+  tydne: 'Každý týden',
+  mesicne: 'Každý měsíc',
+}
+
+// Prostor id pro přílohy ve sdíleném IndexedDB blob store
+// (core/utils/fileStorage.ts) — stejný "vlastní prefix, jedno sdílené
+// úložiště" vzorec jako Financí UCTENKA_ID_PREFIX/Music Studiovo
+// NAHRAVKA_ID_PREFIX. restoreFilesFromZip (core/utils/fileBackup.ts)
+// musí o téhle appce vědět taky, jinak by obnovená příloha po
+// zálohování/obnově ztratila svůj skutečný MIME typ.
+export const PRILOHA_ID_PREFIX = 'planer-priloha-'
+
 export interface StudyTask {
   id: string
   subject: string
@@ -27,6 +55,34 @@ export interface StudyTask {
   // (task.podukoly ?? [])), appka funguje úplně stejně bez jediného
   // podúkolu, dokončení úkolu samo o sobě žádný podúkol nevyžaduje.
   podukoly?: Podukol[]
+  // --- School Room: dokončený systém pro studium, Fáze 1 ---
+  // Odhadovaný čas práce v minutách — appka ho nikdy sama nevymýšlí,
+  // je to jen to, co si uživatel sám odhadne (chytrySouhrn.ts ho pak
+  // umí přečíst zpátky do věty "na N minut").
+  estimateMinutes?: number | null
+  // Den, kdy na úkolu PLÁNUJEŠ reálně pracovat — odlišný od dueDate
+  // (termínu odevzdání). Nepovinný; bez vyplnění appka v pohledech
+  // "Dnes"/"Týden" počítá jen s dueDate, přesně jako dřív.
+  planDate?: string | null
+  opakovani?: Opakovani
+  // Volná soukromá poznámka k úkolu — ne vazba na Quick Notes. Appka
+  // mezi miniaplikacemi nemá sdílený odkazovací mechanismus (viz
+  // CLAUDE.md's Kalendář→Rozvrh jako jediná, úzce zdokumentovaná
+  // výjimka) a stavět ho jen pro tohle jedno pole by bylo nad rámec
+  // týhle fáze — poznámka u úkolu samotného (stejný "loose merge-by-id"
+  // tvar jako Goal Trackerovo nastavPoznamku) ale pokrývá praktický
+  // případ "zapsat si pár slov k úkolu" i bez křížení do cizí appky.
+  poznamka?: string
+  // Přílohy — appka drží jen metadata, obsah leží ve fileStorage.ts
+  // (viz PRILOHA_ID_PREFIX výš).
+  prilohy?: PrilohaUkolu[]
+  // Kolikrát appka termín posunula (viz useStudyPlanner.ts's
+  // posunoutUkol, "Nestihnuté" pohled) a jaký byl úplně PŮVODNÍ termín
+  // před prvním posunem — appka ho nastaví jen jednou, další posuny ho
+  // nepřepisují, ať historie zůstane čitelná ("tohle měl být 3. týden
+  // po sobě posunutý úkol", ne jen jedno stále stejné datum).
+  posunuto?: number
+  puvodniTermin?: string | null
   // --- Cloudová synchronizace (skolaSync.ts) ---
   // Tenhle store nemá žádnou valibot validaci (viz komentář výš), takže
   // se starší úkol bez těchhle polí dorovná přímo v persist's merge
@@ -101,4 +157,81 @@ export const formatDueDate = (dueDate: string): DueInfo => {
   if (diffDays <= 3) return { label: `Za ${diffDays} dny · ${formatted}`, tone: 'soon' }
 
   return { label: formatted, tone: 'later' }
+}
+
+// Vyvedené z useStudyPlanner.ts na nejvyšší úroveň (dřív to byla jeho
+// soukromá konstanta) — chytrySouhrn.ts potřebuje přesně tutéž váhu
+// priorit pro "dnešní krok", appka tak nemůže mít dvě kopie, co by se
+// mohly časem rozejít.
+export const PRIORITY_WEIGHT: Record<TaskPriority, number> = { Vysoká: 0, Střední: 1, Nízká: 2 }
+
+// Pohledy nad úkoly — "Dnes"/"Týden"/"Nestihnuté"/"Předměty" vedle
+// "Vše" doplňují (ne nahrazují) stávající Vše/Nesplněné/Splněné filtr
+// stavu dokončení — appka obě dimenze kombinuje (viz useStudyPlanner.ts).
+export type TaskView = 'vse' | 'dnes' | 'tyden' | 'nestihnute' | 'predmety'
+
+export const TASK_VIEWS: { id: TaskView; label: string }[] = [
+  { id: 'vse', label: 'Vše' },
+  { id: 'dnes', label: 'Dnes' },
+  { id: 'tyden', label: 'Týden' },
+  { id: 'nestihnute', label: 'Nestihnuté' },
+  { id: 'predmety', label: 'Předměty' },
+]
+
+/** Pondělí–neděle aktuálního týdne jako YYYY-MM-DD řetězce — appka
+ *  počítá z místního data, ne UTC (stejný důvod jako todayIso). */
+export const tydenniRozsah = (ted: Date = new Date()): { od: string; doo: string } => {
+  // getDay(): 0=neděle..6=sobota → appka chce pondělí jako první den.
+  const denVTydnu = (ted.getDay() + 6) % 7
+  const pondeli = new Date(ted.getFullYear(), ted.getMonth(), ted.getDate() - denVTydnu)
+  const nedele = new Date(pondeli.getFullYear(), pondeli.getMonth(), pondeli.getDate() + 6)
+  const naIso = (d: Date) =>
+    `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, '0')}-${`${d.getDate()}`.padStart(2, '0')}`
+  return { od: naIso(pondeli), doo: naIso(nedele) }
+}
+
+/** Je datum (YYYY-MM-DD) uvnitř [od, doo] včetně obou krajů? Neplatný
+ *  řetězec (starý volný text v dueDate) appka řeší jako "ne". */
+export const jeVRozsahu = (datum: string | null | undefined, od: string, doo: string): boolean => {
+  if (!datum || !/^\d{4}-\d{2}-\d{2}$/.test(datum)) return false
+  return datum >= od && datum <= doo
+}
+
+/** Rozhodne, jestli úkol patří do daného dne — podle plánovaného dne
+ *  práce (planDate), když je zadaný, jinak podle termínu (dueDate). */
+export const patriKeDni = (task: StudyTask, den: string): boolean =>
+  (task.planDate ?? task.dueDate) === den
+
+/** Datum příštího výskytu opakujícího se úkolu. Měsíčně appka
+ *  přeskočí měsíc, co daný den v měsíci vůbec nemá (31. v lednu →
+ *  31. v březnu, únor appka přeskočí) — stejná konvence jako appčino
+ *  opakování událostí v Kalendáři (kalendar/types.ts), aby appka
+ *  neměla dvě různá pravidla pro "co znamená měsíčně". */
+export const dalsiTerminOpakovani = (aktualniTermin: string, opakovani: Opakovani): string => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(aktualniTermin) || opakovani === 'zadne') return aktualniTermin
+
+  const [rok, mesic, den] = aktualniTermin.split('-').map(Number)
+  const naIso = (r: number, m: number, d: number) =>
+    `${r}-${`${m}`.padStart(2, '0')}-${`${d}`.padStart(2, '0')}`
+
+  if (opakovani === 'tydne') {
+    const datum = new Date(rok, mesic - 1, den + 7)
+    return naIso(datum.getFullYear(), datum.getMonth() + 1, datum.getDate())
+  }
+
+  // Měsíčně — appka hledá nejbližší další měsíc, co daný den skutečně
+  // má, nejvýš dva roky dopředu (defenzivní strop, prakticky nikdy
+  // nedosažený — jen 31. v lednu/březnu/květnu/… ho nikdy nepotřebuje).
+  let r = rok
+  let m = mesic
+  for (let i = 0; i < 24; i++) {
+    m += 1
+    if (m > 12) {
+      m = 1
+      r += 1
+    }
+    const posledniDenMesice = new Date(r, m, 0).getDate()
+    if (den <= posledniDenMesice) return naIso(r, m, den)
+  }
+  return aktualniTermin
 }

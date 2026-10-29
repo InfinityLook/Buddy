@@ -30,6 +30,36 @@
   box-shadow: 0 0 14px color-mix(in srgb, var(--accent-cyan) 55%, transparent);
 }
 
+/* Chytrý souhrn — School Roomova úvodní věta (viz chytrySouhrn.ts),
+   první panel pokoje. Appka mu dává tenký levý pruh v barvě pokoje
+   navíc, ať je i vizuálně vidět, že je to TA první věc, ne jen
+   obyčejný panel stejný jako ostatní. */
+.sr-chytry-souhrn {
+  border-left: 3px solid var(--accent-cyan);
+}
+
+.sr-souhrn-veta {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.sr-souhrn-veta--krok {
+  color: var(--text-secondary);
+}
+
+.sr-souhrn-soustredit-btn {
+  align-self: flex-start;
+  background: linear-gradient(135deg, var(--accent-orange), var(--accent-magenta));
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 0.55rem 1.2rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .sr-panel-hlavicka h2 {
   margin: 0;
   font-size: 1.1rem;

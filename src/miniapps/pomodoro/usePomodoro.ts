@@ -342,6 +342,21 @@ const usePomodoroStore = create<PomodoroState>()(
   )
 )
 
+// ==========================================
+// Launch deep-link z Planeru ("▶ Soustředit se" u konkrétního úkolu) —
+// appka tu cíleně porušuje svou vlastní "miniaplikace si nesmí dovnitř
+// sahat" izolaci stejným úzkým, zdokumentovaným způsobem jako
+// Kalendář→Rozvrh (viz jejich vlastní komentáře). Planerovo tlačítko
+// potřebuje umět Pomodoru předat, nad kterým úkolem se běžící
+// soustředění zapisuje, dřív než appka přepne aktivní miniaplikaci
+// (useAppStore's setActiveAppId) — jde o ten samý persistovaný
+// aktivniPredmet, co Pomodoro i jinak nabízí upravit ručně
+// (Pomodoro.tsx), tahle funkce jen zvenčí nastaví tutéž hodnotu.
+// ==========================================
+export const nastavAktivniPredmetZPlanovace = (predmet: string): void => {
+  usePomodoroStore.getState().setAktivniPredmet(predmet)
+}
+
 export const usePomodoro = () => {
   const {
     completedSessions,
