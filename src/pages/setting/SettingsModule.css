@@ -60,6 +60,35 @@
   margin-bottom: 0.5rem;
 }
 
+/* Jen hlavní obrazovka Nastavení (ne podobrazovka výš, co pořád stojí
+   na .settings-back-btn) — řádkové uspořádání + kruhové ikonové
+   tlačítko, stejný vzor jako .profil-icon-btn na Profilu/Hubu/Apps. */
+.settings-top-bar--hlavni {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.settings-icon-btn {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.settings-icon-btn:active {
+  transform: scale(0.9);
+}
+
 .settings-title {
   font-size: 1.65rem;
   font-weight: 800;

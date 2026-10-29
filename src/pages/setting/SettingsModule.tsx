@@ -292,9 +292,16 @@ export const SettingsModule: React.FC = () => {
     <div className="settings-page buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="settings" />
 
-      <div className="settings-top-bar">
-        <button className="settings-back-btn" onClick={() => navigate('/profil')}>
-          ← Zpět na profil
+      {/* Kruhové ikonové tlačítko místo textového odkazu "← Zpět na profil" —
+          appka to sjednotila se zbytkem obrazovek (Profil/Hub/Apps), jen tahle
+          JEDNA instance .settings-top-bar (ne ta uvnitř podobrazovky níž, co
+          pořád používá .settings-back-btn beze změny). */}
+      <div className="settings-top-bar settings-top-bar--hlavni">
+        <button className="settings-icon-btn" aria-label="Zpět na profil" onClick={() => navigate('/profil')}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="m12 19-7-7 7-7" />
+            <path d="M19 12H5" />
+          </svg>
         </button>
         <h1 className="settings-title">Nastavení</h1>
       </div>
