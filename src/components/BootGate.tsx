@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { APP_VERSION, applyUpdateNow, hasNewerVersion } from '@/core/utils/registerSW'
-import mascot from '@/assets/mascot.png'
 import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import './BootGate.css'
 
@@ -151,7 +150,10 @@ export const BootGate: React.FC<BootGateProps> = ({ children }) => {
     <SurfaceThemeScope surfaceId="boot">
       <div className="boot-gate" role="status" aria-live="polite">
         <div className="boot-gate-inner">
-          <img src={mascot} alt="" className="boot-gate-mascot" />
+          {/* Stejná fotka jako Hubova hlavička/Rewardova hlavička
+              (public/maskot/buddy-vlk.png), žádný druhý crop —
+              appčin maskot, ne dřívější štěně. */}
+          <img src="/maskot/buddy-vlk.png" alt="" className="boot-gate-mascot" />
 
           <div className="boot-gate-brand">
             <span className="boot-gate-mark">✦</span>

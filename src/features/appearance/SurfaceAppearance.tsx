@@ -46,7 +46,21 @@ export function SurfaceBackdrop({ surfaceId }: { surfaceId: SurfaceId }) {
   const tablet = scenery ? theme.assets.sceneTablet : variant.assets.backgroundTablet
   return (
     <div className="buddy-theme-backdrop" data-scenery={scenery} aria-hidden="true">
+      {/* Appka tu rozlišuje telefon/tablet/PC podle orientace, ne jen podle
+          šířky — dřív appka brala "tablet" obrázek (landscape kompozice)
+          pro cokoli ≥768px bez ohledu na to, jestli zařízení leží na výšku,
+          takže tablet na výšku dostal appčin ořez stavěný pro širokou
+          obrazovku a hlavní motiv scény (postava/hrad) se z velké části
+          ztratil. "(orientation: portrait)" teď appka zkontroluje jako
+          první — ať telefon NA VÝŠKU i tablet NA VÝŠKU dostanou stejný,
+          pro výšku stavěný obrázek; cokoli na šířku (tablet i PC) teprve
+          pak padá do "min-width", a appka pro oba sahá po stejném landscape
+          obrázku, protože druhou, appce vlastní kompozici appka nemá — na
+          skutečně širokém PC `object-fit: cover` z něj navíc stihne ukázat
+          skoro celou scénu, takže appku to tam ani netlačí ke ztrátě
+          motivu stejně jako u tabletu na výšku. */}
       <picture>
+        <source media="(orientation: portrait)" srcSet={themeAssetUrl(mobile)} />
         <source media="(min-width: 768px)" srcSet={themeAssetUrl(tablet)} />
         <img src={themeAssetUrl(mobile)} alt="" decoding="async" onError={() => setFailed(true)} />
       </picture>

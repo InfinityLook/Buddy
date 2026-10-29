@@ -59,10 +59,18 @@
   text-align: center;
 }
 
+/* Stejná fotka, stejný ořez jako Hub.css's .hub-logo-img/Reward's
+   .reward-logo-img (public/maskot/buddy-vlk.png) — kolečko, zájem na
+   hlavě/uších nahoře, žádný druhý, appce vlastní ořez. Jen větší, ať
+   na splash obrazovce vynikne. */
 .boot-gate-mascot {
-  width: 168px;
-  height: 168px;
-  object-fit: contain;
+  width: 148px;
+  height: 148px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center top;
+  border: 3px solid var(--border-strong);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-cyan) 16%, transparent);
   filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
   animation: boot-gate-float 2.4s ease-in-out infinite;
 }
