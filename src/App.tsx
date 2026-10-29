@@ -71,6 +71,7 @@ import { startSkolaSync } from '@/flagships/school-room/skolaSync'
 import { setupFitnessReminders } from '@/flagships/fitness-room/fitnessReminders'
 import { setupPitnyRezimReminders } from '@/flagships/fitness-room/pitnyRezimReminders'
 import { setupRozvrhReminders } from '@/miniapps/rozvrh/rozvrhReminders'
+import { setupKalendarReminders } from '@/miniapps/kalendar/kalendarReminders'
 import { setupStreakWarningReminder } from '@/core/streakWarningReminder'
 
 export default function App() {
@@ -130,6 +131,7 @@ export default function App() {
     setupFitnessReminders()
     setupPitnyRezimReminders()
     setupRozvrhReminders()
+    setupKalendarReminders()
     setupStreakWarningReminder()
   }, [])
 

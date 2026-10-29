@@ -16,6 +16,17 @@ export const UdalostSchema = v.object({
   // tohle pole vůbec neměla, opakování tedy nikdy nevzniklo, dokud pro
   // ni odpovídá to samé, co dřív dělala jediná existující chování.
   opakovani: v.optional(v.picklist(MOZNOSTI_OPAKOVANI), 'zadne'),
+  // --- Fáze 2 (profesionální rozšíření) — všechno nepovinné se
+  // zpětně kompatibilní výchozí hodnotou, ať starší uložená událost
+  // (co ani jedno z tohohle vůbec neznala) dál validuje a chová se
+  // přesně jako dřív (celodenní, bez rozpětí, bez výjimek, bez
+  // vlastní připomínky).
+  celodenni: v.optional(v.boolean(), true),
+  casOd: v.optional(v.string()),
+  casDo: v.optional(v.string()),
+  datumDo: v.optional(v.string()),
+  vyjimky: v.optional(v.array(v.string()), []),
+  pripominkaMinut: v.optional(v.nullable(v.number()), null),
   // Nepovinné — starší uložená událost (před cloudovou synchronizací,
   // viz skolaSync.ts) tahle pole vůbec neměla.
   updatedAt: v.optional(v.number()),
@@ -66,17 +77,46 @@ export const validateKalendarData = (data: unknown) => {
     .map((u) => {
       const jedna = v.safeParse(UdalostSchema, u)
       if (!jedna.success) return null
-      const { id, datum, nazev, popis, createdAt, opakovani, updatedAt, deletedAt } = jedna.output
-      return {
+      const {
         id,
         datum,
         nazev,
         popis,
         createdAt,
         opakovani,
+        celodenni,
+        casOd,
+        casDo,
+        datumDo,
+        vyjimky,
+        pripominkaMinut,
+        updatedAt,
+        deletedAt,
+      } = jedna.output
+      // Explicitně typovaný literál (ne inline return) — appka tím
+      // casOd/casDo u celodenní události vůbec NEVYTVOŘÍ jako klíč
+      // (undefined), místo aby ho nastavovala na undefined; to je to,
+      // co Udalostino vlastní `casOd?: string` (nepovinné, ne povinné
+      // ale možná undefined) doopravdy čeká.
+      const vysledek: Udalost = {
+        id,
+        datum,
+        nazev,
+        popis,
+        createdAt,
+        opakovani,
+        celodenni,
+        datumDo,
+        vyjimky,
+        pripominkaMinut,
         updatedAt: typeof updatedAt === 'number' && Number.isFinite(updatedAt) ? updatedAt : Date.now(),
         deletedAt,
       }
+      if (!celodenni) {
+        vysledek.casOd = casOd
+        vysledek.casDo = casDo
+      }
+      return vysledek
     })
     .filter((u): u is Udalost => u !== null)
 
