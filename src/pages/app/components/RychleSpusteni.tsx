@@ -37,8 +37,8 @@ export const RychleSpusteni: React.FC<RychleSpusteniProps> = ({ miniaplikace, on
   }, [miniaplikace, dotaz])
 
   // Pořadí kategorií podle toho, v jakém appka appky historicky
-  // přidávala do DEFAULT_APPS (ne abecedně) — stejná reasoning jako
-  // roomStranky.ts's pořadí Roomů: aspoň odněkud odvozené, ne libovolné.
+  // přidávala do DEFAULT_APPS (ne abecedně) — appka to drží aspoň
+  // odněkud odvozené, ne libovolné.
   const kategorie = useMemo(() => {
     const videne = new Set<string>()
     const poradi: string[] = []

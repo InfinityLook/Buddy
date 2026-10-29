@@ -28,18 +28,22 @@ interface RoomCarouselProps {
 // jinde v appce.
 // ==========================================
 
-// Stejné hex dvojice jako AppModule.css's .app-card-icon-wrap.<color> —
-// vlastní kopie, ne import CSS třídy, protože tenhle carousel skládá
-// gradient přímo do inline stylu (potřebuje ho i pro auroru na
-// pozadí, ne jen na malý odznak ikony). Malá přijatá duplikace, stejná
-// jako BARVY_UZLU jinde v appce — obě místa se čtou snadno samostatně.
+// Stejná motivová šestice jako RychleSpusteni.css's .rs-dlazdice-ikona.
+// <color> (buddy-theme-tokens.css's --buddy-app-<color>/-2, jedna sada
+// na motiv appky) — appka tu drží řetězce "var(--buddy-app-...)", ne
+// hotové hex hodnoty, protože appka gradient skládá přímo do inline
+// stylu (potřebuje ho i pro auroru na pozadí, ne jen na malý odznak
+// ikony) a var() se v inline stylu vyhodnotí úplně stejně jako v CSS
+// souboru — appka tím pádem automaticky reaguje na zvolený motiv appky
+// beze změny přepnutí. Malá přijatá duplikace mezi dvěma nezávislými
+// appky stejná jako BARVY_UZLU jinde v appce, ne sdílený import.
 const GRADIENTY: Record<AppItem['color'], [string, string]> = {
-  purple: ['#7c3aed', '#a855f7'],
-  cyan: ['#0284c7', '#38bdf8'],
-  orange: ['#d97706', '#fbbf24'],
-  green: ['#059669', '#34d399'],
-  pink: ['#db2777', '#f472b6'],
-  gold: ['#a16207', '#eab308'],
+  purple: ['var(--buddy-app-purple)', 'var(--buddy-app-purple-2)'],
+  cyan: ['var(--buddy-app-cyan)', 'var(--buddy-app-cyan-2)'],
+  orange: ['var(--buddy-app-orange)', 'var(--buddy-app-orange-2)'],
+  green: ['var(--buddy-app-green)', 'var(--buddy-app-green-2)'],
+  pink: ['var(--buddy-app-pink)', 'var(--buddy-app-pink-2)'],
+  gold: ['var(--buddy-app-gold)', 'var(--buddy-app-gold-2)'],
 }
 
 export const RoomCarousel: React.FC<RoomCarouselProps> = ({ rooms, onEnter }) => {

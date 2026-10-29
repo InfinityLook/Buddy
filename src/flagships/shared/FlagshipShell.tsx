@@ -2,8 +2,6 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { AppBottomNav } from '@/components/AppBottomNav'
-import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
-import { sousedniRoom } from '@/core/navigation/roomStranky'
 import {
   ProfilNotifications,
   useNotificationItems,
@@ -72,15 +70,12 @@ interface Props {
 // dvě různé stránky na jednu sdílenou komponentu, co by musela nosit
 // props obou.
 //
-// Šipky mezi Roomy žijí přesně tady, v jediném místě, co všech šest
-// vlajkových appek sdílí — AppBottomNav dostává sousedniRoom() (řada,
-// co zacykluje) a jitNaRoom (animovaný přechod, useModulovyPrechod's
-// `smer` argument, viz jeho vlastní komentář). Vodorovný touch-swipe
-// mezi Roomy (a stejně tak appčin starší swipe mezi Hub/Apps/Profil/
-// Nastavení) appka záměrně nemá — swipe gestem se teď dál posouvá jen
-// carousel Roomů na /apps (RoomCarousel.tsx), ne otevřená vlajková
-// appka ani hlavní čtveřice obrazovek; přepínání mezi Roomy/moduly jde
-// jen přes tyhle šipky nebo dlaždice/menu.
+// Šipky mezi Roomy (myš-only, mezi Hub/Apps/Profil/Nastavení i mezi
+// vlajkovými Roomy) appka odstranila na uživatelovo přání — <AppBottomNav />
+// se tu teď volá bez props, appka tu žádnou náhradní navigaci mezi
+// Roomy nenechala. Přepínání mezi Roomy jde dál přes RoomCarousel.tsx
+// na /apps (swipe/tažení, nesouvisí s tímhle souborem vůbec) nebo přes
+// appčino menu/dlaždice v jednotlivých Roomech.
 // ==========================================
 
 export const FlagshipShell: React.FC<Props> = ({
@@ -99,9 +94,6 @@ export const FlagshipShell: React.FC<Props> = ({
   const notifications = useNotificationItems()
   const unreadCount = notifications.filter((item) => !profile.readNotifications.includes(item.id)).length
   const { rootAttributes } = useSurfaceAppearance(surfaceId)
-
-  const prejit = useModulovyPrechod()
-  const jitNaRoom = (cesta: string, smer: 'vpravo' | 'vlevo') => prejit(cesta, undefined, smer)
 
   return (
     <div className="app-container fs-page buddy-theme-scope" {...rootAttributes}>
@@ -154,7 +146,7 @@ export const FlagshipShell: React.FC<Props> = ({
         ))}
       </div>
 
-      <AppBottomNav sousedniFn={sousedniRoom} onSipkaKlik={jitNaRoom} />
+      <AppBottomNav />
 
       <ProfilNotifications
         open={notifOpen}

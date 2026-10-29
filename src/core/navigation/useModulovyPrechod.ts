@@ -4,25 +4,16 @@ import { useNavigate, type NavigateOptions } from 'react-router-dom'
 
 // ==========================================
 // Fáze 2 Social nav reworku — sdílený hook pro přechod mezi hlavními
-// moduly appky (dnes Hub → Social/Chat, viz Hub.tsx, a od tohohle
-// commitu i šipky mezi vlajkovými Roomy, viz FlagshipShell.tsx).
-// Postaveno na View Transitions API (document.startViewTransition), ne
-// na knihovně — prohlížeč to umí sám zdarma, appka jen zabalí
-// navigate() dovnitř. Samotný vzhled ("Posun", vybraný z náhledu se 6
-// variantami) je čistě CSS (styles/global.css's
-// ::view-transition-old/-new(root)) — tenhle hook se o to, jak přechod
-// vypadá, vůbec nestará, jen ho spustí.
-//
-// Třetí argument, `smer`, je nový — Hub → Social zůstává jednosměrný
-// (výchozí 'vpravo', beze změny), ale Room-to-Room šipka musí umět
-// obě strany (další Room najede zprava, předchozí zleva). Appka
-// to řeší jedním atributem na <html> (`data-prechod-smer`), který CSS
-// čte přes `:root[data-prechod-smer="vlevo"]::view-transition-*(root)`
-// — atributové selektory fungují i na tenhle speciální pseudo-strom
-// mimo běžný DOM. Atribut appka drží až do `transition.finished`, ne
-// jen do doby, kdy startViewTransition() vrátí řízení — smazat ho dřív
-// by mohlo přepsat animaci uprostřed běhu, protože se v tu chvíli
-// prohlížeč pořád dívá na aktuální computed style pseudo-elementu.
+// moduly appky (dnes Hub → Social/Chat, viz Hub.tsx). Postaveno na
+// View Transitions API (document.startViewTransition), ne na
+// knihovně — prohlížeč to umí sám zdarma, appka jen zabalí navigate()
+// dovnitř. Samotný vzhled ("Posun", vybraný z náhledu se 6 variantami)
+// je čistě CSS (styles/global.css's ::view-transition-old/-new(root))
+// — tenhle hook se o to, jak přechod vypadá, vůbec nestará, jen ho
+// spustí. Appka drží jen jeden směr (appka doleva mezi Roomy měla jen
+// dočasně, dokud existovaly šipky mezi Roomy — ty appka na uživatelovo
+// přání odstranila, takže appka tenhle hook zpátky zjednodušila na
+// svůj původní jednosměrný tvar).
 //
 // flushSync() je nutný: startViewTransition() vyfotí "starou" stránku
 // synchronně před zavoláním callbacku a "novou" hned po jeho doběhnutí,
@@ -39,7 +30,7 @@ export const useModulovyPrechod = () => {
   const navigate = useNavigate()
 
   return useCallback(
-    (cesta: string, options?: NavigateOptions, smer: 'vpravo' | 'vlevo' = 'vpravo') => {
+    (cesta: string, options?: NavigateOptions) => {
       const podporujeViewTransition =
         typeof document !== 'undefined' && typeof document.startViewTransition === 'function'
       const chceMeneAnimaci =
@@ -51,16 +42,8 @@ export const useModulovyPrechod = () => {
         return
       }
 
-      if (smer === 'vlevo') {
-        document.documentElement.setAttribute('data-prechod-smer', 'vlevo')
-      }
-
-      const transition = document.startViewTransition(() => {
+      document.startViewTransition(() => {
         flushSync(() => navigate(cesta, options))
-      })
-
-      transition.finished.finally(() => {
-        document.documentElement.removeAttribute('data-prechod-smer')
       })
     },
     [navigate]

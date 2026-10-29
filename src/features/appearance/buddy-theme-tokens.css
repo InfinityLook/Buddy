@@ -1,4 +1,19 @@
 /* Local scope only. Never put these rules on :root. */
+/* Appčina paleta "šestice appkových barev" (purple/cyan/orange/green/
+   pink/gold — viz RychleSpusteni.css's .rs-dlazdice-ikona.<color> a
+   RoomCarousel.tsx's GRADIENTY) je appce vlastní, ne appčin hlavní
+   accent/accent-2 pár — appka ji potřebuje jako ŠEST navzájem
+   odlišných odstínů (appky appky i Roomy se jimi barevně rozlišují),
+   kdežto accent/accent-2 appka nese jen jeden pár na celou appku.
+   Appka proto pro každý motiv definuje vlastní doladěnou šestici (base
+   + světlejší konec přechodu), ne že by šestici odvozovala ze dvou
+   accent hodnot za běhu — appka totiž nemá spolehlivý čistě CSS způsob,
+   jak z jedné barvy "otočit odstín" na šest různých, aniž by appka
+   riskovala nepodporovaný prohlížeč nebo zabahněné barvy z color-mix.
+   zlatý soumrak appka nechala přesně na appčiných původních hodnotách
+   (appčin dosavadní vzhled appka ničím neměnila), ostatní čtyři appka
+   doladila ručně, ať šestice barevně patří k náladě daného motivu, a
+   appka to pak i vizuálně ověřila reálnými screenshoty před dokončením. */
 .buddy-theme-scope[data-buddy-theme="zlaty-soumrak"] {
   --buddy-bg: #090F1E;
   --buddy-panel: #0D1729;
@@ -18,6 +33,12 @@
   --buddy-warning: #FFD27B;
   --buddy-info: #A9D9FF;
   --buddy-scene-overlay: rgba(9,15,30,0.72);
+  --buddy-app-purple: #7c3aed; --buddy-app-purple-2: #a855f7;
+  --buddy-app-cyan: #0284c7; --buddy-app-cyan-2: #38bdf8;
+  --buddy-app-orange: #d97706; --buddy-app-orange-2: #fbbf24;
+  --buddy-app-green: #059669; --buddy-app-green-2: #34d399;
+  --buddy-app-pink: #db2777; --buddy-app-pink-2: #f472b6;
+  --buddy-app-gold: #a16207; --buddy-app-gold-2: #eab308;
 }
 .buddy-theme-scope[data-buddy-theme="neonova-noc"] {
   --buddy-bg: #070C19;
@@ -38,6 +59,12 @@
   --buddy-warning: #FFD27B;
   --buddy-info: #A9D9FF;
   --buddy-scene-overlay: rgba(7,12,25,0.72);
+  --buddy-app-purple: #8b5cf6; --buddy-app-purple-2: #c4b5fd;
+  --buddy-app-cyan: #22d3ee; --buddy-app-cyan-2: #67e8f9;
+  --buddy-app-orange: #fb923c; --buddy-app-orange-2: #fdba74;
+  --buddy-app-green: #2dd4bf; --buddy-app-green-2: #5eead4;
+  --buddy-app-pink: #f472b6; --buddy-app-pink-2: #f9a8d4;
+  --buddy-app-gold: #fbbf24; --buddy-app-gold-2: #fde047;
 }
 .buddy-theme-scope[data-buddy-theme="polarni-zare"] {
   --buddy-bg: #0A1427;
@@ -58,6 +85,12 @@
   --buddy-warning: #FFD27B;
   --buddy-info: #A9D9FF;
   --buddy-scene-overlay: rgba(10,20,39,0.72);
+  --buddy-app-purple: #a78bfa; --buddy-app-purple-2: #ddd6fe;
+  --buddy-app-cyan: #67e8f9; --buddy-app-cyan-2: #bae6fd;
+  --buddy-app-orange: #fdba74; --buddy-app-orange-2: #fed7aa;
+  --buddy-app-green: #6ee7b7; --buddy-app-green-2: #a7f3d0;
+  --buddy-app-pink: #f0abfc; --buddy-app-pink-2: #f5d0fe;
+  --buddy-app-gold: #fde68a; --buddy-app-gold-2: #fef3c7;
 }
 .buddy-theme-scope[data-buddy-theme="lesni-klid"] {
   --buddy-bg: #091710;
@@ -78,6 +111,12 @@
   --buddy-warning: #FFD27B;
   --buddy-info: #A9D9FF;
   --buddy-scene-overlay: rgba(9,23,16,0.72);
+  --buddy-app-purple: #a78b9e; --buddy-app-purple-2: #c7b2c7;
+  --buddy-app-cyan: #4f9b94; --buddy-app-cyan-2: #86c0b9;
+  --buddy-app-orange: #c17f3e; --buddy-app-orange-2: #dba16a;
+  --buddy-app-green: #6b9b5e; --buddy-app-green-2: #9ac488;
+  --buddy-app-pink: #c48a9e; --buddy-app-pink-2: #dcaebb;
+  --buddy-app-gold: #b89550; --buddy-app-gold-2: #d4b876;
 }
 .buddy-theme-scope[data-buddy-theme="cisty-den"] {
   --buddy-bg: #F8F7FD;
@@ -98,6 +137,12 @@
   --buddy-warning: #805500;
   --buddy-info: #175BA5;
   --buddy-scene-overlay: rgba(248,247,253,0.8);
+  --buddy-app-purple: #7c3aed; --buddy-app-purple-2: #9f67f5;
+  --buddy-app-cyan: #0891b2; --buddy-app-cyan-2: #22b8d4;
+  --buddy-app-orange: #b45309; --buddy-app-orange-2: #d97706;
+  --buddy-app-green: #047857; --buddy-app-green-2: #10b981;
+  --buddy-app-pink: #be185d; --buddy-app-pink-2: #ec4899;
+  --buddy-app-gold: #a16207; --buddy-app-gold-2: #ca8a04;
 }
 
 .buddy-theme-scope {

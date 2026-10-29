@@ -5,68 +5,64 @@ import { MemoryRouter } from 'react-router-dom'
 import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
 
 // ==========================================
-// core/navigation/useModulovyPrechod.ts — appka tu novou třetí `smer`
-// možnost potřebuje pro Room-to-Room swipe/šipky (FlagshipShell.tsx),
-// kde na rozdíl od appčina staršího jednosměrného Hub -> Social kroku
-// musí umět obě strany. jsdom document.startViewTransition vůbec
-// nemá, takže appka ho tu jednoduše zamockuje a ověří jen appčinu
-// vlastní logiku (nastavení/smazání atributu), ne prohlížečovu
-// animaci samotnou — tu jde ověřit jen skutečným Chromiem.
+// core/navigation/useModulovyPrechod.ts — appka tenhle hook zjednodušila
+// zpátky na jednosměrnou verzi (appka druhý, "vlevo" směr odstranila
+// spolu s šipkami mezi vlajkovými Roomy, viz AppBottomNav.tsx/
+// FlagshipShell.tsx). Appka tu ověřuje jen svou vlastní logiku (kdy
+// zabalí navigate() do startViewTransition a kdy spadne na obyčejnou
+// navigaci), ne prohlížečovu animaci samotnou — tu jde ověřit jen
+// skutečným Chromiem. jsdom document.startViewTransition vůbec nemá,
+// takže appka ho tu podle potřeby sama zamockuje/smaže.
 // ==========================================
 
 const wrapper = ({ children }: { children: React.ReactNode }) =>
   React.createElement(MemoryRouter, null, children)
 
 afterEach(() => {
-  document.documentElement.removeAttribute('data-prechod-smer')
   // @ts-expect-error — appka tu jen v testu maže vlastní mock, ne skutečné API.
   delete document.startViewTransition
   vi.restoreAllMocks()
 })
 
-describe('useModulovyPrechod — směrový atribut pro Room swipe', () => {
-  it('výchozí "vpravo" nikdy atribut nenastaví (appčino starší Hub -> Social chování beze změny)', async () => {
-    let zachytUpdate: (() => void) | null = null
-    // @ts-expect-error — jsdom nemá, appka si ho pro test dodá sama.
-    document.startViewTransition = vi.fn((update: () => void) => {
-      zachytUpdate = update
+describe('useModulovyPrechod — zjednodušený jednosměrný přechod', () => {
+  it('s podporou View Transitions zabalí navigaci do startViewTransition()', async () => {
+    let zavolanoSUpdatem: (() => void) | null = null
+    const mock = vi.fn((update: () => void) => {
+      zavolanoSUpdatem = update
       return { finished: Promise.resolve() }
     })
+    // @ts-expect-error — jsdom nemá, appka si ho pro test dodá sama.
+    document.startViewTransition = mock
 
     const { result } = renderHook(() => useModulovyPrechod(), { wrapper })
     await act(async () => {
       result.current('/apps')
-      zachytUpdate?.()
     })
 
-    expect(document.documentElement.getAttribute('data-prechod-smer')).toBeNull()
+    expect(mock).toHaveBeenCalledTimes(1)
+    expect(zavolanoSUpdatem).not.toBeNull()
   })
 
-  it('smer "vlevo" nastaví atribut PŘED spuštěním přechodu a smaže ho, jakmile přechod skutečně doběhne', async () => {
-    let atributTehdyKdyzSeSpustilPrechod: string | null = null
-    // @ts-expect-error — jsdom nemá, appka si ho pro test dodá sama.
-    document.startViewTransition = vi.fn((update: () => void) => {
-      atributTehdyKdyzSeSpustilPrechod = document.documentElement.getAttribute('data-prechod-smer')
+  it('bez podpory View Transitions API prostě naviguje, žádnou chybu nevyhodí', async () => {
+    const { result } = renderHook(() => useModulovyPrechod(), { wrapper })
+    expect(() => {
+      result.current('/growth')
+    }).not.toThrow()
+  })
+
+  it('volá se dál i s druhým argumentem (NavigateOptions), beze změny chování', async () => {
+    const mock = vi.fn((update: () => void) => {
       update()
       return { finished: Promise.resolve() }
     })
+    // @ts-expect-error — jsdom nemá, appka si ho pro test dodá sama.
+    document.startViewTransition = mock
 
     const { result } = renderHook(() => useModulovyPrechod(), { wrapper })
     await act(async () => {
-      result.current('/economy', undefined, 'vlevo')
+      result.current('/economy', { replace: true })
     })
 
-    expect(atributTehdyKdyzSeSpustilPrechod).toBe('vlevo')
-    // Po doběhnutí (transition.finished) appka atribut zase smaže,
-    // ať nezůstane trvale viset na <html> a neovlivní příští přechod.
-    expect(document.documentElement.getAttribute('data-prechod-smer')).toBeNull()
-  })
-
-  it('bez podpory View Transitions API prostě naviguje, žádný atribut se vůbec nedotkne', async () => {
-    const { result } = renderHook(() => useModulovyPrechod(), { wrapper })
-    expect(() => {
-      result.current('/growth', undefined, 'vlevo')
-    }).not.toThrow()
-    expect(document.documentElement.getAttribute('data-prechod-smer')).toBeNull()
+    expect(mock).toHaveBeenCalledTimes(1)
   })
 })

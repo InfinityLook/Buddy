@@ -1,7 +1,6 @@
 import React from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
-import { sousedniStranky, type ModulovaStranka } from '@/core/navigation/moduloveStranky'
 import { useInbox } from '@/social/inbox'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
@@ -28,10 +27,10 @@ import './AppBottomNav.css'
 // měla dvě nezávislá avatarová tlačítka (Hub.tsx's hub-avatar-btn,
 // AppHeader.tsx's app-avatar-btn), teď je jen jedno, vidět na KAŽDÉ
 // ze čtyř obrazovek, ne jen na dvou z nich. FlagshipShell.tsx (šest
-// vlajkových Roomů) svoje vlastní app-avatar-btn v hlavičce
-// schválně ponechává — ty AppBottomNav vůbec nepoužívají, mají
-// vlastní šipky mezi Roomy místo téhle lišty, takže appka tam
-// duplicitu neřeší.
+// vlajkových Roomů) si přesto svoje vlastní app-avatar-btn v
+// hlavičce ponechává i přesto, že tahle lišta (s appčiným vlastním
+// Profil tlačítkem) se vykresluje i tam — appka tam duplicitu
+// vědomě nechává, ne že by Room appky tuhle lištu nepoužívaly.
 //
 // Vyvýšené prostřední kolečko s hlasovým Buddym (fotka vlka,
 // `.app-nav-orb`, rovnou otevíralo BuddyOverlay) appka z týhle lišty
@@ -48,27 +47,15 @@ import './AppBottomNav.css'
 // aktivní, protože se lišta vykreslovala jen tam; teď musí umět
 // zhasnout na každé jiné stránce a naopak vést zpátky na /hub.
 //
-// `sousedniFn`/`onSipkaKlik` jsou nepovinné — výchozí hodnoty
-// (sousedniStranky() + obyčejný navigate()) drží appčino dosavadní
-// chování na Hub/Apps/Profil/Nastavení beze změny. FlagshipShell.tsx
-// (šipky mezi vlajkovými Roomy) posílá sousedniRoom() (zacyklující
-// řadu) a onSipkaKlik volající useModulovyPrechod() (animovaný slide).
-//
-// Odpovídající vodorovný touch-swipe appka dřív měla (useModulovySwipe.ts,
-// dnes smazaný) — uživatel si ho výslovně nepřál mimo carousel Roomů na
-// /apps (RoomCarousel.tsx, vlastní pointer-drag mechanismus, nesouvisí
-// s tímhle souborem vůbec), takže tyhle šipky teď zůstávají jediným
-// gestem/tlačítkem pro sekvenční "předchozí/další" navigaci mezi
-// hlavními obrazovkami i mezi Roomy — a jsou schválně vidět jen na
-// zařízení s myší (viz níž), ne na dotykové obrazovce.
+// Šipky "předchozí/další" (mezi Hub/Apps/Profil/Nastavení i mezi
+// vlajkovými Roomy, myš-only přes @media (pointer: fine)) appka
+// odstranila na uživatelovo přání — appka tu žádnou náhradu
+// nenechala, Profil zůstává dosažitelný přes svoje vlastní tlačítko
+// přímo v týhle liště (viz "Profil" položka níž) a appka jinak drží
+// appčin standardní navigate()/prejit() přímo z jednotlivých tlačítek.
 // ==========================================
 
-interface Props {
-  sousedniFn?: (pathname: string) => { predchozi: ModulovaStranka | null; dalsi: ModulovaStranka | null }
-  onSipkaKlik?: (cesta: string, smer: 'vpravo' | 'vlevo') => void
-}
-
-export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
+export const AppBottomNav: React.FC = () => {
   const location = useLocation()
   const navigate = useNavigate()
   const { profile } = useProfileData()
@@ -91,41 +78,8 @@ export const AppBottomNav: React.FC<Props> = ({ sousedniFn, onSipkaKlik }) => {
   const jeAktivniZalozka = (zalozka: 'chaty' | 'vyhledavac') =>
     location.pathname === '/social' && new URLSearchParams(location.search).get('zalozka') === zalozka
 
-  // Šipky se zobrazují jen na zařízení s myší, přes @media (pointer: fine)
-  // v CSS, ne JS detekcí zařízení — stejný vzor jako VirtualniJoystick.tsx
-  // (jen obráceně — tady se skrývají NA dotykovém zařízení, joystick se
-  // schovává BEZ něj). Appka na dotykové obrazovce žádnou swipe/gesto
-  // náhradu za tyhle šipky nemá; Profil zůstává dosažitelný přes svoje
-  // vlastní tlačítko přímo v týhle liště (viz "Profil" položka níž).
-  // Nezobrazí se na konci seznamu (Hub nemá "předchozí", Nastavení
-  // nemá "další").
-  const { predchozi, dalsi } = (sousedniFn ?? sousedniStranky)(location.pathname)
-  const jitNa = (cesta: string, smer: 'vpravo' | 'vlevo') => {
-    if (onSipkaKlik) onSipkaKlik(cesta, smer)
-    else navigate(cesta)
-  }
-
   return (
     <>
-      {predchozi && (
-        <button
-          className="modul-sipka modul-sipka--vlevo"
-          aria-label={`Přejít na ${predchozi.popis}`}
-          onClick={() => jitNa(predchozi.cesta, 'vlevo')}
-        >
-          <SocialIcon name="arrow-left" size={18} />
-        </button>
-      )}
-      {dalsi && (
-        <button
-          className="modul-sipka modul-sipka--vpravo"
-          aria-label={`Přejít na ${dalsi.popis}`}
-          onClick={() => jitNa(dalsi.cesta, 'vpravo')}
-        >
-          <SocialIcon name="arrow-left" size={18} />
-        </button>
-      )}
-
       <nav className="app-bottom-nav">
         {/* Profil — appčino vlastní kolečko avataru, přesunuté sem z
             Hubovy a Apps hlavičky (appka tam dřív měla dvě na sobě

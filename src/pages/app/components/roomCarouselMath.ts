@@ -13,8 +13,8 @@ export const DRAG_PRAH_PX = 60
 export const MAX_NAKLON_STUPNU = 10
 
 /** Zacyklený index — appka na obou koncích řady přechází na druhý konec,
- *  stejné chování jako core/navigation/roomStranky.ts's sousedniRoom(),
- *  jen vyjádřené jako jedno číslo místo dvou sousedů. */
+ *  ať "poslední → první" a "první → poslední" fungují stejně plynule
+ *  jako přechod mezi dvěma sousedními Roomy uprostřed řady. */
 export const zacykliIndex = (index: number, delka: number): number => {
   if (delka <= 0) return 0
   return ((index % delka) + delka) % delka
