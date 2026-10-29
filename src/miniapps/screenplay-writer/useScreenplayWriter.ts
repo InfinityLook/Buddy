@@ -355,6 +355,14 @@ const useScreenplayWriterStore = create<ScreenplayWriterState>()(
       name: 'schoolbuddy-screenplay-writer-storage',
       storage: createJSONStorage(() => secureStorage),
       merge: (persisted, current) => {
+        // Appka tu rozlišuje "nic uložené" (čerstvý účet, storage klíč
+        // appka ještě nikdy nezapsala) od "uložené, ale poškozené" —
+        // Zustandova persist middleware volá merge() vždycky při
+        // hydrataci, i když v úložišti pro tenhle klíč vůbec nic není,
+        // a undefined je tenhle normální, nijak podezřelý případ. Bez
+        // týhle pojistky appka hlásila falešnou chybu "poškozená data"
+        // i na čerstvém účtu, co žádná data vůbec neměl.
+        if (persisted === undefined || persisted === null) return current
         const validation = validateScreenplayWriterData(persisted)
         if (!validation.success) {
           console.error('Data Scénáře v LocalStorage byla poškozena. Obnovuji výchozí stav.')
