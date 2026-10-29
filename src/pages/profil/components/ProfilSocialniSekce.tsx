@@ -30,6 +30,11 @@ import '@/social/SocialModule.css'
 // (netlazy) balíčku, jen kdo tuhle sekci doopravdy uvidí.
 // ==========================================
 
+// "MŮJ KÓD" appka na žádost dočasně vypíná — QR/friend-code sdílení
+// (generování kódu, naskenovat-kód dialog) appka nechává nedotčené,
+// ať jde jedním přepnutím vrátit zpátky, až appka rozhodne jak/jestli.
+const ZOBRAZIT_MUJ_KOD = false
+
 export const ProfilSocialniSekce: React.FC = () => {
   const navigate = useNavigate()
   const stav = useSocial()
@@ -44,6 +49,12 @@ export const ProfilSocialniSekce: React.FC = () => {
   const [tab, setTab] = useState<'foto' | 'video' | 'ulozeno'>('foto')
   const [noveSoubory, setNoveSoubory] = useState<File[] | null>(null)
   const [natacimReel, setNatacimReel] = useState(false)
+  // Jedna "+" dlaždice místo dřívějších dvou (+ a samostatná kamera na
+  // Reel) — na žádost appka obě akce (nahrát ze zařízení / natočit
+  // Reel) sloučila pod jedno tlačítko, co otevře malou nabídku, stejná
+  // .social-overlay/.social-dialog skořápka jako "⋯" nabídka u cizího
+  // příspěvku (FeedPrispevek.tsx).
+  const [otevrenaNabidkaPridat, setOtevrenaNabidkaPridat] = useState(false)
   const [otevrenyPrispevek, setOtevrenyPrispevek] = useState<Prispevek | null>(null)
   const [otevrenSledujiciTab, setOtevrenSledujiciTab] = useState<'sledujici' | 'sledovani' | null>(null)
   const vstupRef = useRef<HTMLInputElement>(null)
@@ -116,10 +127,11 @@ export const ProfilSocialniSekce: React.FC = () => {
   }, [stav.mujId])
 
   // QR se generuje z vlastního kódu, jakmile ho appka zná — čistě
-  // klientská knihovna (qrcode), žádný síťový dotaz.
+  // klientská knihovna (qrcode), žádný síťový dotaz. Dokud je "MŮJ KÓD"
+  // vypnutý (viz ZOBRAZIT_MUJ_KOD), appka si zbytečnou práci odpustí.
   useEffect(() => {
     const kod = stav.profil?.friendCode
-    if (!kod) return
+    if (!ZOBRAZIT_MUJ_KOD || !kod) return
     let platne = true
     void QRCode.toDataURL(profilOdkaz(kod), { margin: 1, width: 168 }).then(
       (url) => platne && setQr(url)
@@ -292,25 +304,16 @@ export const ProfilSocialniSekce: React.FC = () => {
           </>
         ) : (
           <div className="social-prispevky-mrizka">
+            {/* Jedna dlaždice pro přidání čehokoli — fotka, video nebo
+                natočený Reel, výběr přes malou nabídku níž, ne tři
+                zvlášť vedle sebe. */}
             <button
               className="social-prispevek-pridat"
-              onClick={() => vstupRef.current?.click()}
+              onClick={() => setOtevrenaNabidkaPridat(true)}
               aria-label="Přidat příspěvek"
             >
               <SocialIcon name="plus" size={22} />
             </button>
-            {/* Natočit rovnou v appce, ne jen vybrat existující soubor —
-                druhá dlaždice vedle "+", feature-detekovaná stejně jako
-                mikrofon v ChatView.tsx (viz NahratReelDialog.tsx). */}
-            {PODPORUJE_NAHRAVANI_REELU && (
-              <button
-                className="social-prispevek-pridat"
-                onClick={() => setNatacimReel(true)}
-                aria-label="Nahrát Reel"
-              >
-                <SocialIcon name="video" size={22} />
-              </button>
-            )}
             <input
               ref={vstupRef}
               type="file"
@@ -356,35 +359,39 @@ export const ProfilSocialniSekce: React.FC = () => {
       </section>
 
       {/* Sdílet vlastní profil — přátelský kód dřív žil ve Social's
-          bývalé Profil záložce (viz CLAUDE.md), teď tady. */}
-      <section className="social-card">
-        <span className="social-card-label">MŮJ KÓD</span>
-        <div className="social-muj-profil-radek">
-          {qr && <img src={qr} alt="QR kód profilu" className="social-qr" />}
-          <div className="social-muj-profil-akce">
-            <span className="social-muj-kod">
-              {stav.profil ? socialApi.formatujKod(stav.profil.friendCode) : ''}
-            </span>
-            <button
-              className="social-btn social-btn--small"
-              onClick={async () => {
-                if (!stav.profil) return
-                await navigator.clipboard.writeText(profilOdkaz(stav.profil.friendCode))
-                setZkopirovano(true)
-                window.setTimeout(() => setZkopirovano(false), 2000)
-              }}
-            >
-              <SocialIcon name={zkopirovano ? 'check' : 'copy'} size={13} />
-              {zkopirovano ? 'Zkopírováno' : 'Kopírovat odkaz'}
-            </button>
-            <button className="social-btn social-btn--small social-btn--tlumene" onClick={() => setSken(true)}>
-              📷 Naskenovat kód
-            </button>
+          bývalé Profil záložce (viz CLAUDE.md), teď tady. Appka celou
+          kartu (i naskenovat-kód dialog) na žádost dočasně vypíná,
+          viz ZOBRAZIT_MUJ_KOD výš. */}
+      {ZOBRAZIT_MUJ_KOD && (
+        <section className="social-card">
+          <span className="social-card-label">MŮJ KÓD</span>
+          <div className="social-muj-profil-radek">
+            {qr && <img src={qr} alt="QR kód profilu" className="social-qr" />}
+            <div className="social-muj-profil-akce">
+              <span className="social-muj-kod">
+                {stav.profil ? socialApi.formatujKod(stav.profil.friendCode) : ''}
+              </span>
+              <button
+                className="social-btn social-btn--small"
+                onClick={async () => {
+                  if (!stav.profil) return
+                  await navigator.clipboard.writeText(profilOdkaz(stav.profil.friendCode))
+                  setZkopirovano(true)
+                  window.setTimeout(() => setZkopirovano(false), 2000)
+                }}
+              >
+                <SocialIcon name={zkopirovano ? 'check' : 'copy'} size={13} />
+                {zkopirovano ? 'Zkopírováno' : 'Kopírovat odkaz'}
+              </button>
+              <button className="social-btn social-btn--small social-btn--tlumene" onClick={() => setSken(true)}>
+                📷 Naskenovat kód
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {sken && (
+      {ZOBRAZIT_MUJ_KOD && sken && (
         <SkenovatKodDialog stav={stav} onOtevritProfil={setOtevrenyProfil} onZavrit={() => setSken(false)} />
       )}
 
@@ -395,6 +402,48 @@ export const ProfilSocialniSekce: React.FC = () => {
           onOtevritChat={otevritSocial}
           onZavrit={() => setOtevrenyProfil(null)}
         />
+      )}
+
+      {otevrenaNabidkaPridat && (
+        <>
+          <div className="social-overlay" onClick={() => setOtevrenaNabidkaPridat(false)} />
+          <div className="social-dialog">
+            <h3 className="social-dialog-title">Přidat příspěvek</h3>
+            <div className="social-nabidka-vice">
+              <button
+                className="social-nabidka-vice-radek"
+                onClick={() => {
+                  setOtevrenaNabidkaPridat(false)
+                  vstupRef.current?.click()
+                }}
+              >
+                <SocialIcon name="attach" size={18} />
+                <span>Nahrát fotku nebo video</span>
+              </button>
+              {/* Natočit rovnou v appce, ne jen vybrat existující soubor —
+                  feature-detekované stejně jako mikrofon v ChatView.tsx
+                  (viz NahratReelDialog.tsx). Bez podpory se tahle druhá
+                  položka prostě nenabízí. */}
+              {PODPORUJE_NAHRAVANI_REELU && (
+                <button
+                  className="social-nabidka-vice-radek"
+                  onClick={() => {
+                    setOtevrenaNabidkaPridat(false)
+                    setNatacimReel(true)
+                  }}
+                >
+                  <SocialIcon name="video" size={18} />
+                  <span>Natočit Reel</span>
+                </button>
+              )}
+            </div>
+            <div className="social-dialog-akce">
+              <button className="social-btn social-btn--tlumene" onClick={() => setOtevrenaNabidkaPridat(false)}>
+                Zrušit
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       {noveSoubory && (

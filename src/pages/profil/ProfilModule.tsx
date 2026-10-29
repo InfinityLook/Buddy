@@ -183,13 +183,18 @@ export const ProfilModule: React.FC = () => {
             />
           </div>
           <div className="profil-user-info">
-            <span className="profil-badge">✦ Buddy Parťák</span>
-            {/* Obyčejný uživatel žádný další tag nedostává — je to
-                výchozí stav, ne úspěch, který by stálo za to vyzdvihovat. */}
+            {/* "✦ Buddy Parťák" appka na žádost omezila na stejnou
+                podmínku jako tag role hned pod ním — obyčejný uživatel
+                (role.id === 'user') nedostává ani jeden, oba patří jen
+                VIP/moderátorovi/správci jako drobná výsada, ne výchozímu
+                stavu účtu. */}
             {aktivniRole.id !== 'user' && (
-              <span className={`profil-role-tag profil-role-tag--${aktivniRole.tone}`}>
-                {aktivniRole.icon} {aktivniRole.title}
-              </span>
+              <>
+                <span className="profil-badge">✦ Buddy Parťák</span>
+                <span className={`profil-role-tag profil-role-tag--${aktivniRole.tone}`}>
+                  {aktivniRole.icon} {aktivniRole.title}
+                </span>
+              </>
             )}
             <h2 className="profil-user-name">{profile.name}</h2>
             <p className="profil-user-bio">{profile.motto}</p>
