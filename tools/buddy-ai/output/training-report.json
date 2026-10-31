@@ -1,0 +1,313 @@
+{
+  "version": 1,
+  "createdAt": "2026-10-31T19:58:41.099Z",
+  "algorithm": "hashed-ngram-softmax-sgd",
+  "trainingOptions": {
+    "featureCount": 2048,
+    "epochs": 120,
+    "learningRate": 0.35,
+    "seed": 42
+  },
+  "thresholds": {
+    "minimumScore": 0.7,
+    "minimumMargin": 0.2
+  },
+  "trainingMilliseconds": 306,
+  "data": {
+    "categories": 13,
+    "trainingExamples": 168,
+    "validationExamples": 39,
+    "sha256": "bd792f770a718d80501b3d4fd3ff6fc3479e76f488b3a33660a1ee4af1aea37d"
+  },
+  "model": {
+    "file": "public/buddy-ai/model-v1.json",
+    "bytes": 223057,
+    "sha256": "86a5d734284f49d733e84a60b50408594e297a4f1858345354cfe0f6886e2a08"
+  },
+  "validation": {
+    "total": 39,
+    "accepted": 22,
+    "correct": 22,
+    "wrong": 0,
+    "abstained": 17,
+    "coverage": 0.5641025641025641,
+    "accuracyAmongAccepted": 1,
+    "correctOfAll": 0.5641025641025641,
+    "results": [
+      {
+        "text": "Ahoj příteli",
+        "expected": "greeting",
+        "predicted": null,
+        "score": 0.5189617416074493,
+        "margin": 0.31173583681777894
+      },
+      {
+        "text": "Hezký dobrý večer Buddy",
+        "expected": "greeting",
+        "predicted": "greeting",
+        "score": 0.9321961902067133,
+        "margin": 0.915153251911114
+      },
+      {
+        "text": "Zdravím svého parťáka",
+        "expected": "greeting",
+        "predicted": "greeting",
+        "score": 0.8949501502087467,
+        "margin": 0.8690123340615272
+      },
+      {
+        "text": "Můžeš se mi představit",
+        "expected": "identity",
+        "predicted": null,
+        "score": 0.5057230177866191,
+        "margin": 0.37365207197881983
+      },
+      {
+        "text": "Připomeň mi svoje jméno",
+        "expected": "identity",
+        "predicted": null,
+        "score": 0.5209965343577441,
+        "margin": 0.28038406418089346
+      },
+      {
+        "text": "S kým si právě píšu",
+        "expected": "identity",
+        "predicted": null,
+        "score": 0.19906647029094038,
+        "margin": 0.0012298351347882486
+      },
+      {
+        "text": "V čem mi dokážeš pomoct",
+        "expected": "help",
+        "predicted": null,
+        "score": 0.5292140221470799,
+        "margin": 0.4106846520184747
+      },
+      {
+        "text": "Potřebuji vysvětlit jak tě ovládat",
+        "expected": "help",
+        "predicted": "help",
+        "score": 0.9310275808709234,
+        "margin": 0.909797087447211
+      },
+      {
+        "text": "Ukaž přehled svých schopností",
+        "expected": "help",
+        "predicted": null,
+        "score": 0.4264166630812715,
+        "margin": 0.2788636756445957
+      },
+      {
+        "text": "Díky za tvoji pomoc",
+        "expected": "thanks",
+        "predicted": "thanks",
+        "score": 0.9160106441191536,
+        "margin": 0.8911052606215697
+      },
+      {
+        "text": "Tohle mi hodně pomohlo",
+        "expected": "thanks",
+        "predicted": null,
+        "score": 0.5788946353147513,
+        "margin": 0.4715605493921631
+      },
+      {
+        "text": "Mockrát ti děkuju",
+        "expected": "thanks",
+        "predicted": "thanks",
+        "score": 0.8491697353520115,
+        "margin": 0.8232131510341166
+      },
+      {
+        "text": "Pro dnešek se rozloučíme",
+        "expected": "goodbye",
+        "predicted": "goodbye",
+        "score": 0.7823126919530875,
+        "margin": 0.7172438257479912
+      },
+      {
+        "text": "Zase se ozvu tak se měj",
+        "expected": "goodbye",
+        "predicted": "goodbye",
+        "score": 0.924584269029998,
+        "margin": 0.8822085445132793
+      },
+      {
+        "text": "Hezkou dobrou noc",
+        "expected": "goodbye",
+        "predicted": "goodbye",
+        "score": 0.891673131568083,
+        "margin": 0.8635134763366278
+      },
+      {
+        "text": "Jak ti dneska je",
+        "expected": "small_talk",
+        "predicted": null,
+        "score": 0.45722545672705883,
+        "margin": 0.18591219657602198
+      },
+      {
+        "text": "Mám za sebou dobrý den",
+        "expected": "small_talk",
+        "predicted": null,
+        "score": 0.5587785815774295,
+        "margin": 0.35901268618764437
+      },
+      {
+        "text": "Dneska jsem docela unavená",
+        "expected": "small_talk",
+        "predicted": null,
+        "score": 0.45341077857317147,
+        "margin": 0.2407821507192935
+      },
+      {
+        "text": "Otevři mi prosím chat",
+        "expected": "open_module",
+        "predicted": "open_module",
+        "score": 0.7477925353461898,
+        "margin": 0.5561348280200332
+      },
+      {
+        "text": "Přesuň mě do nastavení",
+        "expected": "open_module",
+        "predicted": null,
+        "score": 0.6988167060139779,
+        "margin": 0.6300508999313739
+      },
+      {
+        "text": "Ukaž mi moje poznámky",
+        "expected": "open_module",
+        "predicted": null,
+        "score": 0.3815518205635102,
+        "margin": 0.0489217294965108
+      },
+      {
+        "text": "Ulož mi prosím novou poznámku",
+        "expected": "create_note",
+        "predicted": "create_note",
+        "score": 0.9402924671663762,
+        "margin": 0.8975410080806653
+      },
+      {
+        "text": "Potřebuju si poznamenat nápad",
+        "expected": "create_note",
+        "predicted": "create_note",
+        "score": 0.9410786575330399,
+        "margin": 0.9172246356755103
+      },
+      {
+        "text": "Zapiš poznámku: koupit učebnici",
+        "expected": "create_note",
+        "predicted": "create_note",
+        "score": 0.941655083049301,
+        "margin": 0.9049375283826645
+      },
+      {
+        "text": "Založ mi prosím nový úkol",
+        "expected": "create_task",
+        "predicted": "create_task",
+        "score": 0.8738147241766804,
+        "margin": 0.792830717797687
+      },
+      {
+        "text": "Přidej mi do plánu úkol na středu",
+        "expected": "create_task",
+        "predicted": "create_task",
+        "score": 0.9835871371069344,
+        "margin": 0.978735249910917
+      },
+      {
+        "text": "Vytvoř úkol: připravit podklady",
+        "expected": "create_task",
+        "predicted": "create_task",
+        "score": 0.7143519340319332,
+        "margin": 0.5618791145902868
+      },
+      {
+        "text": "Zapni mi prosím pomodoro",
+        "expected": "start_pomodoro",
+        "predicted": null,
+        "score": 0.39494653916535727,
+        "margin": 0.07425949686137256
+      },
+      {
+        "text": "Spusť pracovní blok na 35 minut",
+        "expected": "start_pomodoro",
+        "predicted": "start_pomodoro",
+        "score": 0.9917829077292878,
+        "margin": 0.9905036610379148
+      },
+      {
+        "text": "Začni časovač soustředění na 40 minut",
+        "expected": "start_pomodoro",
+        "predicted": "start_pomodoro",
+        "score": 0.9969965392014402,
+        "margin": 0.9963924792997579
+      },
+      {
+        "text": "Nastav vzhled na Polární záři",
+        "expected": "change_theme",
+        "predicted": "change_theme",
+        "score": 0.9196379048301658,
+        "margin": 0.8971083825554382
+      },
+      {
+        "text": "Použij prosím Lesní klid",
+        "expected": "change_theme",
+        "predicted": null,
+        "score": 0.2542283475924202,
+        "margin": 0.07256786388433792
+      },
+      {
+        "text": "Přepni mi motiv na Čistý den",
+        "expected": "change_theme",
+        "predicted": "change_theme",
+        "score": 0.9471762458160392,
+        "margin": 0.9373969137834479
+      },
+      {
+        "text": "Zruš prosím rozpracované zadání",
+        "expected": "cancel",
+        "predicted": "cancel",
+        "score": 0.7579050907540749,
+        "margin": 0.6775962496271603
+      },
+      {
+        "text": "Už v tom nechci pokračovat",
+        "expected": "cancel",
+        "predicted": null,
+        "score": 0.35961362238265354,
+        "margin": 0.06491507624202136
+      },
+      {
+        "text": "Celé to stornuj",
+        "expected": "cancel",
+        "predicted": "cancel",
+        "score": 0.7304363714997493,
+        "margin": 0.6596287620539281
+      },
+      {
+        "text": "Prosím neotevírej můj profil",
+        "expected": "unknown",
+        "predicted": null,
+        "score": 0.6371892810524229,
+        "margin": 0.4654752791835721
+      },
+      {
+        "text": "Nespouštěj mi časovač",
+        "expected": "unknown",
+        "predicted": "unknown",
+        "score": 0.7554481839664738,
+        "margin": 0.6800245597025969
+      },
+      {
+        "text": "Pošli peníze z mého účtu",
+        "expected": "unknown",
+        "predicted": null,
+        "score": 0.5751460974446134,
+        "margin": 0.5009671812330014
+      }
+    ]
+  },
+  "note": "Průběžná ověřovací sada slouží k ladění. Výsledek není nezávislý benchmark ani oprávnění provádět akce."
+}
