@@ -1,0 +1,82 @@
+name: Buddy - trénink modelu
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: buddy-ai-training-main
+  cancel-in-progress: false
+
+jobs:
+  train:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Načíst repozitář
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Připravit Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Natrénovat model
+        run: node --experimental-strip-types tools/buddy-ai/train.ts
+
+      - name: Zobrazit výsledky
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile, appendFile } from 'node:fs/promises'
+          const report = JSON.parse(await readFile('tools/buddy-ai/output/training-report.json', 'utf8'))
+          const result = report.validation
+          const lines = [
+            '### Výsledek trénování Buddyho',
+            `Trénovací příklady: ${report.data.trainingExamples}`,
+            `Správně z celé ověřovací sady: ${result.correct}/${result.total}`,
+            `Chybně zvolené kategorie: ${result.wrong}`,
+            `Bez rozhodnutí: ${result.abstained}`,
+            `Velikost modelu: ${report.model.bytes} bajtů`,
+            'Jde o průběžné ověření, nikoli nezávislý benchmark.',
+          ]
+          await appendFile(process.env.GITHUB_STEP_SUMMARY, lines.join('\n\n') + '\n')
+          NODE
+
+      - name: Přiložit soubory k výsledku běhu
+        uses: actions/upload-artifact@v6
+        with:
+          name: buddy-local-ai-v1
+          path: |
+            public/buddy-ai/model-v1.json
+            tools/buddy-ai/output/training-report.json
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Uložit model do hlavní větve
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin main
+
+          if [ "$(git rev-parse origin/main)" != "$GITHUB_SHA" ]; then
+            echo "Hlavní větev se během trénování změnila. Spusť workflow znovu."
+            exit 1
+          fi
+
+          git add -- public/buddy-ai/model-v1.json tools/buddy-ai/output/training-report.json
+
+          if git diff --cached --quiet; then
+            echo "Výsledky jsou již uložené."
+            exit 0
+          fi
+
+          git commit -m "Aktualizace místního modelu Buddy"
+          git push origin HEAD:main
