@@ -6,9 +6,15 @@ on:
       seconds:
         description: Maximální délka měření trénování v sekundách
         required: true
-        default: '60'
+        default: '120'
         type: choice
-        options: ['30', '60', '120']
+        options: ['60', '120', '180']
+      steps:
+        description: Maximální počet trénovacích kroků
+        required: true
+        default: '600'
+        type: choice
+        options: ['200', '600', '1000']
 
 permissions:
   contents: read
@@ -24,6 +30,7 @@ jobs:
     timeout-minutes: 15
     env:
       PILOT_SECONDS: ${{ inputs.seconds }}
+      PILOT_STEPS: ${{ inputs.steps }}
 
     steps:
       - name: Načíst kód
@@ -45,7 +52,7 @@ jobs:
         run: python tools/buddy-ai/chat_pilot.py --self-test
 
       - name: Změřit krátké trénování
-        run: python tools/buddy-ai/chat_pilot.py --seconds "$PILOT_SECONDS" --steps 200 --threads 2
+        run: python tools/buddy-ai/chat_pilot.py --seconds "$PILOT_SECONDS" --steps "$PILOT_STEPS" --threads 2
 
       - name: Uložit výsledky pilotu
         uses: actions/upload-artifact@v6
