@@ -1,0 +1,56 @@
+name: Buddy - pilot konverzace
+
+on:
+  workflow_dispatch:
+    inputs:
+      seconds:
+        description: Maximální délka měření trénování v sekundách
+        required: true
+        default: '60'
+        type: choice
+        options: ['30', '60', '120']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: buddy-chat-pilot-main
+  cancel-in-progress: false
+
+jobs:
+  pilot:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PILOT_SECONDS: ${{ inputs.seconds }}
+
+    steps:
+      - name: Načíst kód
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Připravit Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: tools/buddy-ai/chat_pilot.py
+
+      - name: Nainstalovat výpočetní knihovnu pro CPU
+        run: python -m pip install --disable-pip-version-check torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Ověřit základní vlastnosti
+        run: python tools/buddy-ai/chat_pilot.py --self-test
+
+      - name: Změřit krátké trénování
+        run: python tools/buddy-ai/chat_pilot.py --seconds "$PILOT_SECONDS" --steps 200 --threads 2
+
+      - name: Uložit výsledky pilotu
+        uses: actions/upload-artifact@v6
+        with:
+          name: buddy-chat-pilot-${{ github.run_id }}
+          path: tools/buddy-ai/chat-pilot-output/
+          if-no-files-found: error
+          retention-days: 1
