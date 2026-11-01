@@ -1,223 +1,182 @@
-import { normalizeIntentText, predictIntent } from './intentModel'
-import type { IntentModel } from './intentModel'
-import type { BuddyTaskDraft } from './taskParser'
+import { normalizeIntentText } from './intentModel'
+import type { TaskPriority } from '@/miniapps/study-planner/types'
 
-export type BuddyActionIntent =
-  | 'open_module' | 'create_note' | 'create_task'
-  | 'start_pomodoro' | 'change_theme'
+export interface BuddyTaskDraft {
+  title: string
+  dueDate: string | null
+  priority: TaskPriority | null
+}
 
-export type BuddyPendingAction =
-  | { intent: 'open_module'; field: 'target' }
-  | { intent: 'create_note'; field: 'content' }
-  | { intent: 'create_task'; field: 'title'; draft?: BuddyTaskDraft }
-  | {
-      intent: 'create_task'
-      field: 'due_date'
-      title: string
-      draft?: BuddyTaskDraft
+type TaskField = 'title' | 'due_date' | 'priority'
+
+const DAYS: Record<string, number> = {
+  pondeli: 1, utery: 2, streda: 3, stredu: 3, stredy: 3,
+  ctvrtek: 4, ctvrtka: 4, patek: 5, patku: 5, sobota: 6, sobotu: 6,
+  soboty: 6, nedele: 0, nedeli: 0,
+}
+
+/** Nejbližší den v týdnu zahrnuje dnešek; „příští“ znamená další kalendářní týden. */
+export const parseBuddyDate = (text: string, now = new Date()): string | null => {
+  const raw = text.trim().replace(/[,.!?;]+$/u, '')
+    .replace(/^(?:(?:pros[ií]m|buddy)[\s,]+)+|(?:[\s,]+(?:pros[ií]m|buddy))+$/giu, '')
+    .replace(/^(?:na|do|v|ve)\s+/iu, '')
+
+  if (/^za\b/iu.test(raw) && /[-−]\s*\d/u.test(raw)) return null
+
+  const value = normalizeIntentText(raw)
+  const date = new Date(now)
+  if (!Number.isFinite(date.getTime())) return null
+  date.setHours(12, 0, 0, 0)
+
+  const offsets: Record<string, number> = {
+    dnes: 0, dnesek: 0, zitra: 1, zitrek: 1, pozitri: 2, pozitrek: 2,
+  }
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw)
+  const relative = /^za (\d{1,3}) (?:den|dny|dnu|dni)$/.exec(value)
+  const nextWeek = value.startsWith('pristi ')
+  const dayName = nextWeek ? value.slice(7) : value
+  const weekday = DAYS[dayName]
+
+  if (iso) {
+    const [, year, month, day] = iso.map(Number)
+    date.setFullYear(year, month - 1, day)
+
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      return null
     }
-  | {
-      intent: 'create_task'
-      field: 'priority'
-      title: string
-      draft: BuddyTaskDraft
-    }
-  | { intent: 'start_pomodoro'; field: 'minutes' }
-  | { intent: 'change_theme'; field: 'theme' }
+  } else if (Object.prototype.hasOwnProperty.call(offsets, value)) {
+    date.setDate(date.getDate() + offsets[value])
+  } else if (relative) {
+    const days = Number(relative[1])
+    if (days < 1 || days > 365) return null
+    date.setDate(date.getDate() + days)
+  } else if (Object.prototype.hasOwnProperty.call(DAYS, dayName)) {
+    const offset = nextWeek
+      ? 7 - ((date.getDay() + 6) % 7) + ((weekday + 6) % 7)
+      : (weekday - date.getDay() + 7) % 7
 
-export interface BuddyActionRequest {
-  intent: BuddyActionIntent
-  text: string
-  pending: BuddyPendingAction | null
-  signal: AbortSignal
-}
-
-export type BuddyActionResult =
-  | { status: 'done'; text: string }
-  | { status: 'error'; text: string }
-  | { status: 'question'; text: string; pending: BuddyPendingAction }
-
-export type BuddyActionExecutor = (
-  request: BuddyActionRequest,
-) => BuddyActionResult | Promise<BuddyActionResult>
-
-export interface BuddyDialogue {
-  reply: (text: string) => Promise<string>
-  reset: () => void
-}
-
-const ACTIONS: readonly string[] = [
-  'open_module', 'create_note', 'create_task',
-  'start_pomodoro', 'change_theme',
-]
-
-const isActionIntent = (value: string | null): value is BuddyActionIntent =>
-  value !== null && ACTIONS.includes(value)
-
-const CANCEL_PHRASES = new Set([
-  'zrus to', 'zrusit', 'storno', 'nech to byt', 'nic nedelej',
-  'rozmyslel jsem si to', 'uz to nechci', 'prestan s tim',
-  'zrus rozpracovany pozadavek', 'zrus zadavani', 'vratme se zp atky',
-  'ted to nechame', 'zrus rozpracovane zadani',
-  'uz v tom nechci pokracovat', 'cele to stornuj',
-  'zrus aktualni pozadavek', 'stornuj zadani', 'nechme to byt',
-  'rozmyslela jsem si to', 'zrus celou akci', 'uz nechci pokracovat',
-  'ukonci zadavani', 'zahod rozpracovane zadani', 'radeji to zrus',
-  'odvolej muj pozadavek', 'prerus tento pozadavek', 'zrus posledni zadani',
-  'zrus aktualni zadani', 'prerus muj pozadavek', 'stornuj to',
-  'vratme se zpatky',
-])
-
-const FALLBACK =
-  'Tomuhle zatím nerozumím dost jistě. Zkus to prosím kratší větou nebo napiš co umíš.'
-
-const isBlockedCommand = (text: string): boolean => {
-  // Text za dvojtečkou může být obsah poznámky, nikoli další pokyn.
-  const head = normalizeIntentText(text.split(':', 1)[0])
-  const negative =
-    /\b(nechci|neotevir\w*|neotvir\w*|nespoust\w*|neuklad\w*|nepridav\w*|nemen|nevytvar\w*|nepis|nepouziv\w*)\b/
-  const explanation =
-    /^(co znamena|jak funguje prikaz|kdyz reknu|jen vysvetli|vysvetli mi)\b/
-  const multiple =
-    /\b(a pak|a potom|potom|pak) (otevri|spust|zapis|pridej|smaz|zmen)\b/
-
-  return negative.test(head) || explanation.test(head) || multiple.test(head)
-}
-
-/** Každý rozhovor má vlastní krátkodobý stav. */
-export const createBuddyDialogue = (
-  model: IntentModel,
-  executeAction?: BuddyActionExecutor,
-): BuddyDialogue => {
-  let pending: BuddyPendingAction | null = null
-  let inFlight: AbortController | null = null
-
-  const reset = () => {
-    inFlight?.abort()
-    inFlight = null
-    pending = null
+    date.setDate(date.getDate() + offset)
+  } else {
+    return null
   }
 
-  const reply = async (text: string): Promise<string> => {
-    const raw = text.trim()
+  const year = date.getFullYear()
+  if (!Number.isFinite(date.getTime()) || year < 1000 || year > 9999) return null
 
-    if (!raw) return 'Napiš mi prosím zprávu nebo použij mikrofon.'
-    if (raw.length > 500) return 'Zkus prosím zprávu do 500 znaků.'
+  return `${year}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(
+    date.getDate(),
+  ).padStart(2, '0')}`
+}
 
-    const normalized = normalizeIntentText(raw)
-    const control = normalized
-      .replace(/\bprosim\b/g, '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .replace(/^(?:buddy\s+)+|(?:\s+buddy)+$/g, '')
-      .trim()
+const parsePriority = (text: string): TaskPriority | null => {
+  const value = normalizeIntentText(text)
+    .replace(/\b(prosim|buddy)\b/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
 
-    if (CANCEL_PHRASES.has(control)) {
-      const hadRequest = pending !== null || inFlight !== null
-      reset()
+  if (/^vysok(?:a|ou)$/.test(value)) return 'Vysoká'
+  if (value === 'stredni') return 'Střední'
+  if (/^nizk(?:a|ou)$/.test(value)) return 'Nízká'
+  return null
+}
 
-      return hadRequest
-        ? 'Rozpracované zadání jsem zrušil.'
-        : 'Dobře. Žádné rozpracované zadání tu není.'
-    }
+const isDateCandidate = (text: string): boolean => {
+  const value = normalizeIntentText(text)
 
-    if (inFlight) {
-      return 'Ještě zpracovávám předchozí požadavek. Chvilku prosím.'
-    }
+  return /^\d{4}-/.test(text) ||
+    /^(dnes|dnesek|zitra|zitrek|pozitri|pozitrek|za|pristi|pondeli|utery|streda|stredu|stredy|ctvrtek|ctvrtka|patek|patku|sobota|sobotu|soboty|nedele|nedeli)\b/.test(value)
+}
 
-    if (['co umis', 'napoveda', 'pomoc'].includes(control)) {
-      return executeAction
-        ? 'Pomůžu ti otevřít moduly, zapsat poznámku nebo úkol, spustit Pomodoro a změnit motiv. Rozpracované zadání zrušíš slovy zruš to.'
-        : 'Můžeme si krátce popovídat. Rozpoznávám také příkazy pro poznámky, úkoly, Pomodoro a vzhled; jejich provedení závisí na dostupném ovládání aplikace.'
-    }
+/** Zpracovává obsah za slovem „úkol“, nikoli libovolné další příkazy. */
+export const parseBuddyTask = (
+  text: string,
+  now = new Date(),
+  field: TaskField = 'title',
+): BuddyTaskDraft & { hasDate: boolean; hasPriority: boolean } => {
+  let remaining = text.trim()
+  let dueDate: string | null = null
+  let priority: TaskPriority | null = 'Střední'
+  let dates = 0
+  let priorities = 0
 
-    // Při doplňování jsou další zprávy údaji k původnímu požadavku.
-    let intent: string | null = pending?.intent ?? null
+  // Odebíráme pouze rozpoznané koncové údaje.
+  // Název si zachová původní text.
+  for (let step = 0; step < 8; step += 1) {
+    const words = [...remaining.matchAll(/\S+/gu)].map((match) => ({
+      raw: match[0],
+      start: match.index,
+      value: normalizeIntentText(match[0]),
+    }))
+    let changed = false
 
-    if (!pending) {
-      if (isBlockedCommand(raw)) {
-        return 'Rozumím. Podle této zprávy nebudu spouštět žádnou akci.'
+    for (let i = words.length - 1; i >= 0; i -= 1) {
+      const word = words[i]
+      const rest = remaining.slice(word.start)
+      let priorityText: string | null = null
+
+      if (/^priorita\s*:/iu.test(rest)) {
+        priorityText = rest.replace(/^priorita\s*:\s*/iu, '')
+      } else if (word.value === 's' && i + 1 < words.length) {
+        if (words[i + 1].value === 'prioritou') {
+          priorityText = words.slice(i + 2).map((item) => item.raw).join(' ')
+        } else if (words.at(-1)?.value === 'prioritou') {
+          priorityText = words.slice(i + 1, -1).map((item) => item.raw).join(' ')
+        }
       }
 
-      intent = predictIntent(model, raw).intent
+      if (priorityText !== null) {
+        priorities += 1
+        priority = priorities === 1 ? parsePriority(priorityText) : null
+        remaining = remaining.slice(0, word.start).replace(/[\s,;]+$/u, '')
+        changed = true
+        break
+      }
 
-      switch (intent) {
-        case 'greeting':
-          return 'Ahoj, jsem tady. Co spolu dnes vyřídíme?'
+      const candidate = word.value === 'za'
+        ? rest
+        : ['na', 'do', 'v', 've'].includes(word.value) && i + 1 < words.length
+          ? remaining.slice(words[i + 1].start)
+          : ''
 
-        case 'identity':
-          return 'Jsem Buddy, tvůj pomocník v aplikaci. Mým úkolem je usnadnit ti její používání.'
-
-        case 'help':
-          return 'Zkus třeba vytvoř poznámku nebo otevři chat. Když budou chybět údaje, zeptám se. Rozpracované zadání zrušíš slovy zruš to.'
-
-        case 'thanks':
-          return 'Rádo se stalo. S čím dalším ti pomůžu?'
-
-        case 'goodbye':
-          reset()
-          return 'Měj se hezky. Až budeš něco potřebovat, zase se ozvi.'
-
-        case 'small_talk':
-          if (/unaven|povzbud/.test(normalized)) {
-            return 'Můžeme to vzít po malých krocích. Jakou jednu věc chceš teď vyřešit?'
-          }
-
-          if (/mam se dobre|dobrou naladu|zvladl/.test(normalized)) {
-            return 'To rád slyším. Chceš na něco navázat, nebo si jen chvíli psát?'
-          }
-
-          return 'Jsem připravený pomoct a můžeme si i krátce popovídat. Jak se dnes daří tobě?'
-
-        case 'cancel':
-          reset()
-          return 'Dobře, začneme od začátku. Co potřebuješ?'
+      if (candidate && isDateCandidate(candidate)) {
+        dates += 1
+        dueDate = dates === 1 ? parseBuddyDate(candidate, now) : null
+        remaining = remaining.slice(0, word.start).replace(/[\s,;]+$/u, '')
+        changed = true
+        break
       }
     }
 
-    if (!isActionIntent(intent)) return FALLBACK
-
-    if (!executeAction) {
-      return 'Tuto akci teď nemám dostupnou. Můžeme si zatím psát.'
-    }
-
-    const controller = new AbortController()
-    inFlight = controller
-
-    try {
-      const result = await executeAction({
-        intent,
-        text: raw,
-        pending,
-        signal: controller.signal,
-      })
-
-      if (controller.signal.aborted) {
-        throw new DOMException('Požadavek byl zastaven.', 'AbortError')
-      }
-
-      if (!result.text.trim()) {
-        throw new Error('Chybí odpověď po zpracování požadavku.')
-      }
-
-      if (result.status === 'question' && result.pending.intent !== intent) {
-        throw new Error('Doplňující otázka patří k jinému požadavku.')
-      }
-
-      pending = result.status === 'question' ? result.pending : null
-
-      return result.text
-    } catch {
-      if (controller.signal.aborted) {
-        throw new DOMException('Požadavek byl zastaven.', 'AbortError')
-      }
-
-      pending = null
-      return 'Požadavek se nepodařilo dokončit. Zkus to prosím znovu.'
-    } finally {
-      if (inFlight === controller) inFlight = null
-    }
+    if (!changed) break
   }
 
-  return { reply, reset }
+  if (field === 'due_date') {
+    if (remaining || dates === 0) {
+      dates += 1
+      dueDate = dates === 1 ? parseBuddyDate(remaining, now) : null
+    }
+    remaining = ''
+  } else if (field === 'priority') {
+    if (remaining || priorities === 0) {
+      priorities += 1
+      priority = priorities === 1 ? parsePriority(remaining) : null
+    }
+    remaining = ''
+  } else if (remaining && parseBuddyDate(remaining, now)) {
+    dates += 1
+    dueDate = dates === 1 ? parseBuddyDate(remaining, now) : null
+    remaining = ''
+  }
+
+  return {
+    title: remaining,
+    dueDate,
+    priority,
+    hasDate: dates > 0,
+    hasPriority: priorities > 0,
+  }
 }
