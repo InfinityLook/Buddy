@@ -452,3 +452,109 @@ def main():
         last_loss = float(loss.detach())
 
         if steps % 10 == 0:
+                        print(f"Krok {steps}, trénovací ztráta {last_loss:.4f}", flush=True)
+
+    elapsed = time.perf_counter() - started
+    after = evaluate(model, validation_rows)
+    output = args.out.resolve()
+    output.mkdir(parents=True, exist_ok=True)
+    weights = export_weights(model, output)
+
+    manifest = {
+        "version": 1,
+        "architecture": "buddy-transformer-v1",
+        "config": CONFIG,
+        **weights,
+        "activation": "gelu-erf",
+        "layerNormEpsilon": 0.00001,
+        "tokenizer": {
+            "type": "byte-bpe-v1",
+            "byteOffset": 6,
+            "merges": tokenizer.merges,
+            "activeVocabulary": len(tokenizer.pieces),
+            "specialTokens": {
+                "pad": PAD,
+                "bos": BOS,
+                "eos": EOS,
+                "user": USER,
+                "assistant": ASSISTANT,
+                "sep": SEP,
+            },
+        },
+        "tiedOutputWeight": "tokens.weight",
+    }
+
+    report = {
+        "version": 1,
+        "torch": torch.__version__,
+        "config": CONFIG,
+        "dataSha256": data_hash,
+        "parameters": sum(p.numel() for p in model.parameters()),
+        "activeVocabulary": len(tokenizer.pieces),
+        "trainingConversations": len(data["training"]),
+        "validationConversations": len(data["validation"]),
+        "stepsThisRun": steps,
+        "stepsTotal": previous_steps + steps,
+        "trainingSeconds": round(elapsed, 3),
+        "averageStepMs": round(1000 * elapsed / max(steps, 1), 2),
+        "supervisedTokensPerSecond": round(
+            supervised / max(elapsed, 0.001), 2
+        ),
+        "validationLossBefore": before,
+        "validationLossAfter": after,
+        "lastTrainingLoss": last_loss,
+        "modelBytes": weights["bytes"],
+        "modelSha256": weights["sha256"],
+        "example": generate_example(model, tokenizer),
+        "note": (
+            "Malá autorská sada a pilot měří technickou funkčnost. "
+            "Ztráta není procento správnosti ani důkaz plynulé komunikace."
+        ),
+    }
+
+    torch.save({
+        "architecture": "buddy-transformer-v1",
+        "config": CONFIG,
+        "dataSha256": data_hash,
+        "tokenizerMerges": tokenizer.merges,
+        "model": model.state_dict(),
+        "optimizer": optimizer.state_dict(),
+        "generator": generator.get_state(),
+        "steps": previous_steps + steps,
+    }, output / "checkpoint.pt")
+
+    report["peakTrainingProcessMiB"] = peak_memory_mib()
+
+    for name, value in (
+        ("manifest.json", manifest),
+        ("report.json", report),
+    ):
+        (output / name).write_text(
+            json.dumps(value, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+
+    summary = (
+        f"### Pilot konverzačního modelu\n\n"
+        f"Parametry: {report['parameters']:,}\n\n"
+        f"Váhy: {report['modelBytes']:,} bajtů\n\n"
+        f"Kroky tohoto běhu: {steps}\n\n"
+        f"Trénování: {elapsed:.2f} s; "
+        f"průměrný krok: {report['averageStepMs']} ms\n\n"
+        f"Špička RAM trénovacího procesu: "
+        f"{report['peakTrainingProcessMiB']} MiB "
+        f"(není měření telefonu)\n\n"
+        f"Ověřovací ztráta: {before:.4f} → {after:.4f}\n\n"
+        f"{report['note']}\n"
+    )
+    print(summary, flush=True)
+
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with Path(os.environ["GITHUB_STEP_SUMMARY"]).open(
+            "a", encoding="utf-8"
+        ) as file:
+            file.write(summary)
+
+
+if __name__ == "__main__":
+    main()
