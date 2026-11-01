@@ -161,3 +161,4 @@ export const useQuickNotes = () => {
     togglePin,
   }
 }
+export const getQuickNotesState = () => useQuickNotesStore.getState()
