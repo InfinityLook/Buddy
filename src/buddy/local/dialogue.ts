@@ -72,6 +72,18 @@ const CANCEL_PHRASES = new Set([
 const FALLBACK =
   'Tomuhle zatím nerozumím dost jistě. Zkus to prosím kratší větou nebo napiš co umíš.'
 
+const NOTE_PREFIX = 'Vytvoř poznámku: '
+const MAX_SAVED_REPLY_LENGTH = 500 - NOTE_PREFIX.length
+const SAVE_LAST_REPLY = new Set([
+  'uloz posledni odpoved do poznamky',
+  'uloz tvoji posledni odpoved do poznamky',
+  'uloz tvou posledni odpoved do poznamky',
+  'uloz posledni odpoved jako poznamku',
+  'zapis posledni odpoved do poznamky',
+  'vytvor poznamku z posledni odpovedi',
+  'vytvor poznamku z tve posledni odpovedi',
+])
+
 const NEW_CONVERSATION = new Set([
   'novy rozhovor', 'zacni novy rozhovor',
   'zapomen tento rozhovor', 'zapomen nas rozhovor',
@@ -108,12 +120,24 @@ export const createBuddyDialogue = (
   let pending: BuddyPendingAction | null = null
   let inFlight: AbortController | null = null
   const memory = createBuddyConversationMemory()
+  let lastReply: string | null = null
+  let replyTooLong = false
+
+  // Uchováváme jen konverzační odpověď, nejvýše do limitu jedné poznámky.
+  const remember = (answer: string): string => {
+    const content = answer.trim()
+    replyTooLong = content.length > MAX_SAVED_REPLY_LENGTH
+    lastReply = replyTooLong ? null : content || null
+    return answer
+  }
 
   const reset = () => {
     inFlight?.abort()
     inFlight = null
     pending = null
     memory.reset()
+    lastReply = null
+    replyTooLong = false
   }
 
   const reply = async (text: string): Promise<string> => {
@@ -149,63 +173,74 @@ export const createBuddyDialogue = (
     }
 
     if (['co umis', 'napoveda', 'pomoc'].includes(control)) {
-      return executeAction
-        ? 'Pomůžu ti otevřít moduly, zapsat poznámku nebo úkol, spustit Pomodoro a změnit motiv. Rozpracované zadání zrušíš slovy zruš to.'
-        : 'Můžeme si krátce popovídat. Rozpoznávám také příkazy pro poznámky, úkoly, Pomodoro a vzhled; jejich provedení závisí na dostupném ovládání aplikace.'
+      return remember(executeAction
+        ? 'Pomůžu ti otevřít moduly, zapsat poznámku nebo úkol, spustit Pomodoro a změnit motiv. Konverzační odpověď uložíš příkazem Ulož poslední odpověď do poznámky. Rozpracované zadání zrušíš slovy zruš to.'
+        : 'Můžeme si krátce popovídat. Rozpoznávám také příkazy pro poznámky, úkoly, Pomodoro a vzhled; jejich provedení závisí na dostupném ovládání aplikace.')
     }
 
     // Při doplňování jsou další zprávy údaji k původnímu požadavku.
     let intent: string | null = pending?.intent ?? null
+    let actionText = raw
 
     if (!pending) {
       if (isBlockedCommand(raw)) {
         if (wantsFreeConversation(raw) || isConversationControl(raw)) {
-          return memory.reply(raw) ?? 'Jasně. O čem by sis chtěl povídat?'
+          return remember(memory.reply(raw) ?? 'Jasně. O čem by sis chtěl povídat?')
         }
         return 'Rozumím. Podle této zprávy nebudu spouštět žádnou akci.'
       }
 
-      // Obsah za dvojtečkou nemění záměr přímého příkazu.
-      const head = raw.split(':', 1)[0]
-      const intentText = raw.includes(':') && isExplicitActionRequest(head) ? head : raw
-      intent = predictIntent(model, intentText).intent
+      if (SAVE_LAST_REPLY.has(control)) {
+        if (!lastReply) {
+          return replyTooLong
+            ? 'Poslední odpověď je pro tento příkaz příliš dlouhá. Zkopíruj a zkrať ji prosím.'
+            : 'Zatím nemám konverzační odpověď k uložení. Nejdřív si něco probereme.'
+        }
+        intent = 'create_note'
+        actionText = NOTE_PREFIX + lastReply
+      } else {
+        // Obsah za dvojtečkou nemění záměr přímého příkazu.
+        const head = raw.split(':', 1)[0]
+        const intentText = raw.includes(':') && isExplicitActionRequest(head) ? head : raw
+        intent = predictIntent(model, intentText).intent
 
-      if (!isExplicitActionRequest(raw)) {
-        const answer = memory.reply(raw, intent)
-        if (answer !== null) return answer
-      }
+        if (!isExplicitActionRequest(raw)) {
+          const answer = memory.reply(raw, intent)
+          if (answer !== null) return remember(answer)
+        }
 
-      switch (intent) {
-        case 'greeting':
-          return 'Ahoj, jsem tady. Co spolu dnes vyřídíme?'
+        switch (intent) {
+          case 'greeting':
+            return remember('Ahoj, jsem tady. Co spolu dnes vyřídíme?')
 
-        case 'identity':
-          return 'Jsem Buddy, tvůj pomocník v aplikaci. Mým úkolem je usnadnit ti její používání.'
+          case 'identity':
+            return remember('Jsem Buddy, tvůj pomocník v aplikaci. Mým úkolem je usnadnit ti její používání.')
 
-        case 'help':
-          return 'Zkus třeba vytvoř poznámku nebo otevři chat. Když budou chybět údaje, zeptám se. Rozpracované zadání zrušíš slovy zruš to.'
+          case 'help':
+            return remember('Zkus třeba vytvoř poznámku nebo otevři chat. Když budou chybět údaje, zeptám se. Konverzační odpověď uložíš příkazem Ulož poslední odpověď do poznámky. Rozpracované zadání zrušíš slovy zruš to.')
 
-        case 'thanks':
-          return 'Rádo se stalo. S čím dalším ti pomůžu?'
+          case 'thanks':
+            return remember('Rádo se stalo. S čím dalším ti pomůžu?')
 
-        case 'goodbye':
-          reset()
-          return 'Měj se hezky. Až budeš něco potřebovat, zase se ozvi.'
+          case 'goodbye':
+            reset()
+            return 'Měj se hezky. Až budeš něco potřebovat, zase se ozvi.'
 
-        case 'small_talk':
-          if (/unaven|povzbud/.test(normalized)) {
-            return 'Můžeme to vzít po malých krocích. Jakou jednu věc chceš teď vyřešit?'
-          }
+          case 'small_talk':
+            if (/unaven|povzbud/.test(normalized)) {
+              return remember('Můžeme to vzít po malých krocích. Jakou jednu věc chceš teď vyřešit?')
+            }
 
-          if (/mam se dobre|dobrou naladu|zvladl/.test(normalized)) {
-            return 'To rád slyším. Chceš na něco navázat, nebo si jen chvíli psát?'
-          }
+            if (/mam se dobre|dobrou naladu|zvladl/.test(normalized)) {
+              return remember('To rád slyším. Chceš na něco navázat, nebo si jen chvíli psát?')
+            }
 
-          return 'Jsem připravený pomoct a můžeme si i krátce popovídat. Jak se dnes daří tobě?'
+            return remember('Jsem připravený pomoct a můžeme si i krátce popovídat. Jak se dnes daří tobě?')
 
-        case 'cancel':
-          reset()
-          return 'Dobře, začneme od začátku. Co potřebuješ?'
+          case 'cancel':
+            reset()
+            return 'Dobře, začneme od začátku. Co potřebuješ?'
+        }
       }
     }
 
@@ -222,7 +257,7 @@ export const createBuddyDialogue = (
     try {
       const result = await executeAction({
         intent,
-        text: raw,
+        text: actionText,
         pending,
         signal: controller.signal,
       })
@@ -255,4 +290,4 @@ export const createBuddyDialogue = (
   }
 
   return { reply, reset }
-}
+    }
