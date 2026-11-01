@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "createdAt": "2026-10-31T19:58:41.099Z",
+  "createdAt": "2026-11-01T11:03:09.721Z",
   "algorithm": "hashed-ngram-softmax-sgd",
   "trainingOptions": {
     "featureCount": 2048,
@@ -12,300 +12,300 @@
     "minimumScore": 0.7,
     "minimumMargin": 0.2
   },
-  "trainingMilliseconds": 306,
+  "trainingMilliseconds": 1668,
   "data": {
     "categories": 13,
-    "trainingExamples": 168,
+    "trainingExamples": 1078,
     "validationExamples": 39,
-    "sha256": "bd792f770a718d80501b3d4fd3ff6fc3479e76f488b3a33660a1ee4af1aea37d"
+    "sha256": "c371aa8dfb74f0afd3835b0ec16617a06c26058528887cb50d32d3b772d4a527"
   },
   "model": {
     "file": "public/buddy-ai/model-v1.json",
-    "bytes": 223057,
-    "sha256": "86a5d734284f49d733e84a60b50408594e297a4f1858345354cfe0f6886e2a08"
+    "bytes": 245218,
+    "sha256": "d5e29034cdd4c4a898f2057557b23181788b7398733702387f56072511286e52"
   },
   "validation": {
     "total": 39,
-    "accepted": 22,
-    "correct": 22,
+    "accepted": 36,
+    "correct": 36,
     "wrong": 0,
-    "abstained": 17,
-    "coverage": 0.5641025641025641,
+    "abstained": 3,
+    "coverage": 0.9230769230769231,
     "accuracyAmongAccepted": 1,
-    "correctOfAll": 0.5641025641025641,
+    "correctOfAll": 0.9230769230769231,
     "results": [
       {
         "text": "Ahoj příteli",
         "expected": "greeting",
         "predicted": null,
-        "score": 0.5189617416074493,
-        "margin": 0.31173583681777894
+        "score": 0.46509970696610103,
+        "margin": 0.03353009559134401
       },
       {
         "text": "Hezký dobrý večer Buddy",
         "expected": "greeting",
         "predicted": "greeting",
-        "score": 0.9321961902067133,
-        "margin": 0.915153251911114
+        "score": 0.9853437615764737,
+        "margin": 0.9775691676659644
       },
       {
         "text": "Zdravím svého parťáka",
         "expected": "greeting",
         "predicted": "greeting",
-        "score": 0.8949501502087467,
-        "margin": 0.8690123340615272
+        "score": 0.9872106226319082,
+        "margin": 0.9822183882500217
       },
       {
         "text": "Můžeš se mi představit",
         "expected": "identity",
-        "predicted": null,
-        "score": 0.5057230177866191,
-        "margin": 0.37365207197881983
+        "predicted": "identity",
+        "score": 0.7701609313573525,
+        "margin": 0.7004919222768771
       },
       {
         "text": "Připomeň mi svoje jméno",
         "expected": "identity",
-        "predicted": null,
-        "score": 0.5209965343577441,
-        "margin": 0.28038406418089346
+        "predicted": "identity",
+        "score": 0.973061582947929,
+        "margin": 0.9590930136758343
       },
       {
         "text": "S kým si právě píšu",
         "expected": "identity",
         "predicted": null,
-        "score": 0.19906647029094038,
-        "margin": 0.0012298351347882486
+        "score": 0.26294307195750455,
+        "margin": 0.0477837609629016
       },
       {
         "text": "V čem mi dokážeš pomoct",
         "expected": "help",
-        "predicted": null,
-        "score": 0.5292140221470799,
-        "margin": 0.4106846520184747
+        "predicted": "help",
+        "score": 0.9665366253020984,
+        "margin": 0.9549621532734065
       },
       {
         "text": "Potřebuji vysvětlit jak tě ovládat",
         "expected": "help",
         "predicted": "help",
-        "score": 0.9310275808709234,
-        "margin": 0.909797087447211
+        "score": 0.9892926952061283,
+        "margin": 0.9840937731080905
       },
       {
         "text": "Ukaž přehled svých schopností",
         "expected": "help",
         "predicted": null,
-        "score": 0.4264166630812715,
-        "margin": 0.2788636756445957
+        "score": 0.6426114977126309,
+        "margin": 0.36482666240186595
       },
       {
         "text": "Díky za tvoji pomoc",
         "expected": "thanks",
         "predicted": "thanks",
-        "score": 0.9160106441191536,
-        "margin": 0.8911052606215697
+        "score": 0.994672721634658,
+        "margin": 0.9912265411561387
       },
       {
         "text": "Tohle mi hodně pomohlo",
         "expected": "thanks",
-        "predicted": null,
-        "score": 0.5788946353147513,
-        "margin": 0.4715605493921631
+        "predicted": "thanks",
+        "score": 0.9214362260566806,
+        "margin": 0.8971097877017793
       },
       {
         "text": "Mockrát ti děkuju",
         "expected": "thanks",
         "predicted": "thanks",
-        "score": 0.8491697353520115,
-        "margin": 0.8232131510341166
+        "score": 0.9911330257595972,
+        "margin": 0.9887026615771732
       },
       {
         "text": "Pro dnešek se rozloučíme",
         "expected": "goodbye",
         "predicted": "goodbye",
-        "score": 0.7823126919530875,
-        "margin": 0.7172438257479912
+        "score": 0.956634483715079,
+        "margin": 0.9427528877109116
       },
       {
         "text": "Zase se ozvu tak se měj",
         "expected": "goodbye",
         "predicted": "goodbye",
-        "score": 0.924584269029998,
-        "margin": 0.8822085445132793
+        "score": 0.9981526814925629,
+        "margin": 0.9967466108939167
       },
       {
         "text": "Hezkou dobrou noc",
         "expected": "goodbye",
         "predicted": "goodbye",
-        "score": 0.891673131568083,
-        "margin": 0.8635134763366278
+        "score": 0.9862226386109528,
+        "margin": 0.9815210434689543
       },
       {
         "text": "Jak ti dneska je",
         "expected": "small_talk",
-        "predicted": null,
-        "score": 0.45722545672705883,
-        "margin": 0.18591219657602198
+        "predicted": "small_talk",
+        "score": 0.868698727214267,
+        "margin": 0.7921546615807764
       },
       {
         "text": "Mám za sebou dobrý den",
         "expected": "small_talk",
-        "predicted": null,
-        "score": 0.5587785815774295,
-        "margin": 0.35901268618764437
+        "predicted": "small_talk",
+        "score": 0.8176628818089701,
+        "margin": 0.6750446640198957
       },
       {
         "text": "Dneska jsem docela unavená",
         "expected": "small_talk",
-        "predicted": null,
-        "score": 0.45341077857317147,
-        "margin": 0.2407821507192935
+        "predicted": "small_talk",
+        "score": 0.9609618053071814,
+        "margin": 0.9427083102511312
       },
       {
         "text": "Otevři mi prosím chat",
         "expected": "open_module",
         "predicted": "open_module",
-        "score": 0.7477925353461898,
-        "margin": 0.5561348280200332
+        "score": 0.9858889821741371,
+        "margin": 0.9748434497445596
       },
       {
         "text": "Přesuň mě do nastavení",
         "expected": "open_module",
-        "predicted": null,
-        "score": 0.6988167060139779,
-        "margin": 0.6300508999313739
+        "predicted": "open_module",
+        "score": 0.9774929340181254,
+        "margin": 0.9676118586559506
       },
       {
         "text": "Ukaž mi moje poznámky",
         "expected": "open_module",
-        "predicted": null,
-        "score": 0.3815518205635102,
-        "margin": 0.0489217294965108
+        "predicted": "open_module",
+        "score": 0.9886874745670051,
+        "margin": 0.9839767465749167
       },
       {
         "text": "Ulož mi prosím novou poznámku",
         "expected": "create_note",
         "predicted": "create_note",
-        "score": 0.9402924671663762,
-        "margin": 0.8975410080806653
+        "score": 0.9946433996242539,
+        "margin": 0.9899077478996652
       },
       {
         "text": "Potřebuju si poznamenat nápad",
         "expected": "create_note",
         "predicted": "create_note",
-        "score": 0.9410786575330399,
-        "margin": 0.9172246356755103
+        "score": 0.9984095988450251,
+        "margin": 0.9977291847763391
       },
       {
         "text": "Zapiš poznámku: koupit učebnici",
         "expected": "create_note",
         "predicted": "create_note",
-        "score": 0.941655083049301,
-        "margin": 0.9049375283826645
+        "score": 0.9695370894623182,
+        "margin": 0.9406249070096634
       },
       {
         "text": "Založ mi prosím nový úkol",
         "expected": "create_task",
         "predicted": "create_task",
-        "score": 0.8738147241766804,
-        "margin": 0.792830717797687
+        "score": 0.9941748707138574,
+        "margin": 0.9895720500573415
       },
       {
         "text": "Přidej mi do plánu úkol na středu",
         "expected": "create_task",
         "predicted": "create_task",
-        "score": 0.9835871371069344,
-        "margin": 0.978735249910917
+        "score": 0.9951701210958368,
+        "margin": 0.991262302395549
       },
       {
         "text": "Vytvoř úkol: připravit podklady",
         "expected": "create_task",
         "predicted": "create_task",
-        "score": 0.7143519340319332,
-        "margin": 0.5618791145902868
+        "score": 0.9211733579919754,
+        "margin": 0.8500197676434945
       },
       {
         "text": "Zapni mi prosím pomodoro",
         "expected": "start_pomodoro",
-        "predicted": null,
-        "score": 0.39494653916535727,
-        "margin": 0.07425949686137256
+        "predicted": "start_pomodoro",
+        "score": 0.9698216843168759,
+        "margin": 0.9497707676072061
       },
       {
         "text": "Spusť pracovní blok na 35 minut",
         "expected": "start_pomodoro",
         "predicted": "start_pomodoro",
-        "score": 0.9917829077292878,
-        "margin": 0.9905036610379148
+        "score": 0.9983693286408121,
+        "margin": 0.9973802037854277
       },
       {
         "text": "Začni časovač soustředění na 40 minut",
         "expected": "start_pomodoro",
         "predicted": "start_pomodoro",
-        "score": 0.9969965392014402,
-        "margin": 0.9963924792997579
+        "score": 0.9989767231764237,
+        "margin": 0.9980780469569985
       },
       {
         "text": "Nastav vzhled na Polární záři",
         "expected": "change_theme",
         "predicted": "change_theme",
-        "score": 0.9196379048301658,
-        "margin": 0.8971083825554382
+        "score": 0.9985573551710678,
+        "margin": 0.9978547059330368
       },
       {
         "text": "Použij prosím Lesní klid",
         "expected": "change_theme",
-        "predicted": null,
-        "score": 0.2542283475924202,
-        "margin": 0.07256786388433792
+        "predicted": "change_theme",
+        "score": 0.9142125519238153,
+        "margin": 0.8794500485003562
       },
       {
         "text": "Přepni mi motiv na Čistý den",
         "expected": "change_theme",
         "predicted": "change_theme",
-        "score": 0.9471762458160392,
-        "margin": 0.9373969137834479
+        "score": 0.9941366713969857,
+        "margin": 0.9894211379520084
       },
       {
         "text": "Zruš prosím rozpracované zadání",
         "expected": "cancel",
         "predicted": "cancel",
-        "score": 0.7579050907540749,
-        "margin": 0.6775962496271603
+        "score": 0.9996595640197236,
+        "margin": 0.9995749794332798
       },
       {
         "text": "Už v tom nechci pokračovat",
         "expected": "cancel",
-        "predicted": null,
-        "score": 0.35961362238265354,
-        "margin": 0.06491507624202136
+        "predicted": "cancel",
+        "score": 0.9696105730301292,
+        "margin": 0.9428764073566975
       },
       {
         "text": "Celé to stornuj",
         "expected": "cancel",
         "predicted": "cancel",
-        "score": 0.7304363714997493,
-        "margin": 0.6596287620539281
+        "score": 0.9729607177039853,
+        "margin": 0.9630535524864974
       },
       {
         "text": "Prosím neotevírej můj profil",
         "expected": "unknown",
-        "predicted": null,
-        "score": 0.6371892810524229,
-        "margin": 0.4654752791835721
+        "predicted": "unknown",
+        "score": 0.976235370413187,
+        "margin": 0.9649685011342833
       },
       {
         "text": "Nespouštěj mi časovač",
         "expected": "unknown",
         "predicted": "unknown",
-        "score": 0.7554481839664738,
-        "margin": 0.6800245597025969
+        "score": 0.9955891337831105,
+        "margin": 0.9948774426971246
       },
       {
         "text": "Pošli peníze z mého účtu",
         "expected": "unknown",
-        "predicted": null,
-        "score": 0.5751460974446134,
-        "margin": 0.5009671812330014
+        "predicted": "unknown",
+        "score": 0.9190461296304444,
+        "margin": 0.8829478191504142
       }
     ]
   },
