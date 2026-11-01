@@ -1,31 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { ziskejHlasitost } from '@/core/store/useZvukStore'
-import { zeptejSeBuddyho } from './api'
-import { BuddyStav, BuddyZprava } from './types'
-
-// ==========================================
-// Hlasový Buddy — rozpoznávání řeči, syntéza řeči a rozhovor se serverem
-// mimo React, stejný princip vlastnictví jako u kamery ve Form Checku
-// (usePoseEngine.ts) nebo 3D scény v Game hubu: prohlížečovská API žijí
-// v refech, React dostává jen to, co se má vykreslit.
-//
-// Rozhovor je "vysílačkový", ne nepřetržitě poslouchající: mikrofon se
-// zapne jen po klepnutí a sám se vypne, jakmile člověk domluví. Bez
-// tohohle by hrozila zpětná vazba — mikrofon by zaslechl Buddyho vlastní
-// hlas ze syntézy řeči a appka by si "povídala sama se sebou". Dokud
-// appka mluví, mikrofon je vždycky vypnutý; jsou to dva vzájemně se
-// vylučující stavy, ne dva nezávislé přepínače.
-// ==========================================
+import type { BuddyStav, BuddyZprava } from './types'
+import type { BuddyDialogue } from './local/dialogue'
 
 const JAZYK = 'cs-CZ'
-
 const noveId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-
-const CHYBY_ROZPOZNAVANI: Record<string, string> = {
-  'not-allowed': 'Přístup k mikrofonu je zakázaný. Povol ho v nastavení prohlížeče.',
-  'audio-capture': 'Žádný mikrofon se nepodařilo najít.',
-  network: 'Rozpoznávání řeči potřebuje internet.',
+const CHYBY: Record<string, string> = {
+  'not-allowed': 'Povol prosím aplikaci přístup k mikrofonu.',
+  'audio-capture': 'Mikrofon není dostupný.',
   'no-speech': 'Nic jsem neslyšel. Zkus to znovu.',
+  network: 'Rozpoznávání řeči na tomto zařízení potřebuje připojení.',
+  'language-not-supported': 'Rozpoznávání češtiny tu není dostupné. Můžeš psát.',
 }
 
 interface UseBuddyVoiceResult {
@@ -39,193 +25,236 @@ interface UseBuddyVoiceResult {
   vycistit: () => void
 }
 
+/** Místní model a rozhovor; hlas zajišťují dostupné služby zařízení. */
 export const useBuddyVoice = (): UseBuddyVoiceResult => {
+  const navigate = useNavigate()
+  const navigateRef = useRef(navigate)
+  navigateRef.current = navigate
+
   const [stav, setStav] = useState<BuddyStav>('necinny')
   const [zpravy, setZpravy] = useState<BuddyZprava[]>([])
   const [chybaText, setChybaText] = useState<string | null>(null)
+  const stavRef = useRef<BuddyStav>('necinny')
+  const mounted = useRef(true)
+  const processing = useRef(false)
+  const sequence = useRef(0)
+  const sessionVersion = useRef(0)
+  const dialogue = useRef<BuddyDialogue | null>(null)
+  const recognition = useRef<SpeechRecognition | null>(null)
+  const utterance = useRef<SpeechSynthesisUtterance | null>(null)
+  const speechTimeout = useRef<number | null>(null)
 
-  const rozpoznavaniRef = useRef<SpeechRecognition | null>(null)
-  // Pořadové číslo rozjetého požadavku na server — zastavit()/unmount ho
-  // zvednou, takže starší odpověď (ta, co přišla POZDĚ, třeba po zavření
-  // panelu) se po doběhnutí fetch() prostě zahodí, ne přečte nahlas.
-  // Bez tohohle by appka mohla Buddyho rozmluvit i po jeho skrytí — stejná
-  // past jako nezrušený setTimeout/listener jinde v appce.
-  const requestSeqRef = useRef(0)
-  const mountedRef = useRef(true)
-  const zpravyRef = useRef<BuddyZprava[]>([])
-  zpravyRef.current = zpravy
+  const Recognition = typeof window === 'undefined'
+    ? undefined : window.SpeechRecognition ?? window.webkitSpeechRecognition
 
-  const TridaRozpoznavani =
-    typeof window !== 'undefined' ? window.SpeechRecognition ?? window.webkitSpeechRecognition : undefined
+  const zmenStav = useCallback((value: BuddyStav) => {
+    stavRef.current = value
+    if (mounted.current) setStav(value)
+  }, [])
 
-  const zastavitSyntezu = () => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel()
-  }
+  const zastavHlas = useCallback(() => {
+    utterance.current = null
+    if (speechTimeout.current !== null) window.clearTimeout(speechTimeout.current)
+    speechTimeout.current = null
+    try { window.speechSynthesis?.cancel() } catch { /* Text zůstává dostupný. */ }
+  }, [])
 
-  const zastavitRozpoznavani = () => {
-    rozpoznavaniRef.current?.abort()
-    rozpoznavaniRef.current = null
-  }
+  const zastavMikrofon = useCallback(() => {
+    const current = recognition.current
+    recognition.current = null
+    if (!current) return
+    current.onresult = null
+    current.onerror = null
+    current.onend = null
+    try { current.abort() } catch { /* Mikrofon už mohl být zastavený. */ }
+  }, [])
 
   const zastavit = useCallback(() => {
-    requestSeqRef.current += 1
-    zastavitRozpoznavani()
-    zastavitSyntezu()
-    setStav('necinny')
-  }, [])
+    sequence.current += 1
+    zastavMikrofon()
+    zastavHlas()
+    if (processing.current) {
+      sessionVersion.current += 1
+      dialogue.current?.reset()
+      dialogue.current = null
+    }
+    processing.current = false
+    zmenStav('necinny')
+  }, [zastavMikrofon, zastavHlas, zmenStav])
 
   const vycistit = useCallback(() => {
     zastavit()
+    sessionVersion.current += 1
+    dialogue.current?.reset()
+    dialogue.current = null
     setZpravy([])
     setChybaText(null)
   }, [zastavit])
 
-  // Buddyho odpověď se přečte nahlas a teprve po dočtení appka zase
-  // čeká na klepnutí — jedno "kolo" rozhovoru je vždycky ukončené dřív,
-  // než začne další.
   const promluv = useCallback((text: string) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) {
-      setStav('necinny')
+    zastavHlas()
+    if (!window.speechSynthesis || typeof SpeechSynthesisUtterance === 'undefined' ||
+      ziskejHlasitost('buddy') === 0) {
+      zmenStav('necinny')
       return
     }
 
-    setStav('mluvi')
-    const projev = new SpeechSynthesisUtterance(text)
-    projev.lang = JAZYK
-    // Nastavení — Zvuk (core/store/useZvukStore.ts). Volume se čte na
-    // KAŽDÉ nové promluvení zvlášť, ne jednou při startu appky — appka
-    // tak vždycky použije aktuální hodnotu z posuvníku, i když se hráč
-    // stihl přehrabat v Nastavení mezi dvěma koly rozhovoru.
-    projev.volume = ziskejHlasitost('buddy')
+    try {
+      const speech = new SpeechSynthesisUtterance(text)
+      speech.lang = JAZYK
+      speech.volume = ziskejHlasitost('buddy')
+      const voices = window.speechSynthesis.getVoices()
+      const voice = voices.find((item) => item.lang.toLowerCase().startsWith('cs') && item.localService)
+        ?? voices.find((item) => item.lang.toLowerCase().startsWith('cs'))
+      if (voice) speech.voice = voice
+      utterance.current = speech
 
-    const hlasy = window.speechSynthesis.getVoices()
-    const ceskyHlas = hlasy.find((h) => h.lang?.toLowerCase().startsWith('cs'))
-    if (ceskyHlas) projev.voice = ceskyHlas
-
-    // Syntéza řeči je zdokumentovaně nespolehlivá napříč prohlížeči —
-    // umí se stát, že po přepnutí karty na pozadí nezavolá ani onend,
-    // ani onerror, a appka by pak zůstala navěky ve stavu "mluví" se
-    // zamčeným mikrofonem. Záchranný časovač to po chvíli vrátí zpátky
-    // i bez odpovědi od syntézy; zrušený je při skutečném konci hned.
-    const zachranaMs = Math.max(4000, Math.min(20000, text.length * 90))
-    const zachrana = window.setTimeout(() => setStav((s) => (s === 'mluvi' ? 'necinny' : s)), zachranaMs)
-
-    const konec = () => {
-      window.clearTimeout(zachrana)
-      setStav((s) => (s === 'mluvi' ? 'necinny' : s))
+      const finish = () => {
+        if (utterance.current !== speech) return
+        utterance.current = null
+        if (speechTimeout.current !== null) window.clearTimeout(speechTimeout.current)
+        speechTimeout.current = null
+        if (stavRef.current === 'mluvi') zmenStav('necinny')
+      }
+      speech.onend = finish
+      speech.onerror = finish
+      zmenStav('mluvi')
+      speechTimeout.current = window.setTimeout(() => {
+        if (utterance.current !== speech) return
+        zastavHlas()
+        zmenStav('necinny')
+      }, Math.max(5000, Math.min(30000, text.length * 100)))
+      window.speechSynthesis.speak(speech)
+    } catch {
+      zastavHlas()
+      zmenStav('necinny')
     }
-    projev.onend = konec
-    projev.onerror = konec
+  }, [zastavHlas, zmenStav])
 
-    window.speechSynthesis.speak(projev)
+  const ziskejRozhovor = useCallback(async (version: number): Promise<BuddyDialogue> => {
+    if (dialogue.current) return dialogue.current
+    // Kód a váhy se načtou až při prvním dotazu, nikoli při otevření Hubu.
+    const [loader, conversation, actions] = await Promise.all([
+      import('./local/modelLoader'),
+      import('./local/dialogue'),
+      import('./local/actions'),
+    ])
+    const model = await loader.loadBuddyModel()
+    if (!mounted.current || version !== sessionVersion.current) {
+      throw new DOMException('Rozhovor byl ukončen.', 'AbortError')
+    }
+    const current = conversation.createBuddyDialogue(
+      model, actions.createBuddyActions((path) => navigateRef.current(path)),
+    )
+    dialogue.current = current
+    return current
   }, [])
 
-  const posliDoServeru = useCallback(
-    async (noveZpravy: BuddyZprava[]) => {
-      const requestSeq = ++requestSeqRef.current
-      setStav('premysli')
-      setChybaText(null)
+  const odpovez = useCallback(async (text: string) => {
+    const currentSequence = ++sequence.current
+    const version = sessionVersion.current
+    processing.current = true
+    zmenStav('premysli')
+    setChybaText(null)
 
-      const vysledek = await zeptejSeBuddyho(noveZpravy)
-      // Appka byla mezitím zastavená/zavřená, nebo stihla odeslat další
-      // zprávu — tahle odpověď už nikoho nezajímá.
-      if (!mountedRef.current || requestSeq !== requestSeqRef.current) return
+    try {
+      const current = await ziskejRozhovor(version)
+      if (!mounted.current || currentSequence !== sequence.current) return
+      const answer = await current.reply(text)
+      if (!mounted.current || currentSequence !== sequence.current) return
+      setZpravy((previous) => [...previous, {
+        id: noveId(), odesilatel: 'buddy' as const, text: answer,
+      }].slice(-60))
+      processing.current = false
+      promluv(answer)
+    } catch (error) {
+      if (!mounted.current || currentSequence !== sequence.current) return
+      setChybaText(error instanceof Error ? error.message : 'Buddyho odpověď se nepodařilo připravit.')
+      zmenStav('chyba')
+    } finally {
+      if (currentSequence === sequence.current) processing.current = false
+    }
+  }, [ziskejRozhovor, promluv, zmenStav])
 
-      if (!vysledek.ok || !vysledek.text) {
-        setChybaText(vysledek.chyba ?? 'Buddy teď neodpovídá.')
-        setStav('chyba')
-        return
-      }
-
-      const odpovedZprava: BuddyZprava = { id: noveId(), odesilatel: 'buddy', text: vysledek.text }
-      setZpravy((z) => [...z, odpovedZprava])
-      promluv(vysledek.text)
-    },
-    [promluv]
-  )
-
-  const posliText = useCallback(
-    (text: string) => {
-      const ocisteny = text.trim()
-      if (!ocisteny) return
-
-      zastavitSyntezu()
-      const zprava: BuddyZprava = { id: noveId(), odesilatel: 'uzivatel', text: ocisteny }
-      const noveZpravy = [...zpravyRef.current, zprava]
-      setZpravy(noveZpravy)
-      void posliDoServeru(noveZpravy)
-    },
-    [posliDoServeru]
-  )
+  const posliText = useCallback((text: string) => {
+    const value = text.trim()
+    if (!value || processing.current) return
+    if (value.length > 500) {
+      setChybaText('Zpráva může mít nejvýše 500 znaků.')
+      zmenStav('chyba')
+      return
+    }
+    zastavMikrofon()
+    zastavHlas()
+    setZpravy((previous) => [...previous, {
+      id: noveId(), odesilatel: 'uzivatel' as const, text: value,
+    }].slice(-60))
+    void odpovez(value)
+  }, [zastavMikrofon, zastavHlas, odpovez, zmenStav])
 
   const zacniMluvit = useCallback(() => {
-    if (!TridaRozpoznavani) {
-      setChybaText('Tenhle prohlížeč neumí rozpoznávat řeč. Napiš to místo mluvení.')
-      setStav('chyba')
+    if (processing.current) return
+    zastavHlas()
+    zastavMikrofon()
+    if (!Recognition) {
+      setChybaText('Hlasový vstup tu není dostupný. Můžeš mi napsat.')
+      zmenStav('chyba')
       return
     }
 
-    // Klepnutí uprostřed Buddyho odpovědi ji přeruší — člověk nemusí
-    // čekat, až domluví, když už ví, co chce říct dál.
-    zastavitSyntezu()
-    zastavitRozpoznavani()
-
-    const rozpoznavani = new TridaRozpoznavani()
-    rozpoznavani.lang = JAZYK
-    rozpoznavani.continuous = false
-    rozpoznavani.interimResults = false
-    rozpoznavani.maxAlternatives = 1
-
-    rozpoznavani.onresult = (event) => {
-      const text = event.results[0]?.[0]?.transcript
-      if (text) posliText(text)
+    try {
+      const current = new Recognition()
+      current.lang = JAZYK
+      current.continuous = false
+      current.interimResults = false
+      current.maxAlternatives = 1
+      current.onresult = (event) => {
+        if (recognition.current !== current) return
+        const text = event.results[0]?.[0]?.transcript
+        zastavMikrofon()
+        if (text?.trim()) posliText(text)
+        else zmenStav('necinny')
+      }
+      current.onerror = (event) => {
+        if (recognition.current !== current) return
+        zastavMikrofon()
+        if (event.error === 'aborted') { zmenStav('necinny'); return }
+        setChybaText(CHYBY[event.error] ?? 'Rozpoznávání řeči se nepovedlo.')
+        zmenStav('chyba')
+      }
+      current.onend = () => {
+        if (recognition.current !== current) return
+        recognition.current = null
+        if (stavRef.current === 'posloucha') zmenStav('necinny')
+      }
+      recognition.current = current
+      setChybaText(null)
+      zmenStav('posloucha')
+      current.start()
+    } catch {
+      zastavMikrofon()
+      setChybaText('Mikrofon se nepodařilo spustit. Zkontroluj jeho oprávnění.')
+      zmenStav('chyba')
     }
+  }, [Recognition, zastavHlas, zastavMikrofon, posliText, zmenStav])
 
-    rozpoznavani.onerror = (event) => {
-      // "aborted" přijde i po vlastním .abort() voláním výš — to není
-      // chyba, kterou má smysl uživateli hlásit.
-      if (event.error === 'aborted') return
-      setChybaText(CHYBY_ROZPOZNAVANI[event.error] ?? 'Rozpoznávání řeči se nepovedlo.')
-      setStav('chyba')
-    }
-
-    rozpoznavani.onend = () => {
-      rozpoznavaniRef.current = null
-      // Skončilo bez výsledku a bez chyby (ticho, nebo uživatel
-      // nestihl nic říct) — appka se tiše vrátí, ať to jde zkusit znovu.
-      setStav((s) => (s === 'posloucha' ? 'necinny' : s))
-    }
-
-    rozpoznavaniRef.current = rozpoznavani
-    setChybaText(null)
-    setStav('posloucha')
-    rozpoznavani.start()
-  }, [TridaRozpoznavani, posliText])
-
-  // Úklid při odchodu z Hubu (zavření overlaye Buddyho) — bez tohohle
-  // by mikrofon zůstal poslouchat a Buddy by dál mluvil na pozadí,
-  // stejná past jako u kamery ve Form Checku. requestSeqRef se zvedá i
-  // tady, ne jen v zastavit() — appka tím zahodí i odpověď, co dorazí
-  // PO unmountu (zavření Buddyho overlaye), bez ohledu na to, jestli
-  // zastavit() stihla být zavolaná dřív.
   useEffect(() => {
-    mountedRef.current = true
+    mounted.current = true
     return () => {
-      mountedRef.current = false
-      requestSeqRef.current += 1
-      zastavitRozpoznavani()
-      zastavitSyntezu()
+      mounted.current = false
+      sequence.current += 1
+      sessionVersion.current += 1
+      processing.current = false
+      dialogue.current?.reset()
+      dialogue.current = null
+      zastavMikrofon()
+      zastavHlas()
     }
-  }, [])
+  }, [zastavMikrofon, zastavHlas])
 
   return {
-    stav,
-    zpravy,
-    chybaText,
-    podporujeRozpoznavani: !!TridaRozpoznavani,
-    zacniMluvit,
-    posliText,
-    zastavit,
-    vycistit,
+    stav, zpravy, chybaText,
+    podporujeRozpoznavani: !!Recognition,
+    zacniMluvit, posliText, zastavit, vycistit,
   }
-}
+                                        }
