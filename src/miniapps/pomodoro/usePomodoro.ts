@@ -433,3 +433,4 @@ export const usePomodoro = () => {
     notificationsEnabled: notificationsEnabled(),
   }
 }
+export const getPomodoroState = () => usePomodoroStore.getState()
