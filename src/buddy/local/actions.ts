@@ -1,6 +1,10 @@
 import { normalizeIntentText } from './intentModel'
 import type { BuddyActionExecutor, BuddyActionResult } from './dialogue'
 import type { BuddyThemeId } from '@/features/appearance/themeCatalog'
+import { parseBuddyTask } from './taskParser'
+import type { BuddyTaskDraft } from './taskParser'
+
+export { parseBuddyDate } from './taskParser'
 
 const DESTINATIONS = [
   { match: /\b(hub|domu|hlavni obrazovk\w*)\b/, name: 'hlavní obrazovku', path: '/hub' },
@@ -32,19 +36,24 @@ const done = (text: string): BuddyActionResult => ({ status: 'done', text })
 const error = (text: string): BuddyActionResult => ({ status: 'error', text })
 
 const payloadAfter = (text: string, keyword: RegExp): string => {
-  const colon = text.indexOf(':')
-  if (colon >= 0) return text.slice(colon + 1).trim()
   const match = keyword.exec(text)
+
   return match
-    ? text.slice(match.index + match[0].length).replace(/^\s*(?:že|ze)\s+/iu, '').trim()
+    ? text.slice(match.index + match[0].length)
+      .replace(/^\s*:\s*/u, '')
+      .replace(/^\s*(?:že|ze)\s+/iu, '')
+      .trim()
     : ''
 }
 
 export const parseBuddyMinutes = (text: string): number | null => {
   if (/[-−]\s*\d/u.test(text)) return null
+
   let value = normalizeIntentText(text)
   if (/\b(sekund\w*|minus|a|nebo)\b/.test(value)) return null
+
   value = value.replace(/\bdvacet pet\b/g, '25').replace(/\bctyricet pet\b/g, '45')
+
   const numbers = value.match(/\b\d+\b/g) ?? []
   let minutes: number | null = null
 
@@ -55,27 +64,14 @@ export const parseBuddyMinutes = (text: string): number | null => {
       minutes = 30
     } else {
       const words: Record<string, number> = {
-        jedna: 1,
-        jednu: 1,
-        dva: 2,
-        dve: 2,
-        tri: 3,
-        ctyri: 4,
-        pet: 5,
-        deset: 10,
-        patnact: 15,
-        dvacet: 20,
-        petadvacet: 25,
-        tricet: 30,
-        ctyricet: 40,
-        petactyricet: 45,
-        sedesat: 60,
-        devadesat: 90,
+        jedna: 1, jednu: 1, dva: 2, dve: 2, tri: 3, ctyri: 4,
+        pet: 5, deset: 10, patnact: 15, dvacet: 20, petadvacet: 25,
+        tricet: 30, ctyricet: 40, petactyricet: 45, sedesat: 60, devadesat: 90,
       }
 
-      const matches = value
-        .split(' ')
-        .filter((word) => Object.prototype.hasOwnProperty.call(words, word))
+      const matches = value.split(' ').filter((word) =>
+        Object.prototype.hasOwnProperty.call(words, word),
+      )
 
       if (matches.length === 1) {
         minutes = words[matches[0]] * (/\bhodin\w*\b/.test(value) ? 60 : 1)
@@ -88,37 +84,6 @@ export const parseBuddyMinutes = (text: string): number | null => {
   return minutes !== null && Number.isInteger(minutes) && minutes >= 5 && minutes <= 90
     ? minutes
     : null
-}
-
-export const parseBuddyDate = (text: string, now = new Date()): string | null => {
-  const value = normalizeIntentText(text)
-  const offsets: Record<string, number> = { dnes: 0, zitra: 1, pozitri: 2 }
-  const date = new Date(now)
-  date.setHours(12, 0, 0, 0)
-
-  if (Object.prototype.hasOwnProperty.call(offsets, value)) {
-    date.setDate(date.getDate() + offsets[value])
-  } else {
-    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text.trim())
-    if (!match) return null
-
-    const [, year, month, day] = match.map(Number)
-    date.setFullYear(year, month - 1, day)
-
-    if (
-      date.getFullYear() !== year ||
-      date.getMonth() !== month - 1 ||
-      date.getDate() !== day
-    ) {
-      return null
-    }
-  }
-
-  if (!Number.isFinite(date.getTime())) return null
-
-  return `${String(date.getFullYear()).padStart(4, '0')}-${String(
-    date.getMonth() + 1,
-  ).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 }
 
 /** Jeden adaptér na jeden rozhovor. Navigaci dodá stávající React Router. */
@@ -151,9 +116,7 @@ export const createBuddyActions = (
 
     if (
       !pending &&
-      !/^(?:(?:buddy|prosim)\s+)*(otevri|ukaz|zobraz|jdi|prejdi|prepni|vrat|vytvor|zapis|uloz|napis|poznamenej|pridej|naplanuj|zaloz|spust|zapni|nastartuj|zacni|nastav|pust|zmen|vyber|pouzij|chci|potrebuji|potrebuju)\b/.test(
-        normalized,
-      )
+      !/^(?:(?:buddy|prosim)\s+)*(otevri|ukaz|zobraz|jdi|prejdi|prepni|vrat|vytvor|zapis|uloz|napis|poznamenej|pridej|naplanuj|zaloz|spust|zapni|nastartuj|zacni|nastav|pust|zmen|vyber|pouzij|chci|potrebuji|potrebuju)\b/.test(normalized)
     ) {
       return error(
         'Zkus prosím přímý požadavek, například vytvoř poznámku nebo otevři chat.',
@@ -197,60 +160,96 @@ export const createBuddyActions = (
       }
 
       case 'create_task': {
-        if (pending?.field === 'due_date') {
-          const date = parseBuddyDate(raw, now())
+        const taskPending = pending?.intent === 'create_task' ? pending : null
 
-          if (!date) {
-            return {
-              status: 'question',
-              text: 'Zadej dnes, zítra, pozítří nebo datum ve tvaru rok-měsíc-den.',
-              pending,
-            }
-          }
-
-          const { getRawStudyPlannerState } = await import(
-            '@/miniapps/study-planner/useStudyPlanner'
-          )
-          check()
-
-          const previous = new Set(
-            getRawStudyPlannerState().tasks.map((task) => task.id),
-          )
-
-          getRawStudyPlannerState().addTask({
-            subject: 'Obecné',
-            topic: pending.title,
-            dueDate: date,
-            priority: 'Střední',
-          })
-
-          const created = getRawStudyPlannerState().tasks.find(
-            (task) =>
-              !previous.has(task.id) &&
-              task.topic === pending.title &&
-              task.dueDate === date,
-          )
-
-          return created
-            ? done(`Úkol jsem přidal do plánovače s termínem ${date}.`)
-            : error('Úkol se nepodařilo uložit.')
+        const previousDraft: BuddyTaskDraft = taskPending?.draft ?? {
+          title: taskPending && 'title' in taskPending ? taskPending.title : '',
+          dueDate: null,
+          priority: 'Střední',
         }
 
-        const title = pending
+        const input = taskPending
           ? raw
           : payloadAfter(raw, /(?:^|\s)[uú]kol\b/iu)
+            .replace(/^do\s+(?:pl[aá]nova[čc]e|pl[aá]nu)(?:\s*[:,]\s*|\s+|$)/iu, '')
 
-        return title
-          ? {
-              status: 'question',
-              text: 'Na kdy má úkol být? Napiš dnes, zítra, pozítří nebo datum jako 2026-11-15.',
-              pending: { intent, field: 'due_date', title },
-            }
-          : {
-              status: 'question',
-              text: 'Jaký úkol mám přidat?',
-              pending: { intent, field: 'title' },
-            }
+        const parsed = parseBuddyTask(
+          input,
+          now(),
+          taskPending?.field ?? 'title',
+        )
+
+        const draft: BuddyTaskDraft = {
+          title: !taskPending || taskPending.field === 'title'
+            ? parsed.title
+            : previousDraft.title,
+          dueDate: parsed.hasDate ? parsed.dueDate : previousDraft.dueDate,
+          priority: parsed.hasPriority ? parsed.priority : previousDraft.priority,
+        }
+
+        if (!draft.title) {
+          return {
+            status: 'question',
+            text: 'Jaký úkol mám přidat?',
+            pending: { intent, field: 'title', draft },
+          }
+        }
+
+        if (!draft.dueDate) {
+          return {
+            status: 'question',
+            text: 'Na kdy má úkol být? Uveď jeden den: dnes, zítra, v pátek, za 3 dny nebo datum jako 2026-11-15.',
+            pending: {
+              intent,
+              field: 'due_date',
+              title: draft.title,
+              draft,
+            },
+          }
+        }
+
+        if (!draft.priority) {
+          return {
+            status: 'question',
+            text: 'Jakou prioritu chceš? Vysoká, střední, nebo nízká?',
+            pending: {
+              intent,
+              field: 'priority',
+              title: draft.title,
+              draft,
+            },
+          }
+        }
+
+        const { getRawStudyPlannerState } = await import(
+          '@/miniapps/study-planner/useStudyPlanner'
+        )
+        check()
+
+        const previous = new Set(
+          getRawStudyPlannerState().tasks.map((task) => task.id),
+        )
+
+        getRawStudyPlannerState().addTask({
+          subject: 'Obecné',
+          topic: draft.title,
+          dueDate: draft.dueDate,
+          priority: draft.priority,
+        })
+
+        const created = getRawStudyPlannerState().tasks.find(
+          (task) =>
+            !previous.has(task.id) &&
+            task.topic === draft.title &&
+            task.dueDate === draft.dueDate &&
+            task.priority === draft.priority,
+        )
+
+        return created
+          ? done(
+              `Úkol jsem přidal do plánovače s termínem ${draft.dueDate} a prioritou ${draft.priority.toLowerCase()}.`,
+            )
+          : error('Úkol se nepodařilo uložit.')
       }
 
       case 'start_pomodoro': {
@@ -363,4 +362,4 @@ export const createBuddyActions = (
       }
     }
   }
-  }
+    }
