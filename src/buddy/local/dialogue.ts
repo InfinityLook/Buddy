@@ -1,6 +1,7 @@
 import { normalizeIntentText, predictIntent } from './intentModel'
 import type { IntentModel } from './intentModel'
 import type { BuddyTaskDraft } from './taskParser'
+import { createBuddyConversationMemory, startsBuddyConversation, wantsFreeConversation } from './conversationMemory'
 
 export type BuddyActionIntent =
   | 'open_module' | 'create_note' | 'create_task'
@@ -71,6 +72,19 @@ const CANCEL_PHRASES = new Set([
 const FALLBACK =
   'Tomuhle zatím nerozumím dost jistě. Zkus to prosím kratší větou nebo napiš co umíš.'
 
+const NEW_CONVERSATION = new Set([
+  'novy rozhovor', 'zacni novy rozhovor',
+  'zapomen tento rozhovor', 'zapomen nas rozhovor',
+])
+
+const isExplicitActionRequest = (text: string): boolean => {
+  const head = normalizeIntentText(text.split(':', 1)[0])
+    .replace(/^(?:(?:buddy|prosim)\s+)*/, '')
+  if (/^(otevri|ukaz|zobraz|jdi|prejdi|prepni|vrat|vytvor|zapis|uloz|napis|poznamenej|pridej|naplanuj|zaloz|spust|zapni|nastartuj|zacni|nastav|pust|zmen|vyber|pouzij)\b/.test(head)) return true
+  return /^(chci|potrebuji|potrebuju)\b/.test(head)
+    && !startsBuddyConversation(head)
+}
+
 const isBlockedCommand = (text: string): boolean => {
   // Text za dvojtečkou může být obsah poznámky, nikoli další pokyn.
   const head = normalizeIntentText(text.split(':', 1)[0])
@@ -91,11 +105,13 @@ export const createBuddyDialogue = (
 ): BuddyDialogue => {
   let pending: BuddyPendingAction | null = null
   let inFlight: AbortController | null = null
+  const memory = createBuddyConversationMemory()
 
   const reset = () => {
     inFlight?.abort()
     inFlight = null
     pending = null
+    memory.reset()
   }
 
   const reply = async (text: string): Promise<string> => {
@@ -111,6 +127,11 @@ export const createBuddyDialogue = (
       .trim()
       .replace(/^(?:buddy\s+)+|(?:\s+buddy)+$/g, '')
       .trim()
+
+    if (NEW_CONVERSATION.has(control)) {
+      reset()
+      return 'Začínáme nový rozhovor. Co máš na mysli?'
+    }
 
     if (CANCEL_PHRASES.has(control)) {
       const hadRequest = pending !== null || inFlight !== null
@@ -136,10 +157,18 @@ export const createBuddyDialogue = (
 
     if (!pending) {
       if (isBlockedCommand(raw)) {
+        if (wantsFreeConversation(raw)) {
+          return memory.reply(raw) ?? 'Jasně. O čem by sis chtěl povídat?'
+        }
         return 'Rozumím. Podle této zprávy nebudu spouštět žádnou akci.'
       }
 
       intent = predictIntent(model, raw).intent
+
+      if (!isExplicitActionRequest(raw)) {
+        const answer = memory.reply(raw, intent)
+        if (answer !== null) return answer
+      }
 
       switch (intent) {
         case 'greeting':
@@ -181,6 +210,7 @@ export const createBuddyDialogue = (
       return 'Tuto akci teď nemám dostupnou. Můžeme si zatím psát.'
     }
 
+    memory.interrupt()
     const controller = new AbortController()
     inFlight = controller
 
@@ -220,4 +250,4 @@ export const createBuddyDialogue = (
   }
 
   return { reply, reset }
-        }
+}
