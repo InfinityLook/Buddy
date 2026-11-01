@@ -1,7 +1,7 @@
 import { normalizeIntentText, predictIntent } from './intentModel'
 import type { IntentModel } from './intentModel'
 import type { BuddyTaskDraft } from './taskParser'
-import { createBuddyConversationMemory, startsBuddyConversation, wantsFreeConversation } from './conversationMemory'
+import { createBuddyConversationMemory, isConversationControl, startsBuddyConversation, wantsFreeConversation } from './conversationMemory'
 
 export type BuddyActionIntent =
   | 'open_module' | 'create_note' | 'create_task'
@@ -78,11 +78,13 @@ const NEW_CONVERSATION = new Set([
 ])
 
 const isExplicitActionRequest = (text: string): boolean => {
-  const head = normalizeIntentText(text.split(':', 1)[0])
+  const rawHead = text.split(':', 1)[0]
+  const head = normalizeIntentText(rawHead)
     .replace(/^(?:(?:buddy|prosim)\s+)*/, '')
+  if (isConversationControl(rawHead)) return false
   if (/^(otevri|ukaz|zobraz|jdi|prejdi|prepni|vrat|vytvor|zapis|uloz|napis|poznamenej|pridej|naplanuj|zaloz|spust|zapni|nastartuj|zacni|nastav|pust|zmen|vyber|pouzij)\b/.test(head)) return true
   return /^(chci|potrebuji|potrebuju)\b/.test(head)
-    && !startsBuddyConversation(head)
+    && !startsBuddyConversation(rawHead)
 }
 
 const isBlockedCommand = (text: string): boolean => {
@@ -157,13 +159,16 @@ export const createBuddyDialogue = (
 
     if (!pending) {
       if (isBlockedCommand(raw)) {
-        if (wantsFreeConversation(raw)) {
+        if (wantsFreeConversation(raw) || isConversationControl(raw)) {
           return memory.reply(raw) ?? 'Jasně. O čem by sis chtěl povídat?'
         }
         return 'Rozumím. Podle této zprávy nebudu spouštět žádnou akci.'
       }
 
-      intent = predictIntent(model, raw).intent
+      // Obsah za dvojtečkou nemění záměr přímého příkazu.
+      const head = raw.split(':', 1)[0]
+      const intentText = raw.includes(':') && isExplicitActionRequest(head) ? head : raw
+      intent = predictIntent(model, intentText).intent
 
       if (!isExplicitActionRequest(raw)) {
         const answer = memory.reply(raw, intent)
