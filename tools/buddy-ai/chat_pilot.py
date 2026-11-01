@@ -212,6 +212,12 @@ def make_rows(conversations, tokenizer):
 
 
 def loss_for(model, x, y):
+    # Pravá výplň nemůže kvůli kauzalitě ovlivnit předchozí tokeny.
+    supervised = (y != IGNORE).nonzero(as_tuple=False)
+    if supervised.numel() == 0:
+        raise ValueError("Dávka neobsahuje žádné cílové tokeny.")
+    length = int(supervised[:, 1].max()) + 1
+    x, y = x[:, :length], y[:, :length]
     return F.cross_entropy(
         model(x).flatten(0, 1), y.flatten(), ignore_index=IGNORE
     )
@@ -313,6 +319,13 @@ def self_test():
     with torch.no_grad():
         if not torch.allclose(model(a)[:, :8], model(b)[:, :8], atol=1e-6):
             raise AssertionError("Model vidí budoucí tokeny.")
+        targets = torch.full_like(a, IGNORE)
+        targets[:, :6] = a[:, 1:7]
+        full_loss = F.cross_entropy(
+            model(a).flatten(0, 1), targets.flatten(), ignore_index=IGNORE
+        )
+        if not torch.allclose(full_loss, loss_for(model, a, targets), atol=1e-6):
+            raise AssertionError("Vynechání pravé výplně změnilo ztrátu.")
 
     rows = make_rows(
         [[["user", "Ahoj"], ["assistant", "Čau"]]],
@@ -345,7 +358,7 @@ def self_test():
             raise AssertionError("Kontrola přijala překrývající se sady.")
 
     print(
-        "Kontroly textu, tokenizéru, kauzality, cílových tokenů a exportu prošly.",
+        "Kontroly textu, tokenizéru, kauzality, výplně, cílových tokenů a exportu prošly.",
         flush=True,
     )
 
@@ -452,7 +465,7 @@ def main():
         last_loss = float(loss.detach())
 
         if steps % 10 == 0:
-                        print(f"Krok {steps}, trénovací ztráta {last_loss:.4f}", flush=True)
+            print(f"Krok {steps}, trénovací ztráta {last_loss:.4f}", flush=True)
 
     elapsed = time.perf_counter() - started
     after = evaluate(model, validation_rows)
