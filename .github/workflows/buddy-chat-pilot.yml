@@ -54,6 +54,9 @@ jobs:
       - name: Změřit krátké trénování
         run: python tools/buddy-ai/chat_pilot.py --seconds "$PILOT_SECONDS" --steps "$PILOT_STEPS" --threads 2
 
+      - name: Zobrazit ukázky odpovědí
+        run: python tools/buddy-ai/chat_probe.py
+
       - name: Uložit výsledky pilotu
         uses: actions/upload-artifact@v6
         with:
