@@ -3,6 +3,7 @@ import type { BuddyActionExecutor, BuddyActionResult } from './dialogue'
 import type { BuddyThemeId } from '@/features/appearance/themeCatalog'
 import { parseBuddyTask } from './taskParser'
 import type { BuddyTaskDraft } from './taskParser'
+import { editBuddyTaskDraft } from './taskDraftEdits'
 
 export { parseBuddyDate } from './taskParser'
 
@@ -37,13 +38,17 @@ const error = (text: string): BuddyActionResult => ({ status: 'error', text })
 
 const payloadAfter = (text: string, keyword: RegExp): string => {
   const match = keyword.exec(text)
+  if (!match) return ''
 
-  return match
-    ? text.slice(match.index + match[0].length)
-      .replace(/^\s*:\s*/u, '')
-      .replace(/^\s*(?:že|ze)\s+/iu, '')
-      .trim()
-    : ''
+  const suffix = text.slice(match.index + match[0].length)
+
+  // Tečka za holým příkazem není obsah. Za dvojtečkou ji zachováme.
+  if (/^\s*[.!?]+\s*$/u.test(suffix)) return ''
+
+  return suffix
+    .replace(/^\s*:\s*/u, '')
+    .replace(/^\s*(?:že|ze)\s+/iu, '')
+    .trim()
 }
 
 export const parseBuddyMinutes = (text: string): number | null => {
@@ -162,6 +167,7 @@ export const createBuddyActions = (
       case 'create_task': {
         const taskPending = pending?.intent === 'create_task' ? pending : null
         const suppliedTitle = request.taskTitle
+
         if (
           suppliedTitle !== undefined &&
           (taskPending || typeof suppliedTitle !== 'string' ||
@@ -169,6 +175,7 @@ export const createBuddyActions = (
         ) {
           return error('Název úkolu není platný. Napiš ho prosím znovu.')
         }
+
         // Název z kontextu je doslovný údaj, nikoli termín nebo priorita.
         const literalTitle = suppliedTitle?.trim() ?? null
 
@@ -177,6 +184,22 @@ export const createBuddyActions = (
           dueDate: null,
           priority: 'Střední',
         }
+
+        const edit = taskPending
+          ? editBuddyTaskDraft(raw, previousDraft, now())
+          : null
+
+        if (taskPending && edit?.status === 'invalid') {
+          return {
+            status: 'question',
+            text: edit.text,
+            pending: taskPending,
+          }
+        }
+
+        const acknowledgement = edit?.status === 'changed'
+          ? edit.text + ' '
+          : ''
 
         const input = taskPending
           ? raw
@@ -189,7 +212,7 @@ export const createBuddyActions = (
           taskPending?.field ?? 'title',
         )
 
-        const draft: BuddyTaskDraft = {
+        const draft: BuddyTaskDraft = edit?.status === 'changed' ? edit.draft : {
           title: literalTitle ?? (!taskPending || taskPending.field === 'title'
             ? parsed.title
             : previousDraft.title),
@@ -200,7 +223,7 @@ export const createBuddyActions = (
         if (!draft.title) {
           return {
             status: 'question',
-            text: 'Jaký úkol mám přidat?',
+            text: acknowledgement + 'Jaký úkol mám přidat?',
             pending: { intent, field: 'title', draft },
           }
         }
@@ -208,7 +231,8 @@ export const createBuddyActions = (
         if (!draft.dueDate) {
           return {
             status: 'question',
-            text: (literalTitle ? 'Připravil jsem úkol „' + draft.title + '“. ' : '') +
+            text: acknowledgement +
+              (literalTitle ? 'Připravil jsem úkol „' + draft.title + '“. ' : '') +
               'Na kdy má úkol být? Uveď jeden den: dnes, zítra, v pátek, za 3 dny nebo datum jako 2026-11-15.',
             pending: {
               intent,
@@ -222,7 +246,8 @@ export const createBuddyActions = (
         if (!draft.priority) {
           return {
             status: 'question',
-            text: 'Jakou prioritu chceš? Vysoká, střední, nebo nízká?',
+            text: acknowledgement +
+              'Jakou prioritu chceš? Vysoká, střední, nebo nízká?',
             pending: {
               intent,
               field: 'priority',
@@ -373,4 +398,4 @@ export const createBuddyActions = (
       }
     }
   }
-}
+    }
