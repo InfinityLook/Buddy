@@ -31,6 +31,7 @@ export interface BuddyActionRequest {
   text: string
   pending: BuddyPendingAction | null
   signal: AbortSignal
+  taskTitle?: string
 }
 
 export type BuddyActionResult =
@@ -83,6 +84,17 @@ const SAVE_LAST_REPLY = new Set([
   'vytvor poznamku z posledni odpovedi',
   'vytvor poznamku z tve posledni odpovedi',
 ])
+
+const TASK_FROM_TOPIC = [
+  'pridej ukol z posledniho tematu',
+  'vytvor ukol z posledniho tematu',
+  'pridej ukol k tematu rozhovoru',
+  'vytvor ukol k tematu rozhovoru',
+  'pridej ukol k tomu tematu',
+  'vytvor ukol k tomu tematu',
+  'pridej k tomu ukol',
+  'vytvor k tomu ukol',
+] as const
 
 const NEW_CONVERSATION = new Set([
   'novy rozhovor', 'zacni novy rozhovor',
@@ -174,13 +186,14 @@ export const createBuddyDialogue = (
 
     if (['co umis', 'napoveda', 'pomoc'].includes(control)) {
       return remember(executeAction
-        ? 'Pomůžu ti otevřít moduly, zapsat poznámku nebo úkol, spustit Pomodoro a změnit motiv. Konverzační odpověď uložíš příkazem Ulož poslední odpověď do poznámky. Rozpracované zadání zrušíš slovy zruš to.'
+        ? 'Pomůžu ti otevřít moduly, zapsat poznámku nebo úkol, spustit Pomodoro a změnit motiv. Zkus také Přidej úkol z posledního tématu nebo Ulož poslední odpověď do poznámky. Rozpracované zadání zrušíš slovy zruš to.'
         : 'Můžeme si krátce popovídat. Rozpoznávám také příkazy pro poznámky, úkoly, Pomodoro a vzhled; jejich provedení závisí na dostupném ovládání aplikace.')
     }
 
     // Při doplňování jsou další zprávy údaji k původnímu požadavku.
     let intent: string | null = pending?.intent ?? null
     let actionText = raw
+    let taskTitle: string | undefined
 
     if (!pending) {
       if (isBlockedCommand(raw)) {
@@ -198,6 +211,12 @@ export const createBuddyDialogue = (
         }
         intent = 'create_note'
         actionText = NOTE_PREFIX + lastReply
+      } else if (TASK_FROM_TOPIC.some((phrase) => control === phrase || control.startsWith(phrase + ' '))) {
+        taskTitle = memory.getTaskTitle?.() ?? undefined
+        if (!taskTitle) {
+          return 'Nejdřív mi upřesni téma nebo část práce, ze které mám úkol vytvořit. Potom příkaz zopakuj.'
+        }
+        intent = 'create_task'
       } else {
         // Obsah za dvojtečkou nemění záměr přímého příkazu.
         const head = raw.split(':', 1)[0]
@@ -217,7 +236,7 @@ export const createBuddyDialogue = (
             return remember('Jsem Buddy, tvůj pomocník v aplikaci. Mým úkolem je usnadnit ti její používání.')
 
           case 'help':
-            return remember('Zkus třeba vytvoř poznámku nebo otevři chat. Když budou chybět údaje, zeptám se. Konverzační odpověď uložíš příkazem Ulož poslední odpověď do poznámky. Rozpracované zadání zrušíš slovy zruš to.')
+            return remember('Zkus třeba Vytvoř poznámku, Otevři chat nebo Přidej úkol z posledního tématu. Když budou chybět údaje, zeptám se. Konverzační odpověď uložíš příkazem Ulož poslední odpověď do poznámky. Rozpracované zadání zrušíš slovy zruš to.')
 
           case 'thanks':
             return remember('Rádo se stalo. S čím dalším ti pomůžu?')
@@ -260,6 +279,7 @@ export const createBuddyDialogue = (
         text: actionText,
         pending,
         signal: controller.signal,
+        ...(taskTitle !== undefined ? { taskTitle } : {}),
       })
 
       if (controller.signal.aborted) {
@@ -290,4 +310,4 @@ export const createBuddyDialogue = (
   }
 
   return { reply, reset }
-    }
+}
