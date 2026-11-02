@@ -161,6 +161,16 @@ export const createBuddyActions = (
 
       case 'create_task': {
         const taskPending = pending?.intent === 'create_task' ? pending : null
+        const suppliedTitle = request.taskTitle
+        if (
+          suppliedTitle !== undefined &&
+          (taskPending || typeof suppliedTitle !== 'string' ||
+            !suppliedTitle.trim() || suppliedTitle.length > 500)
+        ) {
+          return error('Název úkolu není platný. Napiš ho prosím znovu.')
+        }
+        // Název z kontextu je doslovný údaj, nikoli termín nebo priorita.
+        const literalTitle = suppliedTitle?.trim() ?? null
 
         const previousDraft: BuddyTaskDraft = taskPending?.draft ?? {
           title: taskPending && 'title' in taskPending ? taskPending.title : '',
@@ -180,9 +190,9 @@ export const createBuddyActions = (
         )
 
         const draft: BuddyTaskDraft = {
-          title: !taskPending || taskPending.field === 'title'
+          title: literalTitle ?? (!taskPending || taskPending.field === 'title'
             ? parsed.title
-            : previousDraft.title,
+            : previousDraft.title),
           dueDate: parsed.hasDate ? parsed.dueDate : previousDraft.dueDate,
           priority: parsed.hasPriority ? parsed.priority : previousDraft.priority,
         }
@@ -198,7 +208,8 @@ export const createBuddyActions = (
         if (!draft.dueDate) {
           return {
             status: 'question',
-            text: 'Na kdy má úkol být? Uveď jeden den: dnes, zítra, v pátek, za 3 dny nebo datum jako 2026-11-15.',
+            text: (literalTitle ? 'Připravil jsem úkol „' + draft.title + '“. ' : '') +
+              'Na kdy má úkol být? Uveď jeden den: dnes, zítra, v pátek, za 3 dny nebo datum jako 2026-11-15.',
             pending: {
               intent,
               field: 'due_date',
@@ -247,7 +258,7 @@ export const createBuddyActions = (
 
         return created
           ? done(
-              `Úkol jsem přidal do plánovače s termínem ${draft.dueDate} a prioritou ${draft.priority.toLowerCase()}.`,
+              `Úkol „${draft.title}“ jsem přidal do plánovače s termínem ${draft.dueDate} a prioritou ${draft.priority.toLowerCase()}.`,
             )
           : error('Úkol se nepodařilo uložit.')
       }
@@ -362,4 +373,4 @@ export const createBuddyActions = (
       }
     }
   }
-    }
+}
