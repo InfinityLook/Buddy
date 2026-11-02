@@ -9,6 +9,7 @@ export interface BuddyConversationMemory {
   reply: (text: string, intent?: string | null) => string | null
   interrupt: () => void
   reset: () => void
+  getTaskTitle?: () => string | null
 }
 
 const SOCIAL = new Set(['greeting', 'identity', 'help', 'thanks', 'goodbye', 'cancel'])
@@ -260,5 +261,20 @@ export const createBuddyConversationMemory = (): BuddyConversationMemory => {
     return null
   }
 
-  return { reply, reset, interrupt: () => { phase = null } }
-          }
+  const getTaskTitle = (): string | null => {
+    if (focus === 'study' && studyTopic) {
+      return 'Zopakovat ' + studyTopic + (subject ? ' (' + subject + ')' : '')
+    }
+    if (focus === 'project' && workPart) {
+      const part = normalized(workPart)
+      const name = /\b(zaver\w*|zakonceni|posledni odstavec)\b/.test(part) ? 'závěr'
+        : /\buvod\w*\b/.test(part) ? 'úvod'
+        : /\b(zdroj\w*|literatur\w*)\b/.test(part) ? 'zdroje' : workPart
+      return 'Dokončit část práce: ' + name
+    }
+    if (focus === 'chat' && chatTopic) return 'Probrat téma: ' + chatTopic
+    return null
+  }
+
+  return { reply, reset, getTaskTitle, interrupt: () => { phase = null } }
+}
