@@ -8,24 +8,23 @@ on:
         required: true
         default: '120'
         type: choice
-        options: ['60', '120', '180']
+        options: ['60', '120', '180', '600']
       steps:
         description: Maximální počet trénovacích kroků
         required: true
         default: '600'
         type: choice
-        options: ['200', '600', '1000']
+        options: ['200', '600', '1000', '2000']
 
 permissions:
   contents: read
 
 concurrency:
-  group: buddy-chat-pilot-main
+  group: buddy-chat-pilot-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   pilot:
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -45,6 +44,11 @@ jobs:
           cache: pip
           cache-dependency-path: tools/buddy-ai/chat_pilot.py
 
+      - name: Ověřit oddělení a formát dat
+        run: |
+          python -m unittest discover -s tools/buddy-ai -p 'test_chat_*.py'
+          python tools/buddy-ai/expand_chat_data.py
+
       - name: Nainstalovat výpočetní knihovnu pro CPU
         run: python -m pip install --disable-pip-version-check torch==2.10.0 --index-url https://download.pytorch.org/whl/cpu
 
@@ -52,10 +56,10 @@ jobs:
         run: python tools/buddy-ai/chat_pilot.py --self-test
 
       - name: Změřit krátké trénování
-        run: python tools/buddy-ai/chat_pilot.py --seconds "$PILOT_SECONDS" --steps "$PILOT_STEPS" --threads 2
+        run: python tools/buddy-ai/chat_pilot.py --data tools/buddy-ai/chat-pilot-output/training-data.json --seconds "$PILOT_SECONDS" --steps "$PILOT_STEPS" --threads 2
 
       - name: Zobrazit ukázky odpovědí
-        run: python tools/buddy-ai/chat_probe.py
+        run: python tools/buddy-ai/chat_probe.py --data tools/buddy-ai/chat-pilot-output/training-data.json
 
       - name: Uložit výsledky pilotu
         uses: actions/upload-artifact@v6
@@ -63,4 +67,4 @@ jobs:
           name: buddy-chat-pilot-${{ github.run_id }}
           path: tools/buddy-ai/chat-pilot-output/
           if-no-files-found: error
-          retention-days: 1
+          retention-days: 7
