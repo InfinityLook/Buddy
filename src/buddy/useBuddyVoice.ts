@@ -134,10 +134,11 @@ export const useBuddyVoice = (): UseBuddyVoiceResult => {
   const ziskejRozhovor = useCallback(async (version: number): Promise<BuddyDialogue> => {
     if (dialogue.current) return dialogue.current
     // Kód a váhy se načtou až při prvním dotazu, nikoli při otevření Hubu.
-    const [loader, conversation, actions] = await Promise.all([
+    const [loader, conversation, actions, generation] = await Promise.all([
       import('./local/modelLoader'),
       import('./local/dialogue'),
       import('./local/actions'),
+      import('./local/generation/client'),
     ])
     const model = await loader.loadBuddyModel()
     if (!mounted.current || version !== sessionVersion.current) {
@@ -145,6 +146,7 @@ export const useBuddyVoice = (): UseBuddyVoiceResult => {
     }
     const current = conversation.createBuddyDialogue(
       model, actions.createBuddyActions((path) => navigateRef.current(path)),
+      { generator: generation.createBrowserGenerator() },
     )
     dialogue.current = current
     return current
@@ -257,4 +259,4 @@ export const useBuddyVoice = (): UseBuddyVoiceResult => {
     podporujeRozpoznavani: !!Recognition,
     zacniMluvit, posliText, zastavit, vycistit,
   }
-                                        }
+      }
