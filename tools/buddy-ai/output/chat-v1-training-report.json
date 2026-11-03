@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "torch": "2.10.0+cpu",
+  "config": {
+    "vocab": 4096,
+    "context": 256,
+    "width": 192,
+    "heads": 4,
+    "layers": 4
+  },
+  "dataSha256": "42a90cbc8ee2032a868a392ead651020b03071f8e83ae818d91c8192d2e180ea",
+  "parameters": 2615424,
+  "activeVocabulary": 1750,
+  "trainingConversations": 296,
+  "validationConversations": 40,
+  "stepsThisRun": 2000,
+  "stepsTotal": 2000,
+  "trainingSeconds": 89.542,
+  "averageStepMs": 44.77,
+  "supervisedTokensPerSecond": 1568.12,
+  "validationLossBefore": 8.378967422234695,
+  "validationLossAfter": 5.476143026988364,
+  "lastTrainingLoss": 0.052126578986644745,
+  "modelBytes": 10461696,
+  "modelSha256": "cdeb352247cf934f53ef67e49506f7c33314c077b80c772f375f22f5756816d3",
+  "example": {
+    "prompt": "Ahoj, kdo jsi?",
+    "text": "Jsem Buddy, pomocník v aplikaci.",
+    "note": "Pouze diagnostická ukázka; model může produkovat nesmyslný text."
+  },
+  "note": "Malá autorská sada a pilot měří technickou funkčnost. Ztráta není procento správnosti ani důkaz plynulé komunikace.",
+  "peakTrainingProcessMiB": 403.9
+}
