@@ -211,6 +211,47 @@
   align-self: flex-start;
 }
 
+.znamky-predmet-upravit-btn {
+  background: transparent;
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--accent-cyan);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0.45rem 0.7rem;
+  align-self: flex-start;
+}
+
+.znamky-znamka-upravit {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+}
+
+.znamky-znamka-form-akce {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.znamky-znamka-form-akce .znamky-znamka-pridat {
+  flex: 1;
+}
+
+.znamky-znamka-zrusit {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.9rem;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
 .znamky-cokdyby-btn {
   background: transparent;
   border: 1px dashed var(--border-subtle);

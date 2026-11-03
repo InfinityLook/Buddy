@@ -5,6 +5,7 @@ import {
   MAX_ZNAMKA,
   MIN_ZNAMKA,
   Predmet,
+  Znamka,
   celkovyVazenyPrumer,
   soucetKreditu,
   spocitejProcentaCileProumeru,
@@ -22,7 +23,16 @@ const dnesniDatumIso = (): string => {
 export const Znamky: React.FC = () => {
   const { rootAttributes } = useSurfaceAppearance('znamky')
 
-  const { predmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku, nastavCilPredmetu } = useZnamky()
+  const {
+    predmety,
+    pridatPredmet,
+    smazatPredmet,
+    pridatZnamku,
+    smazatZnamku,
+    nastavCilPredmetu,
+    upravitPredmet,
+    upravitZnamku,
+  } = useZnamky()
 
   const [formPredmetOtevreny, setFormPredmetOtevreny] = useState(false)
   const [nazevPredmetu, setNazevPredmetu] = useState('')
@@ -51,6 +61,20 @@ export const Znamky: React.FC = () => {
   const [cilFormOtevreny, setCilFormOtevreny] = useState<string | null>(null)
   const [cilHodnota, setCilHodnota] = useState('')
 
+  // Úprava názvu/kreditů existujícího předmětu — stejný "otevřený
+  // formulář je id předmětu, ne globální přepínač" vzor jako
+  // cilFormOtevreny/coKdybyOtevreno výš.
+  const [upravovanyPredmetId, setUpravovanyPredmetId] = useState<string | null>(null)
+  const [upravovanyNazev, setUpravovanyNazev] = useState('')
+  const [upravovanyKredity, setUpravovanyKredity] = useState('')
+
+  // Úprava existující známky — formulář pro novou známku (hodnota/vaha/
+  // popis výš) se stává dvoj-účelovým: když je tohle nastavené, submit
+  // tlačítko se změní na "Uložit" a zavolá upravitZnamku místo
+  // pridatZnamku, stejný vzor jako Writer's Roomova "add forma se stává
+  // edit formou" u scén/panelů.
+  const [upravovanaZnamkaId, setUpravovanaZnamkaId] = useState<string | null>(null)
+
   const celkovyPrumer = celkovyVazenyPrumer(predmety)
   const celkoveKredity = soucetKreditu(predmety)
 
@@ -71,10 +95,24 @@ export const Znamky: React.FC = () => {
     setFormPredmetOtevreny(false)
   }
 
+  // Zavolá se i při přepínání (sbalení/rozbalení jiného) předmětu — bez
+  // téhle reakce by zůstala viset upravovanaZnamkaId ze zavřeného
+  // předmětu a formulář "+ Známka" u JINÉHO předmětu by se tiše tvářil,
+  // že upravuje cizí (neexistující) známku, místo aby přidal novou.
+  const zrusitEditaciZnamky = () => {
+    setUpravovanaZnamkaId(null)
+    setHodnota(1)
+    setVaha('1')
+    setPopis('')
+  }
+
   const odebratPredmet = (p: Predmet) => {
     if (!window.confirm(`Smazat předmět „${p.nazev}“ i se všemi známkami?`)) return
     smazatPredmet(p.id)
-    if (rozbalenyPredmet === p.id) setRozbalenyPredmet(null)
+    if (rozbalenyPredmet === p.id) {
+      setRozbalenyPredmet(null)
+      zrusitEditaciZnamky()
+    }
     // Bez tohohle by "co kdyby" panel zůstal ukazovat na smazaný předmět
     // — projektovanyPrumerPredmetu se počítá na každém renderu bez
     // ohledu na to, jestli je rozbalovací panel vůbec vidět, takže
@@ -82,6 +120,27 @@ export const Znamky: React.FC = () => {
     // a .find(...)! by spadl na undefined (viz CLAUDE.md).
     if (coKdybyOtevreno === p.id) setCoKdybyOtevreno(null)
     if (cilFormOtevreny === p.id) setCilFormOtevreny(null)
+    if (upravovanyPredmetId === p.id) setUpravovanyPredmetId(null)
+  }
+
+  const otevritEditaciPredmetu = (p: Predmet) => {
+    setUpravovanyNazev(p.nazev)
+    setUpravovanyKredity(p.kredity > 0 ? String(p.kredity) : '')
+    setUpravovanyPredmetId(upravovanyPredmetId === p.id ? null : p.id)
+  }
+
+  const ulozitEditaciPredmetu = (e: React.FormEvent, predmetId: string) => {
+    e.preventDefault()
+    if (!upravovanyNazev.trim()) return
+    upravitPredmet(predmetId, upravovanyNazev, Number(upravovanyKredity) || 0)
+    setUpravovanyPredmetId(null)
+  }
+
+  const otevritEditaciZnamky = (z: Znamka) => {
+    setUpravovanaZnamkaId(z.id)
+    setHodnota(z.hodnota)
+    setVaha(String(z.vaha))
+    setPopis(z.popis)
   }
 
   const otevritCilForm = (p: Predmet) => {
@@ -102,9 +161,22 @@ export const Znamky: React.FC = () => {
     setCilFormOtevreny(null)
   }
 
-  const pridatNovouZnamku = (e: React.FormEvent, predmetId: string) => {
+  // Formulář pod seznamem známek je dvoj-účelový: beze upravovanaZnamkaId
+  // přidá novou známku s dnešním datem (jako dřív), s ním upraví
+  // existující a zachová jí původní datum (pole na datum appka nikdy
+  // nenabízela, takže ho při úpravě nemá smysl nahrazovat dneškem).
+  const odeslatFormularZnamky = (e: React.FormEvent, predmetId: string) => {
     e.preventDefault()
-    pridatZnamku(predmetId, hodnota, Number(vaha) || 1, popis, dnesniDatumIso())
+    if (upravovanaZnamkaId) {
+      const puvodniDatum =
+        predmety
+          .find((pp) => pp.id === predmetId)
+          ?.znamky.find((z) => z.id === upravovanaZnamkaId)?.datum ?? dnesniDatumIso()
+      upravitZnamku(predmetId, upravovanaZnamkaId, hodnota, Number(vaha) || 1, popis, puvodniDatum)
+      setUpravovanaZnamkaId(null)
+    } else {
+      pridatZnamku(predmetId, hodnota, Number(vaha) || 1, popis, dnesniDatumIso())
+    }
     setPopis('')
     setVaha('1')
   }
@@ -170,7 +242,13 @@ export const Znamky: React.FC = () => {
             <div key={p.id} className="znamky-predmet">
               <button
                 className="znamky-predmet-hlavicka"
-                onClick={() => setRozbalenyPredmet(rozbaleno ? null : p.id)}
+                onClick={() => {
+                  setRozbalenyPredmet(rozbaleno ? null : p.id)
+                  // Jinak by formulář "+ Známka" u předmětu, do kterého
+                  // uživatel právě přepnul, zůstal tiše v "upravuje se"
+                  // módu kvůli znamka-id patřícímu předchozímu předmětu.
+                  zrusitEditaciZnamky()
+                }}
               >
                 <span className="znamky-predmet-nazev">
                   {p.nazev}
@@ -181,6 +259,47 @@ export const Znamky: React.FC = () => {
 
               {rozbaleno && (
                 <div className="znamky-predmet-detail">
+                  <button
+                    type="button"
+                    className="znamky-predmet-upravit-btn"
+                    onClick={() => otevritEditaciPredmetu(p)}
+                  >
+                    ✎ Upravit předmět
+                  </button>
+
+                  {upravovanyPredmetId === p.id && (
+                    <form className="znamky-form" onSubmit={(e) => ulozitEditaciPredmetu(e, p.id)}>
+                      <input
+                        placeholder="Název předmětu"
+                        value={upravovanyNazev}
+                        onChange={(e) => setUpravovanyNazev(e.target.value)}
+                        spellCheck
+                        lang="cs"
+                        autoFocus
+                        required
+                      />
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="Kredity (nepovinné)"
+                        value={upravovanyKredity}
+                        onChange={(e) => setUpravovanyKredity(e.target.value)}
+                      />
+                      <div className="znamky-form-akce">
+                        <button
+                          type="button"
+                          className="znamky-form-zrusit"
+                          onClick={() => setUpravovanyPredmetId(null)}
+                        >
+                          Zrušit
+                        </button>
+                        <button type="submit" className="znamky-form-ulozit">
+                          Uložit
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
                   <div className="znamky-cil-panel">
                     {(() => {
                       const cilProcenta = spocitejProcentaCileProumeru(prumer, p.cil ?? null)
@@ -253,10 +372,23 @@ export const Znamky: React.FC = () => {
                           {z.vaha !== 1 && ` (váha ${z.vaha})`}
                         </span>
                         <button
+                          className="znamky-znamka-upravit"
+                          aria-label="Upravit známku"
+                          onClick={() => otevritEditaciZnamky(z)}
+                        >
+                          ✎
+                        </button>
+                        <button
                           className="znamky-znamka-smazat"
                           aria-label="Smazat známku"
                           onClick={() => {
-                            if (window.confirm(`Smazat známku ${z.hodnota} z ${p.nazev}?`)) smazatZnamku(p.id, z.id)
+                            if (window.confirm(`Smazat známku ${z.hodnota} z ${p.nazev}?`)) {
+                              smazatZnamku(p.id, z.id)
+                              // Bez tohohle by rozjednaný formulář zůstal
+                              // ukazovat "Uložit" nad teď už smazanou
+                              // známkou a submit by tiše nic nezměnil.
+                              if (upravovanaZnamkaId === z.id) zrusitEditaciZnamky()
+                            }
                           }}
                         >
                           ✕
@@ -265,7 +397,7 @@ export const Znamky: React.FC = () => {
                     ))}
                   </ul>
 
-                  <form className="znamky-znamka-form" onSubmit={(e) => pridatNovouZnamku(e, p.id)}>
+                  <form className="znamky-znamka-form" onSubmit={(e) => odeslatFormularZnamky(e, p.id)}>
                     <select value={hodnota} onChange={(e) => setHodnota(Number(e.target.value))}>
                       {Array.from({ length: MAX_ZNAMKA - MIN_ZNAMKA + 1 }, (_, i) => MIN_ZNAMKA + i).map((h) => (
                         <option key={h} value={h}>
@@ -296,9 +428,16 @@ export const Znamky: React.FC = () => {
                       spellCheck
                       lang="cs"
                     />
-                    <button type="submit" className="znamky-znamka-pridat">
-                      + Známka
-                    </button>
+                    <div className="znamky-znamka-form-akce">
+                      <button type="submit" className="znamky-znamka-pridat">
+                        {upravovanaZnamkaId ? 'Uložit' : '+ Známka'}
+                      </button>
+                      {upravovanaZnamkaId && (
+                        <button type="button" className="znamky-znamka-zrusit" onClick={zrusitEditaciZnamky}>
+                          Zrušit
+                        </button>
+                      )}
+                    </div>
                   </form>
 
                   <button

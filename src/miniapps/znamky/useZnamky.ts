@@ -18,9 +18,28 @@ interface ZnamkyState {
   // rozdíl od pridatZnamku se tu proto XP neuděluje, stejná zdrženlivost
   // jako u School Roomova useSkolaCil.
   nastavCilPredmetu: (predmetId: string, cil: number | null) => void
+  // Úprava názvu/kreditů existujícího předmětu — znovu aplikuje stejné
+  // ořezání jako pridatPredmet (trim názvu + odmítnutí prázdného,
+  // kredity nikdy pod 0), ne slepé sloučení patchu, stejný vzor jako
+  // Rozvrhovo updateHodinu.
+  upravitPredmet: (id: string, nazev: string, kredity: number) => void
+  // Úprava existující známky — stejné ořezání váhy jako pridatZnamku.
+  // Bez XP, stejná zdrženlivost jako nastavCilPredmetu: editace není nový
+  // studijní čin, jen oprava už zapsaného čísla.
+  upravitZnamku: (
+    predmetId: string,
+    znamkaId: string,
+    hodnota: number,
+    vaha: number,
+    popis: string,
+    datum: string
+  ) => void
 }
 
-const useZnamkyStore = create<ZnamkyState>()(
+// Exportovaný přímo, aby ho testy mohly volat rovnou přes
+// .getState()/.setState() bez komponenty — stejný vzor jako Rozvrhovo
+// useRozvrhStore.
+export const useZnamkyStore = create<ZnamkyState>()(
   persist(
     (set) => ({
       predmety: [],
@@ -77,6 +96,34 @@ const useZnamkyStore = create<ZnamkyState>()(
         set((state) => ({
           predmety: state.predmety.map((p) => (p.id === predmetId ? { ...p, cil, updatedAt: Date.now() } : p)),
         })),
+
+      upravitPredmet: (id, nazev, kredity) => {
+        if (!nazev.trim()) return
+        set((state) => ({
+          predmety: state.predmety.map((p) =>
+            p.id === id
+              ? { ...p, nazev: nazev.trim(), kredity: Math.max(0, kredity || 0), updatedAt: Date.now() }
+              : p
+          ),
+        }))
+      },
+
+      upravitZnamku: (predmetId, znamkaId, hodnota, vaha, popis, datum) =>
+        set((state) => ({
+          predmety: state.predmety.map((p) =>
+            p.id === predmetId
+              ? {
+                  ...p,
+                  znamky: p.znamky.map((z) =>
+                    z.id === znamkaId
+                      ? { ...z, hodnota, vaha: Math.max(0.1, vaha || 1), popis: popis.trim(), datum }
+                      : z
+                  ),
+                  updatedAt: Date.now(),
+                }
+              : p
+          ),
+        })),
     }),
     {
       name: 'schoolbuddy-znamky-storage',
@@ -100,13 +147,30 @@ export const setRawZnamkyState = (patch: Partial<{ predmety: Predmet[] }>) => us
 export const subscribeZnamkyStore = (fn: () => void) => useZnamkyStore.subscribe(fn)
 
 export const useZnamky = () => {
-  const { predmety: vsechnyPredmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku, nastavCilPredmetu } =
-    useZnamkyStore()
+  const {
+    predmety: vsechnyPredmety,
+    pridatPredmet,
+    smazatPredmet,
+    pridatZnamku,
+    smazatZnamku,
+    nastavCilPredmetu,
+    upravitPredmet,
+    upravitZnamku,
+  } = useZnamkyStore()
 
   // Smazané předměty appka drží v úložišti dál (viz Predmet.deletedAt)
   // jen kvůli synchronizaci mezi zařízeními — kdokoli appku volá jako
   // dřív je nikdy nesmí vidět.
   const predmety = useMemo(() => vsechnyPredmety.filter((p) => !p.deletedAt), [vsechnyPredmety])
 
-  return { predmety, pridatPredmet, smazatPredmet, pridatZnamku, smazatZnamku, nastavCilPredmetu }
+  return {
+    predmety,
+    pridatPredmet,
+    smazatPredmet,
+    pridatZnamku,
+    smazatZnamku,
+    nastavCilPredmetu,
+    upravitPredmet,
+    upravitZnamku,
+  }
 }
