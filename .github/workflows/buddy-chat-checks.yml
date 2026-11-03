@@ -1,0 +1,22 @@
+name: Buddy - kontroly konverzačních dat
+
+on:
+  pull_request:
+    paths: ['tools/buddy-ai/**', '.github/workflows/buddy-chat-*.yml']
+  push:
+    branches: [main]
+    paths: ['tools/buddy-ai/**', '.github/workflows/buddy-chat-*.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  data:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - run: python -m unittest discover -s tools/buddy-ai -p 'test_chat_*.py'
+      - run: python tools/buddy-ai/expand_chat_data.py --out "$RUNNER_TEMP/buddy-training-data.json"
