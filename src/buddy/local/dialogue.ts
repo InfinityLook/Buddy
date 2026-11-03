@@ -2,6 +2,7 @@ import { normalizeIntentText, predictIntent } from './intentModel'
 import type { IntentModel } from './intentModel'
 import type { BuddyTaskDraft } from './taskParser'
 import { createBuddyConversationMemory, isConversationControl, startsBuddyConversation, wantsFreeConversation } from './conversationMemory'
+import type { BuddyChatMessage, BuddyTextGenerator } from './generation/types'
 
 export type BuddyActionIntent =
   | 'open_module' | 'create_note' | 'create_task'
@@ -128,12 +129,15 @@ const isBlockedCommand = (text: string): boolean => {
 export const createBuddyDialogue = (
   model: IntentModel,
   executeAction?: BuddyActionExecutor,
+  options: { generator?: BuddyTextGenerator } = {},
 ): BuddyDialogue => {
   let pending: BuddyPendingAction | null = null
   let inFlight: AbortController | null = null
   const memory = createBuddyConversationMemory()
   let lastReply: string | null = null
   let replyTooLong = false
+  let history: BuddyChatMessage[] = []
+  let revision = 0
 
   // Uchováváme jen konverzační odpověď, nejvýše do limitu jedné poznámky.
   const remember = (answer: string): string => {
@@ -144,15 +148,62 @@ export const createBuddyDialogue = (
   }
 
   const reset = () => {
+    revision += 1
     inFlight?.abort()
     inFlight = null
     pending = null
     memory.reset()
     lastReply = null
     replyTooLong = false
+    history = []
+    options.generator?.dispose()
   }
 
-  const reply = async (text: string): Promise<string> => {
+  const generateConversation = async (raw: string, fallback: string): Promise<string> => {
+    if (!options.generator) return fallback
+    const controller = new AbortController()
+    inFlight = controller
+    let timedOut = false
+    const timer = setTimeout(() => { timedOut = true; controller.abort() }, 25000)
+    let onAbort = () => {}
+    const aborted = new Promise<never>((_, reject) => {
+      onAbort = () => reject(new DOMException('Požadavek byl zastaven.', 'AbortError'))
+      controller.signal.addEventListener('abort', onAbort, { once: true })
+    })
+    try {
+      const summary = memory.getSummary?.() ?? null
+      const messages: BuddyChatMessage[] = [
+        ...history.slice(-12),
+        ...(summary ? [
+          { role: 'user' as const, text: 'Co teď řešíme?' },
+          { role: 'assistant' as const, text: summary },
+        ] : []),
+        { role: 'user', text: raw },
+      ]
+      const answer = await Promise.race([
+        options.generator.generate(messages, controller.signal), aborted,
+      ])
+      if (controller.signal.aborted) throw new DOMException('Požadavek byl zastaven.', 'AbortError')
+      if (typeof answer !== 'string') return fallback
+      const text = answer.trim()
+      const value = normalizeIntentText(text)
+      // Technická pojistka; kvalitu významu musí zvlášť ověřit hodnoticí sada a člověk.
+      if (!text || text.length > 480 || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\ufffd]/u.test(text) ||
+        /\b(\w+)(?:\s+\1){3,}\b/.test(value) ||
+        /\b(ulozil|vytvoril|otevrel|spustil|zmenil|smazal|odeslal|pridal) jsem\b/.test(value) ||
+        /\b(jsem (ulozil|vytvoril|otevrel|spustil|zmenil|smazal|odeslal|pridal))\b/.test(value)) return fallback
+      return remember(text)
+    } catch {
+      if (controller.signal.aborted && !timedOut) throw new DOMException('Požadavek byl zastaven.', 'AbortError')
+      return fallback
+    } finally {
+      clearTimeout(timer)
+      controller.signal.removeEventListener('abort', onAbort)
+      if (inFlight === controller) inFlight = null
+    }
+  }
+
+  const respond = async (text: string): Promise<string> => {
     const raw = text.trim()
 
     if (!raw) return 'Napiš mi prosím zprávu nebo použij mikrofon.'
@@ -247,14 +298,14 @@ export const createBuddyDialogue = (
 
           case 'small_talk':
             if (/unaven|povzbud/.test(normalized)) {
-              return remember('Můžeme to vzít po malých krocích. Jakou jednu věc chceš teď vyřešit?')
+              return generateConversation(raw, remember('Můžeme to vzít po malých krocích. Jakou jednu věc chceš teď vyřešit?'))
             }
 
             if (/mam se dobre|dobrou naladu|zvladl/.test(normalized)) {
-              return remember('To rád slyším. Chceš na něco navázat, nebo si jen chvíli psát?')
+              return generateConversation(raw, remember('To rád slyším. Chceš na něco navázat, nebo si jen chvíli psát?'))
             }
 
-            return remember('Jsem připravený pomoct a můžeme si i krátce popovídat. Jak se dnes daří tobě?')
+            return generateConversation(raw, remember('Jsem připravený pomoct a můžeme si i krátce popovídat. Jak se dnes daří tobě?'))
 
           case 'cancel':
             reset()
@@ -263,7 +314,8 @@ export const createBuddyDialogue = (
       }
     }
 
-    if (!isActionIntent(intent)) return FALLBACK
+    if (!isActionIntent(intent)) return isExplicitActionRequest(raw)
+      ? FALLBACK : generateConversation(raw, FALLBACK)
 
     if (!executeAction) {
       return 'Tuto akci teď nemám dostupnou. Můžeme si zatím psát.'
@@ -309,5 +361,16 @@ export const createBuddyDialogue = (
     }
   }
 
+  const reply = async (text: string): Promise<string> => {
+    const version = revision
+    const wasBusy = inFlight !== null
+    const answer = await respond(text)
+    if (version === revision && !wasBusy && text.trim() && text.trim().length <= 500) {
+      history.push({ role: 'user', text: text.trim() }, { role: 'assistant', text: answer.slice(0, 500) })
+      history = history.slice(-12)
+    }
+    return answer
+  }
+
   return { reply, reset }
-}
+  }
