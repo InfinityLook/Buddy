@@ -11,7 +11,7 @@ from pathlib import Path
 import re
 import sys
 import time
-import unicodedata
+from chat_data import read_data
 
 import torch
 from torch import nn
@@ -33,36 +33,6 @@ def peak_memory_mib():
         return None
     import resource
     return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1)
-
-
-def read_data(path):
-    if path.stat().st_size > 5_000_000:
-        raise ValueError("Pilot přijímá nejvýše 5 MB dat.")
-    data = json.loads(path.read_text(encoding="utf-8"))
-    if not isinstance(data, dict):
-        raise ValueError("Data musí obsahovat oddělenou trénovací a ověřovací sadu.")
-    seen = set()
-    for split in ("training", "validation"):
-        conversations = data.get(split)
-        if not isinstance(conversations, list) or not 1 <= len(conversations) <= 5000:
-            raise ValueError(f"Chybí platná sada {split}.")
-        for conversation in conversations:
-            if not isinstance(conversation, list) or not 2 <= len(conversation) <= 16 or len(conversation) % 2:
-                raise ValueError("Rozhovor musí střídavě obsahovat uživatele a asistenta.")
-            normalized = []
-            for i, message in enumerate(conversation):
-                role = "user" if i % 2 == 0 else "assistant"
-                if not isinstance(message, list) or len(message) != 2 or message[0] != role:
-                    raise ValueError("Neplatná role zprávy.")
-                text = message[1]
-                if not isinstance(text, str) or not text.strip() or len(text) > 500:
-                    raise ValueError("Zpráva potřebuje 1 až 500 znaků.")
-                normalized.append([role, unicodedata.normalize("NFC", " ".join(text.split())).casefold()])
-            key = json.dumps(normalized, ensure_ascii=False)
-            if key in seen:
-                raise ValueError("Opakovaný rozhovor nebo překryv trénování a ověřování.")
-            seen.add(key)
-    return data
 
 
 class Tokenizer:
@@ -227,7 +197,7 @@ def loss_for(model, x, y):
 def evaluate(model, rows):
     model.eval()
     total, count = 0.0, 0
-    for start in range(0, min(len(rows[0]), 16), 4):
+    for start in range(0, len(rows[0]), 4):
         x = rows[0][start:start + 4]
         y = rows[1][start:start + 4]
         valid = int((y != IGNORE).sum())
@@ -447,7 +417,8 @@ def main():
         indexes = torch.randint(
             len(train_rows[0]), (4,), generator=generator
         )
-        x, y = train_rows[0][indexes], train_rows[1][indexes]
+        x = train_rows[0][indexes]
+        y = train_rows[1][indexes]
 
         optimizer.zero_grad(set_to_none=True)
         loss = loss_for(model, x, y)
