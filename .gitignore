@@ -17,3 +17,7 @@ blob-report
 .env
 .env.*
 !.env.example
+
+# Reprodukovatelné výstupy trénování; váhy se zveřejňují až po kontrole kvality.
+tools/buddy-ai/chat-pilot-output/
+tools/buddy-ai/__pycache__/
