@@ -1,0 +1,10 @@
+{
+  "maxLogitError": 0.000001430511474609375,
+  "promptTokens": 10,
+  "generatedTokens": 7,
+  "endedWithEos": true,
+  "prefillMs": 28.195232000000004,
+  "elapsedMs": 47.31028300000001,
+  "text": "Ahoj. Jaký máš den?",
+  "environment": "Node.js CPU; toto není měření telefonu"
+}
