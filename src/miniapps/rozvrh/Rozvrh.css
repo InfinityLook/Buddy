@@ -12,6 +12,7 @@
 
 .rozvrh-zalozka {
   flex: 1;
+  min-width: 0;
   background: var(--bg-glass);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
@@ -354,4 +355,227 @@
   font-size: 0.72rem;
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
+}
+
+.rozvrh-dochazka-radek.je-zrusena {
+  opacity: 0.6;
+}
+
+.rozvrh-znacka-presunuto {
+  color: var(--accent-cyan);
+}
+
+.rozvrh-znacka-zruseno {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--accent-magenta);
+}
+
+/* --- Sudý/lichý týden --- */
+
+.rozvrh-tyden-znacka {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-violet) 20%, transparent);
+  border: 1px solid var(--accent-violet);
+  color: var(--accent-violet);
+  font-size: 0.6rem;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+/* --- Jedna šablonová hodina + panel zrušení/přesunu pod ní --- */
+
+.rozvrh-polozka-obal {
+  display: flex;
+  flex-direction: column;
+}
+
+.rozvrh-vyskyt-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.rozvrh-vyskyt-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--bg-panel);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 0.7rem;
+  margin-top: 0.4rem;
+}
+
+.rozvrh-vyskyt-akce {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.rozvrh-presun-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.5rem;
+}
+
+.rozvrh-vyskyt-historie {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 0.4rem;
+}
+
+.rozvrh-vyskyt-historie-radek {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.rozvrh-vyskyt-historie-radek button {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.2rem 0.5rem;
+  color: var(--accent-cyan);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* --- Správa (prázdniny / import / semestry) --- */
+
+.rozvrh-sprava-sekce {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.9rem;
+}
+
+.rozvrh-sprava-sekce h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.rozvrh-sprava-popis {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.rozvrh-prazdniny-form,
+.rozvrh-semestr-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rozvrh-prazdniny-form input,
+.rozvrh-semestr-form input {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem;
+  color: var(--text-primary);
+  font-size: 0.85rem;
+}
+
+.rozvrh-semestr-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.rozvrh-polozka-text--klikatelna {
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+}
+
+.rozvrh-semestr-info {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.rozvrh-semestr-detail {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0.5rem 0.7rem 0.5rem 1rem;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.rozvrh-import-input {
+  color: var(--text-primary);
+  font-size: 0.8rem;
+}
+
+.rozvrh-import-nahled {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.rozvrh-import-seznam {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.rozvrh-import-polozka {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.6rem;
+  font-size: 0.78rem;
+}
+
+.rozvrh-import-polozka label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.rozvrh-import-duplicitni {
+  flex-shrink: 0;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  font-style: italic;
 }

@@ -1,5 +1,5 @@
 import { showAppNotification } from '@/core/utils/notify'
-import { HodinaRozvrhu, najdiDalsiPripominku } from './types'
+import { HodinaRozvrhu, najdiDalsiPripominku, PREDSTIH_MINUT } from './types'
 import { useRozvrhStore } from './useRozvrh'
 
 // ==========================================
@@ -44,11 +44,26 @@ const oznamKlicPro = (h: HodinaRozvrhu, ted: Date): string =>
 const naplanuj = (): void => {
   zrusTimer()
   const ted = new Date()
-  // Smazaná (deletedAt) hodina appka drží v úložišti dál jen kvůli
-  // synchronizaci mezi zařízeními — sama nesmí spustit připomínku,
-  // stejný filtr jako useRozvrh()'s vlastní veřejný pohled.
-  const aktivniHodiny = useRozvrhStore.getState().hodiny.filter((h) => !h.deletedAt)
-  const dalsi = najdiDalsiPripominku(aktivniHodiny, ted)
+  // Smazaná (deletedAt) položka appka drží v úložišti dál jen kvůli
+  // synchronizaci mezi zařízeními — sama nesmí spustit/ovlivnit
+  // připomínku, stejný filtr jako useRozvrh()'s vlastní veřejný pohled.
+  // Bez prázdnin/zrušení/přesunů by appka připomněla hodinu, co dneska
+  // vůbec neproběhne (prázdninový den), nebo takovou, co už byla
+  // zrušená/přesunutá jinam — stejná fáze 3 informovanost, co teď má i
+  // "Dnešní hodiny" v Rozvrh.tsx a School Roomova "Příští hodina".
+  const stav = useRozvrhStore.getState()
+  const aktivniHodiny = stav.hodiny.filter((h) => !h.deletedAt)
+  const aktivniPrazdniny = stav.prazdniny.filter((p) => !p.deletedAt)
+  const aktivniZruseni = stav.zruseneHodiny.filter((z) => !z.deletedAt)
+  const aktivniPresuny = stav.presuny.filter((p) => !p.deletedAt)
+  const dalsi = najdiDalsiPripominku(
+    aktivniHodiny,
+    ted,
+    PREDSTIH_MINUT,
+    aktivniPrazdniny,
+    aktivniZruseni,
+    aktivniPresuny
+  )
   if (!dalsi) return
 
   const klic = oznamKlicPro(dalsi.hodina, ted)

@@ -81,10 +81,34 @@ const useFileManagerStore = create<FileManagerState>()(
 
 export type AddFileResult = { ok: true } | { ok: false; error: string }
 
+// ==========================================
+// Předvýběr hledaného výrazu pro příští otevření File Manageru —
+// plain proměnná na úrovni modulu, přesně stejný "nastav, přečti
+// jednou, zahoď" vzor jako Form Checkovo predvyberCviku
+// (useFormCheck.ts). School Roomova "rychlé otevření materiálů k
+// právě probíhajícímu předmětu" ji nastaví na předmět aktuální/
+// nejbližší hodiny (viz SchoolRoomModule.tsx) těsně před navigate() na
+// /apps — File Manager se tak otevře rovnou přefiltrovaný, ale pořád
+// přes úplně stejný search/setSearch filtr, co si uživatel i sám
+// přepsat/vymazat. Normální otevření z hlavní mřížky appek (bez
+// předvýběru) se nezmění vůbec.
+// ==========================================
+let predvyberHledani: string | null = null
+
+export const nastavPredvyberHledani = (vyraz: string) => {
+  predvyberHledani = vyraz
+}
+
+const vezmiPredvyberHledani = (): string | null => {
+  const hodnota = predvyberHledani
+  predvyberHledani = null
+  return hodnota
+}
+
 export const useFileManager = () => {
   const { files, sortMode, addFile, updateFile, removeFile, setSortMode } = useFileManagerStore()
 
-  const [search, setSearch] = useState('')
+  const [search, setSearch] = useState(() => vezmiPredvyberHledani() ?? '')
   const [folder, setFolder] = useState<string>(ALL_FOLDERS)
   const [kindFilter, setKindFilter] = useState<FileKind | 'all'>('all')
   // Id souborů, ke kterým máme i obsah. Po obnově ze zálohy z jiného

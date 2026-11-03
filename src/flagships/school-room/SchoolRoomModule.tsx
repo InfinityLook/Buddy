@@ -16,7 +16,13 @@ import { sestavChytrySouhrn, vetaODnesnimKroku, vetaONejblizsimTerminu } from '.
 import { nastavAktivniPredmetZPlanovace } from '@/miniapps/pomodoro/usePomodoro'
 import type { StudyTask } from '@/miniapps/study-planner/types'
 import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
-import { PRAH_RIZIKA_DOCHAZKY, hodinyDnes, spocitejDochazkuPodlePredmetu } from '@/miniapps/rozvrh/types'
+import {
+  EfektivniHodina,
+  PRAH_RIZIKA_DOCHAZKY,
+  efektivniRozvrhProDatum,
+  spocitejDochazkuPodlePredmetu,
+} from '@/miniapps/rozvrh/types'
+import { nastavPredvyberHledani } from '@/miniapps/file-manager/useFileManager'
 import { useZnamky } from '@/miniapps/znamky/useZnamky'
 import { celkovyVazenyPrumer, spocitejProcentaCileProumeru } from '@/miniapps/znamky/types'
 import './SchoolRoomModule.css'
@@ -100,16 +106,55 @@ export const SchoolRoomModule: React.FC = () => {
   )
 
   // Příští hodina a riziko docházky — Rozvrh už obě čísla sám počítá
-  // (hodinyDnes/spocitejDochazkuPodlePredmetu), jen se nikde v "Moje
-  // přehled" doteď nezobrazovala. Stejné "wire it up, don't invent new
-  // logic" jako zbytek panelu.
-  const { hodiny: rozvrhHodiny, dochazka } = useRozvrh()
-  const dnesniHodiny = useMemo(() => hodinyDnes(rozvrhHodiny, ted), [rozvrhHodiny, ted])
+  // (spocitejDochazkuPodlePredmetu), jen se nikde v "Moje přehled"
+  // doteď nezobrazovala. Stejné "wire it up, don't invent new logic"
+  // jako zbytek panelu.
+  const {
+    hodiny: rozvrhHodiny,
+    dochazka,
+    prazdniny: rozvrhPrazdniny,
+    zruseneHodiny: rozvrhZruseni,
+    presuny: rozvrhPresuny,
+  } = useRozvrh()
   const dnesniCasStr = `${String(ted.getHours()).padStart(2, '0')}:${String(ted.getMinutes()).padStart(2, '0')}`
-  const pristiHodina = useMemo(
-    () => dnesniHodiny.find((h) => h.casOd >= dnesniCasStr) ?? null,
-    [dnesniHodiny, dnesniCasStr]
+  // Resolverem (efektivniRozvrhProDatum), ne naivním filtrem jen podle
+  // dne v týdnu — "Příští hodina" má vědět o prázdninách/sudém-lichém
+  // cyklu/zrušení/přesunu stejně jako Rozvrhova vlastní "Dnešní hodiny"
+  // a appkova připomínka (rozvrhReminders.ts), jinde by tu mohla
+  // zobrazit hodinu, co dneska vůbec neproběhne, nebo přeskočit tu, co
+  // sem dneska přesunutím právě přibyla. Zrušené výskyty appka z
+  // obojího (probíhající i příští) vyřazuje úplně.
+  const dnesniRozvrh = useMemo(
+    () =>
+      efektivniRozvrhProDatum(rozvrhHodiny, rozvrhPrazdniny, rozvrhZruseni, rozvrhPresuny, dnesniStr).filter(
+        (e) => !e.zrusena
+      ),
+    [rozvrhHodiny, rozvrhPrazdniny, rozvrhZruseni, rozvrhPresuny, dnesniStr]
   )
+  const probihajiciHodina = useMemo(
+    () => dnesniRozvrh.find((e) => e.casOd <= dnesniCasStr && dnesniCasStr < e.casDo) ?? null,
+    [dnesniRozvrh, dnesniCasStr]
+  )
+  const pristiHodina = useMemo(
+    () => dnesniRozvrh.find((e) => e.casOd >= dnesniCasStr) ?? null,
+    [dnesniRozvrh, dnesniCasStr]
+  )
+  // "Rychlé otevření materiálů k právě probíhajícímu předmětu" —
+  // probíhající hodina má přednost, bez ní appka nabídne zkratku na tu
+  // nejbližší příští, ať tlačítko nezůstane bezdůvodně schované jen
+  // kvůli mezeře mezi hodinami (přestávka, volno před první hodinou).
+  // Tahle appka sama File Manageru nerozumí dovnitř (viz CLAUDE.md's
+  // "miniapps don't import each other" — Kalendář→Rozvrh a Planer→
+  // Pomodoro jsou dvě jediné zdokumentované výjimky) — jen mu těsně
+  // před navigate() nastaví předvýběr hledání přes jeho vlastní
+  // modulový mechanismus (useFileManager.ts's nastavPredvyberHledani),
+  // stejně jako Fitness Roomovo "Spustit dnešní trénink" nastavuje
+  // Form Checkovu nastavPredvyberCviku.
+  const hodinaProMaterialy = probihajiciHodina ?? pristiHodina
+  const otevritMaterialyProHodinu = (e: EfektivniHodina) => {
+    nastavPredvyberHledani(e.hodina.predmet)
+    otevritMiniaplikaci('file-manager')
+  }
   const pocetRizikovychPredmetu = useMemo(
     () => spocitejDochazkuPodlePredmetu(rozvrhHodiny, dochazka).filter((d) => d.procenta < PRAH_RIZIKA_DOCHAZKY).length,
     [rozvrhHodiny, dochazka]
@@ -479,11 +524,29 @@ export const SchoolRoomModule: React.FC = () => {
                 <AppIcon name="schedule" size={18} />
               </span>
               <span className="sr-stat-text">
-                <span className="sr-stat-nazev">Příští hodina</span>
+                <span className="sr-stat-nazev">
+                  {probihajiciHodina ? 'Právě probíhá' : 'Příští hodina'}
+                </span>
                 <span className="sr-stat-hodnota">
-                  {pristiHodina ? `${pristiHodina.predmet} (${pristiHodina.casOd})` : 'Dnes už žádná další'}
+                  {probihajiciHodina
+                    ? `${probihajiciHodina.hodina.predmet} (do ${probihajiciHodina.casDo})`
+                    : pristiHodina
+                      ? `${pristiHodina.hodina.predmet} (${pristiHodina.casOd})`
+                      : 'Dnes už žádná další'}
                 </span>
               </span>
+              {/* Rychlé otevření materiálů k právě probíhajícímu (nebo
+                  nejbližšímu příštímu) předmětu — viz komentář u
+                  hodinaProMaterialy výš. */}
+              {hodinaProMaterialy && (
+                <button
+                  className="sr-materialy-btn"
+                  onClick={() => otevritMaterialyProHodinu(hodinaProMaterialy)}
+                  title={`Otevřít materiály k předmětu ${hodinaProMaterialy.hodina.predmet}`}
+                >
+                  <AppIcon name="file-manager" size={16} />
+                </button>
+              )}
             </div>
 
             {pocetRizikovychPredmetu > 0 && (

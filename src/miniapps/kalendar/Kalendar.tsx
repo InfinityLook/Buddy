@@ -24,7 +24,7 @@ import {
   zacatekVyskytuPokryvajiciDen,
 } from './types'
 import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
-import { denVTydnuZDatumu } from '@/miniapps/rozvrh/types'
+import { efektivniRozvrhProDatum } from '@/miniapps/rozvrh/types'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { useAppStore } from '@/core/store/useAppStore'
 import { stahnoutBlob } from '@/core/utils/download'
@@ -137,16 +137,22 @@ export const Kalendar: React.FC = () => {
   const dnesniStr = naFormatDatumu(dnes.getFullYear(), dnes.getMonth(), dnes.getDate())
 
   // Dnešní hodiny podle Rozvrhu — jen jak vybraný den, ne dnešek appky.
-  // O víkendu (denVTydnu === null) nebo bez jediné hodiny se sekce
-  // vůbec nevykreslí, ne prázdný nadpis navíc.
-  const { hodiny: rozvrhHodiny } = useRozvrh()
+  // Resolverem (efektivniRozvrhProDatum), ne naivním filtrem jen podle
+  // dne v týdnu — appka tak ví o prázdninách/sudém-lichém cyklu/
+  // zrušení/přesunu stejně jako Rozvrhova vlastní "Dnešní hodiny" a
+  // School Roomova "Příští hodina" (viz SchoolRoomModule.tsx), jinak
+  // by tu zobrazila hodinu, co ve vybraný den vůbec neproběhne, nebo
+  // přeskočila tu, co sem byla přesunutím právě přidaná. Zrušené
+  // výskyty appka NEschovává — zůstávají vidět s vlastním "Zrušeno"
+  // odznakem, stejný "appka to vidí, nikdy nemizí beze stopy" vzor
+  // jako Rozvrh.tsx's vlastní "Dnešní hodiny". Bez jediné hodiny se
+  // sekce vůbec nevykreslí, ne prázdný nadpis navíc.
+  const { hodiny: rozvrhHodiny, prazdniny: rozvrhPrazdniny, zruseneHodiny: rozvrhZruseni, presuny: rozvrhPresuny } =
+    useRozvrh()
   const hodinyVybraneho = useMemo(() => {
     if (!vybranyDen) return []
-    const [rokD, mesicD, denD] = vybranyDen.split('-').map(Number)
-    const denVTydnu = denVTydnuZDatumu(new Date(rokD, mesicD - 1, denD))
-    if (denVTydnu === null) return []
-    return rozvrhHodiny.filter((h) => h.den === denVTydnu)
-  }, [vybranyDen, rozvrhHodiny])
+    return efektivniRozvrhProDatum(rozvrhHodiny, rozvrhPrazdniny, rozvrhZruseni, rozvrhPresuny, vybranyDen)
+  }, [vybranyDen, rozvrhHodiny, rozvrhPrazdniny, rozvrhZruseni, rozvrhPresuny])
 
   // Planerovy nesplněné termíny vybraného dne — čistě READ-ONLY
   // virtuální značky. Appka je sem nekopíruje jako vlastní Udalost
@@ -479,12 +485,14 @@ export const Kalendar: React.FC = () => {
             <div className="kalendar-rozvrh-radek">
               <span className="kalendar-rozvrh-popisek">📚 Podle rozvrhu</span>
               <ul className="kalendar-rozvrh-seznam">
-                {hodinyVybraneho.map((h) => (
-                  <li key={h.id}>
+                {hodinyVybraneho.map((e) => (
+                  <li key={`${e.hodina.id}::${e.casOd}`} className={e.zrusena ? 'je-zrusena' : undefined}>
                     <span className="kalendar-rozvrh-cas">
-                      {h.casOd}–{h.casDo}
+                      {e.casOd}–{e.casDo}
                     </span>
-                    <span className="kalendar-rozvrh-predmet">{h.predmet}</span>
+                    <span className="kalendar-rozvrh-predmet">{e.hodina.predmet}</span>
+                    {e.zrusena && <span className="kalendar-rozvrh-znacka-zruseno">🚫 Zrušeno</span>}
+                    {e.presunutoZ && <span className="kalendar-rozvrh-znacka-presunuto">↪ přesunuto</span>}
                   </li>
                 ))}
               </ul>

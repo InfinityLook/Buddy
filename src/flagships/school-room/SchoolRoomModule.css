@@ -114,6 +114,30 @@
   letter-spacing: 0.01em;
 }
 
+/* Rychlé otevření materiálů k právě probíhajícímu/příštímu předmětu —
+   malé kulaté tlačítko napravo od "Právě probíhá"/"Příští hodina"
+   řádku, ukáže se jen tehdy, kdy appka dneska doopravdy ví o nějaké
+   hodině (viz hodinaProMaterialy v SchoolRoomModule.tsx). */
+.sr-materialy-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-panel-raised);
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-cyan);
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.sr-materialy-btn:hover {
+  background: color-mix(in srgb, var(--accent-cyan) 14%, var(--bg-panel-raised));
+  transform: scale(1.06);
+}
+
 /* Vizuální odznak rizika docházky — na rozdíl od ostatních tří řádků
    výš (holá čísla) dostává vlastní zvýrazněnou pilulku, ať je vidět na
    první pohled, ne jen z toho, že se řádek vůbec zobrazil. */

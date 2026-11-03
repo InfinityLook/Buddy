@@ -413,6 +413,32 @@
   color: var(--text-primary);
 }
 
+/* Zrušený/přesunutý výskyt — appka ho nikdy nemaže ze seznamu, jen
+   přidá odznak (stejný "appka to vidí, nikdy nemizí beze stopy" vzor
+   jako Rozvrh.tsx's vlastní "Dnešní hodiny", ty samé dva pojmy, jen
+   v tomhle souboru vlastní samostatná kopie stylu, ne import). */
+.kalendar-rozvrh-seznam li.je-zrusena .kalendar-rozvrh-cas,
+.kalendar-rozvrh-seznam li.je-zrusena .kalendar-rozvrh-predmet {
+  opacity: 0.55;
+  text-decoration: line-through;
+}
+
+.kalendar-rozvrh-znacka-zruseno,
+.kalendar-rozvrh-znacka-presunuto {
+  flex-shrink: 0;
+  margin-left: auto;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.kalendar-rozvrh-znacka-zruseno {
+  color: var(--accent-magenta);
+}
+
+.kalendar-rozvrh-znacka-presunuto {
+  color: var(--accent-cyan);
+}
+
 /* Planerovy termíny — na rozdíl od appčina plain "Podle rozvrhu" řádku
    (jen čas+předmět) má navíc tlačítko zpátky do Planeru, proto řádek
    dostane vlastní rozestup mezi textem a odkazem. */

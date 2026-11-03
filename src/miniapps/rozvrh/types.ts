@@ -33,6 +33,16 @@ export const DNY_V_TYDNU: PolozkaDne[] = [
 export const nazevDne = (den: DenVTydnu): string =>
   DNY_V_TYDNU.find((d) => d.id === den)?.nazev ?? ''
 
+// --- Sudý/lichý týden (A/B cyklus) ---
+
+export type TydenCyklus = 'kazdy' | 'sudy' | 'lichy'
+
+export const NAZEV_CYKLU: Record<TydenCyklus, string> = {
+  kazdy: 'Každý týden',
+  sudy: 'Sudý týden',
+  lichy: 'Lichý týden',
+}
+
 export interface HodinaRozvrhu {
   id: string
   den: DenVTydnu
@@ -42,6 +52,9 @@ export interface HodinaRozvrhu {
   predmet: string
   mistnost: string
   vyucujici: string
+  /** Nepovinné — starší hodina ho vůbec neměla (viz tydenHodiny níž),
+   *  appka ji odjakživa počítala jako 'kazdy'. */
+  tyden?: TydenCyklus
   // --- Cloudová synchronizace (skolaSync.ts) ---
   // Stejná trojice jako Kniha/Scenar/Komiks/Goal — updatedAt rozhoduje
   // "kdo vyhrává" při sloučení mezi zařízeními, deletedAt je tombstone
@@ -56,6 +69,31 @@ export interface HodinaRozvrhu {
 // doopravdy probíhá, i když se hodiny zadaly v jiném pořadí.
 export const serazenoPodleCasu = (hodiny: HodinaRozvrhu[]): HodinaRozvrhu[] =>
   [...hodiny].sort((a, b) => (a.den !== b.den ? a.den - b.den : a.casOd.localeCompare(b.casOd)))
+
+/** Starší uložená hodina pole tyden vůbec nemá — appka ji odjakživa
+ *  počítala jako "každý týden". */
+export const tydenHodiny = (h: HodinaRozvrhu): TydenCyklus => h.tyden ?? 'kazdy'
+
+/** ISO 8601 číslo týdne (týden 1 = ten, co obsahuje první čtvrtek roku,
+ *  pondělí je první den týdne) — appka na něm postaví sudý/lichý
+ *  cyklus, protože je to přesně ta samá konvence, co reálné české školy
+ *  pro "sudý/lichý týden" používají. Počítá čistě z místních Y/M/D,
+ *  žádný toISOString()/UTC posun. */
+const isoTydenZDatumu = (y: number, m: number, d: number): number => {
+  const datum = new Date(y, m - 1, d)
+  const denOdPondeli = (datum.getDay() + 6) % 7 // Po=0 .. Ne=6
+  datum.setDate(datum.getDate() - denOdPondeli + 3) // nejbližší čtvrtek
+  const prvniCtvrtek = new Date(datum.getFullYear(), 0, 4)
+  const prvniCtvrtekOdPondeli = (prvniCtvrtek.getDay() + 6) % 7
+  prvniCtvrtek.setDate(prvniCtvrtek.getDate() - prvniCtvrtekOdPondeli + 3)
+  return 1 + Math.round((datum.getTime() - prvniCtvrtek.getTime()) / (7 * 24 * 60 * 60 * 1000))
+}
+
+/** Sudý/lichý týden pro dané 'YYYY-MM-DD' datum. */
+export const paritaTydne = (datumIso: string): 'sudy' | 'lichy' => {
+  const [y, m, d] = datumIso.split('-').map(Number)
+  return isoTydenZDatumu(y, m, d) % 2 === 0 ? 'sudy' : 'lichy'
+}
 
 /** Klíč pro jeden záznam docházky — jedna konkrétní hodina v konkrétní
  *  den (ne šablona, ale skutečné datum). */
@@ -96,21 +134,34 @@ export const PREDSTIH_MINUT = 10
  *  registerSW.ts's virtual:pwa-register by kontaminovalo testovatelnost
  *  čehokoli, co by ho importovalo (stejná past, co si appka musela
  *  vyřešit u Financí/Goal Trackeru). */
+// Nepovinné prazdniny/zruseneHodiny/presuny s výchozím prázdným polem
+// — appka nikdy nenutí žádný starší kód (žádný test ani caller tyhle
+// tři nový koncepty ještě nezná), co tuhle funkci volá jen se dvěma/
+// třemi původními argumenty, aby se musel učit o tombstonech navíc.
+// Vrácený tvar taky zůstává { hodina, ... } (ne EfektivniHodina
+// zabalená uvnitř), stejný důvod — existující volající čte .hodina
+// přímo.
 export const najdiDalsiPripominku = (
   hodiny: HodinaRozvrhu[],
   ted: Date,
-  predstihMinut: number = PREDSTIH_MINUT
-): { hodina: HodinaRozvrhu; zaMs: number } | null => {
-  const dnesek = hodinyDnes(hodiny, ted)
+  predstihMinut: number = PREDSTIH_MINUT,
+  prazdniny: Prazdniny[] = [],
+  zruseneHodiny: ZrusenaHodina[] = [],
+  presuny: Presun[] = []
+): { hodina: HodinaRozvrhu; casOd: string; casDo: string; zaMs: number } | null => {
+  const dnesniIso = dnesniDatumIso(ted)
+  const dnesek = efektivniRozvrhProDatum(hodiny, prazdniny, zruseneHodiny, presuny, dnesniIso).filter(
+    (e) => !e.zrusena
+  )
   const nyniStr = `${String(ted.getHours()).padStart(2, '0')}:${String(ted.getMinutes()).padStart(2, '0')}`
-  const dalsi = dnesek.find((h) => h.casOd > nyniStr)
+  const dalsi = dnesek.find((e) => e.casOd > nyniStr)
   if (!dalsi) return null
 
   const [hod, min] = dalsi.casOd.split(':').map(Number)
   const zacatek = new Date(ted)
   zacatek.setHours(hod, min, 0, 0)
   const zaMs = zacatek.getTime() - predstihMinut * 60_000 - ted.getTime()
-  return { hodina: dalsi, zaMs }
+  return { hodina: dalsi.hodina, casOd: dalsi.casOd, casDo: dalsi.casDo, zaMs }
 }
 
 /** Přesahují se dva časové úseky stejného dne? Čistý řetězcový
@@ -222,6 +273,140 @@ export const spocitejDochazkuPodlePredmetu = (
     .sort((a, b) => a.procenta - b.procenta)
 }
 
+// --- Prázdniny ---
+
+export interface Prazdniny {
+  id: string
+  nazev: string
+  /** 'YYYY-MM-DD', včetně obou krajních dní. */
+  datumOd: string
+  datumDo: string
+  createdAt: string
+  updatedAt: number
+  deletedAt: number | null
+}
+
+/** Padne zadané datum do nějakých (nesmazaných) prázdnin? Appka vrací
+ *  tu konkrétní položku (kvůli jejímu názvu), ne jen boolean. */
+export const jeDenPrazdninovy = (prazdniny: Prazdniny[], datumIso: string): Prazdniny | null =>
+  prazdniny.find((p) => !p.deletedAt && p.datumOd <= datumIso && datumIso <= p.datumDo) ?? null
+
+// --- Jednorázové zrušení konkrétního výskytu ---
+// Zrušení jednoho konkrétního dne hodiny, ne změna šablony samotné —
+// "zítřejší matika je zrušená" neznamená, že matika zmizí z rozvrhu
+// navždy. Appka ji drží jako samostatný tombstone-schopný záznam, ne
+// jako pole dat uvnitř HodinaRozvrhu, stejný důvod jako docházka vedle
+// — jedna šablonová hodina může mít libovolně moc zrušených/
+// přesunutých výskytů v čase.
+
+export interface ZrusenaHodina {
+  id: string
+  hodinaId: string
+  /** 'YYYY-MM-DD' — ten jeden konkrétní den, ne celá šablona. */
+  datum: string
+  createdAt: string
+  updatedAt: number
+  deletedAt: number | null
+}
+
+export const jeHodinaZrusenaVDatu = (zrusene: ZrusenaHodina[], hodinaId: string, datumIso: string): boolean =>
+  zrusene.some((z) => !z.deletedAt && z.hodinaId === hodinaId && z.datum === datumIso)
+
+// --- Jednorázový přesun konkrétního výskytu ---
+
+export interface Presun {
+  id: string
+  hodinaId: string
+  puvodniDatum: string
+  novyDatum: string
+  novyCasOd: string
+  novyCasDo: string
+  createdAt: string
+  updatedAt: number
+  deletedAt: number | null
+}
+
+// --- Semestry a archiv ---
+// Appka neváže živé hodiny na konkrétní semestr (semestrId by se
+// musel táhnout přes paritu/prázdniny/zrušení/přesuny všude — reálná
+// škoda za architektonickou čistotu, co nikdo nepotřebuje). Místo
+// toho "archivovat semestr" vezme ZMRZLÝ snímek aktuálních hodin do
+// Semestr.hodiny a volitelně vyčistí živý rozvrh pro nový — archiv je
+// kopie, ne odkaz, další úpravy živého rozvrhu se do něj zpětně
+// nepropisují.
+
+export interface Semestr {
+  id: string
+  nazev: string
+  datumOd: string
+  datumDo: string
+  hodiny: HodinaRozvrhu[]
+  createdAt: string
+  updatedAt: number
+  deletedAt: number | null
+}
+
+// --- Efektivní rozvrh pro konkrétní den ---
+// Šablona (hodiny výš) + prázdniny + zrušené výskyty + přesuny dají
+// společně "co se tenhle konkrétní den doopravdy koná" — jedna
+// sdílená funkce, co používá Rozvrh.tsx's "Dnešní hodiny",
+// rozvrhReminders.ts's připomínka, School Roomovo "Příští hodina" i
+// Kalendářovo "📚 Podle rozvrhu", ať žádná ze čtyř cest nezapomene na
+// prázdniny/zrušení/přesun a neukáže/nepřipomene něco, co se doopravdy
+// nekoná.
+
+export interface EfektivniHodina {
+  hodina: HodinaRozvrhu
+  casOd: string
+  casDo: string
+  zrusena: boolean
+  /** Když je položka důsledkem Presunu "do" tohodle dne — původní
+   *  datum, odkud se sem přesunula (appka to ukáže jako "přesunuto
+   *  z ..."). */
+  presunutoZ: string | null
+}
+
+export const efektivniRozvrhProDatum = (
+  hodiny: HodinaRozvrhu[],
+  prazdniny: Prazdniny[],
+  zruseneHodiny: ZrusenaHodina[],
+  presuny: Presun[],
+  datumIso: string
+): EfektivniHodina[] => {
+  if (jeDenPrazdninovy(prazdniny, datumIso)) return []
+
+  const [y, m, d] = datumIso.split('-').map(Number)
+  const den = denVTydnuZDatumu(new Date(y, m - 1, d))
+  if (den === null) return []
+
+  const parita = paritaTydne(datumIso)
+  const aktivniPresuny = presuny.filter((p) => !p.deletedAt)
+
+  const zakladni: EfektivniHodina[] = hodiny
+    .filter((h) => h.den === den && (tydenHodiny(h) === 'kazdy' || tydenHodiny(h) === parita))
+    // Hodina přesunutá PRYČ z tohodle data se na svém původním místě
+    // neukáže vůbec — objeví se níž na svém NOVÉM datu.
+    .filter((h) => !aktivniPresuny.some((p) => p.hodinaId === h.id && p.puvodniDatum === datumIso))
+    .map((h) => ({
+      hodina: h,
+      casOd: h.casOd,
+      casDo: h.casDo,
+      zrusena: jeHodinaZrusenaVDatu(zruseneHodiny, h.id, datumIso),
+      presunutoZ: null,
+    }))
+
+  const presunuteSem: EfektivniHodina[] = aktivniPresuny
+    .filter((p) => p.novyDatum === datumIso)
+    .map((p): EfektivniHodina | null => {
+      const hodina = hodiny.find((h) => h.id === p.hodinaId)
+      if (!hodina) return null
+      return { hodina, casOd: p.novyCasOd, casDo: p.novyCasDo, zrusena: false, presunutoZ: p.puvodniDatum }
+    })
+    .filter((e): e is EfektivniHodina => e !== null)
+
+  return [...zakladni, ...presunuteSem].sort((a, b) => a.casOd.localeCompare(b.casOd))
+}
+
 // --- Export do .ics ---
 
 const paddedTwo = (n: number) => String(n).padStart(2, '0')
@@ -238,6 +423,21 @@ const nejblizsiDatumPro = (den: DenVTydnu, ted: Date): Date => {
   if (posun < 0) posun += 7
   vysledek.setDate(vysledek.getDate() + posun)
   return vysledek
+}
+
+/** Stejné jako nejblizsiDatumPro, ale pro 'sudy'/'lichy' cyklus navíc
+ *  doskočí o celý další týden, když první kandidátní datum padne na
+ *  špatnou paritu — jinak by RRULE;INTERVAL=2 kotvený na špatném
+ *  DTSTART ukázal hodinu v přesně opačných týdnech, než se doopravdy
+ *  koná. */
+export const nejblizsiDatumProSParitou = (den: DenVTydnu, tyden: TydenCyklus, ted: Date): Date => {
+  const prvni = nejblizsiDatumPro(den, ted)
+  if (tyden === 'kazdy') return prvni
+  const prvniIso = `${prvni.getFullYear()}-${paddedTwo(prvni.getMonth() + 1)}-${paddedTwo(prvni.getDate())}`
+  if (paritaTydne(prvniIso) === tyden) return prvni
+  const dalsi = new Date(prvni)
+  dalsi.setDate(dalsi.getDate() + 7)
+  return dalsi
 }
 
 const naIcsDatumCas = (datum: Date, cas: string): string => {
@@ -262,11 +462,21 @@ export const sestavIcsRozvrhu = (hodiny: HodinaRozvrhu[], ted: Date = new Date()
   const radky: string[] = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Buddy//Rozvrh//CS']
 
   hodiny.forEach((h, i) => {
-    const datum = nejblizsiDatumPro(h.den, ted)
+    const tyden = tydenHodiny(h)
+    const datum = nejblizsiDatumProSParitou(h.den, tyden, ted)
     radky.push('BEGIN:VEVENT', `UID:rozvrh-${h.id}-${i}@buddy`)
     radky.push(`DTSTART:${naIcsDatumCas(datum, h.casOd)}`)
     radky.push(`DTEND:${naIcsDatumCas(datum, h.casDo)}`)
-    radky.push(`RRULE:FREQ=WEEKLY;BYDAY=${RRULE_DEN[h.den]}`)
+    // Sudý/lichý týden appka vyjádří jako RRULE;INTERVAL=2, kotvený
+    // na první nadcházející datum SE SPRÁVNOU paritou — "každý týden"
+    // zůstává prostý WEEKLY beze změny (INTERVAL=1 je výchozí, appka
+    // ho nepíše schválně, ať .ics zůstane stejný jako před touhle
+    // funkcí pro hodiny, co paritu nemají).
+    radky.push(
+      tyden === 'kazdy'
+        ? `RRULE:FREQ=WEEKLY;BYDAY=${RRULE_DEN[h.den]}`
+        : `RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=${RRULE_DEN[h.den]}`
+    )
     radky.push(`SUMMARY:${icsEscape(h.predmet || 'Bez názvu')}`)
     if (h.mistnost) radky.push(`LOCATION:${icsEscape(h.mistnost)}`)
     if (h.vyucujici) radky.push(`DESCRIPTION:${icsEscape(h.vyucujici)}`)
@@ -276,3 +486,130 @@ export const sestavIcsRozvrhu = (hodiny: HodinaRozvrhu[], ted: Date = new Date()
   radky.push('END:VCALENDAR')
   return radky.join('\r\n')
 }
+
+// --- Import z .ics ---
+// Rozvrh reaguje jen na opakující se (RRULE:FREQ=WEEKLY) VEVENT bloky
+// s BYDAY — jednorázová (nikdy se neopakující) událost appku
+// nezajímá, protože Rozvrh je šablona, ne kalendář konkrétních
+// termínů (na ty appka má Kalendář a jeho vlastní naparsujIcs).
+
+export interface NavrhHodiny {
+  den: DenVTydnu
+  casOd: string
+  casDo: string
+  predmet: string
+  mistnost: string
+  vyucujici: string
+  tyden: TydenCyklus
+}
+
+/** Stejná "rozděl na první ':', ';parametry' v klíči zahoď" logika
+ *  jako Kalendář's vlastní rozdelRadekVevent — appka si ji sem
+ *  schválně nepůjčuje (miniaplikace si mezi sebou nepůjčují kód),
+ *  vlastní malá kopie. */
+const rozdelRadekVevent = (radek: string): { klic: string; hodnota: string } | null => {
+  const idx = radek.indexOf(':')
+  if (idx === -1) return null
+  const klic = radek.slice(0, idx).split(';')[0]
+  return { klic, hodnota: radek.slice(idx + 1) }
+}
+
+/** 'YYYYMMDDTHHMMSS' → jen čas 'HH:MM' — appka z importovaného .ics
+ *  zajímá jen hodina/minuta, ne konkrétní datum (Rozvrh je šablona). */
+const casZIcsHodnoty = (hodnota: string): string | null => {
+  const idx = hodnota.indexOf('T')
+  if (idx === -1) return null
+  const casCast = hodnota.slice(idx + 1)
+  if (casCast.length < 4) return null
+  return `${casCast.slice(0, 2)}:${casCast.slice(2, 4)}`
+}
+
+const datumZIcsHodnoty = (hodnota: string): string | null => {
+  const datumCast = hodnota.slice(0, 8)
+  if (datumCast.length !== 8 || !/^\d{8}$/.test(datumCast)) return null
+  return `${datumCast.slice(0, 4)}-${datumCast.slice(4, 6)}-${datumCast.slice(6, 8)}`
+}
+
+const DEN_Z_RRULE: Record<string, DenVTydnu> = { MO: 1, TU: 2, WE: 3, TH: 4, FR: 5 }
+
+/** Zpětné RFC 5545 escapování — appka tak dostane zpátky skutečnou
+ *  čárku/středník/zpětné lomítko, co export sám escapoval. */
+const icsUnescape = (text: string): string =>
+  text.replace(/\\n/g, ' ').replace(/\\;/g, ';').replace(/\\,/g, ',').replace(/\\\\/g, '\\')
+
+/** Rozebere .ics text na návrhy hodin. */
+export const naparsujIcsRozvrh = (text: string): NavrhHodiny[] => {
+  const navrhy: NavrhHodiny[] = []
+
+  let vBloku = false
+  let dtstart: string | null = null
+  let dtend: string | null = null
+  let rrule: string | null = null
+  let summary = ''
+  let location = ''
+  let description = ''
+
+  const ukonciBlok = () => {
+    if (dtstart && dtend && rrule && /FREQ=WEEKLY/i.test(rrule)) {
+      const casOd = casZIcsHodnoty(dtstart)
+      const casDo = casZIcsHodnoty(dtend)
+      const bydayShoda = rrule.match(/BYDAY=([A-Z]{2})/i)
+      const den = bydayShoda ? DEN_Z_RRULE[bydayShoda[1].toUpperCase()] : undefined
+      const datumZacatkuIso = datumZIcsHodnoty(dtstart)
+      const intervalShoda = rrule.match(/INTERVAL=(\d+)/i)
+
+      if (casOd && casDo && den && datumZacatkuIso) {
+        const tyden: TydenCyklus =
+          intervalShoda && Number(intervalShoda[1]) === 2 ? paritaTydne(datumZacatkuIso) : 'kazdy'
+        navrhy.push({
+          den,
+          casOd,
+          casDo,
+          predmet: icsUnescape(summary) || 'Bez názvu',
+          mistnost: icsUnescape(location),
+          vyucujici: icsUnescape(description),
+          tyden,
+        })
+      }
+    }
+    dtstart = dtend = rrule = null
+    summary = location = description = ''
+  }
+
+  for (const radekSyrovy of text.split(/\r\n|\n|\r/)) {
+    const radek = radekSyrovy.trim()
+    if (radek === 'BEGIN:VEVENT') {
+      vBloku = true
+      continue
+    }
+    if (radek === 'END:VEVENT') {
+      if (vBloku) ukonciBlok()
+      vBloku = false
+      continue
+    }
+    if (!vBloku) continue
+
+    const rozdeleny = rozdelRadekVevent(radek)
+    if (!rozdeleny) continue
+    const { klic, hodnota } = rozdeleny
+    if (klic === 'DTSTART') dtstart = hodnota
+    else if (klic === 'DTEND') dtend = hodnota
+    else if (klic === 'RRULE') rrule = hodnota
+    else if (klic === 'SUMMARY') summary = hodnota
+    else if (klic === 'LOCATION') location = hodnota
+    else if (klic === 'DESCRIPTION') description = hodnota
+  }
+
+  return navrhy
+}
+
+/** Shoda s už uloženou hodinou — stejný den, čas začátku a předmět
+ *  (case-insensitive, appka toleruje jinak napsaná velká/malá písmena
+ *  z jiného zdroje exportu). */
+export const jeNavrhDuplicitni = (navrh: NavrhHodiny, hodiny: HodinaRozvrhu[]): boolean =>
+  hodiny.some(
+    (h) =>
+      h.den === navrh.den &&
+      h.casOd === navrh.casOd &&
+      h.predmet.trim().toLowerCase() === navrh.predmet.trim().toLowerCase()
+  )
