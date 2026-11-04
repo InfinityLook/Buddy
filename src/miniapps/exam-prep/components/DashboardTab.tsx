@@ -1,20 +1,21 @@
 import React from 'react'
-import { useExamPrepStore } from '../useExamPrepStore'
+import { isDue, useExamPrepStore } from '../useExamPrepStore'
 
 interface DashboardTabProps {
   onGoToSubjects: () => void
+  // Přepne na Učebnu a rovnou tam zapne filtr "jen k opakování dnes" —
+  // dřív appka jen ukazovala počet okruhů "na řadě", ale nedala se z
+  // téhle obrazovky nijak skutečně odpovědět.
+  onStartReview: () => void
 }
 
-export const DashboardTab: React.FC<DashboardTabProps> = ({ onGoToSubjects }) => {
+export const DashboardTab: React.FC<DashboardTabProps> = ({ onGoToSubjects, onStartReview }) => {
   const { subjects, topics, getOverallReadiness, getSubjectReadiness } = useExamPrepStore()
 
   const overallReadiness = getOverallReadiness()
 
   // Otázky připravené k dnešnímu opakování
-  const dueTopics = topics.filter((t) => {
-    if (!t.nextRevisionAt) return true
-    return new Date(t.nextRevisionAt) <= new Date()
-  })
+  const dueTopics = topics.filter(isDue)
 
   // Výpočet nejbližší zkoušky — jen mezi předměty se skutečně platným
   // datumem. Bez tyhle filtrace by prázdný/poškozený examDate (starší
@@ -86,16 +87,21 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ onGoToSubjects }) =>
         ) : dueTopics.length === 0 ? (
           <p className="ep-muted">🎉 Skvělá práce! Pro dnešek máš všechno opakování splněno.</p>
         ) : (
-          <ul className="ep-due-list">
-            {dueTopics.slice(0, 3).map((topic) => (
-              <li key={topic.id} className="ep-due-item">
-                <span>
-                  <strong>#{topic.topicNumber}</strong> {topic.title}
-                </span>
-                <span className="ep-due-xp">až +50 XP</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="ep-due-list">
+              {dueTopics.slice(0, 3).map((topic) => (
+                <li key={topic.id} className="ep-due-item">
+                  <span>
+                    <strong>#{topic.topicNumber}</strong> {topic.title}
+                  </span>
+                  <span className="ep-due-xp">až +50 XP</span>
+                </li>
+              ))}
+            </ul>
+            <button className="ep-btn ep-btn-primary ep-start-review-btn" onClick={onStartReview}>
+              ▶ Spustit opakování
+            </button>
+          </>
         )}
       </div>
 

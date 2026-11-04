@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
+import { validateExamPrepData } from '@/core/utils/examPrepValidation'
 
 // Kolik ohodnocených (aspoň jednou zrevidovaných) otázek stačí na odznak "Maturitní Mašina"
 const TOPICS_RATED_FOR_BADGE = 20
@@ -72,8 +73,10 @@ interface ExamPrepStore {
 }
 
 // Otázka je "na řadě", když u ní ještě žádné opakování neproběhlo nebo
-// když termín dalšího opakování už nastal.
-const isDue = (topic: ExamTopic): boolean =>
+// když termín dalšího opakování už nastal. Exportované, ať si
+// DashboardTab/FlashcardsTab nemusí tutéž podmínku psát znovu každý
+// trochu jinak — stejná otázka, stejná odpověď na obou místech.
+export const isDue = (topic: ExamTopic): boolean =>
   !topic.nextRevisionAt || new Date(topic.nextRevisionAt) <= new Date()
 
 export const useExamPrepStore = create<ExamPrepStore>()(
@@ -201,21 +204,23 @@ export const useExamPrepStore = create<ExamPrepStore>()(
       storage: createJSONStorage(() => secureStorage),
 
       merge: (persisted, current) => {
-        const saved = persisted as Partial<ExamPrepStore> | undefined
+        const validace = validateExamPrepData(persisted)
+        if (!validace.success) return current
 
-        const subjects = (saved?.subjects ?? []).filter(
+        const subjects = validace.data.subjects.filter(
           (s) => !(DEMO_SUBJECT_IDS.includes(s.id) && DEMO_SUBJECT_NAMES.includes(s.name))
         )
         const keptSubjectIds = new Set(subjects.map((s) => s.id))
 
-        const topics = (saved?.topics ?? [])
+        const topics = validace.data.topics
           .filter((t) => !(DEMO_TOPIC_IDS.includes(t.id) && DEMO_TOPIC_TITLES.includes(t.title)))
-          // Otázky pod smazaným ukázkovým předmětem by zůstaly viset bez
-          // předmětu a počítaly by se do celkové připravenosti.
+          // Otázky pod smazaným ukázkovým (nebo jinak neplatným) předmětem
+          // by zůstaly viset bez předmětu a počítaly by se do celkové
+          // připravenosti — validateExamPrepData už tohle samo vyřadí
+          // pro neplatné předměty, tady ještě navíc pro ukázkové.
           .filter((t) => keptSubjectIds.has(t.subjectId))
-          .map((t) => ({ ...t, simulatedAt: t.simulatedAt ?? null }))
 
-        return { ...current, ...saved, subjects, topics }
+        return { ...current, subjects, topics }
       },
     }
   )

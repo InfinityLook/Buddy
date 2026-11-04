@@ -19,6 +19,10 @@ export const ExamPrepApp: React.FC = () => {
   const { rootAttributes } = useSurfaceAppearance('exam-prep')
 
   const [activeTab, setActiveTab] = useState<TabType>('dashboard')
+  // Filtr Učebny "jen k opakování dnes" — tady, ne uvnitř FlashcardsTab,
+  // protože ho musí umět zapnout i tlačítko "Spustit opakování" na
+  // Dashboardu, ne jen přepínač v Učebně samotné.
+  const [onlyDueToday, setOnlyDueToday] = useState(false)
 
   // Gamifikace
   const { level, streakDays } = useGamificationStore()
@@ -26,6 +30,11 @@ export const ExamPrepApp: React.FC = () => {
   // Prázdné stavy v ostatních záložkách odkazují na Okruhy — bez toho
   // by uživatel četl "přidej si okruhy" a musel hledat kde.
   const goToSubjects = () => setActiveTab('subjects')
+
+  const startReview = () => {
+    setOnlyDueToday(true)
+    setActiveTab('flashcards')
+  }
 
   return (
     <div className="examprep-container buddy-theme-scope" {...rootAttributes}>
@@ -45,9 +54,17 @@ export const ExamPrepApp: React.FC = () => {
 
       {/* Main view */}
       <main className="examprep-main-content">
-        {activeTab === 'dashboard' && <DashboardTab onGoToSubjects={goToSubjects} />}
+        {activeTab === 'dashboard' && (
+          <DashboardTab onGoToSubjects={goToSubjects} onStartReview={startReview} />
+        )}
         {activeTab === 'subjects' && <SubjectsTab />}
-        {activeTab === 'flashcards' && <FlashcardsTab onGoToSubjects={goToSubjects} />}
+        {activeTab === 'flashcards' && (
+          <FlashcardsTab
+            onGoToSubjects={goToSubjects}
+            onlyDueToday={onlyDueToday}
+            onToggleOnlyDueToday={() => setOnlyDueToday((v) => !v)}
+          />
+        )}
         {activeTab === 'simulator' && <SimulatorTab onGoToSubjects={goToSubjects} />}
       </main>
 

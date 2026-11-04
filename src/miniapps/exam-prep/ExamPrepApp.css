@@ -308,6 +308,13 @@
 
 .ep-due-xp { font-size: 0.75rem; color: #38bdf8; white-space: nowrap; }
 
+/* Samostatné tlačítko pod seznamem, ne jeden z více v řadě — proto width:
+   100% místo flex: 1 z .ep-btn-primary. */
+.ep-start-review-btn {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
 .ep-subject-rows {
   display: flex;
   flex-direction: column;
@@ -622,6 +629,25 @@
 }
 
 .ep-study-counter { font-size: 0.85rem; color: #94a3b8; white-space: nowrap; }
+
+.ep-due-toggle-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.4rem 0.9rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.ep-due-toggle-btn.active {
+  background: rgba(56, 189, 248, 0.18);
+  border-color: #38bdf8;
+  color: #38bdf8;
+}
 
 .ep-flashcard {
   width: 100%;

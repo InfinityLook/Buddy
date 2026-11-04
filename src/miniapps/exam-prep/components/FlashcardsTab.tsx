@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { useExamPrepStore, ConfidenceLevel } from '../useExamPrepStore'
+import React, { useEffect, useState } from 'react'
+import { isDue as topicIsDue, useExamPrepStore, ConfidenceLevel } from '../useExamPrepStore'
 
 const RATE_COLORS: Record<ConfidenceLevel, string> = {
   1: '#ef4444',
@@ -11,13 +11,32 @@ const RATE_COLORS: Record<ConfidenceLevel, string> = {
 
 interface FlashcardsTabProps {
   onGoToSubjects: () => void
+  // Lifted do ExamPrepApp.tsx, aby šlo zapnout tenhle filtr i
+  // tlačítkem "▶ Spustit opakování" z Dashboardu, ne jen přepínačem
+  // tady — přepínač samotný ale zůstává i dál funkční bez něj.
+  onlyDueToday: boolean
+  onToggleOnlyDueToday: () => void
 }
 
-export const FlashcardsTab: React.FC<FlashcardsTabProps> = ({ onGoToSubjects }) => {
+export const FlashcardsTab: React.FC<FlashcardsTabProps> = ({
+  onGoToSubjects,
+  onlyDueToday,
+  onToggleOnlyDueToday,
+}) => {
   const { topics, subjects, rateTopic } = useExamPrepStore()
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isFlipped, setIsFlipped] = useState(false)
+
+  const studyTopics = onlyDueToday ? topics.filter(topicIsDue) : topics
+
+  // Přepnutí filtru mění délku seznamu — beze zdejšího resetu by
+  // currentIndex ukazoval na jinou (nebo neexistující) kartičku, než
+  // která je zrovna vidět.
+  useEffect(() => {
+    setCurrentIndex(0)
+    setIsFlipped(false)
+  }, [onlyDueToday])
 
   if (topics.length === 0) {
     return (
@@ -32,25 +51,52 @@ export const FlashcardsTab: React.FC<FlashcardsTabProps> = ({ onGoToSubjects }) 
     )
   }
 
-  const currentTopic = topics[currentIndex % topics.length]
+  const filterToggle = (
+    <button
+      className={`ep-due-toggle-btn ${onlyDueToday ? 'active' : ''}`}
+      onClick={onToggleOnlyDueToday}
+    >
+      {onlyDueToday ? '✓ Jen k opakování dnes' : '📅 Jen k opakování dnes'}
+    </button>
+  )
+
+  if (studyTopics.length === 0) {
+    return (
+      <div className="ep-study">
+        {filterToggle}
+        <div className="ep-empty">
+          <span className="ep-empty-icon">🎉</span>
+          <h3>Hotovo!</h3>
+          <p>Pro dnešek máš všechno opakování splněno. Zbytek přijde na řadu později.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const currentTopic = studyTopics[currentIndex % studyTopics.length]
   const currentSubject = subjects.find((s) => s.id === currentTopic.subjectId)
 
   // Otázka mimo termín opakování se dá projít znovu, ale XP už za ni
   // nepřibude — jinak by stačilo mačkat hodnocení dokola.
-  const isDue =
-    !currentTopic.nextRevisionAt || new Date(currentTopic.nextRevisionAt) <= new Date()
+  const isDue = topicIsDue(currentTopic)
 
   const handleRate = (confidence: ConfidenceLevel) => {
     // XP i posun termínu řeší store — dřív se XP přičítalo tady zvlášť,
     // takže šlo hodnotit tutéž otázku pořád dokola a sbírat po 50 XP.
     rateTopic(currentTopic.id, confidence)
-
     setIsFlipped(false)
-    setCurrentIndex((prev) => (prev + 1) % topics.length)
+
+    // rateTopic vždycky posune nextRevisionAt do budoucna (i confidence
+    // 1 dá +1 den) — ve filtru "jen k opakování dnes" tak hodnocená
+    // otázka ze seznamu zmizí sama. Na stejném indexu se objeví rovnou
+    // další a ruční posun by jednu otázku přeskočil.
+    if (onlyDueToday) return
+    setCurrentIndex((prev) => (prev + 1) % studyTopics.length)
   }
 
   return (
     <div className="ep-study">
+      {filterToggle}
       <div className="ep-study-head">
         <span
           className="ep-chip"
@@ -59,7 +105,7 @@ export const FlashcardsTab: React.FC<FlashcardsTabProps> = ({ onGoToSubjects }) 
           {currentSubject?.name || 'Předmět'}
         </span>
         <span className="ep-study-counter">
-          Kartička {(currentIndex % topics.length) + 1} z {topics.length}
+          Kartička {(currentIndex % studyTopics.length) + 1} z {studyTopics.length}
         </span>
       </div>
 
