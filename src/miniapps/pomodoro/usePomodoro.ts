@@ -18,6 +18,7 @@ import {
   TimerSettings,
   clamp,
   durationFor,
+  jeSwitchModeNoOp,
 } from './types'
 
 // XP se odvíjí od délky bloku, ne od počtu klepnutí. Kdyby byla odměna
@@ -190,8 +191,12 @@ const usePomodoroStore = create<PomodoroState>()(
       },
 
       switchMode: (mode, autoStart = false) => {
-        disarmTimer()
         const state = get()
+        // Logika guardu je v types.ts (jeSwitchModeNoOp) — vlastní
+        // komentář k tomu, proč a proč zrovna tam, je tam.
+        if (jeSwitchModeNoOp(mode, state.mode, autoStart)) return
+
+        disarmTimer()
         const duration = durationFor(mode, state.settings)
 
         if (autoStart) {

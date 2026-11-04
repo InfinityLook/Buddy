@@ -1,7 +1,14 @@
 import React, { useMemo, useState } from 'react'
 import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { usePomodoro } from './usePomodoro'
-import { LIMITS, MODE_COLORS, MODE_LABELS, TimerMode, spocitejSouhrnPodlePredmetu } from './types'
+import {
+  LIMITS,
+  MODE_COLORS,
+  MODE_LABELS,
+  TimerMode,
+  spocitejSouhrnPodlePredmetu,
+  ziskejNaposledyPouziteNazvyPredmetu,
+} from './types'
 import './Pomodoro.css'
 
 const MODES: TimerMode[] = ['work', 'shortBreak', 'longBreak']
@@ -35,6 +42,10 @@ export const Pomodoro: React.FC = () => {
 
   const [showSettings, setShowSettings] = useState(false)
   const souhrnPredmetu = useMemo(() => spocitejSouhrnPodlePredmetu(sessionLog), [sessionLog])
+  const naposledyPouziteNazvyPredmetu = useMemo(
+    () => ziskejNaposledyPouziteNazvyPredmetu(sessionLog),
+    [sessionLog]
+  )
 
   const minutes = Math.floor(timeLeft / 60).toString().padStart(2, '0')
   const seconds = (timeLeft % 60).toString().padStart(2, '0')
@@ -112,7 +123,12 @@ export const Pomodoro: React.FC = () => {
       {/* Nepovinný předmět/štítek pro PŘÍŠTÍ dokončené soustředění — volný
           text, appka funguje úplně stejně, i když se nikdy nevyplní. Dává
           smysl vyplnit ho, i když už časovač běží (třeba se předmět
-          zapomněl zadat na začátku), proto se nezakazuje. */}
+          zapomněl zadat na začátku), proto se nezakazuje.
+          Datalist nabídne naposledy použité předměty — appka sama
+          nijak nevynucuje stejné psaní (velká/malá písmena apod.), bez
+          nabídky by tak stejný předmět snadno skončil rozdělený na dva
+          různé řádky v "Podle předmětu" jen díky překlepu. Degraduje
+          na obyčejné volné psaní, dokud historie žádný předmět nemá. */}
       <label className="pomo-predmet-radek">
         <span>Předmět (nepovinně)</span>
         <input
@@ -120,9 +136,15 @@ export const Pomodoro: React.FC = () => {
           placeholder="např. Matematika"
           value={aktivniPredmet ?? ''}
           onChange={(e) => setAktivniPredmet(e.target.value)}
+          list="pomo-predmety-datalist"
           spellCheck
           lang="cs"
         />
+        <datalist id="pomo-predmety-datalist">
+          {naposledyPouziteNazvyPredmetu.map((predmet) => (
+            <option key={predmet} value={predmet} />
+          ))}
+        </datalist>
       </label>
 
       <div className="pomo-controls">
