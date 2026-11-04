@@ -18,6 +18,7 @@ export const Flashcards: React.FC = () => {
     dueTodayCount,
     progressPercent,
     decks,
+    deckCounts,
     activeDeck,
     onlyUnknown,
     onlyDueToday,
@@ -37,12 +38,40 @@ export const Flashcards: React.FC = () => {
     updateCard,
     removeCurrent,
     resetDeckProgress,
+    renameDeck,
+    deleteDeck,
   } = useFlashcards()
 
   const [form, setForm] = useState<FormMode>({ kind: 'closed' })
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [deck, setDeck] = useState(DEFAULT_DECK)
+
+  const [deckManagerOpen, setDeckManagerOpen] = useState(false)
+  // Jméno balíčku, který se zrovna přejmenovává — ne globální boolean,
+  // stejný vzor jako Known's upravovanyPredmetId: nejvýš jeden
+  // rozbalený formulář najednou.
+  const [renamingDeck, setRenamingDeck] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+
+  const openRenameDeck = (d: string) => {
+    setRenameValue(d)
+    setRenamingDeck(d)
+  }
+
+  const submitRenameDeck = (e: React.FormEvent, oldDeck: string) => {
+    e.preventDefault()
+    renameDeck(oldDeck, renameValue)
+    setRenamingDeck(null)
+  }
+
+  const handleDeleteDeck = (d: string) => {
+    const count = deckCounts[d] ?? 0
+    if (window.confirm(`Smazat balíček „${d}“ a všech ${count} kartiček uvnitř?`)) {
+      if (renamingDeck === d) setRenamingDeck(null)
+      deleteDeck(d)
+    }
+  }
 
   const openAdd = () => {
     setQuestion('')
@@ -85,10 +114,85 @@ export const Flashcards: React.FC = () => {
       <SurfaceBackdrop surfaceId="flashcards" />
       <div className="fc-header">
         <h2>Flashcards</h2>
-        <button className="fc-add-btn" onClick={openAdd}>
-          + Přidat
-        </button>
+        <div className="fc-header-actions">
+          {hasAnyCard && (
+            <button
+              className={`fc-manage-btn ${deckManagerOpen ? 'active' : ''}`}
+              onClick={() => {
+                setDeckManagerOpen((open) => !open)
+                setRenamingDeck(null)
+              }}
+            >
+              📚 Balíčky
+            </button>
+          )}
+          <button className="fc-add-btn" onClick={openAdd}>
+            + Přidat
+          </button>
+        </div>
       </div>
+
+      {/* Správa balíčků — přejmenování/smazání celého balíčku najednou,
+          ne kartičku po kartičce. Nezávislé na filtru pills níž, aby šel
+          přejmenovat i jediný balíček, co se tam ještě nezobrazí. */}
+      {deckManagerOpen && (
+        <div className="fc-deck-manager">
+          {decks.length === 0 ? (
+            <p className="fc-deck-manager-empty">Zatím žádný balíček.</p>
+          ) : (
+            <ul className="fc-deck-manager-list">
+              {decks.map((d) => (
+                <li key={d} className="fc-deck-manager-row">
+                  {renamingDeck === d ? (
+                    <form
+                      className="fc-deck-rename-form"
+                      onSubmit={(e) => submitRenameDeck(e, d)}
+                    >
+                      <input
+                        type="text"
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        autoFocus
+                        required
+                      />
+                      <button type="submit" className="fc-deck-rename-save">
+                        Uložit
+                      </button>
+                      <button
+                        type="button"
+                        className="fc-deck-rename-cancel"
+                        onClick={() => setRenamingDeck(null)}
+                      >
+                        Zrušit
+                      </button>
+                    </form>
+                  ) : (
+                    <>
+                      <span className="fc-deck-manager-name">
+                        {d} <span className="fc-deck-manager-count">({deckCounts[d] ?? 0})</span>
+                      </span>
+                      <button
+                        className="fc-deck-manager-icon"
+                        aria-label={`Přejmenovat balíček ${d}`}
+                        onClick={() => openRenameDeck(d)}
+                      >
+                        ✎
+                      </button>
+                      <button
+                        className="fc-deck-manager-icon danger"
+                        aria-label={`Smazat balíček ${d}`}
+                        onClick={() => handleDeleteDeck(d)}
+                      >
+                        🗑
+                      </button>
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Balíčky — zobrazí se, až když je z čeho vybírat */}
       {decks.length > 1 && (

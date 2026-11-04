@@ -174,3 +174,74 @@ describe('useFlashcardsStore.setKnown — spaced repetition v akci', () => {
     expect(useGamificationStore.getState().xp).toBe(xpPoPrvni)
   })
 })
+
+// ==========================================
+// Správa balíčků — přejmenování/smazání celého balíčku najednou, ne
+// kartičku po kartičce.
+// ==========================================
+
+describe('useFlashcardsStore.renameDeck', () => {
+  beforeEach(() => {
+    useFlashcardsStore.setState({ cards: [] })
+  })
+
+  it('přepíše deck na všech kartičkách starého balíčku, ostatní balíčky nezasáhne', () => {
+    useFlashcardsStore.getState().addCard('Q1', 'A1', 'Matematika')
+    useFlashcardsStore.getState().addCard('Q2', 'A2', 'Matematika')
+    useFlashcardsStore.getState().addCard('Q3', 'A3', 'Fyzika')
+
+    useFlashcardsStore.getState().renameDeck('Matematika', 'Mat. II')
+
+    const decky = useFlashcardsStore.getState().cards.map((c) => c.deck)
+    expect(decky.filter((d) => d === 'Mat. II')).toHaveLength(2)
+    expect(decky.filter((d) => d === 'Matematika')).toHaveLength(0)
+    expect(decky.filter((d) => d === 'Fyzika')).toHaveLength(1)
+  })
+
+  it('ořízne nové jméno — prázdné (jen mezery) celou úpravu odmítne', () => {
+    useFlashcardsStore.getState().addCard('Q', 'A', 'Dějepis')
+
+    useFlashcardsStore.getState().renameDeck('Dějepis', '   ')
+
+    expect(useFlashcardsStore.getState().cards[0].deck).toBe('Dějepis')
+  })
+
+  it('přejmenování na stejné jméno (po trimu) je no-op', () => {
+    useFlashcardsStore.getState().addCard('Q', 'A', 'Dějepis')
+    const puvodni = useFlashcardsStore.getState().cards[0]
+
+    useFlashcardsStore.getState().renameDeck('Dějepis', '  Dějepis  ')
+
+    expect(useFlashcardsStore.getState().cards[0]).toEqual(puvodni)
+  })
+
+  it('neexistující starý balíček je no-op, nic nespadne', () => {
+    useFlashcardsStore.getState().addCard('Q', 'A', 'Dějepis')
+    expect(() => useFlashcardsStore.getState().renameDeck('Neexistuje', 'Nové')).not.toThrow()
+    expect(useFlashcardsStore.getState().cards[0].deck).toBe('Dějepis')
+  })
+})
+
+describe('useFlashcardsStore.deleteDeck', () => {
+  beforeEach(() => {
+    useFlashcardsStore.setState({ cards: [] })
+  })
+
+  it('smaže všechny kartičky daného balíčku a nechá ostatní beze změny', () => {
+    useFlashcardsStore.getState().addCard('Q1', 'A1', 'Matematika')
+    useFlashcardsStore.getState().addCard('Q2', 'A2', 'Matematika')
+    useFlashcardsStore.getState().addCard('Q3', 'A3', 'Fyzika')
+
+    useFlashcardsStore.getState().deleteDeck('Matematika')
+
+    const zbyle = useFlashcardsStore.getState().cards
+    expect(zbyle).toHaveLength(1)
+    expect(zbyle[0].deck).toBe('Fyzika')
+  })
+
+  it('neexistující balíček je no-op, nic nespadne', () => {
+    useFlashcardsStore.getState().addCard('Q', 'A', 'Dějepis')
+    expect(() => useFlashcardsStore.getState().deleteDeck('Neexistuje')).not.toThrow()
+    expect(useFlashcardsStore.getState().cards).toHaveLength(1)
+  })
+})

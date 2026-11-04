@@ -3,6 +3,7 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
+import { validateFlashcardsData } from '@/core/utils/flashcardsValidation'
 import {
   ALL_DECKS,
   DEFAULT_DECK,
@@ -28,21 +29,15 @@ interface FlashcardsState {
   deleteCard: (id: string) => void
   setKnown: (id: string, known: boolean) => void
   resetDeckProgress: (deck: string) => void
+  // Přejmenuje celý balíček — přepíše pole deck na všech kartičkách, co
+  // do něj patří, v jednom kroku, místo úpravy kartičky po kartičce.
+  // Bez XP, stejná zdrženlivost jako Known's upravitPredmet: je to
+  // strukturální úprava, ne nový studijní čin.
+  renameDeck: (oldDeck: string, newDeck: string) => void
+  // Smaže celý balíček se všemi kartičkami uvnitř. Komponenta volá
+  // vždycky až po window.confirm, stejně jako smazání jedné kartičky.
+  deleteDeck: (deck: string) => void
 }
-
-// Doplní pole, která starší uložené kartičky ještě nemají. Bez toho by
-// se po aktualizaci tvářily jako kartičky bez balíčku a filtr by je
-// nikde nenašel. Krabice/termín u starší kartičky appka nezná — radši
-// ji rovnou ukáže (krabice 1, dueAt null = "k opakování hned"), než by
-// tiše předstírala termín, který nikdy nebyl spočítaný.
-const normalizeCard = (card: Flashcard): Flashcard => ({
-  ...card,
-  deck: card.deck?.trim() || DEFAULT_DECK,
-  known: card.known ?? false,
-  learnedAt: card.learnedAt ?? null,
-  box: card.box ?? MIN_KRABICE,
-  dueAt: card.dueAt ?? null,
-})
 
 const isDemoCard = (card: Flashcard) =>
   DEMO_CARD_IDS.includes(card.id) && DEMO_CARD_QUESTIONS.includes(card.question)
@@ -135,25 +130,45 @@ export const useFlashcardsStore = create<FlashcardsState>()(
               : card
           ),
         })),
+
+      renameDeck: (oldDeck, newDeck) => {
+        const trimmed = newDeck.trim()
+        if (!trimmed || trimmed === oldDeck) return
+        set((state) => ({
+          cards: state.cards.map((card) =>
+            card.deck === oldDeck ? { ...card, deck: trimmed } : card
+          ),
+        }))
+      },
+
+      deleteDeck: (deck) =>
+        set((state) => ({ cards: state.cards.filter((card) => card.deck !== deck) })),
     }),
     {
       name: 'schoolbuddy-flashcards-storage',
       storage: createJSONStorage(() => secureStorage),
 
       merge: (persisted, current) => {
-        const saved = persisted as Partial<FlashcardsState> | undefined
-        const cards = (saved?.cards ?? [])
-          .filter((card) => !isDemoCard(card))
-          .map(normalizeCard)
-        return { ...current, ...saved, cards }
+        const validace = validateFlashcardsData(persisted)
+        if (!validace.success) return current
+        const cards = validace.data.cards.filter((card) => !isDemoCard(card))
+        return { ...current, cards }
       },
     }
   )
 )
 
 export const useFlashcards = () => {
-  const { cards, addCard, updateCard, deleteCard, setKnown, resetDeckProgress } =
-    useFlashcardsStore()
+  const {
+    cards,
+    addCard,
+    updateCard,
+    deleteCard,
+    setKnown,
+    resetDeckProgress,
+    renameDeck: renameDeckInStore,
+    deleteDeck: deleteDeckInStore,
+  } = useFlashcardsStore()
 
   const [activeDeck, setActiveDeck] = useState<string>(ALL_DECKS)
   const [onlyUnknown, setOnlyUnknown] = useState(false)
@@ -171,6 +186,15 @@ export const useFlashcards = () => {
     () => [...new Set(cards.map((card) => card.deck))].sort((a, b) => a.localeCompare(b, 'cs')),
     [cards]
   )
+
+  // Počet kartiček v každém balíčku — pro správu balíčků (přejmenování/
+  // smazání), kde se musí zobrazit, kolik by přejmenování/smazání
+  // doopravdy zasáhlo, ne jen název.
+  const deckCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    for (const card of cards) counts[card.deck] = (counts[card.deck] ?? 0) + 1
+    return counts
+  }, [cards])
 
   const deckCards = useMemo(
     () => cards.filter((card) => activeDeck === ALL_DECKS || card.deck === activeDeck),
@@ -278,6 +302,20 @@ export const useFlashcards = () => {
     setIsFlipped(false)
   }
 
+  // Přejmenovaný/smazaný balíček může být zrovna ten vybraný — appka
+  // pak aktivní filtr sama přesune, ať neukazuje prázdný seznam pro
+  // balíček, co už má jiné jméno nebo neexistuje.
+  const renameDeck = (oldDeck: string, newDeck: string) => {
+    renameDeckInStore(oldDeck, newDeck)
+    const trimmed = newDeck.trim()
+    if (activeDeck === oldDeck && trimmed && trimmed !== oldDeck) changeDeck(trimmed)
+  }
+
+  const deleteDeck = (deck: string) => {
+    deleteDeckInStore(deck)
+    if (activeDeck === deck) changeDeck(ALL_DECKS)
+  }
+
   return {
     // data
     currentCard,
@@ -288,6 +326,7 @@ export const useFlashcards = () => {
     dueTodayCount,
     progressPercent,
     decks,
+    deckCounts,
     activeDeck,
     onlyUnknown,
     onlyDueToday,
@@ -311,5 +350,9 @@ export const useFlashcards = () => {
     updateCard,
     removeCurrent,
     resetDeckProgress,
+
+    // správa balíčků
+    renameDeck,
+    deleteDeck,
   }
 }
