@@ -46,6 +46,28 @@ describe('Vlastní generátor v prohlížeči', () => {
     expect(() => nextChatToken(Float32Array.of(1, 2, NaN))).toThrow()
   })
 
+  it('vynechá token, který by zopakoval už vygenerovaný trigram, a zvolí další nejlepší', () => {
+    // Indexy 6..9 jsou skutečné tokeny; nejvyšší logit má token 6, ale [6, 7, 6] se už objevilo.
+    const logits = Float32Array.of(-100, -100, -100, -100, -100, -100, 50, 10, 5, 20)
+    expect(nextChatToken(logits, [6, 7, 6, 7])).toBe(9)
+    // Beze historie (nebo s jinou historií) by zvítězil token 6.
+    expect(nextChatToken(logits)).toBe(6)
+    expect(nextChatToken(logits, [6, 7])).toBe(6)
+  })
+
+  it('nikdy nevrátí -1: když blokace vyčerpá všechny možnosti, vrátí se k nezablokovanému výběru', () => {
+    // V tomhle slovníku (délka 7) jsou jediné platné tokeny EOS (2) a token 6 – historie zablokuje obě.
+    const logits = Float32Array.of(-100, -100, 30, -100, -100, -100, 10)
+    const recent = [6, 6, 2, 6, 6, 6, 6, 6]
+    expect(nextChatToken(logits, recent)).toBe(nextChatToken(logits))
+  })
+
+  it('krátká nebo opakující se historie bez skutečné hrozby smyčky blokaci nespustí', () => {
+    const logits = Float32Array.of(-100, -100, -100, -100, -100, -100, 50, 20)
+    expect(nextChatToken(logits, [6])).toBe(6)
+    expect(nextChatToken(logits, [])).toBe(6)
+  })
+
   it('nepřijme neplatný token ani přetečení kontextu', () => {
     const runtime = new BuddyTransformer(manifest, bytes())
     expect(() => runtime.step(999)).toThrow()

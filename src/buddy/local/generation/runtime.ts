@@ -111,12 +111,41 @@ export class BuddyTransformer {
   }
 }
 
-/** Greedy dekódování je reprodukovatelné; řídicí tokeny se nikdy negenerují. */
-export const nextChatToken = (logits: Float32Array): number => {
-  let best = 2
+// Délka n-gramu, který se nesmí zopakovat (3 = zabrání doslovné smyčce, povolí běžné krátké shody).
+const NO_REPEAT_NGRAM_SIZE = 3
+
+/** Tokeny, které by zopakovaly už vygenerovaný trigram z `recent`; prázdná množina, pokud historie nestačí. */
+const bannedByRepeat = (recent: readonly number[]): Set<number> => {
+  const banned = new Set<number>()
+  const prefixLength = NO_REPEAT_NGRAM_SIZE - 1
+  if (recent.length <= prefixLength) return banned
+  const prefixStart = recent.length - prefixLength
+  for (let i = 0; i + prefixLength < recent.length; i += 1) {
+    let matches = true
+    for (let j = 0; j < prefixLength; j += 1) {
+      if (recent[i + j] !== recent[prefixStart + j]) { matches = false; break }
+    }
+    if (matches) banned.add(recent[i + prefixLength])
+  }
+  return banned
+}
+
+/** Token s nejvyšším logitem mezi tokeny, které nejsou v `skip`; -1, pokud žádný nezbyl. */
+const argmaxEligible = (logits: Float32Array, skip: ReadonlySet<number>): number => {
+  let best = skip.has(2) ? -1 : 2
   for (let i = 0; i < logits.length; i += 1) {
-    if (!Number.isFinite(logits[i])) throw new Error('Model vytvořil neplatné logity.')
-    if ((i === 2 || i >= 6) && logits[i] > logits[best]) best = i
+    if ((i === 2 || i >= 6) && !skip.has(i) && (best === -1 || logits[i] > logits[best])) best = i
   }
   return best
-      }
+}
+
+/**
+ * Greedy dekódování je reprodukovatelné; řídicí tokeny se nikdy negenerují.
+ * Token, který by zopakoval už vygenerovaný trigram (podle `recent`), appka vynechá –
+ * pokud by tím nezůstala žádná platná možnost, blokace se pro tenhle krok neuplatní.
+ */
+export const nextChatToken = (logits: Float32Array, recent: readonly number[] = []): number => {
+  for (const value of logits) if (!Number.isFinite(value)) throw new Error('Model vytvořil neplatné logity.')
+  const blocked = argmaxEligible(logits, bannedByRepeat(recent))
+  return blocked === -1 ? argmaxEligible(logits, new Set()) : blocked
+}

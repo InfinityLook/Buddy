@@ -35,7 +35,7 @@ worker.onmessage = async ({ data }) => {
     let eos = false
     for (let i = 0; i < maxNew; i += 1) {
       checkTime()
-      token = nextChatToken(model.step(token))
+      token = nextChatToken(model.step(token), generated)
       if (token === 2) { eos = true; break }
       generated.push(token)
     }
