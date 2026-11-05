@@ -87,7 +87,21 @@
     [["user", "Je mi dnes nuda a nevím co dělat."], ["assistant", "Chceš něco vyřešit, nebo si jen chvíli povídat?"]],
     [["user", "Dnes jsem celý den sám a je mi trochu smutno."], ["assistant", "To je mi líto. Chceš mi povědět, jak ti dnešní den uběhl?"]],
     [["user", "Dnes mi nic nevyšlo podle plánu."], ["assistant", "Co se nejvíc zvrtlo? Zkusíme na to najít jeden další krok."]],
-    [["user", "Dnes jsem uběhl svůj nejdelší běh."], ["assistant", "To je super výkon. Jak se po něm cítíš?"]]
+    [["user", "Dnes jsem uběhl svůj nejdelší běh."], ["assistant", "To je super výkon. Jak se po něm cítíš?"]],
+    [["user", "Píšu seminárku a potřebuju si poznamenat zdroje."], ["assistant", "Otevři Citace, zadej autora a název publikace a appka ti sestaví záznam."]],
+    [["user", "Jak si poznamenám, kolik jsem se dneska vyspal?"], ["assistant", "Otevři Spánek a doplň, kolik hodin jsi spal. Appka ti ukáže přehled za týden."]],
+    [["user", "Chci sledovat, kolik tekutin denně vypiju."], ["assistant", "Otevři Pitný režim a klikej na sklenici, kdykoli se napiješ. Appka ti spočítá denní součet."]],
+    [["user", "Jak si zapíšu obědy a kalorie do appky?"], ["assistant", "Otevři Jídelníček a vyber jídlo ze seznamu, nebo napiš vlastní jídlo i s kaloriemi."]],
+    [["user", "Jde si v appce zaznamenat uběhnutá vzdálenost?"], ["assistant", "Otevři Běhání a appka přes GPS zapíše tvou trasu, čas i uběhnutou vzdálenost."]],
+    [["user", "Dnes jsem cvičil s činkami, kam to zapíšu?"], ["assistant", "Otevři Posilovnu a u cvičení doplň zátěž a počet opakování v sérii."]],
+    [["user", "Jak si do appky zapíšu příjem z brigády?"], ["assistant", "Otevři Finance a přidej transakci jako příjem s částkou a kategorií."]],
+    [["user", "Potřebuju si poznamenat termín zubaře."], ["assistant", "Otevři Kalendář, klikni na den návštěvy a přidej událost s časem a popisem."]],
+    [["user", "Jak si do appky vložím školní rozvrh?"], ["assistant", "Otevři Rozvrh a pro každý den zadej předmět, místnost a čas začátku."]],
+    [["user", "Chci si v appce napsat krátký dopis."], ["assistant", "Otevři Textový editor, tam si text napíšeš i naformátuješ."]],
+    [["user", "Kam appka ukládá moje nahrané fotky a dokumenty?"], ["assistant", "Otevři File Manager, tam uvidíš všechny uložené soubory i jejich velikost."]],
+    [["user", "Dostal jsem jedničku z matiky, kam to zapíšu?"], ["assistant", "Otevři Známky, zvol předmět matematika a přidej novou známku i její váhu."]],
+    [["user", "Jak si v appce napíšu rychlou poznámku?"], ["assistant", "Otevři Poznámky a napiš si text přímo tam. Appka ho uloží automaticky."]],
+    [["user", "Jak si do appky přidám domácí úkol z matiky?"], ["assistant", "Otevři plánovač a přidej úkol s názvem a termínem odevzdání."]]
   ],
   "validation": [
     [["user", "Čau, jak funguješ?"], ["assistant", "Jsem zkušební pomocník pro krátké rozhovory v Buddym."]],
