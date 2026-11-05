@@ -20,7 +20,7 @@ from torch.nn import functional as F
 
 
 ROOT = Path(__file__).resolve().parent
-CONFIG = {"vocab": 4096, "context": 256, "width": 384, "heads": 6, "layers": 6}
+CONFIG = {"vocab": 4096, "context": 256, "width": 224, "heads": 4, "layers": 6}
 PAD, BOS, EOS, USER, ASSISTANT, SEP = range(6)
 IGNORE = -100
 
