@@ -10,7 +10,7 @@ import time
 import torch
 
 from chat_pilot import (
-    ASSISTANT, BOS, CONFIG, EOS, PAD, ROOT, SEP, USER,
+    ASSISTANT, BOS, CONFIG, EOS, MAX_CHECKPOINT_BYTES, PAD, ROOT, SEP, USER,
     ChatModel, Tokenizer, digest,
 )
 from decoding import banned_by_repeat
@@ -98,7 +98,7 @@ def main():
     args = parser.parse_args()
     torch.set_num_threads(2)
     torch.set_num_interop_threads(1)
-    if args.checkpoint.stat().st_size > 64_000_000:
+    if args.checkpoint.stat().st_size > MAX_CHECKPOINT_BYTES:
         raise ValueError("Příliš velký checkpoint.")
     saved = torch.load(args.checkpoint, map_location="cpu", weights_only=True)
     if (saved.get("architecture") != "buddy-transformer-v1"

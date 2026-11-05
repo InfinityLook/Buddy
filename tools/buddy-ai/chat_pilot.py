@@ -148,6 +148,22 @@ class ChatModel(nn.Module):
         return F.linear(self.norm(x), self.tokens.weight)
 
 
+def checkpoint_size_limit(config=CONFIG):
+    """Bezpečnostní horní mez na velikost checkpointu před torch.load.
+
+    Odvozená z aktuální CONFIG (váhy modelu * 6 - pokrývá float32 váhy,
+    dva AdamW momenty stejné velikosti jako váhy a rezervu), ne pevné
+    číslo. Pevné číslo platilo jen pro architekturu, pro kterou bylo
+    napsané, a tiše selhalo při první změně width/layers (12,3M
+    parametrů má checkpoint ~148 MB; starý pevný limit 64 MB).
+    """
+    parameter_count = sum(p.numel() for p in ChatModel(config).parameters())
+    return parameter_count * 4 * 6
+
+
+MAX_CHECKPOINT_BYTES = checkpoint_size_limit()
+
+
 def make_rows(conversations, tokenizer):
     rows = []
     size = CONFIG["context"]
@@ -394,7 +410,7 @@ def main():
     previous_steps = 0
 
     if args.resume:
-        if args.resume.stat().st_size > 64_000_000:
+        if args.resume.stat().st_size > MAX_CHECKPOINT_BYTES:
             raise ValueError("Příliš velký checkpoint.")
 
         saved = torch.load(
