@@ -15,9 +15,19 @@ on:
         default: '600'
         type: choice
         options: ['200', '600', '1000', '2000']
+      resume_run_id:
+        description: >-
+          ID běhu (run id, číslo z URL adresy nebo ze seznamu běhů), jehož
+          checkpoint.pt se stáhne a na který se naváže. Prázdné pole = nový
+          běh od nuly. Vyžaduje stejné chat_data.json jako navazovaný běh,
+          jinak kontrola v chat_pilot.py běh ukončí chybou.
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: buddy-chat-pilot-${{ github.ref }}
@@ -44,6 +54,15 @@ jobs:
           cache: pip
           cache-dependency-path: tools/buddy-ai/chat_pilot.py
 
+      - name: Stáhnout checkpoint k navázání
+        if: ${{ inputs.resume_run_id != '' }}
+        uses: actions/download-artifact@v6
+        with:
+          name: buddy-chat-pilot-${{ inputs.resume_run_id }}
+          path: tools/buddy-ai/chat-pilot-output
+          run-id: ${{ inputs.resume_run_id }}
+          github-token: ${{ github.token }}
+
       - name: Ověřit oddělení a formát dat
         run: |
           python -m unittest discover -s tools/buddy-ai -p 'test_chat_*.py'
@@ -56,7 +75,13 @@ jobs:
         run: python tools/buddy-ai/chat_pilot.py --self-test
 
       - name: Změřit krátké trénování
-        run: python tools/buddy-ai/chat_pilot.py --data tools/buddy-ai/chat-pilot-output/training-data.json --seconds "$PILOT_SECONDS" --steps "$PILOT_STEPS" --threads 2
+        run: |
+          RESUME_FLAGS=()
+          if [ -f tools/buddy-ai/chat-pilot-output/checkpoint.pt ]; then
+            echo "Navazuji na checkpoint ze zadaného run id."
+            RESUME_FLAGS=(--resume tools/buddy-ai/chat-pilot-output/checkpoint.pt)
+          fi
+          python tools/buddy-ai/chat_pilot.py --data tools/buddy-ai/chat-pilot-output/training-data.json --seconds "$PILOT_SECONDS" --steps "$PILOT_STEPS" --threads 2 "${RESUME_FLAGS[@]}"
 
       - name: Zobrazit ukázky odpovědí
         run: python tools/buddy-ai/chat_probe.py --data tools/buddy-ai/chat-pilot-output/training-data.json
