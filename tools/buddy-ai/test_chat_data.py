@@ -54,7 +54,7 @@ class ChatDataTests(unittest.TestCase):
 
     def test_eval_cases_are_distinct(self):
         cases = read_cases()
-        self.assertEqual(len(cases), 30)
+        self.assertEqual(len(cases), 38)
         assert_evaluation_separate({"training": [], "validation": []}, cases)
 
     def test_assessment_distinguishes_topic_and_fabricated_action(self):

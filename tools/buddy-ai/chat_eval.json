@@ -28,5 +28,13 @@
   {"id":"goodbye-new","category":"rozloučení","messages":[["user","Musím odložit telefon, napíšu zase jindy."]],"mustMentionAny":["ahoj","měj","ozvi","napiš"]},
   {"id":"unknown-ambiguous-new","category":"doptání","messages":[["user","Potřebuju to udělat tam, ale nevím co přesně."]],"question":true},
   {"id":"cancel-new","category":"zrušení","messages":[["user","Chtěl bych poznámku."],["assistant","Co do ní chceš uložit?"],["user","Stornuj zadávání, poznámku nechci."]],"forbidden":["uložil jsem","jsem uložil","vytvořil jsem","hotovo"]},
-  {"id":"literal-command-new","category":"obsah versus příkaz","messages":[["user","Vysvětli větu z textu: Otevři chat."]],"mustMentionAny":["chat","příkaz","věta"],"forbidden":["otevřel jsem","jsem otevřel","spustil jsem"]}
+  {"id":"literal-command-new","category":"obsah versus příkaz","messages":[["user","Vysvětli větu z textu: Otevři chat."]],"mustMentionAny":["chat","příkaz","věta"],"forbidden":["otevřel jsem","jsem otevřel","spustil jsem"]},
+  {"id":"work-inbox-p1","category":"produktivita (práce)","messages":[["user","Mám v práci plnou schránku zpráv a nevím, od čeho začít."]],"mustMentionAny":["zpráv","e-mail","jedn","první","nejdřív"]},
+  {"id":"job-habit-p1","category":"produktivita (práce)","messages":[["user","Chtěl bych si v práci zavést pravidelný návyk, ale nevím jak začít."]],"mustMentionAny":["návyk","cíl"]},
+  {"id":"finance-expense-p1","category":"appkové funkce (finance)","messages":[["user","Chci si do appky zapsat, kolik jsem dnes utratil za benzín."]],"mustMentionAny":["finance","transakc","výdaj","kategor"]},
+  {"id":"running-log-p1","category":"appkové funkce (pohyb)","messages":[["user","Byl jsem na dlouhém běhu a chci si ho zaznamenat do appky."]],"mustMentionAny":["běh","gps","trasa","vzdálenost"]},
+  {"id":"calendar-awareness-p1","category":"povědomí o appce","messages":[["user","Jak si do appky přidám narozeninovou oslavu kamaráda do konkrétního dne?"]],"mustMentionAny":["kalendář","událost"]},
+  {"id":"mindmap-awareness-p1","category":"povědomí o appce","messages":[["user","Mám hodně nápadů na projekt a chci je nějak propojit a rozkreslit, co appka nabízí?"]],"mustMentionAny":["mind map","mapa","nápad","větv"]},
+  {"id":"work-tired-p1","category":"emoce (mimo školu)","messages":[["user","Po dlouhém dni v práci jsem úplně vyčerpaný a nemám na nic sílu."]],"question":true},
+  {"id":"weekend-free-p1","category":"emoce (mimo školu)","messages":[["user","Mám před sebou volný večer bez plánů a nevím, co s tím budu dělat."]],"question":true}
 ]
