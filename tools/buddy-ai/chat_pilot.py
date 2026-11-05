@@ -441,10 +441,12 @@ def main():
         steps < args.steps
         and time.perf_counter() - started < args.seconds
     ):
-        # Davka 4 davala kazdy krok velmi sumovy gradient (trenovaci
-        # ztrata se houpala i pozde v behu); 16 ho ctyrikrat zprumeruje.
+        # Davka 4: sumovy gradient, 6/38. Davka 16: 7/38, ale jasne
+        # pretrenovani (validacni ztrata se zhorsila). Davka 8 je
+        # mezistupen - overuje, jestli je zlepseni skutecny trend
+        # podle velikosti davky, nebo jen vlastnost davky 16.
         indexes = torch.randint(
-            len(train_rows[0]), (16,), generator=generator
+            len(train_rows[0]), (8,), generator=generator
         )
         x = train_rows[0][indexes]
         y = train_rows[1][indexes]
