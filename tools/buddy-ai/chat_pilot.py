@@ -20,7 +20,7 @@ from torch.nn import functional as F
 
 
 ROOT = Path(__file__).resolve().parent
-CONFIG = {"vocab": 4096, "context": 256, "width": 224, "heads": 4, "layers": 6}
+CONFIG = {"vocab": 4096, "context": 256, "width": 224, "heads": 4, "layers": 4}
 PAD, BOS, EOS, USER, ASSISTANT, SEP = range(6)
 IGNORE = -100
 
@@ -441,8 +441,10 @@ def main():
         steps < args.steps
         and time.perf_counter() - started < args.seconds
     ):
+        # Davka 4 davala kazdy krok velmi sumovy gradient (trenovaci
+        # ztrata se houpala i pozde v behu); 16 ho ctyrikrat zprumeruje.
         indexes = torch.randint(
-            len(train_rows[0]), (4,), generator=generator
+            len(train_rows[0]), (16,), generator=generator
         )
         x = train_rows[0][indexes]
         y = train_rows[1][indexes]
