@@ -12,6 +12,7 @@ import re
 import sys
 import time
 from chat_data import read_data
+from decoding import banned_by_repeat
 
 import torch
 from torch import nn
@@ -221,6 +222,16 @@ def generate_example(model, tokenizer):
         logits = model(context)[0, -1].clone()
         logits[len(tokenizer.pieces):] = -torch.inf
         logits[[PAD, BOS, USER, ASSISTANT, SEP]] = -torch.inf
+
+        banned = banned_by_repeat(generated)
+        if banned:
+            blocked = logits.clone()
+            blocked[list(banned)] = -torch.inf
+            # Pokud by blokace vyčerpala všechny platné kandidáty, bezpečně
+            # se vrátí k nezablokovanému rozdělení (stejná záchrana jako v JS).
+            if bool(torch.isfinite(blocked).any()):
+                logits = blocked
+
         token = int(
             torch.multinomial(
                 F.softmax(logits / 0.7, dim=-1), 1, generator=random

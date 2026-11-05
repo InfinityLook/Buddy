@@ -13,6 +13,7 @@ from chat_pilot import (
     ASSISTANT, BOS, CONFIG, EOS, PAD, ROOT, SEP, USER,
     ChatModel, Tokenizer, digest,
 )
+from decoding import banned_by_repeat
 from chat_data import assert_evaluation_separate, read_cases, read_data
 from chat_quality import assess
 
@@ -57,6 +58,16 @@ def answer(model, tokenizer, messages, greedy=False):
         logits = model(torch.tensor([ids]))[0, -1].clone()
         logits[len(tokenizer.pieces):] = -torch.inf
         logits[[PAD, BOS, USER, ASSISTANT, SEP]] = -torch.inf
+
+        banned = banned_by_repeat(generated)
+        if banned:
+            blocked = logits.clone()
+            blocked[list(banned)] = -torch.inf
+            # Pokud by blokace vyčerpala všechny platné kandidáty, bezpečně
+            # se vrátí k nezablokovanému výběru (stejná záchrana jako v JS).
+            if bool(torch.isfinite(blocked).any()):
+                logits = blocked
+
         token = int(logits.argmax()) if greedy else int(torch.multinomial(
             torch.softmax(logits / 0.7, dim=-1), 1, generator=random
         ))
