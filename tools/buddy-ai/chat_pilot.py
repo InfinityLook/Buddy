@@ -401,14 +401,21 @@ def main():
     train_rows = make_rows(data["training"], tokenizer)
     validation_rows = make_rows(data["validation"], tokenizer)
 
-    torch.manual_seed(42)
+    # Seed-test: diagnosticke podminky jsou greedy (argmax), takze seed
+    # 123 v chat_probe.py na pass-count nema vliv - jedine seedy, co
+    # mohou zmenit, jake vahy se vlastne natrenuji (a tedy i pass-count),
+    # jsou tyto dva treninkove seedy. Docasne zmeneny ze 42 na 7, aby se
+    # dalo empiricky zjistit, jak moc se pass-count pro identickou
+    # konfiguraci (davka 16 + warm-up, jako pilot #29: 9/38) zmeni jen
+    # kvuli jine inicializaci vah/poradi davek.
+    torch.manual_seed(7)
     model = ChatModel()
     BASE_LR = 0.0003
     WARMUP_STEPS = 100
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=BASE_LR, weight_decay=0.01
     )
-    generator = torch.Generator().manual_seed(42)
+    generator = torch.Generator().manual_seed(7)
     previous_steps = 0
 
     if args.resume:
@@ -453,14 +460,11 @@ def main():
         for group in optimizer.param_groups:
             group["lr"] = lr
 
-        # Dokonceni 3x2 mrizky davka x warm-up. Bez warm-up: davka 4
-        # 6/38 (ztrata 4.2833, nejlepsi ztrata session), davka 8 8/38,
-        # davka 16 7/38 (ztrata 4.7587). S warm-up: davka 8 7/38
-        # (ztrata 4.5512), davka 16 9/38 (ztrata 4.8607, nejlepsi pocet
-        # session i pres druhou nejhorsi ztratu). Posledni chybejici
-        # bod: davka 4 s warm-up.
+        # Navrat na davku 16 (jako pilot #29), aby se zmenil jen
+        # treninkovy seed (42 -> 7, viz vyse) a nic jineho z te
+        # nejlepsi konfigurace session (9/38).
         indexes = torch.randint(
-            len(train_rows[0]), (4,), generator=generator
+            len(train_rows[0]), (16,), generator=generator
         )
         x = train_rows[0][indexes]
         y = train_rows[1][indexes]
