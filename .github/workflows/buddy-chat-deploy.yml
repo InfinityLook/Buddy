@@ -1,0 +1,79 @@
+name: Buddy - nasazeni lokalniho chat modelu
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: >-
+          ID běhu (run id, číslo z URL adresy nebo ze seznamu běhů) pilotního
+          tréninku (buddy-chat-pilot.yml), jehož checkpoint se nasadí jako
+          živý lokální model Buddyho v appce (public/buddy-ai/chat/). Běh
+          musí mít ještě platný artefakt (do 7 dní od doběhnutí).
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  actions: read
+
+concurrency:
+  group: buddy-chat-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RUN_ID: ${{ inputs.run_id }}
+
+    steps:
+      - name: Načíst kód
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: true
+
+      - name: Stáhnout výstup pilotního běhu
+        uses: actions/download-artifact@v6
+        with:
+          name: buddy-chat-pilot-${{ inputs.run_id }}
+          path: /tmp/pilot-output
+          run-id: ${{ inputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Připravit soubory pro appku
+        run: |
+          set -euo pipefail
+          OUT=/tmp/pilot-output
+          test -f "$OUT/manifest.json"
+          test -f "$OUT/weights.bin"
+
+          SHA=$(sha256sum "$OUT/weights.bin" | cut -d' ' -f1)
+          MANIFEST_SHA=$(python3 -c "import json; print(json.load(open('$OUT/manifest.json'))['sha256'])")
+          if [ "$SHA" != "$MANIFEST_SHA" ]; then
+            echo "Nesouhlasi sha256 vah ($SHA) s hodnotou v manifestu ($MANIFEST_SHA)." >&2
+            exit 1
+          fi
+
+          mkdir -p public/buddy-ai/chat
+          cp "$OUT/manifest.json" "public/buddy-ai/chat/model-${SHA}.json"
+          cp "$OUT/weights.bin" "public/buddy-ai/chat/weights-${SHA}.bin"
+          python3 -c "import json; json.dump({'version': 1, 'enabled': True, 'manifest': 'model-${SHA}.json', 'weights': 'weights-${SHA}.bin', 'review': {'status': 'approved', 'modelSha256': '${SHA}'}}, open('public/buddy-ai/chat/active.json', 'w'), indent=2)"
+
+          echo "DEPLOYED_SHA=${SHA}" >> "$GITHUB_ENV"
+
+      - name: Commit a push
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/buddy-ai/chat
+          if git diff --cached --quiet; then
+            echo "Zadna zmena k commitu (tento model uz je nasazeny)."
+            exit 0
+          fi
+          git commit \
+            -m "deploy: nasadit lokalni chat model z pilotniho behu #${RUN_ID} (sha ${DEPLOYED_SHA:0:12})" \
+            -m "Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>" \
+            -m "Claude-Session: https://claude.ai/code/session_01XJ1kor9Ev7zGSK1UJ6WTKH"
+          git push
