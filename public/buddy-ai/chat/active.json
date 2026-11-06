@@ -1,4 +1,10 @@
 {
   "version": 1,
-  "enabled": false
+  "enabled": true,
+  "manifest": "model-2c7b240d43953d2729f2db46509e4186f0346297da16f0cad3c532fc34c18249.json",
+  "weights": "weights-2c7b240d43953d2729f2db46509e4186f0346297da16f0cad3c532fc34c18249.bin",
+  "review": {
+    "status": "approved",
+    "modelSha256": "2c7b240d43953d2729f2db46509e4186f0346297da16f0cad3c532fc34c18249"
+  }
 }
