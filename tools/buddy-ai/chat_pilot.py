@@ -401,21 +401,30 @@ def main():
     train_rows = make_rows(data["training"], tokenizer)
     validation_rows = make_rows(data["validation"], tokenizer)
 
-    # Seed-test: diagnosticke podminky jsou greedy (argmax), takze seed
-    # 123 v chat_probe.py na pass-count nema vliv - jedine seedy, co
-    # mohou zmenit, jake vahy se vlastne natrenuji (a tedy i pass-count),
-    # jsou tyto dva treninkove seedy. Docasne zmeneny ze 42 na 7, aby se
-    # dalo empiricky zjistit, jak moc se pass-count pro identickou
-    # konfiguraci (davka 16 + warm-up, jako pilot #29: 9/38) zmeni jen
-    # kvuli jine inicializaci vah/poradi davek.
-    torch.manual_seed(7)
+    # Davka x warm-up mrizka dokoncena: bez warm-up davka 4 mela nejlepsi
+    # ztratu session (4.2833, 6/38), davka 8 nejlepsi pass-count bez
+    # warm-up (8/38), davka 16 nejhorsi ztratu/sum (4.7587, 7/38). S
+    # warm-up: davka 4 8/38 (ztrata 4.2902), davka 8 7/38 (ztrata 4.5512),
+    # davka 16 9/38 (ztrata 4.8607) - nejvyssi pass-count session.
+    #
+    # Seed-sensitivity test na davka=16+warm-up (jedina zmena: treninkovy
+    # seed 42 -> 7, pote navrat na 42 nize): 9/38 -> 7/38 pri prakticky
+    # stejne ztrate (4.8607 -> 4.9256). Diagnosticke skore je vuci seedu
+    # citlive, protoze seed 123 v chat_probe.py se na pass-count nijak
+    # neprojevi (diagnostika pouziva greedy=argmax, ne sampling) - jedine
+    # seedy, co muzou zmenit vysledne vahy (a tedy pass-count), jsou tyto
+    # dva treninkove seedy. Rozdil 2 case jen ze seedu je srovnatelny s
+    # rozdily napric celou mrizkou (±1-3 case) - pass-count v tomto
+    # rozsahu tedy neni spolehlivy signal o kvalite konfigurace,
+    # diagnosticka sada 38 pripadu je na tuto uroven sumu prilis mala.
+    torch.manual_seed(42)
     model = ChatModel()
     BASE_LR = 0.0003
     WARMUP_STEPS = 100
     optimizer = torch.optim.AdamW(
         model.parameters(), lr=BASE_LR, weight_decay=0.01
     )
-    generator = torch.Generator().manual_seed(7)
+    generator = torch.Generator().manual_seed(42)
     previous_steps = 0
 
     if args.resume:
@@ -460,9 +469,8 @@ def main():
         for group in optimizer.param_groups:
             group["lr"] = lr
 
-        # Navrat na davku 16 (jako pilot #29), aby se zmenil jen
-        # treninkovy seed (42 -> 7, viz vyse) a nic jineho z te
-        # nejlepsi konfigurace session (9/38).
+        # Davka 16 + warm-up: nejvyssi pass-count cele session (9/38,
+        # viz komentar vyse k mrizce a seed-testu).
         indexes = torch.randint(
             len(train_rows[0]), (16,), generator=generator
         )
