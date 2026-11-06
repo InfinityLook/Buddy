@@ -403,8 +403,10 @@ def main():
 
     torch.manual_seed(42)
     model = ChatModel()
+    BASE_LR = 0.0003
+    WARMUP_STEPS = 100
     optimizer = torch.optim.AdamW(
-        model.parameters(), lr=0.0003, weight_decay=0.01
+        model.parameters(), lr=BASE_LR, weight_decay=0.01
     )
     generator = torch.Generator().manual_seed(42)
     previous_steps = 0
@@ -441,10 +443,21 @@ def main():
         steps < args.steps
         and time.perf_counter() - started < args.seconds
     ):
+        # Linearni warm-up LR z 0 na BASE_LR behem prvnich WARMUP_STEPS
+        # kroku tohoto behu, pote plocha na BASE_LR. Doposud byla LR
+        # od kroku 0 plocha na 0.0003 - testuje se, jestli chybejici
+        # warm-up prispival k sumove trenovaci ztrate na zacatku behu.
+        # Pri --resume warm-up rampa zacne znovu od kroku 0 noveho
+        # behu (vyuziva jen "steps", ne "previous_steps + steps").
+        lr = BASE_LR * min(1.0, (steps + 1) / WARMUP_STEPS)
+        for group in optimizer.param_groups:
+            group["lr"] = lr
+
         # Davka 4: sumovy gradient, 6/38. Davka 16: 7/38, ale jasne
-        # pretrenovani (validacni ztrata se zhorsila). Davka 8 je
-        # mezistupen - overuje, jestli je zlepseni skutecny trend
-        # podle velikosti davky, nebo jen vlastnost davky 16.
+        # pretrenovani (validacni ztrata se zhorsila). Davka 8 dala
+        # nejlepsi vysledek session (8/38); 8000 kroku na davce 8
+        # vedlo k silnemu pretrenovani (5.8011, 6/38), takze zustava
+        # na 2000 krocich - toto testuje warm-up na stejne konfiguraci.
         indexes = torch.randint(
             len(train_rows[0]), (8,), generator=generator
         )
