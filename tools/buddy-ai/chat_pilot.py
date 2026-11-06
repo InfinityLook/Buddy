@@ -453,13 +453,14 @@ def main():
         for group in optimizer.param_groups:
             group["lr"] = lr
 
-        # Davka 4: sumovy gradient, 6/38. Davka 16: 7/38, ale jasne
-        # pretrenovani (validacni ztrata se zhorsila). Davka 8 dala
-        # nejlepsi vysledek session (8/38); 8000 kroku na davce 8
-        # vedlo k silnemu pretrenovani (5.8011, 6/38), takze zustava
-        # na 2000 krocich - toto testuje warm-up na stejne konfiguraci.
+        # Davka 4: 6/38. Davka 8 bez warm-up: nejlepsi vysledek session
+        # (8/38). Davka 16 bez warm-up: 7/38, ale nejvyssi sum/nejhorsi
+        # ztrata ze tri zakladnich davek - warm-up na davce 8 dal jen
+        # smiseny vysledek (ztrata 4.5512 vs 4.6472, ale pocet 7 vs 8).
+        # Toto testuje, jestli warm-up pomaha prave tam, kde byl sum
+        # nejvyssi (davka 16), misto tam, kde uz byl vysledek nejlepsi.
         indexes = torch.randint(
-            len(train_rows[0]), (8,), generator=generator
+            len(train_rows[0]), (16,), generator=generator
         )
         x = train_rows[0][indexes]
         y = train_rows[1][indexes]
