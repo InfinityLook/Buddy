@@ -375,11 +375,11 @@ def main():
 
     if (
         not 1 <= args.seconds <= 600
-        or not 1 <= args.steps <= 2000
+        or not 1 <= args.steps <= 8000
         or not 1 <= args.threads <= 4
     ):
         parser.error(
-            "Povolen je čas 1–600 sekund, 1–2000 kroků a 1–4 vlákna."
+            "Povolen je čas 1–600 sekund, 1–8000 kroků a 1–4 vlákna."
         )
 
     torch.set_num_threads(args.threads)
