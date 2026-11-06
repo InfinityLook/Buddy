@@ -14,7 +14,7 @@ on:
         required: true
         default: '600'
         type: choice
-        options: ['200', '600', '1000', '2000']
+        options: ['200', '600', '1000', '2000', '8000']
       resume_run_id:
         description: >-
           ID běhu (run id, číslo z URL adresy nebo ze seznamu běhů), jehož
