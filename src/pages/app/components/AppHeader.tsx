@@ -4,14 +4,17 @@ import { AppIcon } from './AppIcon'
 interface AppHeaderProps {
   onBack?: () => void
   onOpenNotifications: () => void
-  // Počet nepřečtených upozornění — 0 znamená, že se puntík nekreslí
   unreadCount: number
+  title?: string
+  subtitle?: string
 }
 
 export const AppHeader: React.FC<AppHeaderProps> = ({
   onBack,
   onOpenNotifications,
   unreadCount,
+  title = 'Aplikace',
+  subtitle = 'Tvoje aplikace na jednom místě',
 }) => (
   <header className="app-header">
     <button className="app-back-btn" aria-label="Zpět" onClick={onBack}>
@@ -21,21 +24,25 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
     <div className="app-header-center">
       <div className="app-header-title-wrap">
         <AppIcon name="grid" size={22} className="app-header-icon" />
-        <h1>Aplikace</h1>
+        <h1>{title}</h1>
       </div>
-      <p>Tvoje aplikace na jednom místě</p>
+      <p>{subtitle}</p>
     </div>
 
     <div className="app-header-actions">
       <button
         className="app-icon-btn"
         aria-label={
-          unreadCount > 0 ? `Upozornění (${unreadCount} nepřečtených)` : 'Upozornění'
+          unreadCount > 0
+            ? `Upozornění (${unreadCount} nepřečtených)`
+            : 'Upozornění'
         }
         onClick={onOpenNotifications}
       >
         <AppIcon name="bell" size={20} />
-        {unreadCount > 0 && <span className="app-icon-badge">{unreadCount}</span>}
+        {unreadCount > 0 && (
+          <span className="app-icon-badge">{unreadCount}</span>
+        )}
       </button>
     </div>
   </header>
