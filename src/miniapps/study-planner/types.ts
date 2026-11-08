@@ -84,15 +84,15 @@ export interface StudyTask {
   posunuto?: number
   puvodniTermin?: string | null
   // --- Cloudová synchronizace (skolaSync.ts) ---
-  // Tenhle store nemá žádnou valibot validaci (viz komentář výš), takže
-  // se starší úkol bez těchhle polí dorovná přímo v persist's merge
-  // (useStudyPlanner.ts's backfillSyncFields), ne v samostatném
-  // sanitizuj* souboru jako u ostatních miniaplikací. updatedAt
-  // rozhoduje "kdo vyhrává" při sloučení mezi zařízeními, deletedAt je
-  // tombstone měkkého smazání (viz deleteTask).
+  // Starší data ověřuje plannerDomain.ts. updatedAt rozhoduje při sloučení
+  // mezi zařízeními; deletedAt uchovává měkké smazání pro synchronizaci.
   createdAt: string
   updatedAt: number
   deletedAt: number | null
+  completedAt?: number | null
+  rewardedAt?: number | null
+  seriesId?: string | null
+  nextOccurrenceId?: string | null
 }
 
 /** Kolik podúkolů je hotovo z celkového počtu — čistá pomocná funkce,
@@ -234,4 +234,4 @@ export const dalsiTerminOpakovani = (aktualniTermin: string, opakovani: Opakovan
     if (den <= posledniDenMesice) return naIso(r, m, den)
   }
   return aktualniTermin
-}
+      }
