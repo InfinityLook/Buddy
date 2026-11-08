@@ -115,6 +115,7 @@ interface PomodoroState {
   // Volný text, ke kterému se přiřadí PŘÍŠTÍ dokončené soustředění —
   // nepovinné, appka funguje úplně stejně, i když se nikdy nevyplní.
   aktivniPredmet: string | null
+  aktivniUkolId: string | null
   settings: TimerSettings
   mode: TimerMode
   isRunning: boolean
@@ -143,6 +144,7 @@ const usePomodoroStore = create<PomodoroState>()(
       completedSessions: 0,
       sessionLog: [],
       aktivniPredmet: null,
+      aktivniUkolId: null,
       settings: DEFAULT_SETTINGS,
       mode: 'work',
       isRunning: false,
@@ -247,6 +249,7 @@ const usePomodoroStore = create<PomodoroState>()(
             at: Date.now(),
             minuty: state.settings.work,
             predmet: state.aktivniPredmet?.trim() || null,
+            ...(state.aktivniUkolId ? { taskId: state.aktivniUkolId } : {}),
           }
           set((s) => ({
             completedSessions: s.completedSessions + 1,
@@ -298,7 +301,7 @@ const usePomodoroStore = create<PomodoroState>()(
       // Bez ořezu tady — ten by na každé stisknutí klávesy smazal i
       // právě napsanou mezeru (viz komentář u complete() výš). Uloží se
       // syrová hodnota, ořízne se až při skutečném zápisu do historie.
-      setAktivniPredmet: (predmet) => set({ aktivniPredmet: predmet }),
+      setAktivniPredmet: (predmet) => set({ aktivniPredmet: predmet, aktivniUkolId: null }),
     }),
     {
       name: 'schoolbuddy-pomodoro-storage',
@@ -324,6 +327,7 @@ const usePomodoroStore = create<PomodoroState>()(
           settings: { ...DEFAULT_SETTINGS, ...(saved?.settings ?? {}) },
           sessionLog,
           aktivniPredmet: typeof saved?.aktivniPredmet === 'string' ? saved.aktivniPredmet : null,
+          aktivniUkolId: typeof saved?.aktivniUkolId === 'string' ? saved.aktivniUkolId : null,
         }
       },
 
@@ -360,6 +364,21 @@ const usePomodoroStore = create<PomodoroState>()(
 // ==========================================
 export const nastavAktivniPredmetZPlanovace = (predmet: string): void => {
   usePomodoroStore.getState().setAktivniPredmet(predmet)
+}
+
+/** Spustí soustředění; rozpracovaný blok jiného úkolu nepřepíše. */
+export const spustitSoustredeniUkolu = (id: string, title: string): boolean => {
+  const state = usePomodoroStore.getState()
+  const partial = state.isRunning || state.remainingSeconds < durationFor(state.mode, state.settings)
+  if (partial && state.aktivniUkolId !== id) return false
+  usePomodoroStore.setState({ aktivniPredmet: title, aktivniUkolId: id })
+  if (state.mode !== 'work') usePomodoroStore.getState().switchMode('work')
+  if (!usePomodoroStore.getState().isRunning) usePomodoroStore.getState().start()
+  return true
+}
+export const useTaskFocusMinutes = (id: string | null): number => {
+  const log = usePomodoroStore(state => state.sessionLog)
+  return id ? log.reduce((sum, item) => item.taskId === id ? sum + item.minuty : sum, 0) : 0
 }
 
 export const usePomodoro = () => {
@@ -439,3 +458,4 @@ export const usePomodoro = () => {
   }
 }
 export const getPomodoroState = () => usePomodoroStore.getState()
+
