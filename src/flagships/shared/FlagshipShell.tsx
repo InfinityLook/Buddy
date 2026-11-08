@@ -100,7 +100,7 @@ export const FlagshipShell: React.FC<Props> = ({
       <SurfaceBackdrop surfaceId={surfaceId} />
 
       <header className="app-header">
-        <button className="app-back-btn" aria-label="Zpět" onClick={() => navigate('/apps')}>
+        <button className="app-back-btn" aria-label="Zpět" onClick={() => navigate('/rooms')}>
           <AppIcon name="arrow-left" size={18} />
         </button>
 
