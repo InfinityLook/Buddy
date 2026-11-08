@@ -1,0 +1,26 @@
+.rooms-page > .app-container {
+  overflow: hidden;
+}
+
+.rooms-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.rooms-content .rc-wrap {
+  height: 100%;
+  min-height: 320px;
+  max-height: 560px;
+  box-sizing: border-box;
+}
+
+.rooms-page > .app-container > .app-bottom-nav {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 0;
+}
