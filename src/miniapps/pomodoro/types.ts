@@ -84,6 +84,7 @@ export const jeSwitchModeNoOp = (
 // ==========================================
 
 export interface PomodoroSession {
+  taskId?: string | null
   /** Absolutní čas dokončení (Date.now()) — stejný "časové razítko, ne
    *  countdown" přístup jako endsAt. */
   at: number
@@ -133,4 +134,3 @@ export const ziskejNaposledyPouziteNazvyPredmetu = (log: PomodoroSession[]): str
     if (vysledek.length >= NEJVICE_NAPOSLEDY_POUZITYCH_PREDMETU) break
   }
   return vysledek
-}
