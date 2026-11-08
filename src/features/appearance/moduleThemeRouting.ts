@@ -20,6 +20,7 @@ export function resolveModuleSurface(pathname: string, view: ModuleViewState = {
     case '/profil': return 'profile'
     case '/odmeny': return 'achievements'
     case '/obchod': return 'shop'
+    case '/rooms': return 'apps-launcher'
     case '/feed': return 'feed'
     case '/navod': return 'help'
     case '/podpora': return view.supportDetail ? 'support-conversation' : 'support'
