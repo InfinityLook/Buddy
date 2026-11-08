@@ -28,3 +28,4 @@ export const fromPlannerRow = (row: Record<string, unknown>): StudyTask => {
   })
   if (!task) throw new Error('Neplatný záznam úkolu ze synchronizace.')
   return task
+}

@@ -134,3 +134,4 @@ export const ziskejNaposledyPouziteNazvyPredmetu = (log: PomodoroSession[]): str
     if (vysledek.length >= NEJVICE_NAPOSLEDY_POUZITYCH_PREDMETU) break
   }
   return vysledek
+}
