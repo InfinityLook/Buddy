@@ -239,6 +239,10 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
     setActiveAppId(null)
     navigate('/apps')
   }
+    const handleRoomsClick = () => {
+    setActiveAppId(null)
+    navigate('/rooms')
+    }
 
   // Achievementy otevřou samostatný modul s odměnami (úroveň, série, odznaky)
   const handleAchievementsClick = () => {
@@ -380,7 +384,7 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
   const kolo: KoloPaprsek[] = [
     { id: 'ai', nazev: 'AI', ikona: themeAssetUrl(variant.assets.aiButton), uhel: 0, onClick: otevritBuddyho },
     { id: 'apps', nazev: 'Apps', ikona: themeAssetUrl(variant.assets.appsButton), uhel: 90, onClick: handleAppsClick },
-    { id: 'rooms', nazev: 'Rooms', ikona: themeAssetUrl(variant.assets.roomsButton), uhel: 180, onClick: handleAppsClick },
+    { id: 'rooms', nazev: 'Rooms', ikona: themeAssetUrl(variant.assets.roomsButton), uhel: 180, onClick: handleRoomsClick },
     // Krok 18: "Social" přejmenováno na "Feed" a přesměrováno z celého
     // SocialModule (vlastní pětice spodních záložek) na FeedModule.tsx
     // ("jen zeď", bez Socialovy vlastní navigace) — appka Chat a Hledat
