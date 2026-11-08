@@ -55,7 +55,7 @@ export const RychleSpusteni: React.FC<RychleSpusteniProps> = ({ miniaplikace, on
     <section className="rs-section">
       <h2 className="rs-nadpis">
         <AppIcon name="rocket" size={18} className="rs-nadpis-icon" />
-        Rychlé spuštění
+                Všechny aplikace
       </h2>
       <p className="rs-popis">Hledej napříč appkami uvnitř Roomů — klepnutím skočíš rovnou dovnitř.</p>
 
