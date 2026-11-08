@@ -8,7 +8,8 @@ import {
   setRawStudyPlannerState,
   subscribeStudyPlannerStore,
 } from '@/miniapps/study-planner/useStudyPlanner'
-import { StudyTask, TaskPriority } from '@/miniapps/study-planner/types'
+import { StudyTask } from '@/miniapps/study-planner/types'
+import { toPlannerRow as toRowUkol, fromPlannerRow as fromRowUkol } from '@/miniapps/study-planner/plannerSync'
 import { useKalendarStore } from '@/miniapps/kalendar/useKalendar'
 import { BarvaDne, BarvaDneZaznam, Opakovani, Udalost } from '@/miniapps/kalendar/types'
 
@@ -196,33 +197,6 @@ const fromRowPredmet = (r: Record<string, any>): Predmet => ({
   kredity: r.kredity ?? 0,
   znamky: Array.isArray(r.znamky) ? r.znamky : [],
   cil: r.cil ?? null,
-  createdAt: r.created_at ?? new Date().toISOString(),
-  updatedAt: zIso(r.updated_at),
-  deletedAt: r.deleted_at ? zIso(r.deleted_at) : null,
-})
-
-const toRowUkol = (userId: string, t: StudyTask) => ({
-  id: t.id,
-  user_id: userId,
-  subject: t.subject,
-  topic: t.topic,
-  due_date: t.dueDate,
-  priority: t.priority,
-  completed: t.completed,
-  podukoly: t.podukoly ?? [],
-  created_at: t.createdAt,
-  updated_at: naIso(t.updatedAt),
-  deleted_at: t.deletedAt ? naIso(t.deletedAt) : null,
-})
-
-const fromRowUkol = (r: Record<string, any>): StudyTask => ({
-  id: r.id,
-  subject: r.subject,
-  topic: r.topic,
-  dueDate: r.due_date,
-  priority: (r.priority ?? 'Střední') as TaskPriority,
-  completed: !!r.completed,
-  podukoly: Array.isArray(r.podukoly) ? r.podukoly : [],
   createdAt: r.created_at ?? new Date().toISOString(),
   updatedAt: zIso(r.updated_at),
   deletedAt: r.deleted_at ? zIso(r.deleted_at) : null,
