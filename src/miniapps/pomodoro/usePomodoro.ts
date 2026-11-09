@@ -1,132 +1,129 @@
 import { useEffect, useState } from 'react'
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
+import { createJSONStorage, persist } from 'zustand/middleware'
 import { secureStorage } from '@/core/utils/secureStorage'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import {
   notificationsEnabled,
-  requestNotificationPermission,
   showAppNotification,
 } from '@/core/utils/notify'
-import { nahlasPomodoroCasovac, zajistiPushPrihlaseni, zrusPomodoroCasovac } from '@/core/utils/push'
+import {
+  nahlasPomodoroCasovac,
+  zrusPomodoroCasovac,
+} from '@/core/utils/push'
 import {
   DEFAULT_SETTINGS,
-  LIMITS,
+  durationFor,
+  localDay,
   MAX_SESSION_LOG,
+  normalizeSettings,
+  totalsFromLog,
+} from './types'
+import type {
+  DailyTotals,
+  FocusBlock,
   PomodoroSession,
   TimerMode,
   TimerSettings,
-  clamp,
-  durationFor,
-  jeSwitchModeNoOp,
 } from './types'
 
-// XP se odvíjí od délky bloku, ne od počtu klepnutí. Kdyby byla odměna
-// pevná, stačilo by si nastavit pětiminutové soustředění a sbírat stejné
-// XP jako za pětadvacetiminutové.
-const XP_PER_WORK_MINUTE = 0.6
-const xpForWorkBlock = (minutes: number) => Math.max(1, Math.round(minutes * XP_PER_WORK_MINUTE))
+export const usePomodoroStatus = create<{
+  error: string
+  returnToPlanner: boolean
+  finished: {
+    mode: TimerMode
+    session: PomodoroSession | null
+  } | null
+}>(() => ({
+  error: '',
+  returnToPlanner: false,
+  finished: null,
+}))
 
-// ==========================================
-// Časovač žije v tomhle modulu, ne v Reactu.
-//
-// Dřív byly mode/timeLeft/isRunning čistý React state uvnitř
-// usePomodoro() — odchod z miniaplikace (AppModule.tsx ji odmountuje)
-// časovač zahodil úplně, i uprostřed běžícího bloku. Teď je časovač
-// v tomhle persistovaném Zustand storu (mode/isRunning/endsAt/
-// cyclePosition) a dokončovací setTimeout (completionTimer níž) žije
-// jako proměnná modulu, ne uvnitř Reactu — stejný vzorec jako registrace
-// service workeru v core/utils/registerSW.ts. Store i timer tak přežijí
-// odmount komponenty: uživatel může z Pomodora odejít jinam v appce
-// a blok poběží dál, s notifikací po vypršení (viz pomodoroNotify.ts).
-//
-// Modulový timer sám o sobě je plán JS runtime, ne systémová služba —
-// přežije odchod jinam v appce nebo krátké zhasnutí displeje, ale ne
-// úplné zavření PWA z multitaskingu. core/utils/push.ts (Web Push +
-// api/pomodoro-push.ts, Vercel Cron) je druhá, nezávislá cesta ke
-// stejnému cíli: server ví, kdy blok skončí (nahlasPomodoroCasovac),
-// a pošle notifikaci i bez běžícího JS na zařízení. Obě cesty běží
-// vedle sebe schválně — kdo push nemá (starší prohlížeč, cloud
-// nenastavený), dostane aspoň modulový timer, jak fungoval vždycky.
-// endsAt (absolutní čas konce) i tak zůstává zdrojem pravdy pro
-// dopočet zbývajícího času při dalším otevření Pomodora — viz
-// onRehydrateStorage níž.
-// ==========================================
+const report = (error: unknown) =>
+  usePomodoroStatus.setState({
+    error:
+      error instanceof Error
+        ? error.message
+        : 'Změnu se nepodařilo uložit.',
+  })
 
-let completionTimer: ReturnType<typeof setTimeout> | null = null
-let audioCtx: AudioContext | null = null
+let timer: ReturnType<typeof setTimeout> | null = null
+let audio: AudioContext | null = null
 
-const disarmTimer = () => {
-  if (completionTimer) {
-    clearTimeout(completionTimer)
-    completionTimer = null
-  }
+const disarm = () => {
+  if (timer !== null) clearTimeout(timer)
+  timer = null
 }
 
-const armTimer = (seconds: number) => {
-  disarmTimer()
-  completionTimer = setTimeout(() => {
-    completionTimer = null
-    usePomodoroStore.getState().complete()
-  }, Math.max(0, seconds) * 1000)
-}
+const chime = () => {
+  if (!audio) return
 
-const ensureAudio = (soundEnabled: boolean) => {
-  if (audioCtx || !soundEnabled) return
   try {
-    const Ctor =
-      window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
-    if (Ctor) audioCtx = new Ctor()
-  } catch {
-    audioCtx = null
-  }
-}
+    const gain = audio.createGain()
+    const osc = audio.createOscillator()
+    const now = audio.currentTime
 
-// Krátké pípnutí přes Web Audio — žádný zvukový soubor, takže nic
-// nepřibude do precache a nic se nemusí stahovat offline.
-const playChime = () => {
-  if (!audioCtx) return
-  try {
-    const now = audioCtx.currentTime
-    const gain = audioCtx.createGain()
-    gain.connect(audioCtx.destination)
-    gain.gain.setValueAtTime(0.0001, now)
-    gain.gain.exponentialRampToValueAtTime(0.25, now + 0.02)
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.9)
+    gain.connect(audio.destination)
+    gain.gain.setValueAtTime(0.001, now)
+    gain.gain.exponentialRampToValueAtTime(0.18, now + 0.02)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7)
 
-    const osc = audioCtx.createOscillator()
-    osc.type = 'sine'
+    osc.connect(gain)
     osc.frequency.setValueAtTime(880, now)
     osc.frequency.setValueAtTime(1174, now + 0.18)
-    osc.connect(gain)
     osc.start(now)
-    osc.stop(now + 0.95)
+    osc.stop(now + 0.75)
   } catch {
-    // Zvuk je bonus, ne podmínka — když ho prohlížeč nepustí, nevadí
+    // Zvuk není podmínkou uložení bloku.
   }
+}
+
+const prepareAudio = () => {
+  if (!getPomodoroState().settings.soundEnabled) return
+
+  try {
+    if (!audio && window.AudioContext) {
+      audio = new AudioContext()
+    }
+
+    void audio?.resume().catch(() => {})
+  } catch {
+    // Nepodporovaný zvuk.
+  }
+}
+
+const arm = () => {
+  disarm()
+
+  const state = getPomodoroState()
+
+  if (!state.isRunning || state.endsAt == null) return
+
+  timer = setTimeout(() => {
+    timer = null
+
+    try {
+      getPomodoroState().complete()
+    } catch (error) {
+      report(error)
+    }
+  }, Math.max(0, state.endsAt - Date.now()))
 }
 
 interface PomodoroState {
-  completedSessions: number
-  // Historie dokončených soustředění (viz types.ts) — "Studijní cíl"
-  // ve School Roomu a "podle předmětu" tady dole čtou z jednoho místa,
-  // ne ze dvou různých počítadel, co by se mohla rozejít.
-  sessionLog: PomodoroSession[]
-  // Volný text, ke kterému se přiřadí PŘÍŠTÍ dokončené soustředění —
-  // nepovinné, appka funguje úplně stejně, i když se nikdy nevyplní.
-  aktivniPredmet: string | null
-  aktivniUkolId: string | null
   settings: TimerSettings
   mode: TimerMode
   isRunning: boolean
-  // Absolutní čas (Date.now()), kdy běžící úsek skončí. null, když
-  // časovač neběží — pak platí remainingSeconds.
   endsAt: number | null
-  // Kolik sekund zbývá, když časovač NEběží (pauza, čerstvě přepnutý
-  // režim). Zdroj pravdy jen mimo běh — během běhu se dopočítává
-  // z endsAt, ať se nemusí zapisovat do úložiště každou vteřinu.
   remainingSeconds: number
   cyclePosition: number
+  block: FocusBlock | null
+  aktivniPredmet: string | null
+  aktivniUkolId: string | null
+  completedSessions: number
+  sessionLog: PomodoroSession[]
+  dailyTotals: DailyTotals
 
   start: () => void
   pause: () => void
@@ -135,327 +132,707 @@ interface PomodoroState {
   complete: () => void
   updateSettings: (patch: Partial<TimerSettings>) => void
   resetStats: () => void
-  setAktivniPredmet: (predmet: string | null) => void
+  setAktivniPredmet: (title: string | null) => void
+  setTask: (
+    id: string | null,
+    title: string | null
+  ) => boolean
 }
 
-const usePomodoroStore = create<PomodoroState>()(
+const modes: TimerMode[] = [
+  'work',
+  'shortBreak',
+  'longBreak',
+]
+
+const finite = (v: unknown): v is number =>
+  typeof v === 'number' &&
+  Number.isFinite(v) &&
+  v >= 0
+
+const object = (
+  v: unknown
+): v is Record<string, unknown> =>
+  !!v && typeof v === 'object' && !Array.isArray(v)
+
+const id = () =>
+  crypto.randomUUID?.() ??
+  `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+export const usePomodoroStore = create<PomodoroState>()(
   persist(
-    (set, get) => ({
-      completedSessions: 0,
-      sessionLog: [],
-      aktivniPredmet: null,
-      aktivniUkolId: null,
-      settings: DEFAULT_SETTINGS,
-      mode: 'work',
-      isRunning: false,
-      endsAt: null,
-      remainingSeconds: durationFor('work', DEFAULT_SETTINGS),
-      cyclePosition: 0,
+    (set, get) => {
+      const commit = (patch: Partial<PomodoroState>) => {
+        const previous = get()
 
-      start: () => {
-        const state = get()
-        if (state.isRunning) return
-
-        // Volá se synchronně uvnitř kliknutí na Start — pořád v gestu
-        // uživatele, jinak by prohlížeč dialog o svolení i AudioContext
-        // odmítl.
-        requestNotificationPermission()
-        ensureAudio(state.settings.soundEnabled)
-        void audioCtx?.resume?.()
-
-        const endsAt = Date.now() + state.remainingSeconds * 1000
-        set({ isRunning: true, endsAt })
-        armTimer(state.remainingSeconds)
-
-        // Push je doplněk k modulovému timeru výš, ne náhrada — obojí
-        // se natáhne na stejný endsAt nezávisle na sobě (viz komentář
-        // na začátku souboru).
-        void zajistiPushPrihlaseni()
-        void nahlasPomodoroCasovac(endsAt, state.mode === 'work' ? 'prace' : 'pauza')
-      },
-
-      pause: () => {
-        const state = get()
-        if (!state.isRunning || state.endsAt === null) return
-        disarmTimer()
-        const remaining = Math.max(0, Math.round((state.endsAt - Date.now()) / 1000))
-        set({ isRunning: false, endsAt: null, remainingSeconds: remaining })
-        // Zastavený blok nemá co server hlídat — bez tohohle by cron
-        // poslal push i na pauzu, kterou uživatel sám přerušil.
-        void zrusPomodoroCasovac()
-      },
-
-      resetTimer: () => {
-        disarmTimer()
-        const state = get()
-        set({ isRunning: false, endsAt: null, remainingSeconds: durationFor(state.mode, state.settings) })
-        void zrusPomodoroCasovac()
-      },
-
-      switchMode: (mode, autoStart = false) => {
-        const state = get()
-        // Logika guardu je v types.ts (jeSwitchModeNoOp) — vlastní
-        // komentář k tomu, proč a proč zrovna tam, je tam.
-        if (jeSwitchModeNoOp(mode, state.mode, autoStart)) return
-
-        disarmTimer()
-        const duration = durationFor(mode, state.settings)
-
-        if (autoStart) {
-          const endsAt = Date.now() + duration * 1000
-          set({ mode, remainingSeconds: duration, isRunning: true, endsAt })
-          armTimer(duration)
-          void zajistiPushPrihlaseni()
-          void nahlasPomodoroCasovac(endsAt, mode === 'work' ? 'prace' : 'pauza')
-        } else {
-          set({ mode, remainingSeconds: duration, isRunning: false, endsAt: null })
-        }
-      },
-
-      complete: () => {
-        const state = get()
-        // Chrání proti dvojitému spuštění, kdyby complete() zavolal
-        // modulový timer i nějaká budoucí druhá cesta na stejný okamžik.
-        if (!state.isRunning) return
-        disarmTimer()
-
-        // Blok doběhl v popředí — appka o tom už ví a notifikaci
-        // zvládne sama (showAppNotification níž). Server o něj dál
-        // nemusí pečovat, jinak by cron poslal push i na blok, který
-        // uživatel dostal ohlášený tady.
-        void zrusPomodoroCasovac()
-
-        if (state.settings.soundEnabled) {
-          playChime()
-          // Vibrace na telefonu — když prohlížeč neumí, prostě se nic nestane
-          navigator.vibrate?.([200, 100, 200])
-        }
-
-        const finishedMode = state.mode
-        void showAppNotification(
-          finishedMode === 'work' ? '⏰ Soustředění dokončeno' : '⏰ Pauza skončila',
-          finishedMode === 'work' ? 'Blok doběhl — čas na pauzu.' : 'Pauza doběhla — zpátky do práce?',
-          'pomodoro'
-        )
-
-        if (finishedMode === 'work') {
-          // Ořez až tady, ne v setAktivniPredmet — ten se dřív volal
-          // přímo z onChange na každé stisknutí klávesy (Pomodoro.tsx),
-          // takže trim() po každém znaku smazal i mezeru, kterou
-          // uživatel právě dopsal, a víceslovný předmět s mezerou
-          // uprostřed se prostě nedal napsat (mezera zmizela dřív, než
-          // stihla "zůstat" pro další znak).
-          const zaznam: PomodoroSession = {
-            at: Date.now(),
-            minuty: state.settings.work,
-            predmet: state.aktivniPredmet?.trim() || null,
-            ...(state.aktivniUkolId ? { taskId: state.aktivniUkolId } : {}),
+        try {
+          set(patch)
+        } catch {
+          try {
+            set(previous)
+          } catch {
+            // Poslední uložená hodnota zůstává.
           }
-          set((s) => ({
-            completedSessions: s.completedSessions + 1,
-            // Nejvýš MAX_SESSION_LOG záznamů — nejstarší odpadávají,
-            // ať uložený stav neroste do nekonečna.
-            sessionLog: [...s.sessionLog, zaznam].slice(-MAX_SESSION_LOG),
-          }))
-          useGamificationStore.getState().recordAction('pomodoro', xpForWorkBlock(state.settings.work))
 
-          // Po nastaveném počtu soustředění přijde dlouhá pauza. Další
-          // úsek se spustí sám jen s autoStartNextPhase zapnutým —
-          // switchMode bez autoStart (výchozí stav) jen připraví novou
-          // délku, start čeká na uživatele.
-          const nextPosition = state.cyclePosition + 1
-          const cycleDone = nextPosition >= state.settings.cycleLength
-          set({ cyclePosition: cycleDone ? 0 : nextPosition })
-          get().switchMode(cycleDone ? 'longBreak' : 'shortBreak', state.settings.autoStartNextPhase)
-        } else {
-          get().switchMode('work', state.settings.autoStartNextPhase)
+          throw new Error(
+            'Zápis Pomodora selhal. Zkontroluj volné místo v zařízení a zkus to znovu.'
+          )
         }
-      },
 
-      updateSettings: (patch) => {
-        set((state) => {
-          const merged = { ...state.settings, ...patch }
-          const settings = {
-            ...merged,
-            work: clamp(merged.work, LIMITS.work.min, LIMITS.work.max),
-            shortBreak: clamp(merged.shortBreak, LIMITS.shortBreak.min, LIMITS.shortBreak.max),
-            longBreak: clamp(merged.longBreak, LIMITS.longBreak.min, LIMITS.longBreak.max),
-            cycleLength: clamp(merged.cycleLength, LIMITS.cycleLength.min, LIMITS.cycleLength.max),
+        usePomodoroStatus.setState({ error: '' })
+      }
+
+      const cancel = (block: FocusBlock | null) => {
+        if (block) {
+          void Promise.resolve(
+            zrusPomodoroCasovac(block.id)
+          ).catch(report)
+        }
+      }
+
+      return {
+        settings: DEFAULT_SETTINGS,
+        mode: 'work',
+        isRunning: false,
+        endsAt: null,
+        remainingSeconds: durationFor(
+          'work',
+          DEFAULT_SETTINGS
+        ),
+        cyclePosition: 0,
+        block: null,
+        aktivniPredmet: null,
+        aktivniUkolId: null,
+        completedSessions: 0,
+        sessionLog: [],
+        dailyTotals: {},
+
+        start: () => {
+          const state = get()
+
+          if (state.isRunning) return
+
+          prepareAudio()
+
+          const block = state.block ?? {
+            id: id(),
+            mode: state.mode,
+            durationSeconds: durationFor(
+              state.mode,
+              state.settings
+            ),
+            startedAt: Date.now(),
+            taskId: state.aktivniUkolId,
+            title: state.aktivniPredmet?.trim() || null,
           }
-          // Délka běžícího bloku se změnou nastavení nemění — jen se
-          // klidový (nespuštěný) režim přepočítá na novou délku.
-          const remainingSeconds = state.isRunning
+
+          const remainingSeconds = state.block
             ? state.remainingSeconds
-            : durationFor(state.mode, settings)
-          return { settings, remainingSeconds }
-        })
-      },
+            : block.durationSeconds
 
-      // sessionLog se maže spolu s completedSessions — dřív mazal jen
-      // počítadlo, takže "Vynulovat" ukázalo 0 dokončených soustředění,
-      // zatímco "Podle předmětu" pod tím (i School Roomův Studijní cíl,
-      // co čte ze stejné historie) dál ukazovaly staré minuty, jako by
-      // se vůbec nic nevynulovalo.
-      resetStats: () => set({ completedSessions: 0, sessionLog: [] }),
+          const endsAt =
+            Date.now() + remainingSeconds * 1000
 
-      // Bez ořezu tady — ten by na každé stisknutí klávesy smazal i
-      // právě napsanou mezeru (viz komentář u complete() výš). Uloží se
-      // syrová hodnota, ořízne se až při skutečném zápisu do historie.
-      setAktivniPredmet: (predmet) => set({ aktivniPredmet: predmet, aktivniUkolId: null }),
-    }),
+          commit({
+            block,
+            remainingSeconds,
+            isRunning: true,
+            endsAt,
+          })
+
+          usePomodoroStatus.setState({ finished: null })
+          arm()
+
+          void Promise.resolve(
+            nahlasPomodoroCasovac(
+              endsAt,
+              state.mode === 'work' ? 'prace' : 'pauza',
+              block.id
+            )
+          ).catch(report)
+        },
+
+        pause: () => {
+          const state = get()
+
+          if (!state.isRunning || state.endsAt == null) {
+            return
+          }
+
+          if (state.endsAt <= Date.now()) {
+            get().complete()
+            return
+          }
+
+          commit({
+            isRunning: false,
+            endsAt: null,
+            remainingSeconds: Math.max(
+              0,
+              Math.ceil(
+                (state.endsAt - Date.now()) / 1000
+              )
+            ),
+          })
+
+          disarm()
+          cancel(state.block)
+        },
+
+        resetTimer: () => {
+          const state = get()
+
+          commit({
+            block: null,
+            isRunning: false,
+            endsAt: null,
+            remainingSeconds: durationFor(
+              state.mode,
+              state.settings
+            ),
+          })
+
+          disarm()
+          cancel(state.block)
+        },
+
+        switchMode: (mode, autoStart = false) => {
+          if (
+            !modes.includes(mode) ||
+            (mode === get().mode && !autoStart)
+          ) {
+            return
+          }
+
+          const state = get()
+
+          commit({
+            mode,
+            block: null,
+            isRunning: false,
+            endsAt: null,
+            remainingSeconds: durationFor(
+              mode,
+              state.settings
+            ),
+          })
+
+          disarm()
+          cancel(state.block)
+
+          if (autoStart) get().start()
+        },
+
+        complete: () => {
+          const state = get()
+          const block = state.block
+
+          if (
+            !state.isRunning ||
+            !block ||
+            state.endsAt == null ||
+            state.endsAt > Date.now()
+          ) {
+            return
+          }
+
+          const isWork = block.mode === 'work'
+          const exists = state.sessionLog.some(
+            item => item.id === block.id
+          )
+
+          const session: PomodoroSession | null =
+            isWork && !exists
+              ? {
+                  id: block.id,
+                  at: state.endsAt,
+                  minuty: block.durationSeconds / 60,
+                  predmet: block.title,
+                  ...(block.taskId
+                    ? { taskId: block.taskId }
+                    : {}),
+                }
+              : null
+
+          const position =
+            state.cyclePosition + (isWork ? 1 : 0)
+
+          const next: TimerMode = isWork
+            ? position >= state.settings.cycleLength
+              ? 'longBreak'
+              : 'shortBreak'
+            : 'work'
+
+          let dailyTotals = state.dailyTotals
+
+          if (session) {
+            const key = localDay(session.at)
+            const old = dailyTotals[key] ?? {
+              minuty: 0,
+              bloky: 0,
+            }
+
+            dailyTotals = {
+              ...dailyTotals,
+              [key]: {
+                minuty: old.minuty + session.minuty,
+                bloky: old.bloky + 1,
+              },
+            }
+          }
+
+          commit({
+            mode: next,
+            block: null,
+            isRunning: false,
+            endsAt: null,
+            remainingSeconds: durationFor(
+              next,
+              state.settings
+            ),
+            cyclePosition:
+              isWork &&
+              position >= state.settings.cycleLength
+                ? 0
+                : position,
+            dailyTotals,
+            completedSessions:
+              state.completedSessions + (session ? 1 : 0),
+            sessionLog: session
+              ? [...state.sessionLog, session].slice(
+                  -MAX_SESSION_LOG
+                )
+              : state.sessionLog,
+          })
+
+          disarm()
+          cancel(block)
+
+          usePomodoroStatus.setState({
+            finished: { mode: block.mode, session },
+          })
+
+          if (session) {
+            try {
+              useGamificationStore
+                .getState()
+                .recordAction(
+                  'pomodoro',
+                  Math.max(
+                    1,
+                    Math.round(session.minuty * 0.6)
+                  )
+                )
+            } catch {
+              report(
+                new Error(
+                  'Blok je uložený, ale odměnu se nepodařilo zapsat.'
+                )
+              )
+            }
+          }
+
+          // Po dlouhém odložení dokončíme pouze
+          // skutečně spuštěný blok.
+          if (
+            Date.now() - sessionTime(state) <
+            60000
+          ) {
+            if (state.settings.soundEnabled) {
+              chime()
+              navigator.vibrate?.([150, 80, 150])
+            }
+
+            void showAppNotification(
+              isWork
+                ? 'Soustředění dokončeno'
+                : 'Pauza skončila',
+              isWork
+                ? 'Hotovo. Dej si chvíli pauzu.'
+                : 'Můžeš začít další blok.',
+              'pomodoro'
+            )
+          }
+
+          if (
+            state.settings.autoStartNextPhase &&
+            Date.now() - sessionTime(state) < 60000
+          ) {
+            get().start()
+          }
+        },
+
+        updateSettings: patch => {
+          const state = get()
+          const settings = normalizeSettings({
+            ...state.settings,
+            ...patch,
+          })
+
+          commit({
+            settings,
+            remainingSeconds: state.block
+              ? state.remainingSeconds
+              : durationFor(state.mode, settings),
+          })
+        },
+
+        resetStats: () =>
+          commit({
+            completedSessions: 0,
+            sessionLog: [],
+            dailyTotals: {},
+          }),
+
+        setAktivniPredmet: title => {
+          if (!get().block) {
+            commit({
+              aktivniPredmet:
+                title?.slice(0, 300) ?? null,
+              aktivniUkolId: null,
+            })
+          }
+        },
+
+        setTask: (taskId, title) => {
+          if (get().block) return false
+
+          commit({
+            aktivniPredmet:
+              title?.slice(0, 300) ?? null,
+            aktivniUkolId: taskId,
+          })
+
+          return true
+        },
+      }
+    },
     {
       name: 'schoolbuddy-pomodoro-storage',
       storage: createJSONStorage(() => secureStorage),
 
-      // Uložený stav ze starší verze žádné nastavení (a teď ani časovač) nemá
+      partialize: state => ({
+        settings: state.settings,
+        mode: state.mode,
+        isRunning: state.isRunning,
+        endsAt: state.endsAt,
+        remainingSeconds: state.remainingSeconds,
+        cyclePosition: state.cyclePosition,
+        block: state.block,
+        aktivniPredmet: state.aktivniPredmet,
+        aktivniUkolId: state.aktivniUkolId,
+        completedSessions: state.completedSessions,
+        sessionLog: state.sessionLog,
+        dailyTotals: state.dailyTotals,
+      }),
+
       merge: (persisted, current) => {
-        const saved = persisted as Partial<PomodoroState> | undefined
-        // Poškozený/starý záznam historie se tiše vyřadí, ne aby shodil
-        // celý seznam — stejná odolnost jako u ostatních storů.
-        const sessionLog = Array.isArray(saved?.sessionLog)
-          ? saved!.sessionLog.filter(
-              (s): s is PomodoroSession =>
-                !!s &&
-                typeof s.at === 'number' &&
-                typeof s.minuty === 'number' &&
-                (s.predmet === null || typeof s.predmet === 'string')
+        const saved = object(persisted)
+          ? persisted
+          : {}
+
+        const settings = normalizeSettings(
+          object(saved.settings) ? saved.settings : {}
+        )
+
+        const mode = modes.includes(
+          saved.mode as TimerMode
+        )
+          ? (saved.mode as TimerMode)
+          : 'work'
+
+        const log: PomodoroSession[] =
+          Array.isArray(saved.sessionLog)
+            ? saved.sessionLog
+                .filter(object)
+                .filter(
+                  item =>
+                    finite(item.at) &&
+                    finite(item.minuty) &&
+                    item.minuty >= 1 &&
+                    item.minuty <= 90
+                )
+                .map(item => ({
+                  at: item.at as number,
+                  minuty: item.minuty as number,
+                  predmet:
+                    typeof item.predmet === 'string'
+                      ? item.predmet.slice(0, 300)
+                      : null,
+                  ...(typeof item.id === 'string'
+                    ? { id: item.id }
+                    : {}),
+                  ...(typeof item.taskId === 'string'
+                    ? { taskId: item.taskId }
+                    : {}),
+                }))
+                .slice(-MAX_SESSION_LOG)
+            : []
+
+        const dailyTotals = totalsFromLog(log)
+
+        if (object(saved.dailyTotals)) {
+          for (const [key, value] of Object.entries(
+            saved.dailyTotals
+          )) {
+            if (
+              /^\d{4}-\d{2}-\d{2}$/.test(key) &&
+              object(value) &&
+              finite(value.minuty) &&
+              finite(value.bloky)
+            ) {
+              dailyTotals[key] = {
+                minuty: value.minuty,
+                bloky: Math.floor(value.bloky),
+              }
+            }
+          }
+        }
+
+        const title =
+          typeof saved.aktivniPredmet === 'string'
+            ? saved.aktivniPredmet
+            : null
+
+        const taskId =
+          typeof saved.aktivniUkolId === 'string'
+            ? saved.aktivniUkolId
+            : null
+
+        const raw = object(saved.block)
+          ? saved.block
+          : null
+
+        let block: FocusBlock | null =
+          raw &&
+          typeof raw.id === 'string' &&
+          raw.mode === mode &&
+          finite(raw.durationSeconds) &&
+          raw.durationSeconds >= 60 &&
+          raw.durationSeconds <= 5400 &&
+          finite(raw.startedAt)
+            ? {
+                id: raw.id,
+                mode,
+                durationSeconds: raw.durationSeconds,
+                startedAt: raw.startedAt,
+                title:
+                  typeof raw.title === 'string'
+                    ? raw.title
+                    : null,
+                taskId:
+                  typeof raw.taskId === 'string'
+                    ? raw.taskId
+                    : null,
+              }
+            : null
+
+        let remainingSeconds = finite(
+          saved.remainingSeconds
+        )
+          ? Math.min(
+              saved.remainingSeconds,
+              block?.durationSeconds ??
+                durationFor(mode, settings)
             )
-          : []
+          : durationFor(mode, settings)
+
+        const endsAt =
+          finite(saved.endsAt) &&
+          saved.endsAt <= Date.now() + 5400000
+            ? saved.endsAt
+            : null
+
+        const isRunning =
+          saved.isRunning === true && endsAt !== null
+
+        if (
+          !block &&
+          (isRunning ||
+            remainingSeconds <
+              durationFor(mode, settings))
+        ) {
+          block = {
+            id: id(),
+            mode,
+            durationSeconds: durationFor(
+              mode,
+              settings
+            ),
+            startedAt: Date.now(),
+            title,
+            taskId,
+          }
+        }
+
+        if (!block) {
+          remainingSeconds = durationFor(mode, settings)
+        }
+
         return {
           ...current,
-          ...saved,
-          settings: { ...DEFAULT_SETTINGS, ...(saved?.settings ?? {}) },
-          sessionLog,
-          aktivniPredmet: typeof saved?.aktivniPredmet === 'string' ? saved.aktivniPredmet : null,
-          aktivniUkolId: typeof saved?.aktivniUkolId === 'string' ? saved.aktivniUkolId : null,
+          settings,
+          mode,
+          block,
+          remainingSeconds,
+          isRunning,
+          endsAt: isRunning ? endsAt : null,
+          cyclePosition: finite(saved.cyclePosition)
+            ? Math.min(
+                Math.floor(saved.cyclePosition),
+                settings.cycleLength! - 1
+              )
+            : 0,
+          aktivniPredmet: title,
+          aktivniUkolId: taskId,
+          completedSessions: finite(
+            saved.completedSessions
+          )
+            ? Math.max(
+                Math.floor(saved.completedSessions),
+                log.length
+              )
+            : log.length,
+          sessionLog: log,
+          dailyTotals,
         }
       },
 
-      // Doběhne-li blok, zatímco appka/PWA byla zavřená, modulový
-      // completionTimer to nezachytí — vznikl znovu až teď, s tímhle
-      // otevřením Pomodora. Dorovnáme to tady: pokud reálný čas už
-      // endsAt překročil, blok se dokončí hned (uživatel na něj reálně
-      // čekal celý čas, i se zavřenou appkou — žádné obcházení odměny,
-      // jen pozdější zápis). Pokud ještě běží, timer se jen znovu
-      // natáhne na zbytek, ať notifikace po zbytek téhle relace funguje.
-      onRehydrateStorage: () => (state) => {
-        if (!state || !state.isRunning || state.endsAt === null) return
-        const remainingMs = state.endsAt - Date.now()
-        if (remainingMs <= 0) {
-          queueMicrotask(() => usePomodoroStore.getState().complete())
-        } else {
-          armTimer(Math.ceil(remainingMs / 1000))
-        }
+      onRehydrateStorage: () => state => {
+        if (state?.isRunning) queueMicrotask(arm)
       },
     }
   )
 )
 
-// ==========================================
-// Launch deep-link z Planeru ("▶ Soustředit se" u konkrétního úkolu) —
-// appka tu cíleně porušuje svou vlastní "miniaplikace si nesmí dovnitř
-// sahat" izolaci stejným úzkým, zdokumentovaným způsobem jako
-// Kalendář→Rozvrh (viz jejich vlastní komentáře). Planerovo tlačítko
-// potřebuje umět Pomodoru předat, nad kterým úkolem se běžící
-// soustředění zapisuje, dřív než appka přepne aktivní miniaplikaci
-// (useAppStore's setActiveAppId) — jde o ten samý persistovaný
-// aktivniPredmet, co Pomodoro i jinak nabízí upravit ručně
-// (Pomodoro.tsx), tahle funkce jen zvenčí nastaví tutéž hodnotu.
-// ==========================================
-export const nastavAktivniPredmetZPlanovace = (predmet: string): void => {
-  usePomodoroStore.getState().setAktivniPredmet(predmet)
+function sessionTime(state: PomodoroState) {
+  return state.endsAt ?? Date.now()
 }
 
-/** Spustí soustředění; rozpracovaný blok jiného úkolu nepřepíše. */
-export const spustitSoustredeniUkolu = (id: string, title: string): boolean => {
-  const state = usePomodoroStore.getState()
-  const partial = state.isRunning || state.remainingSeconds < durationFor(state.mode, state.settings)
-  if (partial && state.aktivniUkolId !== id) return false
-  usePomodoroStore.setState({ aktivniPredmet: title, aktivniUkolId: id })
-  if (state.mode !== 'work') usePomodoroStore.getState().switchMode('work')
-  if (!usePomodoroStore.getState().isRunning) usePomodoroStore.getState().start()
-  return true
-}
-export const useTaskFocusMinutes = (id: string | null): number => {
-  const log = usePomodoroStore(state => state.sessionLog)
-  return id ? log.reduce((sum, item) => item.taskId === id ? sum + item.minuty : sum, 0) : 0
-}
+export const getPomodoroState = () =>
+  usePomodoroStore.getState()
 
-export const usePomodoro = () => {
-  const {
-    completedSessions,
-    sessionLog,
-    aktivniPredmet,
-    settings,
-    mode,
-    isRunning,
-    endsAt,
-    remainingSeconds,
-    cyclePosition,
-    start,
-    pause,
-    resetTimer,
-    switchMode,
-    updateSettings,
-    resetStats,
-    setAktivniPredmet,
-  } = usePomodoroStore()
+export const nastavAktivniPredmetZPlanovace = (
+  title: string
+) => getPomodoroState().setAktivniPredmet(title)
 
-  // Jen pro přerendrování zobrazeného odpočtu — samotné dokončení řeší
-  // modulový completionTimer výš, nezávisle na tom, jestli je tahle
-  // komponenta vůbec připojená.
-  const [, forceTick] = useState(0)
+export const spustitSoustredeniUkolu = (
+  taskId: string,
+  title: string
+): boolean => {
+  const state = getPomodoroState()
 
-  useEffect(() => {
-    if (!isRunning) return
-    const id = window.setInterval(() => forceTick((t) => t + 1), 250)
-    return () => window.clearInterval(id)
-  }, [isRunning])
-
-  // Návrat do aplikace (přepnutí záložky, probuzení telefonu) čas hned
-  // srovná, aniž by se čekalo na další tik.
-  useEffect(() => {
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') forceTick((t) => t + 1)
-    }
-    document.addEventListener('visibilitychange', onVisible)
-    window.addEventListener('focus', onVisible)
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible)
-      window.removeEventListener('focus', onVisible)
-    }
-  }, [])
-
-  const timeLeft =
-    isRunning && endsAt !== null ? Math.max(0, Math.round((endsAt - Date.now()) / 1000)) : remainingSeconds
-
-  const toggleTimer = () => {
-    if (isRunning) pause()
-    else start()
+  if (
+    state.block &&
+    (state.block.taskId !== taskId ||
+      state.mode !== 'work')
+  ) {
+    return false
   }
 
-  const totalSeconds = durationFor(mode, settings)
-  const progress = totalSeconds === 0 ? 0 : 1 - timeLeft / totalSeconds
+  if (!state.block) {
+    state.setTask(taskId, title)
+    state.switchMode('work')
+  }
+
+  getPomodoroState().start()
+
+  usePomodoroStatus.setState({
+    returnToPlanner: true,
+  })
+
+  return true
+}
+
+export const useTaskFocusMinutes = (
+  taskId: string | null
+) =>
+  usePomodoroStore(state =>
+    taskId
+      ? state.sessionLog.reduce(
+          (sum, item) =>
+            sum +
+            (item.taskId === taskId ? item.minuty : 0),
+          0
+        )
+      : 0
+  )
+
+export const usePomodoro = () => {
+  const state = usePomodoroStore()
+  const [, tick] = useState(0)
+
+  useEffect(() => {
+    const update = () => {
+      if (document.hidden) return
+
+      try {
+        getPomodoroState().complete()
+      } catch (error) {
+        report(error)
+      }
+
+      tick(v => v + 1)
+    }
+
+    const midnight = new Date()
+    midnight.setHours(24, 0, 0, 100)
+
+    const clock = state.isRunning
+      ? window.setInterval(update, 1000)
+      : window.setTimeout(
+          update,
+          midnight.getTime() - Date.now()
+        )
+
+    document.addEventListener(
+      'visibilitychange',
+      update
+    )
+    window.addEventListener('focus', update)
+
+    return () => {
+      clearInterval(clock)
+      document.removeEventListener(
+        'visibilitychange',
+        update
+      )
+      window.removeEventListener('focus', update)
+    }
+  }, [state.isRunning])
+
+  const timeLeft =
+    state.isRunning && state.endsAt != null
+      ? Math.max(
+          0,
+          Math.ceil(
+            (state.endsAt - Date.now()) / 1000
+          )
+        )
+      : state.remainingSeconds
+
+  const duration =
+    state.block?.durationSeconds ??
+    durationFor(state.mode, state.settings)
 
   return {
-    mode,
+    ...state,
     timeLeft,
-    isRunning,
-    completedSessions,
-    sessionLog,
-    aktivniPredmet,
-    setAktivniPredmet,
-    settings,
-    cyclePosition,
-    progress,
-    switchMode: (m: TimerMode) => switchMode(m),
-    toggleTimer,
-    resetTimer,
-    updateSettings,
-    resetStats,
-    xpPerBlock: xpForWorkBlock(settings.work),
+    progress: Math.min(
+      1,
+      Math.max(0, 1 - timeLeft / duration)
+    ),
+    toggleTimer: () =>
+      state.isRunning ? state.pause() : state.start(),
+    xpPerBlock: Math.max(
+      1,
+      Math.round(
+        (state.block?.durationSeconds ??
+          state.settings.work * 60) /
+          60 *
+          0.6
+      )
+    ),
     notificationsEnabled: notificationsEnabled(),
   }
 }
-export const getPomodoroState = () => usePomodoroStore.getState()
-
