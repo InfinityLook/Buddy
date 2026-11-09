@@ -1,19 +1,13 @@
 export type TimerMode = 'work' | 'shortBreak' | 'longBreak'
 
 export interface TimerSettings {
-  // Délky v minutách — tak je uživatel zadává i vidí
   work: number
   shortBreak: number
   longBreak: number
-  // Po kolika soustředěních přijde dlouhá pauza
   cycleLength: number
   soundEnabled: boolean
-  // Další fáze (pauza po soustředění, další soustředění po pauze) se
-  // spustí sama, bez čekání na Start. Vypnuto ve výchozím stavu — appka
-  // dřív měla stejnou plnou logiku (switchMode's autoStart parametr)
-  // hotovou, jen ji nikdy nic v appce nezavolalo s true, takže vlastně
-  // nikdy nešla zapnout.
   autoStartNextPhase: boolean
+  dailyGoalMinutes?: number
 }
 
 export const DEFAULT_SETTINGS: TimerSettings = {
@@ -23,10 +17,9 @@ export const DEFAULT_SETTINGS: TimerSettings = {
   cycleLength: 4,
   soundEnabled: true,
   autoStartNextPhase: false,
+  dailyGoalMinutes: 100,
 }
 
-// Meze pro nastavení. Bez horní hranice by šlo zadat nesmysl, bez dolní
-// by se z Pomodora stal klikací automat na XP.
 export const LIMITS = {
   work: { min: 5, max: 90 },
   shortBreak: { min: 1, max: 30 },
@@ -41,97 +34,162 @@ export const MODE_LABELS: Record<TimerMode, string> = {
 }
 
 export const MODE_COLORS: Record<TimerMode, string> = {
-  work: '#f59e0b',
-  shortBreak: '#10b981',
-  longBreak: '#3b82f6',
+  work: 'var(--buddy-accent)',
+  shortBreak: 'var(--buddy-success)',
+  longBreak: 'var(--buddy-accent-2)',
 }
 
-export const clamp = (value: number, min: number, max: number): number =>
-  Math.min(max, Math.max(min, Math.round(value) || min))
+export const clamp = (
+  value: number,
+  min: number,
+  max: number
+) => Math.min(max, Math.max(min, Math.round(value) || min))
 
-// Délka režimu v sekundách podle nastavení
-export const durationFor = (mode: TimerMode, settings: TimerSettings): number =>
-  settings[mode] * 60
+export const durationFor = (
+  mode: TimerMode,
+  settings: TimerSettings
+) => settings[mode] * 60
 
-/** Jestli má kliknutí na záložku režimu, co je už aktivní, zůstat
- *  no-op — jinak by tiše vynulovalo běžící (nebo pozastavený) odpočet
- *  zpátky na plnou délku a zastavilo ho, bez varování. Na vynulování
- *  délky v AKTUÁLNÍM režimu je vyhrazené tlačítko RESET. Netýká se
- *  autoStart volání z usePomodoro.ts's complete() — to si vždycky žádá
- *  JINÝ režim, než ve kterém appka právě je, proto "!autoStart".
- *
- *  Čistá funkce tady v types.ts, ne inline v usePomodoro.ts — ten
- *  soubor importuje core/utils/notify.ts, co přes core/utils/
- *  registerSW.ts sahá na Vite-only virtual:pwa-register modul,
- *  nerozpoznatelný pro Vitestovu vlastní instanci Vite (stejná
- *  "testovatelnost souboru je vlastnost celého importního grafu"
- *  past, jakou CLAUDE.md dokumentuje pro Writer's Room/Goal Tracker/
- *  Finance) — čistá logika žije tady, notify-volající lepidlo v
- *  usePomodoro.ts si ji odsud jen půjčuje. */
 export const jeSwitchModeNoOp = (
-  cilovyMod: TimerMode,
-  aktualniMod: TimerMode,
+  target: TimerMode,
+  current: TimerMode,
   autoStart: boolean
-): boolean => cilovyMod === aktualniMod && !autoStart
-
-// ==========================================
-// Historie dokončených soustředění — "Pomodoro podle předmětu" a
-// School Roomův "Studijní cíl" obojí stojí na téhle jedné historii,
-// ne na dvou různých počítadlech. Předmět je volný text, nepovinný a
-// nevázaný na žádnou jinou appku (Známky apod.) — Pomodoro zůstává
-// samostatná miniaplikace jako každá jiná, ne appka svázaná s tou
-// druhou.
-// ==========================================
+) => target === current && !autoStart
 
 export interface PomodoroSession {
+  id?: string
   taskId?: string | null
-  /** Absolutní čas dokončení (Date.now()) — stejný "časové razítko, ne
-   *  countdown" přístup jako endsAt. */
   at: number
   minuty: number
   predmet: string | null
 }
 
-// Kolik záznamů historie appka drží nejvýš — dost na smysluplný přehled
-// za týdny zpátky, ne neomezený růst uloženého stavu.
+export interface FocusBlock {
+  id: string
+  mode: TimerMode
+  durationSeconds: number
+  startedAt: number
+  taskId: string | null
+  title: string | null
+}
+
+export interface DailyTotal {
+  minuty: number
+  bloky: number
+}
+
+export type DailyTotals = Record<string, DailyTotal>
+
 export const MAX_SESSION_LOG = 300
+export const NEJVICE_NAPOSLEDY_POUZITYCH_PREDMETU = 20
+
+export const localDay = (at = Date.now()) => {
+  const d = new Date(at)
+
+  return `${d.getFullYear()}-${String(
+    d.getMonth() + 1
+  ).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+export const normalizeSettings = (
+  input: Partial<TimerSettings> = {}
+): TimerSettings => {
+  const result = { ...DEFAULT_SETTINGS }
+
+  for (const key of [
+    'work',
+    'shortBreak',
+    'longBreak',
+    'cycleLength',
+  ] as const) {
+    const value = input[key]
+
+    result[key] =
+      typeof value === 'number' && Number.isFinite(value)
+        ? clamp(value, LIMITS[key].min, LIMITS[key].max)
+        : DEFAULT_SETTINGS[key]
+  }
+
+  result.soundEnabled =
+    typeof input.soundEnabled === 'boolean'
+      ? input.soundEnabled
+      : DEFAULT_SETTINGS.soundEnabled
+
+  result.autoStartNextPhase =
+    typeof input.autoStartNextPhase === 'boolean'
+      ? input.autoStartNextPhase
+      : false
+
+  result.dailyGoalMinutes =
+    typeof input.dailyGoalMinutes === 'number' &&
+    Number.isFinite(input.dailyGoalMinutes)
+      ? clamp(input.dailyGoalMinutes, 5, 720)
+      : 100
+
+  return result
+}
 
 export interface SouhrnPredmetu {
   predmet: string | null
   minuty: number
 }
 
-/** Součet minut podle předmětu, seřazený od nejvíc odstudovaného —
- *  čistá funkce nad hotovou historií, žádný store, testovatelná bez
- *  komponenty. */
-export const spocitejSouhrnPodlePredmetu = (log: PomodoroSession[]): SouhrnPredmetu[] => {
-  const mapa = new Map<string | null, number>()
-  for (const s of log) {
-    mapa.set(s.predmet, (mapa.get(s.predmet) ?? 0) + s.minuty)
+export const spocitejSouhrnPodlePredmetu = (
+  log: PomodoroSession[]
+): SouhrnPredmetu[] => {
+  const map = new Map<string | null, number>()
+
+  for (const item of log) {
+    map.set(
+      item.predmet,
+      (map.get(item.predmet) ?? 0) + item.minuty
+    )
   }
-  return [...mapa.entries()]
+
+  return [...map]
     .map(([predmet, minuty]) => ({ predmet, minuty }))
     .sort((a, b) => b.minuty - a.minuty)
 }
 
-// Kolik nejvýš naposledy použitých předmětů appka nabídne — dost na
-// rychlý výběr, ne že by datalist narostl do stovek položek u
-// někoho, kdo pokaždé napíše jiný text.
-export const NEJVICE_NAPOSLEDY_POUZITYCH_PREDMETU = 20
+export const ziskejNaposledyPouziteNazvyPredmetu = (
+  log: PomodoroSession[]
+): string[] => {
+  const seen = new Set<string>()
+  const result: string[] = []
 
-/** Unikátní předměty z historie, od nejnověji použitého — datalist pro
- *  rychlý opakovaný výběr (viz input v Pomodoro.tsx), ať nejde omylem
- *  napsat ten samý předmět dvakrát jinak ("Matematika" vs "matematika")
- *  a rozdělit tak jeho minuty na dva různé řádky v "Podle předmětu". */
-export const ziskejNaposledyPouziteNazvyPredmetu = (log: PomodoroSession[]): string[] => {
-  const videno = new Set<string>()
-  const vysledek: string[] = []
   for (let i = log.length - 1; i >= 0; i--) {
-    const predmet = log[i].predmet
-    if (!predmet || videno.has(predmet)) continue
-    videno.add(predmet)
-    vysledek.push(predmet)
-    if (vysledek.length >= NEJVICE_NAPOSLEDY_POUZITYCH_PREDMETU) break
+    const value = log[i].predmet
+
+    if (value && !seen.has(value)) {
+      seen.add(value)
+      result.push(value)
+    }
+
+    if (
+      result.length >=
+      NEJVICE_NAPOSLEDY_POUZITYCH_PREDMETU
+    ) {
+      break
+    }
   }
-  return vysledek
+
+  return result
+}
+
+export const totalsFromLog = (
+  log: PomodoroSession[]
+): DailyTotals => {
+  const result: DailyTotals = {}
+
+  for (const item of log) {
+    const key = localDay(item.at)
+    const old = result[key] ?? { minuty: 0, bloky: 0 }
+
+    result[key] = {
+      minuty: old.minuty + item.minuty,
+      bloky: old.bloky + 1,
+    }
+  }
+
+  return result
 }
