@@ -61,6 +61,7 @@ export const BACKUP_STORES: BackupStore[] = [
   // ze starší zálohy by ho vrátila zpátky a uživatel by o rozdíl přišel,
   // takže se sice zálohují (soubor má být věrný snímek), ale nikdy se
   // nezapisují zpět.
+  { key: 'buddy-quick-note-draft-v1', storage: 'secure', label: 'Rozepsaná poznámka' },
   { key: 'schoolbuddy-gamification-storage', storage: 'secure', label: 'XP a odznaky', restorable: false },
   // Krok 14e — jen datum posledního odeslaného upozornění na konec
   // série, žádné samo o sobě vydřené XP ani jinak citlivá data, bezpečné
