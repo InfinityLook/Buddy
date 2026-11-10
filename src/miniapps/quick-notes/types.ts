@@ -1,13 +1,8 @@
 export type NoteCategory = 'Škola' | 'Osobní' | 'Nápady'
-
 export const NOTE_CATEGORIES: NoteCategory[] = ['Škola', 'Osobní', 'Nápady']
-
 export const ALL_NOTES = 'Vše'
-
 export type NoteSortMode = 'newest' | 'oldest' | 'updated' | 'alphabetical'
-
 export const NOTE_SORT_MODES: NoteSortMode[] = ['newest', 'oldest', 'updated', 'alphabetical']
-
 export const SORT_LABELS: Record<NoteSortMode, string> = {
   newest: 'Nejnovější',
   oldest: 'Nejstarší',
@@ -20,30 +15,53 @@ export interface Note {
   title: string
   content: string
   category: NoteCategory
-  // Datum vzniku jako zobrazovaný řetězec ("16. 8."). Zůstává řetězcem
-  // kvůli poznámkám uloženým dřív, než přibylo cokoli dalšího — a na
-  // řazení je stejně nepoužitelný (bez roku, řetězcové porovnání by dalo
-  // "16. 8." před "9. 8."). Skutečné pořadí drží pole samo (addNote nové
-  // poznámky vkládá na začátek) a updatedAtTs níž.
   createdAt: string
-  // Doplní se až při první úpravě, ať je poznat, že se text změnil
   updatedAt?: string | null
-  // Připnutá poznámka se v seznamu drží vždycky nahoře, bez ohledu na
-  // zvolené řazení. Optional — u poznámek uložených před touhle změnou
-  // chybí, což se chová jako "nepřipnuto".
   pinned?: boolean
-  // Skutečný časový otisk poslední úpravy pro řazení "Naposledy
-  // upravené" — na rozdíl od updatedAt výš (jen zobrazovaný text).
-  // null u nikdy needitované poznámky; useQuickNotes.ts pak řadí podle
-  // pozice v poli místo podle tohohle pole.
   updatedAtTs?: number | null
+  createdAtTs?: number | null
+  html?: string
+  folderId?: string
+  tags?: string[]
+  archivedAt?: number | null
+  deletedAt?: number | null
+  revision?: number
 }
 
-// Nový uživatel začíná s prázdným seznamem — viz DEMO_NOTE_IDS níž.
-export const INITIAL_NOTES: Note[] = []
+export interface Notebook {
+  id: string
+  name: string
+}
 
-// Ukázkové poznámky ("Projekt do Matematiky", "Koupit učebnici") vypadaly
-// jako uživatelova data, přitom mu nepatřily. Poznáme je podle id
-// i názvu zároveň, ať se nesmaže vlastní poznámka se stejným id.
+export interface NoteDraft {
+  id: string
+  baseRevision: number | null
+  title: string
+  html: string
+  category: NoteCategory
+  folderId: string
+  tagsText: string
+}
+
+export const INITIAL_NOTES: Note[] = []
 export const DEMO_NOTE_IDS = ['1', '2']
 export const DEMO_NOTE_TITLES = ['Projekt do Matematiky', 'Koupit učebnici']
+
+export const DEFAULT_NOTEBOOKS: Notebook[] = [
+  { id: 'school', name: 'Škola' },
+  { id: 'personal', name: 'Osobní' },
+  { id: 'ideas', name: 'Nápady' },
+]
+
+export const folderFor = (category: NoteCategory) =>
+  category === 'Škola' ? 'school' : category === 'Nápady' ? 'ideas' : 'personal'
+
+export const noteId = () =>
+  globalThis.crypto?.randomUUID?.() ??
+  `${Date.now()}-${Math.random().toString(36).slice(2)}`
+
+export const MAX_NOTE_HTML = 100000
+
+export type NoteResult =
+  | { ok: true; note: Note }
+  | { ok: false; error: string }
