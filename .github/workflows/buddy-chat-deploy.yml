@@ -34,7 +34,7 @@ jobs:
           persist-credentials: true
 
       - name: Stáhnout výstup pilotního běhu
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: buddy-chat-pilot-${{ inputs.run_id }}
           path: /tmp/pilot-output
