@@ -1,65 +1,30 @@
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
-import { secureStorage } from '@/core/utils/secureStorage'
-import { DocumentState } from './types'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { validateDocumentEditorData } from '@/core/utils/documentEditorValidation'
+import { secureStorage } from '@/core/utils/secureStorage'
+import { sanitizeHtml } from './importContent'
+import type { DocumentState } from './types'
 
-// XP jen za první uložení dokumentu — přepsat už uložený text
-// není nová práce a nemá se odměňovat pokaždé znovu
-const XP_PER_NEW_DOCUMENT = 15
-
-// Kolik čistého textu musí dokument mít, aby se sám uložil. Bez téhle
-// hranice by automatické ukládání zakládalo prázdné dokumenty pokaždé,
-// co uživatel editor jen otevře — a připisovalo za ně XP.
-const MIN_AUTOSAVE_CHARS = 15
-
+const STORAGE_KEY = 'schoolbuddy-document-editor-storage'
 const DEFAULT_TITLE = 'Nový dokument'
 
-// Exportovaná i pro StatusBar.tsx — ten měl dřív vlastní, neúplnou
-// kopii (jen &nbsp;, ne &amp;/&lt;/&gt;), takže dokument s "R&D" (co
-// contentEditable ukládá jako "R&amp;D") počítal počet znaků/slov
-// nafouknutý o délku neodkódovaných entit místo skutečného textu.
-export const toPlainText = (html: string): string =>
-  html
-    .replace(/<(br|\/p|\/div|\/h[1-6]|\/li)\s*\/?>/gi, '\n')
-    .replace(/<[^>]*>/g, '')
-    .replace(/&nbsp;/g, ' ')
-    .replace(/&amp;/g, '&')
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-
-const plainTextLength = (html: string): number => toPlainText(html).trim().length
-
-// Dokud si uživatel název nezměnil, odvodíme ho z prvního řádku textu.
-// Bez toho se seznam plnil dokumenty pojmenovanými shodně "Nový dokument"
-// a nedaly se od sebe rozeznat.
-const deriveTitle = (title: string, content: string): string => {
-  if (title.trim() !== DEFAULT_TITLE) return title
-
-  const firstLine = toPlainText(content)
-    .split('\n')
-    .map((line) => line.trim())
-    .find((line) => line.length > 0)
-
-  if (!firstLine) return title
-  return firstLine.length > 60 ? `${firstLine.slice(0, 60).trimEnd()}…` : firstLine
+function newDocumentId(): string {
+  return `doc-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`
 }
 
-interface DocumentStore {
+interface EditorState {
   documents: DocumentState[]
   activeDocId: string | null
   currentTitle: string
   currentContent: string
   isSaved: boolean
-  // Zvýší se při každém přepnutí/resetu dokumentu (nový/otevřený/importovaný),
-  // aby EditorPaper poznal, kdy má přepsat obsah contentEditable divu
   revision: number
+}
 
+interface DocumentStore extends EditorState {
   setTitle: (title: string) => void
   setContent: (content: string) => void
   saveCurrentDocument: () => void
-  // Uloží rozdělanou práci, ale jen když stojí za uložení
   autosaveCurrent: () => void
   createNewDocument: () => void
   loadDocument: (id: string) => void
@@ -67,130 +32,205 @@ interface DocumentStore {
   importDocument: (title: string, content: string) => void
 }
 
-export const useDocumentStore = create<DocumentStore>()(
-  persist(
-    (set, get) => ({
-      documents: [],
-      activeDocId: null,
-      currentTitle: DEFAULT_TITLE,
-      currentContent: '',
+function emptyDocument(revision: number) {
+  return {
+    activeDocId: null,
+    currentTitle: DEFAULT_TITLE,
+    currentContent: '',
+    isSaved: true,
+    revision,
+  }
+}
+
+export function toPlainText(html: string): string {
+  const template = document.createElement('template')
+  template.innerHTML = html
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(?:p|div|h[1-6]|li|tr|blockquote|pre)>/gi, '$&\n')
+
+  return (template.content.textContent ?? '').replace(/\u00a0/g, ' ')
+}
+
+function titleFor(title: string, content: string): string {
+  const trimmed = title.trim()
+  if (trimmed && trimmed !== DEFAULT_TITLE) return trimmed
+
+  return toPlainText(content)
+    .split('\n')
+    .find(line => line.trim())
+    ?.trim()
+    .slice(0, 80) || DEFAULT_TITLE
+}
+
+let lastStoredValue: string | null | undefined
+
+function readInitialState(): EditorState {
+  const fallback = { documents: [], ...emptyDocument(0) }
+
+  try {
+    lastStoredValue = localStorage.getItem(STORAGE_KEY)
+    const raw = secureStorage.getItem(STORAGE_KEY)
+    if (typeof raw !== 'string' || !raw) return fallback
+
+    const result = validateDocumentEditorData(JSON.parse(raw).state)
+    return result.success ? result.data : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function snapshot(state: EditorState): EditorState {
+  return {
+    documents: state.documents,
+    activeDocId: state.activeDocId,
+    currentTitle: state.currentTitle,
+    currentContent: state.currentContent,
+    isSaved: state.isSaved,
+    revision: state.revision,
+  }
+}
+
+function savedDocument(state: EditorState, force = false) {
+  if (!force && state.isSaved) return { state, reward: false }
+
+  const content = sanitizeHtml(state.currentContent)
+  const title = titleFor(state.currentTitle, content)
+  const text = toPlainText(content).trim()
+
+  if (
+    !force &&
+    !state.activeDocId &&
+    !text &&
+    !content.includes('<img') &&
+    state.currentTitle.trim() === DEFAULT_TITLE
+  ) {
+    return { state: { ...state, isSaved: true }, reward: false }
+  }
+
+  const exists = state.documents.some(doc => doc.id === state.activeDocId)
+  const id = exists ? state.activeDocId! : newDocumentId()
+  const doc = { id, title, content, lastModified: new Date().toISOString() }
+
+  return {
+    state: {
+      ...state,
+      documents: exists
+        ? state.documents.map(item => item.id === id ? doc : item)
+        : [doc, ...state.documents],
+      activeDocId: id,
+      currentTitle: title,
+      currentContent: content,
       isSaved: true,
-      revision: 0,
+    },
+    reward: !exists && text.length >= 15,
+  }
+}
 
-      setTitle: (title) => set({ currentTitle: title, isSaved: false }),
-      setContent: (content) => set({ currentContent: content, isSaved: false }),
-
-      saveCurrentDocument: () => {
-        const { activeDocId, currentContent, documents } = get()
-        const now = new Date().toISOString()
-        const currentTitle = deriveTitle(get().currentTitle, currentContent)
-
-        if (activeDocId) {
-          set({
-            documents: documents.map((doc) =>
-              doc.id === activeDocId ? { ...doc, title: currentTitle, content: currentContent, lastModified: now } : doc
-            ),
-            currentTitle,
-            isSaved: true,
-          })
-        } else {
-          const newId = `doc-${Date.now()}`
-          set({
-            activeDocId: newId,
-            documents: [
-              { id: newId, title: currentTitle, content: currentContent, lastModified: now },
-              ...documents,
-            ],
-            currentTitle,
-            isSaved: true,
-          })
-          useGamificationStore.getState().recordAction('document', XP_PER_NEW_DOCUMENT)
-        }
-      },
-
-      autosaveCurrent: () => {
-        const { isSaved, activeDocId, currentContent } = get()
-        if (isSaved) return
-        // Nový dokument zakládáme, až když v něm něco je; u už uloženého
-        // dokumentu ukládáme každou změnu.
-        if (!activeDocId && plainTextLength(currentContent) < MIN_AUTOSAVE_CHARS) return
-        get().saveCurrentDocument()
-      },
-
-      createNewDocument: () => {
-        // Rozdělaná práce se dřív při založení nového dokumentu ztratila
-        // bez jediného upozornění.
-        get().autosaveCurrent()
-
-        set((state) => ({
-          activeDocId: null,
-          currentTitle: DEFAULT_TITLE,
-          currentContent: '',
-          isSaved: true,
-          revision: state.revision + 1,
-        }))
-      },
-
-      loadDocument: (id) => {
-        get().autosaveCurrent()
-
-        const doc = get().documents.find((d) => d.id === id)
-        if (doc) {
-          set((state) => ({
-            activeDocId: doc.id,
-            currentTitle: doc.title,
-            currentContent: doc.content,
-            isSaved: true,
-            revision: state.revision + 1,
-          }))
-        }
-      },
-
-      deleteDocument: (id) => {
-        const { activeDocId, documents } = get()
-        const updated = documents.filter((d) => d.id !== id)
-
-        if (activeDocId === id) {
-          set((state) => ({
-            documents: updated,
-            activeDocId: null,
-            currentTitle: DEFAULT_TITLE,
-            currentContent: '',
-            isSaved: true,
-            revision: state.revision + 1,
-          }))
-        } else {
-          set({ documents: updated })
-        }
-      },
-
-      importDocument: (title, content) => {
-        const newId = `doc-${Date.now()}`
-        const now = new Date().toISOString()
-        const importedDoc = { id: newId, title, content, lastModified: now }
-
-        set((state) => ({
-          documents: [importedDoc, ...state.documents],
-          activeDocId: newId,
-          currentTitle: title,
-          currentContent: content,
-          isSaved: true,
-          revision: state.revision + 1,
-        }))
-      },
-    }),
-    {
-      name: 'schoolbuddy-document-editor-storage',
-      storage: createJSONStorage(() => secureStorage),
-
-      // Jediný store v appce dřív bez vlastní ověřovací vrstvy — viz
-      // documentEditorValidation.ts's vlastní komentář, co konkrétně
-      // tenhle merge chránil.
-      merge: (persisted, current) => {
-        const validace = validateDocumentEditorData(persisted)
-        if (!validace.success) return current
-        return { ...current, ...validace.data }
-      },
+export const useDocumentStore = create<DocumentStore>((set, get) => {
+  function commit(state: EditorState, reward = false) {
+    if (localStorage.getItem(STORAGE_KEY) !== lastStoredValue) {
+      throw new Error(
+        'Dokumenty se změnily v jiné kartě. Stáhni si rozepsaný text a obnov stránku.'
+      )
     }
-  )
-)
+
+    // Zachováváme formát uloženého stavu používaný i v zálohách Buddyho.
+    secureStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ state: snapshot(state), version: 0 })
+    )
+    lastStoredValue = localStorage.getItem(STORAGE_KEY)
+    set(state)
+
+    if (reward) {
+      try {
+        useGamificationStore.getState().recordAction('document', 15)
+      } catch {
+        // Dokument už je uložený i v případě chyby při zápisu odměny.
+      }
+    }
+  }
+
+  return {
+    ...readInitialState(),
+
+    setTitle: title => {
+      if (title !== get().currentTitle) {
+        set({ currentTitle: title, isSaved: false })
+      }
+    },
+
+    setContent: content => {
+      if (content !== get().currentContent) {
+        set({ currentContent: content, isSaved: false })
+      }
+    },
+
+    saveCurrentDocument: () => {
+      const next = savedDocument(snapshot(get()), true)
+      commit(next.state, next.reward)
+    },
+
+    autosaveCurrent: () => {
+      if (get().isSaved) return
+      const next = savedDocument(snapshot(get()))
+      commit(next.state, next.reward)
+    },
+
+    createNewDocument: () => {
+      const next = savedDocument(snapshot(get()))
+
+      commit({
+        ...next.state,
+        ...emptyDocument(next.state.revision + 1),
+      }, next.reward)
+    },
+
+    loadDocument: id => {
+      if (!get().documents.some(doc => doc.id === id)) return
+
+      const next = savedDocument(snapshot(get()))
+      const doc = next.state.documents.find(item => item.id === id)!
+
+      commit({
+        ...next.state,
+        activeDocId: doc.id,
+        currentTitle: doc.title,
+        currentContent: sanitizeHtml(doc.content),
+        isSaved: true,
+        revision: next.state.revision + 1,
+      }, next.reward)
+    },
+
+    deleteDocument: id => {
+      const state = snapshot(get())
+      const documents = state.documents.filter(doc => doc.id !== id)
+
+      commit(state.activeDocId === id
+        ? { documents, ...emptyDocument(state.revision + 1) }
+        : { ...state, documents })
+    },
+
+    importDocument: (title, content) => {
+      const next = savedDocument(snapshot(get()))
+      const clean = sanitizeHtml(content)
+
+      const doc = {
+        id: newDocumentId(),
+        title: titleFor(title, clean),
+        content: clean,
+        lastModified: new Date().toISOString(),
+      }
+
+      commit({
+        ...next.state,
+        documents: [doc, ...next.state.documents],
+        activeDocId: doc.id,
+        currentTitle: doc.title,
+        currentContent: doc.content,
+        isSaved: true,
+        revision: next.state.revision + 1,
+      }, next.reward)
+    },
+  }
+})
