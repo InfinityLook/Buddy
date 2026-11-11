@@ -1,493 +1,280 @@
-/* ==========================================
-   1. Hlavní kontejner a layout
-   ========================================== */
-.doc-editor-container {
+.app-fullscreen-view:has(.buddy-doc) > .app-fullscreen-content {
   display: flex;
-  flex-direction: column;
-  height: 100vh;
-  height: 100dvh; /* Přesná dynamická výška pro mobilní prohlížeče */
-  background-color: #0f172a;
-  color: #f8fafc;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  max-width: none;
+  min-height: 0;
+  padding: 0;
   overflow: hidden;
 }
 
-/* ==========================================
-   2. Horní lišta a Hlavička (Header)
-   ========================================== */
-.doc-header {
+.buddy-doc {
   display: flex;
   flex-direction: column;
-  background-color: #1e293b;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  z-index: 20;
-}
-
-.doc-header-top {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.75rem;
-}
-
-.doc-title-wrapper {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.doc-title-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: #fff;
-  font-weight: 700;
-  font-size: 0.95rem;
-  outline: none;
   width: 100%;
+  min-width: 0;
+  min-height: 0;
+  background: var(--buddy-bg);
+  color: var(--buddy-text);
 }
 
-.save-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.buddy-doc * {
+  box-sizing: border-box;
 }
 
-.save-status-dot.saved {
-  background-color: #22c55e;
+.buddy-doc :is(button, select, input) {
+  min-width: 0;
+  font: inherit;
+  color: var(--buddy-text);
 }
 
-.save-status-dot.dirty {
-  background-color: #f59e0b;
-}
-
-.doc-save-badge-btn {
-  background-color: #2563eb;
-  color: #fff;
-  border: none;
-  padding: 0.4rem 0.75rem;
-  border-radius: 6px;
-  font-weight: 600;
-  font-size: 0.8rem;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.doc-save-badge-btn:active {
-  background-color: #1d4ed8;
-}
-
-/* Prepínač záložek (Editor / Správce souborů) */
-.tab-switcher {
-  display: flex;
-  background-color: #0f172a;
-  padding: 0.2rem 0.5rem;
-  gap: 0.25rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.tab-btn {
-  flex: 1;
-  background: transparent;
-  border: none;
-  color: #94a3b8;
-  padding: 0.4rem;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.tab-btn.active {
-  background-color: #1e293b;
-  color: #38bdf8;
-}
-
-/* ==========================================
-   3. Horizontální Menu
-   ========================================== */
-.doc-menu-nav {
-  display: flex;
-  gap: 0.25rem;
-  padding: 0 0.75rem 0.4rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-.menu-item-wrapper {
-  position: relative;
-}
-
-.menu-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: none;
-  color: #94a3b8;
-  font-size: 0.8rem;
-  padding: 0.3rem 0.6rem;
-  border-radius: 4px;
-  white-space: nowrap;
-  cursor: pointer;
-}
-
-.dropdown-menu {
-  /* position: fixed, ne absolute — .doc-menu-nav má overflow-x: auto
-     kvůli řádkům, co se nevejdou na úzký telefon, a CSS spec kvůli tomu
-     dopočítá i overflow-y na 'auto' (nejde obejít explicitním
-     overflow-y: visible). Menu jako position: absolute potomek by se tak
-     ořízlo na výšku samotného řádku tlačítek a bylo by neviditelné.
-     Souřadnice top/left dopočítává MenuNav.tsx z getBoundingClientRect
-     tlačítka, které menu otevřelo. */
-  position: fixed;
-  background-color: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 8px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-  padding: 0.4rem;
-  display: flex;
-  flex-direction: column;
-  min-width: 170px;
-  max-width: calc(100vw - 1.5rem);
-  z-index: 100;
-}
-
-.dropdown-menu button {
-  background: transparent;
-  border: none;
-  color: #e2e8f0;
-  text-align: left;
-  padding: 0.6rem 0.75rem;
-  font-size: 0.85rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-
-.dropdown-menu button:active {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.dropdown-divider {
-  height: 1px;
-  background-color: rgba(255, 255, 255, 0.1);
-  margin: 0.2rem 0;
-}
-
-/* ==========================================
-   4. Nástrojový panel (Toolbar & BottomSheet)
-   ========================================== */
-.doc-toolbar-wrapper {
-  background-color: #0f172a;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  z-index: 15;
-}
-
-.doc-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.4rem 0.75rem;
-  overflow-x: auto;
-}
-
-.touch-btn {
-  min-width: 38px;
-  height: 38px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #f8fafc;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.9rem;
-  cursor: pointer;
-}
-
-.touch-btn:active {
-  background-color: rgba(255, 255, 255, 0.15);
-}
-
-.touch-btn.active {
-  background-color: #38bdf8;
-  color: #000;
-}
-
-.toolbar-divider {
-  width: 1px;
-  height: 20px;
-  background-color: rgba(255, 255, 255, 0.15);
-  margin: 0 0.15rem;
-  flex-shrink: 0;
-}
-
-.doc-toolbar-expanded {
-  padding: 0.5rem 0.75rem;
-  background-color: #1e293b;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.toolbar-row {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  overflow-x: auto;
-}
-
-.toolbar-select {
-  flex: 1;
-  height: 38px;
-  background-color: #0f172a;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 0 0.5rem;
-  font-size: 0.85rem;
-  outline: none;
-}
-
-.color-picker-touch {
-  min-width: 38px;
-  height: 38px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  cursor: pointer;
-}
-
-.color-picker-touch input {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-}
-
-/* ==========================================
-   5. Editační plocha (Paper)
-   ========================================== */
-.doc-page-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0.75rem;
-  display: flex;
-  justify-content: center;
-  background-color: #0b0f19;
-  -webkit-overflow-scrolling: touch;
-}
-
-.doc-page-paper {
-  width: 100%;
-  max-width: 800px;
-  min-height: 100%;
-  background-color: #ffffff;
-  color: #1e293b;
-  padding: 1.25rem 1rem;
-  border-radius: 8px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-  outline: none;
-  line-height: 1.5;
-  font-size: 1rem;
-}
-
-/* ==========================================
-   6. Stavový řádek (StatusBar)
-   ========================================== */
-.doc-statusbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.35rem 0.75rem;
-  background-color: #1e293b;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 0.7rem;
-  color: #94a3b8;
-}
-
-/* ==========================================
-   7. Správce Souborů (FileManager)
-   ========================================== */
-.file-manager-container {
-  flex: 1;
-  overflow-y: auto;
-  padding: 1rem;
-  background-color: #0b0f19;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.file-manager-header {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.file-manager-header h3 {
-  margin: 0;
-  font-size: 1.1rem;
-  color: #f8fafc;
-}
-
-.file-manager-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.fm-btn {
-  flex: 1;
-  padding: 0.6rem 0.8rem;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.fm-btn.primary {
-  background-color: #2563eb;
-  color: #fff;
-}
-
-.fm-btn.primary:active {
-  background-color: #1d4ed8;
-}
-
-.fm-btn.secondary {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #f8fafc;
-}
-
-.fm-btn.secondary:active {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.empty-files-state {
-  text-align: center;
-  color: #64748b;
-  margin-top: 2rem;
-}
-
-.file-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.file-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background-color: #1e293b;
-  padding: 0.75rem 1rem;
+.buddy-doc :is(button, select, input:not([type=color]):not([type=checkbox])) {
+  min-height: 44px;
+  padding: .45rem .7rem;
+  border: 1px solid var(--buddy-border);
   border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--buddy-panel);
 }
 
-.file-info {
+.buddy-doc button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.buddy-doc button:disabled {
+  cursor: default;
+  opacity: .6;
+}
+
+.buddy-doc :focus-visible {
+  outline: 2px solid var(--buddy-accent);
+  outline-offset: -2px;
+}
+
+.buddy-doc :is(.buddy-doc-primary, button[aria-pressed=true]) {
+  background: var(--buddy-accent);
+  border-color: var(--buddy-accent);
+  color: var(--buddy-on-accent);
+  font-weight: 700;
+}
+
+.buddy-doc-header,
+.buddy-doc-title-row,
+.buddy-doc-actions,
+.buddy-doc-tools,
+.buddy-doc-file-controls {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem clamp(.55rem, 2vw, 1rem);
+}
+
+.buddy-doc-header {
+  justify-content: space-between;
+  padding-top: .65rem;
+}
+
+.buddy-doc-tabs {
+  display: flex;
+  gap: .3rem;
+}
+
+.buddy-doc-title-row input,
+.buddy-doc-file-controls input {
+  flex: 1;
+}
+
+.buddy-doc-title-row input {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.buddy-doc-actions,
+.buddy-doc-tools {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.buddy-doc-tools > *,
+.buddy-doc-actions > * {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.buddy-doc-tools {
+  border-top: 1px solid color-mix(in srgb, var(--buddy-border) 45%, transparent);
+}
+
+.buddy-doc-tools button {
+  min-width: 44px;
+  font-size: .9rem;
+}
+
+.buddy-doc-tools label {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: .25rem;
+  color: var(--buddy-muted);
+  font-size: .85rem;
+}
+
+.buddy-doc-tools input[type=color] {
+  width: 44px;
+  height: 44px;
+  padding: 3px;
+  border: 0;
+  background: transparent;
+}
+
+.buddy-doc-scroll,
+.buddy-doc-files {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: clamp(.55rem, 2vw, 1rem);
+}
+
+.buddy-doc-paper {
+  width: 100%;
+  max-width: 760px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: clamp(1rem, 4vw, 2.4rem);
+  border: 1px solid #d2d6de;
+  border-radius: 14px;
+  background: #fffefa;
+  color: #182031;
+  font: 1rem/1.68 Georgia, 'Times New Roman', serif;
+  overflow-wrap: anywhere;
+}
+
+.buddy-doc-paper:empty::before {
+  content: attr(data-placeholder);
+  color: #626b7b;
+  pointer-events: none;
+}
+
+.buddy-doc-paper :is(h1, h2, h3) {
+  line-height: 1.25;
+}
+
+.buddy-doc-paper a {
+  color: #234a89;
+  text-decoration: underline;
+}
+
+.buddy-doc-paper img {
+  display: inline-block;
+  max-width: 100%;
+  height: auto;
+}
+
+.buddy-doc-paper pre {
+  white-space: pre-wrap;
+}
+
+.buddy-doc-paper blockquote {
+  margin-inline: 0;
+  padding-inline: .9rem;
+  border-inline-start: 3px solid #a5afbe;
+}
+
+.buddy-doc-paper table {
+  border-collapse: collapse;
+  max-width: 100%;
+}
+
+.buddy-doc-paper :is(th, td) {
+  border: 1px solid #aab2bf;
+  padding: .35rem;
+}
+
+.buddy-doc-status {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: space-between;
+  gap: .55rem;
+  padding: .45rem .8rem;
+  border-top: 1px solid var(--buddy-border);
+  background: var(--buddy-panel);
+  color: var(--buddy-muted);
+  font-size: .72rem;
+}
+
+.buddy-doc-file-controls {
+  padding-inline: 0;
+}
+
+.buddy-doc-file {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: .35rem;
+  margin-top: .6rem;
+  border: 1px solid var(--buddy-border);
+  border-radius: 12px;
+  background: var(--buddy-panel);
+}
+
+.buddy-doc-file > button:first-child {
+  display: grid;
   flex: 1;
-  cursor: pointer;
+  gap: .3rem;
+  padding: .75rem;
+  border: 0;
+  text-align: left;
+  overflow-wrap: anywhere;
 }
 
-.file-icon {
-  font-size: 1.5rem;
+.buddy-doc-file small,
+.buddy-doc-empty {
+  color: var(--buddy-muted);
 }
 
-.file-title {
-  margin: 0;
-  font-size: 0.95rem;
-  color: #f8fafc;
+.buddy-doc .buddy-doc-delete {
+  width: 44px;
+  margin-right: .3rem;
+  border: 0;
+  color: var(--buddy-danger);
 }
 
-.file-date {
-  font-size: 0.75rem;
-  color: #64748b;
+.buddy-doc-error {
+  flex-shrink: 0;
+  margin: .3rem .7rem;
+  padding: .55rem;
+  border: 1px solid var(--buddy-danger);
+  border-radius: 10px;
+  color: var(--buddy-danger);
+  font-size: .8rem;
 }
 
-.icon-btn.delete {
-  background: transparent;
-  border: none;
-  font-size: 1.1rem;
-  padding: 0.4rem;
-  cursor: pointer;
-  border-radius: 6px;
-}
-
-.icon-btn.delete:active {
-  background-color: rgba(239, 68, 68, 0.2);
-  }
-
-/* Krátká hláška editoru (vložený obrázek, odmítnutá adresa…) */
-.doc-message {
-  margin: 0 0.75rem;
-  padding: 0.45rem 0.7rem;
-  background: rgba(56, 189, 248, 0.12);
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  border-radius: 8px;
-  color: #7dd3fc;
-  font-size: 0.75rem;
-  text-align: center;
-}
-
-/* ==========================================
-   TISK / ULOŽENÍ DO PDF
-   Vytiskne se jen samotný papír, bez lišt a menu. Schováváme přes
-   visibility, ne display:none — tím zůstane zachované rozvržení textu
-   uvnitř papíru. Globální styly drží <body> jako position:fixed
-   s overflow:hidden, což by tisk oříznulo na jednu stránku, proto se
-   tady obojí ruší.
-   ========================================== */
 @media print {
-  html,
-  body,
-  #root {
+  html:has(.buddy-doc-paper),
+  body:has(.buddy-doc-paper),
+  body:has(.buddy-doc-paper) *:has(.buddy-doc-paper) {
+    display: block !important;
     position: static !important;
-    overflow: visible !important;
     height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
     background: #fff !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
-  body * {
-    visibility: hidden;
+  body:has(.buddy-doc-paper) *:not(:has(.buddy-doc-paper)):not(.buddy-doc-paper):not(.buddy-doc-paper *) {
+    display: none !important;
   }
 
-  .doc-page-paper,
-  .doc-page-paper * {
-    visibility: visible;
-  }
-
-  .doc-page-paper {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+  .buddy-doc .buddy-doc-paper {
+    width: auto;
+    max-width: none;
     min-height: 0;
     margin: 0;
     padding: 0;
-    border: none;
-    box-shadow: none;
-    background: #fff !important;
-    color: #000 !important;
-    overflow: visible !important;
-  }
-
-  .doc-page-paper a {
-    color: #000 !important;
-    text-decoration: underline;
-  }
-
-  .doc-page-paper img {
-    max-width: 100% !important;
-    height: auto !important;
+    border: 0;
+    background: #fff;
+    color: #000;
   }
 
   @page {
