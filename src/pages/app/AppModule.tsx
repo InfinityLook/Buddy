@@ -28,13 +28,20 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const { rootAttributes } = useSurfaceAppearance('apps-launcher')
+  const { rootAttributes } =
+    useSurfaceAppearance('apps-launcher')
+
   const { rootAttributes: plannerAttributes } =
     useSurfaceAppearance('study-planner')
+
   const { rootAttributes: pomodoroAttributes } =
     useSurfaceAppearance('pomodoro')
+
   const { rootAttributes: noteAttributes } =
     useSurfaceAppearance('quick-notes')
+
+  const { rootAttributes: goalAttributes } =
+    useSurfaceAppearance('goal-tracker')
 
   const {
     apps,
@@ -56,21 +63,28 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
     [apps]
   )
 
-  const activeApp = miniaplikace.find(app => app.id === activeAppId)
+  const activeApp = miniaplikace.find(
+    app => app.id === activeAppId
+  )
+
   const ActiveComponent = activeApp
     ? MINI_APP_REGISTRY[activeApp.id]
     : null
 
   const handleBack = onBack ?? (() => navigate('/hub'))
 
-  const fromPlanner = usePomodoroStatus(state => state.returnToPlanner)
+  const fromPlanner = usePomodoroStatus(
+    state => state.returnToPlanner
+  )
 
   useEffect(() => () => {
     usePomodoroStatus.setState({ returnToPlanner: false })
   }, [])
 
   useEffect(() => {
-    if (new URLSearchParams(location.search).get('pomodoro') === '1') {
+    if (
+      new URLSearchParams(location.search).get('pomodoro') === '1'
+    ) {
       setActiveAppId('pomodoro')
       navigate('/apps', { replace: true })
     }
@@ -85,6 +99,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
 
     // Cíl si ponecháme před vyčištěním otevřené aplikace.
     const cilNavratu = returnPath
+
     setActiveAppId(null)
 
     if (cilNavratu) navigate(cilNavratu)
@@ -100,7 +115,9 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
               ? ' app-fullscreen-view--pomo buddy-theme-scope'
               : activeAppId === 'quick-notes'
                 ? ' app-fullscreen-view--notes buddy-theme-scope'
-                : ''
+                : activeAppId === 'goal-tracker'
+                  ? ' app-fullscreen-view--goals buddy-theme-scope'
+                  : ''
         }`}
         {...(
           activeAppId === 'study-planner'
@@ -109,7 +126,9 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
               ? pomodoroAttributes
               : activeAppId === 'quick-notes'
                 ? noteAttributes
-                : {}
+                : activeAppId === 'goal-tracker'
+                  ? goalAttributes
+                  : {}
         )}
       >
         <header className="app-fullscreen-header">
@@ -118,6 +137,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
             onClick={handleCloseApp}
           >
             <AppIcon name="arrow-left" size={18} />
+
             <span>
               {activeAppId === 'pomodoro' && fromPlanner
                 ? 'Zpět do Plánovače'
@@ -126,6 +146,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
                   : 'Zpět do seznamu'}
             </span>
           </button>
+
           <h2>{activeApp.title}</h2>
         </header>
 
@@ -144,7 +165,8 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
                 {...(
                   activeAppId === 'study-planner' ||
                   activeAppId === 'pomodoro' ||
-                  activeAppId === 'quick-notes'
+                  activeAppId === 'quick-notes' ||
+                  activeAppId === 'goal-tracker'
                     ? { onBack: handleCloseApp }
                     : {}
                 )}
