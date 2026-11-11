@@ -1,641 +1,314 @@
-.kalendar {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 480px;
+.app-fullscreen-content:has(.buddy-cal) {
+  padding: 0;
+  max-width: none;
+}
+
+.buddy-cal {
+  width: 100%;
+  max-width: 760px;
+  min-height: 100%;
   margin: 0 auto;
-  color: var(--text-primary);
+  padding: .8rem clamp(.65rem, 3vw, 1.4rem) 1.4rem;
+  background: var(--buddy-bg);
+  color: var(--buddy-text);
 }
 
-.kalendar-hlavicka {
+.buddy-cal * {
+  box-sizing: border-box;
+}
+
+.buddy-cal :is(button, select, input:not([type=checkbox]), textarea) {
+  min-width: 0;
+  min-height: 44px;
+  padding: .45rem .65rem;
+  border: 1px solid var(--buddy-border);
+  border-radius: 10px;
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+  font: inherit;
+}
+
+.buddy-cal button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.buddy-cal button:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.buddy-cal :focus-visible {
+  outline: 2px solid var(--buddy-accent);
+  outline-offset: -2px;
+}
+
+.buddy-cal :is(.buddy-cal-primary, button[aria-pressed=true]) {
+  background: var(--buddy-accent);
+  border-color: var(--buddy-accent);
+  color: var(--buddy-on-accent);
+  font-weight: 700;
+}
+
+.buddy-cal-row,
+.buddy-cal-tabs {
   display: flex;
   align-items: center;
+  gap: .35rem;
+}
+
+.buddy-cal-row {
   justify-content: space-between;
 }
 
-.kalendar-hlavicka h2 {
-  margin: 0;
-  font-size: 1.1rem;
-  font-weight: 800;
-}
-
-.kalendar-nastroje-radek {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
+.buddy-cal-tabs {
+  min-width: 0;
   flex-wrap: wrap;
 }
 
-.kalendar-pohled-radek {
-  display: flex;
-  background: var(--bg-glass);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-pill);
-  padding: 0.2rem;
-  gap: 0.15rem;
+.buddy-cal-tabs button {
+  font-size: .78rem;
+  padding-inline: .5rem;
 }
 
-.kalendar-pohled-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.35rem 0.7rem;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
+.buddy-cal-period {
+  margin-block: .65rem;
 }
 
-.kalendar-pohled-btn.je-aktivni {
-  background: var(--accent-cyan);
-  color: #06232b;
+.buddy-cal-period button {
+  width: 44px;
+  flex: none;
+  font-size: 1.25rem;
 }
 
-.kalendar-ics-akce {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.kalendar-ics-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: var(--bg-glass);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  font-size: 1rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.kalendar-ics-btn:hover:not(:disabled) {
-  border-color: var(--accent-cyan);
-  color: var(--accent-cyan);
-}
-
-.kalendar-ics-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.kalendar-ics-input {
-  display: none;
-}
-
-.kalendar-ics-chyba {
+.buddy-cal-period h2 {
   margin: 0;
-  font-size: 0.78rem;
-  color: var(--accent-red);
-}
-
-.kalendar-ics-nahled {
-  background: var(--bg-glass);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 0.9rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-
-.kalendar-ics-nahled h3 {
-  margin: 0;
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
-.kalendar-ics-seznam {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  max-height: 260px;
-  overflow-y: auto;
-}
-
-.kalendar-ics-polozka {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 0.5rem 0.65rem;
-}
-
-.kalendar-ics-polozka label {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  min-width: 0;
-}
-
-.kalendar-ics-polozka-nazev {
-  font-size: 0.82rem;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.kalendar-ics-polozka-datum {
-  flex-shrink: 0;
-  font-size: 0.72rem;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.kalendar-ics-duplicita {
-  flex-shrink: 0;
-  font-size: 0.65rem;
-  color: var(--accent-orange);
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.15rem 0.45rem;
-  border-radius: var(--radius-pill);
-}
-
-.kalendar-sipka {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--bg-glass);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-primary);
-  font-size: 1.2rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.kalendar-sipka:hover {
-  border-color: var(--accent-cyan);
-  color: var(--accent-cyan);
-}
-
-.kalendar-tydny {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
   text-align: center;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-secondary);
+  font-size: 1.15rem;
 }
 
-.kalendar-mrizka {
+.buddy-cal-period h2::first-letter,
+.buddy-cal-day h3::first-letter {
+  text-transform: uppercase;
+}
+
+.buddy-cal-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.3rem;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: .2rem;
 }
 
-.kalendar-den {
+.buddy-cal-weekday {
+  padding: .25rem 0;
+  color: var(--buddy-muted);
+  text-align: center;
+  font-size: .75rem;
+}
+
+.buddy-cal-grid button {
   position: relative;
-  aspect-ratio: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--bg-glass);
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  color: var(--text-primary);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.kalendar-den--prazdny {
-  background: transparent;
+  display: grid;
+  min-height: 40px;
+  place-items: center;
+  padding: .2rem .1rem .65rem;
+  font-size: .9rem;
   border-color: transparent;
-  cursor: default;
 }
 
-.kalendar-den.je-dnes {
-  border-color: var(--accent-cyan);
-  color: var(--accent-cyan);
+.buddy-cal-grid button[aria-current=date] {
+  border-color: var(--buddy-accent);
 }
 
-.kalendar-den.je-vybrany {
-  background: rgba(53, 196, 240, 0.18);
-  border-color: var(--accent-cyan);
+.buddy-cal-grid button[data-color] {
+  box-shadow: inset 0 -3px 0 var(--day-color);
 }
 
-.kalendar-den-tecka {
+.buddy-cal-grid [data-color=cyan] { --day-color: #16a1ac; }
+.buddy-cal-grid [data-color=violet] { --day-color: #9565ed; }
+.buddy-cal-grid [data-color=magenta] { --day-color: #d843a5; }
+.buddy-cal-grid [data-color=green] { --day-color: #279764; }
+.buddy-cal-grid [data-color=orange] { --day-color: #e88329; }
+.buddy-cal-grid [data-color=red] { --day-color: #e55260; }
+
+.buddy-cal-marks {
   position: absolute;
   bottom: 5px;
+  display: flex;
+  gap: 3px;
+}
+
+.buddy-cal-marks i {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: var(--accent-magenta);
+  background: currentColor;
 }
 
-/* Barva dne — vlastní prstenec (inset box-shadow), ne border/background,
-   schválně: je-dnes/je-vybrany už tyhle dvě vlastnosti používají pro
-   svůj vlastní stav, a kdyby si o ně barva dne řekla taky, jedno by tiše
-   přepsalo druhé (stejná past, co si tenhle soubor už jednou vyžádal
-   poučení jinde v appce — dvě odlišné věci na jedné buňce potřebují dvě
-   odlišné vlastnosti, ne sdílet jednu). */
-.kalendar-den--barva-cyan { box-shadow: inset 0 0 0 2px var(--accent-cyan); }
-.kalendar-den--barva-violet { box-shadow: inset 0 0 0 2px var(--accent-violet); }
-.kalendar-den--barva-magenta { box-shadow: inset 0 0 0 2px var(--accent-magenta); }
-.kalendar-den--barva-green { box-shadow: inset 0 0 0 2px var(--accent-green); }
-.kalendar-den--barva-orange { box-shadow: inset 0 0 0 2px var(--accent-orange); }
-.kalendar-den--barva-red { box-shadow: inset 0 0 0 2px var(--accent-red); }
-
-.kalendar-tyden-mrizka {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.3rem;
-}
-
-.kalendar-tyden-den {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.2rem;
-  padding: 0.5rem 0.2rem;
-  background: var(--bg-glass);
-  border: 1px solid var(--border-subtle);
-  border-radius: 10px;
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.kalendar-tyden-den.je-dnes {
-  border-color: var(--accent-cyan);
-}
-
-.kalendar-tyden-den.je-vybrany {
-  background: rgba(53, 196, 240, 0.18);
-  border-color: var(--accent-cyan);
-}
-
-.kalendar-tyden-den-nazev {
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-}
-
-.kalendar-tyden-den-cislo {
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-.kalendar-detail {
-  background: var(--bg-glass);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-}
-
-.kalendar-detail-hlavicka {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.6rem;
-}
-
-.kalendar-detail-hlavicka h3 {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-}
-
-.kalendar-pridat-btn {
-  flex-shrink: 0;
-  background: linear-gradient(135deg, var(--accent-cyan), var(--accent-violet));
-  border: none;
-  color: #fff;
-  font-size: 0.78rem;
-  font-weight: 700;
-  padding: 0.4rem 0.75rem;
-  border-radius: var(--radius-pill);
-  cursor: pointer;
-}
-
-.kalendar-prazdno {
-  margin: 0;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-}
-
-.kalendar-barvy-radek {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.kalendar-barva-vzorek {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  padding: 0;
-  cursor: pointer;
-  transition: transform 0.12s ease;
-}
-
-.kalendar-barva-vzorek--bez {
-  background: var(--bg-glass);
-  border-color: var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 0.7rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.kalendar-barva-vzorek--cyan { background: var(--accent-cyan); }
-.kalendar-barva-vzorek--violet { background: var(--accent-violet); }
-.kalendar-barva-vzorek--magenta { background: var(--accent-magenta); }
-.kalendar-barva-vzorek--green { background: var(--accent-green); }
-.kalendar-barva-vzorek--orange { background: var(--accent-orange); }
-.kalendar-barva-vzorek--red { background: var(--accent-red); }
-
-.kalendar-barva-vzorek.je-vybrana {
-  border-color: var(--text-primary);
-  transform: scale(1.15);
-}
-
-/* Podle rozvrhu — malý informační řádek propojující Kalendář s
-   Rozvrhem, jen pro všední den, co má aspoň jednu hodinu. */
-.kalendar-rozvrh-radek {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px dashed var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 0.55rem 0.7rem;
-}
-
-.kalendar-rozvrh-popisek {
-  font-size: 0.68rem;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.kalendar-rozvrh-seznam {
-  list-style: none;
-  margin: 0.3rem 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
-.kalendar-rozvrh-seznam li {
-  display: flex;
-  gap: 0.5rem;
-  font-size: 0.78rem;
-}
-
-.kalendar-rozvrh-cas {
-  flex-shrink: 0;
-  color: var(--accent-cyan);
-  font-variant-numeric: tabular-nums;
-}
-
-.kalendar-rozvrh-predmet {
-  color: var(--text-primary);
-}
-
-/* Zrušený/přesunutý výskyt — appka ho nikdy nemaže ze seznamu, jen
-   přidá odznak (stejný "appka to vidí, nikdy nemizí beze stopy" vzor
-   jako Rozvrh.tsx's vlastní "Dnešní hodiny", ty samé dva pojmy, jen
-   v tomhle souboru vlastní samostatná kopie stylu, ne import). */
-.kalendar-rozvrh-seznam li.je-zrusena .kalendar-rozvrh-cas,
-.kalendar-rozvrh-seznam li.je-zrusena .kalendar-rozvrh-predmet {
-  opacity: 0.55;
-  text-decoration: line-through;
-}
-
-.kalendar-rozvrh-znacka-zruseno,
-.kalendar-rozvrh-znacka-presunuto {
-  flex-shrink: 0;
-  margin-left: auto;
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-
-.kalendar-rozvrh-znacka-zruseno {
-  color: var(--accent-magenta);
-}
-
-.kalendar-rozvrh-znacka-presunuto {
-  color: var(--accent-cyan);
-}
-
-/* Planerovy termíny — na rozdíl od appčina plain "Podle rozvrhu" řádku
-   (jen čas+předmět) má navíc tlačítko zpátky do Planeru, proto řádek
-   dostane vlastní rozestup mezi textem a odkazem. */
-.kalendar-planer-seznam li {
-  flex-wrap: wrap;
-  justify-content: space-between;
-}
-
-.kalendar-planer-link {
-  flex-shrink: 0;
+.buddy-cal-marks .buddy-cal-task-mark {
+  border: 1px solid currentColor;
   background: transparent;
-  border: none;
-  color: var(--accent-cyan);
-  font-size: 0.72rem;
-  font-weight: 700;
-  cursor: pointer;
-  padding: 0;
+  border-radius: 1px;
 }
 
-.kalendar-planer-link:hover {
-  text-decoration: underline;
+.buddy-cal-actions {
+  margin-block: .75rem;
 }
 
-.kalendar-seznam {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.kalendar-polozka {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.6rem;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 0.6rem 0.75rem;
-}
-
-.kalendar-polozka-text strong {
-  font-size: 0.85rem;
-}
-
-.kalendar-polozka-text p {
-  margin: 0.2rem 0 0;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.kalendar-polozka-opakovani {
-  display: inline-block;
-  margin-left: 0.4rem;
-  font-size: 0.68rem;
-  color: var(--accent-cyan);
-}
-
-.kalendar-polozka-cas,
-.kalendar-polozka-rozsah,
-.kalendar-polozka-pripominka {
-  display: inline-block;
-  margin-left: 0.4rem;
-  font-size: 0.68rem;
-  color: var(--text-secondary);
-  font-variant-numeric: tabular-nums;
-}
-
-.kalendar-polozka-akce {
-  flex-shrink: 0;
-  display: flex;
-  gap: 0.3rem;
-}
-
-.kalendar-upravit-btn,
-.kalendar-vynechat-btn {
-  flex-shrink: 0;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 0.85rem;
-}
-
-.kalendar-upravit-btn:hover {
-  color: var(--accent-cyan);
-}
-
-.kalendar-vynechat-btn:hover {
-  color: var(--accent-orange);
-}
-
-.kalendar-smazat-btn {
-  flex-shrink: 0;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-
-.kalendar-smazat-btn:hover {
-  color: var(--accent-red);
-}
-
-.kalendar-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.kalendar-form input,
-.kalendar-form textarea,
-.kalendar-form-opakovani {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  padding: 0.55rem 0.7rem;
-  font-size: 0.85rem;
-  font-family: inherit;
-  resize: vertical;
-}
-
-.kalendar-form input:focus,
-.kalendar-form textarea:focus,
-.kalendar-form-opakovani:focus {
-  outline: none;
-  border-color: var(--accent-cyan);
-}
-
-.kalendar-form-checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.82rem;
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.kalendar-form-checkbox input {
-  width: auto;
-  margin: 0;
-}
-
-.kalendar-form-cas-radek {
-  display: flex;
-  gap: 0.6rem;
-}
-
-.kalendar-form-cas-radek label {
+.buddy-cal-actions input {
   flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.72rem;
-  color: var(--text-secondary);
+  width: 0;
 }
 
-.kalendar-form-cas-radek input {
+.buddy-cal-actions select {
+  max-width: 55%;
+}
+
+.buddy-cal-day {
+  margin-block: .9rem;
+}
+
+.buddy-cal-day h3 {
+  margin: 0 0 .5rem;
+  font-size: .96rem;
+}
+
+.buddy-cal-muted,
+.buddy-cal-status {
+  color: var(--buddy-muted);
+  font-size: .85rem;
+}
+
+.buddy-cal-error {
+  color: var(--buddy-danger);
+  font-size: .88rem;
+}
+
+.buddy-cal-card {
+  display: grid;
+  grid-template-columns: minmax(4.2rem, 5.2rem) minmax(0, 1fr) auto;
+  align-items: start;
+  gap: .5rem;
+  padding: .55rem;
+  margin-top: .35rem;
+  border: 1px solid var(--buddy-border);
+  border-radius: 12px;
+  background: var(--buddy-panel);
+  overflow-wrap: anywhere;
+}
+
+.buddy-cal-card button {
+  width: 44px;
+  padding: 0;
+}
+
+.buddy-cal-card small,
+.buddy-cal-import small {
+  display: block;
+  margin-top: .2rem;
+  color: var(--buddy-muted);
+  font-size: .76rem;
+}
+
+.buddy-cal-card p {
+  margin: .25rem 0 0;
+  white-space: pre-wrap;
+  font-size: .85rem;
+}
+
+.buddy-cal-time {
+  padding-top: .12rem;
+  color: var(--buddy-accent);
+  font-size: .76rem;
+}
+
+.buddy-cal-files {
+  justify-content: flex-start;
+  margin-top: 1rem;
+}
+
+.buddy-cal-dialog {
+  width: min(520px, calc(100% - 1.2rem));
+  max-height: 85dvh;
+  padding: .9rem;
+  border: 1px solid var(--buddy-border);
+  border-radius: 18px;
+  background: var(--buddy-bg);
+  color: var(--buddy-text);
+  overflow: auto;
+}
+
+.buddy-cal-dialog::backdrop {
+  background: #0009;
+}
+
+.buddy-cal-dialog h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.buddy-cal-dialog header button {
+  flex: none;
+  width: 44px;
+}
+
+.buddy-cal-form {
+  display: grid;
+  gap: .65rem;
+  margin-top: .75rem;
+}
+
+.buddy-cal-form label {
+  display: grid;
+  min-width: 0;
+  gap: .25rem;
+  font-size: .85rem;
+}
+
+.buddy-cal-form :is(input:not([type=checkbox]), select, textarea) {
   width: 100%;
 }
 
-.kalendar-form-pole {
+.buddy-cal-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .45rem;
+}
+
+.buddy-cal label.buddy-cal-check {
   display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
+  align-items: center;
+  gap: .5rem;
+  min-height: 44px;
 }
 
-.kalendar-form-akce {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
+.buddy-cal-check input {
+  width: 20px;
+  height: 20px;
+  flex: none;
+  accent-color: var(--buddy-accent);
 }
 
-.kalendar-form-zrusit {
-  background: transparent;
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  padding: 0.5rem 0.9rem;
-  border-radius: var(--radius-pill);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
+.buddy-cal-dialog .buddy-cal-danger {
+  color: var(--buddy-danger);
 }
 
-.kalendar-form-ulozit {
-  background: var(--accent-cyan);
-  border: none;
-  color: #06232b;
-  padding: 0.5rem 0.9rem;
-  border-radius: var(--radius-pill);
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
+.buddy-cal-import {
+  max-height: 45dvh;
+  overflow: auto;
+  margin-bottom: .7rem;
+}
+
+.buddy-cal-import label {
+  padding-block: .35rem;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 600px) {
+  .buddy-cal-grid button {
+    min-height: 49px;
+  }
+
+  .buddy-cal-tabs button {
+    font-size: .9rem;
+  }
 }
