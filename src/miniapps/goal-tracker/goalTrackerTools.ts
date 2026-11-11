@@ -16,6 +16,15 @@ import type { Goal } from './types'
 export type GoalView = 'active' | 'habits' | 'done' | 'trash'
 export type GoalSort = 'priority' | 'progress' | 'updated'
 
+// goal_tracker_goals.current_value/target_value jsou ve Supabase typu
+// integer (4bajtové), ne numeric/bigint — skutečný strop je tedy
+// Postgresovo INT4_MAX, ne libovolné "1 bilion". Cíl s vyšší cílovou
+// hodnotou (nebo vlastní krok pokroku nad tuhle hranici) appka dřív
+// nechala uložit lokálně bez chyby, ale cloudová synchronizace
+// (goalTrackerSync.ts's toRow → upsert) na něm spadla s "22003: integer
+// out of range" — ověřeno přímo proti reálné databázi.
+export const MAX_GOAL_VALUE = 2_147_483_647
+
 export const validGoalDate = (value: string) => {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
 
@@ -38,11 +47,12 @@ export function validateGoalInput(
 
   if (
     !Number.isFinite(input.target) ||
+    !Number.isInteger(input.target) ||
     input.target <= 0 ||
-    input.target > 1e12
+    input.target > MAX_GOAL_VALUE
   ) {
     throw new Error(
-      'Cílová hodnota musí být kladné číslo, nejvýš 1 bilion.'
+      `Cílová hodnota musí být celé kladné číslo, nejvýš ${MAX_GOAL_VALUE.toLocaleString('cs-CZ')}.`
     )
   }
 
@@ -96,21 +106,28 @@ export function validateGoalInput(
 export function progressAmount(value: string): number {
   const trimmed = value.trim()
 
-  if (!/^\d+(?:[.,]\d+)?$/.test(trimmed)) {
+  // Celé číslo jen — current_value/target_value jsou ve Supabase typu
+  // integer (viz komentář u MAX_GOAL_VALUE výš). Desetinný krok (dřív
+  // "například 1 nebo 0,5") appka uložila lokálně v pořádku, ale
+  // cloudová synchronizace ho tiše zaokrouhlila (0,5 → 1), takže se
+  // číslo po dalším stažení z cloudu rozešlo s tím, co si uživatel
+  // ve skutečnosti zapsal — appka tak musí stejnou desetinu odmítnout
+  // hned na vstupu, ne až ji nechat zkazit až při synchronizaci.
+  if (!/^\d+$/.test(trimmed)) {
     throw new Error(
-      'Zadej kladné číslo, například 1 nebo 0,5.'
+      'Zadej celé kladné číslo, například 1 nebo 5.'
     )
   }
 
-  const number = Number(trimmed.replace(',', '.'))
+  const number = Number(trimmed)
 
   if (
     !Number.isFinite(number) ||
     number <= 0 ||
-    number > 1e12
+    number > MAX_GOAL_VALUE
   ) {
     throw new Error(
-      'Zadej kladné číslo, nejvýš 1 bilion.'
+      `Zadej celé kladné číslo, nejvýš ${MAX_GOAL_VALUE.toLocaleString('cs-CZ')}.`
     )
   }
 

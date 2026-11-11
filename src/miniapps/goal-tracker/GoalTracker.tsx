@@ -33,6 +33,7 @@ import {
 } from './types'
 import type { Goal } from './types'
 import {
+  MAX_GOAL_VALUE,
   goalPercent,
   goalSummary,
   progressAmount,
@@ -713,14 +714,14 @@ export function GoalTracker({
                   <input
                     type="number"
                     required
-                    min={form.typ === 'navyk' ? 1 : '0.0001'}
-                    max={form.typ === 'navyk' ? 7 : 1e12}
-                    step={form.typ === 'navyk' ? 1 : 'any'}
+                    min={1}
+                    max={form.typ === 'navyk' ? 7 : MAX_GOAL_VALUE}
+                    step={1}
                     value={
                       Number.isNaN(form.target) ? '' : form.target
                     }
                     onChange={event => patch({
-                      target: event.target.valueAsNumber,
+                      target: Math.round(event.target.valueAsNumber),
                     })}
                   />
                 </label>
@@ -939,7 +940,7 @@ export function GoalTracker({
               <label className="gt-field">
                 Velikost kroku
                 <input
-                  inputMode="decimal"
+                  inputMode="numeric"
                   value={amount}
                   maxLength={20}
                   onChange={event => setAmount(event.target.value)}
