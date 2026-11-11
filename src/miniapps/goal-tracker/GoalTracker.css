@@ -1,611 +1,616 @@
+.app-fullscreen-view--goals > .app-fullscreen-header {
+  display: none;
+}
+
+.app-fullscreen-view--goals > .app-fullscreen-content {
+  display: flex;
+  min-height: 0;
+  padding: 0;
+  max-width: none;
+  overflow: hidden;
+}
+
+.app-fullscreen-view--goals > .app-bottom-nav {
+  position: relative;
+  flex-shrink: 0;
+  margin-top: 0;
+  background: var(--buddy-bg);
+  padding: .5rem 1rem calc(.4rem + env(safe-area-inset-bottom));
+}
+
+.app-fullscreen-view--goals > .app-bottom-nav::before {
+  display: none;
+}
+
 .gt-app {
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  padding: 1rem;
-  background: rgba(18, 24, 40, 0.75);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  color: #fff;
-  max-width: 400px;
-  margin: 0 auto;
-  backdrop-filter: blur(12px);
+  width: 100%;
+  max-width: 1000px;
+  height: 100%;
+  min-height: 0;
+  margin: auto;
+  background: var(--buddy-bg);
+  color: var(--buddy-text);
+}
+
+.gt-app *,
+.gt-dialog * {
+  box-sizing: border-box;
+}
+
+.gt-app button,
+.gt-dialog button,
+.gt-app input,
+.gt-app select,
+.gt-dialog input,
+.gt-dialog select,
+.gt-dialog textarea {
+  font: inherit;
+}
+
+.gt-app button,
+.gt-dialog button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.gt-app button:disabled,
+.gt-dialog button:disabled {
+  cursor: default;
 }
 
 .gt-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: .45rem;
+  flex-shrink: 0;
+  padding: calc(.4rem + env(safe-area-inset-top)) .75rem .55rem;
 }
 
-.gt-header h2 { font-size: 1.1rem; margin: 0; }
+.gt-header > div {
+  flex: 1;
+}
 
-.gt-add-btn {
-  background: #a855f7;
-  border: none;
-  color: #fff;
-  font-weight: 800;
-  padding: 0.3rem 0.7rem;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  cursor: pointer;
-  box-shadow: 0 0 8px rgba(168, 85, 247, 0.4);
+.gt-header small {
+  font-size: .6rem;
+  letter-spacing: .14em;
+  color: var(--buddy-muted);
+}
+
+.gt-header h1 {
+  font-size: 1.3rem;
+  margin: .15rem 0;
+}
+
+.gt-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+}
+
+.gt-icon:hover {
+  background: var(--buddy-raised);
+}
+
+.gt-summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .5rem;
+  margin: .2rem 1rem .8rem;
+  flex-shrink: 0;
+}
+
+.gt-summary > div {
+  display: flex;
+  flex-direction: column;
+  gap: .3rem;
+  padding: .8rem .4rem;
+  border: 1px solid var(--buddy-border);
+  border-radius: 14px;
+  background: var(--buddy-panel);
+  text-align: center;
+}
+
+.gt-summary strong {
+  font-size: 1.4rem;
+  color: var(--buddy-accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.gt-summary span {
+  font-size: .65rem;
+  color: var(--buddy-muted);
+}
+
+.gt-controls {
+  padding: 0 1rem .7rem;
+  display: flex;
+  flex-direction: column;
+  gap: .6rem;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--buddy-border);
+}
+
+.gt-search {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--buddy-panel);
+  border: 1px solid var(--buddy-border);
+  border-radius: 12px;
+  padding: 0 .7rem;
+}
+
+.gt-search > span {
+  color: var(--buddy-muted);
+  font-size: 1.5rem;
+}
+
+.gt-search input {
+  border: 0;
+  background: transparent;
+  color: var(--buddy-text);
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
+
+.gt-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 3px;
+  gap: 3px;
+  background: var(--buddy-panel);
+  border-radius: 12px;
+}
+
+.gt-tabs button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--buddy-muted);
+  font-size: .8rem;
+}
+
+.gt-tabs button[aria-pressed=true] {
+  background: var(--buddy-accent);
+  color: var(--buddy-on-accent);
+  font-weight: 700;
+}
+
+.gt-filters,
+.gt-form-row {
+  display: flex;
+  gap: .6rem;
+}
+
+.gt-filters select {
+  min-width: 0;
+  width: 50%;
+  min-height: 40px;
+  padding: .35rem;
+  border: 1px solid var(--buddy-border);
+  border-radius: 10px;
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+  font-size: .75rem;
+}
+
+.gt-list {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: .85rem 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: .7rem;
+}
+
+.gt-list > .gt-hint,
+.gt-empty {
+  grid-column: 1 / -1;
+}
+
+.gt-card {
+  border: 1px solid var(--buddy-border);
+  border-radius: 16px;
+  background: var(--buddy-panel);
+  overflow: hidden;
+}
+
+.gt-card-open {
+  display: block;
+  width: 100%;
+  padding: .9rem;
+  border: 0;
+  color: var(--buddy-text);
+  background: transparent;
+  text-align: left;
+}
+
+.gt-card h2 {
+  margin: .55rem 0 .8rem;
+  font-size: 1.05rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.gt-card-meta,
+.gt-card small {
+  color: var(--buddy-muted);
+  font-size: .72rem;
+}
+
+.gt-progress-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  font-size: .75rem;
+  line-height: 1.5;
+}
+
+.gt-progress-label strong {
+  color: var(--buddy-accent);
+  flex-shrink: 0;
+}
+
+.gt-card progress {
+  display: block;
+  width: 100%;
+  height: 6px;
+  margin: .5rem 0 .7rem;
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--buddy-raised);
+  accent-color: var(--buddy-accent);
+}
+
+.gt-card progress::-webkit-progress-bar {
+  background: var(--buddy-raised);
+}
+
+.gt-card progress::-webkit-progress-value {
+  background: var(--buddy-accent);
+  border-radius: 10px;
+}
+
+.gt-card progress::-moz-progress-bar {
+  background: var(--buddy-accent);
+  border-radius: 10px;
+}
+
+.gt-card-actions {
+  border-top: 1px solid var(--buddy-border);
+  padding: .25rem .5rem;
+}
+
+.gt-link {
+  min-height: 44px;
+  padding: .4rem;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--buddy-accent);
+  font-size: .8rem !important;
+}
+
+.gt-check {
+  min-height: 44px;
+  width: 100%;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--buddy-accent);
+  font-size: .85rem;
+  font-weight: 650 !important;
+}
+
+.gt-check.is-done {
+  background: var(--buddy-raised);
+}
+
+.gt-footer {
+  flex-shrink: 0;
+  display: flex;
+  gap: .6rem;
+  padding: .65rem 1rem;
+  border-top: 1px solid var(--buddy-border);
+}
+
+.gt-primary,
+.gt-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: .6rem .85rem;
+  border: 1px solid var(--buddy-border);
+  border-radius: 12px;
+  font-weight: 650 !important;
+}
+
+.gt-primary {
+  flex: 1;
+  background: var(--buddy-accent);
+  color: var(--buddy-on-accent);
+  border-color: var(--buddy-accent);
+}
+
+.gt-secondary {
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+}
+
+.gt-empty {
+  padding: 1.8rem .7rem;
+  color: var(--buddy-muted);
+  text-align: center;
+}
+
+.gt-empty > span {
+  font-size: 3rem;
+  color: var(--buddy-accent);
+}
+
+.gt-empty h2 {
+  font-size: 1.1rem;
+  color: var(--buddy-text);
+}
+
+.gt-empty p {
+  font-size: .85rem;
+  line-height: 1.6;
+}
+
+.gt-message {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: 0 .7rem;
+  border-top: 1px solid var(--buddy-border);
+  background: var(--buddy-raised);
+  font-size: .78rem;
+}
+
+.gt-message > span {
+  flex: 1;
+}
+
+.gt-dialog {
+  position: fixed;
+  inset: auto 0 0;
+  width: min(100%, 560px);
+  max-width: 100%;
+  max-height: 90dvh;
+  margin: 0 auto;
+  padding: 0;
+  border: 1px solid var(--buddy-border);
+  border-radius: 22px 22px 0 0;
+  background: var(--buddy-bg);
+  color: var(--buddy-text);
+  overflow: hidden;
+}
+
+.gt-dialog::backdrop {
+  background: rgb(0 0 0 / .55);
+}
+
+.gt-dialog header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: .6rem 1rem;
+  border-bottom: 1px solid var(--buddy-border);
+}
+
+.gt-dialog h2 {
+  font-size: 1.05rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.gt-dialog h3 {
+  font-size: .95rem;
+  margin: 1.2rem 0 .7rem;
+}
+
+.gt-sheet-body {
+  max-height: calc(90dvh - 74px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
 }
 
 .gt-form {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 0.6rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  gap: .8rem;
 }
 
-.gt-form input, .gt-form select {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  padding: 0.35rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-}
-
-.gt-form-row {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.gt-form-row input, .gt-form-row select { flex: 1; }
-
-.gt-submit-btn {
-  background: #a855f7;
-  border: none;
-  color: #fff;
-  font-weight: 700;
-  padding: 0.3rem 0.8rem;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  cursor: pointer;
-}
-
-.gt-list {
+.gt-form label,
+.gt-field {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  max-height: 320px;
-  overflow-y: auto;
+  gap: .4rem;
+  font-size: .8rem;
 }
 
-.gt-card {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  padding: 0.6rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-
-.gt-card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.gt-title { font-size: 0.8rem; font-weight: 700; }
-
-.gt-card-actions { display: flex; gap: 0.15rem; flex-shrink: 0; }
-
-.gt-icon-btn {
-  background: none;
-  border: none;
-  color: #64748b;
-  font-size: 0.7rem;
-  cursor: pointer;
-  padding: 0.15rem 0.25rem;
-  border-radius: 5px;
-  line-height: 1;
-}
-
-.gt-icon-btn:hover { background: rgba(255, 255, 255, 0.08); }
-.gt-icon-btn.danger { color: #f87171; }
-
-.gt-category {
-  align-self: flex-start;
-  font-size: 0.55rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: #c084fc;
-  background: rgba(168, 85, 247, 0.15);
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
-}
-
-/* Splněný cíl se odliší, ať je v seznamu na první pohled poznat */
-.gt-card.is-done { border-color: rgba(16, 185, 129, 0.35); }
-.gt-card.is-done .gt-percent { color: #34d399; }
-.gt-card.is-done .gt-progress-fill {
-  background: linear-gradient(90deg, #10b981, #34d399);
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
-}
-
-.gt-summary {
-  font-size: 0.7rem;
-  font-weight: 700;
-  color: #94a3b8;
-}
-
-.gt-filters {
-  display: flex;
-  gap: 0.3rem;
-  flex-wrap: wrap;
-}
-
-.gt-filter-chip {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
-  padding: 0.2rem 0.55rem;
-  border-radius: 12px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.gt-filter-chip.active {
-  background: rgba(168, 85, 247, 0.2);
-  color: #c084fc;
-  border-color: rgba(168, 85, 247, 0.4);
-}
-
-.gt-form-title {
-  font-size: 0.68rem;
-  font-weight: 800;
-  color: #c084fc;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-}
-
-/* Řádek s ubráním a přidáním pokroku */
-.gt-step-row {
-  display: flex;
-  gap: 0.35rem;
-  align-items: stretch;
-  margin-top: 0.2rem;
-}
-
-.gt-step-btn {
-  width: 30px;
-  flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #cbd5e1;
-  font-size: 0.9rem;
-  font-weight: 800;
-  border-radius: 6px;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.gt-step-btn:disabled { opacity: 0.35; cursor: not-allowed; }
-
-.gt-info {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.65rem;
-  color: #94a3b8;
-}
-
-.gt-percent { color: #c084fc; font-weight: 800; }
-
-.gt-progress-bg {
-  width: 100%;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-.gt-progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #a855f7, #c084fc);
-  box-shadow: 0 0 8px rgba(168, 85, 247, 0.5);
-  transition: width 0.3s ease;
-}
-
-.gt-inc-btn {
-  background: rgba(168, 85, 247, 0.15);
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  color: #c084fc;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 0.25rem;
-  border-radius: 6px;
-  cursor: pointer;
+.gt-form-row > * {
   flex: 1;
+  min-width: 0;
 }
 
-.gt-inc-btn:disabled {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #34d399;
-  cursor: default;
+.gt-dialog input:not([type=checkbox]),
+.gt-dialog select,
+.gt-dialog textarea {
+  min-width: 0;
+  width: 100%;
+  min-height: 44px;
+  padding: .65rem;
+  border: 1px solid var(--buddy-border);
+  border-radius: 10px;
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+  font-size: 1rem;
 }
 
-.gt-empty {
-  margin: 0;
-  padding: 1.2rem 0.5rem;
-  text-align: center;
-  font-size: 0.8rem;
-  line-height: 1.45;
-  color: #94a3b8;
-}
-
-/* ------------------------------------------
-   HLAVIČKA — šablony vedle "+ Nový cíl"
-   ------------------------------------------ */
-.gt-header-actions { display: flex; gap: 0.35rem; align-items: center; }
-
-.gt-sablony-btn {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
-  font-size: 0.9rem;
-  padding: 0.25rem 0.5rem;
-  border-radius: 8px;
-  cursor: pointer;
-  line-height: 1;
-}
-
-.gt-sablony-btn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-/* ------------------------------------------
-   META ŘÁDEK — priorita/termín/typ/milníky vedle kategorie
-   ------------------------------------------ */
-.gt-meta-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  align-items: center;
-}
-
-.gt-priorita-pill,
-.gt-typ-pill,
-.gt-termin-pill,
-.gt-milnik-pocet {
-  font-size: 0.55rem;
-  font-weight: 800;
-  padding: 0.1rem 0.4rem;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-.gt-priorita-pill--vysoka { color: #f87171; background: rgba(248, 113, 113, 0.15); }
-.gt-priorita-pill--stredni { color: #fbbf24; background: rgba(251, 191, 36, 0.15); }
-.gt-priorita-pill--nizka { color: #94a3b8; background: rgba(148, 163, 184, 0.15); }
-
-.gt-typ-pill { color: #38bdf8; background: rgba(56, 189, 248, 0.15); }
-
-.gt-termin-pill--overdue { color: #f87171; background: rgba(248, 113, 113, 0.15); }
-.gt-termin-pill--today { color: #fbbf24; background: rgba(251, 191, 36, 0.15); }
-.gt-termin-pill--soon { color: #38bdf8; background: rgba(56, 189, 248, 0.15); }
-.gt-termin-pill--later { color: #94a3b8; background: rgba(148, 163, 184, 0.15); }
-
-.gt-milnik-pocet { color: #34d399; background: rgba(52, 211, 153, 0.15); }
-
-/* ------------------------------------------
-   NÁVYKOVÉ CÍLE
-   ------------------------------------------ */
-.gt-navyk-btn {
-  background: rgba(168, 85, 247, 0.15);
-  border: 1px solid rgba(168, 85, 247, 0.3);
-  color: #c084fc;
-  font-size: 0.68rem;
-  font-weight: 700;
-  padding: 0.4rem;
-  border-radius: 6px;
-  cursor: pointer;
-  margin-top: 0.2rem;
-}
-
-.gt-navyk-btn.is-done {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.3);
-  color: #34d399;
-}
-
-/* ------------------------------------------
-   ROZBALENÝ DETAIL — poznámka + milníky
-   ------------------------------------------ */
-.gt-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  margin-top: 0.3rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.gt-detail-label {
-  font-size: 0.6rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-  color: #64748b;
-}
-
-/* Heatmapa historie návyku — prostá mřížka čtverečků, žádná knihovna,
-   stejný "appka si graf poskládá z pole divů" vzor jako Writer Roomova
-   14denní aktivita. 14 sloupců × 6 řádků = 84 dní (12 týdnů). */
-.gt-heatmapa {
-  display: grid;
-  grid-template-columns: repeat(14, 1fr);
-  gap: 3px;
-}
-
-.gt-heatmapa-den {
-  aspect-ratio: 1;
-  border-radius: 2px;
-  background: rgba(255, 255, 255, 0.06);
-}
-
-.gt-heatmapa-den.je-oznaceno {
-  background: var(--accent-green, #34d399);
-}
-
-.gt-poznamka-textarea {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  padding: 0.4rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.72rem;
-  font-family: inherit;
+.gt-dialog textarea {
   resize: vertical;
 }
 
-.gt-milniky-seznam { display: flex; flex-direction: column; gap: 0.25rem; }
+.gt-field {
+  margin-bottom: .65rem;
+}
 
-.gt-milnik-radek {
+.gt-hint {
+  color: var(--buddy-muted);
+  font-size: .75rem;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: .4rem 0 .7rem;
+}
+
+.gt-error {
+  border: 1px solid var(--buddy-danger);
+  border-radius: 10px;
+  padding: .65rem;
+  color: var(--buddy-danger);
+  font-size: .8rem;
+  line-height: 1.6;
+}
+
+.gt-template {
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-}
-
-.gt-milnik-checkbox {
-  background: none;
-  border: none;
-  color: #94a3b8;
-  font-size: 0.85rem;
-  cursor: pointer;
-  line-height: 1;
-  padding: 0;
-  flex-shrink: 0;
-}
-
-.gt-milnik-checkbox.is-done { color: #34d399; }
-
-.gt-milnik-text {
-  flex: 1;
-  font-size: 0.72rem;
-  color: #e2e8f0;
+  flex-direction: column;
+  gap: .4rem;
+  text-align: left;
+  width: 100%;
+  min-height: 48px;
+  padding: .8rem .3rem;
+  border: 0;
+  border-bottom: 1px solid var(--buddy-border);
+  background: transparent;
+  color: var(--buddy-text);
+  font-size: .9rem;
   overflow-wrap: anywhere;
 }
 
-.gt-milnik-text.is-done { color: #64748b; text-decoration: line-through; }
-
-.gt-milnik-smazat {
-  background: none;
-  border: none;
-  color: #64748b;
-  font-size: 0.65rem;
-  cursor: pointer;
-  flex-shrink: 0;
+.gt-template span {
+  font-size: .75rem;
+  color: var(--buddy-muted);
 }
 
-.gt-milniky-prazdno {
-  margin: 0;
-  font-size: 0.68rem;
-  color: #64748b;
+.gt-template:disabled {
+  opacity: .6;
 }
 
-.gt-pridat-milnik-form {
+.gt-milestone {
   display: flex;
-  gap: 0.35rem;
-}
-
-.gt-pridat-milnik-form input {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  padding: 0.3rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.7rem;
-}
-
-/* ------------------------------------------
-   ARCHIV SPLNĚNÝCH CÍLŮ
-   ------------------------------------------ */
-.gt-archiv { margin-top: 0.2rem; }
-
-.gt-archiv-hlavicka {
-  width: 100%;
-  display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.45rem 0.6rem;
-  border-radius: 8px;
-  cursor: pointer;
+  gap: .4rem;
+  border-bottom: 1px solid var(--buddy-border);
 }
 
-.gt-archiv-telo {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-top: 0.5rem;
-}
-
-/* ------------------------------------------
-   PŘEPÍNAČ TYPU (Cíl / Návyk)
-   ------------------------------------------ */
-.gt-typ-prepinac { display: flex; gap: 0.35rem; }
-
-.gt-typ-btn {
-  flex: 1;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
-  font-size: 0.7rem;
-  font-weight: 700;
-  padding: 0.3rem;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.gt-typ-btn.active {
-  background: rgba(168, 85, 247, 0.2);
-  color: #c084fc;
-  border-color: rgba(168, 85, 247, 0.4);
-}
-
-/* ------------------------------------------
-   ŠABLONY — malý overlay, stejný tvar jako NahlasitDialog jinde v appce
-   ------------------------------------------ */
-.gt-sablony-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+.gt-milestone label {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 50;
-  padding: 1rem;
-}
-
-.gt-sablony-sheet {
-  background: #12172a;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 14px;
-  padding: 0.8rem;
-  width: 100%;
-  max-width: 360px;
-  max-height: 80vh;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.gt-sablony-hlavicka {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.85rem;
-  font-weight: 800;
-  margin-bottom: 0.2rem;
-}
-
-.gt-sablona-radek {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.15rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 0.5rem 0.6rem;
-  cursor: pointer;
-  text-align: left;
-  font-family: inherit;
-  color: #fff;
-}
-
-.gt-sablona-radek:hover { border-color: rgba(168, 85, 247, 0.4); }
-
-.gt-sablona-nazev { font-size: 0.75rem; font-weight: 700; }
-.gt-sablona-popis { font-size: 0.65rem; color: #94a3b8; }
-
-.gt-sablona-radek.je-zamceno { opacity: 0.75; }
-
-.gt-vip-odznak {
-  display: inline-flex;
-  margin-left: 0.35rem;
-  font-size: 0.65rem;
-  font-weight: 700;
-  color: #f5c451;
-  vertical-align: middle;
-}
-
-/* ------------------------------------------
-   VLASTNÍ MNOŽSTVÍ POKROKU — malé pole vedle ±1 tlačítek, pro cíle
-   s velkým target (peníze, stránky), kde by přidávání po jedné bylo
-   nepoužitelné.
-   ------------------------------------------ */
-.gt-vlastni-row {
-  display: flex;
-  gap: 0.35rem;
-  margin-top: 0.2rem;
-}
-
-.gt-vlastni-input {
+  gap: .7rem;
   flex: 1;
   min-width: 0;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  padding: 0.25rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.68rem;
+  min-height: 44px;
+  font-size: .85rem;
 }
 
-.gt-vlastni-btn {
+.gt-milestone span {
+  overflow-wrap: anywhere;
+}
+
+.gt-milestone input {
+  width: 20px;
+  height: 20px;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #cbd5e1;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 0.25rem 0.55rem;
-  border-radius: 6px;
-  cursor: pointer;
+  accent-color: var(--buddy-accent);
 }
 
-.gt-vlastni-btn:hover { border-color: rgba(168, 85, 247, 0.4); color: #c084fc; }
-
-/* ------------------------------------------
-   OSLAVA PŘI SPLNĚNÍ CÍLE — krátký banner nahoře v kartě, sám zmizí po
-   pár vteřinách (viz oslavaTimerRef v GoalTracker.tsx), žádné tlačítko
-   na zavření.
-   ------------------------------------------ */
-.gt-oslava {
-  background: linear-gradient(90deg, rgba(16, 185, 129, 0.25), rgba(52, 211, 153, 0.1));
-  border: 1px solid rgba(52, 211, 153, 0.4);
-  color: #34d399;
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-align: center;
-  padding: 0.4rem;
-  border-radius: 8px;
-  margin-bottom: 0.4rem;
-  animation: gtOslavaPop 0.35s ease;
+.gt-milestone input:checked + span {
+  text-decoration: line-through;
+  color: var(--buddy-muted);
 }
 
-@keyframes gtOslavaPop {
-  from { opacity: 0; transform: scale(0.9); }
-  to { opacity: 1; transform: scale(1); }
+.gt-add-milestone {
+  display: flex;
+  gap: .5rem;
+  margin: 1rem 0;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .gt-oslava { animation: none; }
+.gt-detail-actions {
+  margin-top: 1.2rem;
 }
+
+.gt-heatmap {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 5px;
+}
+
+.gt-heatmap span {
+  aspect-ratio: 1.5;
+  border-radius: 5px;
+  background: var(--buddy-raised);
+  border: 1px solid var(--buddy-border);
+}
+
+.gt-heatmap span[data-checked=true] {
+  background: var(--buddy-accent);
+  border-color: var(--buddy-accent);
+}
+
+.gt-dialog .gt-danger {
+  color: var(--buddy-danger);
+}
+
+.gt-app :focus-visible,
+.gt-dialog :focus-visible {
+  outline: 2px solid var(--buddy-accent);
+  outline-offset: 2px;
+}
+
+@media (min-width: 768px) {
+  .gt-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-height: 620px) {
+  .gt-summary {
+    display: none;
+  }
+
+  .gt-controls {
+    gap: .3rem;
+    padding-bottom: .35rem;
+    max-height: 40%;
+    overflow: auto;
+  }
+
+  .gt-header {
+    padding-block: .2rem;
+  }
+  }
