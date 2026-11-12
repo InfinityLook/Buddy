@@ -291,4 +291,5 @@
 }
 
 @keyframes rooms-caption-in {
-  from { opacity: .55; transform: translateY
+  from { opacity: .55; transform: translateY(8px); }
+}
