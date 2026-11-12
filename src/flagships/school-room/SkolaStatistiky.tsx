@@ -11,6 +11,7 @@ import { useRozvrh } from '@/miniapps/rozvrh/useRozvrh'
 import { PRAH_RIZIKA_DOCHAZKY, spocitejDochazkuPodlePredmetu } from '@/miniapps/rozvrh/types'
 import { spocitejTrendZnamek } from './skolaStats'
 import { AppIcon } from '@/pages/app/components/AppIcon'
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import '@/pages/app/AppModule.css'
@@ -85,28 +86,14 @@ export const SkolaStatistiky: React.FC = () => {
     // appka ji obaluje jen do <SurfaceThemeScope>, žádný <SurfaceBackdrop>
     // ani ruční rootAttributes — vlastní obrázek pozadí nemá, dědí motiv
     // od School Roomu samotného.
-    <SurfaceThemeScope surfaceId="school-stats">
-    <div className="app-container">
-      <header className="app-header">
-        <button className="app-back-btn" aria-label="Zpět" onClick={() => navigate('/skola')}>
-          <AppIcon name="arrow-left" size={18} />
-        </button>
+    <SurfaceThemeScope surfaceId="school-stats" className="sr-subpage">
+    <div className="app-container app-container--shared-header">
+      <BuddyHeader title="Statistiky" icon="bar-chart" onBack={() => navigate('/skola')} />
 
-        <div className="app-header-center">
-          <div className="app-header-title-wrap">
-            <AppIcon name="bar-chart" size={22} className="app-header-icon" />
-            <h1>Statistiky</h1>
-          </div>
-          <p>Podrobný pohled na tvůj pokrok</p>
-        </div>
-
-        <div className="app-header-actions" />
-      </header>
-
-      <div className="sr-panel">
+      <div className="sr-panel buddy-ui-card">
         <div className="sr-panel-hlavicka">
           <h2>Úkoly</h2>
-          <button className="sr-otevrit-btn" onClick={() => otevritMiniaplikaci('study-planner')}>
+          <button type="button" className="sr-otevrit-btn buddy-ui-button" onClick={() => otevritMiniaplikaci('study-planner')}>
             Otevřít Planer ›
           </button>
         </div>
@@ -141,10 +128,10 @@ export const SkolaStatistiky: React.FC = () => {
         </div>
       </div>
 
-      <div className="sr-panel">
+      <div className="sr-panel buddy-ui-card">
         <div className="sr-panel-hlavicka">
           <h2>Kalendář</h2>
-          <button className="sr-otevrit-btn" onClick={() => otevritMiniaplikaci('kalendar')}>
+          <button type="button" className="sr-otevrit-btn buddy-ui-button" onClick={() => otevritMiniaplikaci('kalendar')}>
             Otevřít Kalendář ›
           </button>
         </div>
@@ -179,10 +166,10 @@ export const SkolaStatistiky: React.FC = () => {
           — appka nemá nutit uživatele bez rizika koukat na prázdnou
           "vše v pořádku" kartu navíc. */}
       {rizikoveDochazky.length > 0 && (
-        <div className="sr-panel">
+        <div className="sr-panel buddy-ui-card">
           <div className="sr-panel-hlavicka">
             <h2>⚠️ Riziko docházky</h2>
-            <button className="sr-otevrit-btn" onClick={() => otevritMiniaplikaci('rozvrh')}>
+            <button type="button" className="sr-otevrit-btn buddy-ui-button" onClick={() => otevritMiniaplikaci('rozvrh')}>
               Otevřít Rozvrh ›
             </button>
           </div>
@@ -199,10 +186,10 @@ export const SkolaStatistiky: React.FC = () => {
         </div>
       )}
 
-      <div className="sr-panel">
+      <div className="sr-panel buddy-ui-card">
         <div className="sr-panel-hlavicka">
           <h2>Pomodoro</h2>
-          <button className="sr-otevrit-btn" onClick={() => otevritMiniaplikaci('pomodoro')}>
+          <button type="button" className="sr-otevrit-btn buddy-ui-button" onClick={() => otevritMiniaplikaci('pomodoro')}>
             Otevřít Pomodoro ›
           </button>
         </div>
@@ -224,10 +211,10 @@ export const SkolaStatistiky: React.FC = () => {
           předměty/kredity/průměry) s Planerem (kolik nesplněných úkolů
           patří ke kterému). Žádný nový store, jen spojení dvou už
           existujících appek na jedné obrazovce. */}
-      <div className="sr-panel">
+      <div className="sr-panel buddy-ui-card">
         <div className="sr-panel-hlavicka">
           <h2>Předměty (semestr)</h2>
-          <button className="sr-otevrit-btn" onClick={() => otevritMiniaplikaci('znamky')}>
+          <button type="button" className="sr-otevrit-btn buddy-ui-button" onClick={() => otevritMiniaplikaci('znamky')}>
             Otevřít Známky ›
           </button>
         </div>
@@ -284,7 +271,7 @@ export const SkolaStatistiky: React.FC = () => {
           "Celkový průměr" výš). Sloupec bez jediné zapsané známky
           zůstane šedý, ne prázdný — vidět, že měsíc prostě chybí, je
           taky informace. */}
-      <div className="sr-panel">
+      <div className="sr-panel buddy-ui-card">
         <div className="sr-panel-hlavicka">
           <h2>Trend známek</h2>
           <p>Vážený průměr napříč předměty za posledních 6 měsíců</p>

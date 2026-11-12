@@ -7,6 +7,7 @@ interface BuddyHeaderProps {
   headingLevel?: 1 | 2
   subtitle?: string
   icon?: string
+  leading?: ReactNode
   actions?: ReactNode
   onBack?: () => void
   backLabel?: string
@@ -19,6 +20,7 @@ export function BuddyHeader({
   headingLevel = 1,
   subtitle,
   icon,
+  leading,
   actions,
   onBack,
   backLabel = 'Zpět',
@@ -38,6 +40,7 @@ export function BuddyHeader({
           <AppIcon name="arrow-left" size={20} />
         </button>
       )}
+      {leading}
       <div className="buddy-ui-header-copy">
         <div className="buddy-ui-header-title">
           {icon && <AppIcon name={icon} size={20} />}

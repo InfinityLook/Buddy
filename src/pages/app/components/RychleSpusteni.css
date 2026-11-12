@@ -1,215 +1,63 @@
-/* RychleSpusteni.tsx — vlastní CSS, appka to tak dělá pro každou
-   obrazovku (viz CLAUDE.md's poznámka u GameModule.css). Barvy čtou
-   appčiny globální tokeny (--accent-*) z styles/global.css přímo, ne
-   AppModule.css's lokální --app-* aliasy — ty zůstaly zredukované jen
-   na to, co doopravdy potřebuje hlavička/fullscreen zobrazení. */
-
-.rs-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+.rs-section,
+.rs-skupina {
+  display: grid;
+  gap: .6rem;
 }
 
-.rs-nadpis {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.05rem;
-  font-weight: 800;
-  margin: 0;
-  color: var(--text-primary);
-}
+.rs-section { gap: 1rem; }
 
-/* Raketa zůstává zlatá i mimo samotný nápis (viz .rs-nadpis výš, co
-   drží text bílý) — appka ikonu barví přes vlastní třídu, ne skrz
-   zdědění z rodiče. */
-.rs-nadpis-icon {
-  color: var(--accent-orange);
-  flex-shrink: 0;
-}
-
-.rs-popis {
-  font-size: 0.78rem;
-  color: var(--text-secondary);
-  margin: -0.3rem 0 0.2rem;
-}
-
-/* Pilulkový tvar + sklovitý vzhled jako appčiny ostatní vyhledávací/
-   vstupní pole v novém stylu modulu — zlatá záře při zaměření místo
-   dřívější natvrdo zapsané cyan rgba. */
 .rs-search-box {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-pill);
-  padding: 0.65rem 1rem;
-  backdrop-filter: blur(10px);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  gap: .4rem;
+  padding: .35rem .7rem;
+  color: var(--buddy-accent);
 }
 
-.rs-search-icon {
-  color: var(--accent-orange);
-  flex-shrink: 0;
-}
+.rs-search-box > span { display: flex; flex: none; }
+.rs-search-box .buddy-ui-input { flex: 1; padding-inline: .4rem; border-color: transparent; }
+.rs-search-box input::-webkit-search-cancel-button { display: none; }
+.rs-search-box .buddy-ui-input:focus-visible { outline-offset: -2px; }
 
-.rs-search-box:focus-within {
-  border-color: color-mix(in srgb, var(--accent-orange) 55%, transparent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-orange) 18%, transparent);
-}
+.rs-prazdno { margin: 0; overflow-wrap: anywhere; }
 
-.rs-search-box input {
-  background: transparent;
-  border: none;
-  outline: none;
-  color: var(--text-primary);
-  font-size: 0.85rem;
-  width: 100%;
-  min-width: 0;
-}
-
-.rs-search-clear {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: var(--text-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.rs-search-clear:hover {
-  color: var(--text-primary);
-}
-
-.rs-prazdno {
-  text-align: center;
-  color: var(--text-secondary);
-  font-size: 0.82rem;
-  padding: 1.5rem 0.5rem;
+.rs-skupina h2 {
   margin: 0;
-}
-
-.rs-skupina {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.rs-skupina-nadpis {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-/* Dekorativní oddělovač za názvem kategorie (viz RychleSpusteni.tsx's
-   <span aria-hidden>) — tenká zlatavá čára dojíždějící do ztracena,
-   ne druhý nápis ani ikona. */
-.rs-skupina-ornament {
-  flex: 1;
-  height: 1px;
-  min-width: 16px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--accent-orange) 45%, transparent), transparent);
+  color: var(--buddy-text);
+  font-size: .9rem;
+  font-weight: 750;
 }
 
 .rs-mrizka {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
-  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr));
+  gap: .5rem;
 }
 
-.rs-dlazdice {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  background: var(--bg-glass);
-  border: 1px solid var(--border-subtle);
-  border-radius: 14px;
-  padding: 0.75rem 0.4rem;
-  cursor: pointer;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+.rs-dlazdice.buddy-ui-button {
+  justify-content: flex-start;
+  min-height: 58px;
+  padding: .45rem;
+  text-align: start;
+  overflow-wrap: anywhere;
+  font-size: .8rem;
+  border-color: var(--buddy-border);
 }
-
-/* Výchozí/fallback hover obrys (dlaždice bez vlastní ikonové barvy
-   níž) — Buddy v2 (přehodnoceno pro "Čistý den"): pevná bílá na 18%
-   opacitě byla proti bílému panelu "Čistého dne" málo viditelná;
-   color-mix s --text-primary dá appce viditelný, ale stejně jemný
-   obrys na jakémkoli motivu. */
-.rs-dlazdice:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--text-primary) 18%, transparent);
-}
-
-/* Barva při hoveru se řídí tím, jakou .rs-dlazdice-ikona dlaždice
-   doopravdy nese (:has() na jejího potomka) — stejná šestice hex
-   hodnot jako .rs-dlazdice-ikona.<barva> výš, ne nový nezávislý
-   výběr, ať glow vždycky sedí s barvou appčiny vlastní ikonové
-   dlaždice. */
-.rs-dlazdice:has(.rs-dlazdice-ikona.purple):hover { border-color: color-mix(in srgb, var(--buddy-app-purple-2) 50%, transparent); box-shadow: 0 10px 22px color-mix(in srgb, var(--buddy-app-purple) 28%, transparent); }
-.rs-dlazdice:has(.rs-dlazdice-ikona.cyan):hover { border-color: color-mix(in srgb, var(--buddy-app-cyan-2) 50%, transparent); box-shadow: 0 10px 22px color-mix(in srgb, var(--buddy-app-cyan) 28%, transparent); }
-.rs-dlazdice:has(.rs-dlazdice-ikona.orange):hover { border-color: color-mix(in srgb, var(--buddy-app-orange-2) 50%, transparent); box-shadow: 0 10px 22px color-mix(in srgb, var(--buddy-app-orange) 28%, transparent); }
-.rs-dlazdice:has(.rs-dlazdice-ikona.green):hover { border-color: color-mix(in srgb, var(--buddy-app-green-2) 50%, transparent); box-shadow: 0 10px 22px color-mix(in srgb, var(--buddy-app-green) 28%, transparent); }
-.rs-dlazdice:has(.rs-dlazdice-ikona.pink):hover { border-color: color-mix(in srgb, var(--buddy-app-pink-2) 50%, transparent); box-shadow: 0 10px 22px color-mix(in srgb, var(--buddy-app-pink) 28%, transparent); }
-.rs-dlazdice:has(.rs-dlazdice-ikona.gold):hover { border-color: color-mix(in srgb, var(--buddy-app-gold-2) 50%, transparent); box-shadow: 0 10px 22px color-mix(in srgb, var(--buddy-app-gold) 28%, transparent); }
 
 .rs-dlazdice-ikona {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  flex-shrink: 0;
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--buddy-ui-control-radius);
+  color: var(--buddy-text);
+  background: color-mix(in srgb, var(--rs-icon-color, var(--buddy-accent)) 26%, var(--buddy-panel));
 }
 
-/* Appka tu barvy čte z appčiny motivové šestice (buddy-theme-tokens.css's
-   --buddy-app-<color>/-2, jedna sada na motiv appky) — appka tím
-   reaguje na zvolený motiv appky, ne natvrdo daných šest hex dvojic
-   jako dřív. RoomCarousel.tsx's GRADIENTY je stejná myšlenka v JS
-   (appka je potřebuje i jako inline --rc-a/--rc-b proměnné), malá
-   přijatá duplikace mezi dvěma nezávislými appky stejná jako BARVY_UZLU
-   jinde v appce, ne sdílený import. */
-.rs-dlazdice-ikona.purple { background: linear-gradient(135deg, var(--buddy-app-purple), var(--buddy-app-purple-2)); }
-.rs-dlazdice-ikona.cyan { background: linear-gradient(135deg, var(--buddy-app-cyan), var(--buddy-app-cyan-2)); }
-.rs-dlazdice-ikona.orange { background: linear-gradient(135deg, var(--buddy-app-orange), var(--buddy-app-orange-2)); }
-.rs-dlazdice-ikona.green { background: linear-gradient(135deg, var(--buddy-app-green), var(--buddy-app-green-2)); }
-.rs-dlazdice-ikona.pink { background: linear-gradient(135deg, var(--buddy-app-pink), var(--buddy-app-pink-2)); }
-.rs-dlazdice-ikona.gold { background: linear-gradient(135deg, var(--buddy-app-gold), var(--buddy-app-gold-2)); }
-
-.rs-dlazdice-nazev {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  text-align: center;
-  line-height: 1.25;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-@media (max-width: 380px) {
-  .rs-mrizka {
-    grid-template-columns: repeat(auto-fill, minmax(66px, 1fr));
-    gap: 0.5rem;
-  }
-
-  .rs-dlazdice-ikona {
-    width: 36px;
-    height: 36px;
-  }
-}
+.rs-dlazdice-ikona.purple { --rs-icon-color: var(--buddy-app-purple); }
+.rs-dlazdice-ikona.cyan { --rs-icon-color: var(--buddy-app-cyan); }
+.rs-dlazdice-ikona.orange { --rs-icon-color: var(--buddy-app-orange); }
+.rs-dlazdice-ikona.green { --rs-icon-color: var(--buddy-app-green); }
+.rs-dlazdice-ikona.pink { --rs-icon-color: var(--buddy-app-pink); }
+.rs-dlazdice-ikona.gold { --rs-icon-color: var(--buddy-app-gold); }

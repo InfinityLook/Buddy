@@ -580,7 +580,7 @@ export function Pomodoro({
           <Icon name="next" />
         </button>
 
-        <div className="pomo-timer">
+        <div className="pomo-timer" data-timer-state={p.isRunning ? 'running' : p.block ? 'paused' : status.finished ? 'finished' : 'ready'}>
           <svg
             className="pomo-ring"
             viewBox="0 0 240 240"
@@ -823,7 +823,7 @@ export function Pomodoro({
         )}
 
         <button
-          className="pomo-daily"
+          className="pomo-daily buddy-ui-card"
           type="button"
           onClick={() => setPanel('stats')}
           aria-label="Otevřít denní statistiky"

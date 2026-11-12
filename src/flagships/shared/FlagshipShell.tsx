@@ -95,7 +95,7 @@ export const FlagshipShell: React.FC<Props> = ({
         title={nazev}
         subtitle={popisHlavicky}
         icon={ikonaHlavicky}
-        onBack={() => navigate('/rooms')}
+        onBack={() => navigate('/rooms', { state: { selectedRoom: surfaceId } })}
         unreadCount={unreadCount}
         onOpenNotifications={onOpenNotifications}
         extraActions={
@@ -131,6 +131,7 @@ export const FlagshipShell: React.FC<Props> = ({
       <AppBottomNav />
 
       <ProfilNotifications
+        callerId={surfaceId}
         open={notifOpen}
         readIds={profile.readNotifications}
         onMarkRead={markNotificationRead}

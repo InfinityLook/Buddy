@@ -259,3 +259,18 @@
     display: none;
   }
 }
+
+.app-page > .app-container--launcher {
+  overflow: hidden;
+  background: transparent;
+  padding-bottom: calc(.5rem + env(safe-area-inset-bottom));
+}
+
+.app-catalog-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding: .15rem .2rem .7rem;
+}

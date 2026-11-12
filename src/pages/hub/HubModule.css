@@ -96,156 +96,38 @@
   max-width: 480px;
   height: 100%;
   margin: 0 auto;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;
   color: var(--text-primary);
   padding: calc(0.9rem + env(safe-area-inset-top)) 1rem
-    calc(1.25rem + env(safe-area-inset-bottom)) 1rem;
+    calc(.45rem + env(safe-area-inset-bottom)) 1rem;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
 }
 
-/* ------------------------------------------
-   HEADER
-   Logo ("BuddyZone") + dvě akce (zvonek/avatar) — appka dřív měla pod
-   logem ještě podtitul a lupu jako třetí ikonu vedle zvonku, obojí je
-   pryč (lupa se přestěhovala do AppBottomNav.tsx místo tlačítka
-   "Social"). Odhlášení je v Nastavení (settings-danger-btn tam), appka
-   bez toho neměla jinou cestu ven z účtu.
-   ------------------------------------------ */
-/* Buddy v2 — appka migrovala na --bg-base, ne pevnou tmavě navy. Hub
-   teď doopravdy zná appčin motiv (viz výš) a hlavička sedí nad appčinou
-   vlastní fotkou soumraku/overlayem, ne appčiným plochým panelem —
-   proto appka volí barvu podle --bg-base (appčino "jak tmavá/světlá
-   appka celkově cítí daný motiv"), ne --text-primary jako jinde, ať
-   "sklo" zůstane sklem (tmavý motiv = tmavší sklo, "Čistý den" =
-   světlejší sklo), ne obráceně barveno textovou barvou. */
-.hub-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 0.75rem;
-  background: color-mix(in srgb, var(--bg-base) 55%, transparent);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  padding: 0.6rem 0.7rem;
-  backdrop-filter: blur(16px);
-}
-
-.hub-logo {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-  min-width: 0;
-}
-
-/* Vlčí/liščí maskot v hlavičce — stejná fotka jako prostřední tlačítko
-   spodní lišty (public/maskot/buddy-vlk.png), žádný druhý crop. Nahradila
-   dřívější ✦ značku. */
 .hub-logo-img {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
+  flex: none;
+  width: 36px;
+  height: 36px;
   object-fit: cover;
-  object-position: center top;
-  border: 1.5px solid var(--border-strong);
-  flex-shrink: 0;
-  display: block;
+  border: 1px solid var(--buddy-control-border);
+  border-radius: var(--buddy-ui-control-radius);
 }
 
-.hub-logo-text-col {
+.hub-content {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.05rem;
-  min-width: 0;
+  gap: .65rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
 }
 
-.hub-logo-text {
-  font-size: 1.2rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  background: linear-gradient(100deg, #4cc9f0 0%, #35c4f0 40%, #6aa8ff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
+.hub-content > * { flex: none; }
 
-.hub-logo-tagline {
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  white-space: nowrap;
-}
 
-.hub-header-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
-/* Buddy v2 — appka migrovala na --bg-base, stejná logika jako
-   .hub-header výš (appka chce "sklo", co sedí na motivu — pevná bílá
-   byla na "Čistém dni" prakticky stejně světlá jako appčin už dřív
-   světlý overlay za ní, takže se kolečko ztratilo; --bg-base appce
-   dává tmavý odstín na tmavých motivech / světlý na "Čistém dni",
-   pořád rozeznatelné proti ikoně v --text-primary uvnitř). */
-.hub-icon-btn {
-  position: relative;
-  background: color-mix(in srgb, var(--bg-base) 8%, transparent);
-  border: 1px solid var(--border-subtle);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-primary);
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-  transition: background 0.2s ease, transform 0.2s ease;
-}
-
-.hub-icon-btn:hover {
-  background: color-mix(in srgb, var(--bg-base) 24%, transparent);
-  transform: translateY(-1px);
-}
-
-/* Odznak na zvonku — appka teď pod ním doopravdy ukazuje poslední
-   upozornění (ProfilNotifications.tsx), ne jen tenhle proxy indikátor.
-   Krok 15b nahradila holou tečku (appka dřív jen signalizovala "něco
-   tu je") skutečným číslem nepřečtených — appka ho stropuje na "9+"
-   v Hub.tsx, ne tady v CSS, ať appka u jedné cifry nemá zbytečně
-   širokou kapsli. */
-/* Buddy v2 — barva čísla na odznaku byla pevně #fff; .social-odznak
-   (SocialModule.css) má přesně stejný tvar (malý počítadlový odznak
-   na var(--accent-magenta)) a appka tam text barví přes
-   var(--text-on-accent) — kalibrovaný přímo na kontrast s accent
-   barvou, ne natvrdo bílý. Appka to teď sjednotila. */
-.hub-icon-badge {
-  position: absolute;
-  top: -2px;
-  right: -2px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 3px;
-  border-radius: 999px;
-  background: var(--accent-magenta);
-  border: 1.5px solid var(--bg-base);
-  color: var(--text-on-accent);
-  font-size: 0.62rem;
-  font-weight: 700;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
 
 /* ------------------------------------------
    ÚROVEŇ A SÉRIE
@@ -1343,7 +1225,7 @@
   }
 
   .hub-wheel {
-    width: min(78vw, 310px);
+    width: min(77vw, 48dvh, 310px);
   }
 }
 
@@ -1356,4 +1238,18 @@
   .hub-container {
     gap: 0.55rem;
   }
+}
+
+
+.hub-wheel-petal-label {
+  padding: .15rem .4rem;
+  border-radius: 1rem;
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+  text-shadow: none;
+}
+
+.hub-wheel :is(.hub-wheel-center, .hub-wheel-petal):focus-visible {
+  outline: 2px solid var(--buddy-accent);
+  outline-offset: 3px;
 }

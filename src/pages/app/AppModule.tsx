@@ -103,6 +103,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   }
 
   if (activeApp && ActiveComponent) {
+    const Content = fullscreenLayout === 'planner' || fullscreenLayout === 'notes' ? 'div' : 'main'
     return (
       <div
         className={`app-fullscreen-view buddy-theme-scope${fullscreenLayout ? ` app-fullscreen-view--${fullscreenLayout}` : ''}`}
@@ -119,7 +120,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
           />
         )}
 
-        <main className="app-fullscreen-content">
+        <Content className="app-fullscreen-content">
           <ErrorBoundary
             key={activeApp.id}
             onBack={fullscreenLayout ? handleCloseApp : undefined}
@@ -138,7 +139,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
               <ActiveComponent {...(fullscreenLayout ? { onBack: handleCloseApp } : {})} />
             </Suspense>
           </ErrorBoundary>
-        </main>
+        </Content>
 
         <AppBottomNav placement="edge" />
       </div>
@@ -152,21 +153,24 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
     >
       <SurfaceBackdrop surfaceId="apps-launcher" />
 
-      <div className="app-container app-container--shared-header">
+      <div className="app-container app-container--shared-header app-container--launcher">
         <AppHeader
           onBack={handleBack}
           onOpenNotifications={() => setNotifOpen(true)}
           unreadCount={unreadCount}
         />
 
-        <RychleSpusteni
-          miniaplikace={miniaplikace}
-          onOpen={id => setActiveAppId(id)}
-        />
+        <main className="app-catalog-content">
+          <RychleSpusteni
+            miniaplikace={miniaplikace}
+            onOpen={id => setActiveAppId(id)}
+          />
+        </main>
 
         <AppBottomNav />
 
         <ProfilNotifications
+          callerId="apps-launcher"
           open={notifOpen}
           readIds={profile.readNotifications}
           onMarkRead={markNotificationRead}

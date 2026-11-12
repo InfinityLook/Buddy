@@ -23,11 +23,8 @@
   box-sizing: border-box;
 }
 
-.qn-app button,
-.qn-app input,
-.qn-app select,
-.qn-dialog button,
-.qn-dialog input {
+.qn-app :where(button:not(.buddy-ui-button), input:not(.buddy-ui-input), select:not(.buddy-ui-input)),
+.qn-dialog :where(button:not(.buddy-ui-button), input:not(.buddy-ui-input)) {
   font: inherit;
 }
 
@@ -39,21 +36,6 @@
 
 .qn-app button:disabled {
   cursor: default;
-}
-
-.qn-header {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  gap: .25rem;
-  padding: calc(.35rem + env(safe-area-inset-top)) .6rem .35rem;
-}
-
-.qn-header h1 {
-  flex: 1;
-  font-size: 1.12rem;
-  font-weight: 700;
-  margin: 0;
 }
 
 .qn-icon {
@@ -236,20 +218,7 @@
   );
 }
 
-.qn-primary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: .45rem;
-  width: 100%;
-  min-height: 48px;
-  padding: .6rem 1rem;
-  border: 0;
-  border-radius: 13px;
-  color: var(--buddy-on-accent);
-  background: var(--buddy-accent);
-  font-weight: 700 !important;
-}
+.qn-primary { width: 100%; }
 
 .qn-text {
   min-height: 40px;
@@ -447,44 +416,6 @@
   font-size: .65rem;
 }
 
-.qn-dialog {
-  position: fixed;
-  inset: auto 0 0;
-  margin: 0 auto;
-  padding: 0;
-  width: min(100%, 560px);
-  max-width: 100%;
-  max-height: 90dvh;
-  border: 1px solid var(--buddy-border);
-  border-radius: 22px 22px 0 0;
-  background: var(--buddy-bg);
-  color: var(--buddy-text);
-  overflow: hidden;
-}
-
-.qn-dialog::backdrop {
-  background: rgb(0 0 0 / .55);
-}
-
-.qn-dialog > header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: .65rem 1rem;
-  border-bottom: 1px solid var(--buddy-border);
-}
-
-.qn-dialog h2 {
-  font-size: 1.05rem;
-  margin: 0;
-}
-
-.qn-panel-body {
-  max-height: calc(90dvh - 70px);
-  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
-  overflow: auto;
-}
-
 .qn-menu-item {
   display: block;
   width: 100%;
@@ -625,3 +556,29 @@
     display: none;
   }
 }
+
+
+.qn-save-status {
+  min-height: 1.65rem;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+}
+
+.qn-save-status::before {
+  content: "";
+  width: .38rem;
+  height: .38rem;
+  border-radius: 50%;
+  background: var(--buddy-accent);
+}
+
+.qn-paper {
+  margin: .35rem .75rem;
+  border: 1px solid var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
+  background: var(--buddy-panel);
+}
+
+.qn-format { scrollbar-width: thin; }
+.qn-format button { min-width: 44px; min-height: 44px; }

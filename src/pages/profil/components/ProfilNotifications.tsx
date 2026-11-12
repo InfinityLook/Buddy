@@ -4,6 +4,7 @@ import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { getXpForNextLevel } from '@/core/utils/gamificationUtils'
 import { nactiOznameni, sledovatOznameni, nactiAktivituPrispevku, sledovatAktivituPrispevku } from '@/core/notifications/api'
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
 import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 export interface NotificationItem {
@@ -18,6 +19,7 @@ export interface NotificationItem {
 const sklonujDny = (pocet: number) => (pocet === 1 ? 'dni' : 'dnech')
 
 interface ProfilNotificationsProps {
+  callerId?: SurfaceId
   open: boolean
   readIds: string[]
   onMarkRead: (id: string) => void
@@ -151,14 +153,15 @@ export const ProfilNotifications: React.FC<ProfilNotificationsProps> = ({
   open,
   readIds,
   onMarkRead,
-  onClose
+  onClose,
+  callerId,
 }) => {
   const notifications = useNotificationItems()
 
   return (
     // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
     // vlastního backdropu, jen dědí motiv od Profilu (profile).
-    <SurfaceThemeScope surfaceId="notifications">
+    <SurfaceThemeScope surfaceId="notifications" callerId={callerId}>
       <div className={`profil-dropdown-overlay ${open ? 'open' : ''}`} onClick={onClose} />
       <div className={`profil-notif-dropdown ${open ? 'open' : ''}`}>
         <div className="profil-notif-header">

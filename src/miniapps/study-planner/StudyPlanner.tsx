@@ -1,3 +1,4 @@
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useAppStore } from '@/core/store/useAppStore'
@@ -94,7 +95,7 @@ export const StudyPlanner = ({ onBack }: { onBack?: () => void }) => {
   })
   const card = (task: StudyTask, deadline = false) => {
     const steps = spocitejPodukoly(task)
-    return <article className={`sp-task${task.completed ? ' sp-task--done' : ''}${isOverdue(task, today) ? ' sp-task--overdue' : ''}`} key={task.id}>
+    return <article className={`buddy-ui-card sp-task${task.completed ? ' sp-task--done' : ''}${isOverdue(task, today) ? ' sp-task--overdue' : ''}`} key={task.id}>
       <button type="button" className="sp-check" role="checkbox" aria-checked={task.completed} aria-label={`Splněno: ${task.topic}`} onClick={() => toggle(task)}><span>{task.completed && <PlannerIcon name="check" size={16} />}</span></button>
       <div className="sp-task-main"><button type="button" className="sp-task-open" onClick={() => ui.setDetail(task.id)}><span className="sp-task-title">{task.topic}</span></button>
         <div className="sp-task-meta">{task.subject && <span className="sp-project">{task.subject}</span>}{task.priority === 'Vysoká' && <span className="sp-priority">Vysoká priorita</span>}</div>
@@ -108,14 +109,28 @@ export const StudyPlanner = ({ onBack }: { onBack?: () => void }) => {
   const group = (title: string, tasks: StudyTask[], deadline = false) => tasks.length > 0 && <section className="sp-group" aria-label={title}><h3>{title}<span>{tasks.length}</span></h3>{tasks.map(task => card(task, deadline))}</section>
 
   return <div className="sp-app buddy-theme-scope" {...rootAttributes}>
-    <header className="sp-header"><button type="button" className="sp-control" aria-label="Zpět" onClick={onBack ?? (() => useAppStore.getState().setActiveAppId(null))}><PlannerIcon name="back" /></button><h1>Plánovač</h1><button type="button" className="sp-control" aria-label="Hledat úkoly" aria-expanded={searchOpen} onClick={() => { if (searchOpen) setQuery(''); setSearchOpen(!searchOpen) }}><PlannerIcon name="search" /></button><button type="button" className={`sp-control${activeFilters ? ' sp-control--active' : ''}`} aria-label="Filtry úkolů" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}><PlannerIcon name="filter" /></button></header>
+    <BuddyHeader
+      title="Plánovač"
+      variant="quiet"
+      onBack={onBack ?? (() => useAppStore.getState().setActiveAppId(null))}
+      actions={
+        <>
+          <button type="button" className="buddy-ui-button buddy-ui-button--icon" aria-label="Hledat úkoly" aria-expanded={searchOpen} onClick={() => { if (searchOpen) setQuery(''); setSearchOpen(!searchOpen) }}>
+            <PlannerIcon name="search" />
+          </button>
+          <button type="button" className={`buddy-ui-button buddy-ui-button--icon${activeFilters ? ' sp-control--active' : ''}`} aria-label="Filtry úkolů" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(!filtersOpen)}>
+            <PlannerIcon name="filter" />
+          </button>
+        </>
+      }
+    />
     <div className="sp-toolbar">
       <div className="sp-heading"><h2>{heading}</h2><p>{dateLabel}</p></div>
-      <div className="sp-tabs" role="group" aria-label="Zobrazení úkolů">{(['dnes', 'tyden', 'vse'] as const).map((view, i) => <button key={view} type="button" aria-pressed={ui.view === view} onClick={() => { ui.setView(view); setInboxOnly(false) }}>{['Dnes', 'Týden', 'Vše'][i]}</button>)}</div>
-      {searchOpen && <div className="sp-search"><PlannerIcon name="search" /><input ref={search} type="search" aria-label="Hledat v úkolech" placeholder="Název, projekt nebo poznámka…" value={query} onChange={event => setQuery(event.target.value)} /><button type="button" className="sp-control" aria-label="Zrušit hledání" onClick={() => { setQuery(''); setSearchOpen(false) }}><PlannerIcon name="close" size={16} /></button></div>}
-      {filtersOpen && <div className="sp-filter-panel"><label>Předmět / projekt<select value={subject} onChange={event => setSubject(event.target.value)}><option value="">Všechny</option>{subjects.map(value => <option key={value}>{value}</option>)}</select></label><label>Priorita<select value={priority} onChange={event => setPriority(event.target.value)}><option value="">Všechny</option>{['Vysoká', 'Střední', 'Nízká'].map(value => <option key={value}>{value}</option>)}</select></label><label>Stav<select value={status} onChange={event => setStatus(event.target.value)}>{['Vše', 'Nesplněné', 'Splněné'].map(value => <option key={value}>{value}</option>)}</select></label><button type="button" className="sp-text-button" onClick={() => { setSubject(''); setPriority(''); setStatus('Vše'); setInboxOnly(false) }}>Vymazat filtry</button></div>}
+      <div className="buddy-ui-segmented" role="group" aria-label="Zobrazení úkolů">{(['dnes', 'tyden', 'vse'] as const).map((view, i) => <button key={view} type="button" aria-pressed={ui.view === view} onClick={() => { ui.setView(view); setInboxOnly(false) }}>{['Dnes', 'Týden', 'Vše'][i]}</button>)}</div>
+      {searchOpen && <div className="sp-search"><PlannerIcon name="search" /><input ref={search} className="buddy-ui-input" type="search" aria-label="Hledat v úkolech" placeholder="Název, projekt nebo poznámka…" value={query} onChange={event => setQuery(event.target.value)} /><button type="button" className="sp-control" aria-label="Zrušit hledání" onClick={() => { setQuery(''); setSearchOpen(false) }}><PlannerIcon name="close" size={16} /></button></div>}
+      {filtersOpen && <div className="sp-filter-panel"><label>Předmět / projekt<select className="buddy-ui-input" value={subject} onChange={event => setSubject(event.target.value)}><option value="">Všechny</option>{subjects.map(value => <option key={value}>{value}</option>)}</select></label><label>Priorita<select className="buddy-ui-input" value={priority} onChange={event => setPriority(event.target.value)}><option value="">Všechny</option>{['Vysoká', 'Střední', 'Nízká'].map(value => <option key={value}>{value}</option>)}</select></label><label>Stav<select className="buddy-ui-input" value={status} onChange={event => setStatus(event.target.value)}>{['Vše', 'Nesplněné', 'Splněné'].map(value => <option key={value}>{value}</option>)}</select></label><button type="button" className="sp-text-button" onClick={() => { setSubject(''); setPriority(''); setStatus('Vše'); setInboxOnly(false) }}>Vymazat filtry</button></div>}
       {ui.view !== 'vse' && <div className="sp-week"><div className="sp-week-controls"><button type="button" className="sp-control" aria-label="Předchozí týden" onClick={() => ui.setDay(shiftDate(ui.day, -7))}><PlannerIcon name="back" size={16} /></button><button type="button" className="sp-text-button" onClick={() => ui.setDay(today)}>Zpět na dnešek</button><button type="button" className="sp-control" aria-label="Další týden" onClick={() => ui.setDay(shiftDate(ui.day, 7))}><PlannerIcon name="next" size={16} /></button></div><div className="sp-week-days">{dates.map(date => <button type="button" key={date} aria-pressed={ui.day === date} aria-label={new Date(`${date}T12:00:00`).toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'long' })} onClick={() => { ui.setDay(date); ui.setView('dnes') }}><span>{new Date(`${date}T12:00:00`).toLocaleDateString('cs-CZ', { weekday: 'short' })}</span><strong>{Number(date.slice(-2))}</strong>{planner.tasks.some(task => !task.completed && scheduledFor(task) === date) && <i aria-hidden="true" />}</button>)}</div></div>}
-      <div className="sp-summary"><span><strong>{summaryTasks.length}</strong> naplánovaných</span><span>{estimated} min{unknownEstimates > 0 && <small> + {unknownEstimates} bez odhadu</small>}</span></div>
+      <div className="sp-summary buddy-ui-card"><span><strong>{summaryTasks.length}</strong> naplánovaných</span><span>{estimated} min{unknownEstimates > 0 && <small> + {unknownEstimates} bez odhadu</small>}</span></div>
       {!online && <p className="sp-offline" role="status">Jsi offline. Změny se ukládají do tohoto zařízení.</p>}
       {(inboxCount > 0 || inboxOnly) && <button type="button" className="sp-inbox" aria-pressed={inboxOnly} onClick={() => { ui.setView('vse'); setInboxOnly(!inboxOnly) }}>Schránka · {inboxCount} bez data{inboxOnly && <span>Zrušit filtr ×</span>}</button>}
     </div>
@@ -127,11 +142,11 @@ export const StudyPlanner = ({ onBack }: { onBack?: () => void }) => {
         return <div key={date}>{group(new Date(`${date}T12:00:00`).toLocaleDateString('cs-CZ', { weekday: 'long', day: 'numeric', month: 'numeric' }), work)}{group(`Odevzdat ${new Date(`${date}T12:00:00`).toLocaleDateString('cs-CZ')}`, deadlines, true)}</div>
       })}
       {ui.view === 'vse' && <>{group('Po termínu', pending.filter(task => isOverdue(task, today)))}{group('Naplánované a s termínem', pending.filter(task => !isOverdue(task, today) && !!scheduledFor(task)))}{group('Schránka · bez data', pending.filter(task => !scheduledFor(task)))}</>}
-      {pending.length === 0 && !(ui.view === 'dnes' && ui.day === today && overdue.length) && <div className="sp-empty"><span className="sp-empty-icon"><PlannerIcon name="calendar" size={28} /></span><h3>{query || activeFilters ? 'Žádné odpovídající úkoly' : planner.totalCount === 0 ? 'Začni jedním úkolem' : 'Tady máš volno'}</h3><p>{query || activeFilters ? 'Zkus jiné hledání nebo uprav filtry.' : 'Přidej úkol nebo si naplánuj práci z přehledu Vše.'}</p><button type="button" className="sp-text-button" onClick={() => { ui.setView('vse'); setQuery(''); setSubject(''); setPriority(''); setStatus('Vše'); setInboxOnly(false) }}>Zobrazit všechny úkoly</button></div>}
+      {pending.length === 0 && !(ui.view === 'dnes' && ui.day === today && overdue.length) && <div className="sp-empty buddy-ui-card"><span className="sp-empty-icon"><PlannerIcon name="calendar" size={28} /></span><h3>{query || activeFilters ? 'Žádné odpovídající úkoly' : planner.totalCount === 0 ? 'Začni jedním úkolem' : 'Tady máš volno'}</h3><p>{query || activeFilters ? 'Zkus jiné hledání nebo uprav filtry.' : 'Přidej úkol nebo si naplánuj práci z přehledu Vše.'}</p><button type="button" className="sp-text-button" onClick={() => { ui.setView('vse'); setQuery(''); setSubject(''); setPriority(''); setStatus('Vše'); setInboxOnly(false) }}>Zobrazit všechny úkoly</button></div>}
       {completed.length > 0 && <section className="sp-completed"><button type="button" className="sp-expand" aria-expanded={completedOpen || status === 'Splněné'} onClick={() => setCompletedOpen(!completedOpen)}><PlannerIcon name="chevron" />Dokončené <span>{completed.length}</span></button>{(completedOpen || status === 'Splněné') && completed.map(task => card(task))}</section>}
     </main>
     {toast && <div className="sp-toast" role="status"><span>{toast.text}</span>{toast.undo && <button type="button" onClick={toast.undo}>Vrátit</button>}<button type="button" aria-label="Zavřít oznámení" onClick={() => setToast(null)}><PlannerIcon name="close" size={16} /></button></div>}
-    <footer className="sp-actions"><button type="button" className="sp-primary" onClick={() => { ui.setDetail(null); setCreating(true) }}><PlannerIcon name="plus" />Přidat úkol</button></footer>
+    <footer className="sp-actions"><button type="button" className="buddy-ui-button buddy-ui-button--primary sp-primary" onClick={() => { ui.setDetail(null); setCreating(true) }}><PlannerIcon name="plus" />Přidat úkol</button></footer>
     {(creating || selected) && <PlannerTaskSheet key={creating ? 'new' : selected!.id} task={creating ? null : selected} defaultPlan={creating && ui.view !== 'vse' ? ui.day : null} onClose={() => { setCreating(false); ui.setDetail(null) }} onSaved={() => { setCreating(false); ui.setDetail(null); notify('Úkol uložen do zařízení') }} onFocus={focus} onDelete={remove} />}
   </div>
 }

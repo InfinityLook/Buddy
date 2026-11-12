@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { useFlagshipSloty, useFlagshipWidgetsStore } from './useFlagshipWidgets'
 import { WidgetPickerSheet } from './WidgetPickerSheet'
@@ -16,7 +17,7 @@ export interface SekceDlazdic {
 interface Props {
   /** Krátké, stabilní id appky — klíč do useFlagshipWidgets. Nikdy se
    *  nemění, i kdyby se změnil zobrazený název appky. */
-  id: string
+  id: SurfaceId
   dlazdice: FlagshipDlazdice[]
   /** Widgety navíc, co jdou připnout do slotů "Můj widget", ale
    *  nekreslí se v pevné mřížce dlaždic — School Roomovy "Nástroje"
@@ -57,16 +58,17 @@ export const MujWidgetPanel: React.FC<Props> = ({ id, dlazdice, dalsiMoznostiPro
     widgetId ? vsechnyMoznostiProSloty.find((d) => d.id === widgetId) : undefined
 
   return (
-    <div className="fs-panel">
+    <div className="fs-panel buddy-ui-card">
       <div className="fs-panel-hlavicka">
         <div>
           <h2>Můj widget</h2>
-          <p>Přizpůsob si svůj prostor</p>
+          <p>Připni si až tři nástroje.</p>
         </div>
         {/* Zkratka na první prázdný slot — když jsou plné všechny tři,
             otevře aspoň první, ať tlačítko nikdy nezůstane bez akce. */}
         <button
-          className="fs-plus-btn"
+          type="button"
+          className="buddy-ui-button buddy-ui-button--icon"
           aria-label="Přidat widget"
           onClick={() => {
             const prvniPrazdny = sloty.findIndex((s) => s === null)
@@ -129,7 +131,7 @@ export const MujWidgetPanel: React.FC<Props> = ({ id, dlazdice, dalsiMoznostiPro
               </div>
               <div className="fs-dlazdice-mrizka">
                 {s.dlazdice.map((d) => (
-                  <button key={d.id} className="fs-dlazdice" onClick={d.onClick}>
+                  <button key={d.id} type="button" className="fs-dlazdice buddy-ui-button" onClick={d.onClick}>
                     <span className={`fs-dlazdice-ikona fs-barva--${d.barva}`}>
                       <AppIcon name={d.ikona} size={24} />
                     </span>
@@ -144,7 +146,7 @@ export const MujWidgetPanel: React.FC<Props> = ({ id, dlazdice, dalsiMoznostiPro
       ) : (
         <div className="fs-dlazdice-mrizka">
           {dlazdice.map((d) => (
-            <button key={d.id} className="fs-dlazdice" onClick={d.onClick}>
+            <button key={d.id} type="button" className="fs-dlazdice buddy-ui-button" onClick={d.onClick}>
               <span className={`fs-dlazdice-ikona fs-barva--${d.barva}`}>
                 <AppIcon name={d.ikona} size={24} />
               </span>
@@ -157,6 +159,7 @@ export const MujWidgetPanel: React.FC<Props> = ({ id, dlazdice, dalsiMoznostiPro
 
       {otevrenySlot !== null && (
         <WidgetPickerSheet
+          surfaceId={id}
           moznosti={vsechnyMoznostiProSloty}
           aktualniId={sloty[otevrenySlot]}
           onVybrat={(widgetId) => {

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { themeAssetUrl } from '@/features/appearance/SurfaceAppearance'
 import { useAppStore } from '@/core/store/useAppStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { useKalendar, naFormatDatumu } from '@/miniapps/kalendar/useKalendar'
@@ -70,6 +71,7 @@ import './SchoolRoomModule.css'
 export const SchoolRoomModule: React.FC = () => {
   const navigate = useNavigate()
   const setActiveAppId = useAppStore((s) => s.setActiveAppId)
+  const schoolArtwork = useAppStore(s => s.apps.find(app => app.id === 'school-room')?.nahled)
   const [nastrojeOtevrene, setNastrojeOtevrene] = useState(false)
 
   // "Moje přehled" — jediný skutečně nový obsah téhle appky (viz komentář
@@ -439,20 +441,16 @@ export const SchoolRoomModule: React.FC = () => {
         onOpenNotifications={() => navigate('/skola/upozorneni')}
         onCloseNotifications={() => {}}
       >
-        {/* Barevný pruh pod hlavičkou — School Roomova vlastní identita
-            (jeho barva z useAppStore.ts's DEFAULT_APPS je 'cyan'), ne
-            sdílená přebarvená hlavička pro všech šest Roomů — ta zůstává
-            záměrně stejná jako dřív, FlagshipShell.tsx se nemění. */}
-        <div className="sr-accent-pruh" aria-hidden="true" />
-
         {/* Chytrý souhrn — appka ho ukazuje jako první věc po otevření
             pokoje (viz chytrySouhrn.ts), ne až pod "Moje přehled".
             Obě věty appka skládá z reálných Planerových dat, žádný
             vymyšlený text. */}
-        <div className="sr-panel sr-chytry-souhrn">
+        <div className="sr-panel sr-chytry-souhrn buddy-ui-card">
+          {schoolArtwork && (
+            <img className="sr-school-artwork" src={themeAssetUrl(schoolArtwork)} alt="" aria-hidden="true" />
+          )}
           <div className="sr-panel-hlavicka">
-            <h2>🧭 Chytrý souhrn</h2>
-            <p>Co ti dneska nejvíc pomůže</p>
+            <h2>Chytrý souhrn</h2>
           </div>
 
           <p className="sr-souhrn-veta">{vetaONejblizsimTerminu(chytrySouhrn)}</p>
@@ -460,7 +458,7 @@ export const SchoolRoomModule: React.FC = () => {
 
           {chytrySouhrn.dnesniKrok && (
             <button
-              className="sr-souhrn-soustredit-btn"
+              type="button" className="sr-souhrn-soustredit-btn buddy-ui-button buddy-ui-button--primary"
               onClick={() => spustitSoustredeniNadUkolem(chytrySouhrn.dnesniKrok!)}
             >
               ▶ Soustředit se na tohle
@@ -476,7 +474,7 @@ export const SchoolRoomModule: React.FC = () => {
             z jeho vlastního dnySUdalosti, ne nová appka), a celkem
             dokončené Pomodoro bloky. Prázdný/nulový stav je vlastní
             přátelská věta, ne holá "0". */}
-        <div className="sr-panel">
+        <div className="sr-panel buddy-ui-card">
           <div className="sr-panel-hlavicka">
             <h2>Moje přehled</h2>
             <p>Co tě dnes čeká ve škole</p>
@@ -571,7 +569,7 @@ export const SchoolRoomModule: React.FC = () => {
             skutečné historie soustředění, stejný "kladné číslo nebo
             žádný cíl" tvar jako Writer Roomův psací cíl. Bez cíle se
             nezobrazí žádný prstenec, jen prázdná pole na zadání. */}
-        <div className="sr-panel">
+        <div className="sr-panel buddy-ui-card">
           <div className="sr-panel-hlavicka">
             <h2>🎯 Studijní cíl</h2>
             <p>Kolik minut chceš dnes/týdně studovat</p>
@@ -692,7 +690,7 @@ export const SchoolRoomModule: React.FC = () => {
       </FlagshipShell>
 
       {nastrojeOtevrene && (
-        <NastrojeSheet nadpis="Nástroje" nastroje={nastroje} onZavrit={() => setNastrojeOtevrene(false)} />
+        <NastrojeSheet surfaceId="school-room" nadpis="Nástroje" nastroje={nastroje} onZavrit={() => setNastrojeOtevrene(false)} />
       )}
     </>
   )

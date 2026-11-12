@@ -2,21 +2,16 @@
 .app-fullscreen-view--planner > .app-fullscreen-content { padding: 0; min-height: 0; max-width: none; overflow: hidden; display: flex; }
 .sp-app { --sp-line: color-mix(in srgb, var(--buddy-muted) 20%, transparent); display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; max-width: 960px; margin-inline: auto; color: var(--buddy-text); background: var(--buddy-bg); font-size: 1rem; }
 .sp-app *, .sp-dialog * { box-sizing: border-box; }
-.sp-app button, .sp-dialog button, .sp-app input, .sp-app select, .sp-dialog input, .sp-dialog select, .sp-dialog textarea { font: inherit; }
+.sp-app :where(button:not(.buddy-ui-button), input:not(.buddy-ui-input), select:not(.buddy-ui-input)), .sp-dialog :where(button:not(.buddy-ui-button), input:not(.buddy-ui-input), select:not(.buddy-ui-input), textarea:not(.buddy-ui-input)) { font: inherit; }
 .sp-app button, .sp-dialog button { cursor: pointer; touch-action: manipulation; }
 .sp-app button:disabled, .sp-dialog button:disabled { cursor: default; opacity: .5; }
 .sp-app button:focus-visible, .sp-dialog button:focus-visible, .sp-dialog input:focus-visible, .sp-dialog textarea:focus-visible, .sp-app input:focus-visible, .sp-app select:focus-visible, .sp-dialog select:focus-visible { outline: 3px solid var(--buddy-accent); outline-offset: 2px; }
-.sp-header { display: flex; align-items: center; gap: .35rem; flex-shrink: 0; padding: calc(.35rem + env(safe-area-inset-top)) .8rem .35rem; }
-.sp-header h1 { flex: 1; font-size: 1.15rem; font-weight: 750; margin: 0; letter-spacing: -.025em; }
 .sp-control { display: inline-flex; flex-shrink: 0; align-items: center; justify-content: center; width: 44px; height: 44px; border: 0; padding: 0; border-radius: 12px; background: transparent; color: inherit; }
 .sp-control:hover, .sp-control--active { background: var(--buddy-raised); color: var(--buddy-accent); }
 .sp-toolbar { flex-shrink: 0; display: flex; flex-direction: column; gap: .7rem; padding: 0 1rem .8rem; border-bottom: 1px solid var(--sp-line); }
 .sp-heading { padding: .4rem 0 .15rem; }
 .sp-heading h2 { margin: 0; font-size: clamp(1.6rem, 5vw, 2rem); line-height: 1.15; font-weight: 750; letter-spacing: -.04em; text-transform: capitalize; }
 .sp-heading p { margin: .3rem 0 0; font-size: .85rem; color: var(--buddy-muted); }
-.sp-tabs { display: flex; border: 1px solid color-mix(in srgb, var(--buddy-accent) 45%, transparent); border-radius: 12px; overflow: hidden; background: var(--buddy-panel); }
-.sp-tabs button { flex: 1; min-height: 44px; border: 0; background: transparent; color: var(--buddy-text); font-weight: 650; font-size: .9rem; }
-.sp-tabs button[aria-pressed="true"] { background: var(--buddy-accent); color: var(--buddy-on-accent); }
 .sp-week { display: flex; flex-direction: column; gap: .2rem; }
 .sp-week-controls { display: flex; align-items: center; justify-content: space-between; }
 .sp-week-controls .sp-control { height: 32px; }
@@ -43,7 +38,7 @@
 .sp-check > span { display: flex; align-items: center; justify-content: center; width: 23px; height: 23px; border: 1.5px solid var(--buddy-muted); border-radius: 50%; }
 .sp-check[aria-checked="true"] > span { border-color: var(--buddy-success); background: var(--buddy-success); color: var(--buddy-bg); }
 .sp-task-main { flex: 1; min-width: 0; padding-top: .45rem; }
-.sp-task-open { display: block; width: 100%; border: 0; background: transparent; color: inherit; text-align: left; padding: 0; min-height: 28px; }
+.sp-task-open { display: block; width: 100%; border: 0; background: transparent; color: inherit; text-align: left; padding: 0; min-height: 40px; }
 .sp-task-title { display: block; font-size: 1rem; font-weight: 650; line-height: 1.4; overflow-wrap: anywhere; }
 .sp-task--done .sp-task-title { text-decoration: line-through; color: var(--buddy-muted); }
 .sp-task--done { background: var(--buddy-panel); }
@@ -62,7 +57,7 @@
 .sp-text-button { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; border: 0; border-radius: 10px; padding: .35rem .55rem; background: transparent; color: var(--buddy-accent); font-size: .78rem !important; }
 .sp-text-button:hover, .sp-focus:hover { background: color-mix(in srgb, var(--buddy-accent) 9%, transparent); }
 .sp-actions { flex-shrink: 0; padding: .65rem 1rem; border-top: 1px solid var(--sp-line); background: var(--buddy-bg); }
-.sp-primary { display: inline-flex; width: 100%; min-height: 48px; align-items: center; justify-content: center; gap: .5rem; border: 0; border-radius: 13px; padding: .65rem 1rem; background: var(--buddy-accent); color: var(--buddy-on-accent); font-weight: 750 !important; }
+.sp-primary { width: 100%; }
 .sp-empty { padding: 1.5rem .8rem; text-align: center; color: var(--buddy-muted); }
 .sp-empty-icon { display: inline-flex; padding: 1rem; border-radius: 20px; background: var(--buddy-panel); color: var(--buddy-accent); }
 .sp-empty h3 { color: var(--buddy-text); font-size: 1rem; margin-bottom: .5rem; }
@@ -80,14 +75,8 @@
 .sp-toast button { min-width: 40px; min-height: 40px; display: flex; align-items: center; justify-content: center; background: none; border: 0; color: var(--buddy-accent); font-weight: 650; }
 .sp-offline { margin: 0; font-size: .78rem; color: var(--buddy-warning); }
 .sp-danger, .sp-danger-text { color: var(--buddy-danger) !important; }
-/* Nativní dialog drží fokus uvnitř a blokuje ovládání pozadí. */
-.sp-dialog { --sp-line: color-mix(in srgb, var(--buddy-muted) 20%, transparent); position: fixed; inset: auto 0 0; margin: 0 auto; padding: 0; border: 1px solid var(--sp-line); border-radius: 24px 24px 0 0; width: min(100%, 620px); max-width: 100%; height: min(90dvh, 850px); max-height: calc(100dvh - env(safe-area-inset-top) - 8px); overflow: hidden; background: var(--buddy-bg); color: var(--buddy-text); box-shadow: 0 -16px 80px rgb(0 0 0 / .25); }
-.sp-dialog::backdrop { background: rgb(0 0 0 / .55); }
-.sp-sheet { display: flex; flex-direction: column; height: 100%; min-height: 0; }
-.sp-sheet-header { display: flex; align-items: center; justify-content: space-between; padding: .7rem 1rem; flex-shrink: 0; border-bottom: 1px solid var(--sp-line); }
-.sp-sheet-header h2 { font-size: 1.1rem; margin: 0; }
-.sp-sheet-form { display: flex; flex-direction: column; flex: 1; min-height: 0; }
-.sp-sheet-body { display: flex; flex-direction: column; gap: .9rem; padding: 1rem; flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; }
+.sp-dialog { --sp-line: color-mix(in srgb, var(--buddy-muted) 20%, transparent); }
+.sp-sheet-body { display: flex; flex-direction: column; gap: .9rem; }
 .sp-field { display: flex; flex-direction: column; gap: .4rem; font-size: .8rem; font-weight: 600; color: var(--buddy-muted); }
 .sp-field input, .sp-field select, .sp-field textarea, .sp-step-add input { width: 100%; min-width: 0; min-height: 46px; padding: .65rem .7rem; border: 1px solid var(--sp-line); border-radius: 11px; background: var(--buddy-panel); color: var(--buddy-text); font-size: 1rem; line-height: 1.4; font-weight: 400; }
 .sp-field textarea { resize: vertical; }
@@ -108,11 +97,10 @@
 .sp-attach-button { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 44px; padding: .5rem; border-radius: 10px; border: 1px dashed var(--sp-line); color: var(--buddy-accent); font-size: .85rem; cursor: pointer; }
 .sp-attach-button input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
 .sp-attach-button:focus-within { outline: 3px solid var(--buddy-accent); outline-offset: 2px; }
-.sp-sheet-footer { display: flex; gap: .75rem; padding: .75rem 1rem calc(.75rem + env(safe-area-inset-bottom)); flex-shrink: 0; border-top: 1px solid var(--sp-line); background: var(--buddy-bg); }
 .sp-note-status { min-height: 1em; margin-top: -.7rem; color: var(--buddy-muted); font-size: .7rem; }
 .sp-error { margin: 0; padding: .7rem; border-radius: 10px; background: color-mix(in srgb, var(--buddy-danger) 10%, var(--buddy-bg)); color: var(--buddy-danger); font-size: .85rem; line-height: 1.5; }
 .sp-inline-warning { margin: 0; font-size: .8rem; color: var(--buddy-warning); }
-@media (min-width: 768px) { .sp-toolbar { padding-inline: 1.5rem; } .sp-content { padding-inline: 1.5rem; } .sp-actions { padding-inline: 1.5rem; } .sp-dialog { inset: 0 0 0 auto; width: 480px; height: 100dvh; max-height: 100dvh; border-radius: 20px 0 0 20px; } }
+@media (min-width: 768px) { .sp-toolbar { padding-inline: 1.5rem; } .sp-content { padding-inline: 1.5rem; } .sp-actions { padding-inline: 1.5rem; } }
 @media (max-height: 760px) { .sp-toolbar { gap: .4rem; padding-bottom: .5rem; } .sp-heading { display: flex; align-items: baseline; gap: .7rem; padding: .1rem 0; } .sp-heading h2 { font-size: 1.35rem; } .sp-heading p { margin: 0; font-size: .74rem; } .sp-week-days button { min-height: 48px; } .sp-summary { padding-block: .4rem; } .sp-actions { padding-block: .4rem; } }
 @media (max-height: 600px) { .sp-heading p { display: none; } .sp-toolbar { max-height: 55%; overflow: auto; } .sp-heading { display: none; } .sp-week-controls .sp-control { height: 28px; } .sp-week-days button { min-height: 44px; } }
 @media (max-width: 360px) { .sp-toolbar, .sp-content { padding-inline: .7rem; } .sp-task { gap: 0; } .sp-task-menu { width: 40px; } .sp-task-title { font-size: .95rem; } .sp-form-grid { grid-template-columns: 1fr; } }

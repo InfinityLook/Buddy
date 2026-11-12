@@ -124,7 +124,7 @@
 }
 
 .pomo-fill {
-  stroke: var(--buddy-accent);
+  stroke: var(--pomo-state-color, var(--buddy-accent));
   stroke-linecap: round;
   transition: stroke-dashoffset .3s linear;
 }
@@ -468,4 +468,21 @@
   .pomo-fill {
     transition: none;
   }
+}
+
+.pomo-timer[data-timer-state="paused"] {
+  --pomo-state-color: var(--buddy-warning);
+  color: var(--pomo-state-color);
+}
+
+.pomo-timer[data-timer-state="finished"] {
+  --pomo-state-color: var(--buddy-success);
+  color: var(--pomo-state-color);
+}
+
+.pomo-daily.buddy-ui-card {
+  padding: .5rem .75rem;
+  border: 1px solid var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
+  background: var(--buddy-panel);
 }

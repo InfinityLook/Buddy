@@ -17,19 +17,6 @@
   backdrop-filter: blur(10px);
 }
 
-/* Tenký zářící pruh pod hlavičkou — School Roomova vlastní barevná
-   identita (appka je v useAppStore.ts vedená jako 'cyan'), první
-   viditelná věc na obrazovce po hlavičce samotné, co ostatní Roomy
-   nemají — hlavička sama (FlagshipShell.tsx) se schválně nemění, je
-   sdílená všemi šesti Roomy stejně jako dřív. */
-.sr-accent-pruh {
-  height: 3px;
-  border-radius: 999px;
-  margin-top: -0.3rem;
-  background: linear-gradient(90deg, var(--accent-cyan), transparent 85%);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--accent-cyan) 55%, transparent);
-}
-
 /* Chytrý souhrn — School Roomova úvodní věta (viz chytrySouhrn.ts),
    první panel pokoje. Appka mu dává tenký levý pruh v barvě pokoje
    navíc, ať je i vizuálně vidět, že je to TA první věc, ne jen
@@ -48,16 +35,9 @@
   color: var(--text-secondary);
 }
 
-.sr-souhrn-soustredit-btn {
+.sr-souhrn-soustredit-btn.buddy-ui-button {
   align-self: flex-start;
-  background: linear-gradient(135deg, var(--accent-orange), var(--accent-magenta));
-  color: #fff;
-  border: none;
-  border-radius: 999px;
-  padding: 0.55rem 1.2rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
+  font-size: .85rem;
 }
 
 .sr-panel-hlavicka h2 {
@@ -428,3 +408,45 @@
   color: var(--text-secondary);
   text-transform: uppercase;
 }
+
+.sr-subpage .app-container {
+  background: var(--buddy-bg);
+  color: var(--buddy-text);
+}
+
+.sr-panel.buddy-ui-card,
+[data-buddy-surface="school-room"] .fs-panel.buddy-ui-card {
+  border-color: var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
+  background: var(--buddy-panel);
+}
+
+.sr-chytry-souhrn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.sr-school-artwork {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: -1;
+  width: 62%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 45%;
+  opacity: .24;
+  mask-image: linear-gradient(90deg, transparent 4%, #000 85%);
+}
+
+[data-buddy-surface="school-room"] :is(.fs-slot, .fs-dlazdice, .fs-velka-karta) {
+  border-color: var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
+  background: var(--buddy-raised);
+}
+
+[data-buddy-surface="school-room"] :is(.fs-slot, .fs-dlazdice, .fs-velka-karta):hover {
+  border-color: var(--buddy-accent);
+}
+
+.sr-subpage .sr-upozorneni-polozka { min-height: 56px; }

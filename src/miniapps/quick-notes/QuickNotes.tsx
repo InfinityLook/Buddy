@@ -1,6 +1,7 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import { useNavigate } from 'react-router-dom'
 import { useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useAppStore } from '@/core/store/useAppStore'
@@ -66,49 +67,17 @@ function Panel({
   children: ReactNode
   onClose: () => void
 }) {
-  const ref = useRef<HTMLDialogElement>(null)
-  const titleId = useId()
-  const { rootAttributes } = useSurfaceAppearance('quick-notes')
-
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null
-    const element = ref.current
-    element?.showModal()
-
-    return () => {
-      element?.close()
-      previous?.focus()
-    }
-  }, [])
-
-  return createPortal(
-    <dialog
-      ref={ref}
-      className="qn-dialog buddy-theme-scope"
-      {...rootAttributes}
-      aria-labelledby={titleId}
-      onCancel={event => {
-        event.preventDefault()
-        onClose()
-      }}
-      onClick={event => {
-        if (event.target === event.currentTarget) onClose()
-      }}
+  return (
+    <BuddyDialog
+      surfaceId="quick-notes"
+      title={title}
+      presentation="sheet"
+      className="qn-dialog"
+      closeLabel="Zavřít nabídku"
+      onClose={onClose}
     >
-      <header>
-        <h2 id={titleId}>{title}</h2>
-        <button
-          type="button"
-          className="qn-icon"
-          aria-label="Zavřít nabídku"
-          onClick={onClose}
-        >
-          <Icon name="close" />
-        </button>
-      </header>
-      <div className="qn-panel-body">{children}</div>
-    </dialog>,
-    document.body
+      {children}
+    </BuddyDialog>
   )
 }
 
@@ -254,45 +223,39 @@ function Editor({
 
   return (
     <section className="qn-editor">
-      <header className="qn-header">
-        <button
-          className="qn-icon"
-          type="button"
-          aria-label="Zpět na poznámky"
-          onClick={close}
-        >
-          <Icon name="back" />
-        </button>
-
-        <h1>Poznámky</h1>
-
-        <button
-          className="qn-icon"
-          type="button"
-          aria-label={
-            note?.pinned ? 'Odepnout poznámku' : 'Připnout poznámku'
-          }
-          onClick={() => action(saved => {
-            store.togglePin(saved.id)
-            patch({
-              baseRevision: useQuickNotesStore.getState().notes.find(
-                item => item.id === saved.id
-              )?.revision ?? 0,
-            })
-          })}
-        >
-          <Icon name="pin" />
-        </button>
-
-        <button
-          className="qn-icon"
-          type="button"
-          aria-label="Možnosti poznámky"
-          onClick={() => setMenu(true)}
-        >
-          <Icon name="more" />
-        </button>
-      </header>
+      <BuddyHeader
+        title="Poznámky"
+        variant="quiet"
+        onBack={close}
+        backLabel="Zpět na poznámky"
+        actions={
+          <>
+            <button
+              className="buddy-ui-button buddy-ui-button--icon"
+              type="button"
+              aria-label={note?.pinned ? 'Odepnout poznámku' : 'Připnout poznámku'}
+              onClick={() => action(saved => {
+                store.togglePin(saved.id)
+                patch({
+                  baseRevision: useQuickNotesStore.getState().notes.find(
+                    item => item.id === saved.id
+                  )?.revision ?? 0,
+                })
+              })}
+            >
+              <Icon name="pin" />
+            </button>
+            <button
+              className="buddy-ui-button buddy-ui-button--icon"
+              type="button"
+              aria-label="Možnosti poznámky"
+              onClick={() => setMenu(true)}
+            >
+              <Icon name="more" />
+            </button>
+          </>
+        }
+      />
 
       <div className="qn-save-status" role="status">
         {status}
@@ -309,7 +272,7 @@ function Editor({
         />
 
         <div className="qn-meta-row">
-          <select
+          <select className="buddy-ui-input"
             aria-label="Zápisník poznámky"
             value={form.folderId}
             onChange={event => {
@@ -332,6 +295,7 @@ function Editor({
           </select>
 
           <input
+            className="buddy-ui-input"
             aria-label="Štítky oddělené čárkou"
             placeholder="Štítky, oddělené čárkou"
             value={form.tagsText}
@@ -348,7 +312,7 @@ function Editor({
       </div>
 
       {error && (
-        <div className="qn-error" role="alert">
+        <div className="qn-error buddy-ui-alert" role="alert">
           {error}
 
           <button
@@ -621,7 +585,7 @@ export function QuickNotes({ onBack }: { onBack?: () => void }) {
 
   const cards = (notes: Note[]) => notes.map(note => (
     <article
-      className={`qn-card${note.pinned ? ' pinned' : ''}`}
+      className={`buddy-ui-card qn-card${note.pinned ? ' pinned' : ''}`}
       key={note.id}
     >
       <button
@@ -695,30 +659,21 @@ export function QuickNotes({ onBack }: { onBack?: () => void }) {
         />
       ) : (
         <>
-          <header className="qn-header">
-            <button
-              className="qn-icon"
-              type="button"
-              aria-label="Zpět"
-              onClick={
-                onBack ??
-                (() => useAppStore.getState().setActiveAppId(null))
-              }
-            >
-              <Icon name="back" />
-            </button>
-
-            <h1>Poznámky</h1>
-
-            <button
-              className="qn-icon"
-              type="button"
-              aria-label="Zápisníky a možnosti"
-              onClick={() => setPanel(true)}
-            >
-              <Icon name="folder" />
-            </button>
-          </header>
+          <BuddyHeader
+            title="Poznámky"
+            variant="quiet"
+            onBack={onBack ?? (() => useAppStore.getState().setActiveAppId(null))}
+            actions={
+              <button
+                className="buddy-ui-button buddy-ui-button--icon"
+                type="button"
+                aria-label="Zápisníky a možnosti"
+                onClick={() => setPanel(true)}
+              >
+                <Icon name="folder" />
+              </button>
+            }
+          />
 
           <div className="qn-controls">
             <span className="qn-count">
@@ -730,6 +685,7 @@ export function QuickNotes({ onBack }: { onBack?: () => void }) {
             <label className="qn-search">
               <Icon name="search" />
               <input
+                className="buddy-ui-input"
                 type="search"
                 aria-label="Hledat v poznámkách"
                 placeholder="Hledat v poznámkách…"
@@ -764,7 +720,7 @@ export function QuickNotes({ onBack }: { onBack?: () => void }) {
             </div>
 
             <div className="qn-list-tools">
-              <select
+              <select className="buddy-ui-input"
                 aria-label="Zobrazení poznámek"
                 value={scope}
                 onChange={event =>
@@ -776,7 +732,7 @@ export function QuickNotes({ onBack }: { onBack?: () => void }) {
                 <option value="trash">Koš</option>
               </select>
 
-              <select
+              <select className="buddy-ui-input"
                 aria-label="Řadit poznámky"
                 value={sort}
                 onChange={event =>
@@ -791,7 +747,7 @@ export function QuickNotes({ onBack }: { onBack?: () => void }) {
               </select>
 
               {allTags.length > 0 && (
-                <select
+                <select className="buddy-ui-input"
                   aria-label="Filtr štítku"
                   value={tag}
                   onChange={event => setTag(event.target.value)}
@@ -829,7 +785,7 @@ export function QuickNotes({ onBack }: { onBack?: () => void }) {
             )}
 
             {filtered.length === 0 && (
-              <div className="qn-empty">
+              <div className="qn-empty buddy-ui-card">
                 <Icon name="folder" />
                 <h2>
                   {scope === 'trash'
@@ -850,7 +806,7 @@ export function QuickNotes({ onBack }: { onBack?: () => void }) {
           <footer className="qn-actions">
             <button
               type="button"
-              className="qn-primary"
+              className="buddy-ui-button buddy-ui-button--primary qn-primary"
               onClick={() => open()}
             >
               <Icon name="plus" />
@@ -913,7 +869,7 @@ export function QuickNotes({ onBack }: { onBack?: () => void }) {
               />
             </label>
 
-            <button className="qn-primary" type="submit">
+            <button className="buddy-ui-button buddy-ui-button--primary qn-primary" type="submit">
               Přidat zápisník
             </button>
           </form>

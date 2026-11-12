@@ -294,6 +294,19 @@ dialog.buddy-ui-dialog--sheet.buddy-theme-scope {
   padding-bottom: calc(1rem + env(safe-area-inset-bottom));
 }
 
+.buddy-ui-dialog-footer {
+  display: flex;
+  flex: none;
+  gap: var(--buddy-ui-space);
+  padding: .6rem 1rem calc(.6rem + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--buddy-border);
+  background: var(--buddy-bg);
+}
+
+.buddy-ui-dialog-layout:has(> .buddy-ui-dialog-footer) > .buddy-ui-dialog-content {
+  padding-bottom: 1rem;
+}
+
 @media (min-width: 768px) {
   dialog.buddy-ui-dialog--sheet.buddy-theme-scope {
     inset: var(--buddy-ui-visual-top, 0px) 0 auto auto;

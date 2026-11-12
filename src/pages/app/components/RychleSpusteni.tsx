@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import { useRef, useState } from 'react'
 import { AppIcon } from './AppIcon'
 import { normalizeText } from '@/core/utils/text'
 import type { AppItem } from '@/core/store/useAppStore'
@@ -9,104 +9,70 @@ interface RychleSpusteniProps {
   onOpen: (id: string) => void
 }
 
-// ==========================================
-// Nahrazuje starý AppToolbar/AppCard-grid/AppBanner blok pod
-// carouselem Roomů (viz CLAUDE.md) — ten byl navždy prázdný, protože
-// úplně každá appka v DEFAULT_APPS má dnes jenVeVlajkoveAppce: true.
-// Appky bez vlastní route (ty, co appka umí otevřít jen deep-linkem
-// dovnitř nějakého Roomu, ne jako vlastní stránku) tu ale pořád
-// existují — jen se z hlavní mřížky přesunuly do Roomů. Tenhle blok
-// je dělá znovu dosažitelné, rovnou z /apps, bez nutnosti procházet
-// příslušný Room a jeho "Nástroje" sheet.
-//
-// Otevření je pořád ten samý setActiveAppId(id) appka odjakživa
-// používá pro deep-link do miniaplikace (Hub's daily-challenge
-// banner, School Roomovy dlaždice) — appky samy jsou dál registrované
-// v MINI_APP_REGISTRY beze změny, jen se sem přidal další vstupní bod.
-// ==========================================
-
-export const RychleSpusteni: React.FC<RychleSpusteniProps> = ({ miniaplikace, onOpen }) => {
+export function RychleSpusteni({ miniaplikace, onOpen }: RychleSpusteniProps) {
   const [dotaz, setDotaz] = useState('')
+  const search = useRef<HTMLInputElement>(null)
+  const query = normalizeText(dotaz.trim())
+  const skupiny = new Map<string, AppItem[]>()
 
-  const filtrovane = useMemo(() => {
-    const q = normalizeText(dotaz.trim())
-    if (q === '') return miniaplikace
-    return miniaplikace.filter(
-      (app) => normalizeText(app.title).includes(q) || normalizeText(app.category).includes(q)
-    )
-  }, [miniaplikace, dotaz])
-
-  // Pořadí kategorií podle toho, v jakém appka appky historicky
-  // přidávala do DEFAULT_APPS (ne abecedně) — appka to drží aspoň
-  // odněkud odvozené, ne libovolné.
-  const kategorie = useMemo(() => {
-    const videne = new Set<string>()
-    const poradi: string[] = []
-    for (const app of filtrovane) {
-      if (!videne.has(app.category)) {
-        videne.add(app.category)
-        poradi.push(app.category)
-      }
-    }
-    return poradi
-  }, [filtrovane])
+  for (const app of miniaplikace) {
+    if (!normalizeText(app.title).includes(query) && !normalizeText(app.category).includes(query)) continue
+    const group = skupiny.get(app.category)
+    if (group) group.push(app)
+    else skupiny.set(app.category, [app])
+  }
 
   return (
-    <section className="rs-section">
-      <h2 className="rs-nadpis">
-        <AppIcon name="rocket" size={18} className="rs-nadpis-icon" />
-                Všechny aplikace
-      </h2>
-            <p className="rs-popis">
-        Vyber si nástroj nebo ho vyhledej podle názvu či kategorie.
-      </p>
-
-      <div className="rs-search-box">
-        <AppIcon name="search" size={18} className="rs-search-icon" />
+    <section className="rs-section" aria-label="Katalog aplikací">
+      <div className="rs-search-box buddy-ui-card">
+        <span aria-hidden="true"><AppIcon name="search" size={19} /></span>
         <input
-          type="text"
-          placeholder="Hledej appku…"
+          ref={search}
+          className="buddy-ui-input"
+          type="search"
+          aria-label="Hledat aplikaci"
+          placeholder="Hledat aplikaci nebo kategorii…"
           value={dotaz}
-          onChange={(e) => setDotaz(e.target.value)}
+          onChange={event => setDotaz(event.target.value)}
         />
         {dotaz && (
-          <button className="rs-search-clear" aria-label="Vymazat hledání" onClick={() => setDotaz('')}>
-            <AppIcon name="x" size={14} />
+          <button
+            type="button"
+            className="buddy-ui-button buddy-ui-button--icon"
+            aria-label="Vymazat hledání"
+            onClick={() => { setDotaz(''); search.current?.focus() }}
+          >
+            <AppIcon name="x" size={17} />
           </button>
         )}
       </div>
 
-      {filtrovane.length === 0 ? (
-        <p className="rs-prazdno">Appka nic nenašla pro „{dotaz}“.</p>
-      ) : (
-        kategorie.map((kat) => (
-          <div key={kat} className="rs-skupina">
-            <h3 className="rs-skupina-nadpis">
-              {kat}
-              {/* Čistě dekorativní oddělovač za názvem kategorie — appka
-                  ho nečte ani neklikne, jen vizuálně navazuje na zlatý
-                  jazyk zbytku modulu (viz RychleSpusteni.css). */}
-              <span className="rs-skupina-ornament" aria-hidden="true" />
-            </h3>
-            <div className="rs-mrizka">
-              {filtrovane
-                .filter((app) => app.category === kat)
-                .map((app) => (
-                  <button
-                    key={app.id}
-                    className="rs-dlazdice"
-                    onClick={() => onOpen(app.id)}
-                  >
-                    <span className={`rs-dlazdice-ikona ${app.color}`}>
-                      <AppIcon name={app.icon} size={22} />
-                    </span>
-                    <span className="rs-dlazdice-nazev">{app.title}</span>
-                  </button>
-                ))}
-            </div>
-          </div>
-        ))
+      {skupiny.size === 0 && (
+        <p className="rs-prazdno buddy-ui-card buddy-ui-status" role="status">
+          {query ? `Pro „${dotaz.trim()}“ se nenašla žádná aplikace.` : 'Zatím tu nejsou žádné aplikace.'}
+        </p>
       )}
+
+      {Array.from(skupiny, ([kategorie, apps]) => (
+        <section key={kategorie} className="rs-skupina">
+          <h2>{kategorie}</h2>
+          <div className="rs-mrizka">
+            {apps.map(app => (
+              <button
+                key={app.id}
+                type="button"
+                className="buddy-ui-button rs-dlazdice"
+                onClick={() => onOpen(app.id)}
+              >
+                <span className={`rs-dlazdice-ikona ${app.color}`} aria-hidden="true">
+                  <AppIcon name={app.icon} size={20} />
+                </span>
+                <span>{app.title}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
     </section>
   )
 }

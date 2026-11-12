@@ -1,10 +1,10 @@
 import { useRef, useState, type PointerEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import { useAppStore } from '@/core/store/useAppStore'
 import { themeAssetUrl, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
-import { SURFACES, THEME_FAMILIES, THEME_IDS, type BuddyThemeId } from '@/features/appearance/themeCatalog'
+import { SURFACES, THEME_FAMILIES, THEME_IDS, isSurfaceId, type BuddyThemeId } from '@/features/appearance/themeCatalog'
 import { useAppearanceStore } from '@/features/appearance/useAppearanceStore'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { melByPotvrditTazeni, zacykliIndex } from '@/pages/app/components/roomCarouselMath'
@@ -24,6 +24,7 @@ const roomDetails: Record<string, { label: string; category: string; tools: stri
 
 export default function RoomsModule() {
   const navigate = useNavigate()
+  const { state } = useLocation()
   const apps = useAppStore(state => state.apps)
   const { profile, markNotificationRead } = useProfileData()
   const notifications = useNotificationItems()
@@ -31,7 +32,9 @@ export default function RoomsModule() {
   const globalThemeId = useAppearanceStore(state => state.globalThemeId)
   const setGlobalTheme = useAppearanceStore(state => state.setGlobalTheme)
   const [previewTheme, setPreviewTheme] = useState<BuddyThemeId | null>(null)
-  const [selectedId, setSelectedId] = useState<string>()
+  const [selectedId, setSelectedId] = useState<string | undefined>(() =>
+    typeof state?.selectedRoom === 'string' ? state.selectedRoom : undefined
+  )
   const [notifOpen, setNotifOpen] = useState(false)
   const themeMenu = useRef<HTMLDetailsElement>(null)
   const themeButton = useRef<HTMLElement>(null)
@@ -43,6 +46,8 @@ export default function RoomsModule() {
   const rooms = apps.filter(app => app.route)
   const index = Math.max(0, rooms.findIndex(room => room.id === selectedId))
   const room = rooms[index]
+  const roomSurfaceId = isSurfaceId(room?.id) ? room.id : 'school-room'
+  const { themeId: roomThemeId } = useSurfaceAppearance(roomSurfaceId)
   const details = room && roomDetails[room.id]
   const photo = details?.photo ?? room?.nahled
   const unread = notifications.filter(item => !profile.readNotifications.includes(item.id)).length
@@ -188,7 +193,7 @@ export default function RoomsModule() {
         <main className="rooms-main" aria-label="Výběr místnosti">
           {room ? (
             <>
-              <section className="rooms-hero" aria-label="Náhled místnosti"
+              <section className="rooms-hero buddy-theme-scope" data-buddy-theme={previewTheme ?? roomThemeId} aria-label="Náhled místnosti"
                 onPointerDown={startDrag} onPointerMove={moveDrag} onPointerUp={event => endDrag(event)}
                 onPointerCancel={event => endDrag(event, true)}
                 onLostPointerCapture={event => endDrag(event, true)}>
@@ -200,9 +205,9 @@ export default function RoomsModule() {
                 )}
                 {rooms.length > 1 && (
                   <div className="rooms-arrows">
-                    <button type="button" className="rooms-icon" aria-label="Předchozí místnost"
+                    <button type="button" className="rooms-icon buddy-ui-button buddy-ui-button--icon" aria-label="Předchozí místnost"
                       onClick={() => step(-1)}><AppIcon name="arrow-left" /></button>
-                    <button type="button" className="rooms-icon" aria-label="Další místnost"
+                    <button type="button" className="rooms-icon buddy-ui-button buddy-ui-button--icon" aria-label="Další místnost"
                       onClick={() => step(1)}><AppIcon name="arrow-right" /></button>
                   </div>
                 )}
@@ -223,7 +228,7 @@ export default function RoomsModule() {
                 <h2 id="rooms-index-title">Všechny místnosti</h2>
                 <div className="rooms-tiles">
                   {rooms.map(item => (
-                    <button key={item.id} type="button" aria-label={item.title}
+                    <button key={item.id} type="button" className="buddy-ui-button" aria-label={item.title}
                       aria-pressed={item.id === room.id} onClick={() => setSelectedId(item.id)}>
                       <AppIcon name={item.icon} size={19} />
                       <span>{roomDetails[item.id]?.label ?? item.title}</span>
@@ -238,7 +243,7 @@ export default function RoomsModule() {
         <AppBottomNav />
         {notifOpen && (
           <div className="rooms-notifications">
-            <ProfilNotifications open readIds={profile.readNotifications}
+            <ProfilNotifications callerId="apps-launcher" open readIds={profile.readNotifications}
               onMarkRead={markNotificationRead} onClose={() => setNotifOpen(false)} />
           </div>
         )}

@@ -1,8 +1,8 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AppIcon } from '@/pages/app/components/AppIcon'
 import { useNotificationItems } from '@/pages/profil/components/ProfilNotifications'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import '@/pages/app/AppModule.css'
@@ -28,28 +28,14 @@ export const SkolaUpozorneni: React.FC = () => {
     // SkolaStatistiky.tsx: "view" podobrazovka se zděděným themeParent:
     // 'school-room', obalená jen do <SurfaceThemeScope>, žádný
     // <SurfaceBackdrop>.
-    <SurfaceThemeScope surfaceId="school-alerts">
-    <div className="app-container">
-      <header className="app-header">
-        <button className="app-back-btn" aria-label="Zpět" onClick={() => navigate('/skola')}>
-          <AppIcon name="arrow-left" size={18} />
-        </button>
-
-        <div className="app-header-center">
-          <div className="app-header-title-wrap">
-            <AppIcon name="bell" size={22} className="app-header-icon" />
-            <h1>Upozornění</h1>
-          </div>
-          <p>Co je nového</p>
-        </div>
-
-        <div className="app-header-actions" />
-      </header>
+    <SurfaceThemeScope surfaceId="school-alerts" className="sr-subpage">
+    <div className="app-container app-container--shared-header">
+      <BuddyHeader title="Upozornění" icon="bell" onBack={() => navigate('/skola')} />
 
       <div className="sr-upozorneni-seznam">
         {notifications.length === 0 ? (
-          <p className="sr-upozorneni-prazdno">
-            Zatím tu nic není. Jakmile se do něčeho pustíš, dáme ti vědět. 🔔
+          <p className="sr-upozorneni-prazdno buddy-ui-card buddy-ui-status">
+            Zatím nemáš žádná školní upozornění.
           </p>
         ) : (
           notifications.map((n) => {
@@ -57,7 +43,8 @@ export const SkolaUpozorneni: React.FC = () => {
             return (
               <button
                 key={n.id}
-                className={`sr-upozorneni-polozka ${jePrecteno ? 'je-precteno' : ''}`}
+                type="button"
+                className={`buddy-ui-row sr-upozorneni-polozka ${jePrecteno ? 'je-precteno' : ''}`}
                 onClick={() => markNotificationRead(n.id)}
               >
                 {!jePrecteno && <span className="sr-upozorneni-tecka" aria-hidden="true" />}

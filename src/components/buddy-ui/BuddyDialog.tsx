@@ -10,6 +10,8 @@ interface BuddyDialogProps {
   surfaceId: SurfaceId
   onClose: () => void
   children: ReactNode
+  footer?: ReactNode
+  closeLabel?: string
   presentation?: 'dialog' | 'sheet'
   className?: string
   contentClassName?: string
@@ -21,6 +23,8 @@ export function BuddyDialog({
   surfaceId,
   onClose,
   children,
+  footer,
+  closeLabel = 'Zavřít panel',
   presentation = 'dialog',
   className = '',
   contentClassName = '',
@@ -86,13 +90,14 @@ export function BuddyDialog({
           <button
             type="button"
             className="buddy-ui-button buddy-ui-button--icon"
-            aria-label="Zavřít panel"
+            aria-label={closeLabel}
             onClick={onClose}
           >
             <AppIcon name="x" size={20} />
           </button>
         </header>
         <div className={`buddy-ui-dialog-content ${contentClassName}`}>{children}</div>
+        {footer && <footer className="buddy-ui-dialog-footer">{footer}</footer>}
       </div>
     </dialog>,
     document.body,

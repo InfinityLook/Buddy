@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useModulovyPrechod } from '@/core/navigation/useModulovyPrechod'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import { useBuddyVoice } from '@/buddy/useBuddyVoice'
 import { BuddyOverlay } from '@/buddy/BuddyOverlay'
 import { resolveBuddyTheme } from '@/buddy3d/types'
@@ -582,59 +583,27 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
       <div className={`hub-bg-dim${kolootevreno ? ' hub-bg-dim--aktivni' : ''}`} aria-hidden="true" />
 
       <div className="hub-container">
-        {/* Header — vlčí/liščí maskot (stejná fotka, co appka má i jako
-            prostřední tlačítko spodní lišty — public/maskot/buddy-vlk.png,
-            žádný nový crop) místo dřívější ✦ značky, "BuddyZone" +
-            podtitul "Lepší ty. Každý den." + jedna akce (zvonek).
-            Avatarové tlačítko, co tu dřív bývalo vedle zvonku, appka
-            přesunula do sdílené spodní lišty (AppBottomNav's vlastní
-            "Profil" položka, první před Home) — appka tím dostala
-            profil na dosah na všech čtyřech hlavních obrazovkách, ne
-            jen na Hubu a na Apps, kde měly svoje vlastní, na sobě
-            nezávislá tlačítka. Lupa, co tu dřív byla jako třetí ikona,
-            se přestěhovala dolů do stejné lišty ("Hledat") místo
-            tlačítka "Social". Odhlášení je v Nastavení
-            (settings-danger-btn tam), appka bez toho neměla jinou
-            cestu ven z účtu. */}
-        <header className="hub-header">
-          <div className="hub-logo">
-            <img src="/maskot/buddy-vlk.png" alt="" className="hub-logo-img" />
-            <div className="hub-logo-text-col">
-              {/* Krok 14a: appka tady místo statického "BuddyZone"
-                  ukazuje pozdrav podle denní doby + uživatelovo jméno
-                  (appka ho nijak neohýbá do vokativu, viz
-                  core/utils/pozdrav.ts's vlastní komentář) — "BuddyZone"
-                  jako značka appky zůstává viditelná jinde (titulek
-                  stránky, BootGate), tady appka dává přednost osobnějšímu
-                  přivítání. */}
-              <span className="hub-logo-text">{pozdrav}, {profile.name} 👋</span>
-              <span className="hub-logo-tagline">Lepší ty. Každý den.</span>
-            </div>
-          </div>
-
-          <div className="hub-header-actions">
-            {/* Krok 14h: appka zvonku dává popisek, co zahrnuje i
-                nepřečtený stav — appka dřív nepřečtenost signalizovala
-                jen barevnou tečkou (aria-hidden), takže by ji čtečka
-                obrazovky uživateli vůbec neoznámila. Krok 15b: appka
-                popisek i vizuální odznak dává skutečným počtem, ne jen
-                "ano/ne" tečkou — odznak appka stropuje na "9+", ať
-                nerostl donekonečna u opravdu zanedbaného zvonku. */}
+        <BuddyHeader
+          title={`${pozdrav}, ${profile.name}`}
+          leading={<img src={themeAssetUrl('/maskot/buddy-vlk.png')} alt="" className="hub-logo-img" />}
+          actions={
             <button
-              className="hub-icon-btn"
+              type="button"
+              className="buddy-ui-button buddy-ui-button--icon"
               aria-label={maNeprectene ? `Oznámení, ${pocetNeprectenych} nových` : 'Oznámení'}
               onClick={() => setNotifOpen(true)}
             >
-              <SocialIcon name="bell" size={19} />
+              <SocialIcon name="bell" size={20} />
               {maNeprectene && (
-                <span className="hub-icon-badge" aria-hidden="true">
-                  {pocetNeprectenych > 9 ? '9+' : pocetNeprectenych}
+                <span className="buddy-ui-badge" aria-hidden="true">
+                  {pocetNeprectenych > 99 ? '99+' : pocetNeprectenych}
                 </span>
               )}
             </button>
-          </div>
-        </header>
+          }
+        />
 
+        <main className="hub-content">
         {/* Úroveň a série — appka dřív měla nad touhle řadou ještě celý
             hero panel s koulí maskota (a předtím ještě dřív rohové
             odznaky přes něj), obojí je pryč. Hlasový Buddy teď zase
@@ -719,7 +688,7 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
               <>
                 <span className="hub-streak-flame" aria-hidden="true">🔥</span>
                 <span className="hub-streak-num">{streakDays}</span>
-                <span className="hub-streak-label">DAYS STREAK</span>
+                <span className="hub-streak-label">DNÍ V ŘADĚ</span>
               </>
             ) : (
               <>
@@ -898,7 +867,7 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
             <motiv>/) — appka je čte přes `variant.assets`, stejně jako
             kolo výš, místo appčiných dřívějších natvrdo daných cest. */}
         <div className="hub-quick-links">
-          <button type="button" className="hub-quick-link" onClick={() => navigate('/obchod')}>
+          <button type="button" className="hub-quick-link buddy-ui-row" onClick={() => navigate('/obchod')}>
             <img src={themeAssetUrl(variant.assets.shopIcon)} alt="" className="hub-quick-link-icon" />
             <span className="hub-quick-link-text">
               <span className="hub-quick-link-title">Shop</span>
@@ -906,7 +875,7 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
             </span>
             <span className="hub-quick-link-arrow" aria-hidden="true">›</span>
           </button>
-          <button type="button" className="hub-quick-link" onClick={handleAchievementsClick}>
+          <button type="button" className="hub-quick-link buddy-ui-row" onClick={handleAchievementsClick}>
             <img src={themeAssetUrl(variant.assets.trophyIcon)} alt="" className="hub-quick-link-icon" />
             <span className="hub-quick-link-text">
               <span className="hub-quick-link-title">Achievementy</span>
@@ -921,6 +890,8 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
               nedotčený, jen appka tohle tlačítko přestala vykreslovat. */}
         </div>
 
+        </main>
+
         {/* Spodní navigace — Fáze 4 Social nav reworku vytáhla tenhle
             blok do sdílené komponenty (src/components/AppBottomNav.tsx),
             appka ji teď vykresluje i mimo Hub (Apps/Profil/Nastavení).
@@ -931,6 +902,7 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
         <AppBottomNav />
 
         <ProfilNotifications
+          callerId="hub"
           open={notifOpen}
           readIds={profile.readNotifications}
           onMarkRead={markNotificationRead}
