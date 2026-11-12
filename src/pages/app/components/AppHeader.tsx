@@ -1,4 +1,5 @@
-import React from 'react'
+import type { ReactNode } from 'react'
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import { AppIcon } from './AppIcon'
 
 interface AppHeaderProps {
@@ -7,43 +8,39 @@ interface AppHeaderProps {
   unreadCount: number
   title?: string
   subtitle?: string
+  icon?: string
+  extraActions?: ReactNode
 }
 
-export const AppHeader: React.FC<AppHeaderProps> = ({
+export function AppHeader({
   onBack,
   onOpenNotifications,
   unreadCount,
   title = 'Aplikace',
   subtitle = 'Tvoje aplikace na jednom místě',
-}) => (
-  <header className="app-header">
-    <button className="app-back-btn" aria-label="Zpět" onClick={onBack}>
-      <AppIcon name="arrow-left" size={18} />
-    </button>
-
-    <div className="app-header-center">
-      <div className="app-header-title-wrap">
-        <AppIcon name="grid" size={22} className="app-header-icon" />
-        <h1>{title}</h1>
-      </div>
-      <p>{subtitle}</p>
-    </div>
-
-    <div className="app-header-actions">
-      <button
-        className="app-icon-btn"
-        aria-label={
-          unreadCount > 0
-            ? `Upozornění (${unreadCount} nepřečtených)`
-            : 'Upozornění'
-        }
-        onClick={onOpenNotifications}
-      >
-        <AppIcon name="bell" size={20} />
-        {unreadCount > 0 && (
-          <span className="app-icon-badge">{unreadCount}</span>
-        )}
-      </button>
-    </div>
-  </header>
-)
+  icon = 'grid',
+  extraActions,
+}: AppHeaderProps) {
+  return (
+    <BuddyHeader
+      title={title}
+      subtitle={subtitle}
+      icon={icon}
+      onBack={onBack}
+      actions={
+        <>
+          <button
+            type="button"
+            className="buddy-ui-button buddy-ui-button--icon"
+            aria-label={unreadCount > 0 ? `Upozornění (${unreadCount} nepřečtených)` : 'Upozornění'}
+            onClick={onOpenNotifications}
+          >
+            <AppIcon name="bell" size={20} />
+            {unreadCount > 0 && <span className="buddy-ui-badge" aria-hidden="true">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+          </button>
+          {extraActions}
+        </>
+      }
+    />
+  )
+}

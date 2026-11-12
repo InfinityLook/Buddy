@@ -1,7 +1,5 @@
 /* Společné rozložení; barvy se přebírají z pěti motivů Buddyho. */
-.app-fullscreen-view--planner > .app-fullscreen-header { display: none; }
 .app-fullscreen-view--planner > .app-fullscreen-content { padding: 0; min-height: 0; max-width: none; overflow: hidden; display: flex; }
-.app-fullscreen-view--planner > .app-bottom-nav { flex-shrink: 0; position: relative; margin-top: 0; padding: .5rem 1rem calc(.4rem + env(safe-area-inset-bottom)); background: var(--buddy-bg); }
 .sp-app { --sp-line: color-mix(in srgb, var(--buddy-muted) 20%, transparent); display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; max-width: 960px; margin-inline: auto; color: var(--buddy-text); background: var(--buddy-bg); font-size: 1rem; }
 .sp-app *, .sp-dialog * { box-sizing: border-box; }
 .sp-app button, .sp-dialog button, .sp-app input, .sp-app select, .sp-dialog input, .sp-dialog select, .sp-dialog textarea { font: inherit; }

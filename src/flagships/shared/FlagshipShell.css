@@ -1,9 +1,4 @@
-/* Sdílený vzhled vlajkových appek (School Room a další) — .app-container/
-   .app-header/.app-icon-btn/.app-avatar-btn/.app-back-btn se přebírají
-   beze změny z AppModule.css (importované ve FlagshipShell.tsx), tenhle
-   soubor doplňuje jen to, co AppModule nemá: panel "Můj widget", jeho
-   sloty, pevnou mřížku dlaždic a dvě velké karty dole. */
-
+/* Shared Room content. The header and navigation have their own styles. */
 .fs-page {
   gap: 1.25rem;
 }

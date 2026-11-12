@@ -1,5 +1,6 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
+import { AppHeader } from '@/pages/app/components/AppHeader'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import {
@@ -61,15 +62,6 @@ interface Props {
 // doopravdy sdílené — přesně proto první verze shellu widgety nesla
 // natvrdo a teprve teď se to rozpojilo.
 //
-// Hlavička/notifikace/avatar jsou schválně vlastní kopie stejné logiky
-// jako AppHeader.tsx (viz src/pages/app/), ne import odsud rovnou —
-// AppHeader je vázaný na AppModule's vlastní props (unreadCount z
-// AppModule.tsx atd.), kdežto tenhle plášť si tutéž logiku (bell +
-// avatar) drží sám, ať je samostatný a nezávislý na tom, jak si to
-// řeší /apps. Malá duplicita čtyř řádků logiky je levnější než vázat
-// dvě různé stránky na jednu sdílenou komponentu, co by musela nosit
-// props obou.
-//
 // Šipky mezi Roomy (myš-only, mezi Hub/Apps/Profil/Nastavení i mezi
 // vlajkovými Roomy) appka odstranila na uživatelovo přání — <AppBottomNav />
 // se tu teď volá bez props, appka tu žádnou náhradní navigaci mezi
@@ -96,38 +88,28 @@ export const FlagshipShell: React.FC<Props> = ({
   const { rootAttributes } = useSurfaceAppearance(surfaceId)
 
   return (
-    <div className="app-container fs-page buddy-theme-scope" {...rootAttributes}>
+    <div className="app-container app-container--shared-header fs-page buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId={surfaceId} />
 
-      <header className="app-header">
-        <button className="app-back-btn" aria-label="Zpět" onClick={() => navigate('/rooms')}>
-          <AppIcon name="arrow-left" size={18} />
-        </button>
-
-        <div className="app-header-center">
-          <div className="app-header-title-wrap">
-            <AppIcon name={ikonaHlavicky} size={22} className="app-header-icon" />
-            <h1>{nazev}</h1>
-          </div>
-          <p>{popisHlavicky}</p>
-        </div>
-
-        <div className="app-header-actions">
+      <AppHeader
+        title={nazev}
+        subtitle={popisHlavicky}
+        icon={ikonaHlavicky}
+        onBack={() => navigate('/rooms')}
+        unreadCount={unreadCount}
+        onOpenNotifications={onOpenNotifications}
+        extraActions={
           <button
-            className="app-icon-btn"
-            aria-label={unreadCount > 0 ? `Upozornění (${unreadCount} nepřečtených)` : 'Upozornění'}
-            onClick={onOpenNotifications}
+            type="button"
+            className="buddy-ui-button buddy-ui-button--icon buddy-ui-avatar-button"
+            aria-label="Otevřít profil"
+            onClick={() => navigate('/profil')}
           >
-            <AppIcon name="bell" size={20} />
-            {unreadCount > 0 && <span className="app-icon-badge">{unreadCount}</span>}
-          </button>
-
-          <button className="app-avatar-btn" aria-label="Otevřít profil" onClick={() => navigate('/profil')}>
-            <img className="app-avatar-img" src={profile.avatar} alt="" aria-hidden="true" />
+            <img className="app-avatar-img" src={profile.avatar} alt="" />
             <span className="app-avatar-dot" aria-hidden="true" />
           </button>
-        </div>
-      </header>
+        }
+      />
 
       {children}
 

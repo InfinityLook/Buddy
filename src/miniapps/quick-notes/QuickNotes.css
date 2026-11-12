@@ -1,25 +1,9 @@
-.app-fullscreen-view--notes > .app-fullscreen-header {
-  display: none;
-}
-
 .app-fullscreen-view--notes > .app-fullscreen-content {
   display: flex;
   padding: 0;
   min-height: 0;
   max-width: none;
   overflow: hidden;
-}
-
-.app-fullscreen-view--notes > .app-bottom-nav {
-  position: relative;
-  flex-shrink: 0;
-  margin-top: 0;
-  padding: .5rem 1rem calc(.4rem + env(safe-area-inset-bottom));
-  background: var(--buddy-bg);
-}
-
-.app-fullscreen-view--notes > .app-bottom-nav::before {
-  display: none;
 }
 
 .qn-app {

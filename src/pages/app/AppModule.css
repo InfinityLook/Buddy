@@ -16,7 +16,6 @@
   --app-text-muted: var(--text-secondary);
 
   --app-cyan: var(--accent-cyan);
-  --app-green: var(--accent-green);
 }
 
 /* Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — .app-page dostává
@@ -25,14 +24,15 @@
    Zdejší lokální aliasy (--app-bg a spol.) by bez tohohle druhého
    pravidla zůstaly zamrzlé na tom, co platilo při načtení stránky —
    stejná oprava jako ProfilModule.css/.profil-page.buddy-theme-scope. */
-.app-page.buddy-theme-scope {
+.app-page.buddy-theme-scope,
+.app-fullscreen-view.buddy-theme-scope,
+.app-container.buddy-theme-scope {
   --app-bg: var(--bg-base);
   --app-card-border: var(--border-subtle);
   --app-text-main: var(--text-primary);
   --app-text-muted: var(--text-secondary);
 
   --app-cyan: var(--accent-cyan);
-  --app-green: var(--accent-green);
 }
 
 /* ------------------------------------------
@@ -189,94 +189,6 @@
   gap: 0.5rem;
 }
 
-.app-icon-btn {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-orange) 32%, var(--app-card-border));
-  color: var(--app-text-main);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-orange) 10%, transparent) inset;
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.app-icon-btn:hover {
-  background: color-mix(in srgb, var(--text-primary) 12%, transparent);
-  border-color: color-mix(in srgb, var(--accent-orange) 55%, var(--border-strong));
-  box-shadow: 0 0 14px color-mix(in srgb, var(--accent-orange) 35%, transparent);
-}
-
-/* Počet nepřečtených upozornění u zvonku */
-.app-icon-badge {
-  position: absolute;
-  top: -3px;
-  right: -3px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 9px;
-  background: var(--accent-red);
-  /* Buddy v2: text na červeném odznaku, ne natvrdo bílá — appčin
-     dedikovaný token pro popředí na barevné ploše, stejně jako jinde. */
-  color: var(--text-on-accent);
-  font-size: 0.65rem;
-  font-weight: 800;
-  line-height: 18px;
-  text-align: center;
-  border: 2px solid var(--app-bg);
-  box-sizing: content-box;
-}
-
-/* Avatarová zkratka na vlastní profil — nahradila ozubené kolo
-   Nastavení v hlavičce (viz AppHeader.tsx). Tečka je natvrdo zelená
-   (dekorativní "jsem tu" signál, ne skutečný online stav — appka tu
-   nemá k dispozici Social's presence data a nestojí to za tažení jeho
-   API do tohohle eagerně načítaného modulu jen kvůli jedné tečce). */
-.app-avatar-btn {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: 50%;
-  padding: 0;
-  background: transparent;
-  border: 2px solid color-mix(in srgb, var(--accent-orange) 55%, transparent);
-  cursor: pointer;
-  box-shadow: 0 0 10px color-mix(in srgb, var(--accent-orange) 25%, transparent);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.app-avatar-btn:hover {
-  border-color: var(--accent-orange);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--accent-orange) 45%, transparent);
-}
-
-.app-avatar-img {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-  display: block;
-}
-
-.app-avatar-dot {
-  position: absolute;
-  bottom: -1px;
-  right: -1px;
-  width: 11px;
-  height: 11px;
-  border-radius: 50%;
-  background: var(--app-green);
-  border: 2px solid var(--app-bg);
-  box-shadow: 0 0 5px var(--app-green);
-}
-
 /* Načítání otevřené miniaplikace (dřív inline styl v AppModule.tsx) */
 .app-suspense-fallback {
   text-align: center;
@@ -308,37 +220,25 @@
   box-sizing: border-box;
 }
 
-.app-fullscreen-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex-shrink: 0;
+.app-fullscreen-view > .app-fullscreen-header {
   width: 100%;
   max-width: 900px;
-  margin: 0 auto;
-  padding: calc(0.75rem + env(safe-area-inset-top)) 1rem 0.75rem;
-  border-bottom: 1px solid var(--app-card-border);
-  box-sizing: border-box;
+  margin-inline: auto;
 }
 
-.app-fullscreen-header h2 {
-  font-size: 1rem;
-  font-weight: 800;
-  margin: 0;
-  letter-spacing: -0.3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.app-container.app-container--shared-header {
+  padding-top: max(.75rem, env(safe-area-inset-top));
 }
 
 .app-fullscreen-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   width: 100%;
   max-width: 900px;
   margin: 0 auto;
-  padding: 1rem 1rem calc(1.5rem + env(safe-area-inset-bottom));
+  padding: 1rem 1rem 1.5rem;
   box-sizing: border-box;
 }
 

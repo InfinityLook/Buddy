@@ -1,0 +1,360 @@
+/* Shared controls are opt-in. The active surface supplies the palette. */
+.buddy-theme-scope {
+  --buddy-ui-space: .75rem;
+  --buddy-ui-control-radius: 12px;
+  --buddy-ui-card-radius: 16px;
+  --buddy-ui-dialog-radius: 22px;
+  --buddy-ui-touch: 44px;
+  --buddy-ui-heading-size: clamp(1.1rem, 4.2vw, 1.45rem);
+  --buddy-ui-motion: 140ms ease;
+}
+
+.buddy-ui-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: clamp(.35rem, 2vw, .75rem);
+  min-width: 0;
+  box-sizing: border-box;
+  color: var(--buddy-text);
+}
+
+.buddy-ui-header--panel {
+  padding: .5rem .65rem;
+  border: 1px solid var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
+  background: var(--buddy-glass);
+}
+
+.buddy-ui-header--quiet {
+  padding: calc(.35rem + env(safe-area-inset-top)) var(--buddy-ui-space) .35rem;
+  border-bottom: 1px solid var(--buddy-border);
+  background: var(--buddy-bg);
+}
+
+/* Keep header actions clear of the viewport's fullscreen switch. */
+@media (max-width: 970px) {
+  :where(#root:has(.fullscreen-toggle-btn)) .buddy-ui-header--panel {
+    padding-inline-end: calc(1.5rem + env(safe-area-inset-right));
+  }
+
+  :where(#root:has(.fullscreen-toggle-btn)) .buddy-ui-header--quiet:has(.buddy-ui-header-actions) {
+    padding-inline-end: calc(2.5rem + env(safe-area-inset-right));
+  }
+}
+
+.buddy-ui-header-copy {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.buddy-ui-header-title,
+.buddy-ui-header-actions {
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  min-width: 0;
+}
+
+.buddy-ui-header-actions {
+  flex: none;
+  gap: .3rem;
+}
+
+.buddy-ui-header-title > svg {
+  flex: none;
+  color: var(--buddy-accent);
+}
+
+.buddy-ui-header-title > :is(h1, h2),
+.buddy-ui-dialog-header > h2 {
+  min-width: 0;
+  margin: 0;
+  font-size: var(--buddy-ui-heading-size);
+  line-height: 1.17;
+  font-weight: 750;
+  letter-spacing: -.025em;
+  overflow-wrap: anywhere;
+}
+
+.buddy-ui-header-copy > p {
+  margin: .15rem 0 0;
+  font-size: .78rem;
+  color: var(--buddy-muted);
+}
+
+.buddy-ui-button,
+.buddy-ui-input {
+  box-sizing: border-box;
+  min-height: var(--buddy-ui-touch);
+  border: 1px solid var(--buddy-control-border);
+  border-radius: var(--buddy-ui-control-radius);
+  padding: .5rem .8rem;
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+  font: inherit;
+}
+
+.buddy-ui-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .45rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color var(--buddy-ui-motion), border-color var(--buddy-ui-motion), color var(--buddy-ui-motion);
+}
+
+.buddy-ui-button:enabled:active,
+.buddy-ui-button[aria-pressed="true"] {
+  background: var(--buddy-raised);
+  border-color: var(--buddy-accent);
+}
+
+.buddy-ui-button:disabled {
+  opacity: .6;
+  cursor: default;
+}
+
+.buddy-ui-button--primary,
+.buddy-ui-button--primary:enabled:active {
+  min-height: 48px;
+  border-color: transparent;
+  background: var(--buddy-accent);
+  color: var(--buddy-on-accent);
+}
+
+.buddy-ui-button--primary:enabled:active {
+  filter: brightness(.92);
+}
+
+.buddy-theme-scope .buddy-ui-button--primary:focus-visible {
+  outline-color: var(--buddy-on-accent);
+  outline-offset: -4px;
+}
+
+.buddy-ui-button--icon {
+  flex: none;
+  width: var(--buddy-ui-touch);
+  padding: 0;
+}
+
+.buddy-ui-button--icon > svg {
+  flex: none;
+}
+
+.buddy-ui-badge {
+  position: absolute;
+  top: -.2rem;
+  right: -.25rem;
+  min-width: 1rem;
+  padding: .1rem .23rem;
+  border-radius: 1rem;
+  background: var(--buddy-accent);
+  color: var(--buddy-on-accent);
+  font-size: .65rem;
+  line-height: 1.1;
+}
+
+.buddy-ui-input {
+  min-width: 0;
+  max-width: 100%;
+  font-size: 1rem;
+  accent-color: var(--buddy-accent);
+}
+
+.buddy-ui-input::placeholder {
+  color: var(--buddy-muted);
+  opacity: 1;
+}
+
+.buddy-ui-card,
+.buddy-ui-row,
+.buddy-ui-alert {
+  box-sizing: border-box;
+  border: 1px solid var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+  padding: var(--buddy-ui-space);
+}
+
+.buddy-ui-row {
+  min-width: 0;
+  min-height: var(--buddy-ui-touch);
+  text-align: start;
+}
+
+.buddy-ui-alert {
+  border-color: currentColor;
+  color: var(--buddy-danger);
+}
+
+.buddy-ui-status {
+  padding: var(--buddy-ui-space);
+  color: var(--buddy-muted);
+  text-align: center;
+}
+
+.buddy-ui-segmented {
+  display: flex;
+  gap: 3px;
+  flex: none;
+  min-width: 0;
+  border: 1px solid var(--buddy-border);
+  border-radius: var(--buddy-ui-control-radius);
+  padding: 3px;
+  background: var(--buddy-panel);
+}
+
+.buddy-ui-segmented > button {
+  flex: 1;
+  min-width: 0;
+  min-height: var(--buddy-ui-touch);
+  padding: .2rem;
+  border: 0;
+  border-radius: calc(var(--buddy-ui-control-radius) - 3px);
+  background: transparent;
+  color: var(--buddy-text);
+  font: inherit;
+  font-size: clamp(.72rem, 3.1vw, .8rem);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.buddy-ui-segmented > button[aria-pressed="true"] {
+  background: var(--buddy-accent);
+  color: var(--buddy-on-accent);
+}
+
+.buddy-theme-scope .buddy-ui-segmented > button:focus-visible {
+  outline-color: currentColor;
+  outline-offset: -3px;
+}
+
+dialog.buddy-ui-dialog.buddy-theme-scope {
+  position: fixed;
+  inset: var(--buddy-ui-visual-top, 0px) 0 var(--buddy-ui-visual-bottom, 0px);
+  box-sizing: border-box;
+  width: min(100% - 2rem, 34rem);
+  margin: auto;
+  max-width: 100%;
+  max-height: 90vh;
+  max-height: min(90dvh, calc(var(--buddy-ui-visual-height, 100dvh) - 1rem));
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--buddy-border);
+  border-radius: var(--buddy-ui-dialog-radius);
+  background: var(--buddy-bg);
+  color: var(--buddy-text);
+}
+
+.buddy-ui-dialog::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+
+dialog.buddy-ui-dialog--sheet.buddy-theme-scope {
+  inset: auto 0 var(--buddy-ui-visual-bottom, 0px);
+  width: min(100%, 36rem);
+  margin: 0 auto;
+  border-radius: var(--buddy-ui-dialog-radius) var(--buddy-ui-dialog-radius) 0 0;
+}
+
+.buddy-ui-dialog-layout {
+  display: flex;
+  flex-direction: column;
+  max-height: 89vh;
+  max-height: min(calc(90dvh - 2px), calc(var(--buddy-ui-visual-height, 100dvh) - 1rem - 2px));
+}
+
+.buddy-ui-dialog-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--buddy-ui-space);
+  padding: .5rem 1rem;
+  border-bottom: 1px solid var(--buddy-border);
+}
+
+.buddy-ui-dialog-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 1rem;
+}
+
+.buddy-ui-dialog--sheet .buddy-ui-dialog-content {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  dialog.buddy-ui-dialog--sheet.buddy-theme-scope {
+    inset: var(--buddy-ui-visual-top, 0px) 0 auto auto;
+    width: min(30rem, 100%);
+    height: 100vh;
+    height: var(--buddy-ui-visual-height, 100dvh);
+    max-height: 100%;
+    border-radius: var(--buddy-ui-dialog-radius) 0 0 var(--buddy-ui-dialog-radius);
+  }
+
+  .buddy-ui-dialog--sheet .buddy-ui-dialog-layout {
+    max-height: 100%;
+  }
+}
+
+@media (hover: hover) {
+  .buddy-ui-button:not(.buddy-ui-button--primary):enabled:hover {
+    background: var(--buddy-raised);
+  }
+
+  .buddy-ui-button--primary:enabled:hover {
+    filter: brightness(1.06);
+  }
+
+  .buddy-ui-row:enabled:hover {
+    background: var(--buddy-raised);
+  }
+}
+
+.buddy-ui-avatar-button > img {
+  width: 100%;
+  height: 100%;
+  border-radius: calc(var(--buddy-ui-control-radius) - 2px);
+  object-fit: cover;
+}
+
+.buddy-ui-avatar-button > .app-avatar-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 10px;
+  height: 10px;
+  border: 2px solid var(--buddy-panel);
+  border-radius: 50%;
+  background: var(--buddy-success);
+}
+
+.buddy-ui-fallback {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--buddy-ui-space);
+  text-align: center;
+}
+
+.buddy-ui-fallback h2 { margin: 0; font-size: 1rem; }
+.buddy-ui-fallback p { margin: .35rem 0; }
+
+.buddy-ui-fallback-actions {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-top: .75rem;
+}

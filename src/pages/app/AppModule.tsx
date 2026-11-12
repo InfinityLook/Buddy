@@ -1,10 +1,11 @@
 import React, { Suspense, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { AppHeader } from './components/AppHeader'
-import { AppIcon } from './components/AppIcon'
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import { RychleSpusteni } from './components/RychleSpusteni'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { resolveModuleSurface } from '@/features/appearance/moduleThemeRouting'
 import { MINI_APP_REGISTRY } from '@/features/miniapps/registry'
 import { useAppStore } from '@/core/store/useAppStore'
 import { usePomodoroStatus } from '@/miniapps/pomodoro/usePomodoro'
@@ -20,6 +21,13 @@ import {
 import '@/pages/profil/ProfilModule.css'
 import './AppModule.css'
 
+const FULLSCREEN_LAYOUT = new Map([
+  ['study-planner', 'planner'],
+  ['pomodoro', 'pomo'],
+  ['quick-notes', 'notes'],
+  ['goal-tracker', 'goals'],
+])
+
 interface AppModuleProps {
   onBack?: () => void
 }
@@ -27,21 +35,6 @@ interface AppModuleProps {
 export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   const navigate = useNavigate()
   const location = useLocation()
-
-  const { rootAttributes } =
-    useSurfaceAppearance('apps-launcher')
-
-  const { rootAttributes: plannerAttributes } =
-    useSurfaceAppearance('study-planner')
-
-  const { rootAttributes: pomodoroAttributes } =
-    useSurfaceAppearance('pomodoro')
-
-  const { rootAttributes: noteAttributes } =
-    useSurfaceAppearance('quick-notes')
-
-  const { rootAttributes: goalAttributes } =
-    useSurfaceAppearance('goal-tracker')
 
   const {
     apps,
@@ -70,6 +63,10 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   const ActiveComponent = activeApp
     ? MINI_APP_REGISTRY[activeApp.id]
     : null
+
+  const surfaceId = resolveModuleSurface('/apps', { activeAppId: ActiveComponent ? activeAppId : null })
+  const { rootAttributes } = useSurfaceAppearance(surfaceId ?? 'apps-launcher')
+  const fullscreenLayout = activeApp ? FULLSCREEN_LAYOUT.get(activeApp.id) : undefined
 
   const handleBack = onBack ?? (() => navigate('/hub'))
 
@@ -108,74 +105,42 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   if (activeApp && ActiveComponent) {
     return (
       <div
-        className={`app-fullscreen-view${
-          activeAppId === 'study-planner'
-            ? ' app-fullscreen-view--planner buddy-theme-scope'
-            : activeAppId === 'pomodoro'
-              ? ' app-fullscreen-view--pomo buddy-theme-scope'
-              : activeAppId === 'quick-notes'
-                ? ' app-fullscreen-view--notes buddy-theme-scope'
-                : activeAppId === 'goal-tracker'
-                  ? ' app-fullscreen-view--goals buddy-theme-scope'
-                  : ''
-        }`}
-        {...(
-          activeAppId === 'study-planner'
-            ? plannerAttributes
-            : activeAppId === 'pomodoro'
-              ? pomodoroAttributes
-              : activeAppId === 'quick-notes'
-                ? noteAttributes
-                : activeAppId === 'goal-tracker'
-                  ? goalAttributes
-                  : {}
-        )}
+        className={`app-fullscreen-view buddy-theme-scope${fullscreenLayout ? ` app-fullscreen-view--${fullscreenLayout}` : ''}`}
+        {...rootAttributes}
       >
-        <header className="app-fullscreen-header">
-          <button
-            className="app-back-btn"
-            onClick={handleCloseApp}
-          >
-            <AppIcon name="arrow-left" size={18} />
-
-            <span>
-              {activeAppId === 'pomodoro' && fromPlanner
-                ? 'Zpět do Plánovače'
-                : returnPath
-                  ? 'Zpět'
-                  : 'Zpět do seznamu'}
-            </span>
-          </button>
-
-          <h2>{activeApp.title}</h2>
-        </header>
+        {!fullscreenLayout && (
+          <BuddyHeader
+            title={activeApp.title}
+            headingLevel={activeApp.id === 'exam-prep' ? 2 : 1}
+            className="app-fullscreen-header"
+            variant="quiet"
+            onBack={handleCloseApp}
+            backLabel={returnPath ? 'Zpět' : 'Zpět do seznamu'}
+          />
+        )}
 
         <main className="app-fullscreen-content">
           <ErrorBoundary
+            key={activeApp.id}
+            onBack={fullscreenLayout ? handleCloseApp : undefined}
             fallbackTitle={`Chyba při načítání ${activeApp.title}`}
           >
             <Suspense
               fallback={
-                <div className="app-suspense-fallback">
-                  Načítání…
+                <div className="buddy-ui-fallback">
+                  <p className="buddy-ui-status" role="status">Načítání…</p>
+                  {fullscreenLayout && (
+                    <button type="button" className="buddy-ui-button" onClick={handleCloseApp}>Zpět</button>
+                  )}
                 </div>
               }
             >
-              <ActiveComponent
-                {...(
-                  activeAppId === 'study-planner' ||
-                  activeAppId === 'pomodoro' ||
-                  activeAppId === 'quick-notes' ||
-                  activeAppId === 'goal-tracker'
-                    ? { onBack: handleCloseApp }
-                    : {}
-                )}
-              />
+              <ActiveComponent {...(fullscreenLayout ? { onBack: handleCloseApp } : {})} />
             </Suspense>
           </ErrorBoundary>
         </main>
 
-        <AppBottomNav />
+        <AppBottomNav placement="edge" />
       </div>
     )
   }
@@ -187,7 +152,7 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
     >
       <SurfaceBackdrop surfaceId="apps-launcher" />
 
-      <div className="app-container">
+      <div className="app-container app-container--shared-header">
         <AppHeader
           onBack={handleBack}
           onOpenNotifications={() => setNotifOpen(true)}

@@ -1,12 +1,11 @@
 import {
-  useEffect,
-  useId,
   useMemo,
-  useRef,
   useState,
 } from 'react'
 import type { ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
+import { AppIcon } from '@/pages/app/components/AppIcon'
 import { useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { useAppStore } from '@/core/store/useAppStore'
@@ -33,13 +32,8 @@ import type {
 import './Pomodoro.css'
 
 const paths = {
-  back: 'm14 5-7 7 7 7',
-  chart: 'M5 20V12m7 8V4m7 16V8',
-  settings:
-    'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8ZM9 3h6l1 3 3 1 2 5-2 5-3 1-1 3H9l-1-3-3-1-2-5 2-5 3-1Z',
   play: 'm8 4 12 8-12 8Z',
   pause: 'M8 5v14M16 5v14',
-  close: 'm6 6 12 12M6 18 18 6',
   next: 'm9 5 7 7-7 7',
 }
 
@@ -74,56 +68,17 @@ function Sheet({
   onClose: () => void
   children: ReactNode
 }) {
-  const titleId = useId()
-  const ref = useRef<HTMLDialogElement>(null)
-  const { rootAttributes } =
-    useSurfaceAppearance('pomodoro')
-
-  useEffect(() => {
-    const element = ref.current
-    const previous =
-      document.activeElement as HTMLElement | null
-
-    element?.showModal()
-
-    return () => {
-      element?.close()
-      previous?.focus()
-    }
-  }, [])
-
-  return createPortal(
-    <dialog
-      ref={ref}
-      className="pomo-dialog buddy-theme-scope"
-      {...rootAttributes}
-      aria-labelledby={titleId}
-      onCancel={event => {
-        event.preventDefault()
-        onClose()
-      }}
-      onClick={event => {
-        if (event.target === event.currentTarget) {
-          onClose()
-        }
-      }}
+  return (
+    <BuddyDialog
+      title={title}
+      surfaceId="pomodoro"
+      presentation="sheet"
+      className="pomo-dialog"
+      contentClassName="pomo-sheet-content"
+      onClose={onClose}
     >
-      <header>
-        <h2 id={titleId}>{title}</h2>
-        <button
-          type="button"
-          className="pomo-icon"
-          aria-label="Zavřít panel"
-          onClick={onClose}
-        >
-          <Icon name="close" />
-        </button>
-      </header>
-      <div className="pomo-sheet-content">
-        {children}
-      </div>
-    </dialog>,
-    document.body
+      {children}
+    </BuddyDialog>
   )
 }
 
@@ -247,6 +202,7 @@ function Settings({
           ].map(value => (
             <button
               type="button"
+              className="buddy-ui-button"
               key={value.label}
               onClick={() =>
                 setDraft(state => ({
@@ -282,6 +238,7 @@ function Settings({
               </small>
             </span>
             <input
+              className="buddy-ui-input"
               type="number"
               min={LIMITS[key].min}
               max={LIMITS[key].max}
@@ -302,6 +259,7 @@ function Settings({
         <label className="pomo-field">
           Denní cíl (min)
           <input
+            className="buddy-ui-input"
             type="number"
             min="5"
             max="720"
@@ -364,7 +322,7 @@ function Settings({
 
           <button
             type="button"
-            className="pomo-secondary"
+            className="buddy-ui-button"
             disabled={
               busy ||
               status === 'unsupported' ||
@@ -387,7 +345,7 @@ function Settings({
 
         {error && (
           <p
-            className="pomo-error"
+            className="buddy-ui-alert pomo-error"
             role="alert"
           >
             {error}
@@ -395,7 +353,7 @@ function Settings({
         )}
 
         <button
-          className="pomo-primary"
+          className="buddy-ui-button buddy-ui-button--primary pomo-primary"
           type="submit"
         >
           Uložit nastavení
@@ -548,46 +506,35 @@ export function Pomodoro({
       className="pomodoro-app buddy-theme-scope"
       {...rootAttributes}
     >
-      <header className="pomo-header">
-        <button
-          type="button"
-          className="pomo-icon"
-          aria-label="Zpět"
-          onClick={
-            onBack ??
-            (() =>
-              useAppStore
-                .getState()
-                .setActiveAppId(null))
-          }
-        >
-          <Icon name="back" />
-        </button>
-
-        <h1>Pomodoro</h1>
-
-        <button
-          type="button"
-          className="pomo-icon"
-          aria-label="Statistiky soustředění"
-          onClick={() => setPanel('stats')}
-        >
-          <Icon name="chart" />
-        </button>
-
-        <button
-          type="button"
-          className="pomo-icon"
-          aria-label="Nastavení časovače"
-          onClick={() => setPanel('settings')}
-        >
-          <Icon name="settings" />
-        </button>
-      </header>
+      <BuddyHeader
+        title="Pomodoro"
+        variant="quiet"
+        onBack={onBack ?? (() => useAppStore.getState().setActiveAppId(null))}
+        actions={
+          <>
+            <button
+              type="button"
+              className="buddy-ui-button buddy-ui-button--icon"
+              aria-label="Statistiky soustředění"
+              onClick={() => setPanel('stats')}
+            >
+              <AppIcon name="bar-chart" />
+            </button>
+            <button
+              type="button"
+              className="buddy-ui-button buddy-ui-button--icon"
+              aria-label="Nastavení časovače"
+              onClick={() => setPanel('settings')}
+            >
+              <AppIcon name="settings" />
+            </button>
+          </>
+        }
+      />
 
       <div className="pomo-main">
         <div
-          className="pomo-modes"
+          className="buddy-ui-segmented"
           role="group"
           aria-label="Režim časovače"
         >
@@ -611,7 +558,7 @@ export function Pomodoro({
 
         <button
           type="button"
-          className="pomo-task"
+          className="buddy-ui-row pomo-task"
           disabled={!!p.block}
           onClick={() => {
             setTitle(p.aktivniPredmet ?? '')
@@ -724,7 +671,7 @@ export function Pomodoro({
         <div className="pomo-actions">
           <button
             type="button"
-            className="pomo-primary"
+            className="buddy-ui-button buddy-ui-button--primary pomo-primary"
             onClick={() => run(p.toggleTimer)}
           >
             <Icon
@@ -769,7 +716,7 @@ export function Pomodoro({
 
         {status.finished && (
           <section
-            className="pomo-finished"
+            className="buddy-ui-card pomo-finished"
             role="status"
           >
             <strong>
@@ -816,7 +763,7 @@ export function Pomodoro({
 
         {status.error && (
           <div
-            className="pomo-error"
+            className="buddy-ui-alert pomo-error"
             role="alert"
           >
             {status.error}
@@ -933,6 +880,7 @@ export function Pomodoro({
             <label className="pomo-field stacked">
               Vlastní činnost
               <input
+                className="buddy-ui-input"
                 autoFocus
                 maxLength={300}
                 value={title}
@@ -945,7 +893,7 @@ export function Pomodoro({
 
             <button
               type="submit"
-              className="pomo-secondary"
+              className="buddy-ui-button"
             >
               Použít vlastní činnost
             </button>
@@ -954,7 +902,7 @@ export function Pomodoro({
           <h3>Úkoly z Planneru</h3>
 
           <input
-            className="pomo-search"
+            className="buddy-ui-input pomo-search"
             type="search"
             aria-label="Hledat úkol"
             placeholder="Hledat úkol…"
@@ -978,7 +926,7 @@ export function Pomodoro({
               <button
                 key={item.id}
                 type="button"
-                className="pomo-task-choice"
+                className="buddy-ui-row pomo-task-choice"
                 aria-label={`${item.topic} ${item.subject}`}
                 onClick={() =>
                   run(() => {
@@ -1021,7 +969,7 @@ export function Pomodoro({
           onClose={() => setPanel(null)}
         >
           <div
-            className="pomo-modes"
+            className="buddy-ui-segmented"
             role="group"
             aria-label="Období statistik"
           >
@@ -1184,7 +1132,7 @@ export function Pomodoro({
 
           <button
             type="button"
-            className="pomo-primary"
+            className="buddy-ui-button buddy-ui-button--primary pomo-primary"
             onClick={() => {
               run(confirmation.action)
               setConfirmation(null)

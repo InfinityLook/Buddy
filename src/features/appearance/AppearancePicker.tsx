@@ -2,6 +2,7 @@ import { useEffect, useId, useState } from 'react'
 import { DEFAULT_BUDDY_THEME, SURFACE_IDS, SURFACES, THEME_FAMILIES, THEME_IDS, type BuddyThemeId, type SurfaceId } from './themeCatalog'
 import { SurfaceThemeIcon, themeAssetUrl } from './SurfaceAppearance'
 import { useAppearanceStore } from './useAppearanceStore'
+import '@/components/buddy-ui/buddy-ui.css'
 import './appearance-picker.css'
 
 type Target = 'all' | SurfaceId
@@ -17,10 +18,12 @@ interface AppearancePickerProps {
    * Bez vlastnosti se appka chová přesně jako původní balíček (nic se neomezuje navíc).
    */
   wiredSurfaceIds?: readonly SurfaceId[]
+  /** Scope scenery controls to views which render and expose their backdrop. */
+  scenerySurfaceIds?: readonly SurfaceId[]
 }
 
 /** Insert this section into Settings > Vzhled. No new route or application data required. */
-export function AppearancePicker({ availablePermissions = [], wiredSurfaceIds }: AppearancePickerProps) {
+export function AppearancePicker({ availablePermissions = [], wiredSurfaceIds, scenerySurfaceIds }: AppearancePickerProps) {
   const uid = useId()
   const [target, setTarget] = useState<Target>('all')
   const global = useAppearanceStore((s) => s.globalThemeId)
@@ -30,6 +33,8 @@ export function AppearancePicker({ availablePermissions = [], wiredSurfaceIds }:
   const setSurface = useAppearanceStore((s) => s.setSurfaceTheme)
   const setScenery = useAppearanceStore((s) => s.setSurfaceScenery)
   const saved: Draft = target === 'all' ? global : (overrides[target] ?? 'inherit')
+  const canSetScenery = target !== 'all' && SURFACES[target].backgroundMode !== 'none' &&
+    (!scenerySurfaceIds || scenerySurfaceIds.includes(target))
   const savedScenery = target === 'all' ? false : (sceneryOverrides[target] ?? SURFACES[target].defaultScenery)
   const [draft, setDraft] = useState<Draft>(saved)
   const [scenery, setSceneryDraft] = useState(savedScenery)
@@ -41,12 +46,12 @@ export function AppearancePicker({ availablePermissions = [], wiredSurfaceIds }:
   useEffect(() => { setStatus('') }, [target])
   const previewId = draft === 'inherit' ? global : draft
   const preview = THEME_FAMILIES[previewId] ?? THEME_FAMILIES[DEFAULT_BUDDY_THEME]
-  const changed = draft !== saved || (target !== 'all' && scenery !== savedScenery)
+  const changed = draft !== saved || (canSetScenery && scenery !== savedScenery)
   return (
     <section className="buddy-appearance-picker buddy-theme-scope" data-buddy-theme={previewId} aria-labelledby={`${uid}-title`}>
       <div className="buddy-appearance-heading"><h2 id={`${uid}-title`}>Vzhled Buddyho</h2><span>Pozadí, barvy a ikony</span></div>
       <label className="buddy-appearance-target" htmlFor={`${uid}-target`}>Kde změnit vzhled
-        <select id={`${uid}-target`} value={target} onChange={(e) => setTarget(e.target.value as Target)}>
+        <select className="buddy-ui-input" id={`${uid}-target`} value={target} onChange={(e) => setTarget(e.target.value as Target)}>
           <option value="all">Společný motiv</option>
           <optgroup label="Hlavní moduly">{visibleSurfaces.filter((id) => SURFACES[id].kind !== 'room' && SURFACES[id].kind !== 'app').map((id) => <option key={id} value={id}>{SURFACES[id].name}</option>)}</optgroup>
           <optgroup label="Místnosti">{visibleSurfaces.filter((id) => SURFACES[id].kind === 'room').map((id) => <option key={id} value={id}>{SURFACES[id].name}</option>)}</optgroup>
@@ -70,20 +75,17 @@ export function AppearancePicker({ availablePermissions = [], wiredSurfaceIds }:
         {target !== 'all' && <SurfaceThemeIcon surfaceId={target} themeId={previewId} tile size={80} />}
         <div><h3>{preview.name}</h3><p>{target === 'all' ? 'Pro všechny obrazovky bez vlastního motivu.' : SURFACES[target].name}</p></div>
       </div>
-      {/* Appka tenhle přepínač ukazuje jen pro obrazovky, co SurfaceBackdrop
-          doopravdy vykresluje (backgroundMode !== 'none') — jinak by
-          přepínač vypadal funkčně, ale neměl by žádný viditelný dopad
-          (Hub má backgroundMode: 'none', vlastní pozadí si řeší sám
-          mimo tenhle generický mechanismus, viz hub's vlastní komentář
-          v themeCatalog.ts a Hub.tsx). */}
-      {target !== 'all' && SURFACES[target].backgroundMode !== 'none' && <label className="buddy-appearance-scenery"><input type="checkbox" checked={scenery} onChange={(e) => setSceneryDraft(e.target.checked)} /> Scénické pozadí z Hubu</label>}
+      {canSetScenery && <label className="buddy-appearance-scenery"><input type="checkbox" checked={scenery} onChange={(e) => setSceneryDraft(e.target.checked)} /> Scénické pozadí z Hubu</label>}
       <div className="buddy-appearance-actions">
-        <button type="button" className="buddy-appearance-apply" disabled={!changed} onClick={() => {
+        <button type="button" className="buddy-ui-button buddy-ui-button--primary" disabled={!changed} onClick={() => {
           if (target === 'all' && draft !== 'inherit') setGlobal(draft)
-          else if (target !== 'all') { setSurface(target, draft === 'inherit' ? null : draft); setScenery(target, scenery) }
+          else if (target !== 'all') {
+            setSurface(target, draft === 'inherit' ? null : draft)
+            if (canSetScenery && scenery !== savedScenery) setScenery(target, scenery)
+          }
           setStatus(`Motiv ${preview.name} je uložený.`)
         }}>Použít motiv</button>
-        <button type="button" disabled={!changed} onClick={() => { setDraft(saved); setSceneryDraft(savedScenery); setStatus('Změny byly zrušeny.') }}>Zrušit změny</button>
+        <button type="button" className="buddy-ui-button" disabled={!changed} onClick={() => { setDraft(saved); setSceneryDraft(savedScenery); setStatus('Změny byly zrušeny.') }}>Zrušit změny</button>
       </div>
       <p role="status" aria-live="polite">{status}</p>
     </section>

@@ -55,7 +55,12 @@ import './AppBottomNav.css'
 // appčin standardní navigate()/prejit() přímo z jednotlivých tlačítek.
 // ==========================================
 
-export const AppBottomNav: React.FC = () => {
+interface AppBottomNavProps {
+  /** Direct child of a full-height flex layout whose content scrolls independently. */
+  placement?: 'sticky' | 'edge'
+}
+
+export const AppBottomNav: React.FC<AppBottomNavProps> = ({ placement = 'sticky' }) => {
   const location = useLocation()
   const navigate = useNavigate()
   const { profile } = useProfileData()
@@ -80,7 +85,7 @@ export const AppBottomNav: React.FC = () => {
 
   return (
     <>
-      <nav className="app-bottom-nav">
+      <nav className={`app-bottom-nav app-bottom-nav--${placement}`} aria-label="Hlavní navigace">
         {/* Profil — appčino vlastní kolečko avataru, přesunuté sem z
             Hubovy a Apps hlavičky (appka tam dřív měla dvě na sobě
             nezávislá tlačítka na to samé místo, teď jen tohle jedno,

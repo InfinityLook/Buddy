@@ -1,9 +1,11 @@
 import { useRef, useState, type PointerEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AppBottomNav } from '@/components/AppBottomNav'
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import { useAppStore } from '@/core/store/useAppStore'
 import { themeAssetUrl, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { SURFACES, THEME_FAMILIES, THEME_IDS, type BuddyThemeId } from '@/features/appearance/themeCatalog'
+import { useAppearanceStore } from '@/features/appearance/useAppearanceStore'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { melByPotvrditTazeni, zacykliIndex } from '@/pages/app/components/roomCarouselMath'
 import { ProfilNotifications, useNotificationItems } from '@/pages/profil/components/ProfilNotifications'
@@ -26,9 +28,12 @@ export default function RoomsModule() {
   const { profile, markNotificationRead } = useProfileData()
   const notifications = useNotificationItems()
   const { themeId, scenery, rootAttributes } = useSurfaceAppearance('apps-launcher')
+  const globalThemeId = useAppearanceStore(state => state.globalThemeId)
+  const setGlobalTheme = useAppearanceStore(state => state.setGlobalTheme)
   const [previewTheme, setPreviewTheme] = useState<BuddyThemeId | null>(null)
   const [selectedId, setSelectedId] = useState<string>()
   const [notifOpen, setNotifOpen] = useState(false)
+  const themeMenu = useRef<HTMLDetailsElement>(null)
   const themeButton = useRef<HTMLElement>(null)
   const drag = useRef<{ id: number; x: number; y: number } | null>(null)
 
@@ -78,6 +83,11 @@ export default function RoomsModule() {
     }
   }
 
+  function closeThemeMenu() {
+    if (themeMenu.current) themeMenu.current.open = false
+    themeButton.current?.focus()
+  }
+
   function enterRoom() {
     if (!room?.route) return
     const { setActiveAppId, markAppOpened } = useAppStore.getState()
@@ -98,46 +108,82 @@ export default function RoomsModule() {
       </picture>
 
       <div className="rooms-shell">
-        <header className="rooms-top">
-          <button type="button" className="rooms-icon" aria-label="Zpět na Hub" onClick={() => navigate('/hub')}>
-            <AppIcon name="arrow-left" />
-          </button>
-          <h1>Rooms</h1>
-          <details
-            className="rooms-themes"
-            onBlur={event => {
-              if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false
-            }}
-            onKeyDown={event => {
-              if (event.key === 'Escape' && event.currentTarget.open) {
-                event.currentTarget.open = false
-                themeButton.current?.focus()
-              }
-            }}
-          >
-            <summary ref={themeButton} aria-label={`Motiv Rooms – ${theme.name}`}>
-              <span className="rooms-swatch" aria-hidden="true" />
-              <span>{theme.name}</span>
-            </summary>
-            <div className="rooms-theme-list" role="group" aria-label="Motivy Rooms">
-              {THEME_IDS.map(id => (
-                <button key={id} type="button" aria-pressed={activeTheme === id} onClick={event => {
-                  setPreviewTheme(id)
-                  const menu = event.currentTarget.closest('details')
-                  if (menu) menu.open = false
-                  themeButton.current?.focus()
-                }}>
-                  {THEME_FAMILIES[id].name}
-                </button>
-              ))}
-            </div>
-          </details>
-          <button type="button" className="rooms-icon" onClick={() => setNotifOpen(true)}
-            aria-label={unread ? `Upozornění, nepřečtených ${unread}` : 'Upozornění'}>
-            <AppIcon name="bell" />
-            {unread > 0 && <span className="rooms-unread" aria-hidden="true" />}
-          </button>
-        </header>
+        <BuddyHeader
+          className="rooms-top"
+          title="Rooms"
+          backLabel="Zpět na Hub"
+          onBack={() => navigate('/hub')}
+          actions={
+            <>
+              <details
+                ref={themeMenu}
+                className="rooms-themes"
+                onBlur={event => {
+                  if (!event.currentTarget.contains(event.relatedTarget)) event.currentTarget.open = false
+                }}
+                onKeyDown={event => {
+                  if (event.key === 'Escape' && event.currentTarget.open) {
+                    event.preventDefault()
+                    closeThemeMenu()
+                  }
+                }}
+              >
+                <summary
+                  ref={themeButton}
+                  className="buddy-ui-button"
+                  aria-label={`Motiv Rooms – ${theme.name}${previewTheme ? ' (náhled)' : ''}`}
+                >
+                  <span className="rooms-swatch" aria-hidden="true" />
+                  <span className="rooms-theme-name">{theme.name}</span>
+                </summary>
+                <div className="rooms-theme-menu">
+                  <p className="rooms-theme-status" role="status">
+                    {previewTheme ? `Náhled: ${theme.name}` : `Motiv aplikace: ${THEME_FAMILIES[globalThemeId].name}`}
+                  </p>
+                  <div className="rooms-theme-list" role="group" aria-label="Náhled motivu">
+                    {THEME_IDS.map(id => (
+                      <button
+                        key={id}
+                        type="button"
+                        className="buddy-ui-button"
+                        aria-pressed={activeTheme === id}
+                        onClick={() => setPreviewTheme(id)}
+                      >
+                        {THEME_FAMILIES[id].name}
+                      </button>
+                    ))}
+                  </div>
+                  {previewTheme && (
+                    <div className="rooms-theme-actions">
+                      <button type="button" className="buddy-ui-button buddy-ui-button--primary" onClick={() => {
+                        setGlobalTheme(previewTheme)
+                        setPreviewTheme(null)
+                        closeThemeMenu()
+                      }}>
+                        Použít v celé aplikaci
+                      </button>
+                      <button type="button" className="buddy-ui-button" onClick={() => {
+                        setPreviewTheme(null)
+                        closeThemeMenu()
+                      }}>
+                        Zrušit náhled
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </details>
+              <button
+                type="button"
+                className="buddy-ui-button buddy-ui-button--icon"
+                aria-label={unread ? `Upozornění, nepřečtených ${unread}` : 'Upozornění'}
+                onClick={() => setNotifOpen(true)}
+              >
+                <AppIcon name="bell" />
+                {unread > 0 && <span className="rooms-unread" aria-hidden="true" />}
+              </button>
+            </>
+          }
+        />
 
         <main className="rooms-main" aria-label="Výběr místnosti">
           {room ? (
@@ -169,7 +215,7 @@ export default function RoomsModule() {
                 </div>
               </section>
 
-              <button type="button" className="rooms-enter" onClick={enterRoom}>
+              <button type="button" className="rooms-enter buddy-ui-button buddy-ui-button--primary" onClick={enterRoom}>
                 <span>Vstoupit do místnosti</span><AppIcon name="arrow-right" />
               </button>
 
