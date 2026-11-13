@@ -211,3 +211,5 @@ export interface Song {
   hlasitostNahravky: number // 0–100, výchozí 100
   createdAt: string
 }
+
+export type MusicStudioTab = 'beat' | 'nahravani' | 'skladby'

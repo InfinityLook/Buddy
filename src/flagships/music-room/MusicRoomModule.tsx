@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAppStore } from '@/core/store/useAppStore'
+import type { MusicStudioTab } from '@/miniapps/music-studio/types'
 import { useMusicStudio } from '@/miniapps/music-studio/useMusicStudio'
 import { useBeatSequencer } from '@/miniapps/music-studio/useBeatSequencer'
 import { DRUM_LABELS, DRUM_SOUNDS } from '@/miniapps/music-studio/types'
@@ -43,59 +44,70 @@ export const MusicRoomModule: React.FC = () => {
   const { hraje, aktualniKrok, spustit, zastavit } = useBeatSequencer(posledniBeat)
 
   const [hrajeNahravkaId, setHrajeNahravkaId] = useState<string | null>(null)
+  const [chybaPrehravani, setChybaPrehravani] = useState('')
   const audioRef = useRef<HTMLAudioElement>(null)
-  // Sleduje URL rozehrané nahrávky napříč přehráním/přepnutím/zastavením/
-  // odchodem z Music Roomu — bez tohohle by createObjectURL uniklo
-  // pokaždé, když se přehrávání přeruší jinak než přirozeným koncem
-  // (přepnutí na jinou nahrávku, tlačítko Zastavit, opuštění pokoje),
-  // stejná "uvolni, ať to skončí jakkoliv" disciplína jako u kamery/mikrofonu
-  // jinde v appce.
   const prehravanaUrlRef = useRef<string | null>(null)
+  const pozadavekRef = useRef(0)
 
-  const uvolnitPrehravanouUrl = () => {
+  const uvolnitPrehravani = (audio: HTMLAudioElement | null) => {
+    if (audio) {
+      audio.pause()
+      audio.removeAttribute('src')
+      audio.onended = null
+    }
     if (prehravanaUrlRef.current) {
       URL.revokeObjectURL(prehravanaUrlRef.current)
       prehravanaUrlRef.current = null
     }
   }
 
-  // Opuštění pokoje s ještě běžící nahrávkou nesmí nechat viset ani
-  // přehrávání, ani jeho URL.
   useEffect(() => {
+    const audio = audioRef.current
     return () => {
-      audioRef.current?.pause()
-      uvolnitPrehravanouUrl()
+      pozadavekRef.current++
+      uvolnitPrehravani(audio)
     }
   }, [])
 
-  const otevritMusicStudio = () => {
+  const otevritMusicStudio = (studioTab: MusicStudioTab = 'beat') => {
     setActiveAppId('music-studio', '/music')
-    navigate('/apps')
-  }
-
-  const prehratNahravku = async (id: string) => {
-    const blob = await getFileBlob(id)
-    if (!blob || !audioRef.current) return
-    uvolnitPrehravanouUrl() // přepnutí na jinou nahrávku bez zastavení té předchozí
-    const url = URL.createObjectURL(blob)
-    prehravanaUrlRef.current = url
-    audioRef.current.src = url
-    audioRef.current.onended = () => {
-      setHrajeNahravkaId(null)
-      uvolnitPrehravanouUrl()
-    }
-    try {
-      await audioRef.current.play()
-      setHrajeNahravkaId(id)
-    } catch {
-      uvolnitPrehravanouUrl()
-    }
+    navigate('/apps', { state: { studioTab } })
   }
 
   const zastavitNahravku = () => {
-    audioRef.current?.pause()
+    pozadavekRef.current++
+    uvolnitPrehravani(audioRef.current)
     setHrajeNahravkaId(null)
-    uvolnitPrehravanouUrl()
+  }
+
+  const prehratNahravku = async (id: string) => {
+    zastavitNahravku()
+    const pozadavek = pozadavekRef.current
+    const audio = audioRef.current
+    if (!audio) return
+    setChybaPrehravani('')
+    setHrajeNahravkaId(id)
+
+    try {
+      const blob = await getFileBlob(id)
+      if (pozadavek !== pozadavekRef.current) return
+      if (!blob) {
+        zastavitNahravku()
+        setChybaPrehravani('Zvukový soubor na tomto zařízení chybí.')
+        return
+      }
+      const url = URL.createObjectURL(blob)
+      prehravanaUrlRef.current = url
+      audio.src = url
+      audio.onended = () => {
+        if (pozadavek === pozadavekRef.current) zastavitNahravku()
+      }
+      await audio.play()
+    } catch {
+      if (pozadavek !== pozadavekRef.current) return
+      zastavitNahravku()
+      setChybaPrehravani('Nahrávku se nepodařilo přehrát.')
+    }
   }
 
   const nastroje: FlagshipDlazdice[] = [
@@ -105,7 +117,7 @@ export const MusicRoomModule: React.FC = () => {
       popis: 'Beat Maker, nahrávání a skladby',
       ikona: 'music',
       barva: 'orange',
-      onClick: otevritMusicStudio,
+      onClick: () => otevritMusicStudio(),
     },
   ]
 
@@ -123,7 +135,7 @@ export const MusicRoomModule: React.FC = () => {
     },
     {
       id: 'apps',
-      nazev: 'Apps',
+      nazev: 'Nástroje',
       popis: 'Music Studio a další tvůrčí nástroje',
       ikona: 'grid',
       barva: 'purple',
@@ -145,7 +157,7 @@ export const MusicRoomModule: React.FC = () => {
       >
         <audio ref={audioRef} hidden />
 
-        <div className="mur-panel">
+        <div className="mur-panel buddy-ui-card">
           <div className="mur-panel-hlavicka">
             <h2>Moje tvorba</h2>
           </div>
@@ -165,10 +177,10 @@ export const MusicRoomModule: React.FC = () => {
           </div>
         </div>
 
-        <div className="mur-panel">
+        <div className="mur-panel buddy-ui-card">
           <div className="mur-panel-hlavicka">
             <h2>Beat Maker</h2>
-            <button className="mur-zobrazit-vse" onClick={otevritMusicStudio}>
+            <button className="mur-zobrazit-vse buddy-ui-button" onClick={() => otevritMusicStudio()}>
               Otevřít ›
             </button>
           </div>
@@ -210,14 +222,15 @@ export const MusicRoomModule: React.FC = () => {
           )}
         </div>
 
-        <div className="mur-panel">
+        <div className="mur-panel buddy-ui-card">
           <div className="mur-panel-hlavicka">
             <h2>Nahrávání</h2>
-            <button className="mur-zobrazit-vse" onClick={otevritMusicStudio}>
+            <button className="mur-zobrazit-vse buddy-ui-button" onClick={() => otevritMusicStudio('nahravani')}>
               Otevřít ›
             </button>
           </div>
 
+          {chybaPrehravani && <p className="buddy-ui-alert" role="status">{chybaPrehravani}</p>}
           {recordings.length === 0 ? (
             <p className="mur-prazdno">Zatím žádná uložená nahrávka. Nahraj svůj hlas nebo nástroj.</p>
           ) : (
@@ -238,23 +251,23 @@ export const MusicRoomModule: React.FC = () => {
           )}
         </div>
 
-        <div className="mur-panel">
+        <div className="mur-panel buddy-ui-card">
           <div className="mur-panel-hlavicka">
             <h2>Rychlé akce</h2>
           </div>
 
           <div className="mur-akce-mrizka">
-            <button className="mur-akce-dlazdice" onClick={otevritMusicStudio}>
+            <button className="mur-akce-dlazdice buddy-ui-button" onClick={() => otevritMusicStudio()}>
               <span className="mur-text--orange">
                 <AppIcon name="plus" size={22} />
               </span>
               <span className="mur-akce-nazev">Nový beat</span>
             </button>
-            <button className="mur-akce-dlazdice" onClick={otevritMusicStudio}>
-              <span className="mur-text--magenta">⏺️</span>
+            <button className="mur-akce-dlazdice buddy-ui-button" onClick={() => otevritMusicStudio('nahravani')}>
+              <span className="mur-text--magenta" aria-hidden="true">⏺️</span>
               <span className="mur-akce-nazev">Nahrát zvuk</span>
             </button>
-            <button className="mur-akce-dlazdice" onClick={otevritMusicStudio}>
+            <button className="mur-akce-dlazdice buddy-ui-button" onClick={() => otevritMusicStudio('skladby')}>
               <span className="mur-text--cyan">
                 <AppIcon name="music" size={22} />
               </span>
@@ -264,7 +277,7 @@ export const MusicRoomModule: React.FC = () => {
         </div>
       </FlagshipShell>
 
-      {appsOtevrene && <NastrojeSheet nadpis="Apps" nastroje={nastroje} onZavrit={() => setAppsOtevrene(false)} />}
+      {appsOtevrene && <NastrojeSheet surfaceId="music-room" nadpis="Nástroje" nastroje={nastroje} onZavrit={() => setAppsOtevrene(false)} />}
     </>
   )
 }

@@ -136,7 +136,16 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
                 </div>
               }
             >
-              <ActiveComponent {...(fullscreenLayout ? { onBack: handleCloseApp } : {})} />
+              <ActiveComponent
+                {...(fullscreenLayout ? { onBack: handleCloseApp } : {})}
+                {...(activeApp.id === 'goal-tracker' && returnPath === '/growth' ? {
+                  initialGoalId: typeof location.state?.goalId === 'string' ? location.state.goalId : undefined,
+                  initialCreateGoal: location.state?.createGoal === true,
+                } : {})}
+                {...(activeApp.id === 'music-studio' && returnPath === '/music' ? {
+                  initialTab: location.state?.studioTab,
+                } : {})}
+              />
             </Suspense>
           </ErrorBoundary>
         </Content>

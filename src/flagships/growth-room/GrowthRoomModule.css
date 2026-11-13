@@ -108,19 +108,11 @@
   color: var(--text-secondary);
 }
 
-.gro-cil-lista,
 .gro-xp-lista {
   height: 6px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.08);
   overflow: hidden;
-}
-
-.gro-cil-vypln {
-  height: 100%;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--accent-magenta), #f472b6);
-  transition: width 0.3s ease;
 }
 
 /* ------------------------------------------
@@ -333,3 +325,14 @@
   font-size: 0.76rem;
   font-weight: 600;
 }
+
+.gro-cil-radek.buddy-ui-button,
+.gro-navyk-radek.buddy-ui-button {
+  min-width: 0;
+  align-items: stretch;
+  text-align: start;
+}
+
+.gro-cil-radek .gro-cil-text { flex-wrap: wrap; }
+.gro-cil-nazev { min-width: 0; }
+.gro-cil-hodnota { overflow-wrap: anywhere; }

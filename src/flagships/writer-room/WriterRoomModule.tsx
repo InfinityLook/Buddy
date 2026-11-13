@@ -8,6 +8,7 @@ import { useScreenplayWriter } from '@/miniapps/screenplay-writer/useScreenplayW
 import { serazenoPodleUpravy as serazenoPodleUpravyScenaru } from '@/miniapps/screenplay-writer/types'
 import { useComicWriter } from '@/miniapps/comic-writer/useComicWriter'
 import { celkovyPocetPanelu, serazenoPodleUpravy as serazenoPodleUpravyKomiksu } from '@/miniapps/comic-writer/types'
+import { AppIcon } from '@/pages/app/components/AppIcon'
 import { plural } from '@/core/utils/pluralCZ'
 import { FlagshipShell } from '../shared/FlagshipShell'
 import { NastrojeSheet } from '../shared/NastrojeSheet'
@@ -40,12 +41,9 @@ export const WriterRoomModule: React.FC = () => {
   // funkce; stejné oprávnění appka už používá pro vzhledy/rámečky.
   const smiVip = useHasPermission('cosmetics.premium')
 
-  // Podle poslední ÚPRAVY, ne podle založení — jinak by tenhle panel
-  // pořád ukazoval naposledy založenou knihu/scénář/komiks, i když se
-  // ve skutečnosti dopisuje jiný, starší.
-  const posledniKniha = serazenoPodleUpravyKnih(knihy)[0] ?? null
-  const posledniScenar = serazenoPodleUpravyScenaru(scenare)[0] ?? null
-  const posledniKomiks = serazenoPodleUpravyKomiksu(komiksy)[0] ?? null
+  const posledniKnihy = serazenoPodleUpravyKnih(knihy).slice(0, 3)
+  const posledniScenare = serazenoPodleUpravyScenaru(scenare).slice(0, 3)
+  const posledniKomiksy = serazenoPodleUpravyKomiksu(komiksy).slice(0, 3)
   const dnesniTvorba = spocitejDnesniTvorbu(knihy, scenare, komiksy)
   const tvorbaPodleDne = spocitejTvorbuPodleDne(knihy, scenare, komiksy)
   const maxZaDen = Math.max(1, ...tvorbaPodleDne.map((d) => d.pocet))
@@ -112,7 +110,7 @@ export const WriterRoomModule: React.FC = () => {
     },
     {
       id: 'apps',
-      nazev: 'Apps',
+      nazev: 'Nástroje',
       popis: 'Kniha, Scénář a Komiks',
       ikona: 'grid',
       barva: 'purple',
@@ -132,7 +130,7 @@ export const WriterRoomModule: React.FC = () => {
         onOpenNotifications={() => setNotifOpen(true)}
         onCloseNotifications={() => setNotifOpen(false)}
       >
-        <div className="wr-panel">
+        <div className="wr-panel buddy-ui-card">
           <div className="wr-panel-hlavicka">
             <h2>Moje tvorba</h2>
             {smiVip && (
@@ -160,7 +158,7 @@ export const WriterRoomModule: React.FC = () => {
           </p>
         </div>
 
-        <div className="wr-panel">
+        <div className="wr-panel buddy-ui-card">
           <div className="wr-panel-hlavicka">
             <h2>🔍 Hledat napříč vším</h2>
           </div>
@@ -196,7 +194,7 @@ export const WriterRoomModule: React.FC = () => {
           )}
         </div>
 
-        <div className="wr-panel">
+        <div className="wr-panel buddy-ui-card">
           <div className="wr-panel-hlavicka">
             <h2>Aktivita za posledních 14 dní</h2>
           </div>
@@ -216,7 +214,7 @@ export const WriterRoomModule: React.FC = () => {
           </div>
         </div>
 
-        <div className="wr-panel">
+        <div className="wr-panel buddy-ui-card">
           <div className="wr-panel-hlavicka">
             <h2>🎯 Psací cíl</h2>
           </div>
@@ -264,88 +262,88 @@ export const WriterRoomModule: React.FC = () => {
           </div>
         </div>
 
-        <div className="wr-panel">
+        <div className="wr-panel buddy-ui-card">
           <div className="wr-panel-hlavicka">
             <h2>📖 Kniha</h2>
-            <button className="wr-zobrazit-vse" onClick={otevritKnihu}>
+            <button className="wr-zobrazit-vse buddy-ui-button" onClick={otevritKnihu}>
               Otevřít ›
             </button>
           </div>
-          {!posledniKniha ? (
+          {posledniKnihy.length === 0 ? (
             <p className="wr-prazdno">Zatím žádná kniha. Založ první v Knize.</p>
-          ) : (
-            <div className="wr-preview-radek">
-              <div className="wr-preview-ikona">📖</div>
+          ) : posledniKnihy.map(projekt => (
+            <div key={projekt.id} className="wr-preview-radek">
+              <span className="wr-preview-ikona" aria-hidden="true"><AppIcon name="book" size={18} /></span>
               <div className="wr-preview-text">
-                <strong>{posledniKniha.nazev}</strong>
+                <strong>{projekt.nazev}</strong>
                 <span>
-                  {posledniKniha.kapitoly.length} {plural(posledniKniha.kapitoly.length, 'kapitola', 'kapitoly', 'kapitol')} ·{' '}
-                  {celkovyPocetSlov(posledniKniha)} {plural(celkovyPocetSlov(posledniKniha), 'slovo', 'slova', 'slov')}
+                  {projekt.kapitoly.length} {plural(projekt.kapitoly.length, 'kapitola', 'kapitoly', 'kapitol')} ·{' '}
+                  {celkovyPocetSlov(projekt)} {plural(celkovyPocetSlov(projekt), 'slovo', 'slova', 'slov')}
                 </span>
               </div>
             </div>
-          )}
+          ))}
         </div>
 
-        <div className="wr-panel">
+        <div className="wr-panel buddy-ui-card">
           <div className="wr-panel-hlavicka">
             <h2>🎬 Scénář</h2>
-            <button className="wr-zobrazit-vse" onClick={otevritScenare}>
+            <button className="wr-zobrazit-vse buddy-ui-button" onClick={otevritScenare}>
               Otevřít ›
             </button>
           </div>
-          {!posledniScenar ? (
+          {posledniScenare.length === 0 ? (
             <p className="wr-prazdno">Zatím žádný scénář. Založ první ve Scénáři.</p>
-          ) : (
-            <div className="wr-preview-radek">
-              <div className="wr-preview-ikona">🎬</div>
+          ) : posledniScenare.map(projekt => (
+            <div key={projekt.id} className="wr-preview-radek">
+              <span className="wr-preview-ikona" aria-hidden="true"><AppIcon name="clapperboard" size={18} /></span>
               <div className="wr-preview-text">
-                <strong>{posledniScenar.nazev}</strong>
+                <strong>{projekt.nazev}</strong>
                 <span>
-                  {posledniScenar.sceny.length} {plural(posledniScenar.sceny.length, 'scéna napsána', 'scény napsány', 'scén napsáno')}
+                  {projekt.sceny.length} {plural(projekt.sceny.length, 'scéna napsána', 'scény napsány', 'scén napsáno')}
                 </span>
               </div>
             </div>
-          )}
+          ))}
         </div>
 
-        <div className="wr-panel">
+        <div className="wr-panel buddy-ui-card">
           <div className="wr-panel-hlavicka">
             <h2>💥 Komiks</h2>
-            <button className="wr-zobrazit-vse" onClick={otevritKomiksy}>
+            <button className="wr-zobrazit-vse buddy-ui-button" onClick={otevritKomiksy}>
               Otevřít ›
             </button>
           </div>
-          {!posledniKomiks ? (
+          {posledniKomiksy.length === 0 ? (
             <p className="wr-prazdno">Zatím žádný komiks. Založ první v Komiksu.</p>
-          ) : (
-            <div className="wr-preview-radek">
-              <div className="wr-preview-ikona">💥</div>
+          ) : posledniKomiksy.map(projekt => (
+            <div key={projekt.id} className="wr-preview-radek">
+              <span className="wr-preview-ikona" aria-hidden="true"><AppIcon name="comic" size={18} /></span>
               <div className="wr-preview-text">
-                <strong>{posledniKomiks.nazev}</strong>
+                <strong>{projekt.nazev}</strong>
                 <span>
-                  {posledniKomiks.strany.length} {plural(posledniKomiks.strany.length, 'strana', 'strany', 'stran')} ·{' '}
-                  {celkovyPocetPanelu(posledniKomiks)} {plural(celkovyPocetPanelu(posledniKomiks), 'panel', 'panely', 'panelů')}
+                  {projekt.strany.length} {plural(projekt.strany.length, 'strana', 'strany', 'stran')} ·{' '}
+                  {celkovyPocetPanelu(projekt)} {plural(celkovyPocetPanelu(projekt), 'panel', 'panely', 'panelů')}
                 </span>
               </div>
             </div>
-          )}
+          ))}
         </div>
 
-        <div className="wr-panel">
+        <div className="wr-panel buddy-ui-card">
           <div className="wr-panel-hlavicka">
             <h2>Rychlé akce</h2>
           </div>
           <div className="wr-akce-mrizka">
-            <button className="wr-akce-dlazdice" onClick={otevritKnihu}>
+            <button className="wr-akce-dlazdice buddy-ui-button" onClick={otevritKnihu}>
               <span className="wr-text--gold">📖</span>
               <span className="wr-akce-nazev">Nová kniha</span>
             </button>
-            <button className="wr-akce-dlazdice" onClick={otevritScenare}>
+            <button className="wr-akce-dlazdice buddy-ui-button" onClick={otevritScenare}>
               <span className="wr-text--gold">🎬</span>
               <span className="wr-akce-nazev">Nový scénář</span>
             </button>
-            <button className="wr-akce-dlazdice" onClick={otevritKomiksy}>
+            <button className="wr-akce-dlazdice buddy-ui-button" onClick={otevritKomiksy}>
               <span className="wr-text--gold">💥</span>
               <span className="wr-akce-nazev">Nový komiks</span>
             </button>
@@ -353,7 +351,7 @@ export const WriterRoomModule: React.FC = () => {
         </div>
       </FlagshipShell>
 
-      {appsOtevrene && <NastrojeSheet nadpis="Apps" nastroje={nastroje} onZavrit={() => setAppsOtevrene(false)} />}
+      {appsOtevrene && <NastrojeSheet surfaceId="writer-room" nadpis="Nástroje" nastroje={nastroje} onZavrit={() => setAppsOtevrene(false)} />}
     </>
   )
 }

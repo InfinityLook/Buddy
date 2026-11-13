@@ -1,3 +1,4 @@
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
 import React, { useEffect, useState } from 'react'
 import { getRole } from '@/core/role'
 import { useAccount } from '@/core/supabase/auth'
@@ -59,70 +60,63 @@ export const Zebricek: React.FC<ZebricekProps> = ({ onZavrit }) => {
   const jsemViditelny = mujId !== null && radky.some((r) => r.id === mujId)
 
   return (
-    <div className="zeb-overlay" role="dialog" aria-modal="true" aria-label="Žebříček fitness XP">
-      <div className="zeb-karta">
-        <button type="button" className="zeb-zavrit" onClick={onZavrit} aria-label="Zavřít">
-          ✕
-        </button>
+    <BuddyDialog surfaceId="fitness-room" title="Žebříček fitness XP" presentation="sheet" onClose={onZavrit}>
+      <p className="zeb-podnadpis">Celkové fitness XP ze všech nástrojů v Roomu</p>
 
-        <h2 className="zeb-nadpis">🏆 Žebříček</h2>
-        <p className="zeb-podnadpis">Celkové fitness XP ze všech nástrojů v Roomu</p>
+      {stav === 'nacita' && <p className="zeb-stav-text" role="status">Načítám…</p>}
 
-        {stav === 'nacita' && <p className="zeb-stav-text">Načítám…</p>}
+      {stav === 'chyba' && (
+        <p className="zeb-stav-text" role="status">Žebříček teď není k dispozici — zkus to znovu, až budeš online.</p>
+      )}
 
-        {stav === 'chyba' && (
-          <p className="zeb-stav-text">Žebříček teď není k dispozici — zkus to znovu, až budeš online.</p>
-        )}
+      {stav === 'hotovo' && (
+        <>
+          {radky.length === 0 && (
+            <p className="zeb-stav-text" role="status">Zatím v žebříčku nikdo není — buď první!</p>
+          )}
 
-        {stav === 'hotovo' && (
-          <>
-            {radky.length === 0 && (
-              <p className="zeb-stav-text">Zatím v žebříčku nikdo není — buď první!</p>
-            )}
+          {radky.length > 0 && (
+            <ol className="zeb-seznam">
+              {radky.map((radek, index) => {
+                const role = getRole(radek.role)
+                const jsemTo = radek.id === mujId
+                return (
+                  <li key={radek.id} className={`zeb-radek ${jsemTo ? 'zeb-radek--ja' : ''}`}>
+                    <span className="zeb-poradi">{index + 1}.</span>
+                    <span className="zeb-avatar" aria-hidden="true">
+                      {radek.avatarUrl ? (
+                        <img src={radek.avatarUrl} alt="" />
+                      ) : (
+                        radek.displayName.charAt(0).toUpperCase()
+                      )}
+                    </span>
+                    <span className="zeb-jmeno">
+                      {radek.displayName}
+                      {role.id !== 'user' && (
+                        <span className={`zeb-role-tag zeb-role-tag--${role.tone}`}>
+                          {role.icon} {role.title}
+                        </span>
+                      )}
+                    </span>
+                    <span className="zeb-xp">{radek.fitnessXp} XP</span>
+                  </li>
+                )
+              })}
+            </ol>
+          )}
 
-            {radky.length > 0 && (
-              <ol className="zeb-seznam">
-                {radky.map((radek, index) => {
-                  const role = getRole(radek.role)
-                  const jsemTo = radek.id === mujId
-                  return (
-                    <li key={radek.id} className={`zeb-radek ${jsemTo ? 'zeb-radek--ja' : ''}`}>
-                      <span className="zeb-poradi">{index + 1}.</span>
-                      <span className="zeb-avatar" aria-hidden="true">
-                        {radek.avatarUrl ? (
-                          <img src={radek.avatarUrl} alt="" />
-                        ) : (
-                          radek.displayName.charAt(0).toUpperCase()
-                        )}
-                      </span>
-                      <span className="zeb-jmeno">
-                        {radek.displayName}
-                        {role.id !== 'user' && (
-                          <span className={`zeb-role-tag zeb-role-tag--${role.tone}`}>
-                            {role.icon} {role.title}
-                          </span>
-                        )}
-                      </span>
-                      <span className="zeb-xp">{radek.fitnessXp} XP</span>
-                    </li>
-                  )
-                })}
-              </ol>
-            )}
+          {!jsemViditelny && mojePoradi && mojePoradi.poradi !== null && (
+            <p className="zeb-moje-poradi">
+              Tvoje pozice: <strong>#{mojePoradi.poradi}</strong> · {mojePoradi.fitnessXp} XP
+            </p>
+          )}
 
-            {!jsemViditelny && mojePoradi && mojePoradi.poradi !== null && (
-              <p className="zeb-moje-poradi">
-                Tvoje pozice: <strong>#{mojePoradi.poradi}</strong> · {mojePoradi.fitnessXp} XP
-              </p>
-            )}
-
-            {!jsemViditelny && mojePoradi && mojePoradi.poradi === null && (
-              <p className="zeb-moje-poradi">Zatím nemáš žádné fitness XP — trénuj a objev se v žebříčku!</p>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+          {!jsemViditelny && mojePoradi && mojePoradi.poradi === null && (
+            <p className="zeb-moje-poradi">Zatím nemáš žádné fitness XP — trénuj a objev se v žebříčku!</p>
+          )}
+        </>
+      )}
+    </BuddyDialog>
   )
 }
 

@@ -422,7 +422,7 @@ export const FitnessRoomModule: React.FC = () => {
     setZlatyRezim((v) => !v)
   }
 
-  const panelClass = smiVip && zlatyRezim ? 'fit-panel fit-panel--zlaty' : 'fit-panel'
+  const panelClass = smiVip && zlatyRezim ? 'fit-panel buddy-ui-card fit-panel--zlaty' : 'fit-panel buddy-ui-card'
 
   const doporucenyJidelnicek = nejblizsiJidelnicek(cile.cilKcal)
   const mesicniSrovnani = spocitatMesicniSrovnaniFitness(sezeni)
@@ -491,7 +491,7 @@ export const FitnessRoomModule: React.FC = () => {
     },
     {
       id: 'apps',
-      nazev: 'Apps',
+      nazev: 'Nástroje',
       popis: 'Oblíbené fitness aplikace na dosah',
       ikona: 'grid',
       barva: 'purple',
@@ -790,7 +790,7 @@ export const FitnessRoomModule: React.FC = () => {
           <div className={panelClass}>
             <div className="fit-panel-hlavicka">
               <h2>⚡ Rychlý trénink</h2>
-              <button className="fit-zobrazit-vse" onClick={() => otevritFormCheck()}>
+              <button className="fit-zobrazit-vse buddy-ui-button" onClick={() => otevritFormCheck()}>
                 Zobrazit vše ›
               </button>
             </div>
@@ -1501,7 +1501,7 @@ export const FitnessRoomModule: React.FC = () => {
         </div>
       </FlagshipShell>
 
-      {appsOtevrene && <NastrojeSheet nadpis="Apps" nastroje={nastroje} onZavrit={() => setAppsOtevrene(false)} />}
+      {appsOtevrene && <NastrojeSheet surfaceId="fitness-room" nadpis="Nástroje" nastroje={nastroje} onZavrit={() => setAppsOtevrene(false)} />}
       {rozcvickaOtevrena && <RozcvickaCasovac onZavrit={() => setRozcvickaOtevrena(false)} />}
       {zebricekOtevren && <Zebricek onZavrit={() => setZebricekOtevren(false)} />}
     </>

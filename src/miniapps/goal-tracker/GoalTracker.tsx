@@ -1,12 +1,13 @@
 import {
   useEffect,
-  useId,
   useRef,
   useState,
   useSyncExternalStore,
 } from 'react'
 import type { ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
+import { AppIcon } from '@/pages/app/components/AppIcon'
 import { useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useHasPermission } from '@/core/role'
 import { useAppStore } from '@/core/store/useAppStore'
@@ -76,60 +77,28 @@ function Sheet({
   close: () => void
   children: ReactNode
 }) {
-  const ref = useRef<HTMLDialogElement>(null)
-  const titleId = useId()
-  const { rootAttributes } = useSurfaceAppearance('goal-tracker')
-
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null
-    ref.current?.showModal()
-
-    return () => {
-      ref.current?.close()
-      previous?.focus()
-    }
-  }, [])
-
-  return createPortal(
-    <dialog
-      ref={ref}
-      className="gt-dialog buddy-theme-scope"
-      {...rootAttributes}
-      aria-labelledby={titleId}
-      onCancel={event => {
-        event.preventDefault()
-        close()
-      }}
-      onClick={event => {
-        if (event.target === event.currentTarget) close()
-      }}
+  return (
+    <BuddyDialog
+      surfaceId="goal-tracker"
+      title={title}
+      presentation="sheet"
+      className="gt-dialog"
+      closeLabel="Zavřít nabídku"
+      onClose={close}
     >
-      <div>
-        <header>
-          <h2 id={titleId}>{title}</h2>
-          <button
-            type="button"
-            className="gt-icon"
-            aria-label="Zavřít nabídku"
-            onClick={close}
-          >
-            ✕
-          </button>
-        </header>
-
-        <div className="gt-sheet-body">
-          {children}
-        </div>
-      </div>
-    </dialog>,
-    document.body
+      {children}
+    </BuddyDialog>
   )
 }
 
 export function GoalTracker({
   onBack,
+  initialGoalId,
+  initialCreateGoal,
 }: {
   onBack?: () => void
+  initialGoalId?: string
+  initialCreateGoal?: boolean
 }) {
   const api = useGoalTracker()
   const vip = useHasPermission('cosmetics.premium')
@@ -150,14 +119,14 @@ export function GoalTracker({
 
   const [panel, setPanel] = useState<
     'form' | 'templates' | 'data' | null
-  >(null)
+  >(initialCreateGoal ? 'form' : null)
 
   const [form, setForm] = useState<NovyCilVstup>(emptyForm)
   const [original, setOriginal] = useState<Goal | null>(null)
   const [formDirty, setFormDirty] = useState(false)
   const [error, setError] = useState('')
 
-  const [detailId, setDetailId] = useState<string | null>(null)
+  const [detailId, setDetailId] = useState<string | null>(initialGoalId ?? null)
   const [milestone, setMilestone] = useState('')
   const [amount, setAmount] = useState('1')
   const [message, setMessage] = useState('')
@@ -331,36 +300,24 @@ export function GoalTracker({
       className="gt-app buddy-theme-scope"
       {...rootAttributes}
     >
-      <header className="gt-header">
-        <button
-          type="button"
-          className="gt-icon"
-          aria-label="Zpět"
-          onClick={
-            onBack ??
-            (() => useAppStore.getState().setActiveAppId(null))
-          }
-        >
-          ←
-        </button>
-
-        <div>
-          <small>TVŮJ DALŠÍ KROK</small>
-          <h1>Moje cíle</h1>
-        </div>
-
-        <button
-          type="button"
-          className="gt-icon"
-          aria-label="Export a možnosti"
-          onClick={() => {
-            setPanel('data')
-            setError('')
-          }}
-        >
-          ⋯
-        </button>
-      </header>
+      <BuddyHeader
+        title="Moje cíle"
+        icon="goal-tracker"
+        onBack={onBack ?? (() => useAppStore.getState().setActiveAppId(null))}
+        actions={(
+          <button
+            type="button"
+            className="buddy-ui-button buddy-ui-button--icon"
+            aria-label="Export a možnosti"
+            onClick={() => {
+              setPanel('data')
+              setError('')
+            }}
+          >
+            <AppIcon name="settings" size={20} />
+          </button>
+        )}
+      />
 
       <section
         className="gt-summary"
@@ -499,6 +456,7 @@ export function GoalTracker({
                 </div>
 
                 <progress
+                  className="buddy-ui-progress"
                   max={100}
                   value={percent}
                   aria-label={`Pokrok: ${goal.title}`}

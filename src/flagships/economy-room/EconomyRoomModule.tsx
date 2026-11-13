@@ -111,7 +111,7 @@ export const EconomyRoomModule: React.FC = () => {
     setZlatyRezim((v) => !v)
   }
 
-  const panelClass = smiVip && zlatyRezim ? 'eco-panel eco-panel--zlaty' : 'eco-panel'
+  const panelClass = smiVip && zlatyRezim ? 'eco-panel buddy-ui-card eco-panel--zlaty' : 'eco-panel buddy-ui-card'
 
   const nastroje: FlagshipDlazdice[] = [
     {
@@ -154,7 +154,7 @@ export const EconomyRoomModule: React.FC = () => {
     },
     {
       id: 'apps',
-      nazev: 'Apps',
+      nazev: 'Nástroje',
       popis: 'Finance a další nástroje na peníze',
       ikona: 'grid',
       barva: 'purple',
@@ -198,12 +198,8 @@ export const EconomyRoomModule: React.FC = () => {
           {vipZprava && <p className="eco-vip-zprava">{vipZprava}</p>}
 
           <div className="eco-prehled-telo">
-            <div className="eco-postava" aria-hidden="true">
-              <span className="eco-postava-emoji">💰</span>
-            </div>
-
             <div className="eco-staty">
-              <div className="eco-stat-radek">
+              <div className="eco-stat-radek eco-stat-radek--balance">
                 <span className="eco-stat-ikona fs-barva--green">
                   <AppIcon name="finance" size={18} />
                 </span>
@@ -225,7 +221,7 @@ export const EconomyRoomModule: React.FC = () => {
                     +{prijmyObdobi.toLocaleString('cs-CZ')} <small>Kč</small>
                   </span>
                 </span>
-                <span className="eco-stat-delta">{formatujRozdilMesic(prijmyObdobi, prijmyMinuly)}</span>
+                <span className="eco-stat-delta" data-tone={prijmyObdobi === prijmyMinuly ? undefined : prijmyObdobi > prijmyMinuly ? 'good' : 'bad'}>{formatujRozdilMesic(prijmyObdobi, prijmyMinuly)}</span>
               </div>
 
               <div className="eco-stat-radek">
@@ -238,7 +234,7 @@ export const EconomyRoomModule: React.FC = () => {
                     −{vydajeObdobi.toLocaleString('cs-CZ')} <small>Kč</small>
                   </span>
                 </span>
-                <span className="eco-stat-delta">{formatujRozdilMesic(vydajeObdobi, vydajeMinuly)}</span>
+                <span className="eco-stat-delta" data-tone={vydajeObdobi === vydajeMinuly ? undefined : vydajeObdobi < vydajeMinuly ? 'good' : 'bad'}>{formatujRozdilMesic(vydajeObdobi, vydajeMinuly)}</span>
               </div>
             </div>
           </div>
@@ -334,25 +330,25 @@ export const EconomyRoomModule: React.FC = () => {
           </div>
 
           <div className="eco-akce-mrizka">
-            <button className="eco-akce-dlazdice" onClick={otevritFinance}>
+            <button className="eco-akce-dlazdice buddy-ui-button" onClick={otevritFinance}>
               <span className="eco-text--green">
                 <AppIcon name="plus" size={22} />
               </span>
               <span className="eco-akce-nazev">Příjem</span>
             </button>
-            <button className="eco-akce-dlazdice" onClick={otevritFinance}>
+            <button className="eco-akce-dlazdice buddy-ui-button" onClick={otevritFinance}>
               <span className="eco-text--orange">
                 <AppIcon name="minus" size={22} />
               </span>
               <span className="eco-akce-nazev">Výdaj</span>
             </button>
-            <button className="eco-akce-dlazdice" onClick={otevritFinance}>
+            <button className="eco-akce-dlazdice buddy-ui-button" onClick={otevritFinance}>
               <span className="eco-text--cyan">
                 <AppIcon name="bar-chart" size={22} />
               </span>
               <span className="eco-akce-nazev">Přehled</span>
             </button>
-            <button className="eco-akce-dlazdice" onClick={otevritFinance}>
+            <button className="eco-akce-dlazdice buddy-ui-button" onClick={otevritFinance}>
               <span className="eco-text--purple">
                 <AppIcon name="grid" size={22} />
               </span>
@@ -368,13 +364,13 @@ export const EconomyRoomModule: React.FC = () => {
           </div>
 
           <div className="eco-akce-mrizka eco-akce-mrizka--dva">
-            <button className="eco-akce-dlazdice" onClick={() => otevritKalkulacky('sporici-simulator')}>
+            <button className="eco-akce-dlazdice buddy-ui-button" onClick={() => otevritKalkulacky('sporici-simulator')}>
               <span className="eco-text--green">
                 <AppIcon name="trending-up" size={22} />
               </span>
               <span className="eco-akce-nazev">Spořicí simulátor</span>
             </button>
-            <button className="eco-akce-dlazdice" onClick={() => otevritKalkulacky('uver-kalkulacka')}>
+            <button className="eco-akce-dlazdice buddy-ui-button" onClick={() => otevritKalkulacky('uver-kalkulacka')}>
               <span className="eco-text--orange">
                 <AppIcon name="finance" size={22} />
               </span>
@@ -407,7 +403,7 @@ export const EconomyRoomModule: React.FC = () => {
         </div>
       </FlagshipShell>
 
-      {appsOtevrene && <NastrojeSheet nadpis="Apps" nastroje={nastroje} onZavrit={() => setAppsOtevrene(false)} />}
+      {appsOtevrene && <NastrojeSheet surfaceId="economy-room" nadpis="Nástroje" nastroje={nastroje} onZavrit={() => setAppsOtevrene(false)} />}
     </>
   )
 }

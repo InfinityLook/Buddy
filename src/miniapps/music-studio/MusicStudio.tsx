@@ -9,6 +9,7 @@ import { bufferNaWavBlob } from './wavEncoder'
 import { spocitejVrcholyVlny } from './waveform'
 import {
   BeatPattern,
+  MusicStudioTab,
   DRUM_LABELS,
   DRUM_SOUNDS,
   DrumSound,
@@ -182,9 +183,7 @@ const Vlna: React.FC<{ vrcholy: number[]; pozice?: number }> = ({ vrcholy, pozic
   </div>
 )
 
-type Zalozka = 'beat' | 'nahravani' | 'skladby'
-
-export const MusicStudio: React.FC = () => {
+export const MusicStudio: React.FC<{ initialTab?: unknown }> = ({ initialTab }) => {
   const { rootAttributes } = useSurfaceAppearance('music-studio')
 
   const {
@@ -199,7 +198,7 @@ export const MusicStudio: React.FC = () => {
     addSong,
     deleteSong,
   } = useMusicStudio()
-  const [zalozka, setZalozka] = useState<Zalozka>('beat')
+  const [zalozka, setZalozka] = useState<MusicStudioTab>(initialTab === 'nahravani' || initialTab === 'skladby' ? initialTab : 'beat')
 
   return (
     <div className="ms-app buddy-theme-scope" {...rootAttributes}>
@@ -209,13 +208,13 @@ export const MusicStudio: React.FC = () => {
       </div>
 
       <div className="ms-tabs">
-        <button className={zalozka === 'beat' ? 'active' : ''} onClick={() => setZalozka('beat')}>
+        <button type="button" aria-pressed={zalozka === 'beat'} className={zalozka === 'beat' ? 'active' : ''} onClick={() => setZalozka('beat')}>
           Beat Maker
         </button>
-        <button className={zalozka === 'nahravani' ? 'active' : ''} onClick={() => setZalozka('nahravani')}>
+        <button type="button" aria-pressed={zalozka === 'nahravani'} className={zalozka === 'nahravani' ? 'active' : ''} onClick={() => setZalozka('nahravani')}>
           Nahrávání
         </button>
-        <button className={zalozka === 'skladby' ? 'active' : ''} onClick={() => setZalozka('skladby')}>
+        <button type="button" aria-pressed={zalozka === 'skladby'} className={zalozka === 'skladby' ? 'active' : ''} onClick={() => setZalozka('skladby')}>
           Skladby
         </button>
       </div>

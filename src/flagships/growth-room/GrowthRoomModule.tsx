@@ -83,11 +83,11 @@ export const GrowthRoomModule: React.FC = () => {
     setZlatyRezim((v) => !v)
   }
 
-  const panelClass = smiVip && zlatyRezim ? 'gro-panel gro-panel--zlaty' : 'gro-panel'
+  const panelClass = smiVip && zlatyRezim ? 'gro-panel buddy-ui-card gro-panel--zlaty' : 'gro-panel buddy-ui-card'
 
-  const otevritGoalTracker = () => {
+  const otevritGoalTracker = (state?: { goalId?: string; createGoal?: boolean }) => {
     setActiveAppId('goal-tracker', '/growth')
-    navigate('/apps')
+    navigate('/apps', { state })
   }
 
   const xpDoDalsi = getXpForNextLevel(level)
@@ -105,7 +105,7 @@ export const GrowthRoomModule: React.FC = () => {
       popis: 'Založ a sleduj vlastní cíle',
       ikona: 'goal-tracker',
       barva: 'pink',
-      onClick: otevritGoalTracker,
+      onClick: () => otevritGoalTracker(),
     },
   ]
 
@@ -123,7 +123,7 @@ export const GrowthRoomModule: React.FC = () => {
     },
     {
       id: 'apps',
-      nazev: 'Apps',
+      nazev: 'Nástroje',
       popis: 'Goal Tracker a další nástroje na růst',
       ikona: 'grid',
       barva: 'purple',
@@ -158,7 +158,7 @@ export const GrowthRoomModule: React.FC = () => {
               >
                 <AppIcon name="sparkles" size={18} />
               </button>
-              <button className="gro-historie-btn" aria-label="Otevřít Goal Tracker" onClick={otevritGoalTracker}>
+              <button className="gro-historie-btn" aria-label="Otevřít Goal Tracker" onClick={() => otevritGoalTracker()}>
                 <AppIcon name="goal-tracker" size={18} />
               </button>
             </div>
@@ -173,17 +173,15 @@ export const GrowthRoomModule: React.FC = () => {
           ) : (
             <div className="gro-cile-seznam">
               {nahledCilu.map(({ goal, percent }) => (
-                <div key={goal.id} className="gro-cil-radek">
+                <button key={goal.id} type="button" className="gro-cil-radek buddy-ui-button" onClick={() => otevritGoalTracker({ goalId: goal.id })}>
                   <div className="gro-cil-text">
                     <span className="gro-cil-nazev">{goal.title}</span>
                     <span className="gro-cil-hodnota">
                       {goal.current} / {goal.target} {goal.unit}
                     </span>
                   </div>
-                  <div className="gro-cil-lista" role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}>
-                    <div className="gro-cil-vypln" style={{ width: `${percent}%` }} />
-                  </div>
-                </div>
+                  <progress className="buddy-ui-progress" max={100} value={percent} aria-label={`Pokrok: ${goal.title}`} />
+                </button>
               ))}
             </div>
           )}
@@ -223,12 +221,12 @@ export const GrowthRoomModule: React.FC = () => {
 
             <div className="gro-navyky-seznam">
               {nahledNavyku.map(({ goal, serie }) => (
-                <div key={goal.id} className="gro-navyk-radek">
+                <button key={goal.id} type="button" className="gro-navyk-radek buddy-ui-button" onClick={() => otevritGoalTracker({ goalId: goal.id })}>
                   <span className="gro-navyk-nazev">{goal.title}</span>
                   <span className="gro-navyk-serie">
                     🔥 {serie} {plural(serie, 'den', 'dny', 'dní')}
                   </span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -237,7 +235,7 @@ export const GrowthRoomModule: React.FC = () => {
         <div className={panelClass}>
           <div className="gro-panel-hlavicka">
             <h2>Úroveň &amp; odznaky</h2>
-            <button className="gro-zobrazit-vse" onClick={() => navigate('/odmeny')}>
+            <button className="gro-zobrazit-vse buddy-ui-button" onClick={() => navigate('/odmeny')}>
               Zobrazit vše ›
             </button>
           </div>
@@ -292,13 +290,13 @@ export const GrowthRoomModule: React.FC = () => {
           </div>
 
           <div className="gro-akce-mrizka">
-            <button className="gro-akce-dlazdice" onClick={otevritGoalTracker}>
+            <button className="gro-akce-dlazdice buddy-ui-button" onClick={() => otevritGoalTracker({ createGoal: true })}>
               <span className="gro-text--pink">
                 <AppIcon name="plus" size={22} />
               </span>
               <span className="gro-akce-nazev">Nový cíl</span>
             </button>
-            <button className="gro-akce-dlazdice" onClick={() => navigate('/odmeny')}>
+            <button className="gro-akce-dlazdice buddy-ui-button" onClick={() => navigate('/odmeny')}>
               <span className="gro-text--purple">
                 <AppIcon name="star-filled" size={22} />
               </span>
@@ -308,7 +306,7 @@ export const GrowthRoomModule: React.FC = () => {
         </div>
       </FlagshipShell>
 
-      {appsOtevrene && <NastrojeSheet nadpis="Apps" nastroje={nastroje} onZavrit={() => setAppsOtevrene(false)} />}
+      {appsOtevrene && <NastrojeSheet surfaceId="growth-room" nadpis="Nástroje" nastroje={nastroje} onZavrit={() => setAppsOtevrene(false)} />}
     </>
   )
 }

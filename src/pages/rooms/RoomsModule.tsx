@@ -13,13 +13,13 @@ import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import '@/pages/profil/ProfilModule.css'
 import './RoomsModule.css'
 
-const roomDetails: Record<string, { label: string; category: string; tools: string; photo?: string }> = {
+const roomDetails: Record<string, { label: string; category: string; tools: string }> = {
   'school-room': { label: 'School', category: 'Studium', tools: 'Rozvrh · Kalendář · Plánovač' },
   'fitness-room': { label: 'Fitness', category: 'Pohyb a kondice', tools: 'Posilovna · Běhání · Pitný režim' },
   'economy-room': { label: 'Economy', category: 'Osobní finance', tools: 'Finance · Spoření · Splátky' },
   'growth-room': { label: 'Growth', category: 'Osobní rozvoj', tools: 'Goal Tracker · Soubory' },
-  'music-room': { label: 'Music', category: 'Hudební tvorba', tools: 'Music Studio', photo: '/buddy-themes/rooms/music-room.webp' },
-  'writer-room': { label: 'Writer’s', category: 'Psaní a příběhy', tools: 'Kniha · Scénář · Komiks', photo: '/buddy-themes/rooms/writer-room.webp' },
+  'music-room': { label: 'Music', category: 'Hudební tvorba', tools: 'Music Studio' },
+  'writer-room': { label: 'Writer’s', category: 'Psaní a příběhy', tools: 'Kniha · Scénář · Komiks' },
 }
 
 export default function RoomsModule() {
@@ -49,7 +49,7 @@ export default function RoomsModule() {
   const roomSurfaceId = isSurfaceId(room?.id) ? room.id : 'school-room'
   const { themeId: roomThemeId } = useSurfaceAppearance(roomSurfaceId)
   const details = room && roomDetails[room.id]
-  const photo = details?.photo ?? room?.nahled
+  const photo = room?.nahled
   const unread = notifications.filter(item => !profile.readNotifications.includes(item.id)).length
 
   function step(direction: number) {

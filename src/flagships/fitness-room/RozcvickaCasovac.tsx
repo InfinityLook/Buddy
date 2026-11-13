@@ -1,3 +1,4 @@
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
 import React, { useEffect, useRef, useState } from 'react'
 import { useFormCheckStore } from '@/miniapps/form-check/useFormCheck'
 import { ohlasKrokRozcvicky, ohlasHotovoRozcvicka } from '@/miniapps/form-check/hlaseni'
@@ -93,99 +94,92 @@ export const RozcvickaCasovac: React.FC<RozcvickaCasovacProps> = ({ onZavrit }) 
   }, [krokIndex, program, hotovo])
 
   return (
-    <div className="rc-overlay" role="dialog" aria-modal="true" aria-label="Rozcvička, strečink a jóga">
-      <div className="rc-karta">
-        <button type="button" className="rc-zavrit" onClick={onZavrit} aria-label="Zavřít">
-          ✕
-        </button>
+    <BuddyDialog surfaceId="fitness-room" title="Rozcvička, strečink a jóga" presentation="sheet" onClose={onZavrit}>
+      {program === null && (
+        <div className="rc-vyber">
+          <p>Krátké, pevně dané sledy cviků — bez kamery, jen odpočítávání a hlasové vedení.</p>
+          {pocetDokoncenychCelkem > 0 && (
+            <span className="rc-celkem">Celkem dokončeno: {pocetDokoncenychCelkem}×</span>
+          )}
 
-        {program === null && (
-          <div className="rc-vyber">
-            <h2>Rozcvička, strečink &amp; jóga</h2>
-            <p>Krátké, pevně dané sledy cviků — bez kamery, jen odpočítávání a hlasové vedení.</p>
-            {pocetDokoncenychCelkem > 0 && (
-              <span className="rc-celkem">Celkem dokončeno: {pocetDokoncenychCelkem}×</span>
-            )}
-
-            <span className="rc-skupina-nadpis">Rychlé</span>
-            <div className="rc-program-seznam">
-              {RYCHLE_PROGRAMY.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className="rc-program-radek"
-                  onClick={() => spustitProgram(p.id)}
-                >
-                  <span className="rc-program-ikona" aria-hidden="true">
-                    {p.ikona}
-                  </span>
-                  <span className="rc-program-text">
-                    <span className="rc-program-nazev">{p.nazev}</span>
-                    <span className="rc-program-popis">{p.popis}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-
-            <span className="rc-skupina-nadpis">Jóga a mobilita</span>
-            <div className="rc-program-seznam">
-              {JOGA_PROGRAMY.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className="rc-program-radek"
-                  onClick={() => spustitProgram(p.id)}
-                >
-                  <span className="rc-program-ikona" aria-hidden="true">
-                    {p.ikona}
-                  </span>
-                  <span className="rc-program-text">
-                    <span className="rc-program-nazev">{p.nazev}</span>
-                    <span className="rc-program-popis">{p.popis}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {program !== null && !hotovo && (
-          <div className="rc-bezi">
-            <span className="rc-nadpis-rezimu">{NAZEV_KATEGORIE[program.kategorie]}</span>
-            <span className="rc-krok-pocet">
-              Krok {krokIndex + 1} z {kroky.length}
-            </span>
-            <span className="rc-krok-nazev">{kroky[krokIndex].nazev}</span>
-            {kroky[krokIndex].popis && <span className="rc-krok-popis">{kroky[krokIndex].popis}</span>}
-            <span className="rc-cas">{zbyvaS}s</span>
-            <div className="rc-ovladani">
-              <button type="button" className="rc-preskocit" onClick={dalsiKrok}>
-                {krokIndex + 1 >= kroky.length ? 'Dokončit' : 'Přeskočit krok'}
+          <span className="rc-skupina-nadpis">Rychlé</span>
+          <div className="rc-program-seznam">
+            {RYCHLE_PROGRAMY.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="rc-program-radek buddy-ui-button"
+                onClick={() => spustitProgram(p.id)}
+              >
+                <span className="rc-program-ikona" aria-hidden="true">
+                  {p.ikona}
+                </span>
+                <span className="rc-program-text">
+                  <span className="rc-program-nazev">{p.nazev}</span>
+                  <span className="rc-program-popis">{p.popis}</span>
+                </span>
               </button>
-              <button type="button" className="rc-ukoncit" onClick={onZavrit}>
-                Ukončit
-              </button>
-            </div>
+            ))}
           </div>
-        )}
 
-        {hotovo && (
-          <div className="rc-hotovo">
-            <span className="rc-hotovo-ikona" aria-hidden="true">
-              🎉
-            </span>
-            <p>Hotovo! Skvělá práce.</p>
-            {ziskanaXpDnes && <span className="rc-hotovo-xp">+15 XP</span>}
-            <button type="button" className="rc-vyber-btn" onClick={() => setVybranyId(null)}>
-              Zpět na výběr
+          <span className="rc-skupina-nadpis">Jóga a mobilita</span>
+          <div className="rc-program-seznam">
+            {JOGA_PROGRAMY.map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                className="rc-program-radek buddy-ui-button"
+                onClick={() => spustitProgram(p.id)}
+              >
+                <span className="rc-program-ikona" aria-hidden="true">
+                  {p.ikona}
+                </span>
+                <span className="rc-program-text">
+                  <span className="rc-program-nazev">{p.nazev}</span>
+                  <span className="rc-program-popis">{p.popis}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {program !== null && !hotovo && (
+        <div className="rc-bezi">
+          <span className="rc-nadpis-rezimu">{NAZEV_KATEGORIE[program.kategorie]}</span>
+          <span className="rc-krok-pocet">
+            Krok {krokIndex + 1} z {kroky.length}
+          </span>
+          <span className="rc-krok-nazev">{kroky[krokIndex].nazev}</span>
+          {kroky[krokIndex].popis && <span className="rc-krok-popis">{kroky[krokIndex].popis}</span>}
+          <span className="rc-cas" role="timer" aria-label="Zbývající čas">{zbyvaS}s</span>
+          <div className="rc-ovladani">
+            <button type="button" className="rc-preskocit buddy-ui-button" onClick={dalsiKrok}>
+              {krokIndex + 1 >= kroky.length ? 'Dokončit' : 'Přeskočit krok'}
             </button>
-            <button type="button" className="rc-ukoncit" onClick={onZavrit}>
-              Zavřít
+            <button type="button" className="rc-ukoncit buddy-ui-button" onClick={onZavrit}>
+              Ukončit
             </button>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+
+      {hotovo && (
+        <div className="rc-hotovo">
+          <span className="rc-hotovo-ikona" aria-hidden="true">
+            🎉
+          </span>
+          <p>Hotovo! Skvělá práce.</p>
+          {ziskanaXpDnes && <span className="rc-hotovo-xp">+15 XP</span>}
+          <button type="button" className="rc-vyber-btn buddy-ui-button" onClick={() => setVybranyId(null)}>
+            Zpět na výběr
+          </button>
+          <button type="button" className="rc-ukoncit buddy-ui-button" onClick={onZavrit}>
+            Zavřít
+          </button>
+        </div>
+      )}
+    </BuddyDialog>
   )
 }
 

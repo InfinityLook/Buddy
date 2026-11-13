@@ -44,29 +44,6 @@
   cursor: default;
 }
 
-.gt-header {
-  display: flex;
-  align-items: center;
-  gap: .45rem;
-  flex-shrink: 0;
-  padding: calc(.4rem + env(safe-area-inset-top)) .75rem .55rem;
-}
-
-.gt-header > div {
-  flex: 1;
-}
-
-.gt-header small {
-  font-size: .6rem;
-  letter-spacing: .14em;
-  color: var(--buddy-muted);
-}
-
-.gt-header h1 {
-  font-size: 1.3rem;
-  margin: .15rem 0;
-}
-
 .gt-icon {
   width: 44px;
   height: 44px;
@@ -250,31 +227,8 @@
   flex-shrink: 0;
 }
 
-.gt-card progress {
-  display: block;
-  width: 100%;
-  height: 6px;
+.gt-card .buddy-ui-progress {
   margin: .5rem 0 .7rem;
-  appearance: none;
-  border: 0;
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--buddy-raised);
-  accent-color: var(--buddy-accent);
-}
-
-.gt-card progress::-webkit-progress-bar {
-  background: var(--buddy-raised);
-}
-
-.gt-card progress::-webkit-progress-value {
-  background: var(--buddy-accent);
-  border-radius: 10px;
-}
-
-.gt-card progress::-moz-progress-bar {
-  background: var(--buddy-accent);
-  border-radius: 10px;
 }
 
 .gt-card-actions {
@@ -374,50 +328,9 @@
   flex: 1;
 }
 
-.gt-dialog {
-  position: fixed;
-  inset: auto 0 0;
-  width: min(100%, 560px);
-  max-width: 100%;
-  max-height: 90dvh;
-  margin: 0 auto;
-  padding: 0;
-  border: 1px solid var(--buddy-border);
-  border-radius: 22px 22px 0 0;
-  background: var(--buddy-bg);
-  color: var(--buddy-text);
-  overflow: hidden;
-}
-
-.gt-dialog::backdrop {
-  background: rgb(0 0 0 / .55);
-}
-
-.gt-dialog header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: .5rem;
-  padding: .6rem 1rem;
-  border-bottom: 1px solid var(--buddy-border);
-}
-
-.gt-dialog h2 {
-  font-size: 1.05rem;
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
 .gt-dialog h3 {
   font-size: .95rem;
   margin: 1.2rem 0 .7rem;
-}
-
-.gt-sheet-body {
-  max-height: calc(90dvh - 74px);
-  overflow: auto;
-  overscroll-behavior: contain;
-  padding: 1rem 1rem calc(1rem + env(safe-area-inset-bottom));
 }
 
 .gt-form {
@@ -594,7 +507,4 @@
     overflow: auto;
   }
 
-  .gt-header {
-    padding-block: .2rem;
-  }
   }
