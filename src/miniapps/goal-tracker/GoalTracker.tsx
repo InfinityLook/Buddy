@@ -297,7 +297,7 @@ export function GoalTracker({
   return (
     <div
       ref={root}
-      className="gt-app buddy-theme-scope"
+      className="buddy-miniapp gt-app buddy-theme-scope"
       {...rootAttributes}
     >
       <BuddyHeader
@@ -320,7 +320,7 @@ export function GoalTracker({
       />
 
       <section
-        className="gt-summary"
+        className="buddy-ui-card gt-summary"
         aria-label="Přehled cílů"
       >
         <div>
@@ -354,7 +354,7 @@ export function GoalTracker({
         </label>
 
         <div
-          className="gt-tabs"
+          className="buddy-ui-segmented gt-tabs"
           role="group"
           aria-label="Zobrazení cílů"
         >
@@ -429,7 +429,7 @@ export function GoalTracker({
             : goalPercent(goal)
 
           return (
-            <article className="gt-card" key={goal.id}>
+            <article className="buddy-ui-card gt-card" key={goal.id}>
               <button
                 type="button"
                 className="gt-card-open"
@@ -511,7 +511,7 @@ export function GoalTracker({
         })}
 
         {!filtered.length && (
-          <div className="gt-empty">
+          <div className="buddy-ui-status gt-empty">
             <span aria-hidden="true">◎</span>
 
             <h2>
@@ -551,7 +551,7 @@ export function GoalTracker({
 
           <button
             type="button"
-            className="gt-icon"
+            className="buddy-ui-button gt-icon"
             aria-label="Zavřít zprávu"
             onClick={() => say('')}
           >
@@ -563,7 +563,7 @@ export function GoalTracker({
       <footer className="gt-footer">
         <button
           type="button"
-          className="gt-primary"
+          className="buddy-ui-button buddy-ui-button--primary gt-primary"
           onClick={() => openForm()}
         >
           ＋ Nový cíl
@@ -761,7 +761,7 @@ export function GoalTracker({
                   : 'Stačí konkrétní a zvládnutelný další krok.'}
               </p>
 
-              <button type="submit" className="gt-primary">
+              <button type="submit" className="buddy-ui-button buddy-ui-button--primary gt-primary">
                 Uložit cíl
               </button>
             </form>
@@ -916,7 +916,7 @@ export function GoalTracker({
 
                 <button
                   type="button"
-                  className="gt-primary"
+                  className="buddy-ui-button buddy-ui-button--primary gt-primary"
                   onClick={() => progress(detail, 1)}
                 >
                   Přidat krok
@@ -948,7 +948,7 @@ export function GoalTracker({
 
               <button
                 type="button"
-                className="gt-icon"
+                className="buddy-ui-button gt-icon"
                 aria-label={`Smazat milník ${item.text}`}
                 onClick={() => run(() =>
                   api.smazatMilnik(detail.id, item.id)

@@ -77,7 +77,7 @@ export const ComicWriter: React.FC = () => {
 
   if (!aktivni) {
     return (
-      <div className="cw-app buddy-theme-scope" {...rootAttributes}>
+      <div className="buddy-miniapp cw-app buddy-theme-scope" {...rootAttributes}>
         <SurfaceBackdrop surfaceId="comic-writer" />
         <div className="cw-header">
           <h2>💥 Komiks</h2>
@@ -92,15 +92,15 @@ export const ComicWriter: React.FC = () => {
             maxLength={60}
             onKeyDown={(e) => e.key === 'Enter' && zalozit()}
           />
-          <button className="cw-ulozit-btn" onClick={zalozit}>
+          <button className="buddy-ui-button buddy-ui-button--primary cw-ulozit-btn" onClick={zalozit}>
             Založit
           </button>
         </div>
 
         <div className="cw-seznam">
-          {komiksy.length === 0 && <p className="cw-prazdno">Zatím žádný komiks. Založ první výš.</p>}
+          {komiksy.length === 0 && <p className="buddy-ui-status cw-prazdno">Zatím žádný komiks. Založ první výš.</p>}
           {serazenoPodleUpravy(komiksy).map((k) => (
-            <div className="cw-radek" key={k.id}>
+            <div className="buddy-ui-card cw-radek" key={k.id}>
               <button className="cw-radek-otevrit" onClick={() => setAktivniId(k.id)}>
                 <strong>
                   {k.nazev}
@@ -112,10 +112,10 @@ export const ComicWriter: React.FC = () => {
                 </span>
                 <span className="cw-radek-cas">{formatujNaposledyUpraveno(k.upravenoAt)}</span>
               </button>
-              <button className="cw-icon-btn" onClick={() => duplikovat(k)} aria-label={`Duplikovat ${k.nazev}`}>
+              <button className="buddy-ui-button cw-icon-btn" onClick={() => duplikovat(k)} aria-label={`Duplikovat ${k.nazev}`}>
                 ⧉
               </button>
-              <button className="cw-icon-btn danger" onClick={() => smazatKomiks(k)} aria-label={`Smazat ${k.nazev}`}>
+              <button className="buddy-ui-button cw-icon-btn danger" onClick={() => smazatKomiks(k)} aria-label={`Smazat ${k.nazev}`}>
                 ✕
               </button>
             </div>
@@ -333,9 +333,9 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
   }
 
   return (
-    <div className={`cw-app${fokusRezim ? ' cw-app--fokus' : ''}`}>
+    <div className={`buddy-miniapp cw-app${fokusRezim ? ' cw-app--fokus' : ''}`}>
       <div className="cw-header">
-        <button className="cw-zpet-btn" onClick={onZpet} aria-label="Zpět na seznam komiksů">
+        <button className="buddy-ui-button cw-zpet-btn" onClick={onZpet} aria-label="Zpět na seznam komiksů">
           ←
         </button>
         <div className="cw-header-text">
@@ -353,23 +353,23 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
             {komiks.cilStran ? ` / ${komiks.cilStran}` : ''}
           </span>
         </div>
-        <button className="cw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celého komiksu">
+        <button className="buddy-ui-button cw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celého komiksu">
           👁 Náhled
         </button>
       </div>
 
-      <div className="cw-akce-radek">
-        <button className="cw-nahled-btn" onClick={() => setOsnovaOtevrena(true)}>
+      <div className="buddy-ui-card cw-akce-radek">
+        <button className="buddy-ui-button cw-nahled-btn" onClick={() => setOsnovaOtevrena(true)}>
           🔍 Osnova
         </button>
-        <button className="cw-nahled-btn" onClick={() => setZalohyOtevreny(true)}>
+        <button className="buddy-ui-button cw-nahled-btn" onClick={() => setZalohyOtevreny(true)}>
           💾 Zálohy
         </button>
-        <button className="cw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
+        <button className="buddy-ui-button cw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
           {fokusRezim ? '🎯 Zpět z fokusu' : '🎯 Fokus'}
         </button>
         <button
-          className={`cw-nahled-btn${!smiVip ? ' je-zamceno' : ''}`}
+          className={`buddy-ui-button cw-nahled-btn${!smiVip ? ' je-zamceno' : ''}`}
           onClick={kliknutoNaPergamen}
           aria-pressed={pergamenRezim}
         >
@@ -377,7 +377,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
         </button>
       </div>
 
-      {zpravaZlatyPapir && <p className="cw-prazdno">{zpravaZlatyPapir}</p>}
+      {zpravaZlatyPapir && <p className="buddy-ui-status cw-prazdno">{zpravaZlatyPapir}</p>}
 
       {cilProcenta !== null && (
         <div className="cw-cil-lista" role="progressbar" aria-valuenow={cilProcenta} aria-valuemin={0} aria-valuemax={100}>
@@ -401,7 +401,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
       </div>
 
       {!aktivniStrana ? (
-        <p className="cw-prazdno">Zatím žádná strana. Přidej první tlačítkem „+“.</p>
+        <p className="buddy-ui-status cw-prazdno">Zatím žádná strana. Přidej první tlačítkem „+“.</p>
       ) : (
         <>
           <div className="cw-page-head">
@@ -416,7 +416,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
               </button>
               <div className="cw-posun-btns">
                 <button
-                  className="cw-posun-btn"
+                  className="buddy-ui-button cw-posun-btn"
                   onClick={() => presunStranu(komiks.id, aktivniStrana.id, 'nahoru')}
                   disabled={indexAktivni <= 0}
                   aria-label="Posunout stranu nahoru"
@@ -424,7 +424,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
                   ↑
                 </button>
                 <button
-                  className="cw-posun-btn"
+                  className="buddy-ui-button cw-posun-btn"
                   onClick={() => presunStranu(komiks.id, aktivniStrana.id, 'dolu')}
                   disabled={indexAktivni >= komiks.strany.length - 1}
                   aria-label="Posunout stranu dolů"
@@ -432,7 +432,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
                   ↓
                 </button>
               </div>
-              <button className="cw-icon-btn danger" onClick={smazatAktivniStranu}>
+              <button className="buddy-ui-button cw-icon-btn danger" onClick={smazatAktivniStranu}>
                 Smazat stranu
               </button>
             </div>
@@ -471,10 +471,10 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
             maxLength={100}
           />
 
-          {aktivniStrana.panely.length === 0 && <p className="cw-prazdno">Strana zatím nemá žádný panel.</p>}
+          {aktivniStrana.panely.length === 0 && <p className="buddy-ui-status cw-prazdno">Strana zatím nemá žádný panel.</p>}
 
           {aktivniStrana.panely.map((p, i) => (
-            <div className={`cw-panel-card${pergamenRezim ? ' cw-panel-card--zlaty' : ''}`} key={p.id}>
+            <div className={`buddy-ui-card cw-panel-card${pergamenRezim ? ' cw-panel-card--zlaty' : ''}`} key={p.id}>
               <div className="cw-panel-head">
                 <span>
                   <span className="cw-panel-num">{i + 1}</span>
@@ -497,7 +497,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
 
               <div className="cw-panel-label">Vizuál</div>
               {upravovanyPanelId === p.id ? (
-                <div className="cw-radek-form">
+                <div className="buddy-ui-card cw-radek-form">
                   <input
                     type="text"
                     value={upravovanyVizual}
@@ -517,7 +517,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
                     <button className="cw-zrusit-btn" onClick={() => setUpravovanyPanelId(null)}>
                       Zrušit
                     </button>
-                    <button className="cw-ulozit-btn" onClick={ulozitUpravuPanelu}>
+                    <button className="buddy-ui-button buddy-ui-button--primary cw-ulozit-btn" onClick={ulozitUpravuPanelu}>
                       Uložit
                     </button>
                   </div>
@@ -548,7 +548,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
               ))}
 
               {radekFormPanelId === p.id ? (
-                <div className="cw-radek-form">
+                <div className="buddy-ui-card cw-radek-form">
                   <div className="cw-radek-form-row">
                     <select value={radekTyp} onChange={(e) => setRadekTyp(e.target.value as TypRadku)}>
                       <option value="dialog">Dialog</option>
@@ -589,13 +589,13 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
                     >
                       Zrušit
                     </button>
-                    <button className="cw-ulozit-btn" onClick={() => pridatRadek(p.id)}>
+                    <button className="buddy-ui-button buddy-ui-button--primary cw-ulozit-btn" onClick={() => pridatRadek(p.id)}>
                       {upravovanyRadek ? 'Uložit' : 'Přidat'}
                     </button>
                   </div>
                 </div>
               ) : (
-                <button className="cw-pridat-radek-btn" onClick={() => otevritPridaniRadku(p.id)}>
+                <button className="buddy-ui-button cw-pridat-radek-btn" onClick={() => otevritPridaniRadku(p.id)}>
                   + Dialog / Popisek
                 </button>
               )}
@@ -619,7 +619,7 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
                 </option>
               ))}
             </select>
-            <button className="cw-ulozit-btn" onClick={pridatPanel}>
+            <button className="buddy-ui-button buddy-ui-button--primary cw-ulozit-btn" onClick={pridatPanel}>
               + Přidat panel
             </button>
           </div>
@@ -642,20 +642,20 @@ const KomiksEditor: React.FC<KomiksEditorProps> = ({
 }
 
 const KomiksNahled: React.FC<{ komiks: Komiks; onZpet: () => void }> = ({ komiks, onZpet }) => (
-  <div className="cw-app">
+  <div className="buddy-miniapp cw-app">
     <div className="cw-header">
-      <button className="cw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+      <button className="buddy-ui-button cw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
         ←
       </button>
       <div className="cw-header-text">
         <strong>{komiks.nazev}</strong>
         <span>Náhled celého komiksu</span>
       </div>
-      <button className="cw-nahled-btn" onClick={() => window.print()}>
+      <button className="buddy-ui-button cw-nahled-btn" onClick={() => window.print()}>
         🖨 Tisk
       </button>
       <button
-        className="cw-nahled-btn"
+        className="buddy-ui-button cw-nahled-btn"
         onClick={() => stahnoutTextovySoubor(`${komiks.nazev || 'komiks'}.txt`, sestavTextKomiksu(komiks))}
       >
         ⬇ .txt
@@ -663,16 +663,16 @@ const KomiksNahled: React.FC<{ komiks: Komiks; onZpet: () => void }> = ({ komiks
     </div>
 
     {komiks.strany.length === 0 ? (
-      <p className="cw-prazdno">Komiks zatím nemá žádnou stranu.</p>
+      <p className="buddy-ui-status cw-prazdno">Komiks zatím nemá žádnou stranu.</p>
     ) : (
       komiks.strany.map((s) => (
         <div key={s.id} className="cw-nahled-strana">
           <div className="cw-page-head">
             <strong>Strana {s.cislo}</strong>
           </div>
-          {s.panely.length === 0 && <p className="cw-prazdno">Strana zatím nemá žádný panel.</p>}
+          {s.panely.length === 0 && <p className="buddy-ui-status cw-prazdno">Strana zatím nemá žádný panel.</p>}
           {s.panely.map((p, i) => (
-            <div className="cw-panel-card" key={p.id}>
+            <div className="buddy-ui-card cw-panel-card" key={p.id}>
               <div className="cw-panel-head">
                 <span>
                   <span className="cw-panel-num">{i + 1}</span>
@@ -753,9 +753,9 @@ const KomiksOsnova: React.FC<{
   }
 
   return (
-    <div className="cw-app">
+    <div className="buddy-miniapp cw-app">
       <div className="cw-header">
-        <button className="cw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+        <button className="buddy-ui-button cw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
           ←
         </button>
         <div className="cw-header-text">
@@ -795,7 +795,7 @@ const KomiksOsnova: React.FC<{
         ))}
       </div>
 
-      <button className="cw-nahled-btn" onClick={() => setNahraditFormOtevren((f) => !f)}>
+      <button className="buddy-ui-button cw-nahled-btn" onClick={() => setNahraditFormOtevren((f) => !f)}>
         🔁 Nahradit
       </button>
 
@@ -807,24 +807,24 @@ const KomiksOsnova: React.FC<{
             value={nahraditZa}
             onChange={(e) => setNahraditZa(e.target.value)}
           />
-          <button className="cw-ulozit-btn" onClick={provestNahrazeni} disabled={!dotaz.trim()}>
+          <button className="buddy-ui-button buddy-ui-button--primary cw-ulozit-btn" onClick={provestNahrazeni} disabled={!dotaz.trim()}>
             Nahradit vše
           </button>
         </div>
       )}
       {vysledekNahrazeni !== null && (
-        <p className="cw-prazdno">
+        <p className="buddy-ui-status cw-prazdno">
           {vysledekNahrazeni === 0 ? 'Nic k nahrazení se nenašlo.' : `Nahrazeno ${vysledekNahrazeni}×.`}
         </p>
       )}
 
-      <button className="cw-nahled-btn" onClick={() => setNaduzivanaOtevrena((o) => !o)}>
+      <button className="buddy-ui-button cw-nahled-btn" onClick={() => setNaduzivanaOtevrena((o) => !o)}>
         🔠 Nadužívaná slova
       </button>
       {naduzivanaOtevrena && (
         <div className="cw-seznam">
           {naduzivana.length === 0 ? (
-            <p className="cw-prazdno">Žádné slovo se v komiksu neopakuje nápadně často.</p>
+            <p className="buddy-ui-status cw-prazdno">Žádné slovo se v komiksu neopakuje nápadně často.</p>
           ) : (
             naduzivana.map((n) => (
               <div className="cw-stat-radek" key={n.slovo}>
@@ -866,11 +866,11 @@ const KomiksOsnova: React.FC<{
 
       <div className="cw-seznam">
         {stranyKZobrazeni.length === 0 && (
-          <p className="cw-prazdno">{dotaz || filtrStav ? 'Nic se nenašlo.' : 'Komiks zatím nemá žádnou stranu.'}</p>
+          <p className="buddy-ui-status cw-prazdno">{dotaz || filtrStav ? 'Nic se nenašlo.' : 'Komiks zatím nemá žádnou stranu.'}</p>
         )}
         {stranyKZobrazeni.map(({ strana: s, panelySeZasahem }) => (
           <div key={s.id}>
-            <div className="cw-radek">
+            <div className="buddy-ui-card cw-radek">
               <button className="cw-radek-otevrit" onClick={() => onOtevritStranu(s.id)}>
                 <strong>Strana {s.cislo}</strong>
                 <span>
@@ -879,7 +879,7 @@ const KomiksOsnova: React.FC<{
               </button>
             </div>
             {panelySeZasahem.map(({ panel, poradi }) => (
-              <div className="cw-radek cw-radek--panel" key={panel.id}>
+              <div className="buddy-ui-card cw-radek cw-radek--panel" key={panel.id}>
                 <button className="cw-radek-otevrit" onClick={() => onOtevritStranu(s.id)}>
                   <span>Panel {poradi}</span>
                   <span className="cw-osnova-uryvek">„{uryvekPanelu(panel)}“</span>
@@ -924,9 +924,9 @@ const KomiksZalohy: React.FC<{
   }
 
   return (
-    <div className="cw-app">
+    <div className="buddy-miniapp cw-app">
       <div className="cw-header">
-        <button className="cw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+        <button className="buddy-ui-button cw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
           ←
         </button>
         <div className="cw-header-text">
@@ -943,12 +943,12 @@ const KomiksZalohy: React.FC<{
           onChange={(e) => setNovyNazev(e.target.value)}
           maxLength={60}
         />
-        <button className="cw-ulozit-btn" onClick={ulozitZalohu}>
+        <button className="buddy-ui-button buddy-ui-button--primary cw-ulozit-btn" onClick={ulozitZalohu}>
           Uložit
         </button>
       </div>
 
-      {zprava && <p className="cw-prazdno">{zprava}</p>}
+      {zprava && <p className="buddy-ui-status cw-prazdno">{zprava}</p>}
 
       <p className="cw-limit-info">
         Uchovává se posledních {strop} záloh na komiks.
@@ -956,13 +956,13 @@ const KomiksZalohy: React.FC<{
       </p>
 
       <div className="cw-seznam">
-        {seznam.length === 0 && <p className="cw-prazdno">Zatím žádná ruční záloha tohohle komiksu.</p>}
+        {seznam.length === 0 && <p className="buddy-ui-status cw-prazdno">Zatím žádná ruční záloha tohohle komiksu.</p>}
         {seznam.map((c) => {
           const rozbaleno = rozbalenyId === c.id
           const nahled = sanitizujKomiks(c.data)
           return (
             <div className="cw-radek-wrap" key={c.id}>
-              <div className="cw-radek">
+              <div className="buddy-ui-card cw-radek">
                 <button
                   className="cw-radek-otevrit"
                   onClick={() => setRozbalenyId(rozbaleno ? null : c.id)}
@@ -971,14 +971,14 @@ const KomiksZalohy: React.FC<{
                   <strong>{c.nazev}</strong>
                   <span>{formatujNaposledyUpraveno(c.createdAt)}</span>
                 </button>
-                <button className="cw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
+                <button className="buddy-ui-button cw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
                   ✕
                 </button>
               </div>
               {rozbaleno && (
                 <div className="cw-checkpoint-nahled">
                   <span>{nahled ? shrnutiKomiksu(nahled) : 'Tahle záloha je poškozená.'}</span>
-                  <button className="cw-ulozit-btn" disabled={!nahled} onClick={() => obnovit(c.nazev, c.data)}>
+                  <button className="buddy-ui-button buddy-ui-button--primary cw-ulozit-btn" disabled={!nahled} onClick={() => obnovit(c.nazev, c.data)}>
                     ↺ Obnovit tuto verzi
                   </button>
                 </div>

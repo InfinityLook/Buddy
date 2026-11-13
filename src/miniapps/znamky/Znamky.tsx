@@ -182,9 +182,9 @@ export const Znamky: React.FC = () => {
   }
 
   return (
-    <div className="znamky buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp znamky buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="znamky" />
-      <div className="znamky-souhrn">
+      <div className="buddy-ui-card znamky-souhrn">
         <div className="znamky-souhrn-cislo">
           <span className="znamky-souhrn-hodnota">
             {celkovyPrumer !== null ? celkovyPrumer.toFixed(2) : '—'}
@@ -197,12 +197,12 @@ export const Znamky: React.FC = () => {
         </div>
       </div>
 
-      <button className="znamky-pridat-btn" onClick={() => setFormPredmetOtevreny((o) => !o)}>
+      <button className="buddy-ui-button buddy-ui-button--primary znamky-pridat-btn" onClick={() => setFormPredmetOtevreny((o) => !o)}>
         + Přidat předmět
       </button>
 
       {formPredmetOtevreny && (
-        <form className="znamky-form" onSubmit={pridatNovyPredmet}>
+        <form className="buddy-ui-card znamky-form" onSubmit={pridatNovyPredmet}>
           <input
             placeholder="Název předmětu"
             value={nazevPredmetu}
@@ -220,10 +220,10 @@ export const Znamky: React.FC = () => {
             onChange={(e) => setKredityPredmetu(e.target.value)}
           />
           <div className="znamky-form-akce">
-            <button type="button" className="znamky-form-zrusit" onClick={() => setFormPredmetOtevreny(false)}>
+            <button type="button" className="buddy-ui-button znamky-form-zrusit" onClick={() => setFormPredmetOtevreny(false)}>
               Zrušit
             </button>
-            <button type="submit" className="znamky-form-ulozit">
+            <button type="submit" className="buddy-ui-button buddy-ui-button--primary znamky-form-ulozit">
               Přidat
             </button>
           </div>
@@ -231,7 +231,7 @@ export const Znamky: React.FC = () => {
       )}
 
       {predmety.length === 0 && !formPredmetOtevreny && (
-        <p className="znamky-prazdno">Zatím žádné předměty — přidej první.</p>
+        <p className="buddy-ui-status znamky-prazdno">Zatím žádné předměty — přidej první.</p>
       )}
 
       <div className="znamky-seznam">
@@ -239,9 +239,10 @@ export const Znamky: React.FC = () => {
           const prumer = vazenyPrumerPredmetu(p)
           const rozbaleno = rozbalenyPredmet === p.id
           return (
-            <div key={p.id} className="znamky-predmet">
+            <div key={p.id} className="buddy-ui-card znamky-predmet">
               <button
                 className="znamky-predmet-hlavicka"
+                aria-expanded={rozbaleno}
                 onClick={() => {
                   setRozbalenyPredmet(rozbaleno ? null : p.id)
                   // Jinak by formulář "+ Známka" u předmětu, do kterého
@@ -261,14 +262,14 @@ export const Znamky: React.FC = () => {
                 <div className="znamky-predmet-detail">
                   <button
                     type="button"
-                    className="znamky-predmet-upravit-btn"
+                    className="buddy-ui-button znamky-predmet-upravit-btn"
                     onClick={() => otevritEditaciPredmetu(p)}
                   >
                     ✎ Upravit předmět
                   </button>
 
                   {upravovanyPredmetId === p.id && (
-                    <form className="znamky-form" onSubmit={(e) => ulozitEditaciPredmetu(e, p.id)}>
+                    <form className="buddy-ui-card znamky-form" onSubmit={(e) => ulozitEditaciPredmetu(e, p.id)}>
                       <input
                         placeholder="Název předmětu"
                         value={upravovanyNazev}
@@ -288,19 +289,19 @@ export const Znamky: React.FC = () => {
                       <div className="znamky-form-akce">
                         <button
                           type="button"
-                          className="znamky-form-zrusit"
+                          className="buddy-ui-button znamky-form-zrusit"
                           onClick={() => setUpravovanyPredmetId(null)}
                         >
                           Zrušit
                         </button>
-                        <button type="submit" className="znamky-form-ulozit">
+                        <button type="submit" className="buddy-ui-button buddy-ui-button--primary znamky-form-ulozit">
                           Uložit
                         </button>
                       </div>
                     </form>
                   )}
 
-                  <div className="znamky-cil-panel">
+                  <div className="buddy-ui-card znamky-cil-panel">
                     {(() => {
                       const cilProcenta = spocitejProcentaCileProumeru(prumer, p.cil ?? null)
                       return cilProcenta !== null && p.cil != null ? (
@@ -331,7 +332,7 @@ export const Znamky: React.FC = () => {
                           </div>
                         </div>
                       ) : (
-                        <button type="button" className="znamky-cil-nastavit-btn" onClick={() => otevritCilForm(p)}>
+                        <button type="button" className="buddy-ui-button znamky-cil-nastavit-btn" onClick={() => otevritCilForm(p)}>
                           🎯 Nastavit cíl průměru
                         </button>
                       )
@@ -361,7 +362,7 @@ export const Znamky: React.FC = () => {
                     )}
                   </div>
 
-                  {p.znamky.length === 0 && <p className="znamky-prazdno">Zatím žádná známka.</p>}
+                  {p.znamky.length === 0 && <p className="buddy-ui-status znamky-prazdno">Zatím žádná známka.</p>}
                   <ul className="znamky-znamky-seznam">
                     {p.znamky.map((z) => (
                       <li key={z.id} className="znamky-znamka-radek">
@@ -397,7 +398,7 @@ export const Znamky: React.FC = () => {
                     ))}
                   </ul>
 
-                  <form className="znamky-znamka-form" onSubmit={(e) => odeslatFormularZnamky(e, p.id)}>
+                  <form className="buddy-ui-card znamky-znamka-form" onSubmit={(e) => odeslatFormularZnamky(e, p.id)}>
                     <select value={hodnota} onChange={(e) => setHodnota(Number(e.target.value))}>
                       {Array.from({ length: MAX_ZNAMKA - MIN_ZNAMKA + 1 }, (_, i) => MIN_ZNAMKA + i).map((h) => (
                         <option key={h} value={h}>
@@ -442,7 +443,7 @@ export const Znamky: React.FC = () => {
 
                   <button
                     type="button"
-                    className="znamky-cokdyby-btn"
+                    className="buddy-ui-button znamky-cokdyby-btn"
                     onClick={() => setCoKdybyOtevreno(coKdybyOtevreno === p.id ? null : p.id)}
                   >
                     🔮 {coKdybyOtevreno === p.id ? 'Skrýt' : 'Co kdyby…'}
@@ -470,7 +471,7 @@ export const Znamky: React.FC = () => {
                           onChange={(e) => setCoKdybyVaha(e.target.value)}
                         />
                       </div>
-                      <div className="znamky-cokdyby-vysledek">
+                      <div className="buddy-ui-card znamky-cokdyby-vysledek">
                         <span>
                           Průměr předmětu: <strong>{projektovanyPrumerPredmetu?.toFixed(2) ?? '—'}</strong>
                         </span>

@@ -21,6 +21,7 @@ export const Citace: React.FC = () => {
   const { citace, aktivniStyl, pridatCitaci, upravitCitaci, smazatCitaci, nastavStyl } = useCitace()
   const [typ, setTyp] = useState<TypZdroje>('kniha')
   const [form, setForm] = useState(PRAZDNY_FORM)
+  const [hlaseni, setHlaseni] = useState('')
   const [zkopirovanoId, setZkopirovanoId] = useState<string | null>(null)
   // Úprava existující citace na místě, ne jen smazat-a-přidat-znovu —
   // stejný "formulář je dvouúčelový, jen ho poznáš podle upravovanaId"
@@ -53,9 +54,10 @@ export const Citace: React.FC = () => {
     try {
       await navigator.clipboard.writeText(text)
       setZkopirovanoId(id)
+      setHlaseni('Citace zkopírována do schránky.')
       window.setTimeout(() => setZkopirovanoId((aktualni) => (aktualni === id ? null : aktualni)), 1500)
     } catch {
-      // Schránka je bonus, ne podmínka — bez oprávnění se prostě nic nestane.
+      setHlaseni('Kopírování se nepodařilo. Text můžeš označit a zkopírovat ručně.')
     }
   }
 
@@ -101,12 +103,14 @@ export const Citace: React.FC = () => {
   }
 
   return (
-    <div className="citace buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp citace buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="citace" />
-      <div className="citace-styl-radek" role="group" aria-label="Citační styl">
+      <div className="buddy-ui-segmented citace-styl-radek" role="group" aria-label="Citační styl">
         {STYLY_CITACI.map((s) => (
           <button
             key={s.id}
+            type="button"
+            aria-pressed={aktivniStyl === s.id}
             className={`citace-styl-btn ${aktivniStyl === s.id ? 'je-vybrany' : ''}`}
             onClick={() => nastavStyl(s.id)}
           >
@@ -115,10 +119,12 @@ export const Citace: React.FC = () => {
         ))}
       </div>
 
-      <div className="citace-typ-radek" role="group" aria-label="Typ zdroje">
+      <div className="buddy-ui-segmented citace-typ-radek" role="group" aria-label="Typ zdroje">
         {TYPY_ZDROJE.map((t) => (
           <button
             key={t.id}
+            type="button"
+            aria-pressed={typ === t.id}
             className={`citace-typ-btn ${typ === t.id ? 'je-vybrany' : ''}`}
             onClick={() => setTyp(t.id)}
           >
@@ -127,8 +133,9 @@ export const Citace: React.FC = () => {
         ))}
       </div>
 
-      <form className="citace-form" onSubmit={handleSubmit}>
+      <form className="buddy-ui-card citace-form" onSubmit={handleSubmit}>
         <input
+          aria-label="Autor"
           placeholder="Autor (Příjmení, Jméno)"
           value={form.autor}
           onChange={(e) => setForm({ ...form, autor: e.target.value })}
@@ -136,6 +143,7 @@ export const Citace: React.FC = () => {
           lang="cs"
         />
         <input
+          aria-label="Název zdroje"
           placeholder="Název"
           value={form.nazev}
           onChange={(e) => setForm({ ...form, nazev: e.target.value })}
@@ -145,6 +153,7 @@ export const Citace: React.FC = () => {
         />
         <div className="citace-form-radek">
           <input
+            aria-label="Rok vydání"
             placeholder="Rok vydání"
             value={form.rok}
             onChange={(e) => setForm({ ...form, rok: e.target.value })}
@@ -160,6 +169,7 @@ export const Citace: React.FC = () => {
         {typ === 'web' && (
           <div className="citace-form-radek">
             <input
+              aria-label="URL adresa"
               placeholder="URL adresa"
               value={form.url}
               onChange={(e) => setForm({ ...form, url: e.target.value })}
@@ -173,56 +183,58 @@ export const Citace: React.FC = () => {
           </div>
         )}
 
-        <div className="citace-nahled">
+        <div className="buddy-ui-card citace-nahled">
           <span className="citace-nahled-popisek">Náhled</span>
           <p>{nahled}</p>
         </div>
 
         <div className="citace-form-akce">
-          <button type="button" className="citace-kopirovat-btn" onClick={() => kopirovat(nahled, 'nahled')}>
+          <button type="button" className="buddy-ui-button citace-kopirovat-btn" onClick={() => kopirovat(nahled, 'nahled')}>
             {zkopirovanoId === 'nahled' ? 'Zkopírováno ✓' : '📋 Kopírovat'}
           </button>
           {upravovanaId && (
-            <button type="button" className="citace-zrusit-btn" onClick={zrusitUpravu}>
+            <button type="button" className="buddy-ui-button citace-zrusit-btn" onClick={zrusitUpravu}>
               Zrušit úpravu
             </button>
           )}
-          <button type="submit" className="citace-ulozit-btn">
+          <button type="submit" className="buddy-ui-button buddy-ui-button--primary citace-ulozit-btn">
             {upravovanaId ? 'Uložit změny' : '+ Přidat do seznamu'}
           </button>
         </div>
       </form>
 
-      {citace.length === 0 && <p className="citace-prazdno">Zatím žádné uložené citace.</p>}
+      {citace.length === 0 && <p className="buddy-ui-status citace-prazdno">Zatím žádné uložené citace.</p>}
 
       {citace.length > 0 && (
         <div className="citace-hromadne-akce">
           <button
-            className="citace-kopirovat-btn"
+            className="buddy-ui-button citace-kopirovat-btn"
             onClick={() => kopirovat(sestavBibliografii(citace, aktivniStyl), CELY_SEZNAM_ID)}
           >
             {zkopirovanoId === CELY_SEZNAM_ID ? 'Zkopírováno ✓' : '📋 Kopírovat vše'}
           </button>
-          <button className="citace-stahnout-btn" onClick={stahnoutVse}>
+          <button className="buddy-ui-button citace-stahnout-btn" onClick={stahnoutVse}>
             ⬇ Stáhnout bibliografii (.txt)
           </button>
         </div>
       )}
 
+      {hlaseni && <p className="buddy-ui-status" role="status">{hlaseni}</p>}
+
       <ul className="citace-seznam">
         {citace.map((c) => {
           const text = sestavCitaci(c, aktivniStyl)
           return (
-            <li key={c.id} className={`citace-polozka ${upravovanaId === c.id ? 'je-upravovana' : ''}`}>
+            <li key={c.id} className={`buddy-ui-card citace-polozka ${upravovanaId === c.id ? 'je-upravovana' : ''}`}>
               <p className="citace-polozka-text">{text}</p>
               <div className="citace-polozka-akce">
-                <button className="citace-kopirovat-btn" onClick={() => kopirovat(text, c.id)}>
+                <button className="buddy-ui-button citace-kopirovat-btn" onClick={() => kopirovat(text, c.id)}>
                   {zkopirovanoId === c.id ? 'Zkopírováno ✓' : '📋 Kopírovat'}
                 </button>
-                <button className="citace-upravit-btn" aria-label={`Upravit citaci ${c.nazev}`} onClick={() => otevritUpravu(c)}>
+                <button className="buddy-ui-button citace-upravit-btn" aria-label={`Upravit citaci ${c.nazev}`} onClick={() => otevritUpravu(c)}>
                   ✏️
                 </button>
-                <button className="citace-smazat-btn" aria-label={`Smazat citaci ${c.nazev}`} onClick={() => odebrat(c)}>
+                <button className="buddy-ui-button citace-smazat-btn" aria-label={`Smazat citaci ${c.nazev}`} onClick={() => odebrat(c)}>
                   ✕
                 </button>
               </div>

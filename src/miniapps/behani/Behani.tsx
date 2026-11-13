@@ -194,10 +194,10 @@ export const Behani: React.FC = () => {
   if (obrazovka === 'probiha') {
     const tempoZive = tempoSekundNaKm(vzdalenostM, trvani)
     return (
-      <div className="behani-page buddy-theme-scope" {...rootAttributes}>
+      <div className="buddy-miniapp behani-page buddy-theme-scope" {...rootAttributes}>
         <SurfaceBackdrop surfaceId="behani" />
         <TrasaMapa trasa={trasa} vyska={260} />
-        <div className="behani-zive-karta">
+        <div className="buddy-ui-card behani-zive-karta">
           <div className="behani-zive-radek">
             <div className="behani-zive-cislo">{formatujCas(trvani)}</div>
             <div className="behani-zive-label">čas</div>
@@ -212,12 +212,12 @@ export const Behani: React.FC = () => {
               <div className="behani-zive-label">tempo</div>
             </div>
           </div>
-          {chyba && <p className="behani-chyba">{chyba}</p>}
+          {chyba && <p className="behani-chyba" role="alert">{chyba}</p>}
           <div className="behani-zive-tlacitka">
-            <button className="behani-btn behani-btn--pauza" onClick={prepnoutPauzu}>
+            <button className="buddy-ui-button behani-btn behani-btn--pauza" onClick={prepnoutPauzu}>
               {pauza ? '▶ Pokračovat' : '⏸ Pauza'}
             </button>
-            <button className="behani-btn behani-btn--stop" onClick={zastavit}>
+            <button className="buddy-ui-button behani-btn behani-btn--stop" onClick={zastavit}>
               ⏹ Ukončit
             </button>
           </div>
@@ -229,10 +229,10 @@ export const Behani: React.FC = () => {
   if (obrazovka === 'souhrn') {
     const tempoFinal = tempoSekundNaKm(vzdalenostM, trvani)
     return (
-      <div className="behani-page">
+      <div className="buddy-miniapp behani-page buddy-theme-scope" {...rootAttributes}>
         <h2 className="behani-nadpis">Sezení dokončeno {IKONA_AKTIVITY[aktivita]}</h2>
         <TrasaMapa trasa={trasa} vyska={220} />
-        <div className="behani-souhrn-mrizka">
+        <div className="buddy-ui-card behani-souhrn-mrizka">
           <div>
             <div className="behani-souhrn-cislo">{formatujVzdalenost(vzdalenostM)}</div>
             <div className="behani-zive-label">vzdálenost</div>
@@ -251,10 +251,10 @@ export const Behani: React.FC = () => {
           </div>
         </div>
         <div className="behani-souhrn-tlacitka">
-          <button className="behani-btn behani-btn--zahodit" onClick={zahodit}>
+          <button className="buddy-ui-button behani-btn behani-btn--zahodit" onClick={zahodit}>
             Zahodit
           </button>
-          <button className="behani-btn behani-btn--ulozit" onClick={ulozit}>
+          <button className="buddy-ui-button behani-btn behani-btn--ulozit" onClick={ulozit}>
             Uložit sezení
           </button>
         </div>
@@ -263,21 +263,21 @@ export const Behani: React.FC = () => {
   }
 
   return (
-    <div className="behani-page">
+    <div className="buddy-miniapp behani-page buddy-theme-scope" {...rootAttributes}>
       {zobrazitPovoleni && (
         <PovoleniPolohyDialog onPovolit={potvrditPolohu} onZavrit={() => setZobrazitPovoleni(false)} />
       )}
 
-      <h2 className="behani-nadpis">Běhání a kardio</h2>
 
-      {!PODPORUJE_GPS && <p className="behani-chyba">Tvé zařízení nepodporuje GPS — appka tuhle appku bez polohy nemůže spustit.</p>}
-      {chyba && <p className="behani-chyba">{chyba}</p>}
+      {!PODPORUJE_GPS && <p className="behani-chyba" role="alert">Tvé zařízení nepodporuje GPS — appka tuhle appku bez polohy nemůže spustit.</p>}
+      {chyba && <p className="behani-chyba" role="alert">{chyba}</p>}
 
       <div className="behani-vyber-aktivity">
         {(Object.keys(NAZEV_AKTIVITY) as TypAktivity[]).map((typ) => (
           <button
             key={typ}
-            className={`behani-aktivita-btn ${aktivita === typ ? 'is-vybrana' : ''}`}
+            aria-pressed={aktivita === typ}
+            className={`buddy-ui-button behani-aktivita-btn ${aktivita === typ ? 'is-vybrana' : ''}`}
             onClick={() => setAktivita(typ)}
           >
             <span className="behani-aktivita-ikona">{IKONA_AKTIVITY[typ]}</span>
@@ -286,20 +286,20 @@ export const Behani: React.FC = () => {
         ))}
       </div>
 
-      <button className="behani-spustit-btn" onClick={spustit} disabled={!PODPORUJE_GPS}>
+      <button className="buddy-ui-button buddy-ui-button--primary behani-spustit-btn" onClick={spustit} disabled={!PODPORUJE_GPS}>
         ▶ Spustit {NAZEV_AKTIVITY[aktivita].toLowerCase()}
       </button>
 
       <h3 className="behani-historie-nadpis">Historie</h3>
       {behani.sezeni.length === 0 ? (
-        <p className="behani-prazdno">Zatím žádné sezení — spusť první běh, chůzi nebo jízdu na kole výš.</p>
+        <p className="buddy-ui-status behani-prazdno">Zatím žádné sezení — spusť první běh, chůzi nebo jízdu na kole výš.</p>
       ) : (
         <ul className="behani-historie-seznam">
           {behani.sezeni.map((s) => {
             const tempo = tempoSekundNaKm(s.vzdalenostM, s.trvaniSekund)
             const rozbaleno = rozbaleneId === s.id
             return (
-              <li key={s.id} className="behani-historie-radek">
+              <li key={s.id} className="buddy-ui-card behani-historie-radek">
                 <button className="behani-historie-hlavicka" onClick={() => setRozbaleneId(rozbaleno ? null : s.id)}>
                   <span className="behani-historie-ikona">{IKONA_AKTIVITY[s.typ]}</span>
                   <span className="behani-historie-info">
@@ -312,7 +312,7 @@ export const Behani: React.FC = () => {
                 {rozbaleno && (
                   <div className="behani-historie-detail">
                     {s.trasa.length > 1 && <TrasaMapa trasa={s.trasa} vyska={180} />}
-                    <button className="behani-smazat-btn" onClick={() => smazat(s)}>
+                    <button className="buddy-ui-button behani-smazat-btn" onClick={() => smazat(s)}>
                       🗑 Smazat sezení
                     </button>
                   </div>

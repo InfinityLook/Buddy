@@ -120,7 +120,7 @@ export const MindMap: React.FC = () => {
   }
 
   return (
-    <div className="mm-app buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp mm-app buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="mind-map" />
       <div className="mm-header">
         <h2>Mind Map</h2>
@@ -129,19 +129,19 @@ export const MindMap: React.FC = () => {
         </span>
       </div>
 
-      <div className="mm-toolbar">
+      <div className="buddy-ui-card mm-toolbar">
         <button
-          className="mm-tool-btn"
+          className="buddy-ui-button mm-tool-btn"
           onClick={hasCollapsed ? expandAll : collapseAll}
         >
           {hasCollapsed ? 'Rozbalit vše' : 'Sbalit vše'}
         </button>
-        <button className="mm-tool-btn" onClick={handleFit}>
+        <button className="buddy-ui-button mm-tool-btn" onClick={handleFit}>
           Přizpůsobit
         </button>
         <div className="mm-zoom">
           <button
-            className="mm-tool-btn mm-zoom-btn"
+            className="buddy-ui-button mm-tool-btn mm-zoom-btn"
             onClick={zoomOut}
             disabled={!canZoomOut}
             aria-label="Oddálit"
@@ -150,7 +150,7 @@ export const MindMap: React.FC = () => {
           </button>
           <span className="mm-zoom-value">{Math.round(zoom * 100)} %</span>
           <button
-            className="mm-tool-btn mm-zoom-btn"
+            className="buddy-ui-button mm-tool-btn mm-zoom-btn"
             onClick={zoomIn}
             disabled={!canZoomIn}
             aria-label="Přiblížit"
@@ -235,16 +235,16 @@ export const MindMap: React.FC = () => {
       </div>
 
       {/* Panel vybraného uzlu */}
-      <div className="mm-panel">
+      <div className="buddy-ui-card mm-panel">
         <div className="mm-panel-head">
           <span className="mm-label">Vybraný uzel</span>
           <div className="mm-panel-actions">
-            <button className="mm-icon-btn" onClick={startRename} aria-label="Přejmenovat">
+            <button className="buddy-ui-button mm-icon-btn" onClick={startRename} aria-label="Přejmenovat">
               ✏️
             </button>
             {selectedId !== 'root' && (
               <button
-                className="mm-icon-btn danger"
+                className="buddy-ui-button mm-icon-btn danger"
                 onClick={handleDelete}
                 aria-label="Smazat uzel"
               >
@@ -263,7 +263,7 @@ export const MindMap: React.FC = () => {
               onChange={(e) => setRenameText(e.target.value)}
               required
             />
-            <button type="submit" className="mm-add-btn">
+            <button type="submit" className="buddy-ui-button buddy-ui-button--primary mm-add-btn">
               Uložit
             </button>
           </form>
@@ -312,7 +312,7 @@ export const MindMap: React.FC = () => {
               onChange={(e) => setTagText(e.target.value)}
               maxLength={24}
             />
-            <button type="submit" className="mm-detail-ulozit-btn">
+            <button type="submit" className="buddy-ui-button buddy-ui-button--primary mm-detail-ulozit-btn">
               Uložit
             </button>
           </div>
@@ -326,7 +326,7 @@ export const MindMap: React.FC = () => {
             onChange={(e) => setNewText(e.target.value)}
             required
           />
-          <button type="submit" className="mm-add-btn">
+          <button type="submit" className="buddy-ui-button buddy-ui-button--primary mm-add-btn">
             + Přidat
           </button>
         </form>

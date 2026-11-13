@@ -1,3 +1,4 @@
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
 import React, { useState } from 'react'
 import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useFlashcards } from './useFlashcards'
@@ -110,14 +111,14 @@ export const Flashcards: React.FC = () => {
   }
 
   return (
-    <div className="flashcards-app buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp flashcards-app buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="flashcards" />
       <div className="fc-header">
-        <h2>Flashcards</h2>
         <div className="fc-header-actions">
           {hasAnyCard && (
             <button
-              className={`fc-manage-btn ${deckManagerOpen ? 'active' : ''}`}
+              aria-expanded={deckManagerOpen}
+              className={`buddy-ui-button fc-manage-btn ${deckManagerOpen ? 'active' : ''}`}
               onClick={() => {
                 setDeckManagerOpen((open) => !open)
                 setRenamingDeck(null)
@@ -126,7 +127,7 @@ export const Flashcards: React.FC = () => {
               📚 Balíčky
             </button>
           )}
-          <button className="fc-add-btn" onClick={openAdd}>
+          <button className="buddy-ui-button buddy-ui-button--primary fc-add-btn" onClick={openAdd}>
             + Přidat
           </button>
         </div>
@@ -136,9 +137,9 @@ export const Flashcards: React.FC = () => {
           ne kartičku po kartičce. Nezávislé na filtru pills níž, aby šel
           přejmenovat i jediný balíček, co se tam ještě nezobrazí. */}
       {deckManagerOpen && (
-        <div className="fc-deck-manager">
+        <div className="buddy-ui-card fc-deck-manager">
           {decks.length === 0 ? (
-            <p className="fc-deck-manager-empty">Zatím žádný balíček.</p>
+            <p className="buddy-ui-status fc-deck-manager-empty">Zatím žádný balíček.</p>
           ) : (
             <ul className="fc-deck-manager-list">
               {decks.map((d) => (
@@ -198,7 +199,8 @@ export const Flashcards: React.FC = () => {
       {decks.length > 1 && (
         <div className="fc-decks">
           <button
-            className={`fc-deck-pill ${activeDeck === ALL_DECKS ? 'active' : ''}`}
+            aria-pressed={activeDeck === ALL_DECKS}
+            className={`buddy-ui-button fc-deck-pill ${activeDeck === ALL_DECKS ? 'active' : ''}`}
             onClick={() => changeDeck(ALL_DECKS)}
           >
             {ALL_DECKS}
@@ -206,7 +208,8 @@ export const Flashcards: React.FC = () => {
           {decks.map((d) => (
             <button
               key={d}
-              className={`fc-deck-pill ${activeDeck === d ? 'active' : ''}`}
+              aria-pressed={activeDeck === d}
+              className={`buddy-ui-button fc-deck-pill ${activeDeck === d ? 'active' : ''}`}
               onClick={() => changeDeck(d)}
             >
               {d}
@@ -239,27 +242,27 @@ export const Flashcards: React.FC = () => {
       {deckTotal > 0 && (
         <div className="fc-tools">
           <button
-            className={`fc-tool-btn ${onlyUnknown ? 'active' : ''}`}
+            className={`buddy-ui-button fc-tool-btn ${onlyUnknown ? 'active' : ''}`}
             onClick={toggleOnlyUnknown}
           >
             {onlyUnknown ? '✓ Jen neznámé' : 'Jen neznámé'}
           </button>
           <button
-            className={`fc-tool-btn ${onlyDueToday ? 'active' : ''}`}
+            className={`buddy-ui-button fc-tool-btn ${onlyDueToday ? 'active' : ''}`}
             onClick={toggleOnlyDueToday}
             title="Ukáže jen kartičky, co má appka podle rozestupu opakování nabídnout právě dnes"
           >
             {onlyDueToday ? '✓ K opakování dnes' : 'K opakování dnes'}
           </button>
           <button
-            className={`fc-tool-btn ${isShuffled ? 'active' : ''}`}
+            className={`buddy-ui-button fc-tool-btn ${isShuffled ? 'active' : ''}`}
             onClick={isShuffled ? clearShuffle : shuffle}
           >
             {isShuffled ? '↺ Původní pořadí' : '🔀 Zamíchat'}
           </button>
           {knownCount > 0 && (
             <button
-              className="fc-tool-btn"
+              className="buddy-ui-button fc-tool-btn"
               onClick={() => resetDeckProgress(activeDeck)}
               title="Označit všechny v balíčku zpátky jako neznámé"
             >
@@ -284,12 +287,12 @@ export const Flashcards: React.FC = () => {
 
           <div className={`fc-card ${isFlipped ? 'flipped' : ''}`} onClick={handleFlip}>
             <div className="fc-card-inner">
-              <div className="fc-card-front">
+              <div className="buddy-ui-card fc-card-front">
                 <span className="fc-badge">Otázka</span>
                 <p>{currentCard.question}</p>
                 <span className="fc-hint">Klikni pro otočení 🔄</span>
               </div>
-              <div className="fc-card-back">
+              <div className="buddy-ui-card fc-card-back">
                 <span className="fc-badge answer">Odpověď</span>
                 <p>{currentCard.answer}</p>
                 <span className="fc-hint">Klikni pro otočení zpět</span>
@@ -301,23 +304,23 @@ export const Flashcards: React.FC = () => {
               odpověď neviděl a nemá co hodnotit. */}
           {isFlipped && (
             <div className="fc-rate-row">
-              <button className="fc-rate-btn again" onClick={() => rateCurrent(false)}>
+              <button className="buddy-ui-button fc-rate-btn again" onClick={() => rateCurrent(false)}>
                 Ještě ne
               </button>
-              <button className="fc-rate-btn known" onClick={() => rateCurrent(true)}>
+              <button className="buddy-ui-button fc-rate-btn known" onClick={() => rateCurrent(true)}>
                 Umím ✓
               </button>
             </div>
           )}
 
           <div className="fc-controls">
-            <button className="fc-btn" onClick={handlePrev} disabled={totalCards < 2}>
+            <button className="buddy-ui-button fc-btn" onClick={handlePrev} disabled={totalCards < 2}>
               ◀ Předchozí
             </button>
-            <button className="fc-btn main" onClick={handleFlip}>
+            <button className="buddy-ui-button buddy-ui-button--primary fc-btn main" onClick={handleFlip}>
               Otočit
             </button>
-            <button className="fc-btn" onClick={handleNext} disabled={totalCards < 2}>
+            <button className="buddy-ui-button fc-btn" onClick={handleNext} disabled={totalCards < 2}>
               Další ▶
             </button>
           </div>
@@ -332,7 +335,7 @@ export const Flashcards: React.FC = () => {
           </div>
         </>
       ) : (
-        <div className="fc-empty">
+        <div className="buddy-ui-status fc-empty">
           {!hasAnyCard ? (
             <>
               <span className="fc-empty-icon">🃏</span>
@@ -341,7 +344,7 @@ export const Flashcards: React.FC = () => {
                 Založ si první — otázka na jednu stranu, odpověď na druhou. Kartičky si
                 můžeš rozdělit do balíčků podle předmětu.
               </p>
-              <button className="fc-btn main" onClick={openAdd}>
+              <button className="buddy-ui-button buddy-ui-button--primary fc-btn main" onClick={openAdd}>
                 + Vytvořit kartičku
               </button>
             </>
@@ -350,7 +353,7 @@ export const Flashcards: React.FC = () => {
               <span className="fc-empty-icon">🎉</span>
               <h3>Hotovo!</h3>
               <p>V tomhle balíčku už umíš všechno. Můžeš si ho projít znovu.</p>
-              <button className="fc-btn main" onClick={() => resetDeckProgress(activeDeck)}>
+              <button className="buddy-ui-button buddy-ui-button--primary fc-btn main" onClick={() => resetDeckProgress(activeDeck)}>
                 ⟳ Projít znovu
               </button>
             </>
@@ -362,7 +365,7 @@ export const Flashcards: React.FC = () => {
                 Podle rozestupu opakování nemá appka pro dnešek žádnou kartičku připravenou —
                 zbytek přijde na řadu později.
               </p>
-              <button className="fc-btn main" onClick={toggleOnlyDueToday}>
+              <button className="buddy-ui-button buddy-ui-button--primary fc-btn main" onClick={toggleOnlyDueToday}>
                 Zobrazit všechny
               </button>
             </>
@@ -371,7 +374,7 @@ export const Flashcards: React.FC = () => {
               <span className="fc-empty-icon">🔍</span>
               <h3>Prázdný balíček</h3>
               <p>V tomhle balíčku zatím žádná kartička není.</p>
-              <button className="fc-btn main" onClick={openAdd}>
+              <button className="buddy-ui-button buddy-ui-button--primary fc-btn main" onClick={openAdd}>
                 + Přidat kartičku
               </button>
             </>
@@ -381,48 +384,54 @@ export const Flashcards: React.FC = () => {
 
       {/* Formulář slouží pro přidání i úpravu — liší se jen popisky */}
       {form.kind !== 'closed' && (
-        <form className="fc-add-form" onSubmit={handleSubmit}>
-          <span className="fc-form-title">
-            {form.kind === 'edit' ? 'Upravit kartičku' : 'Nová kartička'}
-          </span>
+        <BuddyDialog
+          surfaceId="flashcards"
+          title={form.kind === 'edit' ? 'Upravit kartičku' : 'Nová kartička'}
+          onClose={closeForm}
+          contentClassName="buddy-miniapp"
+        >
+          <form className="fc-add-form" onSubmit={handleSubmit}>
+            <input
+              type="text"
+              aria-label="Otázka"
+              placeholder="Otázka..."
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              required
+              autoFocus
+            />
+            <input
+              type="text"
+              aria-label="Odpověď"
+              placeholder="Odpověď..."
+              value={answer}
+              onChange={(e) => setAnswer(e.target.value)}
+              required
+            />
+            <input
+              type="text"
+              aria-label="Balíček"
+              placeholder={`Balíček (např. Dějepis) — výchozí ${DEFAULT_DECK}`}
+              value={deck}
+              onChange={(e) => setDeck(e.target.value)}
+              list="fc-deck-list"
+            />
+            <datalist id="fc-deck-list">
+              {decks.map((d) => (
+                <option key={d} value={d} />
+              ))}
+            </datalist>
 
-          <input
-            type="text"
-            placeholder="Otázka..."
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            required
-            autoFocus
-          />
-          <input
-            type="text"
-            placeholder="Odpověď..."
-            value={answer}
-            onChange={(e) => setAnswer(e.target.value)}
-            required
-          />
-          <input
-            type="text"
-            placeholder={`Balíček (např. Dějepis) — výchozí ${DEFAULT_DECK}`}
-            value={deck}
-            onChange={(e) => setDeck(e.target.value)}
-            list="fc-deck-list"
-          />
-          <datalist id="fc-deck-list">
-            {decks.map((d) => (
-              <option key={d} value={d} />
-            ))}
-          </datalist>
-
-          <div className="fc-form-actions">
-            <button type="submit" className="fc-btn main">
-              {form.kind === 'edit' ? 'Uložit změny' : 'Uložit'}
-            </button>
-            <button type="button" className="fc-btn" onClick={closeForm}>
-              Zrušit
-            </button>
-          </div>
-        </form>
+            <div className="fc-form-actions">
+              <button type="submit" className="buddy-ui-button buddy-ui-button--primary fc-btn main">
+                {form.kind === 'edit' ? 'Uložit změny' : 'Uložit'}
+              </button>
+              <button type="button" className="buddy-ui-button fc-btn" onClick={closeForm}>
+                Zrušit
+              </button>
+            </div>
+          </form>
+        </BuddyDialog>
       )}
     </div>
   )

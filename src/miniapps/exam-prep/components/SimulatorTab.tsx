@@ -75,14 +75,14 @@ export const SimulatorTab: React.FC<SimulatorTabProps> = ({ onGoToSubjects }) =>
 
   if (topics.length === 0) {
     return (
-      <div className="ep-empty">
+      <div className="buddy-ui-status ep-empty">
         <span className="ep-empty-icon">🎓</span>
         <h3>Není z čeho losovat</h3>
         <p>
           Simulátor tahá otázky z tvých okruhů. Nejdřív si nějaké přidej v záložce
           Okruhy.
         </p>
-        <button className="ep-btn ep-btn-primary" onClick={onGoToSubjects}>
+        <button className="buddy-ui-button buddy-ui-button--primary ep-btn ep-btn-primary" onClick={onGoToSubjects}>
           Přejít na Okruhy
         </button>
       </div>
@@ -95,7 +95,7 @@ export const SimulatorTab: React.FC<SimulatorTabProps> = ({ onGoToSubjects }) =>
         <label htmlFor="ep-sim-subject">Zkouška z:</label>
         <select
           id="ep-sim-subject"
-          className="ep-input"
+          className="buddy-ui-input ep-input"
           value={selectedSubjectId}
           onChange={(e) => setSelectedSubjectId(e.target.value)}
         >
@@ -112,7 +112,7 @@ export const SimulatorTab: React.FC<SimulatorTabProps> = ({ onGoToSubjects }) =>
         <div className="ep-sim-draw">
           <div className="ep-sim-draw-icon">🎓</div>
           <button
-            className="ep-btn-draw"
+            className="buddy-ui-button buddy-ui-button--primary ep-btn-draw"
             onClick={handleDrawTopic}
             disabled={availableTopics.length === 0}
           >
@@ -126,7 +126,7 @@ export const SimulatorTab: React.FC<SimulatorTabProps> = ({ onGoToSubjects }) =>
       {drawnTopic && (
         <div className="ep-sim-body">
           <div
-            className="ep-sim-question"
+            className="buddy-ui-card ep-sim-question"
             style={{ border: `1px solid ${drawnSubject?.color || '#38bdf8'}` }}
           >
             <span
@@ -139,7 +139,7 @@ export const SimulatorTab: React.FC<SimulatorTabProps> = ({ onGoToSubjects }) =>
             <p className="ep-sim-question-title">{drawnTopic.title}</p>
           </div>
 
-          <div className="ep-timer">
+          <div className="buddy-ui-card ep-timer">
             <span className="ep-timer-label">ČAS NA POTÍTKU</span>
             <div className={`ep-timer-value ${prepTimeLeft === 0 ? 'is-up' : ''}`}>
               {formatTime(prepTimeLeft)}
@@ -147,24 +147,24 @@ export const SimulatorTab: React.FC<SimulatorTabProps> = ({ onGoToSubjects }) =>
 
             <div className="ep-timer-actions">
               <button
-                className={`ep-btn-timer ${isTimerRunning ? 'is-running' : 'is-paused'}`}
+                className={`buddy-ui-button ep-btn-timer ${isTimerRunning ? 'is-running' : 'is-paused'}`}
                 onClick={() => setIsTimerRunning((running) => !running)}
                 disabled={prepTimeLeft === 0}
               >
                 {isTimerRunning ? '⏸ Pozastavit' : '▶ Spustit čas'}
               </button>
-              <button className="ep-btn-outline" onClick={handleDrawTopic}>
+              <button className="buddy-ui-button ep-btn-outline" onClick={handleDrawTopic}>
                 🔄 Jiná otázka
               </button>
             </div>
           </div>
 
           {!examFinished ? (
-            <button className="ep-btn ep-btn-violet" onClick={handleFinishExam}>
+            <button className="buddy-ui-button buddy-ui-button--primary ep-btn ep-btn-violet" onClick={handleFinishExam}>
               🎓 Dokončit odpověď &amp; Odzkoušet se
             </button>
           ) : (
-            <div className="ep-sim-done">
+            <div className="buddy-ui-card ep-sim-done">
               {alreadyRewarded ? (
                 <>
                   🎉 Hotovo! Tuhle otázku už jsi jednou odsimuloval, takže XP se

@@ -82,20 +82,20 @@ export const UverKalkulacka: React.FC = () => {
   const maxZbyvaDluhu = Math.max(1, celkovyPocatecniDluh, ...rocniBodyDluhu.map((b) => b.zbyva))
 
   return (
-    <div className="uver buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp uver buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="uver-kalkulacka" />
-      <div className="uver-zalozky" role="tablist" aria-label="Splátkový kalkulátor">
+      <div className="buddy-ui-segmented uver-zalozky" role="group" aria-label="Splátkový kalkulátor">
         <button
-          role="tab"
-          aria-selected={zalozka === 'jedna'}
+          type="button"
+          aria-pressed={zalozka === 'jedna'}
           className={`uver-zalozka-btn ${zalozka === 'jedna' ? 'je-vybrana' : ''}`}
           onClick={() => setZalozka('jedna')}
         >
           Jedna půjčka
         </button>
         <button
-          role="tab"
-          aria-selected={zalozka === 'vic'}
+          type="button"
+          aria-pressed={zalozka === 'vic'}
           className={`uver-zalozka-btn ${zalozka === 'vic' ? 'je-vybrana' : ''}`}
           onClick={() => setZalozka('vic')}
         >
@@ -104,7 +104,7 @@ export const UverKalkulacka: React.FC = () => {
       </div>
 
       {zalozka === 'jedna' ? (
-        <div className="uver-panel">
+        <div className="buddy-ui-card uver-panel">
           <h2>Amortizační plán</h2>
           <div className="uver-form-grid">
             <label>
@@ -156,7 +156,7 @@ export const UverKalkulacka: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="uver-panel">
+          <div className="buddy-ui-card uver-panel">
             <h2>Moje dluhy</h2>
             <form className="uver-form-grid uver-form-grid--dluh" onSubmit={handlePridatDluh}>
               <input placeholder="Název (např. Kreditka)" value={novyNazev} onChange={(e) => setNovyNazev(e.target.value)} required />
@@ -184,17 +184,17 @@ export const UverKalkulacka: React.FC = () => {
                 onChange={(e) => setNovaSplatka(e.target.value)}
                 required
               />
-              <button type="submit" className="uver-pridat-btn">
+              <button type="submit" className="buddy-ui-button buddy-ui-button--primary uver-pridat-btn">
                 + Přidat dluh
               </button>
             </form>
 
             {dluhy.length === 0 ? (
-              <p className="uver-prazdno">Zatím žádný dluh v seznamu.</p>
+              <p className="buddy-ui-status uver-prazdno">Zatím žádný dluh v seznamu.</p>
             ) : (
               <div className="uver-dluhy-seznam">
                 {dluhy.map((d) => (
-                  <div key={d.id} className="uver-dluh-radek">
+                  <div key={d.id} className="buddy-ui-card uver-dluh-radek">
                     <div className="uver-dluh-text">
                       <strong>{d.nazev}</strong>
                       <span>
@@ -202,7 +202,7 @@ export const UverKalkulacka: React.FC = () => {
                       </span>
                     </div>
                     <button
-                      className="uver-smazat-btn"
+                      className="buddy-ui-button uver-smazat-btn"
                       aria-label={`Smazat dluh ${d.nazev}`}
                       onClick={() => {
                         if (window.confirm(`Smazat dluh „${d.nazev}“?`)) smazatDluh(d.id)
@@ -217,7 +217,7 @@ export const UverKalkulacka: React.FC = () => {
           </div>
 
           {dluhy.length > 0 && (
-            <div className="uver-panel">
+            <div className="buddy-ui-card uver-panel">
               <h2>Plán splácení</h2>
               <div className="uver-form-grid">
                 <label>
@@ -227,14 +227,14 @@ export const UverKalkulacka: React.FC = () => {
                 <div className="uver-metoda-radek" role="group" aria-label="Metoda splácení">
                   <button
                     type="button"
-                    className={`uver-metoda-btn ${metoda === 'snehova-koule' ? 'je-vybrana' : ''}`}
+                    className={`buddy-ui-button uver-metoda-btn ${metoda === 'snehova-koule' ? 'je-vybrana' : ''}`}
                     onClick={() => setMetoda('snehova-koule')}
                   >
                     ❄️ Sněhová koule
                   </button>
                   <button
                     type="button"
-                    className={`uver-metoda-btn ${metoda === 'lavina' ? 'je-vybrana' : ''}`}
+                    className={`buddy-ui-button uver-metoda-btn ${metoda === 'lavina' ? 'je-vybrana' : ''}`}
                     onClick={() => setMetoda('lavina')}
                   >
                     🏔️ Lavina

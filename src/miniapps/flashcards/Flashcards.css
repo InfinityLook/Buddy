@@ -3,10 +3,10 @@
   flex-direction: column;
   gap: 0.8rem;
   padding: 1rem;
-  background: rgba(18, 24, 40, 0.75);
+  background: var(--buddy-panel);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  color: #fff;
+  color: var(--buddy-text);
   max-width: 400px;
   margin: 0 auto;
   backdrop-filter: blur(12px);
@@ -28,7 +28,7 @@
 .fc-add-btn {
   background: rgba(56, 189, 248, 0.15);
   border: 1px solid rgba(56, 189, 248, 0.5);
-  color: #38bdf8;
+  color: var(--buddy-accent);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.35rem 0.75rem;
@@ -37,9 +37,9 @@
 }
 
 .fc-manage-btn {
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  color: var(--buddy-muted);
   font-size: 0.72rem;
   font-weight: 700;
   padding: 0.35rem 0.6rem;
@@ -50,14 +50,14 @@
 .fc-manage-btn.active {
   background: rgba(56, 189, 248, 0.15);
   border-color: #38bdf8;
-  color: #38bdf8;
+  color: var(--buddy-accent);
 }
 
 /* ------------------------------------------
    SPRÁVA BALÍČKŮ
    ------------------------------------------ */
 .fc-deck-manager {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
   padding: 0.6rem 0.7rem;
@@ -66,7 +66,7 @@
 .fc-deck-manager-empty {
   margin: 0;
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--buddy-muted);
 }
 
 .fc-deck-manager-list {
@@ -93,20 +93,20 @@
 }
 
 .fc-deck-manager-count {
-  color: #94a3b8;
+  color: var(--buddy-muted);
   font-weight: 400;
 }
 
 .fc-deck-manager-icon {
   background: transparent;
   border: none;
-  color: #38bdf8;
+  color: var(--buddy-accent);
   cursor: pointer;
   flex-shrink: 0;
   font-size: 0.85rem;
 }
 
-.fc-deck-manager-icon.danger { color: #f87171; }
+.fc-deck-manager-icon.danger { color: var(--buddy-danger); }
 
 .fc-deck-rename-form {
   display: flex;
@@ -117,9 +117,9 @@
 .fc-deck-rename-form input {
   flex: 1;
   min-width: 0;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--buddy-text);
   padding: 0.3rem 0.5rem;
   border-radius: 6px;
   font-size: 0.78rem;
@@ -145,7 +145,7 @@
 .fc-deck-rename-cancel {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #94a3b8;
+  color: var(--buddy-muted);
 }
 
 /* ------------------------------------------
@@ -163,9 +163,9 @@
 
 .fc-deck-pill {
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  color: var(--buddy-muted);
   font-size: 0.72rem;
   font-weight: 600;
   padding: 0.3rem 0.7rem;
@@ -177,7 +177,7 @@
 .fc-deck-pill.active {
   background: rgba(56, 189, 248, 0.15);
   border-color: #38bdf8;
-  color: #38bdf8;
+  color: var(--buddy-accent);
 }
 
 /* ------------------------------------------
@@ -193,16 +193,16 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.72rem;
-  color: #94a3b8;
+  color: var(--buddy-muted);
   font-weight: 600;
 }
 
-.fc-progress-percent { color: #22c55e; font-weight: 800; }
+.fc-progress-percent { color: var(--buddy-success); font-weight: 800; }
 
 .fc-due-today {
   margin: 0.1rem 0 0;
   font-size: 0.7rem;
-  color: #a78bfa;
+  color: var(--buddy-info);
   font-weight: 600;
 }
 
@@ -232,9 +232,9 @@
 .fc-tool-btn {
   flex: 1;
   min-width: fit-content;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  color: var(--buddy-muted);
   font-size: 0.7rem;
   font-weight: 600;
   padding: 0.35rem 0.5rem;
@@ -246,7 +246,7 @@
 .fc-tool-btn.active {
   background: rgba(56, 189, 248, 0.15);
   border-color: #38bdf8;
-  color: #38bdf8;
+  color: var(--buddy-accent);
 }
 
 /* ------------------------------------------
@@ -258,12 +258,12 @@
   align-items: center;
 }
 
-.fc-counter { font-size: 0.8rem; color: #38bdf8; font-weight: 700; }
+.fc-counter { font-size: 0.8rem; color: var(--buddy-accent); font-weight: 700; }
 
 .fc-known-tag {
   font-size: 0.68rem;
   font-weight: 700;
-  color: #22c55e;
+  color: var(--buddy-success);
   background: rgba(34, 197, 94, 0.15);
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
@@ -272,7 +272,7 @@
 .fc-box-tag {
   font-size: 0.68rem;
   font-weight: 700;
-  color: #a78bfa;
+  color: var(--buddy-info);
   background: rgba(167, 139, 250, 0.15);
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
@@ -323,7 +323,7 @@
 }
 
 .fc-card-front {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--buddy-raised);
   box-shadow: inset 0 0 12px rgba(56, 189, 248, 0.15);
 }
 
@@ -338,7 +338,7 @@
   font-weight: 800;
   text-transform: uppercase;
   background: rgba(56, 189, 248, 0.2);
-  color: #38bdf8;
+  color: var(--buddy-accent);
   padding: 0.15rem 0.5rem;
   border-radius: 10px;
   flex-shrink: 0;
@@ -346,12 +346,12 @@
 
 .fc-badge.answer {
   background: rgba(168, 85, 247, 0.2);
-  color: #c084fc;
+  color: var(--buddy-info);
 }
 
 .fc-hint {
   font-size: 0.65rem;
-  color: #64748b;
+  color: var(--buddy-muted);
   flex-shrink: 0;
 }
 
@@ -376,13 +376,13 @@
 .fc-rate-btn.again {
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.5);
-  color: #f87171;
+  color: var(--buddy-danger);
 }
 
 .fc-rate-btn.known {
   background: rgba(34, 197, 94, 0.18);
   border-color: rgba(34, 197, 94, 0.6);
-  color: #4ade80;
+  color: var(--buddy-success);
 }
 
 /* ------------------------------------------
@@ -395,9 +395,9 @@
 
 .fc-btn {
   flex: 1;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--buddy-text);
   padding: 0.5rem;
   border-radius: 8px;
   font-size: 0.75rem;
@@ -425,14 +425,14 @@
 .fc-link-btn {
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--buddy-muted);
   font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   padding: 0.2rem;
 }
 
-.fc-link-btn.danger { color: #f87171; }
+.fc-link-btn.danger { color: var(--buddy-danger); }
 
 /* ------------------------------------------
    PRÁZDNÉ STAVY
@@ -459,7 +459,7 @@
 .fc-empty p {
   margin: 0;
   font-size: 0.78rem;
-  color: #94a3b8;
+  color: var(--buddy-muted);
   line-height: 1.5;
   max-width: 280px;
 }
@@ -486,15 +486,15 @@
 .fc-form-title {
   font-size: 0.72rem;
   font-weight: 800;
-  color: #38bdf8;
+  color: var(--buddy-accent);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
 
 .fc-add-form input {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--buddy-text);
   padding: 0.45rem 0.6rem;
   border-radius: 6px;
   font-size: 0.78rem;

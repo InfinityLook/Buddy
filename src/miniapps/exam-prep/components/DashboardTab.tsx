@@ -33,14 +33,14 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ onGoToSubjects, onSt
 
   if (subjects.length === 0) {
     return (
-      <div className="ep-empty">
+      <div className="buddy-ui-status ep-empty">
         <span className="ep-empty-icon">🎓</span>
         <h3>Začni předmětem</h3>
         <p>
           Přidej si předmět, ze kterého maturuješ, a k němu okruhy. Podle nich pak
           spočítáme, jak jsi připravený, a co je dnes na řadě k opakování.
         </p>
-        <button className="ep-btn ep-btn-primary" onClick={onGoToSubjects}>
+        <button className="buddy-ui-button buddy-ui-button--primary ep-btn ep-btn-primary" onClick={onGoToSubjects}>
           Přejít na Okruhy
         </button>
       </div>
@@ -62,7 +62,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ onGoToSubjects, onSt
 
       {/* Countdown k nejbližší zkoušce */}
       {closestExam && (
-        <div className="ep-card ep-countdown">
+        <div className="buddy-ui-card ep-card ep-countdown">
           <div>
             <span className="ep-countdown-label">NEJBLIŽŠÍ ZKOUŠKA</span>
             <span className="ep-countdown-name">{closestExam.name}</span>
@@ -72,7 +72,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ onGoToSubjects, onSt
       )}
 
       {/* Fronta k dnešnímu opakování */}
-      <div className="ep-card">
+      <div className="buddy-ui-card ep-card">
         <div className="ep-due-head">
           <h3>⚡ Dnes k opakování</h3>
           <span className={`ep-pill ${dueTopics.length > 0 ? 'is-due' : 'is-clear'}`}>
@@ -98,7 +98,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({ onGoToSubjects, onSt
                 </li>
               ))}
             </ul>
-            <button className="ep-btn ep-btn-primary ep-start-review-btn" onClick={onStartReview}>
+            <button className="buddy-ui-button buddy-ui-button--primary ep-btn ep-btn-primary ep-start-review-btn" onClick={onStartReview}>
               ▶ Spustit opakování
             </button>
           </>

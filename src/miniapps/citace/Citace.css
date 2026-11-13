@@ -199,3 +199,10 @@
   cursor: pointer;
   margin-left: auto;
 }
+
+.citace-nahled p,
+.citace-polozka-text {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
+}

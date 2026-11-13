@@ -62,21 +62,18 @@ export const MathSolver: React.FC = () => {
   }
 
   return (
-    <div className="ms-app buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp math-app buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="math-solver" />
-      <div className="ms-header">
-        <h2>Math Solver</h2>
-        <span className="ms-badge">Nástroje</span>
-      </div>
 
-      <p className="ms-hint">
+      <p className="math-hint">
         Spočítá výraz i rovnici s x — lineární <code>3(x-1)=2x+4</code> i kvadratickou{' '}
         <code>x²-5x+6=0</code>, včetně postupu.
       </p>
 
       {/* Vstup jde i psát, ať se dlouhá rovnice nemusí klikat po znacích */}
       <input
-        className="ms-input"
+        className="buddy-ui-input math-input"
+        aria-label="Výraz nebo rovnice"
         value={expression}
         onChange={(e) => setExpression(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') calculate() }}
@@ -86,18 +83,18 @@ export const MathSolver: React.FC = () => {
         spellCheck={false}
       />
 
-      <div className="ms-screen">
+      <div className="buddy-ui-card math-screen">
         {error ? (
-          <div className="ms-error">{error}</div>
+          <div className="math-error" role="alert">{error}</div>
         ) : (
-          <div className="ms-result">{result !== null ? result : ''}</div>
+          <div className="math-result" role="status" aria-label="Výsledek">{result !== null ? result : ''}</div>
         )}
       </div>
 
       {steps.length > 0 && (
-        <div className="ms-steps">
-          <span className="ms-steps-label">Postup:</span>
-          <ol className="ms-steps-list">
+        <div className="buddy-ui-card math-steps">
+          <span className="math-steps-label">Postup:</span>
+          <ol className="math-steps-list">
             {steps.map((step, i) => (
               <li key={i}>{step}</li>
             ))}
@@ -107,11 +104,11 @@ export const MathSolver: React.FC = () => {
 
       {/* Funkce a další znaky. Jsou nad klávesnicí ve vodorovném pásu,
           aby hlavní číselník zůstal stejně velký jako dřív. */}
-      <div className="ms-extras">
+      <div className="math-extras">
         {EXTRAS.map((extra) => (
           <button
             key={extra.label}
-            className="ms-extra-btn"
+            className="buddy-ui-button math-extra-btn"
             onClick={() => handleInput(extra.insert)}
           >
             {extra.label}
@@ -119,11 +116,11 @@ export const MathSolver: React.FC = () => {
         ))}
       </div>
 
-      <div className="ms-keypad">
+      <div className="math-keypad">
         {BUTTONS.map((btn) => (
           <button
             key={btn}
-            className={`ms-btn ${OPERATORS.includes(btn) ? 'op' : ''} ${btn === 'x' || btn === '=' ? 'sym' : ''}`}
+            className={`buddy-ui-button math-btn ${OPERATORS.includes(btn) ? 'op' : ''} ${btn === 'x' || btn === '=' ? 'sym' : ''}`}
             onClick={() => handleBtnClick(btn)}
           >
             {btn}
@@ -131,22 +128,24 @@ export const MathSolver: React.FC = () => {
         ))}
       </div>
 
-      <div className="ms-actions">
-        <button className="ms-solve-btn" onClick={calculate}>
+      <div className="math-actions">
+        <button className="buddy-ui-button buddy-ui-button--primary math-solve-btn" onClick={calculate}>
           {isEquation ? 'Vyřešit rovnici' : 'Spočítat'}
         </button>
 
         {/* Bez přepínače by u sin(30) nebylo poznat, jestli jde o stupně
             nebo radiány — a obojí se ve škole používá. */}
-        <div className="ms-angle" role="group" aria-label="Jednotka úhlu">
+        <div className="buddy-ui-segmented math-angle" role="group" aria-label="Jednotka úhlu">
           <button
-            className={`ms-angle-btn ${angleMode === 'deg' ? 'active' : ''}`}
+            aria-pressed={angleMode === 'deg'}
+            className={`math-angle-btn ${angleMode === 'deg' ? 'active' : ''}`}
             onClick={() => setAngleMode('deg')}
           >
             DEG
           </button>
           <button
-            className={`ms-angle-btn ${angleMode === 'rad' ? 'active' : ''}`}
+            aria-pressed={angleMode === 'rad'}
+            className={`math-angle-btn ${angleMode === 'rad' ? 'active' : ''}`}
             onClick={() => setAngleMode('rad')}
           >
             RAD
@@ -155,23 +154,23 @@ export const MathSolver: React.FC = () => {
       </div>
 
       {history.length > 0 && (
-        <div className="ms-history">
-          <div className="ms-history-head">
+        <div className="buddy-ui-status math-history">
+          <div className="math-history-head">
             <span>Historie</span>
-            <button className="ms-clear-btn" onClick={clearHistory}>Vymazat</button>
+            <button className="buddy-ui-button math-clear-btn" onClick={clearHistory}>Vymazat</button>
           </div>
-          <div className="ms-history-list">
+          <div className="math-history-list">
             {history.map((item) => (
               <button
                 key={item.id}
-                className="ms-history-item"
+                className="math-history-item"
                 onClick={() => setExpression(item.expression)}
                 title="Vložit zpátky do výpočtu"
               >
-                <span className="ms-history-expr">
+                <span className="math-history-expr">
                   {item.expression}
                   {item.angleMode && usesTrig(item.expression) && (
-                    <span className="ms-history-mode">{item.angleMode.toUpperCase()}</span>
+                    <span className="math-history-mode">{item.angleMode.toUpperCase()}</span>
                   )}
                 </span>
                 <strong>{item.result}</strong>

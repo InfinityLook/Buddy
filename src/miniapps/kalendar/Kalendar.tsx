@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
+import { useMemo, useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent, ReactNode } from 'react'
 import { useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useAppStore } from '@/core/store/useAppStore'
@@ -98,30 +99,10 @@ function Modal({
   close: () => void
   children: ReactNode
 }) {
-  const ref = useRef<HTMLDialogElement>(null)
-
-  useEffect(() => {
-    const dialog = ref.current
-    dialog?.showModal()
-    return () => dialog?.close()
-  }, [])
-
   return (
-    <dialog
-      ref={ref}
-      className="buddy-cal-dialog"
-      aria-label={title}
-      onCancel={event => {
-        event.preventDefault()
-        close()
-      }}
-    >
-      <header className="buddy-cal-row">
-        <h3>{title}</h3>
-        <button type="button" aria-label="Zavřít" onClick={close}>×</button>
-      </header>
+    <BuddyDialog surfaceId="kalendar" title={title} onClose={close} contentClassName="buddy-cal-dialog-content">
       {children}
-    </dialog>
+    </BuddyDialog>
   )
 }
 
@@ -400,9 +381,9 @@ export function Kalendar() {
   }
 
   return (
-    <section className="buddy-cal buddy-theme-scope" {...rootAttributes}>
+    <section className="buddy-miniapp buddy-cal buddy-theme-scope" {...rootAttributes}>
       <div className="buddy-cal-row">
-        <div className="buddy-cal-tabs" role="group" aria-label="Pohled kalendáře">
+        <div className="buddy-ui-segmented buddy-cal-tabs" role="group" aria-label="Pohled kalendáře">
           {[...POHLEDY_KALENDARE, 'program' as const].map(p => (
             <button
               key={p}
@@ -460,7 +441,7 @@ export function Kalendar() {
       )}
 
       <div className="buddy-cal-row buddy-cal-actions">
-        <button type="button" className="buddy-cal-primary" onClick={() => novaUdalost(den)}>
+        <button type="button" className="buddy-ui-button buddy-ui-button--primary buddy-cal-primary" onClick={() => novaUdalost(den)}>
           + Událost
         </button>
 
@@ -490,10 +471,10 @@ export function Kalendar() {
       </div>
 
       {!navrh && chyba && <p className="buddy-cal-error" role="alert">{chyba}</p>}
-      {zprava && <p className="buddy-cal-status" role="status">{zprava}</p>}
+      {zprava && <p className="buddy-ui-status buddy-cal-status" role="status">{zprava}</p>}
 
       {program.length === 0 && (
-        <p className="buddy-cal-muted">V tomto období nejsou odpovídající položky.</p>
+        <p className="buddy-ui-status buddy-cal-muted">V tomto období nejsou odpovídající položky.</p>
       )}
 
       {program.map(({ datum, radky }) => (
@@ -501,11 +482,11 @@ export function Kalendar() {
           <h3>{dlouheDatum.format(mistniDatum(datum))}</h3>
 
           {radky.length === 0 && (
-            <p className="buddy-cal-muted">Na tenhle den zatím nic nemáš.</p>
+            <p className="buddy-ui-status buddy-cal-muted">Na tenhle den zatím nic nemáš.</p>
           )}
 
           {radky.map(radek => (
-            <article className="buddy-cal-card" key={radek.id}>
+            <article className="buddy-ui-card buddy-cal-card" key={radek.id}>
               <div className="buddy-cal-time">
                 {radek.cas}
                 {radek.rozsah && <small>{radek.rozsah}</small>}
@@ -694,7 +675,7 @@ export function Kalendar() {
               />
             </label>
 
-            <button type="submit" className="buddy-cal-primary">Uložit událost</button>
+            <button type="submit" className="buddy-ui-button buddy-ui-button--primary buddy-cal-primary">Uložit událost</button>
           </form>
         </Modal>
       )}
@@ -739,7 +720,7 @@ export function Kalendar() {
 
       {importy && (
         <Modal title="Náhled importu ICS" close={() => setImporty(null)}>
-          <p className="buddy-cal-muted">
+          <p className="buddy-ui-status buddy-cal-muted">
             Časy se načtou jako místní. Před importem zkontroluj datum a čas.
           </p>
 
@@ -772,7 +753,7 @@ export function Kalendar() {
 
           <button
             type="button"
-            className="buddy-cal-primary"
+            className="buddy-ui-button buddy-ui-button--primary buddy-cal-primary"
             disabled={!vybraneImporty.size}
             onClick={() => {
               const vybrane = importy.filter((_, i) => vybraneImporty.has(i))

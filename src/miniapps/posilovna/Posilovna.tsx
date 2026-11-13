@@ -166,18 +166,18 @@ export const Posilovna: React.FC = () => {
   const nazvyRekordu = Object.keys(rekordy).sort((a, b) => a.localeCompare(b, 'cs'))
 
   return (
-    <div className="posilovna-page buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp posilovna-page buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="posilovna" />
       <h2 className="posilovna-nadpis">Posilovna</h2>
       <p className="posilovna-podtitul">Zapiš si série ručně — pro cviky, co kamera ověřit neumí.</p>
 
-      <div className="posilovna-panel">
+      <div className="buddy-ui-card posilovna-panel">
         <h3 className="posilovna-panel-nadpis">Nový trénink</h3>
 
-        {cviky.length === 0 && <p className="posilovna-prazdno">Zatím žádný cvik — přidej první níž.</p>}
+        {cviky.length === 0 && <p className="buddy-ui-status posilovna-prazdno">Zatím žádný cvik — přidej první níž.</p>}
 
         {cviky.map((c, indexCviku) => (
-          <div key={indexCviku} className="posilovna-cvik-karta">
+          <div key={indexCviku} className="buddy-ui-card posilovna-cvik-karta">
             <div className="posilovna-cvik-hlavicka">
               <strong>{c.nazev}</strong>
               <button
@@ -218,7 +218,7 @@ export const Posilovna: React.FC = () => {
               </div>
             ))}
             <div className="posilovna-cvik-akce">
-              <button className="posilovna-pridat-serii" onClick={() => pridatSerii(indexCviku)}>
+              <button className="buddy-ui-button posilovna-pridat-serii" onClick={() => pridatSerii(indexCviku)}>
                 + Série
               </button>
               {odpocinekIndexCviku === indexCviku ? (
@@ -256,7 +256,7 @@ export const Posilovna: React.FC = () => {
                 if (e.key === 'Enter') pridatCvik(novyCvikNazev)
               }}
             />
-            <button className="posilovna-pridat-cvik" onClick={() => pridatCvik(novyCvikNazev)} disabled={!novyCvikNazev.trim()}>
+            <button className="buddy-ui-button posilovna-pridat-cvik" onClick={() => pridatCvik(novyCvikNazev)} disabled={!novyCvikNazev.trim()}>
               + Přidat cvik
             </button>
           </div>
@@ -271,11 +271,11 @@ export const Posilovna: React.FC = () => {
         />
 
         <div className="posilovna-akce-radek">
-          <button className="posilovna-ulozit-btn" onClick={ulozit} disabled={!muzeUlozit}>
+          <button className="buddy-ui-button buddy-ui-button--primary posilovna-ulozit-btn" onClick={ulozit} disabled={!muzeUlozit}>
             💾 Uložit sezení
           </button>
           <button
-            className="posilovna-sablona-ulozit-btn"
+            className="buddy-ui-button posilovna-sablona-ulozit-btn"
             onClick={() => setUkladaSablonu((v) => !v)}
             disabled={cviky.length === 0}
           >
@@ -296,7 +296,7 @@ export const Posilovna: React.FC = () => {
               }}
             />
             <button
-              className="posilovna-sablona-potvrdit-btn"
+              className="buddy-ui-button buddy-ui-button--primary posilovna-sablona-potvrdit-btn"
               onClick={potvrditUlozeniSablony}
               disabled={!nazevSablony.trim()}
             >
@@ -307,7 +307,7 @@ export const Posilovna: React.FC = () => {
       </div>
 
       {posilovna.sablony.length > 0 && (
-        <div className="posilovna-panel">
+        <div className="buddy-ui-card posilovna-panel">
           <h3 className="posilovna-panel-nadpis">📐 Šablony</h3>
           <ul className="posilovna-sablony-seznam">
             {posilovna.sablony.map((sablona) => (
@@ -338,11 +338,11 @@ export const Posilovna: React.FC = () => {
       )}
 
       {nazvyRekordu.length > 0 && (
-        <div className="posilovna-panel">
+        <div className="buddy-ui-card posilovna-panel">
           <h3 className="posilovna-panel-nadpis">🏆 Osobní rekordy</h3>
           <ul className="posilovna-rekordy-seznam">
             {nazvyRekordu.map((nazev) => (
-              <li key={nazev} className="posilovna-rekord-radek">
+              <li key={nazev} className="buddy-ui-card posilovna-rekord-radek">
                 <span>{nazev}</span>
                 <strong>
                   {formatujVahu(rekordy[nazev].vahaKg)} × {rekordy[nazev].opakovani}
@@ -355,7 +355,7 @@ export const Posilovna: React.FC = () => {
 
       <h3 className="posilovna-historie-nadpis">Historie</h3>
       {posilovna.sezeni.length === 0 ? (
-        <p className="posilovna-prazdno">Zatím žádný uložený trénink — sestav první výš.</p>
+        <p className="buddy-ui-status posilovna-prazdno">Zatím žádný uložený trénink — sestav první výš.</p>
       ) : (
         <>
           <p className="posilovna-celkovy-objem">
@@ -365,7 +365,7 @@ export const Posilovna: React.FC = () => {
             {posilovna.sezeni.map((s) => {
               const rozbaleno = rozbaleneId === s.id
               return (
-                <li key={s.id} className="posilovna-historie-radek">
+                <li key={s.id} className="buddy-ui-card posilovna-historie-radek">
                   <button className="posilovna-historie-hlavicka" onClick={() => setRozbaleneId(rozbaleno ? null : s.id)}>
                     <span className="posilovna-historie-info">
                       <strong>
@@ -390,7 +390,7 @@ export const Posilovna: React.FC = () => {
                         </div>
                       ))}
                       {s.poznamka && <p className="posilovna-detail-poznamka">„{s.poznamka}"</p>}
-                      <button className="posilovna-smazat-btn" onClick={() => smazat(s)}>
+                      <button className="buddy-ui-button posilovna-smazat-btn" onClick={() => smazat(s)}>
                         🗑 Smazat trénink
                       </button>
                     </div>

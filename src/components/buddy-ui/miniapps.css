@@ -1,0 +1,158 @@
+/* Shared opt-in controls for miniapps. Workspaces keep their own geometry. */
+.app-fullscreen-view--miniapp {
+  background: var(--buddy-bg);
+}
+
+.app-fullscreen-view--miniapp > .app-fullscreen-content {
+  min-width: 0;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  padding-inline: max(.65rem, env(safe-area-inset-left)) max(.65rem, env(safe-area-inset-right));
+}
+
+.buddy-miniapp {
+  min-width: 0;
+  color: var(--buddy-text);
+}
+
+.buddy-miniapp.buddy-theme-scope {
+  background-color: var(--buddy-bg);
+}
+
+.buddy-miniapp .buddy-ui-card {
+  border: 1px solid var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+}
+
+.buddy-miniapp .buddy-ui-status { color: var(--buddy-muted); }
+
+.buddy-miniapp .buddy-ui-button {
+  min-height: var(--buddy-ui-touch);
+  border-color: var(--buddy-control-border);
+  border-radius: var(--buddy-ui-control-radius);
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+}
+
+.buddy-miniapp .buddy-ui-button:is(.active, .is-vybrana, .je-vybrany, .je-vybrana, [aria-pressed="true"]) {
+  background: var(--buddy-raised);
+  border-color: var(--buddy-accent);
+}
+
+.buddy-miniapp .buddy-ui-button.buddy-ui-button--primary {
+  min-height: 48px;
+  border-color: transparent;
+  background: var(--buddy-accent);
+  color: var(--buddy-on-accent);
+}
+
+.buddy-miniapp .buddy-ui-segmented {
+  padding: 3px;
+  gap: 3px;
+  border: 1px solid var(--buddy-border);
+  border-radius: var(--buddy-ui-control-radius);
+  background: var(--buddy-panel);
+}
+
+.buddy-miniapp .buddy-ui-segmented > button {
+  min-width: 0;
+  min-height: var(--buddy-ui-touch);
+  border: 0;
+  border-radius: calc(var(--buddy-ui-control-radius) - 3px);
+  background: transparent;
+  color: var(--buddy-text);
+  overflow-wrap: anywhere;
+}
+
+.buddy-miniapp .buddy-ui-segmented > button:is([aria-pressed="true"], [aria-selected="true"], .active, .je-aktivni, .je-vybrany, .je-vybrana) {
+  background: var(--buddy-accent);
+  color: var(--buddy-on-accent);
+}
+
+.buddy-miniapp .buddy-ui-input,
+.buddy-miniapp :is(form, .spsim-form-grid, .uver-form-grid, .ms-tab, .formcheck-gate, .buddy-doc-title-row, .buddy-doc-file-controls, .buddy-doc-actions) :is(
+  input:not([type=checkbox], [type=radio], [type=range], [type=color], [type=file], [type=hidden]),
+  select,
+  textarea:not(.bw-editor)
+) {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: var(--buddy-ui-touch);
+  max-width: 100%;
+  border: 1px solid var(--buddy-control-border);
+  border-radius: var(--buddy-ui-control-radius);
+  background-color: var(--buddy-panel);
+  color: var(--buddy-text);
+  font-size: 1rem;
+  accent-color: var(--buddy-accent);
+}
+
+.buddy-miniapp :is(input, textarea)::placeholder {
+  color: var(--buddy-muted);
+  opacity: 1;
+}
+
+.buddy-miniapp :is(input[type=range], progress) { accent-color: var(--buddy-accent); }
+
+.buddy-miniapp :is(.buddy-ui-button, .buddy-ui-input, select, textarea):focus-visible {
+  outline: 2px solid var(--buddy-accent);
+  outline-offset: 2px;
+}
+
+.buddy-miniapp .buddy-ui-button--primary:focus-visible {
+  outline-color: var(--buddy-on-accent);
+  outline-offset: -4px;
+}
+
+.buddy-miniapp :is(.fc-manage-btn, .fc-add-btn, .fm-icon-btn, .fin-icon-btn, .bw-icon-btn, .sw-icon-btn, .cw-icon-btn, .ms-icon-btn, .mm-icon-btn, .mm-zoom-btn, .formcheck-icon-btn) {
+  min-inline-size: var(--buddy-ui-touch);
+  flex-shrink: 0;
+}
+
+.buddy-miniapp .buddy-ui-button:is(.danger, .math-clear-btn, .behani-btn--stop, .fc-rate-btn.again),
+.buddy-miniapp :is(.fin-row-castka.je-vydaj, .fin-summary-card--vydaj .fin-summary-castka, .math-error, .formcheck-gate-text--chyba, .behani-chyba) {
+  color: var(--buddy-danger);
+}
+
+.buddy-miniapp .buddy-ui-button.fc-rate-btn.known,
+.buddy-miniapp :is(.fin-row-castka.je-prijem, .fin-summary-card--prijem .fin-summary-castka) {
+  color: var(--buddy-success);
+}
+
+.buddy-miniapp :is(.bw-header-nazev, .sw-header-nazev, .cw-header-nazev, .bw-nova-radek > input, .sw-nova-radek > input, .cw-nova-radek > input, .posilovna-serie-input, .posilovna-novy-cvik-input, .posilovna-sablona-nazev-input) {
+  min-width: 0;
+  max-width: 100%;
+  min-height: var(--buddy-ui-touch);
+  color: var(--buddy-text);
+  background-color: var(--buddy-panel);
+  border-color: var(--buddy-control-border);
+  border-radius: var(--buddy-ui-control-radius);
+  font-size: 1rem;
+}
+
+.buddy-miniapp :is(.bw-radek-otevrit, .sw-radek-otevrit, .cw-radek-otevrit) {
+  min-width: 0;
+  min-height: var(--buddy-ui-touch);
+}
+
+.buddy-miniapp :is(.fin-row, .posilovna-serie-radek, .bw-akce-radek, .sw-akce-radek, .cw-akce-radek) { flex-wrap: wrap; }
+.buddy-miniapp :is(.fm-search, .math-input, .buddy-doc-title-row input) { width: 100%; }
+.buddy-miniapp :is(.rozvrh-polozka, .znamky-znamka-radek, .fin-summary-row, .fin-form-row) > * { min-width: 0; }
+.buddy-miniapp :is(.rozvrh-polozka-text, .znamky-predmet-hlavicka, .fin-summary-castka) { overflow-wrap: anywhere; }
+
+.buddy-miniapp .buddy-doc-tools { background-color: var(--buddy-panel); }
+.buddy-miniapp .buddy-doc-status { border-radius: 0; }
+
+@media (hover: hover) {
+  .buddy-miniapp .buddy-ui-button:not(.buddy-ui-button--primary):enabled:hover {
+    background: var(--buddy-raised);
+    border-color: var(--buddy-accent);
+  }
+}
+
+@media (max-width: 390px) {
+  .buddy-miniapp :is(.fc-header, .mm-toolbar, .fin-header, .fm-toolbar, .ms-seq-controls, .citace-form-radek, .fin-form-row) { flex-wrap: wrap; }
+  .buddy-miniapp :is(.citace-form-radek, .fin-form-row) > :is(input, select) { flex: 1 1 8rem; }
+}

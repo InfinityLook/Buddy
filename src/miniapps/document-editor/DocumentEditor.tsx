@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
 } from 'react'
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
 import type { ChangeEvent, ClipboardEvent } from 'react'
 import { useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { normalizeText } from '@/core/utils/text'
@@ -56,6 +57,7 @@ export function DocumentEditor() {
   const range = useRef<Range | null>(null)
   const documentInput = useRef<HTMLInputElement>(null)
   const imageInput = useRef<HTMLInputElement>(null)
+  const cancelDeleteButton = useRef<HTMLButtonElement>(null)
   const mounted = useRef(false)
 
   const [tab, setTab] = useState<'editor' | 'files'>('editor')
@@ -66,6 +68,7 @@ export function DocumentEditor() {
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   const run = useCallback((action: () => void) => {
     try {
@@ -363,6 +366,8 @@ export function DocumentEditor() {
   const text = useMemo(() => toPlainText(currentContent).trim(), [currentContent])
   const words = text ? text.split(/\s+/).length : 0
 
+  const pendingDelete = documents.find(doc => doc.id === pendingDeleteId)
+
   const visibleDocuments = useMemo(() => {
     const needle = normalizeText(query.trim())
 
@@ -373,7 +378,7 @@ export function DocumentEditor() {
 
   return (
     <section
-      className="buddy-doc buddy-theme-scope"
+      className="buddy-miniapp buddy-doc buddy-theme-scope"
       {...rootAttributes}
       onKeyDown={event => {
         if (
@@ -387,7 +392,7 @@ export function DocumentEditor() {
       }}
     >
       <header className="buddy-doc-header">
-        <div className="buddy-doc-tabs" role="group" aria-label="Textový editor">
+        <div className="buddy-ui-segmented buddy-doc-tabs" role="group" aria-label="Textový editor">
           <button
             type="button"
             aria-pressed={tab === 'editor'}
@@ -410,7 +415,7 @@ export function DocumentEditor() {
 
         <button
           type="button"
-          className="buddy-doc-primary"
+          className="buddy-ui-button buddy-ui-button--primary buddy-doc-primary"
           onClick={() => editDocument(state.createNewDocument)}
         >
           + Nový
@@ -440,7 +445,7 @@ export function DocumentEditor() {
           </div>
 
           {visibleDocuments.length === 0 && (
-            <p className="buddy-doc-empty">
+            <p className="buddy-ui-status buddy-doc-empty">
               {query
                 ? 'Žádný dokument neodpovídá hledání.'
                 : 'Tvoje dokumenty se zobrazí tady.'}
@@ -448,7 +453,7 @@ export function DocumentEditor() {
           )}
 
           {visibleDocuments.map(doc => (
-            <article className="buddy-doc-file" key={doc.id}>
+            <article className="buddy-ui-card buddy-doc-file" key={doc.id}>
               <button
                 type="button"
                 aria-label={`Otevřít ${doc.title}`}
@@ -462,11 +467,7 @@ export function DocumentEditor() {
                 type="button"
                 className="buddy-doc-delete"
                 aria-label={`Smazat ${doc.title}`}
-                onClick={() => {
-                  if (window.confirm(`Smazat dokument „${doc.title}“?`)) {
-                    run(() => state.deleteDocument(doc.id))
-                  }
-                }}
+                onClick={() => setPendingDeleteId(doc.id)}
               >
                 ×
               </button>
@@ -675,7 +676,7 @@ export function DocumentEditor() {
             />
           </div>
 
-          <footer className="buddy-doc-status">
+          <footer className="buddy-ui-card buddy-doc-status">
             <span role="status">
               {error
                 ? 'Zkontroluj hlášení'
@@ -687,6 +688,30 @@ export function DocumentEditor() {
             <span>Slova {words} · Znaky {text.length}</span>
           </footer>
         </>
+      )}
+
+      {pendingDelete && (
+        <BuddyDialog
+          surfaceId="document-editor"
+          title="Smazat dokument?"
+          initialFocusRef={cancelDeleteButton}
+          onClose={() => setPendingDeleteId(null)}
+          footer={(
+            <>
+              <button type="button" ref={cancelDeleteButton} className="buddy-ui-button" onClick={() => setPendingDeleteId(null)}>
+                Zrušit
+              </button>
+              <button type="button" className="buddy-ui-button buddy-doc-delete" onClick={() => {
+                if (run(() => state.deleteDocument(pendingDelete.id))) setPendingDeleteId(null)
+              }}>
+                Smazat dokument
+              </button>
+            </>
+          )}
+        >
+          <p>Dokument <strong>{pendingDelete.title}</strong> se odstraní ze seznamu.</p>
+          {error && <p className="buddy-ui-alert" role="alert">{error}</p>}
+        </BuddyDialog>
       )}
 
       <input

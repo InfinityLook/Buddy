@@ -1,3 +1,4 @@
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useFinance } from './useFinance'
@@ -475,16 +476,15 @@ export const Finance: React.FC = () => {
   const donutData = donutTyp === 'vydaj' ? kategorieVydaje : kategoriePrijmy
 
   return (
-    <div className="fin-app buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp fin-app buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="finance" />
       <div className="fin-header">
-        <h2>Finance</h2>
         <div className="fin-header-akce">
-          <button className="fin-csv-btn" onClick={exportCsv} disabled={seznam.length === 0} aria-label="Export do CSV">
+          <button className="buddy-ui-button fin-csv-btn" onClick={exportCsv} disabled={seznam.length === 0} aria-label="Export do CSV">
             ⬇ CSV
           </button>
-          <button className="fin-add-btn" onClick={isFormOpen ? handleCancelForm : openAdd}>
-            {isFormOpen ? '✕' : '+ Záznam'}
+          <button className="buddy-ui-button buddy-ui-button--primary fin-add-btn" onClick={openAdd}>
+            + Záznam
           </button>
         </div>
       </div>
@@ -492,7 +492,8 @@ export const Finance: React.FC = () => {
       {wallets.length > 0 && (
         <div className="fin-filters">
           <button
-            className={`fin-filter-chip ${aktivniPenezenkaId === null ? 'active' : ''}`}
+            className={`buddy-ui-button fin-filter-chip ${aktivniPenezenkaId === null ? 'active' : ''}`}
+            aria-pressed={aktivniPenezenkaId === null}
             onClick={() => setAktivniPenezenkaId(null)}
           >
             Vše
@@ -500,7 +501,8 @@ export const Finance: React.FC = () => {
           {wallets.map((w) => (
             <button
               key={w.id}
-              className={`fin-filter-chip ${aktivniPenezenkaId === w.id ? 'active' : ''}`}
+              className={`buddy-ui-button fin-filter-chip ${aktivniPenezenkaId === w.id ? 'active' : ''}`}
+              aria-pressed={aktivniPenezenkaId === w.id}
               onClick={() => setAktivniPenezenkaId(w.id)}
             >
               {w.name}
@@ -509,7 +511,7 @@ export const Finance: React.FC = () => {
         </div>
       )}
 
-      <div className="fin-zustatek-card">
+      <div className="buddy-ui-card fin-zustatek-card">
         <span className="fin-zustatek-label">Aktuální zůstatek</span>
         <span className={`fin-zustatek-castka ${zustatek < 0 ? 'je-zaporny' : ''}`}>
           {formatKc(zustatek)}
@@ -520,7 +522,8 @@ export const Finance: React.FC = () => {
         {(Object.keys(OBDOBI_LABELS) as ObdobiFiltr[]).map((o) => (
           <button
             key={o}
-            className={`fin-filter-chip ${obdobiFiltr === o ? 'active' : ''}`}
+            className={`buddy-ui-button fin-filter-chip ${obdobiFiltr === o ? 'active' : ''}`}
+            aria-pressed={obdobiFiltr === o}
             onClick={() => setObdobiFiltr(o)}
           >
             {OBDOBI_LABELS[o]}
@@ -529,15 +532,15 @@ export const Finance: React.FC = () => {
       </div>
 
       <div className="fin-summary-row">
-        <div className="fin-summary-card fin-summary-card--prijem">
+        <div className="buddy-ui-card fin-summary-card fin-summary-card--prijem">
           <span className="fin-summary-label">Příjmy</span>
           <span className="fin-summary-castka">+{formatKc(prijmyObdobi)}</span>
         </div>
-        <div className="fin-summary-card fin-summary-card--vydaj">
+        <div className="buddy-ui-card fin-summary-card fin-summary-card--vydaj">
           <span className="fin-summary-label">Výdaje</span>
           <span className="fin-summary-castka">−{formatKc(vydajeObdobi)}</span>
         </div>
-        <div className="fin-summary-card">
+        <div className="buddy-ui-card fin-summary-card">
           <span className="fin-summary-label">Bilance</span>
           <span className={`fin-summary-castka ${bilanceObdobi < 0 ? 'je-zaporny' : 'je-kladny'}`}>
             {bilanceObdobi >= 0 ? '+' : ''}
@@ -547,7 +550,7 @@ export const Finance: React.FC = () => {
       </div>
 
       {pocetCelkem > 0 && (
-        <section className="fin-section">
+        <section className="buddy-ui-card fin-section">
           <div className="fin-section-head">
             <span className="fin-section-title">Podle kategorie</span>
             <div className="fin-mini-toggle">
@@ -570,7 +573,7 @@ export const Finance: React.FC = () => {
             <Donut vysece={donutData} />
             <div className="fin-legenda">
               {donutData.length === 0 && (
-                <p className="fin-empty fin-empty--mala">
+                <p className="buddy-ui-status fin-empty fin-empty--mala">
                   {OBDOBI_LABELS[obdobiFiltr] === 'Vše' ? 'Zvolené' : OBDOBI_LABELS[obdobiFiltr].toLowerCase()} zatím
                   nic v téhle skupině nemá.
                 </p>
@@ -609,7 +612,7 @@ export const Finance: React.FC = () => {
         </button>
         {otevrenoPenezenky && (
           <div className="fin-accordion-telo">
-            {wallets.length === 0 && <p className="fin-empty fin-empty--mala">Zatím žádné peněženky.</p>}
+            {wallets.length === 0 && <p className="buddy-ui-status fin-empty fin-empty--mala">Zatím žádné peněženky.</p>}
             {wallets.map((w) => (
               <div key={w.id} className="fin-sprava-radek">
                 <span>
@@ -622,7 +625,7 @@ export const Finance: React.FC = () => {
                   )}
                 </span>
                 <button
-                  className="fin-icon-btn danger"
+                  className="buddy-ui-button fin-icon-btn danger"
                   onClick={() => {
                     if (window.confirm(`Smazat peněženku „${w.name}“? Její transakce zůstanou, jen se odpojí.`)) deleteWallet(w.id)
                   }}
@@ -632,7 +635,7 @@ export const Finance: React.FC = () => {
                 </button>
               </div>
             ))}
-            <form className="fin-mini-form fin-mini-form--sloupec" onSubmit={pridatPenezenku}>
+            <form className="buddy-ui-card fin-mini-form fin-mini-form--sloupec" onSubmit={pridatPenezenku}>
               <input
                 placeholder="Název (Hotovost, Účet…)"
                 value={novaPenezenka}
@@ -650,7 +653,7 @@ export const Finance: React.FC = () => {
             {wallets.length >= 2 && (
               <>
                 <p className="fin-mini-form-nadpis">🔁 Přesun mezi peněženkami</p>
-                <form className="fin-mini-form fin-mini-form--sloupec" onSubmit={provestPresun}>
+                <form className="buddy-ui-card fin-mini-form fin-mini-form--sloupec" onSubmit={provestPresun}>
                   <div className="fin-form-row">
                     <select
                       value={presunForm.z}
@@ -708,7 +711,7 @@ export const Finance: React.FC = () => {
         </button>
         {otevrenoRozpocty && (
           <div className="fin-accordion-telo">
-            {budgetStavy.length === 0 && <p className="fin-empty fin-empty--mala">Zatím žádné rozpočty.</p>}
+            {budgetStavy.length === 0 && <p className="buddy-ui-status fin-empty fin-empty--mala">Zatím žádné rozpočty.</p>}
             {budgetStavy.map(({ budget, utraceno, procenta, jePrekrocen }) => (
               <div key={budget.id} className="fin-rozpocet-radek">
                 <div className="fin-rozpocet-hlavicka">
@@ -717,14 +720,14 @@ export const Finance: React.FC = () => {
                   </span>
                   <div className="fin-row-actions">
                     <button
-                      className="fin-icon-btn"
+                      className="buddy-ui-button fin-icon-btn"
                       onClick={() => openEditBudget(budget)}
                       aria-label={`Upravit limit rozpočtu ${budget.category}`}
                     >
                       ✏️
                     </button>
                     <button
-                      className="fin-icon-btn danger"
+                      className="buddy-ui-button fin-icon-btn danger"
                       onClick={() => {
                         if (window.confirm(`Smazat rozpočet „${budget.category}“?`)) deleteBudget(budget.id)
                       }}
@@ -735,7 +738,7 @@ export const Finance: React.FC = () => {
                   </div>
                 </div>
                 {editingBudgetId === budget.id ? (
-                  <form className="fin-mini-form" onSubmit={ulozitLimitRozpoctu}>
+                  <form className="buddy-ui-card fin-mini-form" onSubmit={ulozitLimitRozpoctu}>
                     <input
                       type="number"
                       min={1}
@@ -767,7 +770,7 @@ export const Finance: React.FC = () => {
               </div>
             ))}
             {kategorieBezRozpoctu.length > 0 && (
-              <form className="fin-mini-form" onSubmit={pridatRozpocet}>
+              <form className="buddy-ui-card fin-mini-form" onSubmit={pridatRozpocet}>
                 <select value={novyRozpocetKategorie} onChange={(e) => setNovyRozpocetKategorie(e.target.value as ExpenseCategory)}>
                   {kategorieBezRozpoctu.map((c) => (
                     <option key={c} value={c}>
@@ -797,7 +800,7 @@ export const Finance: React.FC = () => {
         </button>
         {otevrenoOpakujici && (
           <div className="fin-accordion-telo">
-            {recurring.length === 0 && <p className="fin-empty fin-empty--mala">Zatím žádné opakující se platby.</p>}
+            {recurring.length === 0 && <p className="buddy-ui-status fin-empty fin-empty--mala">Zatím žádné opakující se platby.</p>}
             {recurring.map((r) => (
               <div key={r.id} className="fin-sprava-radek">
                 <span>
@@ -805,14 +808,14 @@ export const Finance: React.FC = () => {
                 </span>
                 <div className="fin-row-actions">
                   <button
-                    className={`fin-icon-btn ${r.active ? '' : 'je-neaktivni'}`}
+                    className={`buddy-ui-button fin-icon-btn ${r.active ? '' : 'je-neaktivni'}`}
                     onClick={() => updateRecurring(r.id, !r.active)}
                     aria-label={r.active ? `Pozastavit ${r.category}` : `Zapnout ${r.category}`}
                   >
                     {r.active ? '⏸️' : '▶️'}
                   </button>
                   <button
-                    className="fin-icon-btn danger"
+                    className="buddy-ui-button fin-icon-btn danger"
                     onClick={() => {
                       if (window.confirm(`Smazat opakující se platbu „${r.note || r.category}“?`)) deleteRecurring(r.id)
                     }}
@@ -823,8 +826,8 @@ export const Finance: React.FC = () => {
                 </div>
               </div>
             ))}
-            <form className="fin-mini-form fin-mini-form--sloupec" onSubmit={pridatOpakujici}>
-              <div className="fin-type-toggle">
+            <form className="buddy-ui-card fin-mini-form fin-mini-form--sloupec" onSubmit={pridatOpakujici}>
+              <div className="buddy-ui-segmented fin-type-toggle">
                 <button
                   type="button"
                   className={opakujiciForm.type === 'prijem' ? 'active' : ''}
@@ -892,7 +895,7 @@ export const Finance: React.FC = () => {
         </button>
         {otevrenoCile && (
           <div className="fin-accordion-telo">
-            {goalStavy.length === 0 && <p className="fin-empty fin-empty--mala">Zatím žádné finanční cíle.</p>}
+            {goalStavy.length === 0 && <p className="buddy-ui-status fin-empty fin-empty--mala">Zatím žádné finanční cíle.</p>}
             {goalStavy.map(({ goal, procenta, jeSplneny }) => (
               <div key={goal.id} className="fin-rozpocet-radek">
                 <div className="fin-rozpocet-hlavicka">
@@ -902,7 +905,7 @@ export const Finance: React.FC = () => {
                     {goal.deadline && ` · do ${formatDatum(goal.deadline)}`}
                   </span>
                   <button
-                    className="fin-icon-btn danger"
+                    className="buddy-ui-button fin-icon-btn danger"
                     onClick={() => {
                       if (window.confirm(`Smazat cíl „${goal.name}“?`)) deleteGoal(goal.id)
                     }}
@@ -928,7 +931,7 @@ export const Finance: React.FC = () => {
                 </span>
               </div>
             ))}
-            <form className="fin-mini-form fin-mini-form--sloupec" onSubmit={pridatCil}>
+            <form className="buddy-ui-card fin-mini-form fin-mini-form--sloupec" onSubmit={pridatCil}>
               <input
                 placeholder="Název cíle (Notebook, Dovolená…)"
                 value={novyCilNazev}
@@ -956,100 +959,109 @@ export const Finance: React.FC = () => {
       </section>
 
       {isFormOpen && (
-        <form className="fin-form" onSubmit={handleSubmit}>
-          <span className="fin-form-title">{editingId ? 'Upravit záznam' : 'Nový záznam'}</span>
+        <BuddyDialog
+          surfaceId="finance"
+          title={editingId ? 'Upravit záznam' : 'Nový záznam'}
+          onClose={handleCancelForm}
+          contentClassName="buddy-miniapp"
+        >
+          <form className="fin-form" onSubmit={handleSubmit}>
 
-          <div className="fin-type-toggle">
-            <button
-              type="button"
-              className={type === 'prijem' ? 'active' : ''}
-              onClick={() => zmenType('prijem')}
-            >
-              Příjem
-            </button>
-            <button
-              type="button"
-              className={type === 'vydaj' ? 'active' : ''}
-              onClick={() => zmenType('vydaj')}
-            >
-              Výdaj
-            </button>
-          </div>
+            <div className="buddy-ui-segmented fin-type-toggle">
+              <button
+                type="button"
+                aria-pressed={type === 'prijem'}
+                className={type === 'prijem' ? 'active' : ''}
+                onClick={() => zmenType('prijem')}
+              >
+                Příjem
+              </button>
+              <button
+                type="button"
+                aria-pressed={type === 'vydaj'}
+                className={type === 'vydaj' ? 'active' : ''}
+                onClick={() => zmenType('vydaj')}
+              >
+                Výdaj
+              </button>
+            </div>
 
-          <div className="fin-form-row">
-            <input
-              type="number"
-              min={1}
-              step={1}
-              inputMode="numeric"
-              placeholder="Částka v Kč"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
-              autoFocus
-            />
-            <select value={category} onChange={(e) => setCategory(e.target.value as FinanceCategory)}>
-              {categoriesFor(type).map((c) => (
-                <option key={c} value={c}>
-                  {CATEGORY_ICONS[c]} {c}
-                </option>
-              ))}
-            </select>
-          </div>
+            <div className="fin-form-row">
+              <input
+                type="number"
+                min={1}
+                step={1}
+                inputMode="numeric"
+                aria-label="Částka v Kč"
+                placeholder="Částka v Kč"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+                autoFocus
+              />
+              <select aria-label="Kategorie" value={category} onChange={(e) => setCategory(e.target.value as FinanceCategory)}>
+                {categoriesFor(type).map((c) => (
+                  <option key={c} value={c}>
+                    {CATEGORY_ICONS[c]} {c}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <div className="fin-form-row">
-            <input
-              type="text"
-              placeholder="Poznámka (nepovinné)"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              maxLength={80}
-            />
-            <input type="date" value={date} max={dnesniDatum()} onChange={(e) => setDate(e.target.value)} required />
-          </div>
+            <div className="fin-form-row">
+              <input
+                type="text"
+                placeholder="Poznámka (nepovinné)"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                maxLength={80}
+              />
+              <input type="date" aria-label="Datum transakce" value={date} max={dnesniDatum()} onChange={(e) => setDate(e.target.value)} required />
+            </div>
 
-          {wallets.length > 0 && (
-            <select
-              className="fin-penezenka-select"
-              value={walletId ?? ''}
-              onChange={(e) => setWalletId(e.target.value || null)}
-              aria-label="Peněženka"
-            >
-              <option value="">Bez peněženky</option>
-              {wallets.map((w) => (
-                <option key={w.id} value={w.id}>
-                  {w.name}
-                </option>
-              ))}
-            </select>
-          )}
-
-          <div className="fin-uctenka-radek">
-            <input
-              ref={uctenkaInputRef}
-              type="file"
-              accept="image/*,application/pdf"
-              onChange={handleUctenkaChange}
-              className="fin-uctenka-input"
-              id="fin-uctenka-input"
-            />
-            <label htmlFor="fin-uctenka-input" className="fin-uctenka-btn">
-              {nahravaSeUctenka ? 'Nahrávám…' : receiptId ? '📎 Vyměnit účtenku' : '📎 Přiložit účtenku'}
-            </label>
-            {receiptId && (
-              <>
-                <NahledUctenky receiptId={receiptId} receiptMime={receiptMime} />
-                <button type="button" className="fin-uctenka-odebrat" onClick={odebratUctenku}>
-                  Odebrat
-                </button>
-              </>
+            {wallets.length > 0 && (
+              <select
+                className="fin-penezenka-select"
+                value={walletId ?? ''}
+                onChange={(e) => setWalletId(e.target.value || null)}
+                aria-label="Peněženka"
+              >
+                <option value="">Bez peněženky</option>
+                {wallets.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
             )}
-          </div>
 
-          <button type="submit" className="fin-submit-btn">
-            {editingId ? 'Uložit změny' : 'Přidat záznam'}
-          </button>
-        </form>
+            <div className="fin-uctenka-radek">
+              <input
+                ref={uctenkaInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={handleUctenkaChange}
+                className="fin-uctenka-input"
+                id="fin-uctenka-input"
+              />
+              <label htmlFor="fin-uctenka-input" className="fin-uctenka-btn">
+                {nahravaSeUctenka ? 'Nahrávám…' : receiptId ? '📎 Vyměnit účtenku' : '📎 Přiložit účtenku'}
+              </label>
+              {receiptId && (
+                <>
+                  <NahledUctenky receiptId={receiptId} receiptMime={receiptMime} />
+                  <button type="button" className="fin-uctenka-odebrat" onClick={odebratUctenku}>
+                    Odebrat
+                  </button>
+                </>
+              )}
+            </div>
+
+            <button type="submit" className="buddy-ui-button buddy-ui-button--primary fin-submit-btn">
+              {editingId ? 'Uložit změny' : 'Přidat záznam'}
+            </button>
+          </form>
+        </BuddyDialog>
       )}
 
       {typFiltr !== 'vse' || pocetCelkem > 1 ? (
@@ -1057,7 +1069,8 @@ export const Finance: React.FC = () => {
           {(Object.keys(TYP_LABELS) as TypFiltr[]).map((t) => (
             <button
               key={t}
-              className={`fin-filter-chip ${typFiltr === t ? 'active' : ''}`}
+              className={`buddy-ui-button fin-filter-chip ${typFiltr === t ? 'active' : ''}`}
+              aria-pressed={typFiltr === t}
               onClick={() => setTypFiltr(t)}
             >
               {TYP_LABELS[t]}
@@ -1068,7 +1081,7 @@ export const Finance: React.FC = () => {
 
       <div className="fin-list">
         {seznam.length === 0 && (
-          <p className="fin-empty">
+          <p className="buddy-ui-status fin-empty">
             {pocetCelkem === 0
               ? 'Zatím tu nic není. Přidej první záznam — třeba dnešní kapesné nebo oběd. 💸'
               : 'V téhle skupině zatím žádný záznam nemáš.'}
@@ -1076,7 +1089,7 @@ export const Finance: React.FC = () => {
         )}
 
         {seznam.map((t) => (
-          <div key={t.id} className="fin-row">
+          <div key={t.id} className="buddy-ui-card fin-row">
             <span className="fin-row-icon" aria-hidden="true">
               {t.presunId ? '🔁' : CATEGORY_ICONS[t.category]}
             </span>
@@ -1100,12 +1113,12 @@ export const Finance: React.FC = () => {
                   "peníze jen přesunuté, ne vzniklé/zmizelé") — přesun jde
                   jen smazat (obě poloviny naráz, viz deleteTransaction). */}
               {!t.presunId && (
-                <button className="fin-icon-btn" onClick={() => openEdit(t)} aria-label={`Upravit ${t.category}`}>
+                <button className="buddy-ui-button fin-icon-btn" onClick={() => openEdit(t)} aria-label={`Upravit ${t.category}`}>
                   ✏️
                 </button>
               )}
               <button
-                className="fin-icon-btn danger"
+                className="buddy-ui-button fin-icon-btn danger"
                 onClick={() => handleDelete(t)}
                 aria-label={`Smazat ${t.category}`}
               >

@@ -3,13 +3,12 @@
   flex-direction: column;
   gap: 0.6rem;
   padding: 1rem;
-  background: rgba(18, 24, 40, 0.75);
+  background: var(--buddy-panel);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  color: #fff;
-  max-width: 400px;
+  color: var(--buddy-text);
+  max-width: 640px;
   margin: 0 auto;
-  backdrop-filter: blur(12px);
 }
 
 .fm-header {
@@ -17,8 +16,6 @@
   justify-content: space-between;
   align-items: center;
 }
-
-.fm-header h2 { font-size: 1.1rem; margin: 0; }
 
 .fm-add-btn {
   background: #f59e0b;
@@ -33,64 +30,25 @@
 }
 
 .fm-search {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--buddy-text);
   padding: 0.35rem 0.6rem;
   border-radius: 8px;
   font-size: 0.75rem;
-}
-
-.fm-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-  background: rgba(0, 0, 0, 0.3);
-  padding: 0.6rem;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.fm-form input, .fm-form select {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  padding: 0.35rem 0.5rem;
-  border-radius: 6px;
-  font-size: 0.75rem;
-}
-
-.fm-form-row {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.fm-form-row select { flex: 1; }
-
-.fm-submit-btn {
-  background: #f59e0b;
-  border: none;
-  color: #000;
-  font-weight: 700;
-  padding: 0.3rem 0.8rem;
-  border-radius: 6px;
-  font-size: 0.7rem;
-  cursor: pointer;
 }
 
 .fm-list {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  max-height: 220px;
-  overflow-y: auto;
 }
 
 .fm-card {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 0.5rem;
@@ -108,6 +66,13 @@
 }
 
 .fm-name {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--buddy-text);
+  text-align: start;
+  cursor: pointer;
   font-size: 0.75rem;
   font-weight: 700;
   white-space: nowrap;
@@ -117,13 +82,13 @@
 
 .fm-meta {
   font-size: 0.6rem;
-  color: #64748b;
+  color: var(--buddy-muted);
 }
 
 
 .fm-empty {
   font-size: 0.7rem;
-  color: #64748b;
+  color: var(--buddy-muted);
   text-align: center;
 }
 
@@ -148,9 +113,9 @@
    ------------------------------------------ */
 .fm-icon-btn {
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #cbd5e1;
+  color: var(--buddy-muted);
   width: 28px;
   height: 28px;
   border-radius: 7px;
@@ -164,14 +129,14 @@
 }
 
 .fm-icon-btn:active { background: rgba(255, 255, 255, 0.12); }
-.fm-icon-btn.danger { color: #f87171; }
+.fm-icon-btn.danger { color: var(--buddy-danger); }
 
 /* ------------------------------------------
    SOUHRN, SLOŽKY, FILTRY
    ------------------------------------------ */
 .fm-summary {
   font-size: 0.68rem;
-  color: #64748b;
+  color: var(--buddy-muted);
   font-weight: 600;
 }
 
@@ -187,9 +152,9 @@
 
 .fm-folder-chip {
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  color: var(--buddy-muted);
   font-size: 0.7rem;
   font-weight: 700;
   padding: 0.28rem 0.65rem;
@@ -202,7 +167,7 @@
 .fm-folder-chip.active {
   background: rgba(245, 158, 11, 0.15);
   border-color: #f59e0b;
-  color: #fbbf24;
+  color: var(--buddy-warning);
 }
 
 .fm-toolbar {
@@ -213,9 +178,9 @@
 .fm-select {
   flex: 1;
   min-width: 0;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--buddy-text);
   padding: 0.35rem 0.5rem;
   border-radius: 8px;
   font-size: 0.72rem;
@@ -232,7 +197,7 @@
   object-fit: cover;
   border-radius: 7px;
   border: 1px solid rgba(255, 255, 255, 0.12);
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--buddy-raised);
 }
 
 /* ------------------------------------------
@@ -241,32 +206,13 @@
 .fm-edit-form {
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  padding: 0.7rem;
-}
-
-.fm-edit-title {
-  font-size: 0.68rem;
-  font-weight: 800;
-  color: #fbbf24;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  gap: .65rem;
 }
 
 .fm-edit-input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
-  padding: 0.4rem 0.55rem;
-  border-radius: 6px;
-  font-size: 0.76rem;
-  font-family: inherit;
+  width: 100%;
+  padding: .5rem .7rem;
 }
-
-.fm-edit-input:focus { outline: none; border-color: rgba(245, 158, 11, 0.6); }
 
 .fm-edit-actions {
   display: flex;
@@ -277,11 +223,28 @@
 .fm-cancel-btn {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #cbd5e1;
+  color: var(--buddy-muted);
   font-weight: 700;
   padding: 0.3rem 0.8rem;
   border-radius: 8px;
   font-size: 0.72rem;
   cursor: pointer;
   font-family: inherit;
+}
+
+.fm-detail {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: .6rem 1rem;
+  margin: 0;
+}
+
+.fm-detail dt { color: var(--buddy-muted); }
+.fm-detail dd { margin: 0; overflow-wrap: anywhere; }
+.fm-delete-btn { color: var(--buddy-danger); }
+
+@media (max-width: 420px) {
+  .fm-card { flex-wrap: wrap; gap: .35rem; }
+  .fm-card .fm-info { flex-basis: calc(100% - 3rem); }
+  .fm-app { padding: .65rem; }
 }

@@ -20,6 +20,7 @@ import {
 } from '@/features/appearance/SurfaceAppearance'
 import '@/pages/profil/ProfilModule.css'
 import './AppModule.css'
+import '@/components/buddy-ui/miniapps.css'
 
 const FULLSCREEN_LAYOUT = new Map([
   ['study-planner', 'planner'],
@@ -103,16 +104,17 @@ export const AppModule: React.FC<AppModuleProps> = ({ onBack }) => {
   }
 
   if (activeApp && ActiveComponent) {
-    const Content = fullscreenLayout === 'planner' || fullscreenLayout === 'notes' ? 'div' : 'main'
+    const Content = fullscreenLayout || activeApp.id === 'exam-prep' ? 'div' : 'main'
+    const useMiniappShell = !fullscreenLayout || fullscreenLayout === 'goals'
     return (
       <div
-        className={`app-fullscreen-view buddy-theme-scope${fullscreenLayout ? ` app-fullscreen-view--${fullscreenLayout}` : ''}`}
+        className={`app-fullscreen-view buddy-theme-scope${fullscreenLayout ? ` app-fullscreen-view--${fullscreenLayout}` : ''}${useMiniappShell ? ' app-fullscreen-view--miniapp' : ''}`}
         {...rootAttributes}
       >
         {!fullscreenLayout && (
           <BuddyHeader
             title={activeApp.title}
-            headingLevel={activeApp.id === 'exam-prep' ? 2 : 1}
+            icon={activeApp.icon}
             className="app-fullscreen-header"
             variant="quiet"
             onBack={handleCloseApp}

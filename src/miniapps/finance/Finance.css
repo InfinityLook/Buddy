@@ -3,10 +3,10 @@
   flex-direction: column;
   gap: 0.6rem;
   padding: 1rem;
-  background: rgba(18, 24, 40, 0.75);
+  background: var(--buddy-panel);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  color: #fff;
+  color: var(--buddy-text);
   max-width: 420px;
   margin: 0 auto;
   backdrop-filter: blur(12px);
@@ -23,7 +23,7 @@
 .fin-add-btn {
   background: #38bdf8;
   border: none;
-  color: #04222f;
+  color: var(--buddy-on-accent);
   font-weight: 800;
   padding: 0.3rem 0.7rem;
   border-radius: 8px;
@@ -52,16 +52,16 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.4px;
-  color: #94a3b8;
+  color: var(--buddy-muted);
 }
 
 .fin-zustatek-castka {
   font-size: 1.5rem;
   font-weight: 800;
-  color: #34d399;
+  color: var(--buddy-success);
 }
 
-.fin-zustatek-castka.je-zaporny { color: #f87171; }
+.fin-zustatek-castka.je-zaporny { color: var(--buddy-danger); }
 
 /* ------------------------------------------
    FILTRY (období i typ — stejný vzhled, jiný obsah)
@@ -74,9 +74,9 @@
 }
 
 .fin-filter-chip {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  color: var(--buddy-muted);
   padding: 0.2rem 0.55rem;
   border-radius: 12px;
   font-size: 0.65rem;
@@ -86,7 +86,7 @@
 
 .fin-filter-chip.active {
   background: rgba(56, 189, 248, 0.18);
-  color: #7dd3fc;
+  color: var(--buddy-info);
   border-color: rgba(56, 189, 248, 0.4);
 }
 
@@ -106,7 +106,7 @@
   flex-direction: column;
   gap: 0.1rem;
   padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
 }
@@ -116,7 +116,7 @@
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.3px;
-  color: #94a3b8;
+  color: var(--buddy-muted);
 }
 
 .fin-summary-castka {
@@ -129,10 +129,10 @@
   white-space: nowrap;
 }
 
-.fin-summary-card--prijem .fin-summary-castka { color: #34d399; }
-.fin-summary-card--vydaj .fin-summary-castka { color: #f87171; }
-.fin-summary-castka.je-kladny { color: #34d399; }
-.fin-summary-castka.je-zaporny { color: #f87171; }
+.fin-summary-card--prijem .fin-summary-castka { color: var(--buddy-success); }
+.fin-summary-card--vydaj .fin-summary-castka { color: var(--buddy-danger); }
+.fin-summary-castka.je-kladny { color: var(--buddy-success); }
+.fin-summary-castka.je-zaporny { color: var(--buddy-danger); }
 
 /* ------------------------------------------
    GRAFY
@@ -157,14 +157,14 @@
 .fin-section-title {
   font-size: 0.68rem;
   font-weight: 800;
-  color: #cbd5e1;
+  color: var(--buddy-muted);
   text-transform: uppercase;
   letter-spacing: 0.3px;
 }
 
 .fin-mini-toggle {
   display: flex;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   overflow: hidden;
@@ -173,7 +173,7 @@
 .fin-mini-toggle button {
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--buddy-muted);
   font-size: 0.6rem;
   font-weight: 700;
   padding: 0.2rem 0.45rem;
@@ -182,7 +182,7 @@
 
 .fin-mini-toggle button.active {
   background: rgba(56, 189, 248, 0.2);
-  color: #7dd3fc;
+  color: var(--buddy-info);
 }
 
 .fin-donut-row {
@@ -231,7 +231,7 @@
   text-align: center;
   font-size: 0.6rem;
   font-weight: 800;
-  color: #e2e8f0;
+  color: var(--buddy-text);
 }
 
 .fin-legenda {
@@ -262,13 +262,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #cbd5e1;
+  color: var(--buddy-muted);
 }
 
 .fin-legenda-procent {
   flex-shrink: 0;
   font-weight: 800;
-  color: #94a3b8;
+  color: var(--buddy-muted);
 }
 
 /* Trend za posledních 6 měsíců — dva sloupce vedle sebe na měsíc, výška
@@ -311,7 +311,7 @@
 
 .fin-trend-label {
   font-size: 0.55rem;
-  color: #64748b;
+  color: var(--buddy-muted);
   text-transform: uppercase;
 }
 
@@ -320,7 +320,7 @@
   gap: 0.8rem;
   justify-content: center;
   font-size: 0.6rem;
-  color: #94a3b8;
+  color: var(--buddy-muted);
 }
 
 .fin-trend-legenda span { display: inline-flex; align-items: center; gap: 0.25rem; }
@@ -343,7 +343,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--buddy-raised);
   padding: 0.6rem;
   border-radius: 10px;
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -352,7 +352,7 @@
 .fin-form-title {
   font-size: 0.68rem;
   font-weight: 800;
-  color: #7dd3fc;
+  color: var(--buddy-info);
   text-transform: uppercase;
   letter-spacing: 0.4px;
 }
@@ -364,9 +364,9 @@
 
 .fin-type-toggle button {
   flex: 1;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  color: var(--buddy-muted);
   font-weight: 700;
   font-size: 0.72rem;
   padding: 0.35rem;
@@ -376,7 +376,7 @@
 
 .fin-type-toggle button.active {
   background: rgba(52, 211, 153, 0.18);
-  color: #34d399;
+  color: var(--buddy-success);
   border-color: rgba(52, 211, 153, 0.4);
 }
 
@@ -384,15 +384,15 @@
    aktivní stav vypadal stejně bez ohledu na to, co je zapnuté. */
 .fin-type-toggle button:last-child.active {
   background: rgba(248, 113, 113, 0.18);
-  color: #f87171;
+  color: var(--buddy-danger);
   border-color: rgba(248, 113, 113, 0.4);
 }
 
 .fin-form input,
 .fin-form select {
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--buddy-text);
   padding: 0.35rem 0.5rem;
   border-radius: 6px;
   font-size: 0.75rem;
@@ -410,7 +410,7 @@
 .fin-submit-btn {
   background: #38bdf8;
   border: none;
-  color: #04222f;
+  color: var(--buddy-on-accent);
   font-weight: 800;
   padding: 0.4rem;
   border-radius: 8px;
@@ -434,7 +434,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   padding: 0.5rem 0.6rem;
@@ -462,7 +462,7 @@
 
 .fin-row-sub {
   font-size: 0.6rem;
-  color: #94a3b8;
+  color: var(--buddy-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -474,8 +474,8 @@
   font-weight: 800;
 }
 
-.fin-row-castka.je-prijem { color: #34d399; }
-.fin-row-castka.je-vydaj { color: #f87171; }
+.fin-row-castka.je-prijem { color: var(--buddy-success); }
+.fin-row-castka.je-vydaj { color: var(--buddy-danger); }
 
 .fin-row-actions {
   display: flex;
@@ -486,7 +486,7 @@
 .fin-icon-btn {
   background: none;
   border: none;
-  color: #64748b;
+  color: var(--buddy-muted);
   font-size: 0.68rem;
   cursor: pointer;
   padding: 0.15rem 0.25rem;
@@ -495,7 +495,7 @@
 }
 
 .fin-icon-btn:hover { background: rgba(255, 255, 255, 0.08); }
-.fin-icon-btn.danger { color: #f87171; }
+.fin-icon-btn.danger { color: var(--buddy-danger); }
 
 .fin-empty {
   margin: 0;
@@ -503,7 +503,7 @@
   text-align: center;
   font-size: 0.8rem;
   line-height: 1.45;
-  color: #94a3b8;
+  color: var(--buddy-muted);
 }
 
 .fin-empty--mala {
@@ -525,7 +525,7 @@
 .fin-csv-btn {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #cbd5e1;
+  color: var(--buddy-muted);
   font-weight: 700;
   padding: 0.3rem 0.55rem;
   border-radius: 8px;
@@ -543,20 +543,21 @@
    ------------------------------------------ */
 
 .fin-accordion {
-  background: rgba(0, 0, 0, 0.18);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
+  background: var(--buddy-panel);
+  border: 1px solid var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
   overflow: hidden;
 }
 
 .fin-accordion-hlava {
   width: 100%;
+  min-height: var(--buddy-ui-touch);
   display: flex;
   justify-content: space-between;
   align-items: center;
   background: none;
   border: none;
-  color: #e2e8f0;
+  color: var(--buddy-text);
   font-size: 0.75rem;
   font-weight: 700;
   padding: 0.55rem 0.7rem;
@@ -565,7 +566,7 @@
 }
 
 .fin-accordion-sipka {
-  color: #64748b;
+  color: var(--buddy-muted);
   transition: transform 0.15s ease;
 }
 
@@ -585,12 +586,12 @@
   justify-content: space-between;
   align-items: center;
   gap: 0.4rem;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 0.4rem 0.55rem;
   font-size: 0.68rem;
-  color: #cbd5e1;
+  color: var(--buddy-muted);
 }
 
 .fin-sprava-radek > span:first-child {
@@ -601,7 +602,7 @@
 }
 
 .fin-penezenka-pocatecni {
-  color: #64748b;
+  color: var(--buddy-muted);
   font-size: 0.62rem;
 }
 
@@ -609,7 +610,7 @@
   margin: 0.6rem 0 0.15rem;
   font-size: 0.66rem;
   font-weight: 700;
-  color: #94a3b8;
+  color: var(--buddy-muted);
 }
 
 /* Malý přídavný formulář uvnitř rozbalené sekce — o řád skromnější než
@@ -625,9 +626,9 @@
 .fin-mini-form select {
   flex: 1;
   min-width: 0;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #fff;
+  color: var(--buddy-text);
   padding: 0.3rem 0.45rem;
   border-radius: 6px;
   font-size: 0.7rem;
@@ -637,7 +638,7 @@
   flex-shrink: 0;
   background: #38bdf8;
   border: none;
-  color: #04222f;
+  color: var(--buddy-on-accent);
   font-weight: 800;
   padding: 0.3rem 0.55rem;
   border-radius: 6px;
@@ -650,7 +651,7 @@
    ať vizuálně nepůsobí jako stejně důležitá akce jako uložení. */
 .fin-mini-form button[type='button'] {
   background: rgba(255, 255, 255, 0.08);
-  color: #94a3b8;
+  color: var(--buddy-muted);
 }
 
 .fin-mini-form--sloupec {
@@ -662,20 +663,20 @@
 
 .fin-mini-form--sloupec .fin-type-toggle button {
   flex: 1;
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #94a3b8;
+  color: var(--buddy-muted);
 }
 
 .fin-mini-form--sloupec .fin-type-toggle button.active {
   background: rgba(52, 211, 153, 0.18);
-  color: #34d399;
+  color: var(--buddy-success);
   border-color: rgba(52, 211, 153, 0.4);
 }
 
 .fin-mini-form--sloupec .fin-type-toggle button:last-child.active {
   background: rgba(248, 113, 113, 0.18);
-  color: #f87171;
+  color: var(--buddy-danger);
   border-color: rgba(248, 113, 113, 0.4);
 }
 
@@ -693,7 +694,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  background: rgba(0, 0, 0, 0.2);
+  background: var(--buddy-raised);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 8px;
   padding: 0.5rem 0.6rem;
@@ -706,7 +707,7 @@
   gap: 0.4rem;
   font-size: 0.7rem;
   font-weight: 700;
-  color: #e2e8f0;
+  color: var(--buddy-text);
 }
 
 .fin-rozpocet-hlavicka > span:first-child {
@@ -735,10 +736,10 @@
 
 .fin-rozpocet-text {
   font-size: 0.62rem;
-  color: #94a3b8;
+  color: var(--buddy-muted);
 }
 
-.fin-rozpocet-text.je-prekrocen { color: #f87171; font-weight: 700; }
+.fin-rozpocet-text.je-prekrocen { color: var(--buddy-danger); font-weight: 700; }
 
 /* ------------------------------------------
    PENĚŽENKA (výběr ve formuláři záznamu)
@@ -777,7 +778,7 @@
 .fin-uctenka-btn {
   background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.14);
-  color: #7dd3fc;
+  color: var(--buddy-info);
   font-weight: 700;
   font-size: 0.68rem;
   padding: 0.3rem 0.55rem;
@@ -788,7 +789,7 @@
 .fin-uctenka-odebrat {
   background: none;
   border: none;
-  color: #f87171;
+  color: var(--buddy-danger);
   font-size: 0.65rem;
   font-weight: 700;
   cursor: pointer;
@@ -809,7 +810,7 @@
 }
 
 .fin-uctenka-odkaz {
-  color: #7dd3fc;
+  color: var(--buddy-info);
   font-size: 0.65rem;
   font-weight: 700;
   text-decoration: none;

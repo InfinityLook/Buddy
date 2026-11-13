@@ -201,13 +201,10 @@ export const MusicStudio: React.FC<{ initialTab?: unknown }> = ({ initialTab }) 
   const [zalozka, setZalozka] = useState<MusicStudioTab>(initialTab === 'nahravani' || initialTab === 'skladby' ? initialTab : 'beat')
 
   return (
-    <div className="ms-app buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp ms-app buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="music-studio" />
-      <div className="ms-header">
-        <h2>Music Studio</h2>
-      </div>
 
-      <div className="ms-tabs">
+      <div className="buddy-ui-segmented ms-tabs" role="group" aria-label="Nástroje studia">
         <button type="button" aria-pressed={zalozka === 'beat'} className={zalozka === 'beat' ? 'active' : ''} onClick={() => setZalozka('beat')}>
           Beat Maker
         </button>
@@ -378,8 +375,8 @@ const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, updat
 
   return (
     <div className="ms-tab">
-      <div className="ms-seq-controls">
-        <button className="ms-play-btn" onClick={hraje ? zastavit : spustit} aria-label={hraje ? 'Zastavit' : 'Přehrát'}>
+      <div className="buddy-ui-card ms-seq-controls">
+        <button className="buddy-ui-button buddy-ui-button--primary ms-play-btn" onClick={hraje ? zastavit : spustit} aria-label={hraje ? 'Zastavit' : 'Přehrát'}>
           {hraje ? '⏹️' : '▶️'}
         </button>
         <label className="ms-bpm">
@@ -396,7 +393,7 @@ const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, updat
         </label>
         <button
           type="button"
-          className="ms-tap-tempo-btn"
+          className="buddy-ui-button ms-tap-tempo-btn"
           onClick={klepnoutTempo}
           aria-label="Klepni pro odhad tempa (tap tempo)"
           title="Klepej v rytmu — appka z toho spočítá BPM"
@@ -444,6 +441,7 @@ const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, updat
                     <button
                       key={i}
                       type="button"
+                      aria-pressed={zapnuto}
                       className={`ms-seq-cell${zapnuto ? ` on-${buben}` : ''}${aktualniKrok === i ? ' playhead' : ''}`}
                       onClick={() => prepnoutKrok(buben, i)}
                       aria-label={`${DRUM_LABELS[buben]}, krok ${i + 1}, ${zapnuto ? 'zapnuto' : 'vypnuto'}`}
@@ -463,7 +461,7 @@ const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, updat
                 />
                 <button
                   type="button"
-                  className={`ms-mixer-btn${jeZtlumeny ? ' je-aktivni' : ''}`}
+                  className={`buddy-ui-button ms-mixer-btn${jeZtlumeny ? ' je-aktivni' : ''}`}
                   onClick={() => prepnoutMute(buben)}
                   aria-pressed={jeZtlumeny}
                   aria-label={`Ztlumit ${DRUM_LABELS[buben]}`}
@@ -472,7 +470,7 @@ const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, updat
                 </button>
                 <button
                   type="button"
-                  className={`ms-mixer-btn ms-mixer-btn--solo${jeSolo ? ' je-aktivni' : ''}`}
+                  className={`buddy-ui-button ms-mixer-btn ms-mixer-btn--solo${jeSolo ? ' je-aktivni' : ''}`}
                   onClick={() => prepnoutSolo(buben)}
                   aria-pressed={jeSolo}
                   aria-label={`Sólo ${DRUM_LABELS[buben]}`}
@@ -502,38 +500,38 @@ const BeatMakerTab: React.FC<BeatMakerTabProps> = ({ patterns, addPattern, updat
           onChange={(e) => setNazev(e.target.value)}
           maxLength={40}
         />
-        <button className="ms-ulozit-btn" onClick={ulozitBeat}>
+        <button className="buddy-ui-button buddy-ui-button--primary ms-ulozit-btn" onClick={ulozitBeat}>
           {editovanyId ? 'Uložit změny' : 'Uložit beat'}
         </button>
         {editovanyId && (
-          <button type="button" className="ms-ulozit-btn ms-ulozit-btn--sekundarni" onClick={ulozitJakoNovy}>
+          <button type="button" className="buddy-ui-button ms-ulozit-btn ms-ulozit-btn--sekundarni" onClick={ulozitJakoNovy}>
             Uložit jako nový
           </button>
         )}
       </div>
 
       <div className="ms-seznam">
-        {patterns.length === 0 && <p className="ms-prazdno">Zatím žádný uložený beat.</p>}
+        {patterns.length === 0 && <p className="buddy-ui-status ms-prazdno">Zatím žádný uložený beat.</p>}
         {patterns.map((p) => (
-          <div className="ms-radek" key={p.id}>
+          <div className="buddy-ui-card ms-radek" key={p.id}>
             <div className="ms-radek-text">
               <strong>{p.name}</strong>
               <span>
                 {p.bpm} BPM · {p.pocetKroku ?? 8} kroků
               </span>
             </div>
-            <button className="ms-icon-btn" onClick={() => nacistPattern(p)} aria-label={`Nahrát ${p.name} do editoru`}>
+            <button className="buddy-ui-button ms-icon-btn" onClick={() => nacistPattern(p)} aria-label={`Nahrát ${p.name} do editoru`}>
               📥
             </button>
             <button
-              className="ms-icon-btn"
+              className="buddy-ui-button ms-icon-btn"
               onClick={() => stahnoutPattern(p)}
               disabled={stahujeSeId === p.id}
               aria-label={`Stáhnout ${p.name} jako soubor`}
             >
               {stahujeSeId === p.id ? '⏳' : '⬇️'}
             </button>
-            <button className="ms-icon-btn danger" onClick={() => deletePattern(p.id)} aria-label={`Smazat ${p.name}`}>
+            <button className="buddy-ui-button ms-icon-btn danger" onClick={() => deletePattern(p.id)} aria-label={`Smazat ${p.name}`}>
               ✕
             </button>
           </div>
@@ -766,14 +764,14 @@ const NahravaniTab: React.FC<NahravaniTabProps> = ({ patterns, recordings, addRe
       <audio ref={audioRef} hidden />
 
       {!PODPORUJE_NAHRAVANI ? (
-        <p className="ms-prazdno">Tenhle prohlížeč neumí nahrávat zvuk z mikrofonu.</p>
+        <p className="buddy-ui-status ms-prazdno">Tenhle prohlížeč neumí nahrávat zvuk z mikrofonu.</p>
       ) : nahled ? (
         <div className="ms-nahled">
           {vlnaNahledu && <Vlna vrcholy={vlnaNahledu} />}
           <audio controls src={nahled.url} className="ms-nahled-prehravac" />
           <span className="ms-nahled-delka">{formatDelku(nahled.delka)}</span>
 
-          <div className="ms-orez-radek">
+          <div className="buddy-ui-card ms-orez-radek">
             <label>
               Od {formatDelku(orezOd)}
               <input
@@ -806,10 +804,10 @@ const NahravaniTab: React.FC<NahravaniTabProps> = ({ patterns, recordings, addRe
             maxLength={40}
           />
           <div className="ms-nahled-akce">
-            <button className="ms-ulozit-btn" onClick={ulozitNahravku}>
+            <button className="buddy-ui-button buddy-ui-button--primary ms-ulozit-btn" onClick={ulozitNahravku}>
               Uložit
             </button>
-            <button className="ms-zahodit-btn" onClick={zahoditNahravku}>
+            <button className="buddy-ui-button ms-zahodit-btn" onClick={zahoditNahravku}>
               Zahodit
             </button>
           </div>
@@ -853,7 +851,7 @@ const NahravaniTab: React.FC<NahravaniTabProps> = ({ patterns, recordings, addRe
           )}
 
           <button
-            className={`ms-rec-btn${nahravaSe ? ' je-aktivni' : ''}`}
+            className={`buddy-ui-button buddy-ui-button--primary ms-rec-btn${nahravaSe ? ' je-aktivni' : ''}`}
             onClick={nahravaSe ? zastavitNahravani : spustitNahravani}
             disabled={odpocitava}
             aria-label={nahravaSe ? 'Zastavit nahrávání' : 'Začít nahrávat'}
@@ -867,25 +865,25 @@ const NahravaniTab: React.FC<NahravaniTabProps> = ({ patterns, recordings, addRe
       )}
 
       <div className="ms-seznam">
-        {recordings.length === 0 && <p className="ms-prazdno">Zatím žádná uložená nahrávka.</p>}
+        {recordings.length === 0 && <p className="buddy-ui-status ms-prazdno">Zatím žádná uložená nahrávka.</p>}
         {recordings.map((r) => (
           <div className="ms-radek-wrap" key={r.id}>
-            <div className="ms-radek">
+            <div className="buddy-ui-card ms-radek">
               <div className="ms-radek-text">
                 <strong>{r.name}</strong>
                 <span>{formatDelku(r.durationSec)}</span>
               </div>
               <button
-                className="ms-icon-btn"
+                className="buddy-ui-button ms-icon-btn"
                 onClick={() => (hrajeId === r.id ? zastavitPrehravani() : prehratNahravku(r))}
                 aria-label={hrajeId === r.id ? `Zastavit ${r.name}` : `Přehrát ${r.name}`}
               >
                 {hrajeId === r.id ? '⏹️' : '▶️'}
               </button>
-              <button className="ms-icon-btn" onClick={() => stahnoutNahravku(r)} aria-label={`Stáhnout ${r.name}`}>
+              <button className="buddy-ui-button ms-icon-btn" onClick={() => stahnoutNahravku(r)} aria-label={`Stáhnout ${r.name}`}>
                 ⬇️
               </button>
-              <button className="ms-icon-btn danger" onClick={() => deleteRecording(r.id)} aria-label={`Smazat ${r.name}`}>
+              <button className="buddy-ui-button ms-icon-btn danger" onClick={() => deleteRecording(r.id)} aria-label={`Smazat ${r.name}`}>
                 ✕
               </button>
             </div>
@@ -1104,18 +1102,18 @@ const SkladbyTab: React.FC<SkladbyTabProps> = ({ patterns, recordings, songs, ad
           </div>
         )}
 
-        <button className="ms-ulozit-btn" disabled={!vybranyBeat && !vybranaNahravka} onClick={pridatSkladbu}>
+        <button className="buddy-ui-button buddy-ui-button--primary ms-ulozit-btn" disabled={!vybranyBeat && !vybranaNahravka} onClick={pridatSkladbu}>
           Uložit skladbu
         </button>
       </div>
 
       <div className="ms-seznam">
-        {songs.length === 0 && <p className="ms-prazdno">Zatím žádná skladba. Spoj beat a nahrávku výš.</p>}
+        {songs.length === 0 && <p className="buddy-ui-status ms-prazdno">Zatím žádná skladba. Spoj beat a nahrávku výš.</p>}
         {songs.map((s) => {
           const beat = patterns.find((p) => p.id === s.beatPatternId)
           const nahravka = recordings.find((r) => r.id === s.recordingId)
           return (
-            <div className="ms-radek" key={s.id}>
+            <div className="buddy-ui-card ms-radek" key={s.id}>
               <div className="ms-radek-text">
                 <strong>{s.name}</strong>
                 <span>
@@ -1126,14 +1124,14 @@ const SkladbyTab: React.FC<SkladbyTabProps> = ({ patterns, recordings, songs, ad
                 </span>
               </div>
               <button
-                className="ms-icon-btn"
+                className="buddy-ui-button ms-icon-btn"
                 onClick={() => (hrajeSongId === s.id ? zastavitSkladbu() : prehratSkladbu(s))}
                 aria-label={hrajeSongId === s.id ? `Zastavit ${s.name}` : `Přehrát ${s.name}`}
               >
                 {hrajeSongId === s.id ? '⏹️' : '▶️'}
               </button>
               <button
-                className="ms-icon-btn"
+                className="buddy-ui-button ms-icon-btn"
                 onClick={() => stahnoutSkladbu(s)}
                 disabled={(!beat && !nahravka) || stahujeSeId === s.id}
                 aria-label={`Stáhnout ${s.name} jako WAV`}
@@ -1141,7 +1139,7 @@ const SkladbyTab: React.FC<SkladbyTabProps> = ({ patterns, recordings, songs, ad
               >
                 {stahujeSeId === s.id ? '⏳' : '⬇️'}
               </button>
-              <button className="ms-icon-btn danger" onClick={() => deleteSong(s.id)} aria-label={`Smazat ${s.name}`}>
+              <button className="buddy-ui-button ms-icon-btn danger" onClick={() => deleteSong(s.id)} aria-label={`Smazat ${s.name}`}>
                 ✕
               </button>
             </div>

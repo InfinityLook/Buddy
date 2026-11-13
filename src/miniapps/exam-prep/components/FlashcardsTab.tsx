@@ -40,11 +40,11 @@ export const FlashcardsTab: React.FC<FlashcardsTabProps> = ({
 
   if (topics.length === 0) {
     return (
-      <div className="ep-empty">
+      <div className="buddy-ui-status ep-empty">
         <span className="ep-empty-icon">🧠</span>
         <h3>Není co opakovat</h3>
         <p>Zatím nemáš přidané žádné okruhy. Nejdřív je zadej v záložce Okruhy.</p>
-        <button className="ep-btn ep-btn-primary" onClick={onGoToSubjects}>
+        <button className="buddy-ui-button buddy-ui-button--primary ep-btn ep-btn-primary" onClick={onGoToSubjects}>
           Přejít na Okruhy
         </button>
       </div>
@@ -53,7 +53,7 @@ export const FlashcardsTab: React.FC<FlashcardsTabProps> = ({
 
   const filterToggle = (
     <button
-      className={`ep-due-toggle-btn ${onlyDueToday ? 'active' : ''}`}
+      className={`buddy-ui-button ep-due-toggle-btn ${onlyDueToday ? 'active' : ''}`}
       onClick={onToggleOnlyDueToday}
     >
       {onlyDueToday ? '✓ Jen k opakování dnes' : '📅 Jen k opakování dnes'}
@@ -64,7 +64,7 @@ export const FlashcardsTab: React.FC<FlashcardsTabProps> = ({
     return (
       <div className="ep-study">
         {filterToggle}
-        <div className="ep-empty">
+        <div className="buddy-ui-status ep-empty">
           <span className="ep-empty-icon">🎉</span>
           <h3>Hotovo!</h3>
           <p>Pro dnešek máš všechno opakování splněno. Zbytek přijde na řadu později.</p>
@@ -111,7 +111,7 @@ export const FlashcardsTab: React.FC<FlashcardsTabProps> = ({
 
       <button
         type="button"
-        className={`ep-flashcard ${isFlipped ? 'is-flipped' : ''}`}
+        className={`buddy-ui-card ep-flashcard ${isFlipped ? 'is-flipped' : ''}`}
         onClick={() => setIsFlipped((flipped) => !flipped)}
       >
         {!isFlipped ? (
@@ -143,7 +143,7 @@ export const FlashcardsTab: React.FC<FlashcardsTabProps> = ({
             {([1, 2, 3, 4, 5] as ConfidenceLevel[]).map((level) => (
               <button
                 key={level}
-                className="ep-rate-btn"
+                className="buddy-ui-button ep-rate-btn"
                 style={{ backgroundColor: RATE_COLORS[level] }}
                 onClick={() => handleRate(level)}
               >

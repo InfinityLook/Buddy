@@ -79,7 +79,7 @@ export const ScreenplayWriter: React.FC = () => {
 
   if (!aktivni) {
     return (
-      <div className="sw-app buddy-theme-scope" {...rootAttributes}>
+      <div className="buddy-miniapp sw-app buddy-theme-scope" {...rootAttributes}>
         <SurfaceBackdrop surfaceId="screenplay-writer" />
         <div className="sw-header">
           <h2>🎬 Scénář</h2>
@@ -94,15 +94,15 @@ export const ScreenplayWriter: React.FC = () => {
             maxLength={60}
             onKeyDown={(e) => e.key === 'Enter' && zalozit()}
           />
-          <button className="sw-ulozit-btn" onClick={zalozit}>
+          <button className="buddy-ui-button buddy-ui-button--primary sw-ulozit-btn" onClick={zalozit}>
             Založit
           </button>
         </div>
 
         <div className="sw-seznam">
-          {scenare.length === 0 && <p className="sw-prazdno">Zatím žádný scénář. Založ první výš.</p>}
+          {scenare.length === 0 && <p className="buddy-ui-status sw-prazdno">Zatím žádný scénář. Založ první výš.</p>}
           {serazenoPodleUpravy(scenare).map((s) => (
-            <div className="sw-radek" key={s.id}>
+            <div className="buddy-ui-card sw-radek" key={s.id}>
               <button className="sw-radek-otevrit" onClick={() => setAktivniId(s.id)}>
                 <strong>
                   {s.nazev}
@@ -111,10 +111,10 @@ export const ScreenplayWriter: React.FC = () => {
                 <span>{s.sceny.length} {plural(s.sceny.length, 'scéna napsána', 'scény napsány', 'scén napsáno')}</span>
                 <span className="sw-radek-cas">{formatujNaposledyUpraveno(s.upravenoAt)}</span>
               </button>
-              <button className="sw-icon-btn" onClick={() => duplikovat(s)} aria-label={`Duplikovat ${s.nazev}`}>
+              <button className="buddy-ui-button sw-icon-btn" onClick={() => duplikovat(s)} aria-label={`Duplikovat ${s.nazev}`}>
                 ⧉
               </button>
-              <button className="sw-icon-btn danger" onClick={() => smazatScenar(s)} aria-label={`Smazat ${s.nazev}`}>
+              <button className="buddy-ui-button sw-icon-btn danger" onClick={() => smazatScenar(s)} aria-label={`Smazat ${s.nazev}`}>
                 ✕
               </button>
             </div>
@@ -358,9 +358,9 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
   }
 
   return (
-    <div className={`sw-app${fokusRezim ? ' sw-app--fokus' : ''}`}>
+    <div className={`buddy-miniapp sw-app${fokusRezim ? ' sw-app--fokus' : ''}`}>
       <div className="sw-header">
-        <button className="sw-zpet-btn" onClick={onZpet} aria-label="Zpět na seznam scénářů">
+        <button className="buddy-ui-button sw-zpet-btn" onClick={onZpet} aria-label="Zpět na seznam scénářů">
           ←
         </button>
         <div className="sw-header-text">
@@ -379,23 +379,23 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
           </span>
           <span>🎬 odhad běhu: ~{odhadStopazeMinut(scenar)} min (hrubý odhad)</span>
         </div>
-        <button className="sw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celého scénáře">
+        <button className="buddy-ui-button sw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celého scénáře">
           👁 Náhled
         </button>
       </div>
 
-      <div className="sw-akce-radek">
-        <button className="sw-nahled-btn" onClick={() => setOsnovaOtevrena(true)}>
+      <div className="buddy-ui-card sw-akce-radek">
+        <button className="buddy-ui-button sw-nahled-btn" onClick={() => setOsnovaOtevrena(true)}>
           🔍 Osnova
         </button>
-        <button className="sw-nahled-btn" onClick={() => setZalohyOtevreny(true)}>
+        <button className="buddy-ui-button sw-nahled-btn" onClick={() => setZalohyOtevreny(true)}>
           💾 Zálohy
         </button>
-        <button className="sw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
+        <button className="buddy-ui-button sw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
           {fokusRezim ? '🎯 Zpět z fokusu' : '🎯 Fokus'}
         </button>
         <button
-          className={`sw-nahled-btn${!smiVip ? ' je-zamceno' : ''}`}
+          className={`buddy-ui-button sw-nahled-btn${!smiVip ? ' je-zamceno' : ''}`}
           onClick={kliknutoNaPergamen}
           aria-pressed={pergamenRezim}
         >
@@ -403,7 +403,7 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
         </button>
       </div>
 
-      {zpravaVip && <p className="sw-prazdno">{zpravaVip}</p>}
+      {zpravaVip && <p className="buddy-ui-status sw-prazdno">{zpravaVip}</p>}
 
       {cilProcenta !== null && (
         <div className="sw-cil-lista" role="progressbar" aria-valuenow={cilProcenta} aria-valuemin={0} aria-valuemax={100}>
@@ -436,7 +436,7 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
             return (
               <button
                 key={sablona.id}
-                className={`sw-sablona-btn${zamceno ? ' je-zamceno' : ''}`}
+                className={`buddy-ui-button sw-sablona-btn${zamceno ? ' je-zamceno' : ''}`}
                 onClick={() => kliknutoNaSablonu(sablona)}
               >
                 <strong>
@@ -451,7 +451,7 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
       )}
 
       {formOtevren === 'scena' && (
-        <div className="sw-form">
+        <div className="buddy-ui-card sw-form">
           <div className="sw-form-radek">
             <select value={typMista} onChange={(e) => setTypMista(e.target.value as TypMista)}>
               {TYPY_MIST.map((t) => (
@@ -467,7 +467,7 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
             <button className="sw-zrusit-btn" onClick={zrusitFormular}>
               Zrušit
             </button>
-            <button className="sw-ulozit-btn" onClick={pridatScenu}>
+            <button className="buddy-ui-button buddy-ui-button--primary sw-ulozit-btn" onClick={pridatScenu}>
               {upravovanaScenaId ? 'Uložit změny' : 'Přidat scénu'}
             </button>
           </div>
@@ -475,7 +475,7 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
       )}
 
       {!aktivniScena ? (
-        <p className="sw-prazdno">Zatím žádná scéna. Přidej první tlačítkem „+“.</p>
+        <p className="buddy-ui-status sw-prazdno">Zatím žádná scéna. Přidej první tlačítkem „+“.</p>
       ) : (
         <>
           <div className={`sw-script-page${pergamenRezim ? ' sw-script-page--zlaty' : ''}`}>
@@ -489,11 +489,11 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
                 >
                   {emojiStavu(aktivniScena.stav)} {oznaceniStavu(aktivniScena.stav)}
                 </button>
-                <button className="sw-posun-btn" onClick={otevritUpravuSceny} aria-label="Upravit scénu">
+                <button className="buddy-ui-button sw-posun-btn" onClick={otevritUpravuSceny} aria-label="Upravit scénu">
                   ✏️
                 </button>
                 <button
-                  className="sw-posun-btn"
+                  className="buddy-ui-button sw-posun-btn"
                   onClick={() => presunScenu(scenar.id, aktivniScena.id, 'nahoru')}
                   disabled={indexAktivni <= 0}
                   aria-label="Posunout scénu nahoru"
@@ -501,7 +501,7 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
                   ↑
                 </button>
                 <button
-                  className="sw-posun-btn"
+                  className="buddy-ui-button sw-posun-btn"
                   onClick={() => presunScenu(scenar.id, aktivniScena.id, 'dolu')}
                   disabled={indexAktivni >= scenar.sceny.length - 1}
                   aria-label="Posunout scénu dolů"
@@ -511,7 +511,7 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
               </div>
             </div>
 
-            {aktivniScena.prvky.length === 0 && <p className="sw-sc-prazdno">Scéna zatím nemá žádný text.</p>}
+            {aktivniScena.prvky.length === 0 && <p className="buddy-ui-status sw-sc-prazdno">Scéna zatím nemá žádný text.</p>}
 
             {aktivniScena.prvky.map((p) =>
               p.typ === 'akce' ? (
@@ -596,7 +596,7 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
           />
 
           {formOtevren === 'akce' && (
-            <div className="sw-form">
+            <div className="buddy-ui-card sw-form">
               <textarea
                 placeholder="Popiš, co se v téhle chvíli děje…"
                 value={akceText}
@@ -609,7 +609,7 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
                 <button className="sw-zrusit-btn" onClick={zrusitFormular}>
                   Zrušit
                 </button>
-                <button className="sw-ulozit-btn" onClick={pridatAkci}>
+                <button className="buddy-ui-button buddy-ui-button--primary sw-ulozit-btn" onClick={pridatAkci}>
                   {upravovanyPrvekId ? 'Uložit' : 'Přidat akci'}
                 </button>
               </div>
@@ -617,7 +617,7 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
           )}
 
           {formOtevren === 'dialog' && (
-            <div className="sw-form">
+            <div className="buddy-ui-card sw-form">
               <input
                 type="text"
                 list="sw-postavy-list"
@@ -643,7 +643,7 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
                 <button className="sw-zrusit-btn" onClick={zrusitFormular}>
                   Zrušit
                 </button>
-                <button className="sw-ulozit-btn" onClick={pridatDialog}>
+                <button className="buddy-ui-button buddy-ui-button--primary sw-ulozit-btn" onClick={pridatDialog}>
                   {upravovanyPrvekId ? 'Uložit' : 'Přidat repliku'}
                 </button>
               </div>
@@ -651,14 +651,14 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
           )}
 
           {!formOtevren && (
-            <div className="sw-toolbar">
-              <button className="sw-btn" onClick={otevritPridaniAkce}>
+            <div className="buddy-ui-card sw-toolbar">
+              <button className="buddy-ui-button sw-btn" onClick={otevritPridaniAkce}>
                 + Akce
               </button>
-              <button className="sw-btn" onClick={otevritPridaniDialogu}>
+              <button className="buddy-ui-button sw-btn" onClick={otevritPridaniDialogu}>
                 + Postava
               </button>
-              <button className="sw-btn" onClick={otevritPridaniSceny}>
+              <button className="buddy-ui-button sw-btn" onClick={otevritPridaniSceny}>
                 + Scéna
               </button>
             </div>
@@ -686,26 +686,26 @@ const ScenarEditor: React.FC<ScenarEditorProps> = ({
 }
 
 const ScenarNahled: React.FC<{ scenar: Scenar; onZpet: () => void }> = ({ scenar, onZpet }) => (
-  <div className="sw-app">
+  <div className="buddy-miniapp sw-app">
     <div className="sw-header">
-      <button className="sw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+      <button className="buddy-ui-button sw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
         ←
       </button>
       <div className="sw-header-text">
         <strong>{scenar.nazev}</strong>
         <span>Náhled celého scénáře</span>
       </div>
-      <button className="sw-nahled-btn" onClick={() => window.print()}>
+      <button className="buddy-ui-button sw-nahled-btn" onClick={() => window.print()}>
         🖨 Tisk
       </button>
       <button
-        className="sw-nahled-btn"
+        className="buddy-ui-button sw-nahled-btn"
         onClick={() => stahnoutTextovySoubor(`${scenar.nazev || 'scenar'}.txt`, sestavTextScenare(scenar))}
       >
         ⬇ .txt
       </button>
       <button
-        className="sw-nahled-btn"
+        className="buddy-ui-button sw-nahled-btn"
         onClick={() => stahnoutTextovySoubor(`${scenar.nazev || 'scenar'}.fountain`, sestavFountain(scenar))}
       >
         ⬇ Fountain
@@ -713,12 +713,12 @@ const ScenarNahled: React.FC<{ scenar: Scenar; onZpet: () => void }> = ({ scenar
     </div>
 
     {scenar.sceny.length === 0 ? (
-      <p className="sw-prazdno">Scénář zatím nemá žádnou scénu.</p>
+      <p className="buddy-ui-status sw-prazdno">Scénář zatím nemá žádnou scénu.</p>
     ) : (
       scenar.sceny.map((s, i) => (
         <div className="sw-script-page" key={s.id}>
           <div className="sw-sc-heading">{nadpisSceny(s, i + 1)}</div>
-          {s.prvky.length === 0 && <p className="sw-sc-prazdno">Scéna zatím nemá žádný text.</p>}
+          {s.prvky.length === 0 && <p className="buddy-ui-status sw-sc-prazdno">Scéna zatím nemá žádný text.</p>}
           {s.prvky.map((p) =>
             p.typ === 'akce' ? (
               <div className="sw-sc-prvek" key={p.id}>
@@ -779,9 +779,9 @@ const ScenarOsnova: React.FC<{
   const naduzivana = najdiNaduzivanaSlova(scenar.sceny.flatMap((s) => s.prvky.map((p) => p.text)))
 
   return (
-    <div className="sw-app">
+    <div className="buddy-miniapp sw-app">
       <div className="sw-header">
-        <button className="sw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+        <button className="buddy-ui-button sw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
           ←
         </button>
         <div className="sw-header-text">
@@ -821,7 +821,7 @@ const ScenarOsnova: React.FC<{
         ))}
       </div>
 
-      <button className="sw-nahled-btn" onClick={() => setNahraditFormOtevren((f) => !f)}>
+      <button className="buddy-ui-button sw-nahled-btn" onClick={() => setNahraditFormOtevren((f) => !f)}>
         🔁 Nahradit
       </button>
 
@@ -833,13 +833,13 @@ const ScenarOsnova: React.FC<{
             value={nahraditZa}
             onChange={(e) => setNahraditZa(e.target.value)}
           />
-          <button className="sw-ulozit-btn" onClick={provestNahrazeni} disabled={!dotaz.trim()}>
+          <button className="buddy-ui-button buddy-ui-button--primary sw-ulozit-btn" onClick={provestNahrazeni} disabled={!dotaz.trim()}>
             Nahradit vše
           </button>
         </div>
       )}
       {vysledekNahrazeni !== null && (
-        <p className="sw-prazdno">
+        <p className="buddy-ui-status sw-prazdno">
           {vysledekNahrazeni === 0 ? 'Nic k nahrazení se nenašlo.' : `Nahrazeno ${vysledekNahrazeni}×.`}
         </p>
       )}
@@ -884,13 +884,13 @@ const ScenarOsnova: React.FC<{
         </div>
       )}
 
-      <button className="sw-nahled-btn" onClick={() => setNaduzivanaOtevrena((o) => !o)}>
+      <button className="buddy-ui-button sw-nahled-btn" onClick={() => setNaduzivanaOtevrena((o) => !o)}>
         🔠 Nadužívaná slova
       </button>
       {naduzivanaOtevrena && (
         <div className="sw-seznam">
           {naduzivana.length === 0 ? (
-            <p className="sw-prazdno">Žádné slovo se ve scénáři neopakuje nápadně často.</p>
+            <p className="buddy-ui-status sw-prazdno">Žádné slovo se ve scénáři neopakuje nápadně často.</p>
           ) : (
             naduzivana.map((n) => (
               <div className="sw-stat-radek" key={n.slovo}>
@@ -903,7 +903,7 @@ const ScenarOsnova: React.FC<{
       )}
 
       <div className="sw-seznam">
-        {polozky.length === 0 && <p className="sw-prazdno">{dotaz || filtrStav ? 'Nic se nenašlo.' : 'Scénář zatím nemá žádnou scénu.'}</p>}
+        {polozky.length === 0 && <p className="buddy-ui-status sw-prazdno">{dotaz || filtrStav ? 'Nic se nenašlo.' : 'Scénář zatím nemá žádnou scénu.'}</p>}
         {polozky.map(({ scena: s, poradi }) => {
           const zasahVMiste = obsahujeDotaz(s.misto, dotaz) || obsahujeDotaz(s.cas, dotaz)
           const prvekSeZasahem = zasahVMiste
@@ -912,7 +912,7 @@ const ScenarOsnova: React.FC<{
           const uryvek = prvekSeZasahem ? najdiUryvek(prvekSeZasahem.text, dotaz) ?? prvekSeZasahem.text.slice(0, 60) : null
 
           return (
-            <div className="sw-radek" key={s.id}>
+            <div className="buddy-ui-card sw-radek" key={s.id}>
               <button className="sw-radek-otevrit" onClick={() => onOtevritScenu(s.id)}>
                 <strong>{nadpisSceny(s, poradi)}</strong>
                 <span>
@@ -961,9 +961,9 @@ const ScenarZalohy: React.FC<{
   }
 
   return (
-    <div className="sw-app">
+    <div className="buddy-miniapp sw-app">
       <div className="sw-header">
-        <button className="sw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+        <button className="buddy-ui-button sw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
           ←
         </button>
         <div className="sw-header-text">
@@ -980,12 +980,12 @@ const ScenarZalohy: React.FC<{
           onChange={(e) => setNovyNazev(e.target.value)}
           maxLength={60}
         />
-        <button className="sw-ulozit-btn" onClick={ulozitZalohu}>
+        <button className="buddy-ui-button buddy-ui-button--primary sw-ulozit-btn" onClick={ulozitZalohu}>
           Uložit
         </button>
       </div>
 
-      {zprava && <p className="sw-prazdno">{zprava}</p>}
+      {zprava && <p className="buddy-ui-status sw-prazdno">{zprava}</p>}
 
       <p className="sw-limit-info">
         Uchovává se posledních {strop} záloh na scénář.
@@ -993,13 +993,13 @@ const ScenarZalohy: React.FC<{
       </p>
 
       <div className="sw-seznam">
-        {seznam.length === 0 && <p className="sw-prazdno">Zatím žádná ruční záloha tohohle scénáře.</p>}
+        {seznam.length === 0 && <p className="buddy-ui-status sw-prazdno">Zatím žádná ruční záloha tohohle scénáře.</p>}
         {seznam.map((c) => {
           const rozbaleno = rozbalenyId === c.id
           const nahled = sanitizujScenar(c.data)
           return (
             <div className="sw-radek-wrap" key={c.id}>
-              <div className="sw-radek">
+              <div className="buddy-ui-card sw-radek">
                 <button
                   className="sw-radek-otevrit"
                   onClick={() => setRozbalenyId(rozbaleno ? null : c.id)}
@@ -1008,14 +1008,14 @@ const ScenarZalohy: React.FC<{
                   <strong>{c.nazev}</strong>
                   <span>{formatujNaposledyUpraveno(c.createdAt)}</span>
                 </button>
-                <button className="sw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
+                <button className="buddy-ui-button sw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
                   ✕
                 </button>
               </div>
               {rozbaleno && (
                 <div className="sw-checkpoint-nahled">
                   <span>{nahled ? shrnutiScenare(nahled) : 'Tahle záloha je poškozená.'}</span>
-                  <button className="sw-ulozit-btn" disabled={!nahled} onClick={() => obnovit(c.nazev, c.data)}>
+                  <button className="buddy-ui-button buddy-ui-button--primary sw-ulozit-btn" disabled={!nahled} onClick={() => obnovit(c.nazev, c.data)}>
                     ↺ Obnovit tuto verzi
                   </button>
                 </div>

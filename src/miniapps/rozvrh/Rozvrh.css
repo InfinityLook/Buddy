@@ -579,3 +579,17 @@
   color: var(--text-secondary);
   font-style: italic;
 }
+
+.rozvrh-den-filtr {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  align-items: center;
+  gap: .65rem;
+  font-size: .85rem;
+}
+
+@media (max-width: 390px) {
+  .rozvrh { padding: .55rem; }
+  .rozvrh-polozka { flex-wrap: wrap; }
+  .rozvrh-polozka-text { flex-basis: 50%; }
+}

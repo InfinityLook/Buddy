@@ -331,13 +331,13 @@ export const FormCheck: React.FC = () => {
   }
 
   return (
-    <div className="fc-app buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp formcheck-app buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="form-check" />
-      <div className="fc-header">
-        <h2>Form Check</h2>
+      <div className="formcheck-header">
+        <span className="formcheck-hlaseni-label">Hlasové pokyny</span>
         <button
           type="button"
-          className="fc-hlaseni-toggle"
+          className="buddy-ui-button buddy-ui-button--icon formcheck-hlaseni-toggle"
           onClick={() => setHlasoveHlaseni(!hlasoveHlaseni)}
           aria-pressed={hlasoveHlaseni}
           aria-label={hlasoveHlaseni ? 'Vypnout hlasové hlášení opakování' : 'Zapnout hlasové hlášení opakování'}
@@ -347,13 +347,13 @@ export const FormCheck: React.FC = () => {
       </div>
 
       {engine.stav === 'bezi' && !rezimOkruh && pocetSerii > 1 && (
-        <div className="fc-serie-info">
+        <div className="formcheck-serie-info">
           Série {aktualniSerie} z {pocetSerii}
         </div>
       )}
 
       {engine.stav === 'bezi' && rezimOkruh && okruhBezi && (
-        <div className="fc-serie-info">
+        <div className="formcheck-serie-info">
           Okruh: krok {okruhIndex + 1} z {okruhKroky.length} — {NAZEV_CVIKU[okruhKroky[okruhIndex].cvik]}
         </div>
       )}
@@ -365,23 +365,23 @@ export const FormCheck: React.FC = () => {
           není skrytý, ať je vidět obraz z kamery hned, jak je k dispozici,
           a ne až ve chvíli, kdy doběhne stahování modelu. */}
       <div
-        className={`fc-video-wrap ${engine.stav === 'bezi' || engine.stav === 'nacita-se' ? '' : 'fc-video-wrap--skryto'}`}
+        className={`formcheck-video-wrap ${engine.stav === 'bezi' || engine.stav === 'nacita-se' ? '' : 'formcheck-video-wrap--skryto'}`}
       >
-        <video ref={engine.videoRef} className="fc-video" playsInline muted />
-        <canvas ref={engine.canvasRef} className="fc-canvas" />
+        <video ref={engine.videoRef} className="formcheck-video" playsInline muted />
+        <canvas ref={engine.canvasRef} className="formcheck-canvas" />
 
         {engine.stav === 'bezi' && !engine.vidimTe && zbyvaOdpocinekS === null && (
-          <div className="fc-hint-overlay">Nevidím tě celého v záběru. Poodstup nebo nastav kameru šířkou.</div>
+          <div className="formcheck-hint-overlay">Nevidím tě celého v záběru. Poodstup nebo nastav kameru šířkou.</div>
         )}
 
         {zbyvaOdpocinekS !== null && (
-          <div className="fc-odpocinek-overlay">
-            <span className="fc-odpocinek-nadpis">Odpočinek</span>
-            <span className="fc-odpocinek-cas">{zbyvaOdpocinekS}s</span>
-            <button type="button" className="fc-odpocinek-preskocit" onClick={handlePreskocitOdpocinek}>
+          <div className="formcheck-odpocinek-overlay">
+            <span className="formcheck-odpocinek-nadpis">Odpočinek</span>
+            <span className="formcheck-odpocinek-cas">{zbyvaOdpocinekS}s</span>
+            <button type="button" className="formcheck-odpocinek-preskocit" onClick={handlePreskocitOdpocinek}>
               Přeskočit odpočinek
             </button>
-            <button type="button" className="fc-odpocinek-ukoncit" onClick={handleStop}>
+            <button type="button" className="formcheck-odpocinek-ukoncit" onClick={handleStop}>
               Ukončit sezení
             </button>
           </div>
@@ -389,18 +389,18 @@ export const FormCheck: React.FC = () => {
 
         {engine.stav === 'bezi' && zbyvaOdpocinekS === null && (
           <>
-            <div className={`fc-counter ${cilDosazen ? 'fc-counter--cil-splnen' : ''}`}>
+            <div className={`formcheck-counter ${cilDosazen ? 'formcheck-counter--cil-splnen' : ''}`}>
               {engine.pocetOpakovani}
-              {JE_CVIK_NA_CAS[cvik] && <span className="fc-counter-jednotka"> s</span>}
+              {JE_CVIK_NA_CAS[cvik] && <span className="formcheck-counter-jednotka"> s</span>}
               {cilOpakovani !== null && cilOpakovani > 0 && (
-                <span className="fc-counter-cil">
+                <span className="formcheck-counter-cil">
                   {cilDosazen ? '✓' : `/ ${cilOpakovani}`}
                 </span>
               )}
             </div>
-            {novyRekord && <div className="fc-rekord-banner">🎉 Nový rekord!</div>}
+            {novyRekord && <div className="formcheck-rekord-banner">🎉 Nový rekord!</div>}
             {engine.zpetnaVazba && (
-              <div className={`fc-feedback fc-feedback--${engine.zpetnaVazba}`}>
+              <div className={`formcheck-feedback formcheck-feedback--${engine.zpetnaVazba}`}>
                 {engine.zpetnaVazba === 'v-poradku'
                   ? '✓ Záda rovně'
                   : engine.zpetnaVazba === 'jdi-hloubeji'
@@ -408,26 +408,26 @@ export const FormCheck: React.FC = () => {
                     : '⚠ Narovnej záda'}
               </div>
             )}
-            <div className="fc-controls">
+            <div className="formcheck-controls">
               {engine.pocetKamer > 1 && (
-                <button className="fc-icon-btn" onClick={engine.prepnoutKameru} aria-label="Přepnout kameru">
+                <button className="buddy-ui-button formcheck-icon-btn" onClick={engine.prepnoutKameru} aria-label="Přepnout kameru">
                   🔄
                 </button>
               )}
-              <button className="fc-icon-btn" onClick={engine.resetovatPocitadlo} aria-label="Vynulovat počítadlo">
+              <button className="buddy-ui-button formcheck-icon-btn" onClick={engine.resetovatPocitadlo} aria-label="Vynulovat počítadlo">
                 ↺
               </button>
               {!rezimOkruh && pocetSerii > 1 && aktualniSerie < pocetSerii && (
-                <button className="fc-serie-dokoncit-btn" onClick={handleDokoncitSerii}>
+                <button className="buddy-ui-button buddy-ui-button--primary formcheck-serie-dokoncit-btn" onClick={handleDokoncitSerii}>
                   Další série
                 </button>
               )}
               {rezimOkruh && okruhBezi && (
-                <button className="fc-serie-dokoncit-btn" onClick={handleDalsiCvikOkruhu}>
+                <button className="buddy-ui-button buddy-ui-button--primary formcheck-serie-dokoncit-btn" onClick={handleDalsiCvikOkruhu}>
                   {okruhIndex + 1 >= okruhKroky.length ? 'Dokončit okruh' : 'Další cvik'}
                 </button>
               )}
-              <button className="fc-stop-btn" onClick={handleStop}>
+              <button className="formcheck-stop-btn" onClick={handleStop}>
                 Ukončit sezení
               </button>
             </div>
@@ -436,25 +436,27 @@ export const FormCheck: React.FC = () => {
       </div>
 
       {engine.stav === 'vypnuto' && (
-        <div className="fc-gate">
-          <span className="fc-gate-icon">🏋️</span>
-          <p className="fc-gate-text">
+        <div className="buddy-ui-card formcheck-gate">
+          <span className="formcheck-gate-icon">🏋️</span>
+          <p className="formcheck-gate-text">
             Postav telefon tak, aby na kameru viděl celé tvé tělo z boku, a spočítáme cviky za tebe.
             Video nikdy neopustí tenhle telefon — rozpoznávání pozice běží celé offline, přímo
             v prohlížeči.
           </p>
 
-          <div className="fc-rezim-picker" role="group" aria-label="Vyber druh tréninku">
+          <div className="formcheck-rezim-picker" role="group" aria-label="Vyber druh tréninku">
             <button
               type="button"
-              className={`fc-rezim-btn ${!rezimOkruh ? 'fc-rezim-btn--vybrany' : ''}`}
+              className={`buddy-ui-button formcheck-rezim-btn ${!rezimOkruh ? 'formcheck-rezim-btn--vybrany' : ''}`}
+              aria-pressed={!rezimOkruh}
               onClick={() => setRezimOkruh(false)}
             >
               Jednotlivý cvik
             </button>
             <button
               type="button"
-              className={`fc-rezim-btn ${rezimOkruh ? 'fc-rezim-btn--vybrany' : ''}`}
+              className={`buddy-ui-button formcheck-rezim-btn ${rezimOkruh ? 'formcheck-rezim-btn--vybrany' : ''}`}
+              aria-pressed={rezimOkruh}
               onClick={() => setRezimOkruh(true)}
             >
               Okruh (víc cviků za sebou)
@@ -463,12 +465,13 @@ export const FormCheck: React.FC = () => {
 
           {!rezimOkruh && (
             <>
-              <div className="fc-cvik-picker" role="group" aria-label="Vyber cvik">
+              <div className="formcheck-cvik-picker" role="group" aria-label="Vyber cvik">
                 {VSECHNY_CVIKY.map((c) => (
                   <button
                     key={c}
                     type="button"
-                    className={`fc-cvik-btn ${cvik === c ? 'fc-cvik-btn--vybrany' : ''}`}
+                    className={`buddy-ui-button formcheck-cvik-btn ${cvik === c ? 'formcheck-cvik-btn--vybrany' : ''}`}
+                    aria-pressed={cvik === c}
                     onClick={() => setCvik(c)}
                   >
                     {NAZEV_CVIKU[c]}
@@ -476,7 +479,7 @@ export const FormCheck: React.FC = () => {
                 ))}
               </div>
 
-              <label className="fc-cil-pole">
+              <label className="formcheck-cil-pole">
                 {JE_CVIK_NA_CAS[cvik] ? 'Cíl výdrže (s, nepovinné)' : 'Cíl opakování (nepovinné)'}
                 <input
                   type="number"
@@ -489,13 +492,13 @@ export const FormCheck: React.FC = () => {
               </label>
 
               {navrhovanyCil !== null && cilOpakovaniText.trim() === '' && (
-                <button type="button" className="fc-cil-navrh" onClick={() => setCilOpakovaniText(String(navrhovanyCil))}>
+                <button type="button" className="formcheck-cil-navrh" onClick={() => setCilOpakovaniText(String(navrhovanyCil))}>
                   💡 Naposledy {formatPocetCviku(navrhovanyCil - 1, cvik)} — zkus dnes {formatPocetCviku(navrhovanyCil, cvik)}
                 </button>
               )}
 
-              <div className="fc-serie-radek">
-                <label className="fc-cil-pole">
+              <div className="formcheck-serie-radek">
+                <label className="formcheck-cil-pole">
                   Počet sérií (nepovinné)
                   <input
                     type="number"
@@ -506,7 +509,7 @@ export const FormCheck: React.FC = () => {
                     placeholder="1"
                   />
                 </label>
-                <label className="fc-cil-pole">
+                <label className="formcheck-cil-pole">
                   Odpočinek mezi sériemi (s)
                   <input
                     type="number"
@@ -519,15 +522,15 @@ export const FormCheck: React.FC = () => {
                 </label>
               </div>
 
-              <button className="fc-start-btn" onClick={handleStart}>
+              <button className="buddy-ui-button buddy-ui-button--primary formcheck-start-btn" onClick={handleStart}>
                 Zapnout kameru
               </button>
             </>
           )}
 
           {rezimOkruh && (
-            <div className="fc-okruh-builder">
-              <div className="fc-okruh-pridat">
+            <div className="formcheck-okruh-builder">
+              <div className="formcheck-okruh-pridat">
                 <select value={novyOkruhCvik} onChange={(e) => setNovyOkruhCvik(e.target.value as TypCviku)}>
                   {VSECHNY_CVIKY.map((c) => (
                     <option key={c} value={c}>
@@ -543,15 +546,15 @@ export const FormCheck: React.FC = () => {
                   onChange={(e) => setNovyOkruhCilText(e.target.value)}
                   placeholder={JE_CVIK_NA_CAS[novyOkruhCvik] ? 'vteřin' : 'opakování'}
                 />
-                <button type="button" className="fc-okruh-pridat-btn" onClick={handlePridatDoOkruhu}>
+                <button type="button" className="formcheck-okruh-pridat-btn" onClick={handlePridatDoOkruhu}>
                   Přidat
                 </button>
               </div>
 
               {okruhKroky.length > 0 && (
-                <div className="fc-okruh-seznam">
+                <div className="formcheck-okruh-seznam">
                   {okruhKroky.map((k, i) => (
-                    <div key={`${k.cvik}-${i}`} className="fc-okruh-krok">
+                    <div key={`${k.cvik}-${i}`} className="formcheck-okruh-krok">
                       <span>
                         {i + 1}. {NAZEV_CVIKU[k.cvik]} — {formatPocetCviku(k.cil, k.cvik)}
                       </span>
@@ -564,7 +567,7 @@ export const FormCheck: React.FC = () => {
               )}
 
               <button
-                className="fc-start-btn"
+                className="buddy-ui-button buddy-ui-button--primary formcheck-start-btn"
                 onClick={handleSpustitOkruh}
                 disabled={okruhKroky.length === 0}
               >
@@ -574,11 +577,11 @@ export const FormCheck: React.FC = () => {
           )}
 
           {okruhVysledky.length > 0 && !okruhBezi && (
-            <div className="fc-posledni-blok">
-              <p className="fc-posledni-vysledek">Okruh dokončen! 🎉</p>
-              <div className="fc-okruh-seznam">
+            <div className="formcheck-posledni-blok">
+              <p className="formcheck-posledni-vysledek">Okruh dokončen! 🎉</p>
+              <div className="formcheck-okruh-seznam">
                 {okruhVysledky.map((v, i) => (
-                  <div key={i} className="fc-okruh-krok">
+                  <div key={i} className="formcheck-okruh-krok">
                     <span>
                       {NAZEV_CVIKU[v.cvik]} — {formatPocetCviku(v.pocet, v.cvik)} za {formatTrvani(v.trvani)}
                     </span>
@@ -587,7 +590,7 @@ export const FormCheck: React.FC = () => {
               </div>
               <button
                 type="button"
-                className="fc-sdilet-btn"
+                className="buddy-ui-button formcheck-sdilet-btn"
                 onClick={() =>
                   void sdilejText(
                     `Dokončil(a) jsem okruhový trénink ve Form Checku: ${okruhVysledky
@@ -603,15 +606,15 @@ export const FormCheck: React.FC = () => {
           )}
 
           {posledniShrnuti && (
-            <div className="fc-posledni-blok">
-              <p className="fc-posledni-vysledek">
+            <div className="formcheck-posledni-blok">
+              <p className="formcheck-posledni-vysledek">
                 Poslední sezení: {formatPocetCviku(posledniShrnuti.pocet, posledniShrnuti.cvik)}{' '}
                 {NAZEV_CVIKU[posledniShrnuti.cvik].toLowerCase()} za {formatTrvani(posledniShrnuti.trvani)}
               </p>
 
               <button
                 type="button"
-                className="fc-sdilet-btn"
+                className="buddy-ui-button formcheck-sdilet-btn"
                 onClick={() =>
                   void sdilejText(
                     `Dokončil(a) jsem trénink ve Form Checku: ${formatPocetCviku(
@@ -626,13 +629,13 @@ export const FormCheck: React.FC = () => {
               </button>
 
               {!poznamkaUlozena ? (
-                <div className="fc-poznamka-form">
-                  <div className="fc-narocnost-radek" role="group" aria-label="Náročnost sezení">
+                <div className="buddy-ui-card formcheck-poznamka-form">
+                  <div className="formcheck-narocnost-radek" role="group" aria-label="Náročnost sezení">
                     {VSECHNY_NAROCNOSTI.map((n) => (
                       <button
                         key={n}
                         type="button"
-                        className={`fc-narocnost-btn ${narocnostVybrana === n ? 'fc-narocnost-btn--vybrana' : ''}`}
+                        className={`buddy-ui-button formcheck-narocnost-btn ${narocnostVybrana === n ? 'formcheck-narocnost-btn--vybrana' : ''}`}
                         onClick={() => setNarocnostVybrana(n)}
                       >
                         {NAROCNOST_LABEL[n]}
@@ -640,18 +643,18 @@ export const FormCheck: React.FC = () => {
                     ))}
                   </div>
                   <textarea
-                    className="fc-poznamka-input"
+                    className="formcheck-poznamka-input"
                     placeholder="Poznámka k sezení (nepovinné)…"
                     value={poznamkaText}
                     onChange={(e) => setPoznamkaText(e.target.value)}
                     rows={2}
                   />
-                  <button className="fc-poznamka-ulozit" onClick={handleUlozitPoznamku}>
+                  <button className="formcheck-poznamka-ulozit" onClick={handleUlozitPoznamku}>
                     Uložit poznámku
                   </button>
                 </div>
               ) : (
-                <p className="fc-poznamka-hotovo">✓ Uloženo</p>
+                <p className="formcheck-poznamka-hotovo">✓ Uloženo</p>
               )}
             </div>
           )}
@@ -659,9 +662,9 @@ export const FormCheck: React.FC = () => {
       )}
 
       {engine.stav === 'nacita-se' && (
-        <div className="fc-gate">
-          <div className="fc-spinner" aria-hidden="true" />
-          <p className="fc-gate-text">
+        <div className="buddy-ui-card formcheck-gate">
+          <div className="formcheck-spinner" aria-hidden="true" />
+          <p className="formcheck-gate-text">
             Připravuji kameru a model rozpoznávání… Poprvé se stahuje asi 6 MB, pak už se používá to,
             co zůstalo v telefonu.
           </p>
@@ -669,53 +672,53 @@ export const FormCheck: React.FC = () => {
       )}
 
       {engine.stav === 'chyba' && (
-        <div className="fc-gate">
-          <span className="fc-gate-icon">⚠️</span>
-          <p className="fc-gate-text fc-gate-text--chyba">{engine.chyba}</p>
-          <button className="fc-start-btn" onClick={handleStart}>
+        <div className="buddy-ui-card formcheck-gate">
+          <span className="formcheck-gate-icon">⚠️</span>
+          <p className="formcheck-gate-text formcheck-gate-text--chyba" role="alert">{engine.chyba}</p>
+          <button className="buddy-ui-button buddy-ui-button--primary formcheck-start-btn" onClick={handleStart}>
             Zkusit znovu
           </button>
         </div>
       )}
 
       {pocetSezeni > 0 && (
-        <div className="fc-stats-row">
-          <div className="fc-stat-card">
-            <span className="fc-stat-hodnota">{celkemOpakovani}</span>
-            <span className="fc-stat-label">Opakování celkem</span>
+        <div className="formcheck-stats-row">
+          <div className="buddy-ui-card formcheck-stat-card">
+            <span className="formcheck-stat-hodnota">{celkemOpakovani}</span>
+            <span className="formcheck-stat-label">Opakování celkem</span>
           </div>
-          <div className="fc-stat-card">
-            <span className="fc-stat-hodnota">{nejlepsiSezeni}</span>
-            <span className="fc-stat-label">Nejlepší sezení</span>
+          <div className="buddy-ui-card formcheck-stat-card">
+            <span className="formcheck-stat-hodnota">{nejlepsiSezeni}</span>
+            <span className="formcheck-stat-label">Nejlepší sezení</span>
           </div>
-          <div className="fc-stat-card">
-            <span className="fc-stat-hodnota">{pocetSezeni}</span>
-            <span className="fc-stat-label">Sezení</span>
+          <div className="buddy-ui-card formcheck-stat-card">
+            <span className="formcheck-stat-hodnota">{pocetSezeni}</span>
+            <span className="formcheck-stat-label">Sezení</span>
           </div>
         </div>
       )}
 
       {sezeni.length > 0 && (
         <>
-          <button className="fc-export-btn" onClick={handleExport}>
+          <button className="buddy-ui-button formcheck-export-btn" onClick={handleExport}>
             ⬇ Export CSV
           </button>
 
-          <div className="fc-list">
+          <div className="formcheck-list">
             {sezeni.slice(0, 10).map((s) => (
-              <div key={s.id} className="fc-row">
-                <span className="fc-row-icon" aria-hidden="true">
+              <div key={s.id} className="buddy-ui-card formcheck-row">
+                <span className="formcheck-row-icon" aria-hidden="true">
                   🏋️
                 </span>
-                <div className="fc-row-mid">
-                  <span className="fc-row-title">
+                <div className="formcheck-row-mid">
+                  <span className="formcheck-row-title">
                     {formatPocetCviku(s.pocetOpakovani, s.cvik)} {NAZEV_CVIKU[s.cvik]}
                   </span>
-                  <span className="fc-row-sub">
+                  <span className="formcheck-row-sub">
                     {formatDatum(s.createdAt)} · {formatTrvani(s.trvaniSekund)}
                     {s.narocnost && ` · ${NAROCNOST_LABEL[s.narocnost]}`}
                   </span>
-                  {s.poznamka && <span className="fc-row-poznamka">{s.poznamka}</span>}
+                  {s.poznamka && <span className="formcheck-row-poznamka">{s.poznamka}</span>}
                 </div>
               </div>
             ))}

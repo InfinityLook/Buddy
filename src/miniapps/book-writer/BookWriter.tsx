@@ -72,7 +72,7 @@ export const BookWriter: React.FC = () => {
 
   if (!aktivniKniha) {
     return (
-      <div className="bw-app buddy-theme-scope" {...rootAttributes}>
+      <div className="buddy-miniapp bw-app buddy-theme-scope" {...rootAttributes}>
         <SurfaceBackdrop surfaceId="book-writer" />
         <div className="bw-header">
           <h2>📖 Kniha</h2>
@@ -87,15 +87,15 @@ export const BookWriter: React.FC = () => {
             maxLength={60}
             onKeyDown={(e) => e.key === 'Enter' && zalozitKnihu()}
           />
-          <button className="bw-ulozit-btn" onClick={zalozitKnihu}>
+          <button className="buddy-ui-button buddy-ui-button--primary bw-ulozit-btn" onClick={zalozitKnihu}>
             Založit
           </button>
         </div>
 
         <div className="bw-seznam">
-          {knihy.length === 0 && <p className="bw-prazdno">Zatím žádná kniha. Založ první výš.</p>}
+          {knihy.length === 0 && <p className="buddy-ui-status bw-prazdno">Zatím žádná kniha. Založ první výš.</p>}
           {serazenoPodleUpravy(knihy).map((k) => (
-            <div className="bw-radek" key={k.id}>
+            <div className="buddy-ui-card bw-radek" key={k.id}>
               <button className="bw-radek-otevrit" onClick={() => setAktivniKnihaId(k.id)}>
                 <strong>
                   {k.nazev}
@@ -107,10 +107,10 @@ export const BookWriter: React.FC = () => {
                 </span>
                 <span className="bw-radek-cas">{formatujNaposledyUpraveno(k.upravenoAt)}</span>
               </button>
-              <button className="bw-icon-btn" onClick={() => duplikovat(k)} aria-label={`Duplikovat ${k.nazev}`}>
+              <button className="buddy-ui-button bw-icon-btn" onClick={() => duplikovat(k)} aria-label={`Duplikovat ${k.nazev}`}>
                 ⧉
               </button>
-              <button className="bw-icon-btn danger" onClick={() => smazatKnihu(k)} aria-label={`Smazat ${k.nazev}`}>
+              <button className="buddy-ui-button bw-icon-btn danger" onClick={() => smazatKnihu(k)} aria-label={`Smazat ${k.nazev}`}>
                 ✕
               </button>
             </div>
@@ -256,9 +256,9 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
   }
 
   return (
-    <div className={`bw-app${fokusRezim ? ' bw-app--fokus' : ''}`}>
+    <div className={`buddy-miniapp bw-app${fokusRezim ? ' bw-app--fokus' : ''}`}>
       <div className="bw-header">
-        <button className="bw-zpet-btn" onClick={onZpet} aria-label="Zpět na seznam knih">
+        <button className="buddy-ui-button bw-zpet-btn" onClick={onZpet} aria-label="Zpět na seznam knih">
           ←
         </button>
         <div className="bw-header-text">
@@ -277,23 +277,23 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
           </span>
           <span>📖 odhad čtení: ~{odhadCteniMinut(kniha)} min (hrubý odhad)</span>
         </div>
-        <button className="bw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celé knihy">
+        <button className="buddy-ui-button bw-nahled-btn" onClick={() => setNahledOtevren(true)} aria-label="Otevřít náhled celé knihy">
           👁 Náhled
         </button>
       </div>
 
-      <div className="bw-akce-radek">
-        <button className="bw-nahled-btn" onClick={() => setOsnovaOtevrena(true)}>
+      <div className="buddy-ui-card bw-akce-radek">
+        <button className="buddy-ui-button bw-nahled-btn" onClick={() => setOsnovaOtevrena(true)}>
           🔍 Osnova
         </button>
-        <button className="bw-nahled-btn" onClick={() => setZalohyOtevreny(true)}>
+        <button className="buddy-ui-button bw-nahled-btn" onClick={() => setZalohyOtevreny(true)}>
           💾 Zálohy
         </button>
-        <button className="bw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
+        <button className="buddy-ui-button bw-nahled-btn" onClick={() => setFokusRezim((f) => !f)} aria-pressed={fokusRezim}>
           {fokusRezim ? '🎯 Zpět z fokusu' : '🎯 Fokus'}
         </button>
         <button
-          className={`bw-nahled-btn${!smiVip ? ' je-zamceno' : ''}`}
+          className={`buddy-ui-button bw-nahled-btn${!smiVip ? ' je-zamceno' : ''}`}
           onClick={kliknutoNaPergamen}
           aria-pressed={pergamenRezim}
         >
@@ -301,7 +301,7 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
         </button>
       </div>
 
-      {zpravaZlatyPapir && <p className="bw-prazdno">{zpravaZlatyPapir}</p>}
+      {zpravaZlatyPapir && <p className="buddy-ui-status bw-prazdno">{zpravaZlatyPapir}</p>}
 
       {cilProcenta !== null && (
         <div className="bw-cil-lista" role="progressbar" aria-valuenow={cilProcenta} aria-valuemin={0} aria-valuemax={100}>
@@ -319,10 +319,10 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
             Kap. {i + 1}
           </button>
         ))}
-        <button className="bw-plus-chip" onClick={pridatKapitolu} aria-label="Přidat kapitolu">
+        <button className="buddy-ui-button bw-plus-chip" onClick={pridatKapitolu} aria-label="Přidat kapitolu">
           +
         </button>
-        <button className="bw-plus-chip" onClick={() => setSablonyOtevrene((s) => !s)} aria-label="Přidat kapitoly podle šablony">
+        <button className="buddy-ui-button bw-plus-chip" onClick={() => setSablonyOtevrene((s) => !s)} aria-label="Přidat kapitoly podle šablony">
           📐
         </button>
       </div>
@@ -334,7 +334,7 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
             return (
               <button
                 key={sablona.id}
-                className={`bw-sablona-btn${zamceno ? ' je-zamceno' : ''}`}
+                className={`buddy-ui-button bw-sablona-btn${zamceno ? ' je-zamceno' : ''}`}
                 onClick={() => kliknutoNaSablonu(sablona)}
               >
                 <strong>
@@ -345,12 +345,12 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
               </button>
             )
           })}
-          {zpravaSablona && <p className="bw-prazdno">{zpravaSablona}</p>}
+          {zpravaSablona && <p className="buddy-ui-status bw-prazdno">{zpravaSablona}</p>}
         </div>
       )}
 
       {!aktivniKapitola ? (
-        <p className="bw-prazdno">Zatím žádná kapitola. Přidej první tlačítkem „+“.</p>
+        <p className="buddy-ui-status bw-prazdno">Zatím žádná kapitola. Přidej první tlačítkem „+“.</p>
       ) : (
         <>
           <div className="bw-kapitola-hlavicka">
@@ -369,7 +369,7 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
             </button>
             <div className="bw-posun-btns">
               <button
-                className="bw-posun-btn"
+                className="buddy-ui-button bw-posun-btn"
                 onClick={() => presunKapitolu(kniha.id, aktivniKapitola.id, 'nahoru')}
                 disabled={indexAktivni <= 0}
                 aria-label="Posunout kapitolu nahoru"
@@ -377,7 +377,7 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
                 ↑
               </button>
               <button
-                className="bw-posun-btn"
+                className="buddy-ui-button bw-posun-btn"
                 onClick={() => presunKapitolu(kniha.id, aktivniKapitola.id, 'dolu')}
                 disabled={indexAktivni >= kniha.kapitoly.length - 1}
                 aria-label="Posunout kapitolu dolů"
@@ -401,7 +401,7 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
             <span>
               {pocetSlov(aktivniKapitola.text)} {plural(pocetSlov(aktivniKapitola.text), 'slovo', 'slova', 'slov')} v téhle kapitole
             </span>
-            <button className="bw-icon-btn danger" onClick={smazatAktivniKapitolu}>
+            <button className="buddy-ui-button bw-icon-btn danger" onClick={smazatAktivniKapitolu}>
               Smazat kapitolu
             </button>
           </div>
@@ -457,26 +457,26 @@ const KnihaEditor: React.FC<KnihaEditorProps> = ({
 }
 
 const KnihaNahled: React.FC<{ kniha: Kniha; onZpet: () => void }> = ({ kniha, onZpet }) => (
-  <div className="bw-app">
+  <div className="buddy-miniapp bw-app">
     <div className="bw-header">
-      <button className="bw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+      <button className="buddy-ui-button bw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
         ←
       </button>
       <div className="bw-header-text">
         <strong>{kniha.nazev}</strong>
         <span>Náhled celé knihy</span>
       </div>
-      <button className="bw-nahled-btn" onClick={() => window.print()}>
+      <button className="buddy-ui-button bw-nahled-btn" onClick={() => window.print()}>
         🖨 Tisk
       </button>
       <button
-        className="bw-nahled-btn"
+        className="buddy-ui-button bw-nahled-btn"
         onClick={() => stahnoutTextovySoubor(`${kniha.nazev || 'kniha'}.txt`, sestavTextKnihy(kniha))}
       >
         ⬇ .txt
       </button>
       <button
-        className="bw-nahled-btn"
+        className="buddy-ui-button bw-nahled-btn"
         onClick={async () => stahnoutBlob(`${kniha.nazev || 'kniha'}.epub`, await sestavEpub(kniha))}
       >
         ⬇ EPUB
@@ -485,7 +485,7 @@ const KnihaNahled: React.FC<{ kniha: Kniha; onZpet: () => void }> = ({ kniha, on
 
     <div className="bw-nahled">
       {kniha.kapitoly.length === 0 ? (
-        <p className="bw-prazdno">Kniha zatím nemá žádnou kapitolu.</p>
+        <p className="buddy-ui-status bw-prazdno">Kniha zatím nemá žádnou kapitolu.</p>
       ) : (
         kniha.kapitoly.map((k, i) => (
           <div className="bw-nahled-kapitola" key={k.id}>
@@ -539,9 +539,9 @@ const KnihaOsnova: React.FC<{
   const naduzivana = najdiNaduzivanaSlova(kniha.kapitoly.map((k) => k.text))
 
   return (
-    <div className="bw-app">
+    <div className="buddy-miniapp bw-app">
       <div className="bw-header">
-        <button className="bw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+        <button className="buddy-ui-button bw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
           ←
         </button>
         <div className="bw-header-text">
@@ -581,7 +581,7 @@ const KnihaOsnova: React.FC<{
         ))}
       </div>
 
-      <button className="bw-nahled-btn" onClick={() => setNahraditFormOtevren((f) => !f)}>
+      <button className="buddy-ui-button bw-nahled-btn" onClick={() => setNahraditFormOtevren((f) => !f)}>
         🔁 Nahradit
       </button>
 
@@ -593,24 +593,24 @@ const KnihaOsnova: React.FC<{
             value={nahraditZa}
             onChange={(e) => setNahraditZa(e.target.value)}
           />
-          <button className="bw-ulozit-btn" onClick={provestNahrazeni} disabled={!dotaz.trim()}>
+          <button className="buddy-ui-button buddy-ui-button--primary bw-ulozit-btn" onClick={provestNahrazeni} disabled={!dotaz.trim()}>
             Nahradit vše
           </button>
         </div>
       )}
       {vysledekNahrazeni !== null && (
-        <p className="bw-prazdno">
+        <p className="buddy-ui-status bw-prazdno">
           {vysledekNahrazeni === 0 ? 'Nic k nahrazení se nenašlo.' : `Nahrazeno ${vysledekNahrazeni}×.`}
         </p>
       )}
 
-      <button className="bw-nahled-btn" onClick={() => setNaduzivanaOtevrena((o) => !o)}>
+      <button className="buddy-ui-button bw-nahled-btn" onClick={() => setNaduzivanaOtevrena((o) => !o)}>
         🔠 Nadužívaná slova
       </button>
       {naduzivanaOtevrena && (
         <div className="bw-seznam">
           {naduzivana.length === 0 ? (
-            <p className="bw-prazdno">Žádné slovo se v knize neopakuje nápadně často.</p>
+            <p className="buddy-ui-status bw-prazdno">Žádné slovo se v knize neopakuje nápadně často.</p>
           ) : (
             naduzivana.map((n) => (
               <div className="bw-stat-radek" key={n.slovo}>
@@ -624,12 +624,12 @@ const KnihaOsnova: React.FC<{
 
       <div className="bw-seznam">
         {polozky.length === 0 && (
-          <p className="bw-prazdno">{dotaz || filtrStav ? 'Nic se nenašlo.' : 'Kniha zatím nemá žádnou kapitolu.'}</p>
+          <p className="buddy-ui-status bw-prazdno">{dotaz || filtrStav ? 'Nic se nenašlo.' : 'Kniha zatím nemá žádnou kapitolu.'}</p>
         )}
         {polozky.map(({ kapitola: k, poradi }) => {
           const uryvek = obsahujeDotaz(k.nazev, dotaz) ? null : najdiUryvek(k.text, dotaz)
           return (
-            <div className="bw-radek" key={k.id}>
+            <div className="buddy-ui-card bw-radek" key={k.id}>
               <button className="bw-radek-otevrit" onClick={() => onOtevritKapitolu(k.id)}>
                 <strong>
                   {poradi}. {k.nazev}
@@ -685,9 +685,9 @@ const KnihaZalohy: React.FC<{
   }
 
   return (
-    <div className="bw-app">
+    <div className="buddy-miniapp bw-app">
       <div className="bw-header">
-        <button className="bw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
+        <button className="buddy-ui-button bw-zpet-btn" onClick={onZpet} aria-label="Zpět na editor">
           ←
         </button>
         <div className="bw-header-text">
@@ -704,12 +704,12 @@ const KnihaZalohy: React.FC<{
           onChange={(e) => setNovyNazev(e.target.value)}
           maxLength={60}
         />
-        <button className="bw-ulozit-btn" onClick={ulozitZalohu}>
+        <button className="buddy-ui-button buddy-ui-button--primary bw-ulozit-btn" onClick={ulozitZalohu}>
           Uložit
         </button>
       </div>
 
-      {zprava && <p className="bw-prazdno">{zprava}</p>}
+      {zprava && <p className="buddy-ui-status bw-prazdno">{zprava}</p>}
 
       <p className="bw-limit-info">
         Uchovává se posledních {strop} záloh na knihu.
@@ -717,13 +717,13 @@ const KnihaZalohy: React.FC<{
       </p>
 
       <div className="bw-seznam">
-        {seznam.length === 0 && <p className="bw-prazdno">Zatím žádná ruční záloha téhle knihy.</p>}
+        {seznam.length === 0 && <p className="buddy-ui-status bw-prazdno">Zatím žádná ruční záloha téhle knihy.</p>}
         {seznam.map((c) => {
           const rozbaleno = rozbalenyId === c.id
           const nahled = sanitizujKnihu(c.data)
           return (
             <div className="bw-radek-wrap" key={c.id}>
-              <div className="bw-radek">
+              <div className="buddy-ui-card bw-radek">
                 <button
                   className="bw-radek-otevrit"
                   onClick={() => setRozbalenyId(rozbaleno ? null : c.id)}
@@ -732,14 +732,14 @@ const KnihaZalohy: React.FC<{
                   <strong>{c.nazev}</strong>
                   <span>{formatujNaposledyUpraveno(c.createdAt)}</span>
                 </button>
-                <button className="bw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
+                <button className="buddy-ui-button bw-icon-btn danger" onClick={() => smazCheckpoint(c.id)} aria-label={`Smazat zálohu ${c.nazev}`}>
                   ✕
                 </button>
               </div>
               {rozbaleno && (
                 <div className="bw-checkpoint-nahled">
                   <span>{nahled ? shrnutiKnihy(nahled) : 'Tahle záloha je poškozená.'}</span>
-                  <button className="bw-ulozit-btn" disabled={!nahled} onClick={() => obnovit(c.nazev, c.data)}>
+                  <button className="buddy-ui-button buddy-ui-button--primary bw-ulozit-btn" disabled={!nahled} onClick={() => obnovit(c.nazev, c.data)}>
                     ↺ Obnovit tuto verzi
                   </button>
                 </div>

@@ -1,4 +1,6 @@
-import React, { useRef, useState } from 'react'
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
+import { AppIcon } from '@/pages/app/components/AppIcon'
+import React, { useEffect, useRef, useState } from 'react'
 import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { useFileManager, useImageThumbnails } from './useFileManager'
 import {
@@ -49,8 +51,15 @@ export const FileManager: React.FC = () => {
   const thumbnails = useImageThumbnails(files)
 
   const inputRef = useRef<HTMLInputElement>(null)
+  const uploadButton = useRef<HTMLButtonElement>(null)
+  const cancelDeleteButton = useRef<HTMLButtonElement>(null)
+  const messageTimer = useRef<number | undefined>(undefined)
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [detail, setDetail] = useState<FileItem | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<FileItem | null>(null)
+
+  useEffect(() => () => window.clearTimeout(messageTimer.current), [])
 
   // Přejmenování a přesun do složky v jednom formuláři
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -58,8 +67,9 @@ export const FileManager: React.FC = () => {
   const [editFolder, setEditFolder] = useState('')
 
   const showMessage = (text: string) => {
+    window.clearTimeout(messageTimer.current)
     setMessage(text)
-    window.setTimeout(() => setMessage(null), 2600)
+    messageTimer.current = window.setTimeout(() => setMessage(null), 3000)
   }
 
   const handleFilesSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,21 +106,19 @@ export const FileManager: React.FC = () => {
     setEditingId(null)
   }
 
-  // Mazání je nevratné a obsah souboru zmizí i z IndexedDB, takže se
-  // na něj ptáme. Dřív stačilo jedno klepnutí a soubor byl pryč.
-  const handleDelete = (item: FileItem) => {
-    if (window.confirm(`Smazat soubor „${item.name}“? Obsah se z zařízení odstraní.`)) {
-      void deleteFile(item.id)
-      if (editingId === item.id) setEditingId(null)
-    }
+  const confirmDelete = () => {
+    if (!pendingDelete) return
+    void deleteFile(pendingDelete.id)
+    setPendingDelete(null)
+    showMessage('Soubor smazán.')
+    requestAnimationFrame(() => uploadButton.current?.focus())
   }
 
   return (
-    <div className="fm-app buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp fm-app buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="file-manager" />
       <div className="fm-header">
-        <h2>File Manager</h2>
-        <button className="fm-add-btn" onClick={() => inputRef.current?.click()} disabled={busy}>
+        <button ref={uploadButton} type="button" className="buddy-ui-button buddy-ui-button--primary fm-add-btn" onClick={() => inputRef.current?.click()} disabled={busy}>
           {busy ? 'Ukládám…' : '+ Nahrát'}
         </button>
         <input ref={inputRef} type="file" multiple hidden onChange={handleFilesSelected} />
@@ -124,7 +132,8 @@ export const FileManager: React.FC = () => {
 
       <input
         type="search"
-        className="fm-search"
+        className="buddy-ui-input fm-search"
+        aria-label="Hledat soubor"
         placeholder="Hledat soubor..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -134,7 +143,8 @@ export const FileManager: React.FC = () => {
       {folders.length > 1 && (
         <div className="fm-folders">
           <button
-            className={`fm-folder-chip ${folder === ALL_FOLDERS ? 'active' : ''}`}
+            className={`buddy-ui-button fm-folder-chip ${folder === ALL_FOLDERS ? 'active' : ''}`}
+            aria-pressed={folder === ALL_FOLDERS}
             onClick={() => setFolder(ALL_FOLDERS)}
           >
             📂 {ALL_FOLDERS}
@@ -142,7 +152,8 @@ export const FileManager: React.FC = () => {
           {folders.map((f) => (
             <button
               key={f}
-              className={`fm-folder-chip ${folder === f ? 'active' : ''}`}
+              className={`buddy-ui-button fm-folder-chip ${folder === f ? 'active' : ''}`}
+              aria-pressed={folder === f}
               onClick={() => setFolder(f)}
             >
               {f}
@@ -154,7 +165,7 @@ export const FileManager: React.FC = () => {
       {totalCount > 1 && (
         <div className="fm-toolbar">
           <select
-            className="fm-select"
+            className="buddy-ui-input fm-select"
             value={kindFilter}
             onChange={(e) => setKindFilter(e.target.value as FileKind | 'all')}
             aria-label="Filtr podle typu"
@@ -168,7 +179,7 @@ export const FileManager: React.FC = () => {
           </select>
 
           <select
-            className="fm-select"
+            className="buddy-ui-input fm-select"
             value={sortMode}
             onChange={(e) => setSortMode(e.target.value as SortMode)}
             aria-label="Řazení"
@@ -182,14 +193,16 @@ export const FileManager: React.FC = () => {
         </div>
       )}
 
-      {message && <p className="fm-message">{message}</p>}
+      {message && <p className="buddy-ui-status fm-message" role="status">{message}</p>}
 
       <div className="fm-list">
         {files.length === 0 ? (
-          <p className="fm-empty">
+          <p className="buddy-ui-status fm-empty">
             {totalCount === 0
-              ? 'Zatím tu nemáš žádné soubory. Nahraj první 📎'
-              : 'Téhle podmínce neodpovídá žádný soubor.'}
+              ? 'Zatím tu nemáš žádné soubory.'
+              : search.trim() || kindFilter !== 'all'
+                ? 'Filtrům neodpovídá žádný soubor.'
+                : 'V této složce nejsou žádné soubory.'}
           </p>
         ) : (
           files.map((f) => {
@@ -197,7 +210,7 @@ export const FileManager: React.FC = () => {
             const thumb = thumbnails[f.id]
 
             return (
-              <div key={f.id} className={`fm-card ${available ? '' : 'fm-card--missing'}`}>
+              <div key={f.id} className={`buddy-ui-card fm-card ${available ? '' : 'fm-card--missing'}`}>
                 {thumb ? (
                   <img className="fm-thumb" src={thumb} alt="" />
                 ) : (
@@ -205,7 +218,7 @@ export const FileManager: React.FC = () => {
                 )}
 
                 <div className="fm-info">
-                  <span className="fm-name">{f.name}</span>
+                  <button type="button" className="fm-name" onClick={() => setDetail(f)}>{f.name}</button>
                   <span className="fm-meta">
                     {available
                       ? `${formatSize(f.size)} • ${f.date}${
@@ -217,26 +230,26 @@ export const FileManager: React.FC = () => {
 
                 {available && (
                   <button
-                    className="fm-icon-btn"
+                    className="buddy-ui-button buddy-ui-button--icon fm-icon-btn"
                     onClick={() => handleDownload(f)}
                     aria-label={`Stáhnout ${f.name}`}
                   >
-                    ⬇️
+                    <AppIcon name="download" size={18} />
                   </button>
                 )}
                 <button
-                  className="fm-icon-btn"
+                  className="buddy-ui-button buddy-ui-button--icon fm-icon-btn"
                   onClick={() => openEdit(f)}
                   aria-label={`Přejmenovat ${f.name}`}
                 >
-                  ✏️
+                  <AppIcon name="document-editor" size={18} />
                 </button>
                 <button
-                  className="fm-icon-btn danger"
-                  onClick={() => handleDelete(f)}
+                  className="buddy-ui-button buddy-ui-button--icon fm-icon-btn danger"
+                  onClick={() => setPendingDelete(f)}
                   aria-label={`Smazat ${f.name}`}
                 >
-                  ✕
+                  <AppIcon name="x" size={18} />
                 </button>
               </div>
             )
@@ -245,43 +258,91 @@ export const FileManager: React.FC = () => {
       </div>
 
       {editingId && (
-        <form className="fm-edit-form" onSubmit={submitEdit}>
-          <span className="fm-edit-title">Název a složka</span>
-          <input
-            type="text"
-            className="fm-edit-input"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            required
-            autoFocus
-          />
-          <input
-            type="text"
-            className="fm-edit-input"
-            list="fm-folder-list"
-            placeholder={`Složka — výchozí ${UNSORTED_FOLDER}`}
-            value={editFolder}
-            onChange={(e) => setEditFolder(e.target.value)}
-          />
-          <datalist id="fm-folder-list">
-            {folders.map((f) => (
-              <option key={f} value={f} />
-            ))}
-          </datalist>
+        <BuddyDialog
+          surfaceId="file-manager"
+          title="Název a složka"
+          onClose={() => setEditingId(null)}
+          contentClassName="buddy-miniapp"
+        >
+          <form className="fm-edit-form" onSubmit={submitEdit}>
+            <input
+              type="text"
+              className="fm-edit-input"
+              aria-label="Název souboru"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              required
+              autoFocus
+            />
+            <input
+              type="text"
+              className="fm-edit-input"
+              aria-label="Složka"
+              list="fm-folder-list"
+              placeholder={`Složka — výchozí ${UNSORTED_FOLDER}`}
+              value={editFolder}
+              onChange={(e) => setEditFolder(e.target.value)}
+            />
+            <datalist id="fm-folder-list">
+              {folders.map((f) => (
+                <option key={f} value={f} />
+              ))}
+            </datalist>
 
-          <div className="fm-edit-actions">
-            <button type="submit" className="fm-add-btn">
-              Uložit
-            </button>
-            <button
-              type="button"
-              className="fm-cancel-btn"
-              onClick={() => setEditingId(null)}
-            >
-              Zrušit
-            </button>
-          </div>
-        </form>
+            <div className="fm-edit-actions">
+              <button type="submit" className="buddy-ui-button buddy-ui-button--primary fm-add-btn">
+                Uložit
+              </button>
+              <button
+                type="button"
+                className="buddy-ui-button fm-cancel-btn"
+                onClick={() => setEditingId(null)}
+              >
+                Zrušit
+              </button>
+            </div>
+          </form>
+        </BuddyDialog>
+      )}
+      {detail && (
+        <BuddyDialog
+          surfaceId="file-manager"
+          title={detail.name}
+          onClose={() => setDetail(null)}
+          footer={isAvailable(detail.id) && (
+            <button type="button" className="buddy-ui-button buddy-ui-button--primary" onClick={() => {
+              void handleDownload(detail)
+              setDetail(null)
+            }}>Stáhnout soubor</button>
+          )}
+        >
+          <dl className="fm-detail">
+            <dt>Typ</dt><dd>{KIND_LABELS[detail.type]}</dd>
+            <dt>Velikost</dt><dd>{formatSize(detail.size)}</dd>
+            <dt>Složka</dt><dd>{detail.folder || UNSORTED_FOLDER}</dd>
+            <dt>Přidáno</dt><dd>{detail.date}</dd>
+          </dl>
+          {!isAvailable(detail.id) && <p className="buddy-ui-status">Obsah v tomto zařízení chybí.</p>}
+        </BuddyDialog>
+      )}
+
+      {pendingDelete && (
+        <BuddyDialog
+          surfaceId="file-manager"
+          title="Smazat soubor?"
+          initialFocusRef={cancelDeleteButton}
+          onClose={() => setPendingDelete(null)}
+          footer={(
+            <>
+              <button type="button" ref={cancelDeleteButton} className="buddy-ui-button" onClick={() => setPendingDelete(null)}>
+                Zrušit
+              </button>
+              <button type="button" className="buddy-ui-button fm-delete-btn" onClick={confirmDelete}>Smazat soubor</button>
+            </>
+          )}
+        >
+          <p>Soubor <strong>{pendingDelete.name}</strong> se odstraní ze zařízení.</p>
+        </BuddyDialog>
       )}
     </div>
   )

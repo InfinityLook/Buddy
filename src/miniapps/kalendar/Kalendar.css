@@ -17,7 +17,7 @@
   box-sizing: border-box;
 }
 
-.buddy-cal :is(button, select, input:not([type=checkbox]), textarea) {
+:is(.buddy-cal, .buddy-cal-dialog-content) :is(button, select, input:not([type=checkbox], [type=file]), textarea) {
   min-width: 0;
   min-height: 44px;
   padding: .45rem .65rem;
@@ -43,7 +43,7 @@
   outline-offset: -2px;
 }
 
-.buddy-cal :is(.buddy-cal-primary, button[aria-pressed=true]) {
+:is(.buddy-cal, .buddy-cal-dialog-content) :is(.buddy-cal-primary, button[aria-pressed=true]) {
   background: var(--buddy-accent);
   border-color: var(--buddy-accent);
   color: var(--buddy-on-accent);
@@ -226,31 +226,6 @@
   margin-top: 1rem;
 }
 
-.buddy-cal-dialog {
-  width: min(520px, calc(100% - 1.2rem));
-  max-height: 85dvh;
-  padding: .9rem;
-  border: 1px solid var(--buddy-border);
-  border-radius: 18px;
-  background: var(--buddy-bg);
-  color: var(--buddy-text);
-  overflow: auto;
-}
-
-.buddy-cal-dialog::backdrop {
-  background: #0009;
-}
-
-.buddy-cal-dialog h3 {
-  margin: 0;
-  overflow-wrap: anywhere;
-}
-
-.buddy-cal-dialog header button {
-  flex: none;
-  width: 44px;
-}
-
 .buddy-cal-form {
   display: grid;
   gap: .65rem;
@@ -274,7 +249,7 @@
   gap: .45rem;
 }
 
-.buddy-cal label.buddy-cal-check {
+:is(.buddy-cal, .buddy-cal-dialog-content) label.buddy-cal-check {
   display: flex;
   align-items: center;
   gap: .5rem;
@@ -288,7 +263,7 @@
   accent-color: var(--buddy-accent);
 }
 
-.buddy-cal-dialog .buddy-cal-danger {
+.buddy-cal-dialog-content .buddy-cal-danger {
   color: var(--buddy-danger);
 }
 
@@ -311,4 +286,11 @@
   .buddy-cal-tabs button {
     font-size: .9rem;
   }
+}
+
+@media (max-width: 390px) {
+  .buddy-cal-row:has(.buddy-cal-tabs), .buddy-cal-files { flex-wrap: wrap; }
+  .buddy-cal-tabs { width: 100%; }
+  .buddy-cal-tabs button { flex: 1 1 0; padding-inline: .2rem; white-space: nowrap; }
+  .buddy-cal-tabs + button { margin-inline-start: auto; }
 }

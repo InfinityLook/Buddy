@@ -58,14 +58,14 @@ export const SporiciSimulator: React.FC = () => {
   }
 
   return (
-    <div className="spsim buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp spsim buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="sporici-simulator" />
       <p className="spsim-disclaimer">
         📊 Jde o simulaci s pevně zadaným úrokem, ne investiční radu — skutečné zhodnocení se
         v čase mění a appka žádná reálná tržní data nesleduje.
       </p>
 
-      <div className="spsim-panel">
+      <div className="buddy-ui-card spsim-panel">
         <h2>Kolik naspořím</h2>
         <div className="spsim-form-grid">
           <label>
@@ -128,7 +128,7 @@ export const SporiciSimulator: React.FC = () => {
         </div>
 
         {!zobrazUlozeni ? (
-          <button className="spsim-ulozit-btn" onClick={() => setZobrazUlozeni(true)}>
+          <button className="buddy-ui-button buddy-ui-button--primary spsim-ulozit-btn" onClick={() => setZobrazUlozeni(true)}>
             💾 Uložit tenhle scénář
           </button>
         ) : (
@@ -147,7 +147,7 @@ export const SporiciSimulator: React.FC = () => {
         )}
       </div>
 
-      <div className="spsim-panel">
+      <div className="buddy-ui-card spsim-panel">
         <h2>Kolik měsíčně potřebuji</h2>
         <p className="spsim-panel-popis">Kolik ušetřit každý měsíc, aby appka za zadanou dobu a úrok dosáhla cíle.</p>
         <label className="spsim-cil-input">
@@ -166,11 +166,11 @@ export const SporiciSimulator: React.FC = () => {
       </div>
 
       {scenare.length > 0 && (
-        <div className="spsim-panel">
+        <div className="buddy-ui-card spsim-panel">
           <h2>Uložené scénáře</h2>
           <div className="spsim-scenare-seznam">
             {scenare.map((s) => (
-              <div key={s.id} className="spsim-scenar-radek">
+              <div key={s.id} className="buddy-ui-card spsim-scenar-radek">
                 <div className="spsim-scenar-text">
                   <strong>{s.nazev}</strong>
                   <span>
@@ -181,7 +181,7 @@ export const SporiciSimulator: React.FC = () => {
                 <div className="spsim-scenar-akce">
                   <button onClick={() => nacistScenar(s)}>Použít</button>
                   <button
-                    className="spsim-smazat-btn"
+                    className="buddy-ui-button spsim-smazat-btn"
                     aria-label={`Smazat scénář ${s.nazev}`}
                     onClick={() => {
                       if (window.confirm(`Smazat scénář „${s.nazev}“?`)) smazatScenar(s.id)

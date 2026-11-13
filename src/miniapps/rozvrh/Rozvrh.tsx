@@ -1,3 +1,4 @@
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
 import React, { useRef, useState } from 'react'
 import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import { stahnoutBlob } from '@/core/utils/download'
@@ -75,6 +76,7 @@ export const Rozvrh: React.FC = () => {
   } = useRozvrh()
 
   const [zalozka, setZalozka] = useState<Zalozka>('rozvrh')
+  const [denFiltru, setDenFiltru] = useState('vse')
   const [formOtevreny, setFormOtevreny] = useState(false)
   const [upravovanaId, setUpravovanaId] = useState<string | null>(null)
   const [form, setForm] = useState(PRAZDNY_FORM)
@@ -298,28 +300,28 @@ export const Rozvrh: React.FC = () => {
   }
 
   return (
-    <div className="rozvrh buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp rozvrh buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="rozvrh" />
-      <div className="rozvrh-zalozky" role="tablist">
+      <div className="buddy-ui-segmented rozvrh-zalozky" role="group" aria-label="Pohled rozvrhu">
         <button
-          role="tab"
-          aria-selected={zalozka === 'rozvrh'}
+          type="button"
+          aria-pressed={zalozka === 'rozvrh'}
           className={`rozvrh-zalozka ${zalozka === 'rozvrh' ? 'je-aktivni' : ''}`}
           onClick={() => setZalozka('rozvrh')}
         >
           🗓 Rozvrh
         </button>
         <button
-          role="tab"
-          aria-selected={zalozka === 'dochazka'}
+          type="button"
+          aria-pressed={zalozka === 'dochazka'}
           className={`rozvrh-zalozka ${zalozka === 'dochazka' ? 'je-aktivni' : ''}`}
           onClick={() => setZalozka('dochazka')}
         >
           ✅ Docházka
         </button>
         <button
-          role="tab"
-          aria-selected={zalozka === 'sprava'}
+          type="button"
+          aria-pressed={zalozka === 'sprava'}
           className={`rozvrh-zalozka ${zalozka === 'sprava' ? 'je-aktivni' : ''}`}
           onClick={() => setZalozka('sprava')}
         >
@@ -330,11 +332,11 @@ export const Rozvrh: React.FC = () => {
       {zalozka === 'rozvrh' && (
         <>
           <div className="rozvrh-horni-lista">
-            <button className="rozvrh-pridat-btn" onClick={otevritPridani}>
+            <button className="buddy-ui-button buddy-ui-button--primary rozvrh-pridat-btn" onClick={otevritPridani}>
               + Přidat hodinu
             </button>
             <button
-              className="rozvrh-export-btn"
+              className="buddy-ui-button rozvrh-export-btn"
               onClick={exportIcs}
               disabled={hodiny.length === 0}
               aria-label="Exportovat rozvrh do kalendáře"
@@ -343,17 +345,29 @@ export const Rozvrh: React.FC = () => {
             </button>
           </div>
 
-          {hodiny.length === 0 && <p className="rozvrh-prazdno">Zatím žádné hodiny — přidej první.</p>}
+          <label className="rozvrh-den-filtr">
+            Den v týdnu
+            <select className="buddy-ui-input" value={denFiltru} onChange={event => setDenFiltru(event.target.value)}>
+              <option value="vse">Celý týden</option>
+              {DNY_V_TYDNU.map(den => <option key={den.id} value={den.id}>{den.nazev}</option>)}
+            </select>
+          </label>
 
-          {DNY_V_TYDNU.map((den) => {
+          {denFiltru !== 'vse' && hodiny.length > 0 && !hodiny.some(h => String(h.den) === denFiltru) && (
+            <p className="buddy-ui-status rozvrh-prazdno">Pro tento den nemáš žádnou hodinu.</p>
+          )}
+
+          {hodiny.length === 0 && <p className="buddy-ui-status rozvrh-prazdno">Zatím žádné hodiny — přidej první.</p>}
+
+          {DNY_V_TYDNU.filter(den => denFiltru === 'vse' || String(den.id) === denFiltru).map((den) => {
             const hodinyDne = hodinyPodleDne(den.id)
             if (hodinyDne.length === 0) return null
             return (
-              <div key={den.id} className="rozvrh-den-blok">
+              <div key={den.id} className="buddy-ui-card rozvrh-den-blok">
                 <div className="rozvrh-den-hlavicka">
                   <h3>{den.nazev}</h3>
                   <button
-                    className="rozvrh-kopirovat-btn"
+                    className="buddy-ui-button rozvrh-kopirovat-btn"
                     onClick={() => setKopirovanyDen(kopirovanyDen === den.id ? null : den.id)}
                   >
                     📋 Kopírovat den
@@ -396,23 +410,23 @@ export const Rozvrh: React.FC = () => {
                             )}
                           </div>
                           <button
-                            className="rozvrh-vyskyt-btn"
+                            className="buddy-ui-button rozvrh-vyskyt-btn"
                             onClick={() => prepnoutVyskytPanel(h)}
                             aria-label={`Zrušit nebo přesunout výskyt ${h.predmet}`}
                             title="Zrušit nebo přesunout konkrétní den"
                           >
                             📅
                           </button>
-                          <button className="rozvrh-upravit-btn" onClick={() => otevritUpravu(h)} aria-label={`Upravit ${h.predmet}`}>
+                          <button className="buddy-ui-button rozvrh-upravit-btn" onClick={() => otevritUpravu(h)} aria-label={`Upravit ${h.predmet}`}>
                             ✏️
                           </button>
-                          <button className="rozvrh-smazat-btn" onClick={() => smazat(h)} aria-label={`Smazat ${h.predmet}`}>
+                          <button className="buddy-ui-button rozvrh-smazat-btn" onClick={() => smazat(h)} aria-label={`Smazat ${h.predmet}`}>
                             ✕
                           </button>
                         </div>
 
                         {vyskytHodinaId === h.id && (
-                          <div className="rozvrh-vyskyt-panel">
+                          <div className="buddy-ui-card rozvrh-vyskyt-panel">
                             <label className="rozvrh-form-radek">
                               <span>Kterého dne</span>
                               <input
@@ -422,11 +436,11 @@ export const Rozvrh: React.FC = () => {
                               />
                             </label>
                             <div className="rozvrh-vyskyt-akce">
-                              <button type="button" className="rozvrh-form-zrusit" onClick={() => zrusitTentoVyskyt(h)}>
+                              <button type="button" className="buddy-ui-button rozvrh-form-zrusit" onClick={() => zrusitTentoVyskyt(h)}>
                                 🚫 Zrušit tenhle den
                               </button>
                               {!presunForm ? (
-                                <button type="button" className="rozvrh-form-ulozit" onClick={() => otevritPresunForm(h)}>
+                                <button type="button" className="buddy-ui-button buddy-ui-button--primary rozvrh-form-ulozit" onClick={() => otevritPresunForm(h)}>
                                   ↪ Přesunout
                                 </button>
                               ) : null}
@@ -461,10 +475,10 @@ export const Rozvrh: React.FC = () => {
                                   </label>
                                 </div>
                                 <div className="rozvrh-form-akce">
-                                  <button type="button" className="rozvrh-form-zrusit" onClick={() => setPresunForm(null)}>
+                                  <button type="button" className="buddy-ui-button rozvrh-form-zrusit" onClick={() => setPresunForm(null)}>
                                     Zrušit
                                   </button>
-                                  <button type="button" className="rozvrh-form-ulozit" onClick={() => potvrditPresun(h)}>
+                                  <button type="button" className="buddy-ui-button buddy-ui-button--primary rozvrh-form-ulozit" onClick={() => potvrditPresun(h)}>
                                     Uložit přesun
                                   </button>
                                 </div>
@@ -504,77 +518,85 @@ export const Rozvrh: React.FC = () => {
           })}
 
           {formOtevreny && (
-            <form className="rozvrh-form" onSubmit={handleSubmit}>
-              <label className="rozvrh-form-radek">
-                <span>Den</span>
-                <select value={form.den} onChange={(e) => setForm({ ...form, den: Number(e.target.value) as DenVTydnu })}>
-                  {DNY_V_TYDNU.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.nazev}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="rozvrh-form-radek">
-                <span>Cyklus</span>
-                <select
-                  value={form.tyden}
-                  onChange={(e) => setForm({ ...form, tyden: e.target.value as TydenCyklus })}
-                >
-                  {Object.entries(NAZEV_CYKLU).map(([id, nazev]) => (
-                    <option key={id} value={id}>
-                      {nazev}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <div className="rozvrh-form-cas">
+            <BuddyDialog
+              surfaceId="rozvrh"
+              title={upravovanaId ? 'Upravit hodinu' : 'Přidat hodinu'}
+              onClose={() => setFormOtevreny(false)}
+              contentClassName="buddy-miniapp"
+            >
+              <form className="rozvrh-form" onSubmit={handleSubmit}>
                 <label className="rozvrh-form-radek">
-                  <span>Od</span>
-                  <input type="time" value={form.casOd} onChange={(e) => setForm({ ...form, casOd: e.target.value })} required />
+                  <span>Den</span>
+                  <select value={form.den} onChange={(e) => setForm({ ...form, den: Number(e.target.value) as DenVTydnu })}>
+                    {DNY_V_TYDNU.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.nazev}
+                      </option>
+                    ))}
+                  </select>
                 </label>
                 <label className="rozvrh-form-radek">
-                  <span>Do</span>
-                  <input type="time" value={form.casDo} onChange={(e) => setForm({ ...form, casDo: e.target.value })} required />
+                  <span>Cyklus</span>
+                  <select
+                    value={form.tyden}
+                    onChange={(e) => setForm({ ...form, tyden: e.target.value as TydenCyklus })}
+                  >
+                    {Object.entries(NAZEV_CYKLU).map(([id, nazev]) => (
+                      <option key={id} value={id}>
+                        {nazev}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-              </div>
-              {kolize.length > 0 && (
-                <p className="rozvrh-form-kolize" role="alert">
-                  ⚠️ Překrývá se s: {kolize.map((h) => `${h.predmet} (${h.casOd}–${h.casDo})`).join(', ')}
-                </p>
-              )}
-              <input
-                placeholder="Předmět"
-                value={form.predmet}
-                onChange={(e) => setForm({ ...form, predmet: e.target.value })}
-                spellCheck
-                lang="cs"
-                autoFocus
-                required
-              />
-              <input
-                placeholder="Místnost (nepovinné)"
-                value={form.mistnost}
-                onChange={(e) => setForm({ ...form, mistnost: e.target.value })}
-                spellCheck
-                lang="cs"
-              />
-              <input
-                placeholder="Vyučující (nepovinné)"
-                value={form.vyucujici}
-                onChange={(e) => setForm({ ...form, vyucujici: e.target.value })}
-                spellCheck
-                lang="cs"
-              />
-              <div className="rozvrh-form-akce">
-                <button type="button" className="rozvrh-form-zrusit" onClick={() => setFormOtevreny(false)}>
-                  Zrušit
-                </button>
-                <button type="submit" className="rozvrh-form-ulozit">
-                  {upravovanaId ? 'Uložit změny' : 'Přidat'}
-                </button>
-              </div>
-            </form>
+                <div className="rozvrh-form-cas">
+                  <label className="rozvrh-form-radek">
+                    <span>Od</span>
+                    <input type="time" value={form.casOd} onChange={(e) => setForm({ ...form, casOd: e.target.value })} required />
+                  </label>
+                  <label className="rozvrh-form-radek">
+                    <span>Do</span>
+                    <input type="time" value={form.casDo} onChange={(e) => setForm({ ...form, casDo: e.target.value })} required />
+                  </label>
+                </div>
+                {kolize.length > 0 && (
+                  <p className="rozvrh-form-kolize" role="alert">
+                    ⚠️ Překrývá se s: {kolize.map((h) => `${h.predmet} (${h.casOd}–${h.casDo})`).join(', ')}
+                  </p>
+                )}
+                <input
+                  aria-label="Předmět"
+                  placeholder="Předmět"
+                  value={form.predmet}
+                  onChange={(e) => setForm({ ...form, predmet: e.target.value })}
+                  spellCheck
+                  lang="cs"
+                  autoFocus
+                  required
+                />
+                <input
+                  placeholder="Místnost (nepovinné)"
+                  value={form.mistnost}
+                  onChange={(e) => setForm({ ...form, mistnost: e.target.value })}
+                  spellCheck
+                  lang="cs"
+                />
+                <input
+                  placeholder="Vyučující (nepovinné)"
+                  value={form.vyucujici}
+                  onChange={(e) => setForm({ ...form, vyucujici: e.target.value })}
+                  spellCheck
+                  lang="cs"
+                />
+                <div className="rozvrh-form-akce">
+                  <button type="button" className="buddy-ui-button rozvrh-form-zrusit" onClick={() => setFormOtevreny(false)}>
+                    Zrušit
+                  </button>
+                  <button type="submit" className="buddy-ui-button buddy-ui-button--primary rozvrh-form-ulozit">
+                    {upravovanaId ? 'Uložit změny' : 'Přidat'}
+                  </button>
+                </div>
+              </form>
+            </BuddyDialog>
           )}
         </>
       )}
@@ -584,9 +606,9 @@ export const Rozvrh: React.FC = () => {
           <div className="rozvrh-dochazka-dnes">
             <h3>Dnešní hodiny</h3>
             {dnesPrazdniny && (
-              <p className="rozvrh-prazdno">🏖 Dnes jsou prázdniny — {dnesPrazdniny.nazev}.</p>
+              <p className="buddy-ui-status rozvrh-prazdno">🏖 Dnes jsou prázdniny — {dnesPrazdniny.nazev}.</p>
             )}
-            {!dnesPrazdniny && dnesek.length === 0 && <p className="rozvrh-prazdno">Dnes podle rozvrhu žádná hodina není.</p>}
+            {!dnesPrazdniny && dnesek.length === 0 && <p className="buddy-ui-status rozvrh-prazdno">Dnes podle rozvrhu žádná hodina není.</p>}
             {!dnesPrazdniny &&
               dnesek.map((e) => {
                 const klic = klicDochazky(e.hodina.id, dnesniIso)
@@ -620,10 +642,10 @@ export const Rozvrh: React.FC = () => {
               })}
           </div>
 
-          <div className="rozvrh-dochazka-prehled">
+          <div className="buddy-ui-card rozvrh-dochazka-prehled">
             <h3>Docházka podle předmětu</h3>
             {dochazkaPredmetu.length === 0 && (
-              <p className="rozvrh-prazdno">Zatím žádné záznamy — označuj docházku výš.</p>
+              <p className="buddy-ui-status rozvrh-prazdno">Zatím žádné záznamy — označuj docházku výš.</p>
             )}
             {dochazkaPredmetu.map((d) => (
               <div key={d.predmet} className="rozvrh-dochazka-procenta-blok">
@@ -657,7 +679,7 @@ export const Rozvrh: React.FC = () => {
             <p className="rozvrh-sprava-popis">
               Hodiny padnoucí do tohodle rozsahu se tenhle den vůbec neukážou a appka na ně nebude upozorňovat.
             </p>
-            <form className="rozvrh-prazdniny-form" onSubmit={handlePridatPrazdniny}>
+            <form className="buddy-ui-card rozvrh-prazdniny-form" onSubmit={handlePridatPrazdniny}>
               <input
                 placeholder="Název (např. Podzimní prázdniny)"
                 value={prazdninyForm.nazev}
@@ -686,13 +708,13 @@ export const Rozvrh: React.FC = () => {
                   />
                 </label>
               </div>
-              <button type="submit" className="rozvrh-form-ulozit">
+              <button type="submit" className="buddy-ui-button buddy-ui-button--primary rozvrh-form-ulozit">
                 + Přidat prázdniny
               </button>
             </form>
 
             {prazdniny.length === 0 ? (
-              <p className="rozvrh-prazdno">Zatím žádné prázdniny nejsou zadané.</p>
+              <p className="buddy-ui-status rozvrh-prazdno">Zatím žádné prázdniny nejsou zadané.</p>
             ) : (
               <ul className="rozvrh-seznam">
                 {prazdniny.map((p) => (
@@ -703,7 +725,7 @@ export const Rozvrh: React.FC = () => {
                         {p.datumOd} – {p.datumDo}
                       </p>
                     </div>
-                    <button className="rozvrh-smazat-btn" onClick={() => smazatPrazdniny(p.id)} aria-label={`Smazat ${p.nazev}`}>
+                    <button className="buddy-ui-button rozvrh-smazat-btn" onClick={() => smazatPrazdniny(p.id)} aria-label={`Smazat ${p.nazev}`}>
                       ✕
                     </button>
                   </li>
@@ -728,7 +750,7 @@ export const Rozvrh: React.FC = () => {
             {navrhyImportu && (
               <div className="rozvrh-import-nahled">
                 {navrhyImportu.length === 0 ? (
-                  <p className="rozvrh-prazdno">V souboru appka nenašla žádnou opakující se hodinu.</p>
+                  <p className="buddy-ui-status rozvrh-prazdno">V souboru appka nenašla žádnou opakující se hodinu.</p>
                 ) : (
                   <>
                     <ul className="rozvrh-import-seznam">
@@ -749,12 +771,12 @@ export const Rozvrh: React.FC = () => {
                       })}
                     </ul>
                     <div className="rozvrh-form-akce">
-                      <button type="button" className="rozvrh-form-zrusit" onClick={zrusitImport}>
+                      <button type="button" className="buddy-ui-button rozvrh-form-zrusit" onClick={zrusitImport}>
                         Zrušit
                       </button>
                       <button
                         type="button"
-                        className="rozvrh-form-ulozit"
+                        className="buddy-ui-button buddy-ui-button--primary rozvrh-form-ulozit"
                         onClick={potvrditImport}
                         disabled={vybraneNavrhy.size === 0}
                       >
@@ -770,11 +792,11 @@ export const Rozvrh: React.FC = () => {
           <section className="rozvrh-sprava-sekce">
             <h3>📚 Semestry a archiv</h3>
             {!semestrFormOtevreny ? (
-              <button className="rozvrh-pridat-btn" onClick={() => setSemestrFormOtevreny(true)}>
+              <button className="buddy-ui-button buddy-ui-button--primary rozvrh-pridat-btn" onClick={() => setSemestrFormOtevreny(true)}>
                 📦 Archivovat a začít nový semestr
               </button>
             ) : (
-              <form className="rozvrh-semestr-form" onSubmit={handleArchivovat}>
+              <form className="buddy-ui-card rozvrh-semestr-form" onSubmit={handleArchivovat}>
                 <input
                   placeholder="Název semestru (např. Zimní semestr 2026)"
                   value={semestrForm.nazev}
@@ -812,10 +834,10 @@ export const Rozvrh: React.FC = () => {
                   <span>Vyčistit aktuální rozvrh (začít nový semestr s čistým rozvrhem)</span>
                 </label>
                 <div className="rozvrh-form-akce">
-                  <button type="button" className="rozvrh-form-zrusit" onClick={() => setSemestrFormOtevreny(false)}>
+                  <button type="button" className="buddy-ui-button rozvrh-form-zrusit" onClick={() => setSemestrFormOtevreny(false)}>
                     Zrušit
                   </button>
-                  <button type="submit" className="rozvrh-form-ulozit">
+                  <button type="submit" className="buddy-ui-button buddy-ui-button--primary rozvrh-form-ulozit">
                     Archivovat
                   </button>
                 </div>
@@ -823,7 +845,7 @@ export const Rozvrh: React.FC = () => {
             )}
 
             {semestry.length === 0 ? (
-              <p className="rozvrh-prazdno">Zatím žádný archivovaný semestr.</p>
+              <p className="buddy-ui-status rozvrh-prazdno">Zatím žádný archivovaný semestr.</p>
             ) : (
               <ul className="rozvrh-seznam">
                 {[...semestry].reverse().map((s) => (
@@ -840,7 +862,7 @@ export const Rozvrh: React.FC = () => {
                         </span>
                       </button>
                       <button
-                        className="rozvrh-smazat-btn"
+                        className="buddy-ui-button rozvrh-smazat-btn"
                         onClick={() => smazatSemestrPotvrzene(s.nazev, s.id)}
                         aria-label={`Smazat semestr ${s.nazev}`}
                       >

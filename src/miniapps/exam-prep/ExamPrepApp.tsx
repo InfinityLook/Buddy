@@ -37,15 +37,10 @@ export const ExamPrepApp: React.FC = () => {
   }
 
   return (
-    <div className="examprep-container buddy-theme-scope" {...rootAttributes}>
+    <div className="buddy-miniapp examprep-container buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="exam-prep" />
       {/* Header */}
-      <header className="examprep-header">
-        <div className="examprep-title-group">
-          <h1 className="examprep-title">Maturitní Centrum</h1>
-          <p className="examprep-subtitle">ExamPrep Hub</p>
-        </div>
-
+      <header className="buddy-ui-card examprep-header">
         <div className="examprep-stats-badge">
           <span className="examprep-stat-item">⭐ Lvl {level}</span>
           <span className="examprep-stat-item">🔥 {streakDays}d</span>
@@ -69,9 +64,11 @@ export const ExamPrepApp: React.FC = () => {
       </main>
 
       {/* Bottom Bar */}
-      <nav className="examprep-tab-bar" aria-label="Navigace zkouškového centra">
+      <nav className="buddy-ui-segmented examprep-tab-bar" aria-label="Navigace zkouškového centra">
         <button
           className={`examprep-tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`}
+          type="button"
+          aria-pressed={activeTab === 'dashboard'}
           onClick={() => setActiveTab('dashboard')}
         >
           <span className="tab-icon">📈</span>
@@ -80,6 +77,8 @@ export const ExamPrepApp: React.FC = () => {
 
         <button
           className={`examprep-tab-btn ${activeTab === 'subjects' ? 'active' : ''}`}
+          type="button"
+          aria-pressed={activeTab === 'subjects'}
           onClick={() => setActiveTab('subjects')}
         >
           <span className="tab-icon">📚</span>
@@ -88,6 +87,8 @@ export const ExamPrepApp: React.FC = () => {
 
         <button
           className={`examprep-tab-btn ${activeTab === 'flashcards' ? 'active' : ''}`}
+          type="button"
+          aria-pressed={activeTab === 'flashcards'}
           onClick={() => setActiveTab('flashcards')}
         >
           <span className="tab-icon">🧠</span>
@@ -96,6 +97,8 @@ export const ExamPrepApp: React.FC = () => {
 
         <button
           className={`examprep-tab-btn ${activeTab === 'simulator' ? 'active' : ''}`}
+          type="button"
+          aria-pressed={activeTab === 'simulator'}
           onClick={() => setActiveTab('simulator')}
         >
           <span className="tab-icon">🎓</span>

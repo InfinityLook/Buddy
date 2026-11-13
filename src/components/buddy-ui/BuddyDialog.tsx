@@ -11,6 +11,7 @@ interface BuddyDialogProps {
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
+  initialFocusRef?: { current: HTMLElement | null }
   closeLabel?: string
   presentation?: 'dialog' | 'sheet'
   className?: string
@@ -24,6 +25,7 @@ export function BuddyDialog({
   onClose,
   children,
   footer,
+  initialFocusRef,
   closeLabel = 'Zavřít panel',
   presentation = 'dialog',
   className = '',
@@ -54,6 +56,7 @@ export function BuddyDialog({
     }
 
     dialog.showModal()
+    initialFocusRef?.current?.focus({ preventScroll: true })
     fitViewport()
     viewport?.addEventListener('resize', fitViewport)
     viewport?.addEventListener('scroll', fitViewport)
@@ -64,7 +67,7 @@ export function BuddyDialog({
       dialog.close()
       if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true })
     }
-  }, [])
+  }, [initialFocusRef])
 
   return createPortal(
     <dialog

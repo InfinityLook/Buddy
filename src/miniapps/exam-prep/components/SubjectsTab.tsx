@@ -1,3 +1,4 @@
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
 import React, { useEffect, useState } from 'react'
 import { useExamPrepStore, ExamTopic } from '../useExamPrepStore'
 
@@ -172,11 +173,11 @@ export const SubjectsTab: React.FC = () => {
 
       {/* Formulář předmětu */}
       {subjectFormId !== null && (
-        <form className="ep-form" onSubmit={handleSubmitSubject}>
+        <form className="buddy-ui-card ep-form" onSubmit={handleSubmitSubject}>
           <h4>{subjectFormId ? 'Upravit předmět' : 'Nový předmět'}</h4>
           <input
             type="text"
-            className="ep-input"
+            className="buddy-ui-input ep-input"
             placeholder="Název (např. Biologie)"
             value={subName}
             onChange={(e) => setSubName(e.target.value)}
@@ -193,7 +194,7 @@ export const SubjectsTab: React.FC = () => {
             />
             <input
               type="date"
-              className="ep-input"
+              className="buddy-ui-input ep-input"
               value={subDate}
               onChange={(e) => setSubDate(e.target.value)}
               aria-label="Datum zkoušky"
@@ -206,19 +207,19 @@ export const SubjectsTab: React.FC = () => {
               type="number"
               min={1}
               max={5}
-              className="ep-input ep-input-num"
+              className="buddy-ui-input ep-input ep-input-num"
               value={subTargetGrade}
               onChange={(e) => setSubTargetGrade(Math.min(5, Math.max(1, Number(e.target.value) || 1)))}
               aria-label="Cílová známka"
             />
           </label>
           <div className="ep-row">
-            <button type="submit" className="ep-btn ep-btn-primary">
+            <button type="submit" className="buddy-ui-button buddy-ui-button--primary ep-btn ep-btn-primary">
               {subjectFormId ? 'Uložit změny' : 'Uložit'}
             </button>
             <button
               type="button"
-              className="ep-btn ep-btn-ghost"
+              className="buddy-ui-button ep-btn ep-btn-ghost"
               onClick={() => setSubjectFormId(null)}
             >
               Zrušit
@@ -239,14 +240,14 @@ export const SubjectsTab: React.FC = () => {
                 🎯 {activeSubject.targetGrade}
               </span>
               <button
-                className="ep-icon-btn"
+                className="buddy-ui-button ep-icon-btn"
                 onClick={openEditSubject}
                 aria-label="Upravit předmět"
               >
                 ✏️
               </button>
               <button
-                className="ep-icon-btn danger"
+                className="buddy-ui-button ep-icon-btn danger"
                 onClick={handleDeleteSubject}
                 aria-label="Smazat předmět"
               >
@@ -268,20 +269,20 @@ export const SubjectsTab: React.FC = () => {
 
           {/* Formulář okruhu */}
           {topicFormId !== null && (
-            <form className="ep-form" onSubmit={handleSubmitTopic} style={{ marginBottom: '1rem' }}>
+            <form className="buddy-ui-card ep-form" onSubmit={handleSubmitTopic} style={{ marginBottom: '1rem' }}>
               <h4>{topicFormId ? 'Upravit okruh' : 'Nový okruh'}</h4>
               <div className="ep-row">
                 <input
                   type="number"
                   min={1}
-                  className="ep-input ep-input-num"
+                  className="buddy-ui-input ep-input ep-input-num"
                   placeholder="Číslo"
                   value={topicNum}
                   onChange={(e) => setTopicNum(Number(e.target.value))}
                 />
                 <input
                   type="text"
-                  className="ep-input"
+                  className="buddy-ui-input ep-input"
                   placeholder="Název otázky/okruhu"
                   value={topicTitle}
                   onChange={(e) => setTopicTitle(e.target.value)}
@@ -295,7 +296,7 @@ export const SubjectsTab: React.FC = () => {
                 </button>
                 <button
                   type="button"
-                  className="ep-btn ep-btn-ghost"
+                  className="buddy-ui-button ep-btn ep-btn-ghost"
                   onClick={() => setTopicFormId(null)}
                 >
                   Zrušit
@@ -311,24 +312,24 @@ export const SubjectsTab: React.FC = () => {
               </p>
             ) : (
               filteredTopics.map((topic) => (
-                <div key={topic.id} className="ep-topic-card">
+                <div key={topic.id} className="buddy-ui-card ep-topic-card">
                   <div className="ep-topic-head">
                     <span className="ep-topic-title">
                       #{topic.topicNumber} {topic.title}
                     </span>
                     <div className="ep-topic-actions">
-                      <button className="ep-notes-btn" onClick={() => handleOpenNotes(topic)}>
+                      <button className="buddy-ui-button ep-notes-btn" onClick={() => handleOpenNotes(topic)}>
                         📝 Výpisky
                       </button>
                       <button
-                        className="ep-icon-btn"
+                        className="buddy-ui-button ep-icon-btn"
                         onClick={() => openEditTopic(topic)}
                         aria-label={`Upravit okruh ${topic.title}`}
                       >
                         ✏️
                       </button>
                       <button
-                        className="ep-icon-btn danger"
+                        className="buddy-ui-button ep-icon-btn danger"
                         onClick={() => handleDeleteTopic(topic)}
                         aria-label={`Smazat okruh ${topic.title}`}
                       >
@@ -350,14 +351,14 @@ export const SubjectsTab: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="ep-empty">
+        <div className="buddy-ui-status ep-empty">
           <span className="ep-empty-icon">📚</span>
           <h3>Zatím žádný předmět</h3>
           <p>
             Přidej si předmět, ze kterého maturuješ — třeba Český jazyk. K němu pak
             zadáš jednotlivé maturitní okruhy.
           </p>
-          <button className="ep-btn ep-btn-primary" onClick={openNewSubject}>
+          <button className="buddy-ui-button buddy-ui-button--primary ep-btn ep-btn-primary" onClick={openNewSubject}>
             + Přidat předmět
           </button>
         </div>
@@ -365,26 +366,29 @@ export const SubjectsTab: React.FC = () => {
 
       {/* Editor výpisků */}
       {editingTopicId && (
-        <div className="ep-modal-backdrop" onClick={closeNotes}>
-          <div className="ep-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>Editor výpisků</h3>
-            <textarea
-              rows={8}
-              className="ep-textarea"
-              value={topicNotes}
-              onChange={(e) => setTopicNotes(e.target.value)}
-              placeholder="Sem si napiš výpisky, body k maturitě, definice…"
-            />
-            <div className="ep-row">
-              <button className="ep-btn ep-btn-primary" onClick={handleSaveNotes}>
+        <BuddyDialog
+          surfaceId="exam-prep"
+          title="Editor výpisků"
+          presentation="sheet"
+          onClose={closeNotes}
+          footer={(
+            <>
+              <button type="button" className="buddy-ui-button" onClick={closeNotes}>Zrušit</button>
+              <button type="button" className="buddy-ui-button buddy-ui-button--primary" onClick={handleSaveNotes}>
                 Uložit výpisky
               </button>
-              <button className="ep-btn ep-btn-ghost" onClick={closeNotes}>
-                Zavřít
-              </button>
-            </div>
-          </div>
-        </div>
+            </>
+          )}
+        >
+          <textarea
+            rows={8}
+            className="buddy-ui-input ep-textarea"
+            aria-label="Výpisky k okruhu"
+            value={topicNotes}
+            onChange={(e) => setTopicNotes(e.target.value)}
+            placeholder="Sem si napiš výpisky, body k maturitě, definice…"
+          />
+        </BuddyDialog>
       )}
     </div>
   )
