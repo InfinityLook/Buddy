@@ -246,54 +246,15 @@ export interface Hlaseni {
 }
 
 // ==========================================
-// Tajný chat
-//
-// Vlastní tabulky (tajne_chaty/tajne_zpravy), ne rozšíření Chat/Zprava
-// výš — jiná hranice přístupu (jen VIP/moderátor/admin, mizící zprávy,
-// bez moderátorského dohledu) i jiná pravidla založení (musí to potvrdit
-// druhá strana), takže sdílet tvar s běžným chatem by jen matlo dvoje
-// pravidla do jednoho typu.
-// ==========================================
-
-export type StavTajnehoChatu = 'cekajici' | 'aktivni' | 'zamitnuto'
-
-export interface TajnyChat {
-  id: string
-  druhy: SocialProfil
-  /** Založil ho přihlášený, nebo ho jen dostal jako pozvánku? */
-  zalozilJa: boolean
-  stav: StavTajnehoChatu
-  createdAt: string
-  /** Za kolik sekund od odeslání zpráva zmizí — nastavuje ho kterýkoli
-   *  účastník (viz CASOVACE_TAJNEHO_CHATU), mění se jen dopředu. */
-  expiraceSekund: number
-}
-
-/**
- * `text` z api.ts/DB pohledu nese od zavedení E2E šifrování base64
- * šifru, ne čitelný text — proto `cifra`, ne `text`. `TajnyChatView.tsx`
- * je jediné místo, které ji umí (s klíčem konkrétního chatu) přeložit
- * zpátky na zobrazitelnou zprávu.
- */
-export interface TajnaZprava {
-  id: string
-  chatId: string
-  odesilatelId: string
-  cifra: string
-  iv: string
-  createdAt: string
-}
-
-// ==========================================
 // Stories
 //
 // Vlastní tabulky (stories/story_views), ne rozšíření Zprava/Chat výš —
 // story nepatří žádnému chatu, je to jeden příspěvek viditelný všem
-// přátelům najednou a mizí po 24 h stejným "belt and suspenders"
-// mechanismem jako tajne_zpravy (RLS skryje prošlou story hned, úklidová
-// funkce ji fyzicky smaže později). Na rozdíl od tajného chatu bez
-// šifrování — obsahem je jedna veřejná (mezi přáteli) fotka, ne
-// soukromá konverzace, takže tu není co skrývat před samotným Supabase.
+// přátelům najednou a mizí po 24 h "belt and suspenders" mechanismem
+// (RLS skryje prošlou story hned, úklidová funkce ji fyzicky smaže
+// později) — bez šifrování, obsahem je jedna veřejná (mezi přáteli)
+// fotka, ne soukromá konverzace, takže tu není co skrývat před samotným
+// Supabase.
 // ==========================================
 
 export interface Story {
@@ -455,21 +416,3 @@ export interface Komentar {
   pocetLajku: number
   lajkujiJa: boolean
 }
-
-/** Presety mizení zpráv — stejná sada, jakou nabízí "mizící zprávy"
- *  v běžných messengerech (Telegram Secret Chat aj.), vynucená i na
- *  databázi (check constraint na tajne_chaty.expirace_sekund), ne jen
- *  tady v UI. */
-export const CASOVACE_TAJNEHO_CHATU: { sekund: number; popis: string }[] = [
-  { sekund: 10, popis: '10 s' },
-  { sekund: 30, popis: '30 s' },
-  { sekund: 60, popis: '1 min' },
-  { sekund: 300, popis: '5 min' },
-  { sekund: 600, popis: '10 min' },
-  { sekund: 900, popis: '15 min' },
-  { sekund: 1800, popis: '30 min' },
-  { sekund: 3600, popis: '1 h' },
-  { sekund: 14400, popis: '4 h' },
-  { sekund: 28800, popis: '8 h' },
-  { sekund: 43200, popis: '12 h' },
-]

@@ -8,9 +8,9 @@ import type { StorySkupina } from './types'
 //
 // Stories se vykreslují jen na jedné obrazovce (DomuPanel.tsx, přes
 // FeedStory.tsx — Fáze 3b sjednocení, viz CLAUDE.md), ne kdekoli, kde
-// je po ruce useSocial() — stejný "vlastní hook, ne zátěž pro hlavní
-// stav" důvod jako u useTajnyChat.ts, jen tady na to (na rozdíl od
-// tajného chatu) nemá vliv žádné oprávnění — Stories smí každý.
+// je po ruce useSocial() — vlastní hook, ať to není zátěž pro hlavní
+// stav. Na rozdíl od jiných omezených funkcí v appce nemá vliv žádné
+// oprávnění — Stories smí každý.
 // ==========================================
 
 export const useStories = () => {

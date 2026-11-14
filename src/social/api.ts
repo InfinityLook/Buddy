@@ -17,8 +17,6 @@ import type {
   Story,
   StorySkupina,
   StoryZhlednuti,
-  TajnaZprava,
-  TajnyChat,
   VerejnyProfil,
   Vysledek,
   VztahKPrispevku,
@@ -131,7 +129,8 @@ export const najdiPodleKodu = async (kod: string): Promise<NalezVysledek> => {
  * Vyhledávání podle jména — appka se přejmenovává na Buddy a necílí
  * jen na školáky, takže hledání jen podle kódu přestává být jedinou
  * cestou. Kód (najdiPodleKodu výš) zůstává v API beze změny, jen ho
- * Social v UI přestává nabízet — počítá se s ním pro budoucí secret chat.
+ * Social v UI přestává nabízet jako jediný způsob — kód ale pořád žije
+ * na profilu (sdílení/QR, viz ProfilSocialniSekce.tsx).
  *
  * Stejně jako u kódu jde přes řízenou funkci v databázi (hledej_podle_
  * jmena), ne přes plain čtení tabulky profiles — ta by musela pustit
@@ -1562,265 +1561,6 @@ export const sledovatPritomnostPratel = (zmena: (userId: string, lastSeenAt: str
 }
 
 // ==========================================
-// Tajný chat
-//
-// Jen pro VIP/moderátory/admina navzájem, mizící zprávy, bez
-// moderátorského dohledu (na rozdíl od Hlášení výš je vidí jen admin).
-// Založení i odeslání jde přes SECURITY DEFINER funkce v databázi
-// (zaloz_tajny_chat/potvrd_tajny_chat/posli_tajnou_zpravu) — ne přes
-// plain insert jako u messages/support_zpravy, protože ověření "má
-// tenhle účet pořád VIP/moderátora/admina" nejde bezpečně schovat do
-// RLS WITH CHECK bez grantnutí pomocné funkce, kterou by pak šlo volat
-// napřímo a zjišťovat roli kohokoli (viz komentář u ma_pravo_na_tajny_
-// chat v migraci). Tenhle soubor jen volá RPC a mapuje výsledek — kdo
-// smí co, rozhoduje výhradně databáze, tlačítko v UI je jen pohodlí.
-// ==========================================
-
-/**
- * Založí (nebo najde už existující) tajný chat s cílem — druhá strana
- * ho musí potvrdit přes potvrdTajnyChat, než se dá do něj psát. Cíl se
- * hledá stejně jako dřív přátelství přes kód (najdiPodleKodu) — tady se
- * to konečně hodí, jak bylo od začátku plánováno.
- */
-export const zalozTajnyChat = async (cilId: string): Promise<{ chatId: string | null } & Vysledek> => {
-  if (!supabase) return { ...NENI_CLOUD, chatId: null }
-
-  const { data, error } = await supabase.rpc('zaloz_tajny_chat', { cil: cilId })
-  if (error || !data) return { ...chyba(error), chatId: null }
-
-  return { ok: true, chatId: data as string }
-}
-
-export const potvrdTajnyChat = async (chatId: string, prijmout: boolean): Promise<Vysledek> => {
-  if (!supabase) return NENI_CLOUD
-
-  const { error } = await supabase.rpc('potvrd_tajny_chat', {
-    p_chat_id: chatId,
-    p_prijmout: prijmout,
-  })
-
-  return error ? chyba(error) : { ok: true }
-}
-
-/**
- * Vlastní tajné chaty — čekající pozvánky (odeslané i přijaté) i aktivní.
- * Na rozdíl od nactiChaty() žádné stránkování ani poslední zpráva v
- * náhledu — mizící obsah se do náhledu v seznamu záměrně nedává, ať se
- * text zprávy neobjeví o víc míst, než je nutné.
- */
-export const nactiTajneChaty = async (): Promise<TajnyChat[]> => {
-  if (!supabase) return []
-
-  const { data: relace } = await supabase.auth.getSession()
-  const ja = relace.session?.user?.id
-  if (!ja) return []
-
-  const { data, error } = await supabase
-    .from('tajne_chaty')
-    .select('id, ucastnik_a, ucastnik_b, zalozil, stav, created_at, expirace_sekund')
-    .order('created_at', { ascending: false })
-
-  if (error || !data) return []
-
-  const druheIdy = data.map((r) => (r.ucastnik_a === ja ? r.ucastnik_b : r.ucastnik_a))
-  const profily = await nactiProfily(druheIdy)
-
-  return data
-    .map((r) => {
-      const druheId = r.ucastnik_a === ja ? r.ucastnik_b : r.ucastnik_a
-      const druhy = profily.get(druheId)
-      if (!druhy) return null
-
-      return {
-        id: r.id,
-        druhy,
-        zalozilJa: r.zalozil === ja,
-        stav: r.stav as TajnyChat['stav'],
-        createdAt: r.created_at,
-        expiraceSekund: r.expirace_sekund,
-      }
-    })
-    .filter((c): c is TajnyChat => c !== null)
-}
-
-/** Kdo smí kdy sáhnout na chat, hlídá zaloz_tajny_chat/potvrd_tajny_chat
- *  (viz migrace); tohle je jen řízené volání téhle jedné funkce. */
-export const nastavExpiraciTajnehoChatu = async (chatId: string, sekund: number): Promise<Vysledek> => {
-  if (!supabase) return NENI_CLOUD
-
-  const { error } = await supabase.rpc('nastav_expiraci_tajneho_chatu', {
-    p_chat_id: chatId,
-    p_sekund: sekund,
-  })
-
-  return error ? chyba(error) : { ok: true }
-}
-
-const tajnaZpravaZRadku = (r: {
-  id: string
-  chat_id: string
-  odesilatel: string
-  text: string
-  iv: string
-  created_at: string
-}): TajnaZprava => ({
-  id: r.id,
-  chatId: r.chat_id,
-  odesilatelId: r.odesilatel,
-  cifra: r.text,
-  iv: r.iv,
-  createdAt: r.created_at,
-})
-
-/** Bez stránkování — mizící obsah se nehromadí do stovek zpráv jako
- *  běžný chat, malý jednorázový select stačí. Vrací šifru (viz
- *  TajnaZprava v types.ts) — dešifruje ji až volající, který zná klíč
- *  konkrétního chatu (TajnyChatView.tsx). */
-export const nactiTajneZpravy = async (chatId: string): Promise<TajnaZprava[]> => {
-  if (!supabase) return []
-
-  const { data, error } = await supabase
-    .from('tajne_zpravy')
-    .select('id, chat_id, odesilatel, text, iv, created_at')
-    .eq('chat_id', chatId)
-    .order('created_at', { ascending: true })
-
-  if (error || !data) return []
-  return data.map(tajnaZpravaZRadku)
-}
-
-/** `cifra`/`iv` musí být už zašifrované na volající straně
- *  (tajnyChatCrypto.ts) — api.ts sám nešifruje ani nedešifruje nic,
- *  jen přenáší, co dostal. */
-export const posliTajnouZpravu = async (
-  chatId: string,
-  cifra: string,
-  iv: string
-): Promise<{ zprava: TajnaZprava | null } & Vysledek> => {
-  if (!supabase) return { ...NENI_CLOUD, zprava: null }
-  if (!cifra || !iv) return { ok: false, chyba: 'Prázdnou zprávu poslat nejde.', zprava: null }
-
-  const { data, error } = await supabase.rpc('posli_tajnou_zpravu', {
-    p_chat_id: chatId,
-    p_text: cifra,
-    p_iv: iv,
-  })
-
-  if (error || !data) return { ...chyba(error), zprava: null }
-  return { ok: true, zprava: tajnaZpravaZRadku(data) }
-}
-
-// ---------- E2E klíče ----------
-//
-// Veřejné klíče jen — soukromý nikdy neopustí zařízení (viz
-// tajnyChatCrypto.ts). Nahrání je plain upsert (RLS pouští jen zápis
-// vlastního user_id, žádné riziko zneužití cizí identity), čtení jde
-// přes stejnou tabulku chráněnou RLS, co pustí jen účastníka společného
-// tajného chatu — viz migrace tajny_chat_e2e_a_casovac.
-
-export const nahrajVerejnyKlic = async (base64: string): Promise<void> => {
-  if (!supabase) return
-
-  const { data: relace } = await supabase.auth.getSession()
-  const ja = relace.session?.user?.id
-  if (!ja) return
-
-  await supabase
-    .from('tajne_klice')
-    .upsert({ user_id: ja, verejny_klic: base64 }, { onConflict: 'user_id' })
-}
-
-export const nactiVerejnyKlic = async (userId: string): Promise<string | null> => {
-  if (!supabase) return null
-
-  const { data, error } = await supabase
-    .from('tajne_klice')
-    .select('verejny_klic')
-    .eq('user_id', userId)
-    .maybeSingle()
-
-  if (error || !data) return null
-  return data.verejny_klic
-}
-
-/** Líné mazání expirovaných zpráv — volá se příležitostně (otevření
- *  panelu, odeslání zprávy). Chyba se schválně ignoruje: SELECT politika
- *  expirované skryje i bez fyzického smazání, takže selhání úklidu nikdy
- *  neprozradí něco, co by se jinak neukázalo. */
-export const vycistiExpirovaneTajneZpravy = async (): Promise<void> => {
-  if (!supabase) return
-  await supabase.rpc('smaz_expirovane_tajne_zpravy')
-}
-
-export const sledovatTajneChaty = (zmena: () => void): (() => void) => {
-  const klient = supabase
-  if (!klient) return () => {}
-
-  const kanal = klient
-    .channel(`tajne-chaty:${++poradiKanalu}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'tajne_chaty' }, () => zmena())
-    .subscribe()
-
-  return () => {
-    void klient.removeChannel(kanal)
-  }
-}
-
-export const sledovatTajnyChat = (
-  chatId: string,
-  prisla: (z: TajnaZprava) => void
-): (() => void) => {
-  const klient = supabase
-  if (!klient) return () => {}
-
-  const kanal = klient
-    .channel(`tajny-chat:${chatId}:${++poradiKanalu}`)
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'tajne_zpravy', filter: `chat_id=eq.${chatId}` },
-      (payload) => {
-        const radek = payload.new as Parameters<typeof tajnaZpravaZRadku>[0] | null
-        if (radek?.id) prisla(tajnaZpravaZRadku(radek))
-      }
-    )
-    .subscribe()
-
-  return () => {
-    void klient.removeChannel(kanal)
-  }
-}
-
-/**
- * Živé doručování napříč všemi tajnými chaty najednou — obdoba
- * sledovatVsechnyZpravy pro messages, jen bez filtru na jeden chat.
- * Používá se pro systémovou notifikaci (useTajnyChat.ts), ne pro
- * zobrazení uvnitř otevřeného chatu (to řeší sledovatTajnyChat výš).
- * Bez filtru schválně — Realtime uplatňuje stejná pravidla jako běžné
- * čtení (viz SELECT politika na tajne_zpravy), takže sem dorazí jen
- * zprávy z chatů, kde je uživatel účastníkem.
- */
-export const sledovatVsechnyTajneZpravy = (prisla: (z: TajnaZprava) => void): (() => void) => {
-  const klient = supabase
-  if (!klient) return () => {}
-
-  const kanal = klient
-    .channel(`vsechny-tajne-zpravy:${++poradiKanalu}`)
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'tajne_zpravy' },
-      (payload) => {
-        const radek = payload.new as Parameters<typeof tajnaZpravaZRadku>[0] | null
-        if (radek?.id) prisla(tajnaZpravaZRadku(radek))
-      }
-    )
-    .subscribe()
-
-  return () => {
-    void klient.removeChannel(kanal)
-  }
-}
-
-// ==========================================
 // Sledování (follow) — od sjednocení jediný vztahový model appky (viz
 // types.ts). U veřejného cíle appka rovnou vloží 'prijato', u
 // soukromého ho databázový trigger (nastav_stav_sledovani) sám přepíše
@@ -2690,9 +2430,9 @@ export const pridatStory = async (file: File, caption?: string): Promise<Vyslede
  * od přítele, co mě neblokuje a koho neblokuju já", takže appka se tu
  * neptá na přátelství znovu — jen se ptá, co jí databáze vůbec ukáže.
  *
- * Úklid prošlých řádků (smaz_expirovane_stories) se volá stejně
- * "na dobré slovo" jako u tajných zpráv — chyba appce nevadí, RLS
- * beztak skryje prošlou story hned, i kdyby fyzicky ještě existovala.
+ * Úklid prošlých řádků (smaz_expirovane_stories) se volá "na dobré
+ * slovo" — chyba appce nevadí, RLS beztak skryje prošlou story hned,
+ * i kdyby fyzicky ještě existovala.
  */
 export const nactiStories = async (): Promise<StorySkupina[]> => {
   if (!supabase) return []

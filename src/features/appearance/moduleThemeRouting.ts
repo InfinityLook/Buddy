@@ -4,7 +4,6 @@ export interface ModuleViewState {
   activeAppId?: string | null
   socialTab?: string | null
   chatOpen?: boolean
-  secretChatOpen?: boolean
   settingsSection?: string | null
   adminSection?: string | null
   supportDetail?: boolean
@@ -28,7 +27,6 @@ export function resolveModuleSurface(pathname: string, view: ModuleViewState = {
     case '/skola/upozorneni': return 'school-alerts'
     case '/social':
       if (view.chatOpen) return 'chat-conversation'
-      if (view.secretChatOpen) return 'secret-chat'
       return view.socialTab === 'chaty' ? 'chat-list' : view.socialTab === 'vyhledavac' ? 'people-search' : 'social-home'
     case '/nastaveni': {
       const sections: Record<string, SurfaceId> = { osobni:'settings-personal',zvuk:'settings-sound',vzhled:'settings-appearance',zabezpeceni:'settings-security',soukromi:'settings-privacy',jazyk:'settings-language',tutorial:'settings-tutorial',zaloha:'settings-backup' }

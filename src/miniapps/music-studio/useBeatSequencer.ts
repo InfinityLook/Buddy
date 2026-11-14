@@ -92,7 +92,7 @@ export const useBeatSequencer = (pattern: BeatPattern | null, onOpakovani?: () =
 
   // Úklid při odmontování — nesmí zůstat běžet interval po zavření
   // Beat Makeru/Skladeb, stejná "ukliď za sebou" disciplína jako
-  // usePoseEngine.ts's kamera nebo TajnyChatView.tsx's mikrofon.
+  // usePoseEngine.ts's kamera nebo ChatView.tsx's mikrofon u hlasovek.
   useEffect(() => () => zastavit(), [zastavit])
 
   return { hraje, aktualniKrok, spustit, zastavit }

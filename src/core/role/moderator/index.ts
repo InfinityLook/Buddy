@@ -21,7 +21,6 @@ export const MODERATOR_ROLE: RoleDefinition = {
     'progress.boost',
     'features.premium',
     'moderation.content',
-    'social.secretChat',
   ],
   purchasable: false,
   rank: 50,

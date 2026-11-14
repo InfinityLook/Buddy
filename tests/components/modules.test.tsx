@@ -21,7 +21,7 @@ describe('module hierarchy, views and art', () => {
   })
   it('follows a two-level chat hierarchy and the existing School Room choice', () => {
     const prefs = withSurfaceOverride(withSurfaceOverride(createDefaultPreferences(), 'social-home', 'lesni-klid'), 'school-room', 'polarni-zare')
-    expect(resolveSurfaceTheme(prefs, 'secret-chat')).toBe('lesni-klid')
+    expect(resolveSurfaceTheme(prefs, 'chat-conversation')).toBe('lesni-klid')
     expect(resolveSurfaceTheme(prefs, 'school-stats')).toBe('polarni-zare')
   })
   it('lets common dialogs inherit the actual invoker rather than the unrelated Profile', () => {
@@ -36,7 +36,6 @@ describe('module hierarchy, views and art', () => {
   it('maps actual module states without inventing new URLs', () => {
     expect(resolveModuleSurface('/social', { socialTab: 'chaty' })).toBe('chat-list')
     expect(resolveModuleSurface('/social', { chatOpen: true })).toBe('chat-conversation')
-    expect(resolveModuleSurface('/social', { secretChatOpen: true })).toBe('secret-chat')
     expect(resolveModuleSurface('/nastaveni', { settingsSection: 'zvuk' })).toBe('settings-sound')
     expect(resolveModuleSurface('/admin', { adminSection: 'konzole' })).toBe('admin-console')
     expect(resolveModuleSurface('/podpora', { supportDetail: true })).toBe('support-conversation')

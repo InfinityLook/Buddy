@@ -4,10 +4,8 @@ import { DomuPanel } from './components/DomuPanel'
 import { ChatyPanel } from './components/ChatyPanel'
 import { ChatView } from './components/ChatView'
 import { VyhledavacPanel } from './components/VyhledavacPanel'
-import { TajnyChatView } from './components/TajnyChatView'
 import { VerejnyProfilDialog } from './components/VerejnyProfilDialog'
 import { useSocial } from './useSocial'
-import { useTajnyChat, nastavOtevrenyTajnyChat } from './useTajnyChat'
 import { nastavOtevrenyChat } from './inbox'
 import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import { najdiPodleKodu } from './api'
@@ -34,8 +32,7 @@ type Zalozka = 'chaty' | 'domu' | 'vyhledavac'
 // Hlášení, dřív vlastní čtvrtá záložka "Nastavení" (menu dvou řádků,
 // NastaveniPanel.tsx), se přestěhovaly do appčina skutečného /nastaveni
 // jako karta "Sociální nastavení" (SettingsModule.tsx, lazy
-// SocialniNastaveniSekce.tsx). Tajný chat žije pod "+ Nový" v
-// ChatyPanel.tsx.
+// SocialniNastaveniSekce.tsx).
 //
 // "Profil" dávno přestala být záložka Social — appka má jen jeden
 // skutečný profil (pages/profil/ProfilModule.tsx), Social's vlastní
@@ -56,23 +53,20 @@ type Zalozka = 'chaty' | 'domu' | 'vyhledavac'
 // jednou opuštěná domovská záložka Social se odsud zpátky nedá otevřít
 // jinak než novým načtením /social (bez ?zalozka v adrese) nebo
 // tlačítkem zpět v historii prohlížeče; (2) odznak na "Vyhledávač" pro
-// čekající žádosti o přátelství (cekaZadosti) a přičtení
-// tajnyStav.cekajiciNaMe k odznaku na "Chat" appka neměla kam
+// čekající žádosti o přátelství (cekaZadosti) appka neměla kam
 // přenést — appčina sdílená lišta počítá jen appčinu obecnou
-// schránku (inbox.ts), ne tyhle dvě Socialu vlastní čísla.
+// schránku (inbox.ts), ne tohle Socialu vlastní číslo.
 
 export const SocialModule: React.FC = () => {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const stav = useSocial()
-  const tajnyStav = useTajnyChat()
 
   const z = searchParams.get('zalozka')
   const zalozka: Zalozka = z === 'chaty' || z === 'vyhledavac' ? z : 'domu'
   const surfaceId = zalozka === 'chaty' ? 'chat-list' : zalozka === 'vyhledavac' ? 'people-search' : 'social-home'
   const { rootAttributes } = useSurfaceAppearance(surfaceId)
   const [otevrenyChat, setOtevrenyChat] = useState<string | null>(null)
-  const [otevrenyTajnyChat, setOtevrenyTajnyChat] = useState<string | null>(null)
   // Dialog s profilem se otevírá nad čímkoli jiným (seznam, chat) —
   // proto vlastní stav tady nahoře, ne uvnitř panelu/ChatView, odkud
   // se otevřel.
@@ -124,11 +118,6 @@ export const SocialModule: React.FC = () => {
     [stav.chaty, otevrenyChat]
   )
 
-  const tajnyChat = useMemo(
-    () => tajnyStav.chaty.find((ch) => ch.id === otevrenyTajnyChat) ?? null,
-    [tajnyStav.chaty, otevrenyTajnyChat]
-  )
-
   // Schránka musí vědět, do kterého chatu se uživatel dívá — zprávy
   // z otevřeného rozhovoru se do počtu nepřečtených počítat nemají.
   useEffect(() => {
@@ -136,19 +125,11 @@ export const SocialModule: React.FC = () => {
     return () => nastavOtevrenyChat(null)
   }, [otevrenyChat])
 
-  // Totéž pro tajný chat — jinak by notifikace přišla i na zprávu
-  // z rozhovoru, který má uživatel zrovna otevřený (viz useTajnyChat.ts).
-  useEffect(() => {
-    nastavOtevrenyTajnyChat(otevrenyTajnyChat)
-    return () => nastavOtevrenyTajnyChat(null)
-  }, [otevrenyTajnyChat])
-
   useEffect(() => {
     const chatId = searchParams.get('chat')
     if (zalozka !== 'chaty' || !chatId || stav.nacita) return
 
     if (stav.chaty.some(item => item.id === chatId)) {
-      setOtevrenyTajnyChat(null)
       setOtevrenyChat(chatId)
     }
     setSearchParams(previous => {
@@ -158,7 +139,7 @@ export const SocialModule: React.FC = () => {
     }, { replace: true })
   }, [searchParams, setSearchParams, stav.chaty, stav.nacita, zalozka])
 
-  const inConversation = !!(chat || tajnyChat)
+  const inConversation = !!chat
   const title = zalozka === 'chaty' ? 'Chaty' : zalozka === 'vyhledavac' ? 'Hledat' : 'Feed'
   const pageRef = useRef<HTMLDivElement>(null)
 
@@ -201,17 +182,6 @@ export const SocialModule: React.FC = () => {
           />
           {stav.hlaska && <div className="social-toast" role="status">{stav.hlaska}</div>}
         </>
-      ) : tajnyChat ? (
-        <>
-          <TajnyChatView
-            chat={tajnyChat}
-            mujId={stav.mujId}
-            rekni={stav.rekni}
-            onZpet={() => setOtevrenyTajnyChat(null)}
-            onZmenaNastaveni={tajnyStav.obnovit}
-          />
-          {stav.hlaska && <div className="social-toast" role="status">{stav.hlaska}</div>}
-        </>
       ) : (
         <>
           <BuddyHeader title={title} icon={zalozka === 'vyhledavac' ? 'search' : undefined}
@@ -226,8 +196,7 @@ export const SocialModule: React.FC = () => {
               ) : (
                 <main className="community-scroll">
                   {zalozka === 'chaty' ? (
-                    <ChatyPanel stav={stav} tajnyStav={tajnyStav}
-                      onOtevritChat={setOtevrenyChat} onOtevritTajnyChat={setOtevrenyTajnyChat} />
+                    <ChatyPanel stav={stav} onOtevritChat={setOtevrenyChat} />
                   ) : (
                     <VyhledavacPanel stav={stav} onOtevritProfil={setOtevrenyProfil} initHashtag={initHashtag} />
                   )}
@@ -239,8 +208,8 @@ export const SocialModule: React.FC = () => {
           {stav.hlaska && <div className="social-toast" role="status">{stav.hlaska}</div>}
 
           {/* Krok 19: appčina sdílená spodní lišta — jen tady, ne
-              v otevřeném chatu/tajném chatu výš, ten zůstává
-              celoobrazovkovou, nerušenou obrazovkou stejně jako dřív. */}
+              v otevřeném chatu výš, ten zůstává celoobrazovkovou,
+              nerušenou obrazovkou stejně jako dřív. */}
           <AppBottomNav placement="edge" />
         </>
       )}

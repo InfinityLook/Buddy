@@ -1,22 +1,18 @@
 import React, { useMemo, useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
-import { TajnyChatPanel } from './TajnyChatPanel'
 import * as api from '../api'
 import { useOnlineFriends } from '../presence'
 import { normalizeText } from '@/core/utils/text'
 import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import type { SocialStav } from '../useSocial'
-import type { TajnyChatStav } from '../useTajnyChat'
 
 interface Props {
   stav: SocialStav
-  tajnyStav: TajnyChatStav
   onOtevritChat: (chatId: string) => void
-  onOtevritTajnyChat: (chatId: string) => void
 }
 
-type Volba = 'chat' | 'skupina' | 'tajne'
+type Volba = 'chat' | 'skupina'
 
 const casKratce = (iso: string | null): string => {
   if (!iso) return ''
@@ -40,16 +36,13 @@ const casKratce = (iso: string | null): string => {
 
 /**
  * Chaty — seznam rozhovorů a "+ Nový" nad ním. Dřív tu bylo natvrdo jen
- * založení skupiny; teď je to rozcestník na tři různé začátky
- * konverzace (Chat/Skupina/Tajný chat), stejný mentální model jako
- * "nová zpráva" tužka v Messengeru/Instagramu — appka totiž dřív
- * neměla žádnou přímou cestu, jak založit 1:1 chat odsud, jen z cizího
- * profilu ("Napsat"). Tajný chat sem přibyl z Nastavení — založit/
- * otevřít ho je akce, ne nastavení, a patří vedle ostatních "začni
- * konverzaci" voleb, ne pod ozubené kolo (viz i NastaveniPanel.tsx's
- * vlastní komentář k tomu, proč tam předtím byl).
+ * založení skupiny; teď je to rozcestník na dva různé začátky
+ * konverzace (Chat/Skupina), stejný mentální model jako "nová zpráva"
+ * tužka v Messengeru/Instagramu — appka totiž dřív neměla žádnou
+ * přímou cestu, jak založit 1:1 chat odsud, jen z cizího profilu
+ * ("Napsat").
  */
-export const ChatyPanel: React.FC<Props> = ({ stav, tajnyStav, onOtevritChat, onOtevritTajnyChat }) => {
+export const ChatyPanel: React.FC<Props> = ({ stav, onOtevritChat }) => {
   const [menu, setMenu] = useState(false)
   const [volba, setVolba] = useState<Volba | null>(null)
   const [nazev, setNazev] = useState('')
@@ -114,29 +107,6 @@ export const ChatyPanel: React.FC<Props> = ({ stav, tajnyStav, onOtevritChat, on
     }
   }
 
-  // Tajný chat je celý vlastní panel (založení + tři seznamy podle
-  // stavu pozvánky), ne formulář, co by se vešel do jedné karty jako
-  // Chat/Skupina výš — appka proto místo vnořeného formuláře přepne
-  // celý obsah záložky, stejný "menu → sekce s vlastním tlačítkem
-  // zpět" vzor jako NastaveniPanel.tsx.
-  if (volba === 'tajne') {
-    return (
-      // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
-      // vlastního backdropu, jen dědí motiv od Social (social-home).
-      // TajnyChatPanel.tsx níž se obaluje do VLASTNÍHO surfaceId
-      // (secret-chat) — appka tu drží "chat-list", protože uživatel je
-      // pořád v záložce Chaty, jen o úroveň hlouběji.
-      <SurfaceThemeScope surfaceId="chat-list">
-        <div className="social-panel">
-          <button className="social-back-btn" onClick={zavritMenu}>
-            ← Zpět do chatů
-          </button>
-          <TajnyChatPanel tajnyStav={tajnyStav} rekni={stav.rekni} onOtevrit={onOtevritTajnyChat} />
-        </div>
-      </SurfaceThemeScope>
-    )
-  }
-
   return (
     // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
     // vlastního backdropu, jen dědí motiv od Social (social-home).
@@ -152,9 +122,6 @@ export const ChatyPanel: React.FC<Props> = ({ stav, tajnyStav, onOtevritChat, on
           >
             <SocialIcon name={menu ? 'x' : 'plus'} size={14} />
             {menu ? 'Zrušit' : 'Nový'}
-            {!menu && tajnyStav.cekajiciNaMe > 0 && (
-              <span className="social-odznak">{tajnyStav.cekajiciNaMe}</span>
-            )}
           </button>
         </div>
 
@@ -168,15 +135,6 @@ export const ChatyPanel: React.FC<Props> = ({ stav, tajnyStav, onOtevritChat, on
               <SocialIcon name="users" size={18} />
               Skupina
             </button>
-            {tajnyStav.smim && (
-              <button className="social-nova-volba" onClick={() => setVolba('tajne')}>
-                <SocialIcon name="lock" size={18} />
-                Tajný chat
-                {tajnyStav.cekajiciNaMe > 0 && (
-                  <span className="social-odznak">{tajnyStav.cekajiciNaMe}</span>
-                )}
-              </button>
-            )}
           </div>
         )}
 

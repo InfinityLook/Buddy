@@ -21,7 +21,6 @@ export const VIP_ROLE: RoleDefinition = {
     'cosmetics.premium',
     'progress.boost',
     'features.premium',
-    'social.secretChat',
   ],
   purchasable: true,
   rank: 10,

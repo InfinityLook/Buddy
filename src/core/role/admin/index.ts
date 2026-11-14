@@ -24,7 +24,6 @@ export const ADMIN_ROLE: RoleDefinition = {
     'admin.users',
     'admin.catalog',
     'admin.panel',
-    'social.secretChat',
   ],
   purchasable: false,
   rank: 100,
