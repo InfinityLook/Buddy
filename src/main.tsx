@@ -1,6 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import './styles/global.css'
 
 // Service worker se registruje výhradně v setupPWAUpdates() (App.tsx).
@@ -12,6 +14,10 @@ if (!rootElement) throw new Error('V index.html chybí element #root.')
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary wrapFallback={content => (
+      <SurfaceThemeScope surfaceId="boot" className="buddy-ui-screen-state">{content}</SurfaceThemeScope>
+    )}>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 )

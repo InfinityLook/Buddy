@@ -1,11 +1,14 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ShopIcon } from './components/ShopIcon'
 import { ShopBalance } from './components/ShopBalance'
 import { CreditPackCard } from './components/CreditPackCard'
 import { VipPlanCard } from './components/VipPlanCard'
 import { ShopItemCard } from './components/ShopItemCard'
-import { AppBottomNav } from '@/components/AppBottomNav'
+import { BuddyPage } from '@/components/buddy-ui/BuddyPage'
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
+import type { PurchaseTarget } from './types'
+import { sklonujDen } from '@/core/utils/text'
 import { useShop } from './useShop'
 import {
   CREDIT_PACKS,
@@ -13,27 +16,15 @@ import {
   VIP_BENEFITS,
   VIP_PLANS,
   itemsByCategory,
+  formatPrice,
+  packTotalCredits,
 } from './catalog'
-import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './ShopModule.css'
-
-// ==========================================
-// Obchod.
-//
-// Zatím je to výkladní skříň: katalog, ceny i stavy jsou skutečné, ale
-// platby připojené nejsou a žádný nákup se nedokončí. Všechno vede přes
-// useShop().tryPurchase, takže napojení brány je změna v jednom souboru.
-//
-// Proto tu je nahoře poctivé upozornění — uživatel nesmí klepnout na
-// "koupit" a čekat, že se něco stane.
-// ==========================================
 
 export const ShopModule: React.FC = () => {
   const navigate = useNavigate()
 
-  // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — Obchod je samostatný
-  // modul s vlastním surfaceId, stejně jako apps-launcher/settings.
-  const { rootAttributes } = useSurfaceAppearance('shop')
+  const [selection, setSelection] = useState<PurchaseTarget | null>(null)
 
   const {
     balance,
@@ -43,40 +34,23 @@ export const ShopModule: React.FC = () => {
     vipValidUntil,
     activeCategory,
     setActiveCategory,
-    tryPurchase,
+    getAvailability,
     ownsItem,
-    toast,
   } = useShop()
 
   const polozky = itemsByCategory(activeCategory)
   const kategorie = SHOP_CATEGORIES.find((c) => c.id === activeCategory)
+  const offer = selection?.kind === 'item' ? selection.item : selection?.kind === 'credits' ? selection.pack : selection?.plan
+  const description = selection?.kind === 'item' ? selection.item.description
+    : selection?.kind === 'credits' ? `${packTotalCredits(selection.pack)} kreditů`
+    : selection ? `VIP na ${selection.plan.days} ${sklonujDen(selection.plan.days)}` : ''
 
   return (
-    <div className="shop-page buddy-theme-scope" {...rootAttributes}>
-      <SurfaceBackdrop surfaceId="shop" />
-
-      <div className="shop-top-bar">
-        <div>
-          <button className="shop-back-btn" onClick={() => navigate('/hub')}>
-            ← Zpět do Hubu
-          </button>
-          <h1 className="shop-title">Obchod</h1>
-          <p className="shop-subtitle">
-            Kredity, VIP a doplňky, kterými si aplikaci uděláš po svém.
-          </p>
-        </div>
-        <span className="shop-hero-icon" aria-hidden="true">🛍️</span>
-      </div>
-
-      {/* Nasazená verze zatím neumí přijmout platbu. Říct to rovnou je
-          poctivější než nechat uživatele klepat na tlačítka naslepo. */}
-      <div className="shop-notice">
-        <ShopIcon name="info" size={16} />
-        <span>
-          Obchod je zatím jen náhled — platby se připojují a žádný nákup se
-          teď nedokončí. Ceny i nabídka se ještě můžou změnit.
-        </span>
-      </div>
+    <BuddyPage className="shop-page" surfaceId="shop" title="Obchod"
+      backLabel="Zpět do Hubu" onBack={() => navigate('/hub')}>
+      <p className="shop-notice">
+        <ShopIcon name="info" size={16} /> Platby zatím nejsou dostupné. Nabídka a ceny se mohou změnit.
+      </p>
 
       <ShopBalance
         balance={balance}
@@ -111,7 +85,7 @@ export const ShopModule: React.FC = () => {
                 key={plan.id}
                 plan={plan}
                 isVip={isVip}
-                onBuy={(vybrany) => tryPurchase({ kind: 'vip', plan: vybrany })}
+                onBuy={(vybrany) => setSelection({ kind: 'vip', plan: vybrany })}
               />
             ))}
           </div>
@@ -138,7 +112,7 @@ export const ShopModule: React.FC = () => {
             <CreditPackCard
               key={pack.id}
               pack={pack}
-              onBuy={(vybrany) => tryPurchase({ kind: 'credits', pack: vybrany })}
+              onBuy={(vybrany) => setSelection({ kind: 'credits', pack: vybrany })}
             />
           ))}
         </div>
@@ -153,10 +127,12 @@ export const ShopModule: React.FC = () => {
           </span>
         </div>
 
-        <div className="shop-cat-tabs">
+        <div className="shop-cat-tabs buddy-ui-segmented" role="group" aria-label="Kategorie obchodu">
           {SHOP_CATEGORIES.map((cat) => (
             <button
+              type="button"
               key={cat.id}
+              aria-pressed={activeCategory === cat.id}
               className={`shop-cat-tab ${activeCategory === cat.id ? 'is-active' : ''}`}
               onClick={() => setActiveCategory(cat.id)}
             >
@@ -176,18 +152,24 @@ export const ShopModule: React.FC = () => {
               owned={item.permanent && ownsItem(item.id)}
               affordable={balance >= item.price}
               isVip={isVip}
-              onBuy={(vybrana) => tryPurchase({ kind: 'item', item: vybrana })}
+              onBuy={(vybrana) => setSelection({ kind: 'item', item: vybrana })}
             />
           ))}
         </div>
       </section>
 
-      {toast && <div className="shop-toast">{toast}</div>}
-
-      {/* Krok 19: appčina sdílená spodní lišta — Shop dřív žádnou
-          navigaci na dně nemělo. */}
-      <AppBottomNav />
-    </div>
+      {selection && offer && (
+        <BuddyDialog surfaceId="shop" title={offer.title} onClose={() => setSelection(null)}
+          footer={<button type="button" className="buddy-ui-button" onClick={() => setSelection(null)}>Hotovo</button>}>
+          <p>{description}</p>
+          <dl className="shop-offer-meta">
+            <div><dt>Cena</dt><dd>{'priceHaler' in offer ? formatPrice(offer.priceHaler) : `${offer.price} kreditů`}</dd></div>
+            <div><dt>Zůstatek</dt><dd>{balance} kreditů</dd></div>
+          </dl>
+          <p className="buddy-ui-status" role="status">{getAvailability(selection).message}</p>
+        </BuddyDialog>
+      )}
+    </BuddyPage>
   )
 }
 

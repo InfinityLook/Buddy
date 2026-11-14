@@ -27,15 +27,15 @@ export const ZvukVzhledNavod: React.FC<Props> = () => {
               </div>
               <div className="napoveda-polozka">
                 <strong>🤖 Buddy</strong>
-                <p>Hlas, kterým Buddy k tobě mluví. Sled si tam jeho odpovědi.</p>
+                <p>Hlasitost mluvených odpovědí Buddyho.</p>
               </div>
               <div className="napoveda-polozka">
                 <strong>⚔️ Hra</strong>
-                <p>Zvukové efekty v Souboji — úderům, zásahům, výhře/prohře.</p>
+                <p>Uložená hlasitost herních efektů. Hry jsou v této verzi skryté.</p>
               </div>
               <div className="napoveda-polozka">
                 <strong>🎵 Music</strong>
-                <p>Hudba a beaty v Music Studiu. Můžeš si jich poslechnout i v nabídce aplikací.</p>
+                <p>Hlasitost hudby a beatů v Music Studiu.</p>
               </div>
             </div>
           </div>
@@ -43,21 +43,17 @@ export const ZvukVzhledNavod: React.FC<Props> = () => {
           <div className="settings-field">
             <span className="napoveda-podtitlek">🎨 Vzhled — Barevná témata</span>
             <p className="settings-card-sub">
-              V sekci Vzhled si vybereš, jak má aplikace vypadat. Máš několik barevných palet:
+              V nastavení vzhledu si vybereš jeden z pěti motivů pro celou aplikaci.
             </p>
-            <ul className="napoveda-seznam">
-              <li><strong>Volné téma</strong> — všichni si jich mohou vybrat</li>
-              <li><strong>VIP téma</strong> — speciální pro členy s prémiusí</li>
-            </ul>
             <p className="settings-card-sub">
-              Změna je okamžitá — jakmile si vybereš, aplikace se hned překreslí v tom novém vzhledu.
+              U podporovaných obrazovek můžeš zvolit také vlastní motiv. Náhled v Rooms si prohlédneš před uložením do celé aplikace.
             </p>
           </div>
 
           <div className="settings-field">
             <span className="napoveda-podtitlek">💡 Tip</span>
             <p className="settings-card-sub">
-              Zkus si třeba hlasitost Master pustit na 50 % a hrát Souboj — nebo si najít svůj oblíbený beat v Music Studiu!
+              Hlasitost si můžeš vyzkoušet při přehrávání beatu v Music Studiu.
             </p>
           </div>
         </div>

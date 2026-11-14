@@ -1,5 +1,6 @@
 import { useState, FormEvent } from 'react'
 import { dokoncitObnovuHesla, signOut } from '@/core/supabase/auth'
+import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './Login.css'
 
 // ==========================================
@@ -13,6 +14,7 @@ import './Login.css'
 // ==========================================
 
 export default function NoveHeslo() {
+  const { rootAttributes } = useSurfaceAppearance('login')
   const [heslo, setHeslo] = useState('')
   const [hesloZnovu, setHesloZnovu] = useState('')
   const [chyba, setChyba] = useState<string | null>(null)
@@ -52,34 +54,32 @@ export default function NoveHeslo() {
 
   if (hotovo) {
     return (
-      <div className="login-screen">
-        <div className="login-glow login-glow--cyan" aria-hidden="true" />
-        <div className="login-glow login-glow--violet" aria-hidden="true" />
-        <div className="login-card">
+      <div className="login-screen buddy-theme-scope" {...rootAttributes}>
+        <SurfaceBackdrop surfaceId="login" />
+        <main className="login-card buddy-ui-card">
           <h1 className="login-title">Heslo je změněné</h1>
-          <p className="login-subtitle">Appka tě hned přepne dovnitř.</p>
-        </div>
+          <p className="login-subtitle" role="status">Přihlašuji…</p>
+        </main>
       </div>
     )
   }
 
   return (
-    <div className="login-screen">
-      <div className="login-glow login-glow--cyan" aria-hidden="true" />
-      <div className="login-glow login-glow--violet" aria-hidden="true" />
+    <div className="login-screen buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="login" />
 
-      <div className="login-card">
+      <main className="login-card buddy-ui-card">
         <h1 className="login-title">Nastav si nové heslo</h1>
         <p className="login-subtitle">
           Přišel/a jsi z odkazu na obnovu hesla. Zvol si nové a appka tě hned přihlásí.
         </p>
 
-        <form className="login-form" onSubmit={odeslat}>
+        <form className="login-form" onSubmit={odeslat} aria-busy={probiha}>
           <label className="login-field">
             <span>Nové heslo</span>
             <input
               type="password"
-              placeholder="••••••••"
+              required
               value={heslo}
               onChange={(e) => setHeslo(e.target.value)}
               autoComplete="new-password"
@@ -92,7 +92,7 @@ export default function NoveHeslo() {
             <span>Nové heslo znovu</span>
             <input
               type="password"
-              placeholder="••••••••"
+              required
               value={hesloZnovu}
               onChange={(e) => setHesloZnovu(e.target.value)}
               autoComplete="new-password"
@@ -100,19 +100,19 @@ export default function NoveHeslo() {
             />
           </label>
 
-          {chyba && <p className="login-error">{chyba}</p>}
+          {chyba && <p className="login-error buddy-ui-alert" role="alert">{chyba}</p>}
 
-          <button type="submit" className="login-submit" disabled={probiha}>
+          <button type="submit" className="login-submit buddy-ui-button buddy-ui-button--primary" disabled={probiha}>
             {probiha ? 'Moment…' : 'Nastavit heslo'}
           </button>
         </form>
 
         <p className="login-signup">
-          <button type="button" className="login-link" onClick={() => void signOut()}>
+          <button type="button" className="buddy-ui-button login-link" disabled={probiha} onClick={() => void signOut()}>
             Zpět na přihlášení
           </button>
         </p>
-      </div>
+      </main>
 
       <p className="login-footer">© {new Date().getFullYear()} Buddy</p>
     </div>

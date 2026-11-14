@@ -621,3 +621,22 @@
 @media (max-width: 340px) {
   .shop-vip-plans { grid-template-columns: 1fr; }
 }
+
+.shop-page.buddy-page :is(.shop-balance, .shop-vip-card, .shop-vip-plan, .shop-pack-card, .shop-item-card, .shop-notice) {
+  border-color: var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+  box-shadow: none;
+}
+
+.shop-page.buddy-page .shop-notice { margin: 0; border-color: var(--buddy-warning); }
+.shop-page.buddy-page :is(.shop-vip-plan, .shop-pack-card).is-highlight { border-color: var(--buddy-accent); }
+.shop-page.buddy-page .shop-item-text { min-width: 0; overflow-wrap: anywhere; }
+.shop-page.buddy-page .shop-item-buy { max-width: 7rem; }
+.shop-page.buddy-page .shop-cat-tabs { overflow: visible; flex-wrap: wrap; }
+.shop-page.buddy-page .shop-cat-tab { min-height: var(--buddy-ui-touch); }
+.shop-offer-meta { display: grid; gap: .375rem; margin: .5rem 0; }
+.shop-offer-meta > div { display: flex; justify-content: space-between; gap: .5rem; }
+.shop-offer-meta dt { color: var(--buddy-muted); }
+.shop-offer-meta dd { margin: 0; font-weight: 650; }

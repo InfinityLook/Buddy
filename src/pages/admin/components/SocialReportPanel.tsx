@@ -1,3 +1,4 @@
+import { BuddyConfirm, type BuddyConfirmation } from '@/components/buddy-ui/BuddyConfirm'
 import React, { useEffect, useState } from 'react'
 import * as socialApi from '@/social/api'
 import * as adminApi from '../api'
@@ -23,6 +24,7 @@ export const SocialReportPanel: React.FC = () => {
   const [appBanovani, setAppBanovani] = useState<Record<string, boolean>>({})
   const [nacita, setNacita] = useState(true)
   const [jenNevyrizena, setJenNevyrizena] = useState(true)
+  const [confirmation, setConfirmation] = useState<BuddyConfirmation | null>(null)
   const [hlaska, setHlaska] = useState<string | null>(null)
 
   const nacti = async () => {
@@ -56,65 +58,99 @@ export const SocialReportPanel: React.FC = () => {
   // moderátor tak nemusí čekat na admina s přístupem k banu, aby zmizel
   // konkrétní urážlivý obsah. Hlášení samo tím nezmizí, jen se dá i tak
   // vyřídit stejně jako dřív.
-  const smazatNahlasenouZpravu = async (zpravaId: string) => {
-    if (!window.confirm('Smazat nahlášenou zprávu? Uvidí, že tam zpráva byla, ne co v ní bylo.')) return
-
-    const v = await socialApi.smazatZpravu(zpravaId)
-    oznam(v.ok ? 'Zpráva smazána.' : v.chyba ?? 'Nepovedlo se to.')
-    if (v.ok) await nacti()
+  const smazatNahlasenouZpravu = (zpravaId: string) => {
+    const action = async () => {
+      const v = await socialApi.smazatZpravu(zpravaId)
+      oznam(v.ok ? 'Zpráva smazána.' : v.chyba ?? 'Nepovedlo se to.')
+      if (v.ok) await nacti()
+    }
+    setConfirmation({
+      title: 'Smazat nahlášenou zprávu?',
+      description: 'V chatu zůstane informace o smazané zprávě.',
+      confirmLabel: 'Smazat zprávu',
+      danger: true,
+      action,
+    })
   }
 
   // Smaže přímo nahlášený příspěvek (natvrdo, viz smazatNahlasenyPrispevek
   // v api.ts) — na rozdíl od zprávy výš appka nemá jak zprávu "jen
   // schovat", posts se u vlastníka mažou natvrdo taky, moderátorská
   // cesta se v tomhle od běžné appky neliší.
-  const smazatNahlasenyPrispevek = async (postId: string) => {
-    if (!window.confirm('Smazat nahlášený příspěvek? Nejde to vrátit zpátky.')) return
-
-    const v = await socialApi.smazatNahlasenyPrispevek(postId)
-    oznam(v.ok ? 'Příspěvek smazán.' : v.chyba ?? 'Nepovedlo se to.')
-    if (v.ok) await nacti()
+  const smazatNahlasenyPrispevek = (postId: string) => {
+    const action = async () => {
+      const v = await socialApi.smazatNahlasenyPrispevek(postId)
+      oznam(v.ok ? 'Příspěvek smazán.' : v.chyba ?? 'Nepovedlo se to.')
+      if (v.ok) await nacti()
+    }
+    setConfirmation({
+      title: 'Smazat nahlášený příspěvek?',
+      description: 'Příspěvek se odstraní trvale.',
+      confirmLabel: 'Smazat příspěvek',
+      danger: true,
+      action,
+    })
   }
 
   // Smaže jen profilovou fotku — dřív jediné dostupné nástroje u
   // nevhodne_foto hlášení byly ban ze Socialu/z celé appky, žádný
   // "smaž jen tu fotku", i když samotné hlášení přesně tohle jmenuje.
-  const smazatNahlasenouFotku = async (userId: string, jmeno: string) => {
-    if (!window.confirm(`Smazat profilovou fotku uživatele ${jmeno}? Nejde to vrátit zpátky.`)) return
-
-    const v = await socialApi.smazatNahlasenouFotku(userId)
-    oznam(v.ok ? 'Fotka smazána.' : v.chyba ?? 'Nepovedlo se to.')
-    if (v.ok) await nacti()
-  }
-
-  const prepnoutBan = async (uzivatelId: string, jmeno: string, zabanovat: boolean) => {
-    const v = await adminApi.zabanujZeSocial(uzivatelId, zabanovat)
-    oznam(
-      v.ok
-        ? zabanovat
-          ? `${jmeno} má teď zakázaný Social.`
-          : `${jmeno} má Social zase povolený.`
-        : v.chyba ?? 'Nepovedlo se to.'
-    )
-    if (v.ok) await nacti()
-  }
-
-  const prepnoutAppBan = async (uzivatelId: string, jmeno: string, zabanovat: boolean) => {
-    // Tohle je nevratné v tom smyslu, že dotčený se hned neodhlásí sám
-    // — zamyká celý účet na všech zařízeních, ne jen jednu funkci.
-    if (zabanovat && !window.confirm(`Opravdu zabanovat ${jmeno} z celé aplikace? Nepůjde se přihlásit na žádném zařízení.`)) {
-      return
+  const smazatNahlasenouFotku = (userId: string, jmeno: string) => {
+    const action = async () => {
+      const v = await socialApi.smazatNahlasenouFotku(userId)
+      oznam(v.ok ? 'Fotka smazána.' : v.chyba ?? 'Nepovedlo se to.')
+      if (v.ok) await nacti()
     }
+    setConfirmation({
+      title: 'Smazat profilovou fotku?',
+      description: `Profilová fotka účtu ${jmeno} se odstraní trvale.`,
+      confirmLabel: 'Smazat fotku',
+      danger: true,
+      action,
+    })
+  }
 
-    const v = await adminApi.zabanujCelouAppku(uzivatelId, zabanovat)
-    oznam(
-      v.ok
-        ? zabanovat
-          ? `${jmeno} je zabanovaný z celé appky.`
-          : `${jmeno} se zase může přihlásit.`
-        : v.chyba ?? 'Nepovedlo se to.'
-    )
-    if (v.ok) setAppBanovani((s) => ({ ...s, [uzivatelId]: zabanovat }))
+  const prepnoutBan = (uzivatelId: string, jmeno: string, zabanovat: boolean) => {
+    const action = async () => {
+      const v = await adminApi.zabanujZeSocial(uzivatelId, zabanovat)
+      oznam(
+        v.ok
+          ? zabanovat
+            ? `${jmeno} má teď zakázaný Social.`
+            : `${jmeno} má Social zase povolený.`
+          : v.chyba ?? 'Nepovedlo se to.'
+      )
+      if (v.ok) await nacti()
+    }
+    if (zabanovat) setConfirmation({
+      title: `Zakázat komunitu účtu ${jmeno}?`,
+      confirmLabel: 'Zakázat komunitu',
+      danger: true,
+      action,
+    })
+    else void action()
+  }
+
+  const prepnoutAppBan = (uzivatelId: string, jmeno: string, zabanovat: boolean) => {
+    const action = async () => {
+      const v = await adminApi.zabanujCelouAppku(uzivatelId, zabanovat)
+      oznam(
+        v.ok
+          ? zabanovat
+            ? `${jmeno} je zabanovaný z celé appky.`
+            : `${jmeno} se zase může přihlásit.`
+          : v.chyba ?? 'Nepovedlo se to.'
+      )
+      if (v.ok) setAppBanovani((s) => ({ ...s, [uzivatelId]: zabanovat }))
+    }
+    if (zabanovat) setConfirmation({
+      title: `Zakázat účet ${jmeno}?`,
+      description: 'Účet se nebude moct přihlásit do aplikace.',
+      confirmLabel: 'Zakázat celou aplikaci',
+      danger: true,
+      action,
+    })
+    else void action()
   }
 
   const zobrazena = jenNevyrizena ? hlaseni.filter((h) => h.stav === 'nevyrizeno') : hlaseni
@@ -140,7 +176,7 @@ export const SocialReportPanel: React.FC = () => {
       </div>
 
       {nacita ? (
-        <p className="admin-empty">Načítám…</p>
+        <p className="admin-empty" role="status">Načítám…</p>
       ) : zobrazena.length === 0 ? (
         <p className="admin-empty">{jenNevyrizena ? 'Nic nečeká na vyřízení.' : 'Žádná hlášení.'}</p>
       ) : (
@@ -271,8 +307,9 @@ export const SocialReportPanel: React.FC = () => {
         </div>
       )}
 
-      {hlaska && <div className="admin-toast">{hlaska}</div>}
+      {hlaska && <div className="admin-toast" role="status">{hlaska}</div>}
     </section>
+    {confirmation && <BuddyConfirm surfaceId="admin-reports" confirmation={confirmation} onClose={() => setConfirmation(null)} />}
     </SurfaceThemeScope>
   )
 }

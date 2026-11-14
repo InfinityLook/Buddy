@@ -44,6 +44,7 @@ const FeedModule = lazy(() => import('@/social/FeedModule'))
 // const CtyriKralovstvi = lazy(() => import('@/boardgame/CtyriKralovstvi.tsx'))
 // const FightingModule = lazy(() => import('@/fighting/FightingModule.tsx'))
 // const BoardgameModule = lazy(() => import('@/boardgame/BoardgameModule.tsx'))
+import { BuddyLoading } from '@/components/buddy-ui/BuddyLoading'
 import { BootGate } from '@/components/BootGate'
 import { BiometricLock } from '@/components/BiometricLock'
 import { NetworkStatusBanner } from '@/components/NetworkStatusBanner'
@@ -138,8 +139,9 @@ export default function App() {
 
   return (
     <BootGate>
+      <NetworkStatusBanner />
       {cekaSeNaOdpoved ? (
-        <div className="app-suspense-fallback">Přihlašuji…</div>
+        <BuddyLoading text="Přihlašuji…" />
       ) : stavUctu === 'password-recovery' ? (
         // Audit #8 — odkaz na obnovu zapomenutého hesla. Appka tuhle
         // větev úmyslně dává PŘED biometrický zámek: appka sem dorazí
@@ -301,7 +303,7 @@ export default function App() {
               path="/social"
               element={
                 dovnitr ? (
-                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
+                  <Suspense fallback={<BuddyLoading />}>
                     <SocialModule />
                   </Suspense>
                 ) : (
@@ -318,7 +320,7 @@ export default function App() {
               path="/feed"
               element={
                 dovnitr ? (
-                  <Suspense fallback={<div className="app-suspense-fallback">Načítám…</div>}>
+                  <Suspense fallback={<BuddyLoading />}>
                     <FeedModule />
                   </Suspense>
                 ) : (
@@ -400,7 +402,6 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
 
-          <NetworkStatusBanner />
           <FullscreenToggle />
         </BrowserRouter>
       )}

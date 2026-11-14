@@ -1,6 +1,8 @@
+import { BuddyConfirm } from '@/components/buddy-ui/BuddyConfirm'
 import React, { useState } from 'react'
 import { overBiometrii } from '@/core/utils/biometrics'
 import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
+import '@/pages/login/Login.css'
 import './BiometricLock.css'
 
 // ==========================================
@@ -19,6 +21,7 @@ interface BiometricLockProps {
 
 export const BiometricLock: React.FC<BiometricLockProps> = ({ onUnlock, onVypnoutZamek, credentialId }) => {
   const [probiha, setProbiha] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const [chyba, setChyba] = useState(false)
   const { rootAttributes } = useSurfaceAppearance('biometric-lock')
 
@@ -32,30 +35,35 @@ export const BiometricLock: React.FC<BiometricLockProps> = ({ onUnlock, onVypnou
   }
 
   return (
-    <div className="biometric-lock buddy-theme-scope" role="status" aria-live="polite" {...rootAttributes}>
+    <div className="biometric-lock buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="biometric-lock" />
-      <div className="biometric-lock-glow biometric-lock-glow--cyan" aria-hidden="true" />
-      <div className="biometric-lock-glow biometric-lock-glow--violet" aria-hidden="true" />
 
-      <div className="biometric-lock-card">
+      <main className="biometric-lock-card buddy-ui-card" aria-busy={probiha}>
         <span className="biometric-lock-icon" aria-hidden="true">🔒</span>
         <h1 className="biometric-lock-title">Aplikace je uzamčená</h1>
         <p className="biometric-lock-sub">Ověř se otiskem prstu nebo Face ID a pokračuj tam, kde jsi skončil/a.</p>
 
         {chyba && (
-          <p className="biometric-lock-error">
+          <p className="biometric-lock-error buddy-ui-alert" role="alert">
             Nepovedlo se to. Zkus to znovu, nebo si zámek vypni.
           </p>
         )}
 
-        <button className="biometric-lock-btn" onClick={zkusitOdemknout} disabled={probiha}>
-          {probiha ? 'Ověřuji…' : '🔓 Odemknout'}
+        <button type="button" className="buddy-ui-button buddy-ui-button--primary" onClick={zkusitOdemknout} disabled={probiha}>
+          {probiha ? 'Ověřuji…' : 'Odemknout'}
         </button>
 
-        <button className="biometric-lock-vypnout" onClick={onVypnoutZamek}>
+        <button type="button" className="buddy-ui-button" disabled={probiha} onClick={() => setConfirmOpen(true)}>
           Nejde to? Vypnout zámek
         </button>
-      </div>
+      </main>
+      {confirmOpen && <BuddyConfirm surfaceId="biometric-lock" onClose={() => setConfirmOpen(false)} confirmation={{
+        title: 'Vypnout zámek aplikace?',
+        description: 'Při dalším otevření se Buddy nebude ptát na otisk ani rozpoznání tváře.',
+        confirmLabel: 'Vypnout zámek',
+        danger: true,
+        action: onVypnoutZamek,
+      }} />}
     </div>
   )
 }

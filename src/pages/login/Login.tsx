@@ -1,4 +1,5 @@
 import { useState, FormEvent } from 'react'
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
 import { useNavigate } from 'react-router-dom'
 import { isSupabaseConfigured } from '@/core/supabase/client'
 import { registerAccount, resetPassword, signIn } from '@/core/supabase/auth'
@@ -17,6 +18,9 @@ export default function Login({ onLogin }: LoginProps) {
   const [heslo, setHeslo] = useState('')
   const [chyba, setChyba] = useState<string | null>(null)
   const [hlaska, setHlaska] = useState<string | null>(null)
+  const [resetOpen, setResetOpen] = useState(false)
+  const [resetError, setResetError] = useState<string | null>(null)
+  const [resetBusy, setResetBusy] = useState(false)
   const [probiha, setProbiha] = useState(false)
   const navigate = useNavigate()
 
@@ -64,27 +68,29 @@ export default function Login({ onLogin }: LoginProps) {
     dovnitr()
   }
 
-  const zapomenuteHeslo = async () => {
-    setChyba(null)
-    setHlaska(null)
-
-    if (!email.trim()) {
-      setChyba('Napiš nejdřív e-mail, pošlu na něj odkaz.')
-      return
+  const zapomenuteHeslo = async (event: FormEvent) => {
+    event.preventDefault()
+    if (!email.trim() || resetBusy) return
+    setResetError(null)
+    setResetBusy(true)
+    try {
+      const vysledek = await resetPassword(email.trim())
+      if (vysledek.ok) {
+        setResetOpen(false)
+        setHlaska('Odkaz na změnu hesla je na cestě.')
+      } else {
+        setResetError(vysledek.chyba ?? 'Odkaz se nepodařilo odeslat.')
+      }
+    } finally {
+      setResetBusy(false)
     }
-
-    const vysledek = await resetPassword(email.trim())
-    if (vysledek.ok) setHlaska('Odkaz na změnu hesla je na cestě.')
-    else setChyba(vysledek.chyba ?? 'Nepovedlo se to.')
   }
 
   return (
     <div className="login-screen buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="login" />
-      <div className="login-glow login-glow--cyan" aria-hidden="true" />
-      <div className="login-glow login-glow--violet" aria-hidden="true" />
 
-      <div className="login-card">
+      <main className="login-card buddy-ui-card">
         <div className="login-brand">
           <span className="login-brand__mark">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -114,12 +120,13 @@ export default function Login({ onLogin }: LoginProps) {
             : 'Přihlas se a pokračuj tam, kde jsi skončil/a.'}
         </p>
 
-        <form className="login-form" onSubmit={odeslat}>
+        <form className="login-form" onSubmit={odeslat} aria-busy={probiha}>
           <label className="login-field">
             <span>E-mail</span>
             <input
               type="email"
               placeholder="jmeno@skola.cz"
+              required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               autoComplete="email"
@@ -131,7 +138,7 @@ export default function Login({ onLogin }: LoginProps) {
             <span>Heslo</span>
             <input
               type="password"
-              placeholder="••••••••"
+              required
               value={heslo}
               onChange={(e) => setHeslo(e.target.value)}
               autoComplete={registruje ? 'new-password' : 'current-password'}
@@ -140,15 +147,20 @@ export default function Login({ onLogin }: LoginProps) {
           </label>
 
           {!registruje && (
-            <button type="button" className="login-forgot" onClick={zapomenuteHeslo}>
+            <button type="button" className="buddy-ui-button login-forgot" disabled={probiha} onClick={() => {
+              setChyba(null)
+              setHlaska(null)
+              setResetError(null)
+              setResetOpen(true)
+            }}>
               Zapomenuté heslo?
             </button>
           )}
 
-          {chyba && <p className="login-error">{chyba}</p>}
-          {hlaska && <p className="login-note">{hlaska}</p>}
+          {chyba && <p className="login-error buddy-ui-alert" role="alert">{chyba}</p>}
+          {hlaska && <p className="login-note buddy-ui-status" role="status">{hlaska}</p>}
 
-          <button type="submit" className="login-submit" disabled={probiha}>
+          <button type="submit" className="login-submit buddy-ui-button buddy-ui-button--primary" disabled={probiha}>
             {probiha ? 'Moment…' : registruje ? 'Založit účet' : 'Přihlásit se'}
           </button>
         </form>
@@ -164,7 +176,7 @@ export default function Login({ onLogin }: LoginProps) {
             <p className="login-note">
               Účty nejsou v téhle verzi nastavené, takže se přihlásit nedá.
             </p>
-            <button type="button" className="login-guest" onClick={dovnitr}>
+            <button type="button" className="buddy-ui-button login-guest" onClick={dovnitr}>
               Pokračovat bez účtu
             </button>
           </>
@@ -174,7 +186,7 @@ export default function Login({ onLogin }: LoginProps) {
           {registruje ? 'Účet už máš?' : 'Nemáš účet?'}{' '}
           <button
             type="button"
-            className="login-link"
+            className="buddy-ui-button login-link" disabled={probiha}
             onClick={() => {
               setRezim(registruje ? 'prihlaseni' : 'registrace')
               setChyba(null)
@@ -184,8 +196,24 @@ export default function Login({ onLogin }: LoginProps) {
             {registruje ? 'Přihlas se' : 'Zaregistruj se'}
           </button>
         </p>
-      </div>
+      </main>
 
+      {resetOpen && (
+        <BuddyDialog title="Zapomenuté heslo" surfaceId="login" presentation="sheet"
+          onClose={() => { if (!resetBusy) setResetOpen(false) }}>
+          <form className="login-form" onSubmit={zapomenuteHeslo} aria-busy={resetBusy}>
+            <label className="login-field">
+              <span>E-mail pro obnovu</span>
+              <input type="email" autoComplete="email" value={email} required disabled={resetBusy}
+                onChange={event => setEmail(event.target.value)} />
+            </label>
+            {resetError && <p className="buddy-ui-alert" role="alert">{resetError}</p>}
+            <button className="buddy-ui-button buddy-ui-button--primary" type="submit" disabled={resetBusy || !email.trim()}>
+              {resetBusy ? 'Odesílám…' : 'Poslat odkaz'}
+            </button>
+          </form>
+        </BuddyDialog>
+      )}
       <p className="login-footer">© {new Date().getFullYear()} Buddy</p>
     </div>
   )

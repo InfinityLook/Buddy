@@ -25,21 +25,15 @@ export const PodporaNavod: React.FC<Props> = () => {
           <div className="settings-field">
             <span className="napoveda-podtitlek">📧 Podpora přes formulář</span>
             <p className="settings-card-sub">
-              V Nastavení je také sekce „Podpora". Tam najdeš formulář, kam si napíšeš svůj problém. Tým Buddy ti odpovídá co nejrychleji!
+              V Nastavení otevři Podporu a zvol Nový tiket. Odpověď najdeš v detailu tiketu.
             </p>
           </div>
 
           <div className="settings-field">
             <span className="napoveda-podtitlek">💬 Promluvit s Buddym</span>
             <p className="settings-card-sub">
-              Buddy není jen hráč — je to i tvůj asistent! Můžeš si s ním promluvit přes tlačítko v dolní liště (🤖 Buddy) a požádat o:
+              V Hubu otevři Menu → AI a zvol Chat. Buddy ti může pomoct připravit poznámku, úkol nebo otevřít Plánovač.
             </p>
-            <ul className="napoveda-seznam">
-              <li>Tipy a rady na hru</li>
-              <li>Vysvětlení pravidel</li>
-              <li>Povzbuzení a motivaci</li>
-              <li>Zajímavé historky</li>
-            </ul>
           </div>
 
           <div className="settings-field">
@@ -54,8 +48,8 @@ export const PodporaNavod: React.FC<Props> = () => {
                 <p>Mnoho problémů se vyřeší zavřením a znovu otevřením.</p>
               </div>
               <div className="napoveda-polozka">
-                <strong>Vymazat cache</strong>
-                <p>Pokud vše trvá dlouho, zkus vyčistit cache aplikace v nastavení zařízení.</p>
+                <strong>Zkontroluj připojení</strong>
+                <p>Pokud se tiket nebo jeho zprávy nenačtou, připoj se k síti a zkus načtení zopakovat.</p>
               </div>
             </div>
           </div>

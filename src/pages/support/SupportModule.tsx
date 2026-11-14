@@ -1,9 +1,10 @@
+import { BuddyPage } from '@/components/buddy-ui/BuddyPage'
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { nactiTikety, nactiZpravyTiketu, poslatZpravuTiketu, sledovatZpravyTiketu, vyriditTiket, zalozitTiket } from '@/core/support/api'
 import type { Tiket, ZpravaTiketu } from '@/core/support/types'
 import { useHasPermission } from '@/core/role'
-import { SurfaceBackdrop, SurfaceThemeScope, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './SupportModule.css'
 
 const cas = (iso: string) =>
@@ -21,7 +22,6 @@ const cas = (iso: string) =>
 export const SupportModule: React.FC = () => {
   const navigate = useNavigate()
   const smiAdmin = useHasPermission('admin.panel')
-  const { rootAttributes } = useSurfaceAppearance('support')
 
   const [tikety, setTikety] = useState<Tiket[]>([])
   const [nacita, setNacita] = useState(true)
@@ -30,40 +30,45 @@ export const SupportModule: React.FC = () => {
   const [predmet, setPredmet] = useState('')
   const [prvniZprava, setPrvniZprava] = useState('')
   const [zaklada, setZaklada] = useState(false)
+  const [chybaNacteni, setChybaNacteni] = useState(false)
   const [hlaska, setHlaska] = useState<string | null>(null)
 
-  const nacti = async () => setTikety(await nactiTikety())
-
-  useEffect(() => {
-    void (async () => {
-      await nacti()
+  const nacti = async () => {
+    setNacita(true)
+    setChybaNacteni(false)
+    try {
+      setTikety(await nactiTikety())
+    } catch {
+      setChybaNacteni(true)
+    } finally {
       setNacita(false)
-    })()
-  }, [])
-
-  const oznam = (t: string) => {
-    setHlaska(t)
-    window.setTimeout(() => setHlaska(null), 2800)
+    }
   }
+
+  useEffect(() => { void nacti() }, [])
 
   const zalozit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!predmet.trim() || !prvniZprava.trim() || zaklada) return
 
     setZaklada(true)
-    const v = await zalozitTiket(predmet, prvniZprava)
-    setZaklada(false)
-
-    if (!v.ok || !v.ticketId) {
-      oznam(v.chyba ?? 'Nepovedlo se to.')
-      return
+    setHlaska(null)
+    try {
+      const v = await zalozitTiket(predmet, prvniZprava)
+      if (!v.ok || !v.ticketId) {
+        setHlaska(v.chyba ?? 'Tiket se nepodařilo odeslat.')
+        return
+      }
+      setPredmet('')
+      setPrvniZprava('')
+      setNovy(false)
+      setOtevrenyId(v.ticketId)
+      await nacti()
+    } catch {
+      setHlaska('Tiket se nepodařilo odeslat.')
+    } finally {
+      setZaklada(false)
     }
-
-    setPredmet('')
-    setPrvniZprava('')
-    setNovy(false)
-    await nacti()
-    setOtevrenyId(v.ticketId)
   }
 
   const otevreny = tikety.find((t) => t.id === otevrenyId) ?? null
@@ -71,6 +76,7 @@ export const SupportModule: React.FC = () => {
   if (otevreny) {
     return (
       <VlakloTiketu
+        key={otevreny.id}
         tiket={otevreny}
         smiAdmin={smiAdmin}
         onZpet={() => {
@@ -82,66 +88,56 @@ export const SupportModule: React.FC = () => {
   }
 
   return (
-    <div className="support-page buddy-theme-scope" {...rootAttributes}>
-      <SurfaceBackdrop surfaceId="support" />
-      <div className="support-top-bar">
-        <button className="support-back-btn" onClick={() => navigate('/nastaveni')}>
-          ← Zpět do nastavení
-        </button>
-        <h1 className="support-title">{smiAdmin ? 'Podpora — všechny tikety' : 'Podpora'}</h1>
-        <p className="support-subtitle">
-          {smiAdmin ? 'Tikety od všech uživatelů, nejnovější aktivita nahoře.' : 'Máš dotaz nebo problém? Napiš nám.'}
-        </p>
-      </div>
-
+    <BuddyPage className="support-page" surfaceId="support" title={smiAdmin ? 'Podpora · všechny tikety' : 'Podpora'}
+      backLabel="Zpět do nastavení" onBack={() => navigate('/nastaveni')}>
       {!smiAdmin && (
-        <section className="support-card">
-          {novy ? (
-            <form className="support-form" onSubmit={zalozit}>
-              <input
-                className="support-input"
-                type="text"
-                placeholder="Předmět (např. Nejde mi otevřít Flashcards)"
-                value={predmet}
-                maxLength={200}
-                onChange={(e) => setPredmet(e.target.value)}
-              />
-              <textarea
-                className="support-textarea"
-                placeholder="Popiš, co se děje…"
-                value={prvniZprava}
-                maxLength={2000}
-                rows={4}
-                onChange={(e) => setPrvniZprava(e.target.value)}
-              />
-              <div className="support-form-akce">
-                <button type="button" className="support-btn support-btn--tlumene" onClick={() => setNovy(false)}>
-                  Zrušit
-                </button>
-                <button type="submit" className="support-btn support-btn--ano" disabled={!predmet.trim() || !prvniZprava.trim() || zaklada}>
-                  {zaklada ? 'Zakládám…' : 'Odeslat'}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <button className="support-btn support-btn--ano support-novy-btn" onClick={() => setNovy(true)}>
-              ✉️ Nový tiket
-            </button>
-          )}
-        </section>
+        <button type="button" className="buddy-ui-button buddy-ui-button--primary support-novy-btn" onClick={() => {
+          setHlaska(null)
+          setNovy(true)
+        }}>Nový tiket</button>
+      )}
+
+      {novy && (
+        <BuddyDialog surfaceId="support" title="Nový tiket" presentation="sheet"
+          onClose={() => { if (!zaklada) setNovy(false) }}>
+          <form className="support-form" onSubmit={zalozit} aria-busy={zaklada}>
+            <label className="support-field">
+              Předmět
+              <input className="support-input" value={predmet} maxLength={200} required disabled={zaklada}
+                onChange={event => setPredmet(event.target.value)} />
+            </label>
+            <label className="support-field">
+              Zpráva
+              <textarea className="support-textarea" value={prvniZprava} maxLength={2000} rows={4} required disabled={zaklada}
+                onChange={event => setPrvniZprava(event.target.value)} />
+            </label>
+            {hlaska && <p className="buddy-ui-alert" role="alert">{hlaska}</p>}
+            <div className="support-form-akce">
+              <button type="button" className="buddy-ui-button" disabled={zaklada} onClick={() => setNovy(false)}>Zrušit</button>
+              <button type="submit" className="buddy-ui-button buddy-ui-button--primary" disabled={!predmet.trim() || !prvniZprava.trim() || zaklada}>
+                {zaklada ? 'Odesílám…' : 'Odeslat'}
+              </button>
+            </div>
+          </form>
+        </BuddyDialog>
       )}
 
       <section className="support-card">
-        <span className="support-card-title">{smiAdmin ? 'Tikety' : 'Tvoje tikety'}</span>
+        <h2 className="support-card-title">{smiAdmin ? 'Tikety' : 'Tvoje tikety'}</h2>
 
         {nacita ? (
-          <p className="support-empty">Načítám…</p>
+          <p className="support-empty" role="status">Načítám tikety…</p>
+        ) : chybaNacteni ? (
+          <div className="buddy-ui-alert">
+            <p role="alert">Tikety se nepodařilo načíst.</p>
+            <button type="button" className="buddy-ui-button" onClick={() => void nacti()}>Zkusit znovu</button>
+          </div>
         ) : tikety.length === 0 ? (
           <p className="support-empty">{smiAdmin ? 'Zatím žádné tikety.' : 'Zatím jsi nic nenapsal/a.'}</p>
         ) : (
           <div className="support-tiket-list">
             {tikety.map((t) => (
-              <button key={t.id} className="support-tiket-radek" onClick={() => setOtevrenyId(t.id)}>
+              <button key={t.id} className="support-tiket-radek" type="button" onClick={() => setOtevrenyId(t.id)}>
                 <span className="support-tiket-hlavicka">
                   <strong>{t.subject}</strong>
                   <span className={`support-stav support-stav--${t.status}`}>
@@ -158,8 +154,7 @@ export const SupportModule: React.FC = () => {
         )}
       </section>
 
-      {hlaska && <div className="support-toast">{hlaska}</div>}
-    </div>
+    </BuddyPage>
   )
 }
 
@@ -171,67 +166,90 @@ const VlakloTiketu: React.FC<{ tiket: Tiket; smiAdmin: boolean; onZpet: () => vo
   const [odesila, setOdesila] = useState(false)
   const [vyrizuje, setVyrizuje] = useState(false)
   const [stav, setStav] = useState(tiket.status)
-  const konec = useRef<HTMLDivElement>(null)
+  const vlakno = useRef<HTMLDivElement>(null)
+  const [chybaNacteni, setChybaNacteni] = useState(false)
+  const [chybaAkce, setChybaAkce] = useState<string | null>(null)
+  const [pokus, setPokus] = useState(0)
 
   useEffect(() => {
-    void (async () => {
-      setZpravy(await nactiZpravyTiketu(tiket.id))
-      setNacita(false)
-    })()
-
-    return sledovatZpravyTiketu(tiket.id, (z) => setZpravy((s) => (s.some((x) => x.id === z.id) ? s : [...s, z])))
-  }, [tiket.id])
+    let live = true
+    setNacita(true)
+    setChybaNacteni(false)
+    void nactiZpravyTiketu(tiket.id).then(loaded => {
+      if (live) setZpravy(current => [...loaded, ...current.filter(message => !loaded.some(item => item.id === message.id))])
+    }).catch(() => {
+      if (live) setChybaNacteni(true)
+    }).finally(() => {
+      if (live) setNacita(false)
+    })
+    const unsubscribe = sledovatZpravyTiketu(tiket.id, message => setZpravy(current => (
+      current.some(item => item.id === message.id) ? current : [...current, message]
+    )))
+    return () => {
+      live = false
+      unsubscribe()
+    }
+  }, [tiket.id, pokus])
 
   useEffect(() => {
-    konec.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [zpravy.length])
+    if (vlakno.current) vlakno.current.scrollTop = vlakno.current.scrollHeight
+  }, [zpravy.length, chybaNacteni])
 
   const odeslat = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!text.trim() || odesila) return
 
     setOdesila(true)
-    const v = await poslatZpravuTiketu(tiket.id, text, smiAdmin)
-    setOdesila(false)
-
-    if (v.ok) {
+    setChybaAkce(null)
+    try {
+      const v = await poslatZpravuTiketu(tiket.id, text, smiAdmin)
+      if (!v.ok) {
+        setChybaAkce(v.chyba ?? 'Zprávu se nepodařilo odeslat.')
+        return
+      }
       setText('')
-      // Nespoléhat jen na realtime echo vlastní zprávy zpátky — stejný
-      // důvod jako u ChatView.tsx v Socialu: dokud se odběr nepřipojí
-      // (nebo síť realtime nedovolí), odesílatel by svou vlastní zprávu
-      // ve vlákně neviděl vůbec.
-      setZpravy(await nactiZpravyTiketu(tiket.id))
-      // Zrcadlí trigger oznac_ticket_po_zprave(): zpráva od uživatele
-      // (ne od podpory) tiket v databázi mlčky znovu otevře.
       if (!smiAdmin) setStav('otevreny')
+      setPokus(value => value + 1)
+    } catch {
+      setChybaAkce('Zprávu se nepodařilo odeslat.')
+    } finally {
+      setOdesila(false)
     }
   }
 
   const prepnoutStav = async () => {
+    if (vyrizuje) return
     const novy = stav === 'otevreny' ? 'vyrizeny' : 'otevreny'
     setVyrizuje(true)
-    const v = await vyriditTiket(tiket.id, novy)
-    setVyrizuje(false)
-    if (v.ok) setStav(novy)
+    setChybaAkce(null)
+    try {
+      const v = await vyriditTiket(tiket.id, novy)
+      if (v.ok) setStav(novy)
+      else setChybaAkce(v.chyba ?? 'Stav se nepodařilo změnit.')
+    } catch {
+      setChybaAkce('Stav se nepodařilo změnit.')
+    } finally {
+      setVyrizuje(false)
+    }
   }
 
   return (
-    <SurfaceThemeScope surfaceId="support-conversation">
-    <div className="support-page support-page--vlakno">
-      <div className="support-top-bar">
-        <button className="support-back-btn" onClick={onZpet}>
-          ← Zpět na tikety
-        </button>
-        <h1 className="support-title">{tiket.subject}</h1>
-        <p className="support-subtitle">
-          {tiket.uzivatelJmeno && <>{tiket.uzivatelJmeno} · </>}
-          <span className={`support-stav support-stav--${stav}`}>{stav === 'otevreny' ? 'Otevřený' : 'Vyřízený'}</span>
-        </p>
-      </div>
-
-      <div className="support-vlakno">
-        {nacita ? (
-          <p className="support-empty">Načítám…</p>
+    <BuddyPage surfaceId="support-conversation" className="support-page support-page--vlakno"
+      title={tiket.subject} backLabel="Zpět na tikety" onBack={onZpet}>
+      <p className="support-subtitle">
+        {tiket.uzivatelJmeno && <>{tiket.uzivatelJmeno} · </>}
+        <span role="status" className={`support-stav support-stav--${stav}`}>{stav === 'otevreny' ? 'Otevřený' : 'Vyřízený'}</span>
+      </p>
+      <div className="support-vlakno" ref={vlakno} role="log" aria-label="Zprávy podpory">
+        {nacita && zpravy.length === 0 ? (
+          <p className="support-empty" role="status">Načítám zprávy…</p>
+        ) : chybaNacteni ? (
+          <div className="buddy-ui-alert">
+            <p role="alert">Zprávy se nepodařilo načíst.</p>
+            <button type="button" className="buddy-ui-button" onClick={() => setPokus(value => value + 1)}>Zkusit znovu</button>
+          </div>
+        ) : zpravy.length === 0 ? (
+          <p className="support-empty">V tiketu zatím nejsou zprávy.</p>
         ) : (
           zpravy.map((z) => (
             <div key={z.id} className={`support-bublina-obal ${z.jeOdPodpory ? 'je-podpora' : ''}`}>
@@ -242,7 +260,6 @@ const VlakloTiketu: React.FC<{ tiket: Tiket; smiAdmin: boolean; onZpet: () => vo
             </div>
           ))
         )}
-        <div ref={konec} />
       </div>
 
       {smiAdmin && (
@@ -251,11 +268,14 @@ const VlakloTiketu: React.FC<{ tiket: Tiket; smiAdmin: boolean; onZpet: () => vo
         </button>
       )}
 
+      {chybaAkce && <p className="buddy-ui-alert" role="alert">{chybaAkce}</p>}
       <form className="support-odpoved-form" onSubmit={odeslat}>
         <input
           className="support-input"
           type="text"
+          aria-label="Odpověď"
           placeholder="Napiš odpověď…"
+          disabled={odesila}
           value={text}
           maxLength={2000}
           onChange={(e) => setText(e.target.value)}
@@ -264,8 +284,7 @@ const VlakloTiketu: React.FC<{ tiket: Tiket; smiAdmin: boolean; onZpet: () => vo
           {odesila ? '…' : 'Poslat'}
         </button>
       </form>
-    </div>
-    </SurfaceThemeScope>
+    </BuddyPage>
   )
 }
 

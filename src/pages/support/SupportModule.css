@@ -280,3 +280,39 @@
   flex: 1;
   min-width: 0;
 }
+
+.support-page.buddy-page :is(.support-card, .support-tiket-radek, .support-bublina) {
+  border-color: var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+}
+
+.support-page.buddy-page .support-tiket-radek { min-height: var(--buddy-ui-touch); }
+.support-page.buddy-page .support-tiket-hlavicka { flex-wrap: wrap; overflow-wrap: anywhere; }
+.support-page.buddy-page .support-novy-btn { align-self: start; }
+.support-page.buddy-page .support-subtitle { margin: 0; }
+.support-page.buddy-page .support-bublina.je-podpora { border-color: var(--buddy-accent); }
+.support-page--vlakno .buddy-page-content { overflow: auto; }
+.support-page--vlakno .support-vlakno {
+  flex: 1 1 8rem;
+  min-height: 4rem;
+  padding: .25rem .15rem;
+}
+.support-page--vlakno .support-odpoved-form { flex: none; margin: 0; }
+.support-page--vlakno .support-btn { min-height: var(--buddy-ui-touch); border-radius: var(--buddy-ui-control-radius); }
+.support-page--vlakno .support-btn--ano { background: var(--buddy-accent); color: var(--buddy-on-accent); }
+.support-form :is(.support-input, .support-textarea),
+.support-odpoved-form .support-input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--buddy-ui-touch);
+  border: 1px solid var(--buddy-control-border);
+  border-radius: var(--buddy-ui-control-radius);
+  background: var(--buddy-bg);
+  color: var(--buddy-text);
+  font-size: 1rem;
+}
+.support-field { display: grid; gap: .375rem; color: var(--buddy-text); font-size: .875rem; font-weight: 650; }
+.support-form-akce { flex-wrap: wrap; }
+.support-page.buddy-page .support-card-title { margin: 0; }

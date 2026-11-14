@@ -1,3 +1,4 @@
+import { BuddyConfirm, type BuddyConfirmation } from '@/components/buddy-ui/BuddyConfirm'
 import React, { useEffect, useState } from 'react'
 import * as adminApi from '../api'
 import { ROLE_REGISTRY, VIP_DURATIONS } from '@/core/role'
@@ -23,6 +24,7 @@ export const UzivatelePanel: React.FC = () => {
   const [nacita, setNacita] = useState(true)
   const [socialBany, setSocialBany] = useState<Set<string>>(new Set())
   const [appBany, setAppBany] = useState<Record<string, boolean>>({})
+  const [confirmation, setConfirmation] = useState<BuddyConfirmation | null>(null)
   const [hlaska, setHlaska] = useState<string | null>(null)
   const [vseNacteno, setVseNacteno] = useState(false)
   const [nactiVice, setNactiVice] = useState(false)
@@ -61,27 +63,53 @@ export const UzivatelePanel: React.FC = () => {
     setNactiVice(false)
   }
 
-  const zmenitRoli = async (ucet: UcetRadek, role: NastavitelnaRole) => {
+  const zmenitRoli = (ucet: UcetRadek, role: NastavitelnaRole) => {
+    const action = async () => {
+      const platiDo = role === 'vip' ? new Date(Date.now() + VIP_DURATIONS.month * 86400_000).toISOString() : null
+
+      const v = await adminApi.nastavRoli(ucet.id, role, platiDo)
+      oznam(v.ok ? `${ucet.displayName} má teď roli ${ROLE_REGISTRY[role].title}.` : v.chyba ?? 'Nepovedlo se to.')
+      if (v.ok) setUcty((s) => s.map((u) => (u.id === ucet.id ? { ...u, role, validUntil: platiDo } : u)))
+    }
     if (role === ucet.role) return
-    const platiDo = role === 'vip' ? new Date(Date.now() + VIP_DURATIONS.month * 86400_000).toISOString() : null
 
-    const v = await adminApi.nastavRoli(ucet.id, role, platiDo)
-    oznam(v.ok ? `${ucet.displayName} má teď roli ${ROLE_REGISTRY[role].title}.` : v.chyba ?? 'Nepovedlo se to.')
-    if (v.ok) setUcty((s) => s.map((u) => (u.id === ucet.id ? { ...u, role, validUntil: platiDo } : u)))
+    setConfirmation({
+      title: `Změnit roli účtu ${ucet.displayName}?`,
+      description: `Účet získá roli ${ROLE_REGISTRY[role].title}${role === 'vip' ? ` na ${VIP_DURATIONS.month} dní` : ''}.`,
+      confirmLabel: 'Změnit roli',
+      action,
+    })
   }
 
-  const prepnoutBan = async (ucet: UcetRadek, zabanovat: boolean) => {
-    const v = await adminApi.zabanujZeSocial(ucet.id, zabanovat)
-    oznam(v.ok ? `${ucet.displayName} — Social ${zabanovat ? 'zakázán' : 'povolen'}.` : v.chyba ?? 'Nepovedlo se to.')
-    if (v.ok) setSocialBany((s) => new Set(zabanovat ? [...s, ucet.id] : [...s].filter((id) => id !== ucet.id)))
+  const prepnoutBan = (ucet: UcetRadek, zabanovat: boolean) => {
+    const action = async () => {
+      const v = await adminApi.zabanujZeSocial(ucet.id, zabanovat)
+      oznam(v.ok ? `${ucet.displayName} — Social ${zabanovat ? 'zakázán' : 'povolen'}.` : v.chyba ?? 'Nepovedlo se to.')
+      if (v.ok) setSocialBany((s) => new Set(zabanovat ? [...s, ucet.id] : [...s].filter((id) => id !== ucet.id)))
+    }
+    if (zabanovat) setConfirmation({
+      title: `Zakázat komunitu účtu ${ucet.displayName}?`,
+      confirmLabel: 'Zakázat komunitu',
+      danger: true,
+      action,
+    })
+    else void action()
   }
 
-  const prepnoutAppBan = async (ucet: UcetRadek, zabanovat: boolean) => {
-    if (zabanovat && !window.confirm(`Opravdu zabanovat ${ucet.displayName} z celé aplikace?`)) return
-
-    const v = await adminApi.zabanujCelouAppku(ucet.id, zabanovat)
-    oznam(v.ok ? `${ucet.displayName} — appka ${zabanovat ? 'zakázána' : 'povolena'}.` : v.chyba ?? 'Nepovedlo se to.')
-    if (v.ok) setAppBany((s) => ({ ...s, [ucet.id]: zabanovat }))
+  const prepnoutAppBan = (ucet: UcetRadek, zabanovat: boolean) => {
+    const action = async () => {
+      const v = await adminApi.zabanujCelouAppku(ucet.id, zabanovat)
+      oznam(v.ok ? `${ucet.displayName} — appka ${zabanovat ? 'zakázána' : 'povolena'}.` : v.chyba ?? 'Nepovedlo se to.')
+      if (v.ok) setAppBany((s) => ({ ...s, [ucet.id]: zabanovat }))
+    }
+    if (zabanovat) setConfirmation({
+      title: `Zakázat účet ${ucet.displayName}?`,
+      description: 'Účet se nebude moct přihlásit do aplikace.',
+      confirmLabel: 'Zakázat celou aplikaci',
+      danger: true,
+      action,
+    })
+    else void action()
   }
 
   return (
@@ -92,7 +120,8 @@ export const UzivatelePanel: React.FC = () => {
         <form className="admin-hledat-form" onSubmit={hledej}>
           <input
             className="admin-hledat-input"
-            type="text"
+            type="search"
+            aria-label="Najít uživatele"
             placeholder="Jméno, kód přítele nebo id…"
             value={hledat}
             onChange={(e) => setHledat(e.target.value)}
@@ -101,7 +130,7 @@ export const UzivatelePanel: React.FC = () => {
         </form>
 
         {nacita ? (
-          <p className="admin-empty">Načítám…</p>
+          <p className="admin-empty" role="status">Načítám…</p>
         ) : ucty.length === 0 ? (
           <p className="admin-empty">Nikdo nenalezen.</p>
         ) : (
@@ -122,6 +151,8 @@ export const UzivatelePanel: React.FC = () => {
                   <div className="admin-role-toggle">
                     {NASTAVITELNE_ROLE.map((r) => (
                       <button
+                        type="button"
+                        aria-pressed={r === u.role}
                         key={r}
                         className={r === u.role ? 'active' : ''}
                         onClick={() => zmenitRoli(u, r)}
@@ -169,8 +200,9 @@ export const UzivatelePanel: React.FC = () => {
         )}
       </section>
 
-      {hlaska && <div className="admin-toast">{hlaska}</div>}
+      {hlaska && <div className="admin-toast" role="status">{hlaska}</div>}
     </div>
+    {confirmation && <BuddyConfirm surfaceId="admin-users" confirmation={confirmation} onClose={() => setConfirmation(null)} />}
     </SurfaceThemeScope>
   )
 }

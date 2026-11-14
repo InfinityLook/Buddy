@@ -1,0 +1,33 @@
+.buddy-page.buddy-theme-scope {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 48rem;
+  height: var(--buddy-page-height, 100dvh);
+  top: var(--buddy-page-top, 0px);
+  margin-inline: auto;
+  padding: max(.65rem, env(safe-area-inset-top)) 0 0;
+  overflow: hidden;
+  gap: .55rem;
+  background: var(--buddy-bg);
+}
+
+.buddy-page > .buddy-ui-header {
+  flex: none;
+  margin-inline: max(.65rem, env(safe-area-inset-left), env(safe-area-inset-right));
+}
+
+.buddy-page-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: .65rem;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0 max(.65rem, env(safe-area-inset-left), env(safe-area-inset-right)) .75rem;
+}
+
+.buddy-page-content > * { flex-shrink: 0; }
+.buddy-page-content > .buddy-theme-scope { background: transparent; }

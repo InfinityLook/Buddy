@@ -26,12 +26,12 @@ export const HubNavod: React.FC<Props> = () => {
             <span className="napoveda-podtitlek">Hlavní funkce na Hubu</span>
             <div className="napoveda-seznam">
               <div className="napoveda-polozka">
-                <strong>🎮 Aplikace (Souboj, Music Studio, úkoly)</strong>
-                <p>Všechny hry a aktivity, kterými se můžeš zábavou zlepšovat.</p>
+                <strong>Rooms a aplikace</strong>
+                <p>Vyber si místnost nebo otevři Plánovač, Pomodoro, poznámky či Music Studio.</p>
               </div>
               <div className="napoveda-polozka">
-                <strong>👥 Social (Profily, Chaty, Komunita)</strong>
-                <p>Setkání s ostatními hráči, chat a sdílení obsahu.</p>
+                <strong>Feed a chaty</strong>
+                <p>Příspěvky, profily a rozhovory s ostatními.</p>
               </div>
               <div className="napoveda-polozka">
                 <strong>🏆 Odměny a Statistiky</strong>
@@ -51,8 +51,8 @@ export const HubNavod: React.FC<Props> = () => {
             </p>
             <ul className="napoveda-seznam">
               <li><strong>🏠 Home</strong> – Zpět na Hub</li>
-              <li><strong>🔍 Hledat</strong> – Vyhledávání v Socialu</li>
-              <li><strong>🤖 Buddy</strong> – Promluvit s asistent (uprostřed)</li>
+              <li><strong>🔍 Hledat</strong> – Vyhledávání lidí a hashtagů</li>
+              <li><strong>👤 Profil</strong> – Tvůj profil a upozornění</li>
               <li><strong>💬 Chat</strong> – Zprávy od přátel</li>
               <li><strong>⚙️ Settings</strong> – Nastavení aplikace</li>
             </ul>
@@ -61,7 +61,7 @@ export const HubNavod: React.FC<Props> = () => {
           <div className="settings-field">
             <span className="napoveda-podtitlek">💡 Tip</span>
             <p className="settings-card-sub">
-              Tlačítko Buddy v liště je speciální — kliknutím si s ním můžeš promluvit a získat rady, nebo si poslechnout nějakou historku!
+              Buddyho otevřeš přes Menu → AI. Tlačítkem Chat otevřeš rozhovor.
             </p>
           </div>
         </div>

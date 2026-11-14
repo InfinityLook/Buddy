@@ -5,6 +5,7 @@ interface Props {
   children: ReactNode
   fallbackTitle?: string
   onBack?: () => void
+  wrapFallback?: (content: ReactNode) => ReactNode
 }
 
 interface State {
@@ -24,7 +25,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public render() {
     if (this.state.hasError) {
-      return (
+      const fallback = (
         <div className="buddy-ui-fallback">
           <div className="buddy-ui-alert" role="alert">
             <h2>{this.props.fallbackTitle || 'Aplikaci se nepodařilo načíst'}</h2>
@@ -42,6 +43,7 @@ export class ErrorBoundary extends Component<Props, State> {
           </div>
         </div>
       )
+      return this.props.wrapFallback?.(fallback) ?? fallback
     }
 
     return this.props.children

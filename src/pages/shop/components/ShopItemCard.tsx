@@ -45,22 +45,14 @@ export const ShopItemCard: React.FC<ShopItemCardProps> = ({
       </div>
 
       <div className="shop-item-buy">
-        {owned ? (
-          <span className="shop-item-owned">
-            <ShopIcon name="check" size={14} />
-            Máš
-          </span>
-        ) : item.comingSoon ? (
-          <span className="shop-item-soon">Brzy</span>
-        ) : (
-          <button
-            className={`shop-item-btn ${affordable && !vipZamek ? '' : 'is-dim'}`}
-            onClick={() => onBuy(item)}
-          >
-            {vipZamek ? <ShopIcon name="lock" size={13} /> : <ShopIcon name="coin" size={13} />}
+        <button type="button" className="buddy-ui-button shop-item-detail"
+          aria-label={`Detail nabídky ${item.title}`} onClick={() => onBuy(item)}>
+          {owned ? 'Máš' : item.comingSoon ? 'Brzy' : <>
+            <ShopIcon name={vipZamek ? 'lock' : 'coin'} size={14} />
             {item.price}
-          </button>
-        )}
+          </>}
+        </button>
+        {!owned && !item.comingSoon && !vipZamek && !affordable && <span className="shop-item-note">Málo kreditů</span>}
       </div>
     </article>
   )

@@ -1,150 +1,51 @@
-/* ==========================================
-   Úvodní obrazovka při startu — stejný design systém jako Hub a Profil
-   ========================================== */
-
-.boot-gate {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
+.boot-gate.buddy-theme-scope {
+  height: 100dvh;
+  overflow: auto;
+  display: grid;
   align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  padding: 1.5rem calc(1.5rem + env(safe-area-inset-right)) calc(1.5rem + env(safe-area-inset-bottom))
-    calc(1.5rem + env(safe-area-inset-left));
-  /* Fotka s lampami se sem přestěhovala z Hubu. Tady dává smysl:
-     obrazovka je na pár vteřin, nic se přes ni nečte a maskot na ní
-     stojí v prostředí, ne na prázdném pozadí.
-     Když soubor chybí, zůstanou vidět přechody pod ním. */
-  background-color: var(--bg-base);
-  /* Buddy v2 (viz SurfaceThemeScope výjimka v BootGate.tsx) — tahle
-     fotka zůstává, scrim nad ní appka ale přemigrovala na
-     --buddy-scene-overlay (stejný token/stejný případ jako Hub.tsx's
-     .hub-bg-overlay). Starší komentář tu scrim označoval za appčinu
-     uznanou výjimku "jako u toastů/.buddy-scrim" — ale .boot-gate-name/
-     .boot-gate-status/.boot-gate-version (appčin vlastní text přímo
-     uvnitř .boot-gate-inner) dědí appčinu --text-primary/--text-
-     secondary/--text-muted PŘÍMO odsud, bez mezilehlého appkou
-     odděleného panelu typu .buddy-panel — appka tak tuhle scrim
-     potřebuje stejně jako Hub/Feed, aby se na "Čistém dni" rozjasnila
-     s textem, ne zůstala natvrdo tmavá proti tmavě obrácenému textu.
-     Appčiny vlastní ambientní "záře" (ty dvě radial-gradient kolečka)
-     a appčin fallback přechod níž už motivové tokeny správně měly. */
-  background-image:
-    linear-gradient(
-      180deg,
-      var(--buddy-scene-overlay) 0%,
-      color-mix(in srgb, var(--buddy-scene-overlay) 65%, transparent) 35%,
-      color-mix(in srgb, var(--buddy-scene-overlay) 78%, transparent) 70%,
-      var(--buddy-scene-overlay) 100%
-    ),
-    url('/backgrounds/hub-bg.png'),
-    radial-gradient(circle at 15% 10%, color-mix(in srgb, var(--accent-violet) 22%, transparent) 0%, transparent 40%),
-    radial-gradient(circle at 85% 20%, color-mix(in srgb, var(--accent-cyan) 18%, transparent) 0%, transparent 35%),
-    linear-gradient(180deg, color-mix(in srgb, var(--bg-base) 90%, black) 0%, var(--bg-base) 48%, color-mix(in srgb, var(--bg-base) 85%, black) 100%);
-  background-size: cover;
-  background-position: center bottom;
-  background-repeat: no-repeat;
-  color: var(--text-primary);
+  justify-items: center;
+  padding: max(.75rem, env(safe-area-inset-top)) max(.75rem, env(safe-area-inset-right), env(safe-area-inset-left))
+    max(.75rem, env(safe-area-inset-bottom));
+}
+
+.boot-gate-layout {
+  display: grid;
+  justify-items: center;
+  gap: .625rem;
+  width: min(100%, 21rem);
 }
 
 .boot-gate-inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.85rem;
+  display: grid;
+  justify-items: center;
+  gap: .625rem;
   width: 100%;
-  max-width: 300px;
-  text-align: center;
+  padding: 1rem;
+  background: var(--buddy-panel);
 }
 
-/* Stejná fotka, stejný ořez jako Hub.css's .hub-logo-img/Reward's
-   .reward-logo-img (public/maskot/buddy-vlk.png) — kolečko, zájem na
-   hlavě/uších nahoře, žádný druhý, appce vlastní ořez. Jen větší, ať
-   na splash obrazovce vynikne. */
 .boot-gate-mascot {
-  width: 148px;
-  height: 148px;
+  width: clamp(64px, 25dvh, 130px);
+  aspect-ratio: 1;
+  border: 2px solid var(--buddy-control-border);
   border-radius: 50%;
   object-fit: cover;
-  object-position: center top;
-  border: 3px solid var(--border-strong);
-  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-cyan) 16%, transparent);
-  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.45));
-  animation: boot-gate-float 2.4s ease-in-out infinite;
-}
-
-@keyframes boot-gate-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
 }
 
 .boot-gate-brand {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: .375rem;
   font-size: 1.15rem;
-  font-weight: 800;
-  letter-spacing: -0.3px;
+  font-weight: 750;
 }
 
-.boot-gate-mark {
-  color: var(--accent-cyan);
-  text-shadow: 0 0 12px color-mix(in srgb, var(--accent-cyan) 60%, transparent);
-}
-
-/* Neurčitý ukazatel — nevíme, jak dlouho stahování potrvá,
-   takže pruh jezdí, místo aby předstíral procenta.
-   Prázdná dráha baru stojí přímo na appčině --buddy-scene-overlay
-   (fotka+scrim výš u .boot-gate) — na "Čistém dni" je tenhle overlay
-   skoro bílý (rgba(248,247,253,0.8)), takže natvrdo bílá dráha na 9%
-   by na něm skoro zmizela (stejný problém appka řešila u Hub.tsx's
-   .hub-level-progress — prázdná dráha coby appčina dekorace, ne text,
-   proto --text-primary namísto --bg-base). */
-.boot-gate-bar {
-  position: relative;
-  width: 100%;
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--text-primary) 10%, transparent);
-  overflow: hidden;
-}
-
-.boot-gate-bar-fill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 40%;
-  border-radius: var(--radius-pill);
-  background: linear-gradient(90deg, var(--accent-violet), var(--accent-cyan));
-  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-cyan) 50%, transparent);
-  animation: boot-gate-slide 1.2s ease-in-out infinite;
-}
+.boot-gate-mark { color: var(--buddy-accent); }
+.boot-gate-bar { width: min(100%, 12rem); height: 5px; overflow: hidden; border-radius: 5px; background: var(--buddy-raised); }
+.boot-gate-bar-fill { display: block; width: 40%; height: 100%; border-radius: inherit; background: var(--buddy-accent); animation: boot-gate-slide 1.2s ease-in-out infinite alternate; }
+.boot-gate-status, .boot-gate-version { margin: 0; color: var(--buddy-muted); font-size: .8125rem; }
+.boot-gate-version { padding: .25rem .5rem; border-radius: 8px; background: var(--buddy-panel); }
 
 @keyframes boot-gate-slide {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(250%); }
-}
-
-.boot-gate-status {
-  margin: 0;
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-}
-
-.boot-gate-version {
-  position: absolute;
-  bottom: calc(1rem + env(safe-area-inset-bottom));
-  font-size: 0.6rem;
-  color: var(--text-muted);
-}
-
-/* Bez animací nechceme statický pruh na 40 % — ať je vidět celý */
-@media (prefers-reduced-motion: reduce) {
-  .boot-gate-bar-fill {
-    width: 100%;
-    transform: none;
-  }
+  to { transform: translateX(150%); }
 }

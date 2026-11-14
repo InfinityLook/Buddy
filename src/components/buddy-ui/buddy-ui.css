@@ -35,11 +35,11 @@
 /* Keep header actions clear of the viewport's fullscreen switch. */
 @media (max-width: 970px) {
   :where(#root:has(.fullscreen-toggle-btn)) .buddy-ui-header--panel {
-    padding-inline-end: calc(1.5rem + env(safe-area-inset-right));
+    padding-inline-end: calc(2.25rem + env(safe-area-inset-right));
   }
 
   :where(#root:has(.fullscreen-toggle-btn)) .buddy-ui-header--quiet:has(.buddy-ui-header-actions) {
-    padding-inline-end: calc(2.5rem + env(safe-area-inset-right));
+    padding-inline-end: calc(3.25rem + env(safe-area-inset-right));
   }
 }
 
@@ -395,3 +395,18 @@ dialog.buddy-ui-dialog--sheet.buddy-theme-scope {
   background: var(--buddy-accent);
   border-radius: 999px;
 }
+
+.buddy-ui-button--danger {
+  border-color: var(--buddy-danger);
+  color: var(--buddy-danger);
+}
+
+.buddy-ui-screen-state {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  min-height: 100dvh;
+  padding: 1rem;
+}
+
+.buddy-ui-screen-state > .buddy-ui-card { padding: 1rem; }

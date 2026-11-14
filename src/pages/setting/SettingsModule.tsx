@@ -1,3 +1,6 @@
+import { BuddyPage } from '@/components/buddy-ui/BuddyPage'
+import { BuddyConfirm, type BuddyConfirmation } from '@/components/buddy-ui/BuddyConfirm'
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
 import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { signOut } from '@/core/supabase/auth'
@@ -24,7 +27,6 @@ import {
   listSnapshots,
   saveSnapshot,
 } from '@/core/utils/backupHistory'
-import { AppBottomNav } from '@/components/AppBottomNav'
 import { OsobniUdajeSekce } from './components/OsobniUdajeSekce'
 import { TutorialSekce } from './components/TutorialSekce'
 import { ZvukSekce } from './components/ZvukSekce'
@@ -32,7 +34,7 @@ import { VzhledARamecekSekce } from './components/VzhledARamecekSekce'
 import { ZabezpeceniSekce } from './components/ZabezpeceniSekce'
 import { SoukromiSocialSekce } from './components/SoukromiSocialSekce'
 import { JazykSekce } from './components/JazykSekce'
-import { SurfaceBackdrop, SurfaceThemeScope, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
+import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import './SettingsModule.css'
 
 // ==========================================
@@ -58,8 +60,18 @@ const MENU_POLOZKY: { id: Sekce; ikona: string; barva: string; nazev: string; po
   { id: 'vzhled', ikona: '🎨', barva: 'gradient', nazev: 'Vzhled a rámečky', popis: 'Barva appky a rámeček avatáru' },
   { id: 'zabezpeceni', ikona: '🛡️', barva: 'purple', nazev: 'Zabezpečení', popis: 'Přihlášení a ochrana účtu' },
   { id: 'soukromi', ikona: '🔒', barva: 'purple', nazev: 'Soukromí a Social', popis: 'Kdo tě vidí, blokovaní lidé, nahlášený obsah' },
-  { id: 'tutorial', ikona: '🔮', barva: 'red', nazev: 'Tutorial', popis: 'Úvodní tutorial appky — zatím ve výstavbě' },
+  { id: 'tutorial', ikona: '🔮', barva: 'red', nazev: 'První kroky', popis: 'Jak začít s Rooms, Plánovačem a Pomodorem' },
 ]
+
+const POVRCHY: Record<Sekce, SurfaceId> = {
+  osobni: 'settings-personal',
+  zvuk: 'settings-sound',
+  jazyk: 'settings-language',
+  vzhled: 'settings-appearance',
+  zabezpeceni: 'settings-security',
+  soukromi: 'settings-privacy',
+  tutorial: 'settings-tutorial',
+}
 
 const NADPISY: Record<Sekce, string> = {
   osobni: 'Osobní údaje',
@@ -68,7 +80,7 @@ const NADPISY: Record<Sekce, string> = {
   vzhled: 'Vzhled a rámečky',
   zabezpeceni: 'Zabezpečení',
   soukromi: 'Soukromí a Social',
-  tutorial: 'Tutorial',
+  tutorial: 'První kroky',
 }
 
 // Popis stavu synchronizace pro kartu Synchronizace. Musí být srozumitelný
@@ -84,12 +96,6 @@ const CLOUD_LABELS: Record<string, string> = {
 export const SettingsModule: React.FC = () => {
   const navigate = useNavigate()
 
-  // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — jedno surfaceId pro
-  // celý modul, sdílené mezi oběma vykreslovacími větvemi níž (menu i
-  // otevřená podobrazovka jsou stejná stránka /nastaveni, jen jinak
-  // vykreslená), ne dvě samostatné motivované plochy.
-  const { rootAttributes } = useSurfaceAppearance('settings')
-
   const { logout } = useAuthStore()
   const smiAdmin = useHasPermission('admin.panel')
   const smiModerovat = useHasPermission('moderation.content')
@@ -100,6 +106,7 @@ export const SettingsModule: React.FC = () => {
   const cloudError = useCloudStatus((state) => state.error)
 
   const [sekce, setSekce] = useState<Sekce | null>(null)
+  const [confirmation, setConfirmation] = useState<BuddyConfirmation | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [updateChecking, setUpdateChecking] = useState(false)
   // Odhlašování teď čeká na vynucený flush (viz handleLogout) — "Odhlásit
@@ -136,7 +143,6 @@ export const SettingsModule: React.FC = () => {
   // poslední změny…" výš místo rovnou zmizelé obrazovky.
   const handleLogout = async () => {
     if (odhlasujiSe) return
-    if (!window.confirm('Opravdu se chceš odhlásit?')) return
 
     setOdhlasujiSe(true)
     showToast('Odesílám poslední změny…')
@@ -205,7 +211,10 @@ export const SettingsModule: React.FC = () => {
     }
 
     // Než přepíšeme současný stav, uložíme si ho — obnova jde takhle vzít zpět
-    await saveSnapshot('before-restore')
+    if (!await saveSnapshot('before-restore')) {
+      showToast('Současná data se nepodařilo zálohovat. Obnova se neprovedla.')
+      return
+    }
 
     const result = await restoreFullBackup(snapshot.payload)
     if (!result.success) {
@@ -221,10 +230,7 @@ export const SettingsModule: React.FC = () => {
     setSnapshots(await listSnapshots())
   }
 
-  const handleImportFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
-
+  const handleImportFile = async (file: File) => {
     try {
       // .zip = nová záloha i s obsahem souborů, .json = starší
       // metadata-only formát — obojí musí jít nahrát dál.
@@ -234,7 +240,10 @@ export const SettingsModule: React.FC = () => {
         : { envelope: await importDataFromJson<unknown>(file), soubory: new Map<string, Blob>() }
 
       // Současný stav si schováme, ať jde obnova vzít zpět
-      await saveSnapshot('before-restore')
+      if (!await saveSnapshot('before-restore')) {
+        showToast('Současná data se nepodařilo zálohovat. Obnova se neprovedla.')
+        return
+      }
 
       const result = await restoreFullBackup(data)
 
@@ -257,23 +266,13 @@ export const SettingsModule: React.FC = () => {
       )
     } catch {
       showToast('Soubor není platná záloha.')
-    } finally {
-      event.target.value = ''
     }
   }
 
   if (sekce) {
     return (
-      <div className="settings-page buddy-theme-scope" {...rootAttributes}>
-        <SurfaceBackdrop surfaceId="settings" />
-
-        <div className="settings-top-bar">
-          <button className="settings-back-btn" onClick={() => setSekce(null)}>
-            ← Zpět do nastavení
-          </button>
-          <h1 className="settings-title">{NADPISY[sekce]}</h1>
-        </div>
-
+      <BuddyPage className="settings-page" surfaceId={POVRCHY[sekce]} title={NADPISY[sekce]}
+        backLabel="Zpět do nastavení" onBack={() => setSekce(null)}>
         {sekce === 'osobni' && <OsobniUdajeSekce onToast={showToast} />}
         {sekce === 'zvuk' && <ZvukSekce />}
         {sekce === 'jazyk' && <JazykSekce onToast={showToast} />}
@@ -282,30 +281,14 @@ export const SettingsModule: React.FC = () => {
         {sekce === 'soukromi' && <SoukromiSocialSekce onToast={showToast} />}
         {sekce === 'tutorial' && <TutorialSekce />}
 
-        <AppBottomNav />
-        {toast && <div className="settings-toast">{toast}</div>}
-      </div>
+        {toast && <div className="settings-toast" role="status">{toast}</div>}
+      </BuddyPage>
     )
   }
 
   return (
-    <div className="settings-page buddy-theme-scope" {...rootAttributes}>
-      <SurfaceBackdrop surfaceId="settings" />
-
-      {/* Kruhové ikonové tlačítko místo textového odkazu "← Zpět na profil" —
-          appka to sjednotila se zbytkem obrazovek (Profil/Hub/Apps), jen tahle
-          JEDNA instance .settings-top-bar (ne ta uvnitř podobrazovky níž, co
-          pořád používá .settings-back-btn beze změny). */}
-      <div className="settings-top-bar settings-top-bar--hlavni">
-        <button className="settings-icon-btn" aria-label="Zpět na profil" onClick={() => navigate('/profil')}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <path d="m12 19-7-7 7-7" />
-            <path d="M19 12H5" />
-          </svg>
-        </button>
-        <h1 className="settings-title">Nastavení</h1>
-      </div>
-
+    <BuddyPage className="settings-page" surfaceId="settings" title="Nastavení"
+      backLabel="Zpět na profil" onBack={() => navigate('/profil')}>
       {/* Menu — pět položek, každá otevře vlastní podobrazovku výš. */}
       {MENU_POLOZKY.map((p) => (
         <section key={p.id} className="settings-card">
@@ -382,7 +365,12 @@ export const SettingsModule: React.FC = () => {
                     <li key={snapshot.id} className="settings-zaloha-item">
                       <button
                         className="settings-zaloha-restore"
-                        onClick={() => { void handleRestoreSnapshot(snapshot) }}
+                        onClick={() => setConfirmation({
+                          title: 'Obnovit uloženou zálohu?',
+                          description: `Záloha z ${formatSnapshotDate(snapshot.createdAt)} přepíše současná data. Před obnovou se uloží snímek současného stavu.`,
+                          confirmLabel: 'Obnovit zálohu',
+                          action: () => handleRestoreSnapshot(snapshot),
+                        })}
                       >
                         <span className="settings-zaloha-date">{formatSnapshotDate(snapshot.createdAt)}</span>
                         <span className="settings-zaloha-meta">
@@ -392,7 +380,13 @@ export const SettingsModule: React.FC = () => {
                       <button
                         className="settings-zaloha-delete"
                         aria-label={`Smazat zálohu z ${formatSnapshotDate(snapshot.createdAt)}`}
-                        onClick={() => { void handleDeleteSnapshot(snapshot.id) }}
+                        onClick={() => setConfirmation({
+                          title: 'Smazat uloženou zálohu?',
+                          description: formatSnapshotDate(snapshot.createdAt),
+                          confirmLabel: 'Smazat zálohu',
+                          danger: true,
+                          action: () => handleDeleteSnapshot(snapshot.id),
+                        })}
                       >
                         ✕
                       </button>
@@ -407,7 +401,16 @@ export const SettingsModule: React.FC = () => {
               type="file"
               accept=".zip,.json,application/zip,application/json"
               hidden
-              onChange={handleImportFile}
+              onChange={event => {
+                const file = event.currentTarget.files?.[0]
+                event.currentTarget.value = ''
+                if (file) setConfirmation({
+                  title: 'Obnovit ze souboru?',
+                  description: `Vybraný soubor ${file.name} může přepsat současná data. Před obnovou se uloží snímek současného stavu.`,
+                  confirmLabel: 'Obnovit data',
+                  action: () => handleImportFile(file),
+                })
+              }}
             />
           </>
         )}
@@ -506,17 +509,22 @@ export const SettingsModule: React.FC = () => {
       )}
 
       <section className="settings-card">
-        <button className="settings-danger-btn" onClick={handleLogout} disabled={odhlasujiSe}>
+        <button className="settings-danger-btn" onClick={() => setConfirmation({
+          title: 'Odhlásit se?',
+          description: 'Buddy nejdřív odešle poslední změny k synchronizaci.',
+          confirmLabel: 'Odhlásit se',
+          action: handleLogout,
+        })} disabled={odhlasujiSe}>
           {odhlasujiSe ? 'Odesílám poslední změny…' : '🚪 Odhlásit se'}
         </button>
       </section>
 
       {/* Fáze 4 Social nav reworku (viz CLAUDE.md) — stejná sdílená
           lišta jako na Hubu/Apps/Profilu. */}
-      <AppBottomNav />
 
-      {toast && <div className="settings-toast">{toast}</div>}
-    </div>
+      {toast && <div className="settings-toast" role="status">{toast}</div>}
+      {confirmation && <BuddyConfirm surfaceId="settings" confirmation={confirmation} onClose={() => setConfirmation(null)} />}
+    </BuddyPage>
   )
 }
 

@@ -1,5 +1,6 @@
 import React from 'react'
 import { useFullscreen } from '@/core/hooks/useFullscreen'
+import { useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './FullscreenToggle.css'
 
 // ==========================================
@@ -23,6 +24,7 @@ import './FullscreenToggle.css'
 // ==========================================
 
 export const FullscreenToggle: React.FC = () => {
+  const { rootAttributes } = useSurfaceAppearance('boot')
   const { podporovano, jeFullscreen, prepnout } = useFullscreen()
 
   if (!podporovano) return null
@@ -32,7 +34,9 @@ export const FullscreenToggle: React.FC = () => {
   return (
     <button
       type="button"
-      className="fullscreen-toggle-btn"
+      className="fullscreen-toggle-btn buddy-theme-scope"
+      data-buddy-theme={rootAttributes['data-buddy-theme']}
+      aria-pressed={jeFullscreen}
       onClick={() => void prepnout()}
       aria-label={popisek}
       title={popisek}

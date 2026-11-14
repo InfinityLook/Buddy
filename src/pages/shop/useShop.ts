@@ -6,7 +6,7 @@ import {
   daysRemaining,
   formatValidUntil,
 } from '@/core/role'
-import { SHOP_CATEGORIES, packTotalCredits } from './catalog'
+import { SHOP_CATEGORIES } from './catalog'
 import type { PurchaseResult, PurchaseTarget, ShopCategory } from './types'
 
 // ==========================================
@@ -14,7 +14,7 @@ import type { PurchaseResult, PurchaseTarget, ShopCategory } from './types'
 //
 // Platební brána zatím připojená není, a to je vědomé: nákup za peníze
 // nesmí být jen zápis do localStorage. Všechny tři druhy zboží proto
-// vedou přes jedinou funkci `purchase`, která dneska vrátí "zatím to
+// vedou přes jedinou funkci `getAvailability`, která dneska vrátí "zatím to
 // nejde". Až brána přibude, mění se jedno místo — komponenty se nedotkne.
 //
 // Kontroly, které nezávisí na platbě (zůstatek, VIP, už vlastníš), tu
@@ -33,13 +33,6 @@ export const useShop = () => {
   const assignment = useRoleStore((state) => state.assignment)
 
   const [activeCategory, setActiveCategory] = useState<ShopCategory>(SHOP_CATEGORIES[0].id)
-  const [toast, setToast] = useState<string | null>(null)
-
-  const showToast = useCallback((message: string) => {
-    setToast(message)
-    window.setTimeout(() => setToast(null), 3200)
-  }, [])
-
   const isVip = role.id === 'vip'
   const vipDaysLeft = useMemo(() => daysRemaining(assignment), [assignment])
   const vipValidUntil = useMemo(() => formatValidUntil(assignment.validUntil), [assignment])
@@ -47,10 +40,9 @@ export const useShop = () => {
   const ownsItem = useCallback((itemId: string) => ownedItems.includes(itemId), [ownedItems])
 
   /**
-   * Jediná cesta k nákupu. Vrací výsledek, komponenta z něj udělá hlášku —
-   * díky tomu jde chování ověřit bez vykreslování.
+   * Vyhodnotí dostupnost nabídky pro zobrazení jejího detailu.
    */
-  const purchase = useCallback(
+  const getAvailability = useCallback(
     (target: PurchaseTarget): PurchaseResult => {
       switch (target.kind) {
         // Kredity i VIP stojí skutečné peníze, takže o nich nemůže
@@ -95,16 +87,6 @@ export const useShop = () => {
     [balance, isVip, ownsItem]
   )
 
-  /** Nákup i s vypsáním hlášky — to, co volají komponenty. */
-  const tryPurchase = useCallback(
-    (target: PurchaseTarget) => {
-      const result = purchase(target)
-      showToast(result.message)
-      return result
-    },
-    [purchase, showToast]
-  )
-
   return {
     balance,
     ownedItems,
@@ -115,10 +97,6 @@ export const useShop = () => {
     vipValidUntil,
     activeCategory,
     setActiveCategory,
-    purchase,
-    tryPurchase,
-    toast,
-    showToast,
-    packTotalCredits,
+    getAvailability,
   }
 }

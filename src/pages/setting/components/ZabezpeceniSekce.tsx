@@ -1,3 +1,4 @@
+import { BuddyConfirm } from '@/components/buddy-ui/BuddyConfirm'
 import React, { useEffect, useState } from 'react'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { jeBiometrieDostupna, zaregistrujBiometrii } from '@/core/utils/biometrics'
@@ -15,6 +16,7 @@ interface Props {
 
 export const ZabezpeceniSekce: React.FC<Props> = ({ onToast }) => {
   const { profile, updateSecurity, resetProfile } = useProfileData()
+  const [resetOpen, setResetOpen] = useState(false)
   const [biometrieProbiha, setBiometrieProbiha] = useState(false)
   const [zarizeni, setZarizeni] = useState<PrihlaseneZarizeni[]>([])
 
@@ -23,13 +25,6 @@ export const ZabezpeceniSekce: React.FC<Props> = ({ onToast }) => {
     // tenhle dotaz jen čte, co tam už je.
     void nactiZarizeni().then(setZarizeni)
   }, [])
-
-  const handleResetProfile = () => {
-    if (window.confirm('Opravdu chceš smazat profil a vrátit ho do výchozího stavu? Úkoly, poznámky ani XP se nesmažou.')) {
-      resetProfile()
-      onToast('Profil byl vrácen do výchozího stavu')
-    }
-  }
 
   return (
     // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
@@ -124,10 +119,20 @@ export const ZabezpeceniSekce: React.FC<Props> = ({ onToast }) => {
           </div>
         )}
 
-        <button className="settings-danger-btn" onClick={handleResetProfile}>
+        <button className="settings-danger-btn" onClick={() => setResetOpen(true)}>
           🗑️ Vrátit profil do výchozího stavu
         </button>
       </section>
+      {resetOpen && <BuddyConfirm surfaceId="settings-security" onClose={() => setResetOpen(false)} confirmation={{
+        title: 'Vrátit profil do výchozího stavu?',
+        description: 'Smažou se profilové údaje a nastavení profilu. Úkoly, poznámky a XP zůstanou uložené.',
+        confirmLabel: 'Obnovit výchozí profil',
+        danger: true,
+        action: () => {
+          resetProfile()
+          onToast('Profil byl vrácen do výchozího stavu')
+        },
+      }} />}
     </SurfaceThemeScope>
   )
 }

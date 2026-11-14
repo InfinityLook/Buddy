@@ -804,3 +804,65 @@
   color: var(--accent-red);
   border-color: color-mix(in srgb, var(--accent-red) 45%, transparent);
 }
+
+.settings-page.buddy-page :is(.settings-card, .settings-sekce-wrap) {
+  min-width: 0;
+}
+
+.settings-page.buddy-page .settings-card {
+  border-color: var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
+  background: var(--buddy-panel);
+}
+
+.settings-page.buddy-page .settings-card-icon {
+  background: var(--buddy-raised);
+  border: 1px solid var(--buddy-border);
+}
+
+.settings-page.buddy-page :is(.settings-accordion-hlava, .settings-save-btn, .settings-danger-btn, .settings-zaloha-delete, .settings-zaloha-restore) {
+  min-height: var(--buddy-ui-touch);
+}
+
+.settings-page.buddy-page :is(.settings-save-btn, .settings-danger-btn, .settings-field input, .settings-field textarea) {
+  border: 1px solid var(--buddy-control-border);
+  border-radius: var(--buddy-ui-control-radius);
+  background: var(--buddy-raised);
+  color: var(--buddy-text);
+  box-shadow: none;
+}
+
+.settings-page.buddy-page .settings-save-btn {
+  background: var(--buddy-accent);
+  border-color: var(--buddy-accent);
+  color: var(--buddy-on-accent);
+}
+
+.settings-page.buddy-page .settings-danger-btn {
+  color: var(--buddy-danger);
+  border-color: var(--buddy-danger);
+}
+
+.settings-page.buddy-page :is(.settings-field input, .settings-field textarea) {
+  min-height: var(--buddy-ui-touch);
+  font-size: 1rem;
+}
+
+.settings-page.buddy-page .settings-switch {
+  position: relative;
+  border-color: var(--buddy-control-border);
+  background: var(--buddy-bg);
+}
+.settings-page.buddy-page .settings-switch::before {
+  content: '';
+  position: absolute;
+  inset: -10px 0;
+}
+.settings-page.buddy-page .settings-switch.on { background: var(--buddy-accent); }
+.settings-page.buddy-page .settings-switch.on .settings-switch-knob { background: var(--buddy-on-accent); }
+.settings-page.buddy-page .settings-zaloha-delete { min-width: var(--buddy-ui-touch); }
+.settings-page.buddy-page .settings-toast { max-width: calc(100% - 1.25rem); white-space: normal; }
+.settings-page.buddy-page .settings-accordion-hlava > :is(div, span:not(.settings-card-icon)) { overflow-wrap: anywhere; }
+
+.settings-tutorial-steps { margin: .35rem 0 .75rem; padding-inline-start: 1.25rem; color: var(--buddy-text); }
+.settings-tutorial-steps li + li { margin-block-start: .35rem; }

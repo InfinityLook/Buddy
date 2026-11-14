@@ -19,10 +19,10 @@ export const KonzolePanel: React.FC = () => {
     { typ: 'vystup', text: 'Buddy Admin Konzole — napiš "help" pro seznam příkazů.' },
   ])
   const [vstup, setVstup] = useState('')
-  const konecRef = useRef<HTMLDivElement>(null)
+  const log = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    konecRef.current?.scrollIntoView({ block: 'end' })
+    if (log.current) log.current.scrollTop = log.current.scrollHeight
   }, [radky])
 
   const odeslat = (e: React.FormEvent) => {
@@ -42,25 +42,25 @@ export const KonzolePanel: React.FC = () => {
   return (
     <SurfaceThemeScope surfaceId="admin-console">
     <section className="admin-card admin-konzole">
-      <div className="admin-konzole-log">
+      <div className="admin-konzole-log" ref={log} role="log" aria-label="Výstup konzole">
         {radky.map((r, i) => (
           <div key={i} className={`admin-konzole-radek admin-konzole-radek--${r.typ}`}>
             {r.typ === 'prikaz' ? `> ${r.text}` : r.text}
           </div>
         ))}
-        <div ref={konecRef} />
       </div>
 
       <form className="admin-konzole-vstup" onSubmit={odeslat}>
         <span className="admin-konzole-prompt">{'>'}</span>
         <input
+          aria-label="Příkaz"
           value={vstup}
           onChange={(e) => setVstup(e.target.value)}
           placeholder="napiš příkaz…"
           autoComplete="off"
           spellCheck={false}
         />
-        <button type="submit">Spustit</button>
+        <button className="buddy-ui-button buddy-ui-button--primary" type="submit" disabled={!vstup.trim()}>Spustit</button>
       </form>
     </section>
     </SurfaceThemeScope>

@@ -1,3 +1,5 @@
+import { BuddyPage } from '@/components/buddy-ui/BuddyPage'
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PrehledPanel } from './components/PrehledPanel'
@@ -9,8 +11,6 @@ import { SystemPanel } from './components/SystemPanel'
 import { KonzolePanel } from './components/KonzolePanel'
 import { ADMIN_TABS, AdminTab, AdminTabDef } from './types'
 import { MODERATOR_ROLE, ADMIN_ROLE, useHasPermission } from '@/core/role'
-import { AppBottomNav } from '@/components/AppBottomNav'
-import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './AdminModule.css'
 
 // ==========================================
@@ -39,6 +39,16 @@ import './AdminModule.css'
 // schovaný, prostě tam není.
 // ==========================================
 
+const POVRCHY: Record<AdminTab, SurfaceId> = {
+  prehled: 'admin-overview',
+  'social-report': 'admin-reports',
+  notifikace: 'admin-notifications',
+  'audit-log': 'admin-audit',
+  uzivatele: 'admin-users',
+  system: 'admin-system',
+  konzole: 'admin-console',
+}
+
 const PANEL_PODLE_TABU: Record<AdminTab, React.ComponentType> = {
   prehled: PrehledPanel,
   'social-report': SocialReportPanel,
@@ -58,7 +68,6 @@ export const AdminModule: React.FC = () => {
   const navigate = useNavigate()
   const smiAdmin = useHasPermission('admin.panel')
   const smiModerovat = useHasPermission('moderation.content')
-  const { rootAttributes } = useSurfaceAppearance('admin')
 
   const viditelneTaby = useMemo(
     () => ADMIN_TABS.filter((t) => (t.permission === 'admin.panel' ? smiAdmin : smiAdmin || smiModerovat)),
@@ -83,20 +92,10 @@ export const AdminModule: React.FC = () => {
     aktivniTab && (aktivniTab.permission === 'admin.panel' ? smiAdmin : smiAdmin || smiModerovat)
 
   return (
-    <div className="admin-page buddy-theme-scope" {...rootAttributes}>
-      <SurfaceBackdrop surfaceId="admin" />
-      <div className="admin-top-bar">
-        <button
-          className="admin-back-btn"
-          onClick={() => (sekce ? setSekce(null) : navigate('/nastaveni'))}
-        >
-          ← {sekce ? 'Zpět do menu' : 'Zpět do nastavení'}
-        </button>
-        <h1 className="admin-title">
-          {sekce && aktivniTab ? aktivniTab.label : smiAdmin ? 'Admin panel' : 'Moderace'}
-        </h1>
-      </div>
-
+    <BuddyPage className="admin-page" surfaceId={sekce ? POVRCHY[sekce] : 'admin'}
+      title={aktivniTab?.label ?? (smiAdmin ? 'Admin panel' : 'Moderace')}
+      backLabel={sekce ? 'Zpět do menu' : 'Zpět do nastavení'}
+      onBack={() => sekce ? setSekce(null) : navigate('/nastaveni')}>
       {!sekce && (
         <div className="admin-menu">
           {skupinaModerace.length > 0 && (
@@ -122,11 +121,7 @@ export const AdminModule: React.FC = () => {
         <div className="admin-content">{smiOtevrenouSekci ? <AktivniPanel /> : null}</div>
       )}
 
-      {/* Krok 19: appčina sdílená spodní lišta — jak na menu, tak na
-          otevřené sekci, ať se z admin panelu dá odejít stejně jako
-          odkudkoli jinde v appce. */}
-      <AppBottomNav />
-    </div>
+    </BuddyPage>
   )
 }
 

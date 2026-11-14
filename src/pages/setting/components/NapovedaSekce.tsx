@@ -1,11 +1,11 @@
 import React, { useState } from 'react'
-import { AppBottomNav } from '@/components/AppBottomNav'
+import { useNavigate } from 'react-router-dom'
+import { BuddyPage } from '@/components/buddy-ui/BuddyPage'
 import { HubNavod } from './napoveda/HubNavod'
 import { PodporaNavod } from './napoveda/PodporaNavod'
 import { ProfilNavod } from './napoveda/ProfilNavod'
 import { ZalohujemiNavod } from './napoveda/ZalohujemiNavod'
 import { ZvukVzhledNavod } from './napoveda/ZvukVzhledNavod'
-import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 
 type TypNapovedy = 'hub' | 'profil' | 'zvukVzhled' | 'zalohovani' | 'podpora'
 
@@ -62,9 +62,9 @@ const POLOZKY_NAPOVEDY: PoložkaNapovědy[] = [
 
 export const NapovedaSekce: React.FC = () => {
   const [vybranaNapoveda, setVybranaNapoveda] = useState<TypNapovedy | null>(null)
-  const { rootAttributes } = useSurfaceAppearance('help')
 
-  const onVratit = () => setVybranaNapoveda(null)
+  const navigate = useNavigate()
+  const onVratit = () => vybranaNapoveda ? setVybranaNapoveda(null) : navigate('/nastaveni')
 
   const zobrazitNapovedu = () => {
     switch (vybranaNapoveda) {
@@ -84,28 +84,10 @@ export const NapovedaSekce: React.FC = () => {
   }
 
   return (
-    <div className="settings-page buddy-theme-scope" {...rootAttributes}>
-      <SurfaceBackdrop surfaceId="help" />
-      <section className="settings-card">
-        <div className="settings-card-head">
-          <span className="settings-card-icon blue" aria-hidden="true">📘</span>
-          <div>
-            <h1 className="settings-card-title">Nápověda</h1>
-            <p className="settings-card-sub">
-              {vybranaNapoveda ? 'Vybraný návod' : 'Vyber si, s čím potřebuješ poradit'}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {vybranaNapoveda ? (
-        <>
-          <button type="button" className="settings-back-btn" onClick={onVratit}>
-            ← Zpět na přehled nápovědy
-          </button>
-          {zobrazitNapovedu()}
-        </>
-      ) : (
+    <BuddyPage className="settings-page" surfaceId="help"
+      title={POLOZKY_NAPOVEDY.find(item => item.id === vybranaNapoveda)?.titulek ?? 'Nápověda'}
+      backLabel={vybranaNapoveda ? 'Zpět na přehled nápovědy' : 'Zpět do nastavení'} onBack={onVratit}>
+      {vybranaNapoveda ? zobrazitNapovedu() : (
         POLOZKY_NAPOVEDY.map((polozka) => (
           <section key={polozka.id} className="settings-card">
             <button
@@ -129,8 +111,7 @@ export const NapovedaSekce: React.FC = () => {
         ))
       )}
 
-      <AppBottomNav />
-    </div>
+    </BuddyPage>
   )
 }
 

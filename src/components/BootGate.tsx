@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { APP_VERSION, applyUpdateNow, hasNewerVersion } from '@/core/utils/registerSW'
-import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
+import { SurfaceBackdrop, useSurfaceAppearance, themeAssetUrl } from '@/features/appearance/SurfaceAppearance'
+import './buddy-ui/buddy-ui.css'
 import './BootGate.css'
 
 // ==========================================
@@ -71,6 +72,7 @@ interface BootGateProps {
 
 export const BootGate: React.FC<BootGateProps> = ({ children }) => {
   // Ve vývoji a offline nemá smysl start zdržovat ani o milisekundu
+  const { rootAttributes } = useSurfaceAppearance('boot')
   const [ready, setReady] = useState(() => isDevHost() || navigator.onLine === false)
   const [phase, setPhase] = useState<Phase>('checking')
   const finished = useRef(false)
@@ -139,21 +141,14 @@ export const BootGate: React.FC<BootGateProps> = ({ children }) => {
   if (ready) return <>{children}</>
 
   return (
-    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — appka tu obaluje jen
-    // do <SurfaceThemeScope> (barevné tokeny), BEZ <SurfaceBackdrop>
-    // (vlastní obrázek pozadí) — appka má tu totiž už svou vlastní,
-    // schválně zvolenou scenérii (background-image v BootGate.css —
-    // fotka s lampami přestěhovaná z Hubu, přímo komentovaná jako "sem
-    // dává smysl, maskot na ní stojí v prostředí"), stejná výjimka jako
-    // appka už uznala u Feedu (FeedModule.tsx) — appka ji nepřepisuje
-    // katalogovým "boot" pozadím jen proto, že existuje.
-    <SurfaceThemeScope surfaceId="boot">
-      <div className="boot-gate" role="status" aria-live="polite">
-        <div className="boot-gate-inner">
+    <div className="boot-gate buddy-theme-scope" {...rootAttributes}>
+      <SurfaceBackdrop surfaceId="boot" />
+      <div className="boot-gate-layout" role="status">
+        <div className="boot-gate-inner buddy-ui-card">
           {/* Stejná fotka jako Hubova hlavička/Rewardova hlavička
               (public/maskot/buddy-vlk.png), žádný druhý crop —
               appčin maskot, ne dřívější štěně. */}
-          <img src="/maskot/buddy-vlk.png" alt="" className="boot-gate-mascot" />
+          <img src={themeAssetUrl("/maskot/buddy-vlk.png")} alt="" className="boot-gate-mascot" />
 
           <div className="boot-gate-brand">
             <span className="boot-gate-mark">✦</span>
@@ -171,7 +166,7 @@ export const BootGate: React.FC<BootGateProps> = ({ children }) => {
 
         <span className="boot-gate-version">verze {APP_VERSION}</span>
       </div>
-    </SurfaceThemeScope>
+    </div>
   )
 }
 

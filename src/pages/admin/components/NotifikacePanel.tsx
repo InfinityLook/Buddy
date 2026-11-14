@@ -1,3 +1,4 @@
+import { BuddyConfirm, type BuddyConfirmation } from '@/components/buddy-ui/BuddyConfirm'
 import React, { useEffect, useState } from 'react'
 import { nactiOznameni, poslatOznameni, smazatOznameni } from '@/core/notifications/api'
 import type { Oznameni } from '@/core/notifications/types'
@@ -23,6 +24,7 @@ export const NotifikacePanel: React.FC = () => {
   const [text, setText] = useState('')
   const [odesila, setOdesila] = useState(false)
   const [nacita, setNacita] = useState(true)
+  const [confirmation, setConfirmation] = useState<BuddyConfirmation | null>(null)
   const [hlaska, setHlaska] = useState<string | null>(null)
 
   const nacti = async () => {
@@ -39,26 +41,44 @@ export const NotifikacePanel: React.FC = () => {
     window.setTimeout(() => setHlaska(null), 2800)
   }
 
-  const odeslat = async (e: React.FormEvent) => {
+  const odeslat = (e: React.FormEvent) => {
     e.preventDefault()
     if (!text.trim() || odesila) return
 
-    setOdesila(true)
-    const v = await poslatOznameni(text)
-    setOdesila(false)
-
-    oznam(v.ok ? 'Oznámení odesláno všem.' : v.chyba ?? 'Nepovedlo se to.')
-    if (v.ok) {
-      setText('')
-      await nacti()
-    }
+    const zprava = text.trim()
+    setConfirmation({
+      title: 'Odeslat oznámení všem?',
+      description: zprava,
+      confirmLabel: 'Odeslat všem',
+      action: async () => {
+        setOdesila(true)
+        try {
+          const v = await poslatOznameni(zprava)
+          oznam(v.ok ? 'Oznámení odesláno všem.' : v.chyba ?? 'Nepovedlo se to.')
+          if (v.ok) {
+            setText('')
+            await nacti()
+          }
+        } finally {
+          setOdesila(false)
+        }
+      },
+    })
   }
 
-  const smazat = async (id: string) => {
-    if (!window.confirm('Smazat tohle oznámení? Zmizí i těm, kdo ho ještě nečetli.')) return
-    const v = await smazatOznameni(id)
-    oznam(v.ok ? 'Smazáno.' : v.chyba ?? 'Nepovedlo se to.')
-    if (v.ok) await nacti()
+  const smazat = (id: string) => {
+    const action = async () => {
+      const v = await smazatOznameni(id)
+      oznam(v.ok ? 'Smazáno.' : v.chyba ?? 'Nepovedlo se to.')
+      if (v.ok) await nacti()
+    }
+    setConfirmation({
+      title: 'Smazat oznámení?',
+      description: 'Oznámení zmizí i uživatelům, kteří ho ještě nečetli.',
+      confirmLabel: 'Smazat oznámení',
+      danger: true,
+      action,
+    })
   }
 
   return (
@@ -73,6 +93,7 @@ export const NotifikacePanel: React.FC = () => {
         <form className="admin-notif-form" onSubmit={odeslat}>
           <textarea
             className="admin-notif-textarea"
+            aria-label="Text oznámení"
             placeholder="Např. Vyšla nová verze appky s hlasovým Buddym! 🎉"
             value={text}
             maxLength={MAX_DELKA}
@@ -92,7 +113,7 @@ export const NotifikacePanel: React.FC = () => {
         <span className="admin-card-title">Poslední oznámení</span>
 
         {nacita ? (
-          <p className="admin-empty">Načítám…</p>
+          <p className="admin-empty" role="status">Načítám…</p>
         ) : seznam.length === 0 ? (
           <p className="admin-empty">Zatím nic nebylo odesláno.</p>
         ) : (
@@ -116,8 +137,9 @@ export const NotifikacePanel: React.FC = () => {
         )}
       </section>
 
-      {hlaska && <div className="admin-toast">{hlaska}</div>}
+      {hlaska && <div className="admin-toast" role="status">{hlaska}</div>}
     </div>
+    {confirmation && <BuddyConfirm surfaceId="admin-notifications" confirmation={confirmation} onClose={() => setConfirmation(null)} />}
     </SurfaceThemeScope>
   )
 }

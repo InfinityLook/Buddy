@@ -51,18 +51,19 @@ const tiketZRadku = (r: {
  *  úplně všechny. Řazeno podle poslední aktivity, ať nejčerstvější
  *  konverzace nezapadne dole. */
 export const nactiTikety = async (): Promise<Tiket[]> => {
-  if (!supabase) return []
+  if (!supabase) throw new Error(NENI_CLOUD.chyba)
 
   const { data: relace } = await supabase.auth.getSession()
   const ja = relace.session?.user?.id
-  if (!ja) return []
+  if (!ja) throw new Error(NENI_CLOUD.chyba)
 
   const { data, error } = await supabase
     .from('support_tickets')
     .select('id, subject, status, created_at, updated_at, user_id')
     .order('updated_at', { ascending: false })
 
-  if (error || !data) return []
+  if (error) throw new Error(chyba(error).chyba)
+  if (!data) return []
 
   const tikety = data.map(tiketZRadku)
 
@@ -109,7 +110,7 @@ const zpravaZRadku = (r: {
 })
 
 export const nactiZpravyTiketu = async (ticketId: string): Promise<ZpravaTiketu[]> => {
-  if (!supabase) return []
+  if (!supabase) throw new Error(NENI_CLOUD.chyba)
 
   const { data, error } = await supabase
     .from('support_zpravy')
@@ -117,7 +118,8 @@ export const nactiZpravyTiketu = async (ticketId: string): Promise<ZpravaTiketu[
     .eq('ticket_id', ticketId)
     .order('created_at', { ascending: true })
 
-  if (error || !data) return []
+  if (error) throw new Error(chyba(error).chyba)
+  if (!data) return []
   return data.map(zpravaZRadku)
 }
 
