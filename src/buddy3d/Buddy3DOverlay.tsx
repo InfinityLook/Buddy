@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import { BuddyActor } from './BuddyActor'
 import { ScreenBuddyController } from './ScreenBuddyController'
-import { BUDDY_THEMES, type Buddy3DThemeId, type BuddyVoicePort } from './types'
+import { type Buddy3DThemeId, type BuddyVoicePort } from './types'
 import './buddy3d.css'
 
 export interface Buddy3DOverlayProps {
@@ -14,6 +15,12 @@ export interface Buddy3DOverlayProps {
   baseUrl?: string
   autoRoam?: boolean
 }
+const QUICK_ACTIONS = [
+  { label: 'Plánovač', prompt: 'Otevři plánovač' },
+  { label: 'Nový úkol', prompt: 'Přidej nový úkol' },
+  { label: 'Poznámka', prompt: 'Vytvoř poznámku' },
+]
+
 const STATUS = { necinny: 'Jsem tady. Co spolu vymyslíme?', posloucha: 'Poslouchám…', premysli: 'Přemýšlím…', mluvi: 'Mluvím…', chyba: 'Zkusíme to znovu?' }
 
 /** Mount this once when the existing AI button is clicked. No new AI service or API key. */
@@ -26,7 +33,10 @@ export function Buddy3DOverlay({ voice, onZavrit, themeId = 'zlaty-soumrak', bas
   const [panel, setPanel] = useState(false), [text, setText] = useState('')
   const [loaded, setLoaded] = useState(false), [renderError, setRenderError] = useState('')
   const [reduced, setReduced] = useState(() => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches)
-  const palette = BUDDY_THEMES[themeId]
+  const root = useRef<HTMLDivElement>(null)
+  const chatButton = useRef<HTMLButtonElement>(null)
+  const chat = useRef<HTMLElement>(null)
+  const panelWasOpen = useRef(false)
   const busy = voice.stav === 'premysli' || voice.stav === 'posloucha'
   const close = () => { voiceRef.current.zastavit(); closeRef.current() }
 
@@ -35,6 +45,25 @@ export function Buddy3DOverlay({ voice, onZavrit, themeId = 'zlaty-soumrak', bas
     const media = matchMedia('(prefers-reduced-motion: reduce)')
     const change = () => setReduced(media.matches); media.addEventListener('change', change)
     return () => { media.removeEventListener('change', change); voiceRef.current.zastavit(); previousFocus?.focus({ preventScroll: true }) }
+  }, [])
+  useEffect(() => {
+    const viewport = window.visualViewport
+    const syncViewport = () => {
+      const height = viewport?.height ?? window.innerHeight
+      const bottom = (viewport?.offsetTop ?? 0) + height
+      root.current?.style.setProperty('--b3-vv-height', `${height}px`)
+      root.current?.style.setProperty('--b3-vv-bottom', `${bottom}px`)
+      root.current?.setAttribute('data-b3-compact', String(height < 550))
+    }
+    syncViewport()
+    window.addEventListener('resize', syncViewport)
+    viewport?.addEventListener('resize', syncViewport)
+    viewport?.addEventListener('scroll', syncViewport)
+    return () => {
+      window.removeEventListener('resize', syncViewport)
+      viewport?.removeEventListener('resize', syncViewport)
+      viewport?.removeEventListener('scroll', syncViewport)
+    }
   }, [])
   useEffect(() => {
     if (!host.current || !canvas.current || !hit.current) return
@@ -51,7 +80,12 @@ export function Buddy3DOverlay({ voice, onZavrit, themeId = 'zlaty-soumrak', bas
   useEffect(() => { if (actor.current) { setLoaded(false); void actor.current.setTheme(themeId) } }, [themeId, baseUrl, autoRoam])
   useEffect(() => { actor.current?.setVoiceState(voice.stav); movement.current?.setPaused(panel || voice.stav !== 'necinny') }, [voice.stav, panel])
   useEffect(() => { actor.current?.setReducedMotion(reduced); movement.current?.setReducedMotion(reduced) }, [reduced])
-  useEffect(() => { movement.current?.setPanel(panel ? document.getElementById('buddy3d-chat') : null); if (panel) input.current?.focus({ preventScroll: true }) }, [panel])
+  useEffect(() => {
+    movement.current?.setPanel(chat.current)
+    if (panel) input.current?.focus({ preventScroll: true })
+    else if (panelWasOpen.current) chatButton.current?.focus({ preventScroll: true })
+    panelWasOpen.current = panel
+  }, [panel])
   useEffect(() => { if (messages.current) messages.current.scrollTop = messages.current.scrollHeight }, [voice.zpravy.length, voice.stav, panel])
   useEffect(() => {
     const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.preventDefault(); if (panel) setPanel(false); else close() } }
@@ -59,33 +93,67 @@ export function Buddy3DOverlay({ voice, onZavrit, themeId = 'zlaty-soumrak', bas
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel])
   const send = (event: React.FormEvent) => { event.preventDefault(); const value = text.trim(); if (!value || busy) return; voice.posliText(value); setText('') }
-  const rootStyle = { '--b3-accent': palette.accent, '--b3-panel': palette.panel, '--b3-text': palette.text } as React.CSSProperties
   const fallback = `${baseUrl.replace(/\/?$/, '/')}buddy-3d/posters/buddy-${themeId}.png`
 
-  return createPortal(<div className="buddy3d-root" data-buddy3d-theme={themeId} data-chat-open={panel} style={rootStyle}>
+  return createPortal(<div ref={root} className="buddy3d-root buddy-theme-scope" data-buddy-theme={themeId} data-buddy-backdrop="none" data-chat-open={panel}>
     <div className="buddy3d-puppet" ref={host}>
       <div className="buddy3d-status" aria-live="polite" aria-atomic="true">{STATUS[voice.stav]}</div>
-      <canvas ref={canvas} aria-hidden="true" className={renderError ? 'buddy3d-hidden' : undefined} />
+      <canvas ref={canvas} aria-hidden="true" hidden={!!renderError} />
       {renderError && <img className="buddy3d-poster" src={fallback} alt="Buddy" onError={event => { event.currentTarget.style.visibility = 'hidden' }} />}
       {!loaded && !renderError && <span className="buddy3d-loading" role="status">Buddy přichází…</span>}
-      <button ref={hit} className="buddy3d-hit" aria-label="Buddy. Přetáhni pro přesun, dvakrát klepni pro skok. Šipky pro chůzi a J pro skok." />
+      <button ref={hit} disabled={!!renderError} className="buddy3d-hit" aria-label="Buddy. Přetáhni pro přesun, dvakrát klepni pro skok. Šipky pro chůzi a J pro skok." />
       <div className="buddy3d-tools">
-        <button onClick={() => setPanel(p => !p)} aria-expanded={panel} aria-controls="buddy3d-chat">Chat</button>
-        <button onClick={() => actor.current?.play('Jump')} disabled={voice.stav !== 'necinny' || !!renderError} aria-label="Buddy skočí">Skok</button>
-        <button onClick={close} aria-label="Skrýt Buddyho">×</button>
+        <button className="buddy-ui-button" ref={chatButton} onClick={() => setPanel(p => !p)} aria-expanded={panel} aria-controls="buddy3d-chat">Chat</button>
+        <button className="buddy-ui-button" onClick={() => actor.current?.play('Jump')} disabled={voice.stav !== 'necinny' || !!renderError} aria-label="Buddy skočí">Skok</button>
+        <button className="buddy-ui-button" onClick={close} aria-label="Skrýt Buddyho">×</button>
       </div>
     </div>
-    {panel && <section id="buddy3d-chat" className="buddy3d-chat" role="dialog" aria-modal="false" aria-label="Rozhovor s Buddym">
-      <header><span><i /> Buddy</span><div><button onClick={close} aria-label="Skrýt celého Buddyho">Skrýt Buddyho</button><button onClick={() => setPanel(false)} aria-label="Zavřít panel rozhovoru">×</button></div></header>
-      <div className="buddy3d-messages" ref={messages} aria-label="Historie rozhovoru">
-        {voice.zpravy.length === 0 && <p className="buddy3d-welcome">Ahoj! Jsem tady s tebou. Napiš mi nebo klepni na mikrofon.</p>}
-        {voice.zpravy.map(message => <div key={message.id} className={`buddy3d-message${message.odesilatel === 'uzivatel' ? ' buddy3d-message--mine' : ''}`}><small>{message.odesilatel === 'uzivatel' ? 'Ty' : 'Buddy'}</small><p>{message.text}</p></div>)}
-      </div>
-      <p className="buddy3d-chat-status" role={voice.stav === 'chyba' ? 'alert' : 'status'}>{voice.stav === 'chyba' ? voice.chybaText ?? STATUS.chyba : STATUS[voice.stav]}</p>
-      {renderError && <p className="buddy3d-render-note">{renderError}</p>}
-      <form onSubmit={send} className="buddy3d-compose"><label className="buddy3d-sr-only" htmlFor="buddy3d-text">Zpráva pro Buddyho</label><input id="buddy3d-text" ref={input} value={text} maxLength={500} onChange={event => setText(event.target.value)} placeholder="Napiš Buddymu…" disabled={busy} autoComplete="off" /><button type="submit" disabled={busy || !text.trim()} aria-label="Odeslat zprávu">➤</button></form>
-      <div className="buddy3d-voice">{voice.podporujeRozpoznavani ? <button onClick={voice.zacniMluvit} disabled={busy}>Mluvit s Buddym</button> : <span>Hlasový vstup tu není dostupný. Můžeš psát.</span>}{voice.stav !== 'necinny' && <button onClick={voice.zastavit}>Zastavit</button>}</div>
-    </section>}
+    {panel && (
+      <section ref={chat} id="buddy3d-chat" className="buddy3d-chat" role="dialog" aria-label="Rozhovor s Buddym">
+        <BuddyHeader title="Buddy" headingLevel={2} actions={
+          <>
+            <button type="button" className="buddy-ui-button" onClick={close}>Skrýt Buddyho</button>
+            <button type="button" className="buddy-ui-button buddy-ui-button--icon" onClick={() => setPanel(false)} aria-label="Zavřít panel rozhovoru">×</button>
+          </>
+        } />
+        <div className="buddy3d-messages" ref={messages} role="log" aria-label="Historie rozhovoru">
+          {voice.zpravy.length === 0 && <p className="buddy3d-welcome">Napiš Buddymu nebo vyber rychlou akci.</p>}
+          {voice.zpravy.map(message => (
+            <div key={message.id} className={`buddy3d-message${message.odesilatel === 'uzivatel' ? ' buddy3d-message--mine' : ''}`}>
+              <small>{message.odesilatel === 'uzivatel' ? 'Ty' : 'Buddy'}</small>
+              <p>{message.text}</p>
+            </div>
+          ))}
+          {renderError && <p className="buddy3d-render-note">{renderError}</p>}
+        </div>
+        {voice.stav !== 'necinny' && (
+          <p className="buddy3d-chat-status" role={voice.stav === 'chyba' ? 'alert' : 'status'}>
+            {voice.stav === 'chyba' ? voice.chybaText ?? STATUS.chyba : STATUS[voice.stav]}
+          </p>
+        )}
+        {voice.zpravy.length === 0 && (
+          <div className="buddy3d-quick" role="group" aria-label="Rychlé akce">
+            {QUICK_ACTIONS.map(({ label, prompt }) => (
+              <button key={label} className="buddy-ui-button" type="button" disabled={busy} onClick={() => {
+                setText(prompt)
+                input.current?.focus({ preventScroll: true })
+              }}>{label}</button>
+            ))}
+          </div>
+        )}
+        <form onSubmit={send} className="buddy3d-compose">
+          <label className="buddy3d-sr-only" htmlFor="buddy3d-text">Zpráva pro Buddyho</label>
+          <input id="buddy3d-text" ref={input} value={text} maxLength={500} onChange={event => setText(event.target.value)} placeholder="Napiš Buddymu…" disabled={busy} autoComplete="off" />
+          <button type="submit" className="buddy-ui-button buddy-ui-button--primary" disabled={busy || !text.trim()}>Odeslat</button>
+        </form>
+        <div className="buddy3d-voice">
+          {voice.podporujeRozpoznavani
+            ? <button className="buddy-ui-button" onClick={voice.zacniMluvit} disabled={busy}>Mluvit s Buddym</button>
+            : <span>Hlasový vstup tu není dostupný. Můžeš psát.</span>}
+          {voice.stav !== 'necinny' && <button className="buddy-ui-button" onClick={voice.zastavit}>Zastavit</button>}
+        </div>
+      </section>
+    )}
   </div>, document.body)
 }
 

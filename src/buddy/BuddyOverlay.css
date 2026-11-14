@@ -1,0 +1,13 @@
+.buddy-theme-scope.buddy-overlay-loading {
+  position: fixed;
+  z-index: 1800;
+  inset-inline-end: max(1rem, env(safe-area-inset-right));
+  inset-block-end: calc(5rem + env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .625rem .75rem;
+  border: 1px solid var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
+  background: var(--buddy-panel);
+}

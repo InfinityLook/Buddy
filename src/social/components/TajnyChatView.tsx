@@ -237,6 +237,7 @@ export const TajnyChatView: React.FC<Props> = ({ chat, mujId, rekni, onZpet, onZ
       <form className="social-psani" onSubmit={odeslat}>
         <input
           className="social-input social-input--zprava"
+          aria-label="Tajná zpráva"
           placeholder="Napiš zprávu…"
           value={text}
           maxLength={4000}
@@ -246,6 +247,7 @@ export const TajnyChatView: React.FC<Props> = ({ chat, mujId, rekni, onZpet, onZ
         <button
           className="social-send-btn"
           type="submit"
+          aria-label="Odeslat tajnou zprávu"
           disabled={posila || !text.trim() || klicStav !== 'pripraveno'}
         >
           <SocialIcon name="send" size={18} />

@@ -1,3 +1,5 @@
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
@@ -105,6 +107,8 @@ export const RewardModule: React.FC = () => {
     [badges]
   )
 
+  const [selectedBadgeId, setSelectedBadgeId] = useState<string | null>(null)
+  const selectedBadge = badges.find(badge => badge.id === selectedBadgeId)
   const unlockedCount = badges.filter((badge) => badge.unlockedAt !== null).length
 
   return (
@@ -119,222 +123,209 @@ export const RewardModule: React.FC = () => {
       <SurfaceBackdrop surfaceId="achievements" />
 
       <div className="reward-content">
-        {/* Hlavička — appka ji přestavěla do stejného jazyka jako Hub
-            (fotka maskota + text vedle sebe, skutečné kruhové ikonové
-            tlačítko místo plain textového "← Zpět do Hubu"), ne
-            doslovné zopakování Hubova pozdravu podle denní doby — na
-            vnořené obrazovce by to působilo jako zbytečné echo toho,
-            co uživatel viděl před jedním kliknutím. */}
-        <header className="reward-header">
-          <button className="reward-icon-btn" aria-label="Zpět do Hubu" onClick={() => navigate('/hub')}>
-            <SocialIcon name="arrow-left" size={18} />
-          </button>
-          <div className="reward-logo">
-            <img src="/maskot/buddy-vlk.png" alt="" className="reward-logo-img" />
-            <div className="reward-logo-text-col">
-              <span className="reward-logo-text">Achievementy</span>
-              <span className="reward-logo-tagline">Úroveň, série a odznaky</span>
+        <BuddyHeader title="Odměny" subtitle="Úroveň, série a odznaky" icon="star"
+          backLabel="Zpět do Hubu" onBack={() => navigate('/hub')} />
+
+        <main className="reward-scroll">
+          {/* Úroveň a série — appka tuhle dvojici karet přestavěla ze
+              staré jedné "souhrnné" karty na dvě samostatné, vedle sebe,
+              přesně jako Hubova .hub-hero-stats-row. Šestiúhelníkový
+              odznak se svítícím halem a +XP bublinou i zvětšená karta
+              série jsou odsud beze změny přenesené — appka tím pádem obě
+              obrazovky nechává reagovat na stejný stav (level/xp/série)
+              vizuálně úplně stejně. Skeleton obrysy (hydratovano appka
+              potřebuje stejně jako Hub) appka odvodila ze skutečných
+              rozměrů toho, co nahrazují, ne z odhadu. */}
+          <div className="reward-hero-row">
+            <div
+              className="reward-hero-level buddy-ui-card"
+              aria-label={hydratovano ? `Úroveň ${level}, ${xp} z ${xpToNext} XP` : 'Načítání úrovně'}
+            >
+              {hydratovano ? (
+                <>
+                  {xpBublina && (
+                    <div
+                      key={xpBublina.id}
+                      className={`reward-xp-bublina${xpBublina.levelUp ? ' reward-xp-bublina--level-up' : ''}`}
+                      aria-live="polite"
+                    >
+                      <span className="reward-xp-bublina-jiskry" aria-hidden="true">
+                        <span className="reward-xp-bublina-jiskra">✦</span>
+                        <span className="reward-xp-bublina-jiskra">✦</span>
+                        <span className="reward-xp-bublina-jiskra">✦</span>
+                      </span>
+                      <span className="reward-xp-bublina-castka">
+                        {xpBublina.levelUp ? `🎉 LEVEL ${level}! ` : ''}+{xpBublina.castka} XP
+                      </span>
+                    </div>
+                  )}
+                  <span className="reward-level-hex-wrap" aria-hidden="true">
+                    <span className="reward-level-hex">
+                      <span className="reward-level-hex-num">{level}</span>
+                    </span>
+                  </span>
+                  <div className="reward-level-info">
+                    <span className="reward-level-eyebrow">Úroveň</span>
+                    <span className="reward-level-xp">
+                      {xp} / {xpToNext} XP
+                    </span>
+                    <progress className="buddy-ui-progress" max={100} value={progressPercent} aria-label="Postup k další úrovni" />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <span className="reward-skeleton reward-skeleton--circle" aria-hidden="true" />
+                  <div className="reward-skeleton-stack" aria-hidden="true">
+                    <span className="reward-skeleton reward-skeleton--line-sm" />
+                    <span className="reward-skeleton reward-skeleton--line" />
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div
+              className="reward-hero-streak buddy-ui-card"
+              aria-label={hydratovano ? `${streakDays} dní v řadě` : 'Načítání série'}
+            >
+              {hydratovano ? (
+                <>
+                  <span className="reward-streak-flame" aria-hidden="true">🔥</span>
+                  <span className="reward-streak-num">{streakDays}</span>
+                  <span className="reward-streak-label">Dní v řadě</span>
+                </>
+              ) : (
+                <>
+                  <span className="reward-skeleton reward-skeleton--circle-sm" aria-hidden="true" />
+                  <span className="reward-skeleton reward-skeleton--line-sm" aria-hidden="true" />
+                </>
+              )}
             </div>
           </div>
-        </header>
 
-        {/* Úroveň a série — appka tuhle dvojici karet přestavěla ze
-            staré jedné "souhrnné" karty na dvě samostatné, vedle sebe,
-            přesně jako Hubova .hub-hero-stats-row. Šestiúhelníkový
-            odznak se svítícím halem a +XP bublinou i zvětšená karta
-            série jsou odsud beze změny přenesené — appka tím pádem obě
-            obrazovky nechává reagovat na stejný stav (level/xp/série)
-            vizuálně úplně stejně. Skeleton obrysy (hydratovano appka
-            potřebuje stejně jako Hub) appka odvodila ze skutečných
-            rozměrů toho, co nahrazují, ne z odhadu. */}
-        <div className="reward-hero-row">
-          <div
-            className="reward-hero-level"
-            aria-label={hydratovano ? `Úroveň ${level}, ${xp} z ${xpToNext} XP` : 'Načítání úrovně'}
-          >
+          {/* Postřehy — stejná "lehká vrstva, ne další těžká karta"
+              zdrženlivost jako Hubovo .hub-insights, appka jen přidala
+              třetí řádek ("ještě N XP do levelu") navíc, protože tahle
+              obrazovka je o postupu samotném a Hub ten řádek nikdy
+              neměl kam dát. Odznakový řádek appka schová celý, ne
+              poloprázdný, když nejblizsiOdznak() vrátí null (viz appčin
+              komentář u téhle funkce v gamificationUtils.ts). */}
+          <div className="reward-insights">
             {hydratovano ? (
               <>
-                {xpBublina && (
-                  <div
-                    key={xpBublina.id}
-                    className={`reward-xp-bublina${xpBublina.levelUp ? ' reward-xp-bublina--level-up' : ''}`}
-                    aria-live="polite"
-                  >
-                    <span className="reward-xp-bublina-jiskry" aria-hidden="true">
-                      <span className="reward-xp-bublina-jiskra">✦</span>
-                      <span className="reward-xp-bublina-jiskra">✦</span>
-                      <span className="reward-xp-bublina-jiskra">✦</span>
-                    </span>
-                    <span className="reward-xp-bublina-castka">
-                      {xpBublina.levelUp ? `🎉 LEVEL ${level}! ` : ''}+{xpBublina.castka} XP
-                    </span>
-                  </div>
-                )}
-                <span className="reward-level-hex-wrap" aria-hidden="true">
-                  <span className="reward-level-hex">
-                    <span className="reward-level-hex-num">{level}</span>
-                  </span>
-                </span>
-                <div className="reward-level-info">
-                  <span className="reward-level-eyebrow">LEVEL</span>
-                  <span className="reward-level-xp">
-                    {xp} / {xpToNext} XP
-                  </span>
-                  <span className="reward-level-progress" aria-hidden="true">
-                    <span className="reward-level-progress-fill" style={{ width: `${progressPercent}%` }} />
-                  </span>
-                </div>
-              </>
-            ) : (
-              <>
-                <span className="reward-skeleton reward-skeleton--circle" aria-hidden="true" />
-                <div className="reward-skeleton-stack" aria-hidden="true">
-                  <span className="reward-skeleton reward-skeleton--line-sm" />
-                  <span className="reward-skeleton reward-skeleton--line" />
-                </div>
-              </>
-            )}
-          </div>
-
-          <div
-            className="reward-hero-streak"
-            aria-label={hydratovano ? `${streakDays} dní v řadě` : 'Načítání série'}
-          >
-            {hydratovano ? (
-              <>
-                <span className="reward-streak-flame" aria-hidden="true">🔥</span>
-                <span className="reward-streak-num">{streakDays}</span>
-                <span className="reward-streak-label">DAYS STREAK</span>
-              </>
-            ) : (
-              <>
-                <span className="reward-skeleton reward-skeleton--circle-sm" aria-hidden="true" />
-                <span className="reward-skeleton reward-skeleton--line-sm" aria-hidden="true" />
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Postřehy — stejná "lehká vrstva, ne další těžká karta"
-            zdrženlivost jako Hubovo .hub-insights, appka jen přidala
-            třetí řádek ("ještě N XP do levelu") navíc, protože tahle
-            obrazovka je o postupu samotném a Hub ten řádek nikdy
-            neměl kam dát. Odznakový řádek appka schová celý, ne
-            poloprázdný, když nejblizsiOdznak() vrátí null (viz appčin
-            komentář u téhle funkce v gamificationUtils.ts). */}
-        <div className="reward-insights">
-          {hydratovano ? (
-            <>
-              <p className="reward-insight-line">
-                <span className="reward-insight-icon" aria-hidden="true">🎯</span>
-                {xpRemaining > 0 ? (
-                  <>
-                    Ještě <strong>{xpRemaining} XP</strong> a jsi na úrovni {level + 1}.
-                  </>
-                ) : (
-                  'Máš nasbíráno na další úroveň — pokračuj a posuň se dál!'
-                )}
-              </p>
-              <p className="reward-insight-line">
-                <span className="reward-insight-icon" aria-hidden="true">📅</span>
-                Tenhle týden: <strong>{xpTydne} XP</strong>
-                {streakDays > 0 && (
-                  <>
-                    {' '}· {streakDays} {sklonujDen(streakDays)} v řadě
-                  </>
-                )}
-              </p>
-              {nejblizsi && (
                 <p className="reward-insight-line">
-                  <span className="reward-insight-icon" aria-hidden="true">{nejblizsi.badge.icon}</span>
-                  Příští odznak: <strong>{nejblizsi.badge.title}</strong> (
-                  {popisekPokrokuOdznaku(nejblizsi.badge.id, xp, level, streakDays)})
-                </p>
-              )}
-            </>
-          ) : (
-            <>
-              <span className="reward-skeleton reward-skeleton--line-insight" aria-hidden="true" />
-              <span className="reward-skeleton reward-skeleton--line-insight" aria-hidden="true" />
-            </>
-          )}
-        </div>
-
-        {/* Odznaky — na rozdíl od profilu ukazujeme i ty zamčené i s podmínkou */}
-        <section className="reward-section">
-          <div className="reward-section-head">
-            <span>Odznaky</span>
-            <span className="reward-section-count">{unlockedCount} z {badges.length}</span>
-          </div>
-
-          <div className="reward-badge-grid">
-            {sortedBadges.map((badge) => {
-              const unlocked = badge.unlockedAt !== null
-              const pripnuty = profile.pinnedBadges.includes(badge.id)
-
-              return (
-                <article
-                  key={badge.id}
-                  className={`reward-badge-card ${unlocked ? 'is-unlocked' : 'is-locked'}`}
-                >
-                  {/* Odznaková grafika — Buddy v2 (viz CLAUDE.md "Vzhled
-                      aplikace"): BadgeThemeIcon appka nikdy nepoužívá
-                      jako zdroj pravdy o odemčení, jen jako skin —
-                      `unlocked` sem jde přesně to samé, co appka už
-                      počítala výš (badge.unlockedAt !== null), komponenta
-                      sama jen vybere grafiku podle motivu (nebo locked.svg
-                      pro zamčený/neznámý odznak), neuděluje nic navíc. */}
-                  <span className="reward-badge-icon" aria-hidden="true">
-                    <BadgeThemeIcon badgeId={badge.id} themeId={themeId} unlocked={unlocked} size={24} />
-                  </span>
-                  <div className="reward-badge-text">
-                    <span className="reward-badge-title">{badge.title}</span>
-                    <span className="reward-badge-desc">{badge.description}</span>
-                    <span className={`reward-badge-state ${unlocked ? 'is-unlocked' : ''}`}>
-                      {unlocked && badge.unlockedAt ? (
-                        <>
-                          <SocialIcon name="check" size={11} /> Odemčeno {new Date(badge.unlockedAt).toLocaleDateString('cs-CZ')}
-                        </>
-                      ) : (
-                        'Zatím zamčeno'
-                      )}
-                    </span>
-                  </div>
-                  {/* Vystavení na veřejném profilu (VerejnyProfilDialog.tsx) —
-                      jen u odemčených, appka nedovolí připnout něco, co
-                      uživatel ještě nemá. Ikona appka vzala ze stejné
-                      sady jako Hub (SocialIcon) místo holého emoji 📌 —
-                      bookmark/bookmark-filled jde navíc sám o sobě
-                      přečíst jako "připnuto/nepřipnuto", ne jen "tohle
-                      je nějaké tlačítko". */}
-                  {unlocked && (
-                    <button
-                      className={`reward-badge-pin ${pripnuty ? 'je-pripnuty' : ''}`}
-                      aria-label={pripnuty ? `Zrušit vystavení odznaku ${badge.title}` : `Vystavit odznak ${badge.title} na profilu`}
-                      disabled={!pripnuty && profile.pinnedBadges.length >= MAX_PRIPNUTYCH}
-                      onClick={() => prepnoutPripnuti(badge.id)}
-                    >
-                      <SocialIcon name={pripnuty ? 'bookmark-filled' : 'bookmark'} size={14} />
-                    </button>
+                  <span className="reward-insight-icon" aria-hidden="true">🎯</span>
+                  {xpRemaining > 0 ? (
+                    <>
+                      Ještě <strong>{xpRemaining} XP</strong> a jsi na úrovni {level + 1}.
+                    </>
+                  ) : (
+                    'Máš nasbíráno na další úroveň — pokračuj a posuň se dál!'
                   )}
-                </article>
-              )
-            })}
+                </p>
+                <p className="reward-insight-line">
+                  <span className="reward-insight-icon" aria-hidden="true">📅</span>
+                  Tenhle týden: <strong>{xpTydne} XP</strong>
+                  {streakDays > 0 && (
+                    <>
+                      {' '}· {streakDays} {sklonujDen(streakDays)} v řadě
+                    </>
+                  )}
+                </p>
+                {nejblizsi && (
+                  <p className="reward-insight-line">
+                    <span className="reward-insight-icon" aria-hidden="true">{nejblizsi.badge.icon}</span>
+                    Příští odznak: <strong>{nejblizsi.badge.title}</strong> (
+                    {popisekPokrokuOdznaku(nejblizsi.badge.id, xp, level, streakDays)})
+                  </p>
+                )}
+              </>
+            ) : (
+              <>
+                <span className="reward-skeleton reward-skeleton--line-insight" aria-hidden="true" />
+                <span className="reward-skeleton reward-skeleton--line-insight" aria-hidden="true" />
+              </>
+            )}
           </div>
-        </section>
 
-        {/* "Jak získat XP" appka odstranila na uživatelovu žádost —
-            uživatel chtěl na týhle obrazovce zatím jen samotné
-            achievementy (odznaky výš), bez návodu, kde se XP bere.
-            Appka XP_SOURCES/openApp smazala úplně spolu s ní, ne jen
-            schovala — malá, snadno znovu postavitelná data/kód, kdyby
-            se sem sekce měla v nějaké formě ještě vrátit. */}
+          {/* Odznaky — na rozdíl od profilu ukazujeme i ty zamčené i s podmínkou */}
+          <section className="reward-section">
+            <div className="reward-section-head">
+              <span>Odznaky</span>
+              <span className="reward-section-count">{unlockedCount} z {badges.length}</span>
+            </div>
 
-        {/* Krok 19: appka appčinu sdílenou spodní lištu rozšiřuje na
-            (téměř) celou appku — Rewards dřív žádnou navigaci na
-            dně nemělo, teď dostává tu stejnou, co Hub/Apps/Profil/
-            Nastavení. */}
-        <AppBottomNav />
+            <div className="reward-badge-grid">
+              {sortedBadges.map((badge) => {
+                const unlocked = badge.unlockedAt !== null
+                const pripnuty = profile.pinnedBadges.includes(badge.id)
+
+                return (
+                  <article
+                    key={badge.id}
+                    className={`reward-badge-card buddy-ui-card ${unlocked ? 'is-unlocked' : 'is-locked'}`}
+                  >
+                    <button type="button" className="reward-badge-detail" onClick={() => setSelectedBadgeId(badge.id)}>
+                      <span className="reward-badge-icon" aria-hidden="true">
+                        <BadgeThemeIcon badgeId={badge.id} themeId={themeId} unlocked={unlocked} size={34} />
+                      </span>
+                      <span className="reward-badge-text">
+                        <strong className="reward-badge-title">{badge.title}</strong>
+                        <span className={`reward-badge-state${unlocked ? ' is-unlocked' : ''}`}>{unlocked ? 'Odemčeno' : 'Zamčeno'}</span>
+                      </span>
+                    </button>
+                    {/* Vystavení na veřejném profilu (VerejnyProfilDialog.tsx) —
+                        jen u odemčených, appka nedovolí připnout něco, co
+                        uživatel ještě nemá. Ikona appka vzala ze stejné
+                        sady jako Hub (SocialIcon) místo holého emoji 📌 —
+                        bookmark/bookmark-filled jde navíc sám o sobě
+                        přečíst jako "připnuto/nepřipnuto", ne jen "tohle
+                        je nějaké tlačítko". */}
+                    {unlocked && (
+                      <button
+                        type="button"
+                        aria-pressed={pripnuty}
+                        className={`buddy-ui-button buddy-ui-button--icon reward-badge-pin ${pripnuty ? 'je-pripnuty' : ''}`}
+                        aria-label={pripnuty ? `Zrušit vystavení odznaku ${badge.title}` : `Vystavit odznak ${badge.title} na profilu`}
+                        disabled={!pripnuty && profile.pinnedBadges.length >= MAX_PRIPNUTYCH}
+                        onClick={() => prepnoutPripnuti(badge.id)}
+                      >
+                        <SocialIcon name={pripnuty ? 'bookmark-filled' : 'bookmark'} size={14} />
+                      </button>
+                    )}
+                  </article>
+                )
+              })}
+            </div>
+          </section>
+
+          {/* "Jak získat XP" appka odstranila na uživatelovu žádost —
+              uživatel chtěl na týhle obrazovce zatím jen samotné
+              achievementy (odznaky výš), bez návodu, kde se XP bere.
+              Appka XP_SOURCES/openApp smazala úplně spolu s ní, ne jen
+              schovala — malá, snadno znovu postavitelná data/kód, kdyby
+              se sem sekce měla v nějaké formě ještě vrátit. */}
+
+          {/* Krok 19: appka appčinu sdílenou spodní lištu rozšiřuje na
+              (téměř) celou appku — Rewards dřív žádnou navigaci na
+              dně nemělo, teď dostává tu stejnou, co Hub/Apps/Profil/
+              Nastavení. */}
+        </main>
+
+        <AppBottomNav placement="edge" />
+
+        {selectedBadge && (
+          <BuddyDialog surfaceId="achievements" title={selectedBadge.title} onClose={() => setSelectedBadgeId(null)}>
+            <div className="reward-badge-dialog">
+              <BadgeThemeIcon badgeId={selectedBadge.id} themeId={themeId} unlocked={!!selectedBadge.unlockedAt} size={60} />
+              <p>{selectedBadge.description}</p>
+              <p className="buddy-ui-status">
+                {selectedBadge.unlockedAt
+                  ? `Odemčeno ${new Date(selectedBadge.unlockedAt).toLocaleDateString('cs-CZ')}`
+                  : 'Odznak je zatím zamčený.'}
+              </p>
+            </div>
+          </BuddyDialog>
+        )}
       </div>
     </div>
   )

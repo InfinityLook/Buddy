@@ -1,9 +1,12 @@
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
+import { CommunityDialog } from './CommunityDialog'
 import React, { useEffect, useState } from 'react'
 import { SocialAvatar } from './SocialAvatar'
 import * as api from '../api'
 import type { SocialProfil } from '../types'
 
 interface Props {
+  surfaceId?: SurfaceId
   pocatecniTab: 'sledujici' | 'sledovani'
   onOtevritProfil: (userId: string) => void
   onZavrit: () => void
@@ -23,7 +26,7 @@ interface Props {
 // NahlasitDialog.tsx (.social-overlay + .social-dialog jako sourozenci,
 // ne celoobrazovkový přes portál).
 // ==========================================
-export const SledujiciDialog: React.FC<Props> = ({ pocatecniTab, onOtevritProfil, onZavrit }) => {
+export const SledujiciDialog: React.FC<Props> = ({ surfaceId = 'profile', pocatecniTab, onOtevritProfil, onZavrit }) => {
   const [tab, setTab] = useState(pocatecniTab)
   const [sledujici, setSledujici] = useState<SocialProfil[] | null>(null)
   const [sledovani, setSledovani] = useState<SocialProfil[] | null>(null)
@@ -55,65 +58,62 @@ export const SledujiciDialog: React.FC<Props> = ({ pocatecniTab, onOtevritProfil
   const seznam = tab === 'sledujici' ? sledujici : sledovani
 
   return (
-    <>
-      <div className="social-overlay" onClick={onZavrit} />
-      <div className="social-dialog social-dialog--sledujici">
-        <div className="social-sledujici-taby">
-          <button
-            className={`social-prispevky-tab ${tab === 'sledujici' ? 'is-aktivni' : ''}`}
-            onClick={() => setTab('sledujici')}
-          >
-            Sledující
-          </button>
-          <button
-            className={`social-prispevky-tab ${tab === 'sledovani' ? 'is-aktivni' : ''}`}
-            onClick={() => setTab('sledovani')}
-          >
-            Sledovaní
-          </button>
-        </div>
-
-        <div className="social-sledujici-seznam">
-          {seznam === null ? (
-            <p className="social-empty-note">Načítám…</p>
-          ) : seznam.length === 0 ? (
-            <p className="social-empty-note social-empty-note--stred">
-              {tab === 'sledujici' ? 'Zatím tě nikdo nesleduje.' : 'Zatím nikoho nesleduješ.'}
-            </p>
-          ) : (
-            seznam.map((p) => (
-              <div key={p.id} className="social-row">
-                <button className="social-row-otevrit" onClick={() => onOtevritProfil(p.id)}>
-                  <SocialAvatar id={p.id} jmeno={p.displayName} avatarUrl={p.avatarUrl} />
-                  <span className="social-row-name">{p.displayName}</span>
-                </button>
-
-                {tab === 'sledujici' ? (
-                  <button
-                    className="social-btn social-btn--small social-btn--tlumene"
-                    disabled={zpracovava === p.id}
-                    onClick={() => odebratSledujiciho(p.id)}
-                  >
-                    Odebrat
-                  </button>
-                ) : (
-                  <button
-                    className="social-btn social-btn--small social-btn--tlumene"
-                    disabled={zpracovava === p.id}
-                    onClick={() => prestatSledovat(p.id)}
-                  >
-                    Přestat sledovat
-                  </button>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-
-        <button className="social-btn social-btn--full" onClick={onZavrit}>
-          Zavřít
+    <CommunityDialog title="Sledující a sledovaní" surfaceId={surfaceId} onClose={onZavrit}>
+      <div className="social-sledujici-taby">
+        <button
+          className={`social-prispevky-tab ${tab === 'sledujici' ? 'is-aktivni' : ''}`}
+          onClick={() => setTab('sledujici')}
+        >
+          Sledující
+        </button>
+        <button
+          className={`social-prispevky-tab ${tab === 'sledovani' ? 'is-aktivni' : ''}`}
+          onClick={() => setTab('sledovani')}
+        >
+          Sledovaní
         </button>
       </div>
-    </>
+
+      <div className="social-sledujici-seznam">
+        {seznam === null ? (
+          <p className="social-empty-note">Načítám…</p>
+        ) : seznam.length === 0 ? (
+          <p className="social-empty-note social-empty-note--stred">
+            {tab === 'sledujici' ? 'Zatím tě nikdo nesleduje.' : 'Zatím nikoho nesleduješ.'}
+          </p>
+        ) : (
+          seznam.map((p) => (
+            <div key={p.id} className="social-row">
+              <button className="social-row-otevrit" onClick={() => onOtevritProfil(p.id)}>
+                <SocialAvatar id={p.id} jmeno={p.displayName} avatarUrl={p.avatarUrl} />
+                <span className="social-row-name">{p.displayName}</span>
+              </button>
+
+              {tab === 'sledujici' ? (
+                <button
+                  className="social-btn social-btn--small social-btn--tlumene"
+                  disabled={zpracovava === p.id}
+                  onClick={() => odebratSledujiciho(p.id)}
+                >
+                  Odebrat
+                </button>
+              ) : (
+                <button
+                  className="social-btn social-btn--small social-btn--tlumene"
+                  disabled={zpracovava === p.id}
+                  onClick={() => prestatSledovat(p.id)}
+                >
+                  Přestat sledovat
+                </button>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <button className="social-btn social-btn--full" onClick={onZavrit}>
+        Zavřít
+      </button>
+    </CommunityDialog>
   )
 }

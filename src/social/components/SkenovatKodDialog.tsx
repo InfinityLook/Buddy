@@ -1,9 +1,12 @@
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
+import { CommunityDialog } from './CommunityDialog'
 import React, { useEffect, useRef, useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import * as api from '../api'
 import type { SocialStav } from '../useSocial'
 
 interface Props {
+  surfaceId?: SurfaceId
   stav: SocialStav
   onOtevritProfil: (userId: string) => void
   onZavrit: () => void
@@ -35,7 +38,7 @@ const kodZTextu = (text: string): string => {
 // zastavit stream, jinak by kamera běžela na pozadí dál.
 // ==========================================
 
-export const SkenovatKodDialog: React.FC<Props> = ({ stav, onOtevritProfil, onZavrit }) => {
+export const SkenovatKodDialog: React.FC<Props> = ({ surfaceId = 'profile', stav, onOtevritProfil, onZavrit }) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const detekceRef = useRef<number | null>(null)
@@ -126,49 +129,44 @@ export const SkenovatKodDialog: React.FC<Props> = ({ stav, onOtevritProfil, onZa
   }
 
   return (
-    <>
-      <div className="social-overlay" onClick={onZavrit} />
-      <div className="social-dialog">
-        <h3 className="social-dialog-title">Naskenovat kód</h3>
-
-        {podporovano && !chybaKamery && (
-          <div className="social-sken-video-obal">
-            <video ref={videoRef} className="social-sken-video" muted playsInline />
-            <span className="social-sken-ramecek" aria-hidden="true" />
-          </div>
-        )}
-
-        {podporovano === false && (
-          <p className="social-dialog-sub">
-            Tenhle prohlížeč skenování nepodporuje — zadej kód ručně.
-          </p>
-        )}
-        {chybaKamery && (
-          <p className="social-dialog-sub">
-            Kamera není dostupná — zadej kód ručně.
-          </p>
-        )}
-
-        <form className="social-add-row" onSubmit={odeslatRucne}>
-          <input
-            className="social-input"
-            placeholder="Nebo napiš kód ručně…"
-            value={rucneKod}
-            maxLength={9}
-            onChange={(e) => setRucneKod(e.target.value)}
-          />
-          <button className="social-btn" type="submit" disabled={hleda || api.ocistiKod(rucneKod).length !== 8}>
-            {hleda ? '…' : 'Najít'}
-          </button>
-        </form>
-
-        <div className="social-dialog-akce">
-          <button className="social-btn social-btn--tlumene" onClick={onZavrit}>
-            <SocialIcon name="x" size={14} />
-            Zavřít
-          </button>
+    <CommunityDialog title="Naskenovat kód" surfaceId={surfaceId} onClose={onZavrit}>
+      {podporovano && !chybaKamery && (
+        <div className="social-sken-video-obal">
+          <video ref={videoRef} className="social-sken-video" muted playsInline />
+          <span className="social-sken-ramecek" aria-hidden="true" />
         </div>
+      )}
+
+      {podporovano === false && (
+        <p className="social-dialog-sub">
+          Tenhle prohlížeč skenování nepodporuje — zadej kód ručně.
+        </p>
+      )}
+      {chybaKamery && (
+        <p className="social-dialog-sub">
+          Kamera není dostupná — zadej kód ručně.
+        </p>
+      )}
+
+      <form className="social-add-row" onSubmit={odeslatRucne}>
+        <input
+          className="social-input"
+          placeholder="Nebo napiš kód ručně…"
+          value={rucneKod}
+          maxLength={9}
+          onChange={(e) => setRucneKod(e.target.value)}
+        />
+        <button className="social-btn" type="submit" disabled={hleda || api.ocistiKod(rucneKod).length !== 8}>
+          {hleda ? '…' : 'Najít'}
+        </button>
+      </form>
+
+      <div className="social-dialog-akce">
+        <button className="social-btn social-btn--tlumene" onClick={onZavrit}>
+          <SocialIcon name="x" size={14} />
+          Zavřít
+        </button>
       </div>
-    </>
+    </CommunityDialog>
   )
 }

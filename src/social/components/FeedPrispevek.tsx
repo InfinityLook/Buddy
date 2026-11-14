@@ -1,3 +1,5 @@
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
+import { CommunityDialog } from './CommunityDialog'
 import { forwardRef, useEffect, useRef, useState } from 'react'
 import { SocialAvatar } from './SocialAvatar'
 import { SocialIcon } from './SocialIcon'
@@ -12,6 +14,7 @@ import type { Prispevek, SocialProfil, VztahKPrispevku } from '../types'
 import type { SocialStav } from '../useSocial'
 
 interface Props {
+  surfaceId: SurfaceId
   prispevek: Prispevek
   autor: SocialProfil | null
   /** Je tenhle příspěvek zrovna ten, na kterém uživatel je (viz
@@ -82,6 +85,7 @@ const casPrispevku = (iso: string): string => {
 // volání metod na komponentě samotné.
 export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispevek(
   {
+    surfaceId,
     prispevek,
     autor,
     aktivni,
@@ -358,6 +362,7 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
 
       {otevrenoSdileni && (
         <SdiletPrispevekDialog
+          surfaceId={surfaceId}
           postId={prispevek.id}
           stav={stav}
           onZavrit={() => setOtevrenoSdileni(false)}
@@ -365,10 +370,7 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
       )}
 
       {otevrenaNabidkaVice && (
-        <>
-          <div className="social-overlay" onClick={() => setOtevrenaNabidkaVice(false)} />
-          <div className="social-dialog">
-            <h3 className="social-dialog-title">Co s tímto příspěvkem?</h3>
+        <CommunityDialog title="Možnosti příspěvku" surfaceId={surfaceId} onClose={() => setOtevrenaNabidkaVice(false)}>
             <div className="social-nabidka-vice">
               <button className="social-nabidka-vice-radek" onClick={() => void utlumit()}>
                 <SocialIcon name="volume-off" size={18} />
@@ -393,12 +395,12 @@ export const FeedPrispevek = forwardRef<HTMLElement, Props>(function FeedPrispev
                 Zrušit
               </button>
             </div>
-          </div>
-        </>
+        </CommunityDialog>
       )}
 
       {otevrenoNahlaseni && (
         <NahlasitDialog
+          surfaceId={surfaceId}
           userId={prispevek.autorId}
           postId={prispevek.id}
           stav={stav}

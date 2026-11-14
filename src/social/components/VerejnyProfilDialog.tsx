@@ -13,9 +13,11 @@ import { useOnlineFriends } from '../presence'
 import * as api from '../api'
 import type { Prispevek, VerejnyProfil, VztahSledovani } from '../types'
 import type { SocialStav } from '../useSocial'
-import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
+import { CommunityDialog } from './CommunityDialog'
 
 interface Props {
+  callerId?: SurfaceId
   userId: string
   stav: SocialStav
   onOtevritChat: (chatId: string) => void
@@ -42,11 +44,13 @@ interface Props {
 // vlastním profilu appky (pages/profil/components/ProfilSocialniSekce.tsx).
 // ==========================================
 
-export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritChat, onZavrit }) => {
+export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, callerId, onOtevritChat, onZavrit }) => {
   const online = useOnlineFriends()
   const [profil, setProfil] = useState<VerejnyProfil | null>(null)
   const [nacita, setNacita] = useState(true)
   const [nahlasit, setNahlasit] = useState(false)
+  const [potvrditBlok, setPotvrditBlok] = useState(false)
+  const [meniBlok, setMeniBlok] = useState(false)
   // Nezávislé na hlavním profilu — appka ho nemá kam napsat zpátky,
   // ať se nemusí čekat, než dojede spolu se zbytkem.
   const [spolecni, setSpolecni] = useState<number | null>(null)
@@ -84,6 +88,7 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
   }, [userId])
 
   const pritel = stav.pratele.some((p) => p.profil.id === userId)
+  const jeZtlumeny = stav.utlumeni.some(account => account.id === userId)
   const jeZablokovany = stav.bloky.some((b) => b.id === userId)
   const jeToJa = stav.mujId === userId
 
@@ -116,14 +121,9 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
   const zobrazovaneMrizky = prispevky.filter((p) => (tab === 'video' ? p.mediaType === 'video' : p.mediaType === 'image'))
 
   return (
-    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
-    // vlastního backdropu, jen dědí motiv od Social (social-home).
-    // .social-overlay zůstává position:fixed vůči viewportu beze změny —
-    // isolation:isolate appčina (.buddy-theme-scope) containing block pro
-    // position:fixed nemění (viz appčin rozbor u SocialModule.tsx).
-    <SurfaceThemeScope surfaceId="public-profile">
-      <div className="social-overlay" onClick={onZavrit} />
-      <div className="social-dialog social-profil-dialog">
+    <CommunityDialog surfaceId="public-profile" callerId={callerId} title="Veřejný profil" onClose={onZavrit}>
+      <div className="community-public-profile">
+        {stav.hlaska && <p className="buddy-ui-status" role="status">{stav.hlaska}</p>}
         {nacita ? (
           <p className="social-empty-note social-empty-note--stred">Načítám…</p>
         ) : !profil ? (
@@ -253,15 +253,19 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
               Nahlásit
             </button>
 
-            <button
-              className="social-btn social-btn--tlumene"
-              onClick={() =>
-                stav.provest(
-                  () => (jeZablokovany ? api.odblokovat(userId) : api.zablokovat(userId)),
-                  jeZablokovany ? 'Odblokováno.' : 'Zablokováno.'
-                )
-              }
-            >
+            {!jeZablokovany && (
+              <button type="button" className="social-btn social-btn--tlumene"
+                onClick={() => void stav.provest(
+                  () => jeZtlumeny ? api.odtlumitUcet(userId) : api.utlumitUcet(userId),
+                  jeZtlumeny ? 'Účet už není ztlumený.' : 'Příspěvky účtu jsou ztlumené.'
+                )}>
+                {jeZtlumeny ? 'Zrušit ztlumení' : 'Ztlumit příspěvky'}
+              </button>
+            )}
+            <button type="button" className="social-btn social-btn--tlumene" onClick={() => {
+              if (jeZablokovany) void stav.provest(() => api.odblokovat(userId), 'Odblokováno.')
+              else setPotvrditBlok(true)
+            }}>
               <SocialIcon name="block" size={14} />
               {jeZablokovany ? 'Odblokovat' : 'Zablokovat'}
             </button>
@@ -350,10 +354,28 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
         </div>
       </div>
 
-      {nahlasit && <NahlasitDialog userId={userId} stav={stav} onZavrit={() => setNahlasit(false)} />}
+      {potvrditBlok && (
+        <CommunityDialog surfaceId="public-profile" callerId={callerId} title="Zablokovat účet?"
+          onClose={() => { if (!meniBlok) setPotvrditBlok(false) }}>
+          <p>Účet {profil?.displayName} můžeš později odblokovat v nastavení.</p>
+          <div className="social-dialog-akce">
+            <button type="button" className="buddy-ui-button" disabled={meniBlok} onClick={() => setPotvrditBlok(false)}>Zrušit</button>
+            <button type="button" className="buddy-ui-button" disabled={meniBlok} onClick={async () => {
+              setMeniBlok(true)
+              const ok = await stav.provest(() => api.zablokovat(userId), 'Zablokováno.')
+              setMeniBlok(false)
+              if (ok) setPotvrditBlok(false)
+            }}>Zablokovat</button>
+          </div>
+          {stav.hlaska && <p className="buddy-ui-status" role="status">{stav.hlaska}</p>}
+        </CommunityDialog>
+      )}
+
+      {nahlasit && <NahlasitDialog surfaceId="public-profile" userId={userId} stav={stav} onZavrit={() => setNahlasit(false)} />}
 
       {otevrenyPrispevek && (
         <PrispevekProhlizec
+          surfaceId="public-profile"
           prispevek={otevrenyPrispevek}
           jeMoje={jeToJa}
           mujId={stav.mujId}
@@ -365,6 +387,6 @@ export const VerejnyProfilDialog: React.FC<Props> = ({ userId, stav, onOtevritCh
           }}
         />
       )}
-    </SurfaceThemeScope>
+    </CommunityDialog>
   )
 }

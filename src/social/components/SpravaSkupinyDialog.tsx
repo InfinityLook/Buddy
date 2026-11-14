@@ -1,3 +1,5 @@
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
+import { CommunityDialog } from './CommunityDialog'
 import React, { useState } from 'react'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
@@ -6,6 +8,7 @@ import { IKONY_SKUPIN, type Chat } from '../types'
 import type { SocialStav } from '../useSocial'
 
 interface Props {
+  surfaceId?: SurfaceId
   chat: Chat
   stav: SocialStav
   onZavrit: () => void
@@ -17,7 +20,7 @@ interface Props {
 // tlačítko na odebrání zobrazí, jen když se zakladatelId shoduje s mujId.
 // Vlastní odchod ze skupiny řeší existující tlačítko "Opustit chat"
 // v hlavičce, tady se schválně neopakuje.
-export const SpravaSkupinyDialog: React.FC<Props> = ({ chat, stav, onZavrit, onOtevritProfil }) => {
+export const SpravaSkupinyDialog: React.FC<Props> = ({ surfaceId = 'chat-conversation', chat, stav, onZavrit, onOtevritProfil }) => {
   const [nazev, setNazev] = useState(chat.nazev)
   const [ukladaNazev, setUkladaNazev] = useState(false)
   const [pridavaId, setPridavaId] = useState<string | null>(null)
@@ -57,105 +60,100 @@ export const SpravaSkupinyDialog: React.FC<Props> = ({ chat, stav, onZavrit, onO
   const priteleKPridani = stav.pratele.filter((p) => !clenoveIds.has(p.profil.id))
 
   return (
-    <>
-      <div className="social-overlay" onClick={onZavrit} />
-      <div className="social-dialog">
-        <h3 className="social-dialog-title">Spravovat skupinu</h3>
-
-        <span className="social-card-label">NÁZEV</span>
-        <div className="social-add-row">
-          <input
-            className="social-input"
-            value={nazev}
-            maxLength={40}
-            onChange={(e) => setNazev(e.target.value)}
-          />
-          <button
-            className="social-btn social-btn--small"
-            onClick={ulozitNazev}
-            disabled={ukladaNazev || !nazev.trim() || nazev.trim() === chat.nazev}
-          >
-            Uložit
-          </button>
-        </div>
-
-        <span className="social-card-label">IKONA</span>
-        <div className="social-ikony-mrizka">
-          <button
-            className={`social-ikona-volba ${chat.ikona === null ? 'is-vybrana' : ''}`}
-            aria-label="Bez ikony (#)"
-            disabled={nastavujeIkonu}
-            onClick={() => vybratIkonu(null)}
-          >
-            #
-          </button>
-          {IKONY_SKUPIN.map((ikona) => (
-            <button
-              key={ikona}
-              className={`social-ikona-volba ${chat.ikona === ikona ? 'is-vybrana' : ''}`}
-              aria-label={`Ikona ${ikona}`}
-              disabled={nastavujeIkonu}
-              onClick={() => vybratIkonu(ikona)}
-            >
-              {ikona}
-            </button>
-          ))}
-        </div>
-
-        <span className="social-card-label">ČLENOVÉ ({chat.ucastnici.length + 1})</span>
-        <div className="social-row">
-          <SocialAvatar id={stav.mujId ?? ''} jmeno="Ty" avatarUrl={stav.profil?.avatarUrl} />
-          <span className="social-row-name">
-            Ty {chat.zakladatelId === stav.mujId && '· zakladatel/ka'}
-          </span>
-        </div>
-        {chat.ucastnici.map((u) => (
-          <div key={u.id} className="social-row">
-            <button className="social-row-otevrit" onClick={() => onOtevritProfil(u.id)}>
-              <SocialAvatar id={u.id} jmeno={u.displayName} avatarUrl={u.avatarUrl} />
-              <span className="social-row-name">
-                {u.displayName} {chat.zakladatelId === u.id && '· zakladatel/ka'}
-              </span>
-            </button>
-            {jsemZakladatel && chat.zakladatelId !== u.id && (
-              <button
-                className="social-icon-btn social-icon-btn--ne"
-                aria-label={`Odebrat ${u.displayName}`}
-                disabled={odebiraId === u.id}
-                onClick={() => odebrat(u.id, u.displayName)}
-              >
-                <SocialIcon name="x" size={16} />
-              </button>
-            )}
-          </div>
-        ))}
-
-        {priteleKPridani.length > 0 && (
-          <>
-            <span className="social-card-label">PŘIDAT PŘÍTELE</span>
-            {priteleKPridani.map((p) => (
-              <div key={p.profil.id} className="social-row">
-                <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} avatarUrl={p.profil.avatarUrl} />
-                <span className="social-row-name">{p.profil.displayName}</span>
-                <button
-                  className="social-icon-btn social-icon-btn--ano"
-                  aria-label={`Přidat ${p.profil.displayName}`}
-                  disabled={pridavaId === p.profil.id}
-                  onClick={() => pridat(p.profil.id)}
-                >
-                  <SocialIcon name="plus" size={16} />
-                </button>
-              </div>
-            ))}
-          </>
-        )}
-
-        <div className="social-dialog-akce">
-          <button className="social-btn social-btn--tlumene" onClick={onZavrit}>
-            Zavřít
-          </button>
-        </div>
+    <CommunityDialog title="Spravovat skupinu" surfaceId={surfaceId} onClose={onZavrit}>
+      <span className="social-card-label">NÁZEV</span>
+      <div className="social-add-row">
+        <input
+          className="social-input"
+          value={nazev}
+          maxLength={40}
+          onChange={(e) => setNazev(e.target.value)}
+        />
+        <button
+          className="social-btn social-btn--small"
+          onClick={ulozitNazev}
+          disabled={ukladaNazev || !nazev.trim() || nazev.trim() === chat.nazev}
+        >
+          Uložit
+        </button>
       </div>
-    </>
+
+      <span className="social-card-label">IKONA</span>
+      <div className="social-ikony-mrizka">
+        <button
+          className={`social-ikona-volba ${chat.ikona === null ? 'is-vybrana' : ''}`}
+          aria-label="Bez ikony (#)"
+          disabled={nastavujeIkonu}
+          onClick={() => vybratIkonu(null)}
+        >
+          #
+        </button>
+        {IKONY_SKUPIN.map((ikona) => (
+          <button
+            key={ikona}
+            className={`social-ikona-volba ${chat.ikona === ikona ? 'is-vybrana' : ''}`}
+            aria-label={`Ikona ${ikona}`}
+            disabled={nastavujeIkonu}
+            onClick={() => vybratIkonu(ikona)}
+          >
+            {ikona}
+          </button>
+        ))}
+      </div>
+
+      <span className="social-card-label">ČLENOVÉ ({chat.ucastnici.length + 1})</span>
+      <div className="social-row">
+        <SocialAvatar id={stav.mujId ?? ''} jmeno="Ty" avatarUrl={stav.profil?.avatarUrl} />
+        <span className="social-row-name">
+          Ty {chat.zakladatelId === stav.mujId && '· zakladatel/ka'}
+        </span>
+      </div>
+      {chat.ucastnici.map((u) => (
+        <div key={u.id} className="social-row">
+          <button className="social-row-otevrit" onClick={() => onOtevritProfil(u.id)}>
+            <SocialAvatar id={u.id} jmeno={u.displayName} avatarUrl={u.avatarUrl} />
+            <span className="social-row-name">
+              {u.displayName} {chat.zakladatelId === u.id && '· zakladatel/ka'}
+            </span>
+          </button>
+          {jsemZakladatel && chat.zakladatelId !== u.id && (
+            <button
+              className="social-icon-btn social-icon-btn--ne"
+              aria-label={`Odebrat ${u.displayName}`}
+              disabled={odebiraId === u.id}
+              onClick={() => odebrat(u.id, u.displayName)}
+            >
+              <SocialIcon name="x" size={16} />
+            </button>
+          )}
+        </div>
+      ))}
+
+      {priteleKPridani.length > 0 && (
+        <>
+          <span className="social-card-label">PŘIDAT PŘÍTELE</span>
+          {priteleKPridani.map((p) => (
+            <div key={p.profil.id} className="social-row">
+              <SocialAvatar id={p.profil.id} jmeno={p.profil.displayName} avatarUrl={p.profil.avatarUrl} />
+              <span className="social-row-name">{p.profil.displayName}</span>
+              <button
+                className="social-icon-btn social-icon-btn--ano"
+                aria-label={`Přidat ${p.profil.displayName}`}
+                disabled={pridavaId === p.profil.id}
+                onClick={() => pridat(p.profil.id)}
+              >
+                <SocialIcon name="plus" size={16} />
+              </button>
+            </div>
+          ))}
+        </>
+      )}
+
+      <div className="social-dialog-akce">
+        <button className="social-btn social-btn--tlumene" onClick={onZavrit}>
+          Zavřít
+        </button>
+      </div>
+    </CommunityDialog>
   )
 }

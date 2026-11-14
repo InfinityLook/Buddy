@@ -79,7 +79,7 @@ test('Growth opens the new goal form and the exact saved goal', async ({ page })
 test('Music opens its own notification panel, studio tabs and Files', async ({ page }) => {
   await page.goto('/music')
   await page.getByRole('button', { name: /^Upozornění/ }).click()
-  const notifications = page.locator('.profil-notif-dropdown.open')
+  const notifications = page.getByRole('dialog', { name: 'Upozornění' })
   await expect(notifications).toBeInViewport()
   await notifications.getByRole('button', { name: 'Zavřít' }).click()
 

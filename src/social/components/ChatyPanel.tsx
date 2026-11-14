@@ -147,6 +147,7 @@ export const ChatyPanel: React.FC<Props> = ({ stav, tajnyStav, onOtevritChat, on
           <span className="social-card-label">NOVÁ KONVERZACE</span>
           <button
             className="social-btn social-btn--small"
+            aria-expanded={menu}
             onClick={() => (menu ? zavritMenu() : setMenu(true))}
           >
             <SocialIcon name={menu ? 'x' : 'plus'} size={14} />
@@ -294,6 +295,7 @@ export const ChatyPanel: React.FC<Props> = ({ stav, tajnyStav, onOtevritChat, on
             type="search"
             className="social-input social-input--full"
             placeholder="Hledat v chatech…"
+            aria-label="Hledat v chatech"
             value={hledatChaty}
             onChange={(e) => setHledatChaty(e.target.value)}
           />
@@ -336,7 +338,7 @@ export const ChatyPanel: React.FC<Props> = ({ stav, tajnyStav, onOtevritChat, on
               <span className="social-chat-meta">
                 <span className="social-chat-cas">{casKratce(ch.posledniCas)}</span>
                 {ch.neprectene > 0 && (
-                  <span className="social-odznak">{ch.neprectene}</span>
+                  <span className="social-odznak" aria-label={`Nepřečtené zprávy: ${ch.neprectene}`}>{ch.neprectene}</span>
                 )}
               </span>
             </button>

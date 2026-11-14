@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { SkenovatKodDialog } from './SkenovatKodDialog'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import { PrispevekProhlizec } from './PrispevekProhlizec'
@@ -26,6 +27,7 @@ interface Props {
 // ==========================================
 
 export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil, initHashtag }) => {
+  const [sken, setSken] = useState(false)
   const [dotaz, setDotaz] = useState('')
   const [vysledky, setVysledky] = useState<SocialProfil[]>([])
   const [hleda, setHleda] = useState(false)
@@ -127,10 +129,15 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil, initHa
           pozná, co uživatel chce, ze samotného "#" na začátku, žádný
           přepínač navíc. */}
       <section className="social-card">
-        <span className="social-card-label">NAJÍT LIDI NEBO #HASHTAG</span>
+        <div className="social-card-head">
+          <span className="social-card-label">Lidé a hashtagy</span>
+          <button type="button" className="buddy-ui-button" onClick={() => setSken(true)}>Naskenovat kód</button>
+        </div>
         <form className="social-add-row" onSubmit={hledat}>
           <input
             className="social-input"
+            type="search"
+            aria-label="Jméno nebo hashtag"
             placeholder="Jméno nebo #hashtag…"
             value={dotaz}
             maxLength={40}
@@ -275,8 +282,14 @@ export const VyhledavacPanel: React.FC<Props> = ({ stav, onOtevritProfil, initHa
         </p>
       )}
 
+      {sken && (
+        <SkenovatKodDialog surfaceId="people-search" stav={stav}
+          onOtevritProfil={onOtevritProfil} onZavrit={() => setSken(false)} />
+      )}
+
       {otevrenyPrispevek && (
         <PrispevekProhlizec
+          surfaceId="people-search"
           prispevek={otevrenyPrispevek}
           jeMoje={otevrenyPrispevek.autorId === stav.mujId}
           mujId={stav.mujId}

@@ -1,9 +1,11 @@
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
 import React, { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { CommunityDialog } from './CommunityDialog'
 import { SocialIcon } from './SocialIcon'
 import { MAX_REEL_TRVANI_S } from '../api'
 
 interface Props {
+  surfaceId?: SurfaceId
   /** Natočené video appka jen předá dál — samotné nahrání/popisek/
    *  zveřejnění pak řeší ten samý PridatPrispevekDialog.tsx, který
    *  používá i výběr existujícího souboru, appka nestaví druhou
@@ -45,7 +47,7 @@ type Faze = 'priprava' | 'natacim' | 'nahled' | 'chyba'
  * ze zařízení (nahratMediumPrispevku v api.ts), tahle cesta ho jen
  * navíc hlídá přímo při natáčení, ne až po nahrání.
  */
-export const NahratReelDialog: React.FC<Props> = ({ onNatoceno, onZavrit }) => {
+export const NahratReelDialog: React.FC<Props> = ({ surfaceId = 'profile', onNatoceno, onZavrit }) => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
@@ -164,52 +166,47 @@ export const NahratReelDialog: React.FC<Props> = ({ onNatoceno, onZavrit }) => {
     void zacitNatoceni({ zruseno: false })
   }
 
-  return createPortal(
-    <div className="social-story-dialog" role="dialog" aria-modal="true" aria-label="Nahrát Reel">
-      <div className="social-story-dialog-hlavicka">
-        <button className="social-story-zavrit" onClick={onZavrit} aria-label="Zavřít">
-          <SocialIcon name="x" size={22} />
-        </button>
-      </div>
+  return (
+    <CommunityDialog title="Nahrát Reel" surfaceId={surfaceId} onClose={onZavrit} fullscreen>
+      <div className="social-story-dialog community-media-view">
+        {faze === 'chyba' ? (
+          <div className="social-reel-chyba">
+            <p className="social-dialog-sub">
+              Kameru/mikrofon se nepovedlo získat. Zkontroluj oprávnění a zkus to znovu.
+            </p>
+          </div>
+        ) : faze === 'nahled' && natoceny ? (
+          <video src={natoceny.url} className="social-story-nahled" controls playsInline autoPlay loop />
+        ) : (
+          <div className="social-reel-kamera-obal">
+            <video ref={videoRef} className="social-reel-kamera" muted playsInline />
+            {faze === 'natacim' && (
+              <div className="social-reel-nahravani-znacka" aria-hidden="true">
+                <span className="social-nahravani-tecka" />
+                <span>{formatCas(casS)} / {formatCas(MAX_REEL_TRVANI_S)}</span>
+              </div>
+            )}
+          </div>
+        )}
 
-      {faze === 'chyba' ? (
-        <div className="social-reel-chyba">
-          <p className="social-dialog-sub">
-            Kameru/mikrofon se nepovedlo získat. Zkontroluj oprávnění a zkus to znovu.
-          </p>
-        </div>
-      ) : faze === 'nahled' && natoceny ? (
-        <video src={natoceny.url} className="social-story-nahled" controls playsInline autoPlay loop />
-      ) : (
-        <div className="social-reel-kamera-obal">
-          <video ref={videoRef} className="social-reel-kamera" muted playsInline />
+        <div className="social-story-dialog-spodek">
           {faze === 'natacim' && (
-            <div className="social-reel-nahravani-znacka" aria-hidden="true">
-              <span className="social-nahravani-tecka" />
-              <span>{formatCas(casS)} / {formatCas(MAX_REEL_TRVANI_S)}</span>
+            <button className="social-btn" onClick={ukoncitNatoceni}>
+              <SocialIcon name="check" size={16} /> Zastavit natáčení
+            </button>
+          )}
+          {faze === 'nahled' && natoceny && (
+            <div className="social-reel-nahled-akce">
+              <button className="social-btn social-btn--tlumene" onClick={znovuNatocit}>
+                Znovu natočit
+              </button>
+              <button className="social-btn" onClick={() => onNatoceno(natoceny.soubor)}>
+                Použít
+              </button>
             </div>
           )}
         </div>
-      )}
-
-      <div className="social-story-dialog-spodek">
-        {faze === 'natacim' && (
-          <button className="social-btn" onClick={ukoncitNatoceni}>
-            <SocialIcon name="check" size={16} /> Zastavit natáčení
-          </button>
-        )}
-        {faze === 'nahled' && natoceny && (
-          <div className="social-reel-nahled-akce">
-            <button className="social-btn social-btn--tlumene" onClick={znovuNatocit}>
-              Znovu natočit
-            </button>
-            <button className="social-btn" onClick={() => onNatoceno(natoceny.soubor)}>
-              Použít
-            </button>
-          </div>
-        )}
       </div>
-    </div>,
-    document.body
+    </CommunityDialog>
   )
 }

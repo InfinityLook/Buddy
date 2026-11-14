@@ -8,6 +8,7 @@ import './buddy-ui.css'
 interface BuddyDialogProps {
   title: string
   surfaceId: SurfaceId
+  callerId?: SurfaceId
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
@@ -22,6 +23,7 @@ interface BuddyDialogProps {
 export function BuddyDialog({
   title,
   surfaceId,
+  callerId,
   onClose,
   children,
   footer,
@@ -34,7 +36,7 @@ export function BuddyDialog({
   const titleId = useId()
   const dialogRef = useRef<HTMLDialogElement>(null)
   const pointerStartedOnBackdrop = useRef(false)
-  const { rootAttributes } = useSurfaceAppearance(surfaceId)
+  const { rootAttributes } = useSurfaceAppearance(surfaceId, callerId)
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -76,6 +78,7 @@ export function BuddyDialog({
       {...rootAttributes}
       aria-labelledby={titleId}
       onCancel={event => {
+        if (event.target !== event.currentTarget) return
         event.preventDefault()
         onClose()
       }}

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { DomuPanel } from './components/DomuPanel'
 import { ChatyPanel } from './components/ChatyPanel'
@@ -9,11 +9,12 @@ import { VerejnyProfilDialog } from './components/VerejnyProfilDialog'
 import { useSocial } from './useSocial'
 import { useTajnyChat, nastavOtevrenyTajnyChat } from './useTajnyChat'
 import { nastavOtevrenyChat } from './inbox'
-import { useAmbientScene } from './scene/useAmbientScene'
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import { najdiPodleKodu } from './api'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './SocialModule.css'
+import './Community.css'
 
 // ==========================================
 // Social — přátelé, chaty a blokování.
@@ -66,26 +67,10 @@ export const SocialModule: React.FC = () => {
   const stav = useSocial()
   const tajnyStav = useTajnyChat()
 
-  // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — jedno surfaceId pro
-  // celý modul, napříč všemi třemi vykreslovacími větvemi níž (otevřený
-  // chat/tajný chat/trojice záložek jsou stejná obrazovka /social, jen
-  // jinak vykreslená). .social-ambient (Three.js plátno) zůstává beze
-  // změny přímo pod .buddy-theme-scope's novým isolation:isolate —
-  // position:fixed appky si containing block nemění (jen z-indexové
-  // pořadí teď počítá appka uvnitř .social-page's vlastní stackovací
-  // kontext), appka proto nemusela měnit žádný z-index jinde.
-  const { rootAttributes } = useSurfaceAppearance('social-home')
-
-  // Výchozí záložka jde přebít parametrem v URL (?zalozka=chaty) — stejný
-  // vzor jako AppModule.tsx's ?kategorie=. Inicializátor tu je, aby
-  // první vykreslení hned ukázalo správnou záložku bez jednoho rámečku
-  // bliknutí na "domu" — živou reaktivitu na pozdější změny parametru
-  // (Krok 19: appčina sdílená AppBottomNav teď na tenhle parametr
-  // vede) řeší samostatný useEffect níž.
-  const [zalozka, setZalozka] = useState<Zalozka>(() => {
-    const z = searchParams.get('zalozka')
-    return z === 'chaty' || z === 'vyhledavac' ? z : 'domu'
-  })
+  const z = searchParams.get('zalozka')
+  const zalozka: Zalozka = z === 'chaty' || z === 'vyhledavac' ? z : 'domu'
+  const surfaceId = zalozka === 'chaty' ? 'chat-list' : zalozka === 'vyhledavac' ? 'people-search' : 'social-home'
+  const { rootAttributes } = useSurfaceAppearance(surfaceId)
   const [otevrenyChat, setOtevrenyChat] = useState<string | null>(null)
   const [otevrenyTajnyChat, setOtevrenyTajnyChat] = useState<string | null>(null)
   // Dialog s profilem se otevírá nad čímkoli jiným (seznam, chat) —
@@ -158,39 +143,52 @@ export const SocialModule: React.FC = () => {
     return () => nastavOtevrenyTajnyChat(null)
   }, [otevrenyTajnyChat])
 
-  // Krok 19: appčina sdílená <AppBottomNav /> vede Chat/Hledat přes URL
-  // (?zalozka=chaty / ?zalozka=vyhledavac), ne přes přímé setZalozka()
-  // volání jako dřív vlastní lišta. Navigace z /social na
-  // /social?zalozka=... zůstává na stejné routě — React Router tuhle
-  // komponentu znovu nezamountuje, takže inicializátor useState výš
-  // (čte se jen jednou při mountu) by si novou hodnotu parametru
-  // nevšiml. Tenhle efekt doplňuje tu chybějící reaktivitu; chybějící
-  // nebo neplatný parametr appka čte stejně jako ten inicializátor —
-  // jako "domu" (pokrývá i návrat na obyčejné /social přes tlačítko
-  // zpět v historii prohlížeče).
   useEffect(() => {
-    const z = searchParams.get('zalozka')
-    setZalozka(z === 'chaty' || z === 'vyhledavac' ? z : 'domu')
-  }, [searchParams])
+    const chatId = searchParams.get('chat')
+    if (zalozka !== 'chaty' || !chatId || stav.nacita) return
 
-  // Ambientní pozadí žije mimo React a musí se postavit přesně jednou —
-  // proto containerRef nesmí zmizet z DOMu, ať uživatel otevře chat,
-  // nebo ne. Řešit to podmíněným vykreslením celého <div ref> by ho při
-  // zavření chatu osiřelo (canvas zůstane přilepený ke starému uzlu,
-  // nový prázdný div by scénu nikdy nedostal). Container je proto
-  // pořád v DOMu; jen ve chatu se schová přes CSS, ať nesoutěží
-  // s čtením zpráv, ale běžet klidně může dál.
-  const { containerRef: ambientRef } = useAmbientScene()
+    if (stav.chaty.some(item => item.id === chatId)) {
+      setOtevrenyTajnyChat(null)
+      setOtevrenyChat(chatId)
+    }
+    setSearchParams(previous => {
+      const next = new URLSearchParams(previous)
+      next.delete('chat')
+      return next
+    }, { replace: true })
+  }, [searchParams, setSearchParams, stav.chaty, stav.nacita, zalozka])
+
+  const inConversation = !!(chat || tajnyChat)
+  const title = zalozka === 'chaty' ? 'Chaty' : zalozka === 'vyhledavac' ? 'Hledat' : 'Feed'
+  const pageRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const page = pageRef.current
+    const viewport = window.visualViewport
+    if (!page || !viewport || !inConversation) return
+    const fit = () => {
+      if (viewport.scale !== 1) {
+        page.style.removeProperty('--community-viewport-height')
+        page.style.removeProperty('--community-viewport-top')
+        return
+      }
+      page.style.setProperty('--community-viewport-height', `${viewport.height}px`)
+      page.style.setProperty('--community-viewport-top', `${viewport.offsetTop}px`)
+    }
+    fit()
+    viewport.addEventListener('resize', fit)
+    viewport.addEventListener('scroll', fit)
+    return () => {
+      viewport.removeEventListener('resize', fit)
+      viewport.removeEventListener('scroll', fit)
+      page.style.removeProperty('--community-viewport-height')
+      page.style.removeProperty('--community-viewport-top')
+    }
+  }, [inConversation])
 
   return (
-    <div className="social-page buddy-theme-scope" {...rootAttributes}>
-      <SurfaceBackdrop surfaceId="social-home" />
-      <div
-        ref={ambientRef}
-        className={`social-ambient ${chat || tajnyChat ? 'je-skryty' : ''}`}
-        aria-hidden="true"
-      />
-
+    <div ref={pageRef} className={`social-page community-page buddy-theme-scope${inConversation ? ' community-page--conversation' : ''}`} {...rootAttributes}>
+      {!inConversation && <SurfaceBackdrop surfaceId={surfaceId} />}
       {chat ? (
         // Otevřený chat zabírá celou obrazovku — na telefonu není kam
         // dát seznam i rozhovor vedle sebe.
@@ -201,7 +199,7 @@ export const SocialModule: React.FC = () => {
             onZpet={() => setOtevrenyChat(null)}
             onOtevritProfil={setOtevrenyProfil}
           />
-          {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
+          {stav.hlaska && <div className="social-toast" role="status">{stav.hlaska}</div>}
         </>
       ) : tajnyChat ? (
         <>
@@ -212,52 +210,45 @@ export const SocialModule: React.FC = () => {
             onZpet={() => setOtevrenyTajnyChat(null)}
             onZmenaNastaveni={tajnyStav.obnovit}
           />
-          {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
+          {stav.hlaska && <div className="social-toast" role="status">{stav.hlaska}</div>}
         </>
       ) : (
         <>
-          <div className="social-top-bar">
-            <button className="social-back-btn" onClick={() => navigate('/hub')}>
-              ← Zpět do Hubu
-            </button>
-            <h1 className="social-title">Social</h1>
-          </div>
+          <BuddyHeader title={title} icon={zalozka === 'vyhledavac' ? 'search' : undefined}
+            backLabel="Zpět do Hubu" onBack={() => navigate('/hub')} />
 
           {stav.nacita ? (
-            <p className="social-empty-note social-empty-note--stred">Načítám…</p>
+            <p className="buddy-ui-status" role="status">Načítám…</p>
           ) : (
             <>
-              {zalozka === 'chaty' && (
-                <ChatyPanel
-                  stav={stav}
-                  tajnyStav={tajnyStav}
-                  onOtevritChat={setOtevrenyChat}
-                  onOtevritTajnyChat={setOtevrenyTajnyChat}
-                />
-              )}
-              {zalozka === 'domu' && <DomuPanel stav={stav} onOtevritProfil={setOtevrenyProfil} />}
-              {zalozka === 'vyhledavac' && (
-                <VyhledavacPanel
-                  stav={stav}
-                  onOtevritProfil={setOtevrenyProfil}
-                  initHashtag={initHashtag}
-                />
+              {zalozka === 'domu' ? (
+                <DomuPanel surfaceId="social-home" stav={stav} onOtevritProfil={setOtevrenyProfil} />
+              ) : (
+                <main className="community-scroll">
+                  {zalozka === 'chaty' ? (
+                    <ChatyPanel stav={stav} tajnyStav={tajnyStav}
+                      onOtevritChat={setOtevrenyChat} onOtevritTajnyChat={setOtevrenyTajnyChat} />
+                  ) : (
+                    <VyhledavacPanel stav={stav} onOtevritProfil={setOtevrenyProfil} initHashtag={initHashtag} />
+                  )}
+                </main>
               )}
             </>
           )}
 
-          {stav.hlaska && <div className="social-toast">{stav.hlaska}</div>}
+          {stav.hlaska && <div className="social-toast" role="status">{stav.hlaska}</div>}
 
           {/* Krok 19: appčina sdílená spodní lišta — jen tady, ne
               v otevřeném chatu/tajném chatu výš, ten zůstává
               celoobrazovkovou, nerušenou obrazovkou stejně jako dřív. */}
-          <AppBottomNav />
+          <AppBottomNav placement="edge" />
         </>
       )}
 
       {otevrenyProfil && (
         <VerejnyProfilDialog
           userId={otevrenyProfil}
+          callerId={chat ? 'chat-conversation' : zalozka === 'vyhledavac' ? 'people-search' : 'social-home'}
           stav={stav}
           onOtevritChat={setOtevrenyChat}
           onZavrit={() => setOtevrenyProfil(null)}

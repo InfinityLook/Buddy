@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { ProfilIcon } from './ProfilIcon'
+import { BuddyDialog } from '@/components/buddy-ui/BuddyDialog'
 import { useGamificationStore } from '@/core/store/useGamificationStore'
 import { useStudyPlanner } from '@/miniapps/study-planner/useStudyPlanner'
 import { getXpForNextLevel } from '@/core/utils/gamificationUtils'
 import { nactiOznameni, sledovatOznameni, nactiAktivituPrispevku, sledovatAktivituPrispevku } from '@/core/notifications/api'
 import type { SurfaceId } from '@/features/appearance/themeCatalog'
-import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 
 export interface NotificationItem {
   id: string
@@ -158,43 +157,30 @@ export const ProfilNotifications: React.FC<ProfilNotificationsProps> = ({
 }) => {
   const notifications = useNotificationItems()
 
+  if (!open) return null
+
   return (
-    // Buddy v2 (viz CLAUDE.md "Vzhled aplikace") — "view" surface bez
-    // vlastního backdropu, jen dědí motiv od Profilu (profile).
-    <SurfaceThemeScope surfaceId="notifications" callerId={callerId}>
-      <div className={`profil-dropdown-overlay ${open ? 'open' : ''}`} onClick={onClose} />
-      <div className={`profil-notif-dropdown ${open ? 'open' : ''}`}>
-        <div className="profil-notif-header">
-          <span>Notifikace</span>
-          <button className="profil-icon-btn small" onClick={onClose} aria-label="Zavřít">
-            <ProfilIcon name="x" size={14} />
-          </button>
-        </div>
-        <div className="profil-notif-list">
-          {notifications.length === 0 ? (
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', padding: '0.6rem' }}>
-              Zatím tu nic není. Jakmile se do něčeho pustíš, dám ti vědět. 🔔
-            </p>
-          ) : (
-            notifications.map((n) => {
-              const isRead = readIds.includes(n.id)
-              return (
-                <button
-                  key={n.id}
-                  className={`profil-notif-item ${isRead ? 'read' : ''}`}
-                  onClick={() => onMarkRead(n.id)}
-                >
-                  {!isRead && <span className="profil-notif-dot" />}
-                  <div className="profil-notif-text">
-                    <div className="profil-notif-title">{n.title}</div>
-                    <div className="profil-notif-time">{n.time}</div>
-                  </div>
+    <BuddyDialog surfaceId="notifications" callerId={callerId} title="Upozornění"
+      presentation="sheet" onClose={onClose} closeLabel="Zavřít">
+      {notifications.length === 0 ? (
+        <p className="buddy-ui-status">Zatím tu nejsou žádná upozornění.</p>
+      ) : (
+        <ul className="profil-notif-items">
+          {notifications.map(item => {
+            const read = readIds.includes(item.id)
+            return (
+              <li key={item.id}>
+                <button type="button" className="buddy-ui-row profil-notif-row"
+                  aria-label={`${read ? '' : 'Nepřečtené. '}${item.title}. ${item.time}`}
+                  onClick={() => onMarkRead(item.id)}>
+                  {!read && <span className="profil-notif-dot" aria-hidden="true" />}
+                  <span><strong>{item.title}</strong><small>{item.time}</small></span>
                 </button>
-              )
-            })
-          )}
-        </div>
-      </div>
-    </SurfaceThemeScope>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </BuddyDialog>
   )
 }

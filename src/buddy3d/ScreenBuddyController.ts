@@ -15,7 +15,8 @@ export class ScreenBuddyController {
   private panel: HTMLElement | null = null
   private parked: { x: number; y: number } | null = null
   constructor(private readonly host: HTMLElement, private readonly hit: HTMLElement, private readonly actor: BuddyActor, private readonly options: Options = {}) {
-    this.viewportCss(); const bounds = this.bounds(); this.x = bounds.maxX; this.target = this.x; this.y = bounds.maxY; this.paint()
+    this.host.dataset.moving = 'true'
+    const bounds = this.bounds(); this.x = bounds.maxX; this.target = this.x; this.y = bounds.maxY; this.paint()
     hit.addEventListener('pointerdown', this.down); hit.addEventListener('pointermove', this.move); hit.addEventListener('pointerup', this.up); hit.addEventListener('pointercancel', this.cancel); hit.addEventListener('keydown', this.key)
     window.addEventListener('resize', this.resize); window.visualViewport?.addEventListener('resize', this.resize); window.visualViewport?.addEventListener('scroll', this.resize)
     document.addEventListener('visibilitychange', this.visibility); this.start()
@@ -26,9 +27,8 @@ export class ScreenBuddyController {
     return { minX, minY, maxX: Math.max(minX, left + (v?.width ?? window.innerWidth) - this.host.offsetWidth - 6), maxY: Math.max(minY, top + (v?.height ?? window.innerHeight) - this.host.offsetHeight - (this.options.bottomInset ?? 70)) }
   }
   private paint() { this.host.style.transform = `translate3d(${this.x.toFixed(2)}px,${this.y.toFixed(2)}px,0)` }
-  private viewportCss() { const v = window.visualViewport, root = this.host.parentElement; if (root) { root.style.setProperty('--b3-vv-height', `${v?.height ?? innerHeight}px`); root.style.setProperty('--b3-vv-bottom', `${(v?.offsetTop ?? 0) + (v?.height ?? innerHeight)}px`); root.dataset.b3Compact = String((v?.height ?? innerHeight) < 550) } }
   private resize = () => {
-    this.viewportCss(); const b = this.bounds()
+    const b = this.bounds()
     if (this.panel && !this.pointer?.dragged) { const r = this.panel.getBoundingClientRect(); if (r.left - this.host.offsetWidth - 16 >= b.minX) { this.x = r.left - this.host.offsetWidth - 16; this.y = Math.min(b.maxY, r.bottom - this.host.offsetHeight) } else { this.x = Math.min(b.maxX, r.right - this.host.offsetWidth); this.y = r.top - this.host.offsetHeight - 22 } this.target = this.x }
     this.x = Math.max(b.minX, Math.min(b.maxX, this.x)); this.y = Math.max(b.minY, Math.min(b.maxY, this.y)); this.target = Math.max(b.minX, Math.min(b.maxX, this.target)); this.paint()
   }
@@ -75,6 +75,8 @@ export class ScreenBuddyController {
   dispose() {
     if (this.disposed) return; this.disposed = true; cancelAnimationFrame(this.raf)
     this.hit.removeEventListener('pointerdown', this.down); this.hit.removeEventListener('pointermove', this.move); this.hit.removeEventListener('pointerup', this.up); this.hit.removeEventListener('pointercancel', this.cancel); this.hit.removeEventListener('keydown', this.key)
+    delete this.host.dataset.moving
+    this.host.style.removeProperty('transform')
     window.removeEventListener('resize', this.resize); window.visualViewport?.removeEventListener('resize', this.resize); window.visualViewport?.removeEventListener('scroll', this.resize); document.removeEventListener('visibilitychange', this.visibility)
   }
 }

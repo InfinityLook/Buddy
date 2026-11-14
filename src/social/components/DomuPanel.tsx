@@ -1,3 +1,5 @@
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
+import { PridatPrispevekDialog } from '@/pages/profil/components/PridatPrispevekDialog'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { FeedPrispevek } from './FeedPrispevek'
 import { FeedStory } from './FeedStory'
@@ -12,6 +14,7 @@ import type { SocialStav } from '../useSocial'
 
 interface Props {
   stav: SocialStav
+  surfaceId: SurfaceId
   onOtevritProfil: (userId: string) => void
 }
 
@@ -46,7 +49,7 @@ type RezimFeedu = 'nejnovejsi' | 'proTebe'
 // potřebuje odněkud vlastní story přidat).
 // ==========================================
 
-export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
+export const DomuPanel: React.FC<Props> = ({ stav, surfaceId, onOtevritProfil }) => {
   const online = useOnlineFriends()
   const { skupiny: storySkupiny, nacita: nacitaStories, obnovit: obnovitStories } = useStories()
 
@@ -64,12 +67,16 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
   // (autoplay se zvukem by byl nevyžádaný hluk hned při otevření Domů).
   const [zvukZapnuty, setZvukZapnuty] = useState(false)
   const [novaStory, setNovaStory] = useState<File | null>(null)
+  const [noveSoubory, setNoveSoubory] = useState<File[] | null>(null)
+  const [obnoveni, setObnoveni] = useState(0)
+  const vstupPrispevkuRef = useRef<HTMLInputElement>(null)
   const vstupStoryRef = useRef<HTMLInputElement>(null)
 
   const [rezim, setRezim] = useState<RezimFeedu>('nejnovejsi')
   // Kurzor pro "Pro tebe" (skóre, id) — appka ho drží mimo React stav,
   // protože se mění při každé dotažené stránce a nikdy neřídí
   // vykreslení samo o sobě, jen další volání nactiDoporucenyFeed().
+  const verzeFeedu = useRef(0)
   const doporucenyKurzor = useRef<{ skore: number; id: string } | null>(null)
 
   const feedRef = useRef<HTMLDivElement>(null)
@@ -95,6 +102,8 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
 
   useEffect(() => {
     let platne = true
+    verzeFeedu.current++
+    setDotahujeDalsi(false)
     doporucenyKurzor.current = null
     setUkazatNahoru(false)
     void (async () => {
@@ -103,7 +112,7 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
         rezim === 'proTebe'
           ? await (async () => {
               const { prispevky: p, posledniSkore, posledniId } = await api.nactiDoporucenyFeed()
-              doporucenyKurzor.current =
+              if (platne) doporucenyKurzor.current =
                 posledniSkore !== null && posledniId ? { skore: posledniSkore, id: posledniId } : null
               return p
             })()
@@ -118,10 +127,11 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
       platne = false
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rezim])
+  }, [rezim, obnoveni])
 
   const nacistDalsiStranku = useCallback(async () => {
-    if (dotahujeDalsi || vseNacteno) return
+    if (nacitaPrispevky || dotahujeDalsi || vseNacteno) return
+    const verze = verzeFeedu.current
 
     setDotahujeDalsi(true)
     if (rezim === 'proTebe') {
@@ -130,6 +140,7 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
         kurzor?.skore,
         kurzor?.id
       )
+      if (verze !== verzeFeedu.current) return
       if (dalsi.length === 0) {
         setVseNacteno(true)
       } else {
@@ -142,6 +153,7 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
       const posledni = prispevky[prispevky.length - 1]
       if (posledni) {
         const dalsi = await api.nactiFeed(posledni.createdAt)
+        if (verze !== verzeFeedu.current) return
         if (dalsi.length === 0) {
           setVseNacteno(true)
         } else {
@@ -151,7 +163,7 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
       }
     }
     setDotahujeDalsi(false)
-  }, [prispevky, dotahujeDalsi, vseNacteno, doplnitAutory, rezim])
+  }, [prispevky, dotahujeDalsi, vseNacteno, doplnitAutory, rezim, nacitaPrispevky])
 
   // Story položky feedu — každá story jednotlivého autora rozbalená na
   // svou vlastní feedovou "stránku" (viz FeedStory.tsx), v pořadí, v
@@ -207,15 +219,19 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
     <div className="social-panel social-panel--domu">
       {stav.mujId && (
         <div className="social-domu-horni-lista">
-          <div className="social-domu-rezim-prepinac">
+          <div className="social-domu-rezim-prepinac buddy-ui-segmented" role="group" aria-label="Řazení feedu">
             <button
               className={`social-domu-rezim-btn ${rezim === 'nejnovejsi' ? 'is-aktivni' : ''}`}
+              type="button"
+              aria-pressed={rezim === 'nejnovejsi'}
               onClick={() => setRezim('nejnovejsi')}
             >
               Nejnovější
             </button>
             <button
               className={`social-domu-rezim-btn ${rezim === 'proTebe' ? 'is-aktivni' : ''}`}
+              type="button"
+              aria-pressed={rezim === 'proTebe'}
               onClick={() => setRezim('proTebe')}
             >
               Pro tebe
@@ -233,12 +249,25 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
               </button>
             )}
             <button
-              className="social-domu-pridat-story-btn"
+              type="button"
+              className="buddy-ui-button social-domu-pridat-story-btn"
+              aria-label="Přidat story"
               onClick={() => vstupStoryRef.current?.click()}
             >
               <SocialIcon name="plus" size={14} /> Story
             </button>
+            <button type="button" className="buddy-ui-button buddy-ui-button--icon" aria-label="Přidat příspěvek"
+              onClick={() => vstupPrispevkuRef.current?.click()}>
+              <SocialIcon name="plus" size={18} />
+            </button>
           </div>
+          <input ref={vstupPrispevkuRef} type="file" multiple accept="image/*,video/*" hidden
+            onChange={(event) => {
+              const files = Array.from(event.currentTarget.files ?? [])
+              event.currentTarget.value = ''
+              if (files.length) setNoveSoubory(files)
+            }}
+          />
           <input
             ref={vstupStoryRef}
             type="file"
@@ -320,6 +349,7 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
 
           {prispevky.map((p) => (
             <FeedPrispevek
+              surfaceId={surfaceId}
               key={p.id}
               prispevek={p}
               autor={autori.get(p.autorId) ?? null}
@@ -345,8 +375,17 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
         </div>
       )}
 
+      {noveSoubory && (
+        <PridatPrispevekDialog surfaceId={surfaceId} soubory={noveSoubory} onZavrit={() => setNoveSoubory(null)}
+          onHotovo={() => {
+            setNoveSoubory(null)
+            setObnoveni(value => value + 1)
+          }} />
+      )}
+
       {novaStory && (
         <PridatStoryDialog
+          surfaceId={surfaceId}
           soubor={novaStory}
           onZavrit={() => setNovaStory(null)}
           onHotovo={() => {
@@ -358,6 +397,7 @@ export const DomuPanel: React.FC<Props> = ({ stav, onOtevritProfil }) => {
 
       {otevrenyDetail && (
         <PrispevekProhlizec
+          surfaceId={surfaceId}
           prispevek={otevrenyDetail}
           jeMoje={otevrenyDetail.autorId === stav.mujId}
           mujId={stav.mujId}

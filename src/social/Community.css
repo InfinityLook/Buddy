@@ -1,0 +1,206 @@
+.social-page.community-page {
+  position: relative;
+  max-width: 48rem;
+  overflow: hidden;
+  gap: 0;
+  padding: max(.65rem, env(safe-area-inset-top)) 0 0;
+  background: var(--buddy-bg);
+}
+
+.community-page > .buddy-ui-header {
+  flex: none;
+  margin: 0 max(.65rem, env(safe-area-inset-right), env(safe-area-inset-left)) .55rem;
+}
+
+.community-page > :is(.social-panel--domu, .community-scroll) {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  padding-inline: max(.65rem, env(safe-area-inset-right), env(safe-area-inset-left));
+}
+
+.community-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-bottom: .65rem;
+}
+
+.community-scroll > .buddy-theme-scope { background: transparent; }
+
+.social-domu-horni-lista .buddy-ui-segmented { flex: 1; min-width: 0; }
+.social-domu-horni-prava { flex-shrink: 0; }
+
+.social-domu-horni-prava .social-domu-pridat-story-btn {
+  min-height: var(--buddy-ui-touch);
+  border-radius: var(--buddy-ui-control-radius);
+  color: var(--buddy-text);
+  background: var(--buddy-panel);
+}
+
+.community-page .social-feed-post,
+.community-page :is(.social-feed-prazdno-stav, .social-card),
+.community-dialog .social-card {
+  border-radius: var(--buddy-ui-card-radius);
+  border-color: var(--buddy-border);
+}
+
+.community-page :is(.social-feed-prazdno-stav, .social-card),
+.community-dialog .social-card { background: var(--buddy-panel); }
+
+.community-page :is(.social-input, .social-textarea),
+.community-dialog :is(.social-input, .social-textarea, .social-story-popisek-input) {
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--buddy-control-border);
+  border-radius: var(--buddy-ui-control-radius);
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+  font-size: 1rem;
+}
+
+.community-page :is(.social-input, .social-textarea)::placeholder,
+.community-dialog :is(.social-input, .social-textarea, .social-story-popisek-input)::placeholder {
+  color: var(--buddy-muted);
+  opacity: 1;
+}
+
+.community-page :is(.social-btn, .social-icon-btn, .social-nova-volba),
+.community-dialog :is(.social-btn, .social-icon-btn, .social-ikona-volba, .social-duvod, .social-story-akce-btn) {
+  min-height: var(--buddy-ui-touch);
+  border-radius: var(--buddy-ui-control-radius);
+}
+
+.community-page .social-icon-btn,
+.community-dialog :is(.social-icon-btn, .social-ikona-volba, .social-story-akce-btn) { min-width: 44px; }
+
+.community-page :is(.social-btn, .social-send-btn):not(.social-btn--tlumene),
+.community-dialog .social-btn:not(.social-btn--tlumene) {
+  background: var(--buddy-accent);
+  color: var(--buddy-on-accent);
+}
+
+.community-page .social-row--chat {
+  min-height: 60px;
+  border: 1px solid transparent;
+  border-radius: var(--buddy-ui-control-radius);
+}
+
+.community-page .social-row--chat.ma-neprectene {
+  background: var(--buddy-raised);
+  border-color: var(--buddy-accent);
+}
+
+.social-page.community-page--conversation {
+  height: var(--community-viewport-height, 100dvh);
+  transform: translateY(var(--community-viewport-top, 0px));
+  padding: 0;
+}
+
+.community-page--conversation > .buddy-theme-scope { flex: 1; min-height: 0; display: flex; }
+
+.community-page--conversation .social-chat-view {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+}
+
+.community-page--conversation :is(.social-chat-header, .social-psani) {
+  flex: none;
+  background: var(--buddy-panel);
+}
+
+.community-page--conversation .social-zpravy { min-height: 0; overscroll-behavior: contain; }
+
+.community-page--conversation .social-psani {
+  align-items: center;
+  padding: .5rem max(.65rem, env(safe-area-inset-right), env(safe-area-inset-left))
+    max(.5rem, env(safe-area-inset-bottom));
+}
+
+.community-page--conversation .social-send-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--buddy-ui-control-radius);
+}
+
+.community-page--conversation .social-bublina {
+  background: var(--buddy-panel);
+  border: 1px solid var(--buddy-border);
+  color: var(--buddy-text);
+}
+
+.community-page--conversation .social-bublina.je-moje {
+  background: var(--buddy-raised);
+  border-color: color-mix(in srgb, var(--buddy-accent) 60%, var(--buddy-border));
+}
+
+.community-page--conversation :is(.social-precteno, .social-bublina-cas) { color: var(--buddy-muted); }
+
+.community-dialog .community-dialog-content,
+.community-public-profile {
+  display: flex;
+  flex-direction: column;
+  gap: .65rem;
+  min-width: 0;
+}
+
+.community-public-profile .social-profil-akce { flex-wrap: wrap; }
+.community-dialog .social-dialog-sub { font-size: .85rem; }
+
+dialog.buddy-ui-dialog.buddy-theme-scope.community-dialog--fullscreen {
+  inset: var(--buddy-ui-visual-top, 0px) 0 auto;
+  width: min(100%, 46rem);
+  height: var(--buddy-ui-visual-height, 100dvh);
+  max-height: var(--buddy-ui-visual-height, 100dvh);
+  border-radius: 0;
+  margin: 0 auto;
+}
+
+.community-dialog--fullscreen .buddy-ui-dialog-layout { height: 100%; max-height: none; }
+.community-dialog--fullscreen .community-dialog-content { flex: 1; padding: 0; }
+
+.community-dialog .community-media-view {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  flex: 1;
+  min-height: 0;
+  background: var(--buddy-bg);
+}
+
+.community-media-view :is(.social-story-plocha, .social-story-nahled, .social-prispevek-karusel-nahledy) {
+  background: #080a10;
+}
+
+.community-media-view :is(.social-story-prohlizec-hlavicka, .social-story-dialog-spodek, .social-prispevek-komentar-formular, .social-prispevek-komentare) {
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+}
+
+.community-media-view :is(.social-story-prohlizec-hlavicka button, .social-prispevek-komentar-text, .social-story-autor-jmeno, .social-story-popisek) {
+  color: var(--buddy-text);
+}
+
+.community-media-view .social-story-progres-bg { background: var(--buddy-raised); }
+.community-media-view .social-story-progres-fill { background: var(--buddy-accent); }
+.community-media-view .social-prispevek-komentar-formular { flex: none; }
+.community-media-view .social-prispevek-komentare { min-height: 0; padding-block: .45rem; }
+.community-dialog .social-story-chyba { color: var(--buddy-danger); }
+
+.community-page .social-toast {
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+  border-color: var(--buddy-border);
+  max-width: calc(100% - 1.5rem);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 365px) {
+  .social-domu-horni-lista { gap: .3rem; padding-inline: 0; flex-wrap: wrap; }
+  .social-domu-horni-prava { gap: .25rem; }
+  .social-domu-horni-prava .social-domu-pridat-story-btn { padding-inline: .45rem; }
+  .community-page--conversation .social-chat-header { gap: .25rem; padding-inline: .5rem; }
+}

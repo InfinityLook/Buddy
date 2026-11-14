@@ -1,9 +1,10 @@
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
 import React, { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
-import { SocialIcon } from './SocialIcon'
+import { CommunityDialog } from './CommunityDialog'
 import * as api from '../api'
 
 interface Props {
+  surfaceId?: SurfaceId
   soubor: File
   onZavrit: () => void
   onHotovo: () => void
@@ -16,7 +17,7 @@ interface Props {
  * Nahrání i založení řádku obstará jedno volání (api.pridatStory), appka
  * tu neřeší dvě různé operace.
  */
-export const PridatStoryDialog: React.FC<Props> = ({ soubor, onZavrit, onHotovo }) => {
+export const PridatStoryDialog: React.FC<Props> = ({ surfaceId = 'feed', soubor, onZavrit, onHotovo }) => {
   const [nahled, setNahled] = useState<string | null>(null)
   const [popisek, setPopisek] = useState('')
   const [odesila, setOdesila] = useState(false)
@@ -37,35 +38,28 @@ export const PridatStoryDialog: React.FC<Props> = ({ soubor, onZavrit, onHotovo 
     else setChyba(vysledek.chyba ?? 'Nepovedlo se to.')
   }
 
-  return createPortal(
-    <div className="social-story-dialog" role="dialog" aria-modal="true" aria-label="Nová story">
-      <div className="social-story-dialog-hlavicka">
-        <button className="social-story-zavrit" onClick={onZavrit} aria-label="Zavřít">
-          <SocialIcon name="x" size={22} />
-        </button>
-      </div>
+  return (
+    <CommunityDialog title="Nová story" surfaceId={surfaceId} onClose={onZavrit} fullscreen>
+      <div className="social-story-dialog community-media-view">
 
-      {nahled && <img src={nahled} alt="Náhled story" className="social-story-nahled" />}
+        {nahled && <img src={nahled} alt="Náhled story" className="social-story-nahled" />}
 
-      <div className="social-story-dialog-spodek">
-        <input
-          type="text"
-          value={popisek}
-          onChange={(e) => setPopisek(e.target.value)}
-          placeholder="Popisek (nepovinné)…"
-          maxLength={200}
-          className="social-story-popisek-input"
-          disabled={odesila}
-        />
-        {chyba && <p className="social-story-chyba">{chyba}</p>}
-        <button className="social-btn" onClick={sdilet} disabled={odesila}>
-          {odesila ? 'Sdílí se…' : 'Sdílet story'}
-        </button>
+        <div className="social-story-dialog-spodek">
+          <input
+            type="text"
+            value={popisek}
+            onChange={(e) => setPopisek(e.target.value)}
+            placeholder="Popisek (nepovinné)…"
+            maxLength={200}
+            className="social-story-popisek-input"
+            disabled={odesila}
+          />
+          {chyba && <p className="social-story-chyba" role="alert">{chyba}</p>}
+          <button className="social-btn" onClick={sdilet} disabled={odesila}>
+            {odesila ? 'Sdílí se…' : 'Sdílet story'}
+          </button>
+        </div>
       </div>
-    </div>,
-    // Portál do document.body — stejný důvod jako StoryProhlizec.tsx:
-    // .social-panel je vlastní stacking context, uvnitř by z-index téhle
-    // vrstvy prohrával proti .social-bottom-nav, ne že by nad ním ležel.
-    document.body
+    </CommunityDialog>
   )
 }

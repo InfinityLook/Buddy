@@ -669,7 +669,7 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
         </div>
       )}
 
-      <div className="social-zpravy">
+      <div className="social-zpravy" role="region" aria-label="Zprávy">
         {zpravy.length === 0 && (
           <p className="social-empty-note social-empty-note--stred">
             Zatím tu nikdo nic nenapsal. Začni.
@@ -982,6 +982,7 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
           </button>
           <input
             className="social-input social-input--zprava"
+            aria-label={upravujeZpravu ? 'Upravit zprávu' : 'Zpráva'}
             placeholder={upravujeZpravu ? 'Uprav zprávu…' : 'Napiš zprávu…'}
             value={text}
             maxLength={4000}
@@ -1019,6 +1020,7 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
 
       {nahlasit && (
         <NahlasitDialog
+          surfaceId="chat-conversation"
           userId={nahlasit.userId}
           zpravaId={nahlasit.zpravaId}
           stav={stav}
@@ -1037,6 +1039,7 @@ export const ChatView: React.FC<Props> = ({ chat, stav, onZpet, onOtevritProfil 
 
       {otevrenySdilenyPrispevek && (
         <PrispevekProhlizec
+          surfaceId="chat-conversation"
           prispevek={otevrenySdilenyPrispevek}
           jeMoje={otevrenySdilenyPrispevek.autorId === stav.mujId}
           mujId={stav.mujId}

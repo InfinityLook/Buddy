@@ -1,3 +1,4 @@
+import { BuddyHeader } from '@/components/buddy-ui/BuddyHeader'
 import React, { lazy, Suspense, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useGamificationStore, DEFAULT_BADGES } from '@/core/store/useGamificationStore'
@@ -16,6 +17,7 @@ import { ProfilToast } from './components/ProfilToast'
 import { AppBottomNav } from '@/components/AppBottomNav'
 import { SurfaceBackdrop, useSurfaceAppearance } from '@/features/appearance/SurfaceAppearance'
 import './ProfilModule.css'
+import '@/social/Community.css'
 
 // Lazy — viz komentář nahoře v ProfilSocialniSekce.tsx: tenhle soubor
 // natahuje celé Social API, který drtivá většina návštěv téhle (netlazy)
@@ -91,132 +93,130 @@ export const ProfilModule: React.FC = () => {
   const progressPercent = getLevelProgress(xp)
 
   return (
-    <div className="profil-page buddy-theme-scope" {...rootAttributes}>
+    <div className="social-page community-page profil-page buddy-theme-scope" {...rootAttributes}>
       <SurfaceBackdrop surfaceId="profile" />
-      {/* Top Bar — ikony místo emoji (🔔/⚙️), stejná kruhová tlačítka
-          jako Apps/Social, ne napůl hotový inline styl na textovém
-          odkazu jak dřív mělo zpět tlačítko. */}
-      <div className="profil-top-bar">
-        <button className="profil-icon-btn" aria-label="Zpět do Hubu" onClick={() => navigate('/hub')}>
-          <ProfilIcon name="arrow-left" size={18} />
-        </button>
-        <h1 className="profil-title">Profil</h1>
-        <div className="profil-top-actions">
-          <button className="profil-icon-btn" aria-label="Upozornění" onClick={() => setNotifOpen(true)}>
+      <BuddyHeader title="Profil" backLabel="Zpět do Hubu" onBack={() => navigate('/hub')} actions={(
+        <>
+          <button type="button" className="buddy-ui-button buddy-ui-button--icon" aria-label="Upozornění" onClick={() => setNotifOpen(true)}>
             <ProfilIcon name="bell" size={18} />
-            {maNeprectene && <span className="profil-notif-badge" />}
+            {maNeprectene && <span className="profil-notif-badge" aria-hidden="true" />}
           </button>
-          <button className="profil-icon-btn" aria-label="Nastavení" onClick={() => navigate('/nastaveni')}>
+          <button type="button" className="buddy-ui-button buddy-ui-button--icon" aria-label="Nastavení profilu" onClick={() => navigate('/nastaveni')}>
             <ProfilIcon name="settings" size={18} />
           </button>
-        </div>
-      </div>
-
-      {/* Main User Card — appka na žádost zrušila horní cover-fotku pruh
-          úplně (byl to jen tmavý placeholder s "Přidat cover fotku"),
-          karta teď začíná rovnou avatarem. Nahrávání cover fotky
-          (nahrajBannerDoCloudu v avatarStorage.ts) appka schválně
-          nechala nedotčené — je to backendová část jiné, zatím
-          neprobrané věci (jak appka banner_url ukazuje ostatním v
-          Social, bod 6 recenze), ne tahle obrazovka. */}
-      <div className="profil-user-card">
-        <div className="profil-user-main">
-          <div className="profil-avatar-wrapper">
-            {/* Stejný prstenec (rámeček/výchozí gradient) jako appka
-                ukazuje na cizím profilu (VerejnyProfilDialog.tsx) —
-                dřív vlastní stránka rámeček vůbec nezobrazovala, takže
-                si koupený/vybraný rámeček uživatel viděl jen očima
-                svých přátel, nikdy ne na svém vlastním profilu. */}
-            <div className={`profil-avatar-ring-wrap ${ramecek ? 'ma-ramecek' : ''}`} style={ramecekStyl}>
-              <span className="profil-avatar-ring" aria-hidden="true" />
-              <img src={profile.avatar} alt={profile.name} className="profil-avatar-img" />
+        </>
+      )} />
+      <main className="community-scroll profil-scroll">
+        {/* Main User Card — appka na žádost zrušila horní cover-fotku pruh
+            úplně (byl to jen tmavý placeholder s "Přidat cover fotku"),
+            karta teď začíná rovnou avatarem. Nahrávání cover fotky
+            (nahrajBannerDoCloudu v avatarStorage.ts) appka schválně
+            nechala nedotčené — je to backendová část jiné, zatím
+            neprobrané věci (jak appka banner_url ukazuje ostatním v
+            Social, bod 6 recenze), ne tahle obrazovka. */}
+        <div className="profil-user-card buddy-ui-card">
+          <div className="profil-user-main">
+            <div className="profil-avatar-wrapper">
+              {/* Stejný prstenec (rámeček/výchozí gradient) jako appka
+                  ukazuje na cizím profilu (VerejnyProfilDialog.tsx) —
+                  dřív vlastní stránka rámeček vůbec nezobrazovala, takže
+                  si koupený/vybraný rámeček uživatel viděl jen očima
+                  svých přátel, nikdy ne na svém vlastním profilu. */}
+              <div className={`profil-avatar-ring-wrap ${ramecek ? 'ma-ramecek' : ''}`} style={ramecekStyl}>
+                <span className="profil-avatar-ring" aria-hidden="true" />
+                <img src={profile.avatar} alt={profile.name} className="profil-avatar-img" />
+              </div>
+              <button
+                className="profil-avatar-edit buddy-ui-button buddy-ui-button--icon"
+                aria-label="Upravit fotku profilu"
+                onClick={() => avatarInputRef.current?.click()}
+              >
+                <ProfilIcon name="pencil" size={11} />
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={handleAvatarSelected}
+              />
             </div>
-            <button
-              className="profil-avatar-edit"
-              aria-label="Upravit fotku profilu"
-              onClick={() => avatarInputRef.current?.click()}
-            >
-              <ProfilIcon name="pencil" size={11} />
-            </button>
-            <input
-              ref={avatarInputRef}
-              type="file"
-              accept="image/*"
-              hidden
-              onChange={handleAvatarSelected}
-            />
-          </div>
-          <div className="profil-user-info">
-            {/* "✦ Buddy Parťák" appka na žádost omezila na stejnou
-                podmínku jako tag role hned pod ním — obyčejný uživatel
-                (role.id === 'user') nedostává ani jeden, oba patří jen
-                VIP/moderátorovi/správci jako drobná výsada, ne výchozímu
-                stavu účtu. */}
-            {aktivniRole.id !== 'user' && (
-              <>
-                <span className="profil-badge">✦ Buddy Parťák</span>
-                <span className={`profil-role-tag profil-role-tag--${aktivniRole.tone}`}>
-                  {aktivniRole.icon} {aktivniRole.title}
-                </span>
-              </>
-            )}
-            <h2 className="profil-user-name">{profile.name}</h2>
-            <p className="profil-user-bio">{profile.motto}</p>
-            {/* Delší bio text (na rozdíl od motta výš) appka dřív na
-                vlastním profilu vůbec nevykreslovala, i když ho jde
-                vyplnit v Osobních údajích a cizí lidi ho u tebe v
-                Social vidí (VerejnyProfilDialog.tsx). */}
-            {profile.bio && <p className="profil-user-bio-text">{profile.bio}</p>}
-            {pripnuteOdznaky.length > 0 && (
-              <div className="profil-pripnute-odznaky">
-                {pripnuteOdznaky.map((b) => (
-                  <span key={b.id} className="profil-pripnuty-odznak" title={b.title}>
-                    {b.icon}
+            <div className="profil-user-info">
+              {/* "✦ Buddy Parťák" appka na žádost omezila na stejnou
+                  podmínku jako tag role hned pod ním — obyčejný uživatel
+                  (role.id === 'user') nedostává ani jeden, oba patří jen
+                  VIP/moderátorovi/správci jako drobná výsada, ne výchozímu
+                  stavu účtu. */}
+              {aktivniRole.id !== 'user' && (
+                <>
+                  <span className="profil-badge">✦ Buddy Parťák</span>
+                  <span className={`profil-role-tag profil-role-tag--${aktivniRole.tone}`}>
+                    {aktivniRole.icon} {aktivniRole.title}
                   </span>
-                ))}
+                </>
+              )}
+              <h2 className="profil-user-name">{profile.name}</h2>
+              <p className="profil-user-bio">{profile.motto}</p>
+              {/* Delší bio text (na rozdíl od motta výš) appka dřív na
+                  vlastním profilu vůbec nevykreslovala, i když ho jde
+                  vyplnit v Osobních údajích a cizí lidi ho u tebe v
+                  Social vidí (VerejnyProfilDialog.tsx). */}
+              {profile.bio && <p className="profil-user-bio-text">{profile.bio}</p>}
+              {pripnuteOdznaky.length > 0 && (
+                <div className="profil-pripnute-odznaky">
+                  {pripnuteOdznaky.map((b) => (
+                    <span key={b.id} className="profil-pripnuty-odznak" title={b.title}>
+                      {b.icon}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <span className="profil-user-email">✉ {profile.email || 'E-mail nevyplněn'}</span>
+            </div>
+          </div>
+
+          {/* Level & Streak — reálná data z gamifikačního storu */}
+          <div className="profil-progress-grid">
+            <div className="profil-level-box">
+              <div className="profil-level-box-top">
+                <span className="profil-level-badge">{level}</span>
+                <div className="profil-level-info">
+                  <span className="profil-level-label">Úroveň {level} 👑</span>
+                  <span className="profil-level-xp-label">{xp} / {xpToNext} XP</span>
+                </div>
               </div>
-            )}
-            <span className="profil-user-email">✉ {profile.email || 'E-mail nevyplněn'}</span>
+              <progress className="buddy-ui-progress" value={progressPercent} max={100} aria-label="Postup k další úrovni" />
+            </div>
+
+            <div className="profil-streak-box">
+              <span className="profil-streak-label">Denní série</span>
+              <div className="profil-streak-val">
+                🔥 {streakDays}
+              </div>
+              <span className="profil-streak-sub">{plural(streakDays, 'den v řadě', 'dny v řadě', 'dní v řadě')}</span>
+            </div>
           </div>
         </div>
 
-        {/* Level & Streak — reálná data z gamifikačního storu */}
-        <div className="profil-progress-grid">
-          <div className="profil-level-box">
-            <div className="profil-level-box-top">
-              <span className="profil-level-badge">{level}</span>
-              <div className="profil-level-info">
-                <span className="profil-level-label">Úroveň {level} 👑</span>
-                <span className="profil-level-xp-label">{xp} / {xpToNext} XP</span>
-              </div>
-            </div>
-            <div className="profil-xp-bar-bg">
-              <div className="profil-xp-bar-fill" style={{ width: `${progressPercent}%` }}></div>
-            </div>
-          </div>
-
-          <div className="profil-streak-box">
-            <span className="profil-streak-label">Denní série</span>
-            <div className="profil-streak-val">
-              🔥 {streakDays}
-            </div>
-            <span className="profil-streak-sub">{plural(streakDays, 'den v řadě', 'dny v řadě', 'dní v řadě')}</span>
-          </div>
+        <div className="profil-links">
+          <button type="button" className="buddy-ui-button" onClick={() => navigate('/growth')}>Moje cíle</button>
+          <button type="button" className="buddy-ui-button" onClick={() => navigate('/odmeny')}>Moje odznaky</button>
         </div>
-      </div>
 
-      {/* Příspěvky, počty sledujících, sdílení vlastního kódu a přátelé —
-          přesunuté ze Social's bývalé Profil záložky, viz
-          ProfilSocialniSekce.tsx. */}
-      <Suspense fallback={<p className="profil-lazy-fallback">Načítám…</p>}>
-        <ProfilSocialniSekce />
-      </Suspense>
+        {/* Příspěvky, počty sledujících, sdílení vlastního kódu a přátelé —
+            přesunuté ze Social's bývalé Profil záložky, viz
+            ProfilSocialniSekce.tsx. */}
+        <Suspense fallback={<p className="profil-lazy-fallback">Načítám…</p>}>
+          <ProfilSocialniSekce />
+        </Suspense>
 
-      {/* Fáze 4 Social nav reworku (viz CLAUDE.md) — stejná sdílená
-          lišta jako na Hubu/Apps/Nastavení. */}
-      <AppBottomNav />
+        {/* Fáze 4 Social nav reworku (viz CLAUDE.md) — stejná sdílená
+            lišta jako na Hubu/Apps/Nastavení. */}
+      </main>
+      <AppBottomNav placement="edge" />
 
       <ProfilNotifications
+        callerId="profile"
         open={notifOpen}
         readIds={profile.readNotifications}
         onMarkRead={markNotificationRead}

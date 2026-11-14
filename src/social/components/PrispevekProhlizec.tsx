@@ -1,5 +1,6 @@
+import type { SurfaceId } from '@/features/appearance/themeCatalog'
 import React, { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { CommunityDialog } from './CommunityDialog'
 import { SocialIcon } from './SocialIcon'
 import { SocialAvatar } from './SocialAvatar'
 import { NahlasitDialog } from './NahlasitDialog'
@@ -11,6 +12,7 @@ import type { Komentar, Prispevek, SbirkaUlozenych, VztahKPrispevku } from '../t
 import type { SocialStav } from '../useSocial'
 
 interface Props {
+  surfaceId?: SurfaceId
   prispevek: Prispevek
   /** Smazat smí jen autor — na vlastním profilu appka žádnou jinou
    *  mřížku nikdy nezobrazí, ale VerejnyProfilDialog.tsx (cizí profil)
@@ -49,6 +51,7 @@ interface Props {
  * VerejnyProfilDialog.tsx's vztah/spolecni.
  */
 export const PrispevekProhlizec: React.FC<Props> = ({
+  surfaceId = 'feed',
   prispevek,
   jeMoje,
   mujId,
@@ -247,198 +250,195 @@ export const PrispevekProhlizec: React.FC<Props> = ({
   const [aktivniMedium, setAktivniMedium] = useState(0)
   const karuselRef = useRef<HTMLDivElement>(null)
 
-  return createPortal(
-    <div className="social-story-prohlizec" role="dialog" aria-modal="true" aria-label="Příspěvek">
-      <div className="social-story-prohlizec-hlavicka">
-        <span className="social-story-autor-jmeno" />
-        {jeMoje ? (
-          <button className="social-story-akce-btn" onClick={smazat} aria-label="Smazat příspěvek">
-            <SocialIcon name="trash" size={18} />
-          </button>
-        ) : (
-          <button className="social-story-akce-btn" onClick={() => setNahlasit(true)} aria-label="Nahlásit příspěvek">
-            <SocialIcon name="flag" size={18} />
-          </button>
-        )}
-        <button className="social-story-zavrit" onClick={onZavrit} aria-label="Zavřít">
-          <SocialIcon name="x" size={22} />
-        </button>
-      </div>
+  return (
+    <CommunityDialog title="Příspěvek" surfaceId={surfaceId} onClose={onZavrit} fullscreen>
+      <div className="social-story-prohlizec community-media-view">
+        <div className="social-story-prohlizec-hlavicka">
+          <span className="social-story-autor-jmeno" />
+          {jeMoje ? (
+            <button className="social-story-akce-btn" onClick={smazat} aria-label="Smazat příspěvek">
+              <SocialIcon name="trash" size={18} />
+            </button>
+          ) : (
+            <button className="social-story-akce-btn" onClick={() => setNahlasit(true)} aria-label="Nahlásit příspěvek">
+              <SocialIcon name="flag" size={18} />
+            </button>
+          )}
+        </div>
 
-      <div className="social-story-plocha" onClick={zpracovatKliknuti}>
-        {vsechnaMedia.length > 1 ? (
-          <div
-            className="social-prispevek-karusel"
-            ref={karuselRef}
-            onScroll={(e) => {
-              const el = e.currentTarget
-              if (el.clientWidth > 0) setAktivniMedium(Math.round(el.scrollLeft / el.clientWidth))
-            }}
+        <div className="social-story-plocha" onClick={zpracovatKliknuti}>
+          {vsechnaMedia.length > 1 ? (
+            <div
+              className="social-prispevek-karusel"
+              ref={karuselRef}
+              onScroll={(e) => {
+                const el = e.currentTarget
+                if (el.clientWidth > 0) setAktivniMedium(Math.round(el.scrollLeft / el.clientWidth))
+              }}
+            >
+              {vsechnaMedia.map((m, i) =>
+                m.mediaType === 'video' ? (
+                  <video key={i} src={m.mediaUrl} className="social-prispevek-karusel-snimek" controls playsInline />
+                ) : (
+                  <img key={i} src={m.mediaUrl} alt="" className="social-prispevek-karusel-snimek" />
+                )
+              )}
+            </div>
+          ) : prispevek.mediaType === 'video' ? (
+            <video src={prispevek.mediaUrl} className="social-story-obrazek" controls playsInline autoPlay />
+          ) : (
+            <img src={prispevek.mediaUrl} alt="" className="social-story-obrazek" />
+          )}
+          {srdceViditelne && (
+            <span className="social-feed-dvojklik-srdce" aria-hidden="true">
+              <SocialIcon name="heart-filled" size={90} />
+            </span>
+          )}
+          {vsechnaMedia.length > 1 && (
+            <div className="social-prispevek-karusel-tecky" aria-hidden="true">
+              {vsechnaMedia.map((_, i) => (
+                <span key={i} className={`social-prispevek-karusel-tecka ${i === aktivniMedium ? 'je-aktivni' : ''}`} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {upravujePopisek ? (
+          <div className="social-prispevek-popisek-uprava">
+            <input
+              className="social-input social-input--full"
+              value={novyPopisek}
+              maxLength={200}
+              onChange={(e) => setNovyPopisek(e.target.value)}
+              autoFocus
+            />
+            <button className="social-btn social-btn--small" onClick={ulozitPopisek} disabled={ukladaPopisek}>
+              Uložit
+            </button>
+            <button
+              className="social-btn social-btn--small social-btn--tlumene"
+              onClick={() => setUpravujePopisek(false)}
+              disabled={ukladaPopisek}
+            >
+              Zrušit
+            </button>
+          </div>
+        ) : (
+          (popisek || jeMoje) && (
+            <p className="social-story-popisek">
+              {popisek && <HashtagovyText text={popisek} />}
+              {jeMoje && (
+                <button className="social-prispevek-popisek-upravit" onClick={zacitUpravovatPopisek} aria-label="Upravit popisek">
+                  <SocialIcon name="pencil" size={13} />
+                </button>
+              )}
+              {editovanoAt && <span className="social-prispevek-popisek-editovano"> (upraveno)</span>}
+            </p>
+          )
+        )}
+
+        <div className="social-prispevek-lajk-radek">
+          <button
+            className={`social-prispevek-lajk-btn ${vztah?.lajkujiJa ? 'je-lajknuto' : ''}`}
+            onClick={prepnoutLajk}
+            disabled={!vztah || meniLajk}
+            aria-label={vztah?.lajkujiJa ? 'Odebrat lajk' : 'Lajkovat'}
           >
-            {vsechnaMedia.map((m, i) =>
-              m.mediaType === 'video' ? (
-                <video key={i} src={m.mediaUrl} className="social-prispevek-karusel-snimek" controls playsInline />
-              ) : (
-                <img key={i} src={m.mediaUrl} alt="" className="social-prispevek-karusel-snimek" />
-              )
-            )}
-          </div>
-        ) : prispevek.mediaType === 'video' ? (
-          <video src={prispevek.mediaUrl} className="social-story-obrazek" controls playsInline autoPlay />
-        ) : (
-          <img src={prispevek.mediaUrl} alt="" className="social-story-obrazek" />
-        )}
-        {srdceViditelne && (
-          <span className="social-feed-dvojklik-srdce" aria-hidden="true">
-            <SocialIcon name="heart-filled" size={90} />
+            <SocialIcon name={vztah?.lajkujiJa ? 'heart-filled' : 'heart'} size={20} />
+          </button>
+          <span className="social-prispevek-lajk-pocet">
+            {vztah?.pocetLajku ? `${vztah.pocetLajku} ${vztah.pocetLajku === 1 ? 'lajk' : vztah.pocetLajku < 5 ? 'lajky' : 'lajků'}` : 'Zatím žádný lajk'}
           </span>
-        )}
-        {vsechnaMedia.length > 1 && (
-          <div className="social-prispevek-karusel-tecky" aria-hidden="true">
-            {vsechnaMedia.map((_, i) => (
-              <span key={i} className={`social-prispevek-karusel-tecka ${i === aktivniMedium ? 'je-aktivni' : ''}`} />
-            ))}
+
+          <button
+            className="social-prispevek-ulozit-btn"
+            onClick={prepnoutUlozeni}
+            disabled={ulozeno === null || meniUlozeni}
+            aria-label={ulozeno ? 'Odebrat z uloženého' : 'Uložit příspěvek'}
+          >
+            <SocialIcon name={ulozeno ? 'bookmark-filled' : 'bookmark'} size={20} />
+          </button>
+
+          <button className="social-prispevek-sdilet-btn" onClick={() => setSdilet(true)} aria-label="Poslat příspěvek">
+            <SocialIcon name="share" size={20} />
+          </button>
+        </div>
+
+        {kolekce !== undefined && (
+          <div className="social-prispevek-kolekce-radek">
+            <SocialIcon name="layers" size={15} />
+            <select
+              className="social-prispevek-kolekce-select"
+              value={aktivniKolekceId ?? ''}
+              onChange={prepnoutKolekci}
+              disabled={prepinaKolekci}
+              aria-label="Přeřadit do sbírky"
+            >
+              <option value="">Bez sbírky</option>
+              {kolekce.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.nazev}
+                </option>
+              ))}
+            </select>
           </div>
         )}
-      </div>
 
-      {upravujePopisek ? (
-        <div className="social-prispevek-popisek-uprava">
+        <div className="social-prispevek-komentare">
+          {komentare.length === 0 ? (
+            <p className="social-empty-note">Zatím žádné komentáře. Buď první.</p>
+          ) : (
+            korenoveKomentare.map((k) => (
+              <React.Fragment key={k.id}>
+                {komentarRadek(k, false)}
+                {(odpovediPodleRodice.get(k.id) ?? []).map((o) => komentarRadek(o, true))}
+              </React.Fragment>
+            ))
+          )}
+        </div>
+
+        {odpovidamNaKomentar && (
+          <div className="social-odpoved-lista">
+            <span className="social-odpoved-text">Odpovídáš {odpovidamNaKomentar.jmeno}</span>
+            <button
+              className="social-icon-btn"
+              aria-label="Zrušit odpověď"
+              onClick={() => setOdpovidamNaKomentar(null)}
+            >
+              <SocialIcon name="x" size={14} />
+            </button>
+          </div>
+        )}
+
+        <form className="social-prispevek-komentar-formular" onSubmit={odeslatKomentar}>
           <input
             className="social-input social-input--full"
-            value={novyPopisek}
-            maxLength={200}
-            onChange={(e) => setNovyPopisek(e.target.value)}
-            autoFocus
+            placeholder={odpovidamNaKomentar ? `Odpověz ${odpovidamNaKomentar.jmeno}…` : 'Napiš komentář…'}
+            value={novyKomentar}
+            maxLength={500}
+            onChange={(e) => setNovyKomentar(e.target.value)}
           />
-          <button className="social-btn social-btn--small" onClick={ulozitPopisek} disabled={ukladaPopisek}>
-            Uložit
-          </button>
           <button
-            className="social-btn social-btn--small social-btn--tlumene"
-            onClick={() => setUpravujePopisek(false)}
-            disabled={ukladaPopisek}
+            className="social-btn social-btn--small"
+            type="submit"
+            disabled={!novyKomentar.trim() || odesila}
           >
-            Zrušit
+            <SocialIcon name="send" size={16} />
           </button>
-        </div>
-      ) : (
-        (popisek || jeMoje) && (
-          <p className="social-story-popisek">
-            {popisek && <HashtagovyText text={popisek} />}
-            {jeMoje && (
-              <button className="social-prispevek-popisek-upravit" onClick={zacitUpravovatPopisek} aria-label="Upravit popisek">
-                <SocialIcon name="pencil" size={13} />
-              </button>
-            )}
-            {editovanoAt && <span className="social-prispevek-popisek-editovano"> (upraveno)</span>}
-          </p>
-        )
-      )}
+        </form>
 
-      <div className="social-prispevek-lajk-radek">
-        <button
-          className={`social-prispevek-lajk-btn ${vztah?.lajkujiJa ? 'je-lajknuto' : ''}`}
-          onClick={prepnoutLajk}
-          disabled={!vztah || meniLajk}
-          aria-label={vztah?.lajkujiJa ? 'Odebrat lajk' : 'Lajkovat'}
-        >
-          <SocialIcon name={vztah?.lajkujiJa ? 'heart-filled' : 'heart'} size={20} />
-        </button>
-        <span className="social-prispevek-lajk-pocet">
-          {vztah?.pocetLajku ? `${vztah.pocetLajku} ${vztah.pocetLajku === 1 ? 'lajk' : vztah.pocetLajku < 5 ? 'lajky' : 'lajků'}` : 'Zatím žádný lajk'}
-        </span>
-
-        <button
-          className="social-prispevek-ulozit-btn"
-          onClick={prepnoutUlozeni}
-          disabled={ulozeno === null || meniUlozeni}
-          aria-label={ulozeno ? 'Odebrat z uloženého' : 'Uložit příspěvek'}
-        >
-          <SocialIcon name={ulozeno ? 'bookmark-filled' : 'bookmark'} size={20} />
-        </button>
-
-        <button className="social-prispevek-sdilet-btn" onClick={() => setSdilet(true)} aria-label="Poslat příspěvek">
-          <SocialIcon name="share" size={20} />
-        </button>
-      </div>
-
-      {kolekce !== undefined && (
-        <div className="social-prispevek-kolekce-radek">
-          <SocialIcon name="layers" size={15} />
-          <select
-            className="social-prispevek-kolekce-select"
-            value={aktivniKolekceId ?? ''}
-            onChange={prepnoutKolekci}
-            disabled={prepinaKolekci}
-            aria-label="Přeřadit do sbírky"
-          >
-            <option value="">Bez sbírky</option>
-            {kolekce.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.nazev}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      <div className="social-prispevek-komentare">
-        {komentare.length === 0 ? (
-          <p className="social-empty-note">Zatím žádné komentáře. Buď první.</p>
-        ) : (
-          korenoveKomentare.map((k) => (
-            <React.Fragment key={k.id}>
-              {komentarRadek(k, false)}
-              {(odpovediPodleRodice.get(k.id) ?? []).map((o) => komentarRadek(o, true))}
-            </React.Fragment>
-          ))
+        {nahlasit && (
+          <NahlasitDialog
+            surfaceId={surfaceId}
+            userId={prispevek.autorId}
+            postId={prispevek.id}
+            stav={stav}
+            onZavrit={() => setNahlasit(false)}
+          />
         )}
+
+        {sdilet && <SdiletPrispevekDialog surfaceId={surfaceId} postId={prispevek.id} stav={stav} onZavrit={() => setSdilet(false)} />}
       </div>
-
-      {odpovidamNaKomentar && (
-        <div className="social-odpoved-lista">
-          <span className="social-odpoved-text">Odpovídáš {odpovidamNaKomentar.jmeno}</span>
-          <button
-            className="social-icon-btn"
-            aria-label="Zrušit odpověď"
-            onClick={() => setOdpovidamNaKomentar(null)}
-          >
-            <SocialIcon name="x" size={14} />
-          </button>
-        </div>
-      )}
-
-      <form className="social-prispevek-komentar-formular" onSubmit={odeslatKomentar}>
-        <input
-          className="social-input social-input--full"
-          placeholder={odpovidamNaKomentar ? `Odpověz ${odpovidamNaKomentar.jmeno}…` : 'Napiš komentář…'}
-          value={novyKomentar}
-          maxLength={500}
-          onChange={(e) => setNovyKomentar(e.target.value)}
-        />
-        <button
-          className="social-btn social-btn--small"
-          type="submit"
-          disabled={!novyKomentar.trim() || odesila}
-        >
-          <SocialIcon name="send" size={16} />
-        </button>
-      </form>
-
-      {nahlasit && (
-        <NahlasitDialog
-          userId={prispevek.autorId}
-          postId={prispevek.id}
-          stav={stav}
-          onZavrit={() => setNahlasit(false)}
-        />
-      )}
-
-      {sdilet && <SdiletPrispevekDialog postId={prispevek.id} stav={stav} onZavrit={() => setSdilet(false)} />}
-    </div>,
-    // Portál do document.body — stejný důvod jako u StoryProhlizec.tsx/
-    // pages/profil/components/PridatPrispevekDialog.tsx.
-    document.body
+    </CommunityDialog>
   )
 }

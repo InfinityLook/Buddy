@@ -840,3 +840,30 @@
   flex: 1;
   min-width: 0;
 }
+
+.profil-scroll { display: flex; flex-direction: column; gap: .7rem; }
+.profil-scroll .profil-user-card.buddy-ui-card {
+  border-color: var(--buddy-border);
+  border-radius: var(--buddy-ui-card-radius);
+  background: var(--buddy-panel);
+}
+.profil-scroll .profil-avatar-edit.buddy-ui-button {
+  width: 44px;
+  height: 44px;
+  inset: auto -.35rem -.45rem auto;
+  border-radius: var(--buddy-ui-control-radius);
+}
+.profil-links { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
+.profil-notif-items { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.profil-notif-row { display: flex; align-items: center; gap: .65rem; width: 100%; cursor: pointer; }
+.profil-notif-row .profil-notif-dot { position: static; flex: none; background: var(--buddy-accent); }
+.profil-notif-row small { display: block; margin-top: .2rem; color: var(--buddy-muted); }
+.profil-page .profil-toast {
+  width: max-content;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  background: var(--buddy-panel);
+  color: var(--buddy-text);
+  border-color: var(--buddy-border);
+  bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
