@@ -63,6 +63,10 @@ Přes appkou už zavedený vzor "free = funkční, VIP = kosmetická/rozšiřuj�
 - Dlouhodobý osud neuronky Buddy AI v1 (zaparkovat / repurpose na klasifikátor / uklidit mrtvý kód starého cloudového chatu).
 - Přesné pořadí budování slovníku uvnitř Fáze A (které appkové pojmy/témata jako první).
 
----
+--- 
+## Další návrhy a ai modelů aplikace 
+ -model na ctení obsahu aplikace (libovolný osah čtení poznamek textu v editoru apod)
+ -model na hledaní infirmaci treba dejepis apod s moznosti pripojení na internet
+ -model na kazdý room a k ni pridruzene aplikace aby umel ovladat (nektere budou zahrnutz pouze pro vip
 
-*Tenhle dokument se bude aktualizovat, jak se diskuze posune k rozhodnutím a implementaci.*
+*Tenhle dokument se bude aktualizovat, jak se diskuze posune k rozhodnutím a implementaci.
