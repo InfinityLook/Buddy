@@ -494,7 +494,8 @@ export const nactiChaty = async (): Promise<Chat[]> => {
         neprectene: chatZpravy.filter(
           (z) => z.sender_id !== ja && od !== undefined && z.created_at > od
         ).length,
-        zakladatelId: ch.created_by,
+        // Zakladatel smazal účet → nikdo není zakladatel (chat přežije).
+        zakladatelId: ch.created_by ?? '',
         ikona: ch.icon,
         mujMuted: ztlumeno.get(ch.id) ?? false,
         pozadavek: cekaNaSchvaleni.get(ch.id) ?? false,
@@ -722,7 +723,8 @@ export const odebratZeSkupiny = async (chatId: string, uzivatelId: string): Prom
 const zpravaZRadku = (r: {
   id: string
   chat_id: string
-  sender_id: string
+  // null = autor smazal účet (messages.sender_id je ON DELETE SET NULL)
+  sender_id: string | null
   body: string
   created_at: string
   deleted_at: string | null
@@ -735,7 +737,8 @@ const zpravaZRadku = (r: {
 }): Zprava => ({
   id: r.id,
   chatId: r.chat_id,
-  odesilatelId: r.sender_id,
+  // Prázdný řetězec se nikdy nerovná skutečnému id, takže zpráva smazaného účtu nepatří nikomu.
+  odesilatelId: r.sender_id ?? '',
   text: r.body,
   createdAt: r.created_at,
   smazanoAt: r.deleted_at,

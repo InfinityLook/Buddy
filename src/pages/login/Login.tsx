@@ -214,7 +214,9 @@ export default function Login({ onLogin }: LoginProps) {
           </form>
         </BuddyDialog>
       )}
-      <p className="login-footer">© {new Date().getFullYear()} Buddy</p>
+      <p className="login-footer">
+        © {new Date().getFullYear()} Buddy · <a href="/smazat-ucet">Smazání účtu</a>
+      </p>
     </div>
   )
 }

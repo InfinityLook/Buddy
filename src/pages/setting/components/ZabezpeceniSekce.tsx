@@ -1,5 +1,6 @@
 import { BuddyConfirm } from '@/components/buddy-ui/BuddyConfirm'
 import React, { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useProfileData } from '@/pages/profil/hooks/useProfileData'
 import { jeBiometrieDostupna, zaregistrujBiometrii } from '@/core/utils/biometrics'
 import { nactiZarizeni, type PrihlaseneZarizeni } from '@/core/security/loginDevices'
@@ -15,6 +16,7 @@ interface Props {
 // ==========================================
 
 export const ZabezpeceniSekce: React.FC<Props> = ({ onToast }) => {
+  const navigate = useNavigate()
   const { profile, updateSecurity, resetProfile } = useProfileData()
   const [resetOpen, setResetOpen] = useState(false)
   const [biometrieProbiha, setBiometrieProbiha] = useState(false)
@@ -121,6 +123,10 @@ export const ZabezpeceniSekce: React.FC<Props> = ({ onToast }) => {
 
         <button className="settings-danger-btn" onClick={() => setResetOpen(true)}>
           🗑️ Vrátit profil do výchozího stavu
+        </button>
+
+        <button className="settings-danger-btn" onClick={() => navigate('/smazat-ucet')}>
+          ⚠️ Smazat účet a všechna data
         </button>
       </section>
       {resetOpen && <BuddyConfirm surfaceId="settings-security" onClose={() => setResetOpen(false)} confirmation={{

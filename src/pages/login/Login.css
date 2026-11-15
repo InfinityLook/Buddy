@@ -84,3 +84,12 @@
 .login-error, .login-note { margin: 0; }
 .login-divider { margin: .875rem 0 .4rem; color: var(--buddy-muted); font-size: .8125rem; }
 .login-guest { margin-top: .5rem; }
+
+/* Seznam toho, co se smazáním účtu smaže/zůstane (pages/ucet/SmazaniUctuPage.tsx) */
+.smazani-seznam {
+  margin: 0 0 0.75rem;
+  padding-left: 1.2rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  text-align: left;
+}
