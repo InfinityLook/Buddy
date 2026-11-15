@@ -3178,6 +3178,14 @@ Verified with `npm run typecheck`/`npm run test:unit` (1090 passing, unaffected 
 
 **Ještě otevřené:** zbytky odstraněného Secret Chatu (`tajne_*` tabulky a 6 funkcí) se v DB zatím nesmazaly — potřebují živé potvrzení destruktivní migrace; mazání účtu s nimi počítá (jejich dva NO ACTION klíče jsou přepnuté na CASCADE), takže nic neblokují. Ověřeno typecheckem, 5 novými unit testy klientské půlky a buildem; serverová funkce a stránka nebyly proti živému přihlášení spuštěné (sandbox nezvládá autentizovaný e2e).
 
+### Library — základ nového modulu (`src/pages/library/`, `/library`)
+
+**Do kruhového menu na Hubu přibyl pátý paprsek, "Library", mezi AI a Apps** (uživatel dodal ikonu jako balíček `Buddy_Knizka_5_Motivu.zip`: jedna otevřená knížka v pěti barevných variantách). Ikona je `library-button.svg` v každé ze složek `public/hub-themes/<motiv>/` a v `themeCatalog.ts` je nové pole `libraryButton` u všech pěti variant `hub` surface, takže paprsek mění vzhled s motivem stejně jako ostatní čtyři. Pět paprsků jde po 72° (0/72/144/216/288), ne po 90° jako dřív: `uhel` v poli `kolo` (`Hub.tsx`) i souřadnice `.hub-wheel-petal--*` v `HubModule.css` (R = 33 %, `x = 50 + 33·sin θ`, `y = 50 − 33·cos θ`) se musí měnit spolu, protože detekce paprsku pod prstem čte úhly z JS a vykreslení z CSS. Kaskáda otevření/zavření má o jeden stupeň víc (zpoždění 0,15–0,43 s), proto `TRVANI_ZAVIRANI_MS` vzrostlo z 710 na 790 ms. Dekorativní prstenec (`orbit`) má tečky jen na 0/90/180/270°, takže po přidání pátého paprsku už nesedí pod paprsky; je to jen ozdoba a vyměnit by se musela grafika motivů.
+
+**Stránka je zatím jen kostra, obsah doplní uživatel.** `LibraryModule.tsx` je chráněná trasa `/library` (brána `dovnitr` jako všechny ostatní), vzhled bere z `hub` surface (pozadí a motiv stejné jako Hub), hlavičku ze sdíleného `BuddyHeader` a dole má `AppBottomNav`; uprostřed je jen karta "Knihovna se připravuje". Obsah se doplňuje do `<main className="library-main">`. Vstup z Hubu jde přes `prejit('/library')`, tedy stejným animovaným přechodem jako Feed.
+
+Ověřeno typecheckem, 2217 unit testy a buildem. Vizuální kontrola kola a stránky v prohlížeči nebyla možná: autentizované e2e v sandboxu selhává už na přesměrování po přihlášení (stejně jako nezměněný `auth.spec.ts`).
+
 ### Path alias
 
 `@/*` resolves to `src/*`, configured in **three places that must stay in sync**: `resolve.alias` in `vite.config.ts` (used at build time), `paths` in `tsconfig.json` (used by `npm run typecheck`), and `resolve.alias` in `vitest.config.ts` (used by `npm run test:unit`). Use `@/...` imports for anything outside a feature's own folder; use relative imports within a miniapp/page's own directory.

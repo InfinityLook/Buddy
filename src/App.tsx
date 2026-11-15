@@ -9,6 +9,7 @@ import SchoolRoomModule from '@/flagships/school-room/SchoolRoomModule.tsx'
 import SkolaStatistiky from '@/flagships/school-room/SkolaStatistiky.tsx'
 import SkolaUpozorneni from '@/flagships/school-room/SkolaUpozorneni.tsx'
 import RoomsModule from '@/pages/rooms/RoomsModule.tsx'
+import LibraryModule from '@/pages/library/LibraryModule.tsx'
 import FitnessRoomModule from '@/flagships/fitness-room/FitnessRoomModule.tsx'
 import EconomyRoomModule from '@/flagships/economy-room/EconomyRoomModule.tsx'
 import GrowthRoomModule from '@/flagships/growth-room/GrowthRoomModule.tsx'
@@ -198,6 +199,16 @@ export default function App() {
               element={
                 dovnitr ? (
                   <RoomsModule />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            />
+            <Route
+              path="/library"
+              element={
+                dovnitr ? (
+                  <LibraryModule />
                 ) : (
                   <Navigate to="/" replace />
                 )

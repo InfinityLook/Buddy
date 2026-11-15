@@ -70,7 +70,7 @@ const TRVANI_VYBERU_MS = 400
 // přechodu (0,32 s, stejná, co paprsky používají odjakživa — viz
 // .hub-wheel-petal's vlastní `transition` v HubModule.css) a malou
 // rezervu navíc, ať appka nepřepne stav dřív, než CSS doopravdy dojede.
-const TRVANI_ZAVIRANI_MS = 710
+const TRVANI_ZAVIRANI_MS = 790
 
 // Dvanáct drobných jiskřiček, co z prstenu "vybuchnou" směrem ven, než
 // appka naviguje — appka si jejich směr (jednotkový vektor) spočítá
@@ -384,14 +384,18 @@ export const HubModule: React.FC<HubModuleProps> = ({ onOpenApps }) => {
   // cesty do /icons/hub-wheel/.
   const kolo: KoloPaprsek[] = [
     { id: 'ai', nazev: 'AI', ikona: themeAssetUrl(variant.assets.aiButton), uhel: 0, onClick: otevritBuddyho },
-    { id: 'apps', nazev: 'Apps', ikona: themeAssetUrl(variant.assets.appsButton), uhel: 90, onClick: handleAppsClick },
-    { id: 'rooms', nazev: 'Rooms', ikona: themeAssetUrl(variant.assets.roomsButton), uhel: 180, onClick: handleRoomsClick },
+    // Pátý paprsek (Library) leží mezi AI a Apps — pět paprsků jde po 72°
+    // (0/72/144/216/288), ne po 90° jako dřív při čtyřech. Souřadnice
+    // v HubModule.css (.hub-wheel-petal--*) musí sedět s těmihle úhly.
+    { id: 'library', nazev: 'Library', ikona: themeAssetUrl(variant.assets.libraryButton), uhel: 72, onClick: () => prejit('/library') },
+    { id: 'apps', nazev: 'Apps', ikona: themeAssetUrl(variant.assets.appsButton), uhel: 144, onClick: handleAppsClick },
+    { id: 'rooms', nazev: 'Rooms', ikona: themeAssetUrl(variant.assets.roomsButton), uhel: 216, onClick: handleRoomsClick },
     // Krok 18: "Social" přejmenováno na "Feed" a přesměrováno z celého
     // SocialModule (vlastní pětice spodních záložek) na FeedModule.tsx
     // ("jen zeď", bez Socialovy vlastní navigace) — appka Chat a Hledat
     // už má přímo v AppBottomNav.tsx odkudkoli, takže jediné, co tenhle
     // paprsek doopravdy ještě nabízel navíc, byla samotná záložka Domů.
-    { id: 'social', nazev: 'Feed', ikona: themeAssetUrl(variant.assets.feedButton), uhel: 270, onClick: () => prejit('/feed') },
+    { id: 'social', nazev: 'Feed', ikona: themeAssetUrl(variant.assets.feedButton), uhel: 288, onClick: () => prejit('/feed') },
   ]
 
   // Krok 6: appka teď paprsek pod prstem nehledá podle toho, nad kterým

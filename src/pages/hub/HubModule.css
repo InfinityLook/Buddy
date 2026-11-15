@@ -949,22 +949,29 @@
   transition-delay: 0.15s;
 }
 
-.hub-wheel.je-otevrene .hub-wheel-petal--apps {
-  top: 50%;
-  left: 83%;
+/* Pět paprsků po 72° (R = 33 %): x = 50 + 33·sin θ, y = 50 − 33·cos θ. */
+.hub-wheel.je-otevrene .hub-wheel-petal--library {
+  top: 39.8%;
+  left: 81.4%;
   transition-delay: 0.22s;
 }
 
-.hub-wheel.je-otevrene .hub-wheel-petal--rooms {
-  top: 83%;
-  left: 50%;
+.hub-wheel.je-otevrene .hub-wheel-petal--apps {
+  top: 76.7%;
+  left: 69.4%;
   transition-delay: 0.29s;
 }
 
-.hub-wheel.je-otevrene .hub-wheel-petal--social {
-  top: 50%;
-  left: 17%;
+.hub-wheel.je-otevrene .hub-wheel-petal--rooms {
+  top: 76.7%;
+  left: 30.6%;
   transition-delay: 0.36s;
+}
+
+.hub-wheel.je-otevrene .hub-wheel-petal--social {
+  top: 39.8%;
+  left: 18.6%;
+  transition-delay: 0.43s;
 }
 
 /* Krok 5 — "hover"/dotyk nad paprskem: appka tyhle dvě třídy přepíná
@@ -1099,6 +1106,10 @@
    SOCIAL, ROOMS, APPS, AI je tak jen appčino pořadí v poli `kolo`
    (Hub.tsx) čtené pozpátku. */
 .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--ai {
+  transition-delay: 0.43s;
+}
+
+.hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--library {
   transition-delay: 0.36s;
 }
 
@@ -1123,6 +1134,7 @@
    s úklidem stavu (TRVANI_ZAVIRANI_MS) — obojí musí jít ruku v ruce. */
 @media (prefers-reduced-motion: reduce) {
   .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--ai,
+  .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--library,
   .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--apps,
   .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--rooms,
   .hub-wheel.je-otevrene.hub-wheel--zavira-se .hub-wheel-petal--social {

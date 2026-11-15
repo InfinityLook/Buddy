@@ -1,0 +1,75 @@
+/* Library — kostra stránky; rozložení kopíruje RoomsModule.css (stejná
+   scéna, sloupec s hlavičkou nahoře a spodní lištou dole). */
+.library-page {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--buddy-bg);
+  color: var(--buddy-text);
+}
+
+.library-scene {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
+.library-scene img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 38%;
+}
+
+.library-scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(var(--buddy-scene-overlay), transparent 34%, var(--buddy-bg) 83%);
+}
+
+.library-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(.45rem, 1.25dvh, .9rem);
+  width: min(100%, 950px);
+  height: 100%;
+  margin-inline: auto;
+  padding: max(.6rem, env(safe-area-inset-top))
+    max(.75rem, env(safe-area-inset-right))
+    max(.55rem, env(safe-area-inset-bottom))
+    max(.75rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+}
+
+.library-top {
+  position: relative;
+  z-index: 3;
+}
+
+.library-main {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: .75rem;
+}
+
+.library-card {
+  padding: 1rem 1.1rem;
+}
+
+.library-card h2 {
+  margin: 0 0 .25rem;
+  font-size: 1.05rem;
+}
+
+.library-card p {
+  margin: 0;
+  color: var(--buddy-muted);
+  font-size: .9rem;
+}
