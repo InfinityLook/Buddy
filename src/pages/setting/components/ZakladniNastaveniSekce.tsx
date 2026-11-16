@@ -1,9 +1,6 @@
 import React from 'react'
 import { APP_VERSION } from '@/core/utils/registerSW'
 
-// This component is called from a menu whose section union also includes
-// sections rendered elsewhere. Keep the prop broad, then narrow it before
-// indexing the metadata map so both TypeScript and runtime stay safe.
 type ZakladniSekce =
   | 'funkce'
   | 'moduly'
@@ -28,19 +25,30 @@ const POPIS: Record<ZakladniSekce, { ikona: string; popis: string }> = {
   informace: { ikona: 'ℹ️', popis: `Buddy, verze ${APP_VERSION}.` },
 }
 
-const ZAKLADNI_SEKCE: readonly string[] = [
-  'funkce', 'moduly', 'oznameni', 'vychozi', 'smazat-profil', 'uloziste', 'informace',
+const ZAKLADNI_SEKCE: readonly ZakladniSekce[] = [
+  'funkce',
+  'moduly',
+  'oznameni',
+  'vychozi',
+  'smazat-profil',
+  'uloziste',
+  'informace',
 ]
 
 const jeZakladniSekce = (sekce: string): sekce is ZakladniSekce =>
-  ZAKLADNI_SEKCE.includes(sekce)
+  ZAKLADNI_SEKCE.includes(sekce as ZakladniSekce)
 
-/** Základní obrazovky nastavení, pro která zatím není hotová logika. */
+/** Základní obrazovky pro nastavení, pro která zatím není hotová logika. */
 export const ZakladniNastaveniSekce: React.FC<Props> = ({ sekce, onToast }) => {
   if (!jeZakladniSekce(sekce)) return null
 
   const info = POPIS[sekce]
-  const nepodporovane = sekce === 'funkce' || sekce === 'moduly' || sekce === 'oznameni' || sekce === 'vychozi' || sekce === 'smazat-profil'
+  const nepodporovane =
+    sekce === 'funkce' ||
+    sekce === 'moduly' ||
+    sekce === 'oznameni' ||
+    sekce === 'vychozi' ||
+    sekce === 'smazat-profil'
 
   return (
     <section className="settings-card">
@@ -48,18 +56,41 @@ export const ZakladniNastaveniSekce: React.FC<Props> = ({ sekce, onToast }) => {
         <span className="settings-card-icon blue" aria-hidden="true">{info.ikona}</span>
         <div>
           <h2 className="settings-card-title">
-            {sekce === 'smazat-profil' ? 'Mazání profilu' : sekce === 'uloziste' ? 'Úložiště zařízení' : sekce === 'informace' ? 'O aplikaci' : 'Nastavení se připravuje'}
+            {sekce === 'smazat-profil'
+              ? 'Mazání profilu'
+              : sekce === 'uloziste'
+                ? 'Úložiště zařízení'
+                : sekce === 'informace'
+                  ? 'O aplikaci'
+                  : 'Nastavení se připravuje'}
           </h2>
           <p className="settings-card-sub">{info.popis}</p>
         </div>
       </div>
-      {sekce === 'uloziste' && <p className="settings-card-sub">
-        {typeof navigator !== 'undefined' && navigator.storage?.estimate
-          ? 'Informace o využití úložiště můžeš zobrazit v nastavení prohlížeče.'
-          : 'Tento prohlížeč neposkytuje přehled úložiště.'}
-      </p>}
-      {nepodporovane && <span className="settings-badge-soon" role="status">PŘIPRAVUJE SE</span>}
-      {sekce === 'smazat-profil' && <button type="button" className="settings-danger-btn" onClick={() => onToast('Mazání profilu zatím není dostupné.')}>Mazání profilu není dostupné</button>}
+
+      {sekce === 'uloziste' && (
+        <p className="settings-card-sub">
+          {navigator.storage?.estimate
+            ? 'Informace o využití úložiště můžeš zobrazit v nastavení prohlížeče.'
+            : 'Tento prohlížeč neposkytuje přehled úložiště.'}
+        </p>
+      )}
+
+      {nepodporovane && (
+        <span className="settings-badge-soon" role="status">
+          PŘIPRAVUJE SE
+        </span>
+      )}
+
+      {sekce === 'smazat-profil' && (
+        <button
+          type="button"
+          className="settings-danger-btn"
+          onClick={() => onToast('Mazání profilu zatím není dostupné.')}
+        >
+          Mazání profilu není dostupné
+        </button>
+      )}
     </section>
   )
 }
