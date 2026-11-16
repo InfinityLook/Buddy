@@ -284,7 +284,7 @@ export const SettingsModule: React.FC = () => {
         result.legacy
           ? 'Obnoveno ze starší zálohy (jen seznam aplikací). Načítám znovu…'
           : `Obnoveno (${result.restored.length} částí${
-              ob obnovenoSouboru > 0 ? `, ${obnovenoSouboru} souborů` : ''
+              obnovenoSouboru > 0 ? `, ${obnovenoSouboru} souborů` : ''
             }). Načítám znovu…`
       )
     } catch {
