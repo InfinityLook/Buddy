@@ -27,7 +27,9 @@ export const ZakladniNastaveniSekce: React.FC<Props> = ({ sekce, onToast }) => {
       <div className="settings-card-head">
         <span className="settings-card-icon blue" aria-hidden="true">{info.ikona}</span>
         <div>
-          <h2 className="settings-card-title">{sekce === 'smazat-profil' ? 'Mazání profilu' : sekce === 'uloziste' ? 'Úložiště zařízení' : sekce === 'informace' ? 'O aplikaci' : 'Nastavení se připravuje'}</h2>
+          <h2 className="settings-card-title">
+            {sekce === 'smazat-profil' ? 'Mazání profilu' : sekce === 'uloziste' ? 'Úložiště zařízení' : sekce === 'informace' ? 'O aplikaci' : 'Nastavení se připravuje'}
+          </h2>
           <p className="settings-card-sub">{info.popis}</p>
         </div>
       </div>

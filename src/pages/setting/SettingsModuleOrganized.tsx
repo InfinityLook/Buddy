@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BuddyPage } from '@/components/buddy-ui/BuddyPage'
 import { BuddyConfirm, type BuddyConfirmation } from '@/components/buddy-ui/BuddyConfirm'
@@ -37,7 +37,7 @@ interface MenuSkupina { skupinaNazev: string; polozky: MenuPolozka[] }
 const polozka = (id: Sekce, ikona: string, nazev: string, popis: string, barva = 'blue'): MenuPolozka => ({ id, ikona, nazev, popis, barva })
 
 const MENU_SKUPINY: MenuSkupina[] = [
-  { skupinaNazev: 'Můj ��čet', polozky: [
+  { skupinaNazev: 'Můj účet', polozky: [
     polozka('osobni', '👤', 'Osobní údaje', 'Jméno, e-mail a informace na profilu'),
     polozka('zabezpeceni', '🛡️', 'Zabezpečení', 'Přihlášení a ochrana účtu', 'purple'),
     polozka('soukromi', '🔒', 'Soukromí', 'Viditelnost profilu a sociální nastavení', 'purple'),
@@ -55,7 +55,7 @@ const MENU_SKUPINY: MenuSkupina[] = [
     polozka('moduly', '📦', 'Aktivní moduly', 'Přehled zapnutých modulů'),
     polozka('oznameni', '🔔', 'Oznámení', 'Nastavení upozornění'),
     polozka('vychozi', '⚙️', 'Výchozí nastavení', 'Obnovení výchozích preferencí'),
-    polozka('smazat-profil', '🗑️', 'Smazat profil', 'Zatím nefunkční', 'red'),
+    polozka('smazat-profil', '🗑️', 'Smazat profil', 'Tato funkce zatím není dostupná', 'red'),
   ] },
   { skupinaNazev: 'Data a systém', polozky: [
     polozka('zalohovani', '💾', 'Zálohování', 'Stáhnout zálohu dat i souborů'),
@@ -170,57 +170,97 @@ export const SettingsModule: React.FC = () => {
 
   if (sekce) {
     const surfaceId = POVRCHY[sekce] ?? 'settings'
-    return <BuddyPage className="settings-page" surfaceId={surfaceId} title={NADPISY[sekce]} backLabel="Zpět do nastavení" onBack={() => setSekce(null)}>
-      {sekce === 'osobni' && <OsobniUdajeSekce onToast={showToast} />}
-      {sekce === 'zabezpeceni' && <ZabezpeceniSekce onToast={showToast} />}
-      {sekce === 'soukromi' && <SoukromiSocialSekce onToast={showToast} />}
-      {sekce === 'zvuk' && <ZvukSekce />}
-      {sekce === 'jazyk' && <JazykSekce onToast={showToast} />}
-      {(sekce === 'vzhled' || sekce === 'motivy' || sekce === 'ramecky') && <VzhledARamecekSekce onToast={showToast} />}
-      {sekce === 'synchronizace' && <section className="settings-card"><div className="settings-card-head"><span className="settings-card-icon blue" aria-hidden="true">☁️</span><div>
-        <h2 className="settings-card-title">Stav synchronizace <span className={`settings-cloud-dot is-${cloudStatus}`} aria-hidden="true" /></h2>
-        <p className="settings-card-sub">{CLOUD_LABELS[cloudStatus] ?? CLOUD_LABELS.off}</p>
-        {cloudStatus === 'error' && cloudError && <p className="settings-error-detail">{cloudError}</p>}
-      </div></div><button className="settings-save-btn" onClick={() => { void syncNow() }}>Zkusit synchronizaci znovu</button></section>}
-      {(sekce === 'zalohovani' || sekce === 'obnoveni') && <SurfaceThemeScope surfaceId="settings-backup" className="settings-sekce-wrap">
-        {sekce === 'zalohovani' && <section className="settings-card"><p className="settings-card-sub settings-zaloha-popis">Záloha obsahuje data aplikace i soubory ze Správce souborů.</p><button className="settings-save-btn" onClick={() => { void exportBackup() }}>⬇️ Stáhnout zálohu</button></section>}
-        <section className="settings-card"><p className="settings-card-sub settings-zaloha-popis">Obnova může přepsat současná data. Před obnovou se vytvoří snímek současného stavu.</p>
-          <button className="settings-save-btn" onClick={() => importRef.current?.click()}>⬆️ Vybrat záložní soubor</button>
-          <input ref={importRef} type="file" accept=".zip,.json,application/zip,application/json" hidden onChange={event => {
-            const file = event.currentTarget.files?.[0]; event.currentTarget.value = ''
-            if (file) setConfirmation({ title: 'Obnovit ze souboru?', description: `Soubor ${file.name} může přepsat současná data.`, confirmLabel: 'Obnovit data', action: () => importBackup(file) })
-          }} />
-        </section>
-        {sekce === 'zalohovani' && <section className="settings-card settings-zaloha-section"><span className="settings-zaloha-head">Zálohy v aplikaci</span>
-          {snapshots.length === 0 ? <p className="settings-zaloha-empty">Zatím tu žádná není. Aplikace si první uloží automaticky.</p> : <ul className="settings-zaloha-list">{snapshots.map(snapshot => <li key={snapshot.id} className="settings-zaloha-item">
-            <button className="settings-zaloha-restore" onClick={() => setConfirmation({ title: 'Obnovit uloženou zálohu?', description: `Záloha z ${formatSnapshotDate(snapshot.createdAt)} přepíše současná data. Před obnovou se uloží snímek současného stavu.`, confirmLabel: 'Obnovit zálohu', action: () => restoreSnapshot(snapshot) })}>
-              <span className="settings-zaloha-date">{formatSnapshotDate(snapshot.createdAt)}</span><span className="settings-zaloha-meta">{SNAPSHOT_SOURCE_LABEL[snapshot.source]} · {formatSnapshotSize(snapshot.sizeBytes)}</span>
-            </button>
-            <button className="settings-zaloha-delete" aria-label={`Smazat zálohu z ${formatSnapshotDate(snapshot.createdAt)}`} onClick={() => setConfirmation({ title: 'Smazat uloženou zálohu?', description: formatSnapshotDate(snapshot.createdAt), confirmLabel: 'Smazat zálohu', danger: true, action: async () => { await deleteSnapshot(snapshot.id); setSnapshots(await listSnapshots()) } })}>✕</button>
-          </li>)}</ul>}
+    return (
+      <BuddyPage className="settings-page" surfaceId={surfaceId} title={NADPISY[sekce]} backLabel="Zpět do nastavení" onBack={() => setSekce(null)}>
+        {sekce === 'osobni' && <OsobniUdajeSekce onToast={showToast} />}
+        {sekce === 'zabezpeceni' && <ZabezpeceniSekce onToast={showToast} />}
+        {sekce === 'soukromi' && <SoukromiSocialSekce onToast={showToast} />}
+        {sekce === 'zvuk' && <ZvukSekce />}
+        {sekce === 'jazyk' && <JazykSekce onToast={showToast} />}
+        {(sekce === 'vzhled' || sekce === 'motivy' || sekce === 'ramecky') && <VzhledARamecekSekce onToast={showToast} />}
+        {sekce === 'synchronizace' && (
+          <section className="settings-card">
+            <div className="settings-card-head"><span className="settings-card-icon blue" aria-hidden="true">☁️</span><div>
+              <h2 className="settings-card-title">Stav synchronizace <span className={`settings-cloud-dot is-${cloudStatus}`} aria-hidden="true" /></h2>
+              <p className="settings-card-sub">{CLOUD_LABELS[cloudStatus] ?? CLOUD_LABELS.off}</p>
+              {cloudStatus === 'error' && cloudError && <p className="settings-error-detail">{cloudError}</p>}
+            </div></div>
+            <button className="settings-save-btn" onClick={() => { void syncNow() }}>Zkusit synchronizaci znovu</button>
+          </section>
+        )}
+        {(sekce === 'zalohovani' || sekce === 'obnoveni') && (
+          <SurfaceThemeScope surfaceId="settings-backup" className="settings-sekce-wrap">
+            {sekce === 'zalohovani' && <section className="settings-card">
+              <p className="settings-card-sub settings-zaloha-popis">Záloha obsahuje data aplikace i soubory ze Správce souborů.</p>
+              <button className="settings-save-btn" onClick={() => { void exportBackup() }}>⬇️ Stáhnout zálohu</button>
+            </section>}
+            <section className="settings-card">
+              <p className="settings-card-sub settings-zaloha-popis">Obnova může přepsat současná data. Před obnovou se vytvoří snímek současného stavu.</p>
+              <button className="settings-save-btn" onClick={() => importRef.current?.click()}>⬆️ Vybrat záložní soubor</button>
+              <input ref={importRef} type="file" accept=".zip,.json,application/zip,application/json" hidden onChange={event => {
+                const file = event.currentTarget.files?.[0]
+                event.currentTarget.value = ''
+                if (file) setConfirmation({ title: 'Obnovit ze souboru?', description: `Soubor ${file.name} může přepsat současná data.`, confirmLabel: 'Obnovit data', action: () => importBackup(file) })
+              }} />
+            </section>
+            {sekce === 'zalohovani' && <section className="settings-card settings-zaloha-section">
+              <span className="settings-zaloha-head">Zálohy v aplikaci</span>
+              {snapshots.length === 0 ? <p className="settings-zaloha-empty">Zatím tu žádná není. Aplikace si první uloží automaticky.</p> : (
+                <ul className="settings-zaloha-list">{snapshots.map(snapshot => <li key={snapshot.id} className="settings-zaloha-item">
+                  <button className="settings-zaloha-restore" onClick={() => setConfirmation({ title: 'Obnovit uloženou zálohu?', description: `Záloha z ${formatSnapshotDate(snapshot.createdAt)} přepíše současná data. Před obnovou se uloží snímek současného stavu.`, confirmLabel: 'Obnovit zálohu', action: () => restoreSnapshot(snapshot) })}>
+                    <span className="settings-zaloha-date">{formatSnapshotDate(snapshot.createdAt)}</span><span className="settings-zaloha-meta">{SNAPSHOT_SOURCE_LABEL[snapshot.source]} · {formatSnapshotSize(snapshot.sizeBytes)}</span>
+                  </button>
+                  <button className="settings-zaloha-delete" aria-label={`Smazat zálohu z ${formatSnapshotDate(snapshot.createdAt)}`} onClick={() => setConfirmation({ title: 'Smazat uloženou zálohu?', description: formatSnapshotDate(snapshot.createdAt), confirmLabel: 'Smazat zálohu', danger: true, action: async () => { await deleteSnapshot(snapshot.id); setSnapshots(await listSnapshots()) } })}>✕</button>
+                </li>)}</ul>
+              )}
+            </section>}
+          </SurfaceThemeScope>
+        )}
+        {sekce === 'aktualizace' && <section className="settings-card">
+          <div className="settings-card-head"><span className="settings-card-icon purple" aria-hidden="true">🔄</span><div><h2 className="settings-card-title">Buddy {APP_VERSION}</h2><p className="settings-card-sub">{updateChecking ? 'Kontroluji…' : 'Aplikace se aktualizuje automaticky.'}</p></div></div>
+          <button className="settings-save-btn" disabled={updateChecking} onClick={() => { void handleCheckUpdates() }}>Zkontrolovat aktualizace</button>
         </section>}
-      </SurfaceThemeScope>}
-      {sekce === 'aktualizace' && <section className="settings-card"><div className="settings-card-head"><span className="settings-card-icon purple" aria-hidden="true">🔄</span><div><h2 className="settings-card-title">Buddy {APP_VERSION}</h2><p className="settings-card-sub">{updateChecking ? 'Kontroluji…' : 'Aplikace se aktualizuje automaticky.'}</p></div></div><button className="settings-save-btn" disabled={updateChecking} onClick={() => { void handleCheckUpdates() }}>Zkontrolovat aktualizace</button></section>}
-      {(['funkce', 'moduly', 'oznameni', 'vychozi', 'smazat-profil', 'uloziste', 'informace'] as Sekce[]).includes(sekce) && <ZakladniNastaveniSekce sekce={sekce as Extract<Sekce, 'funkce' | 'moduly' | 'oznameni' | 'vychozi' | 'smazat-profil' | 'uloziste' | 'informace'>} onToast={showToast} />}
+        {sekce === 'uloziste' && <ZakladniNastaveniSekce sekce="uloziste" onToast={showToast} />}
+        {sekce === 'informace' && <ZakladniNastaveniSekce sekce="informace" onToast={showToast} />}
+        {(['funkce', 'moduly', 'oznameni', 'vychozi', 'smazat-profil'] as Sekce[]).includes(sekce) && (
+          <ZakladniNastaveniSekce sekce={sekce} onToast={showToast} />
+        )}
+        {sekce === 'tutorial' && <TutorialSekce />}
+        {toast && <div className="settings-toast" role="status">{toast}</div>}
+        {confirmation && <BuddyConfirm surfaceId="settings" confirmation={confirmation} onClose={() => setConfirmation(null)} />}
+      </BuddyPage>
+    )
+  }
+
+  return (
+    <BuddyPage className="settings-page" surfaceId="settings" title="Nastavení" backLabel="Zpět na profil" onBack={() => navigate('/profil')}>
+      {MENU_SKUPINY.map((skupina) => (
+        <div key={skupina.skupinaNazev} style={{ marginBottom: 24 }}>
+          <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-color, #94a3b8)', margin: '0 0 8px 12px', fontWeight: 600 }}>
+            {skupina.skupinaNazev}
+          </h3>
+          {skupina.polozky.map(p => <section key={p.id} className="settings-card" style={{ marginBottom: 8 }}>
+            <button type="button" className="settings-accordion-hlava" onClick={() => otevri(p.id)}>
+              <span className={`settings-card-icon ${p.barva !== 'gradient' ? p.barva : ''}`} style={p.barva === 'gradient' ? { background: 'linear-gradient(135deg, #a855f7, #f5c451)' } : undefined} aria-hidden="true">{p.ikona}</span>
+              <div><h2 className="settings-card-title">{p.nazev}</h2><p className="settings-card-sub">{p.popis}</p></div>
+              <span className="settings-accordion-sipka" aria-hidden="true">›</span>
+            </button>
+          </section>)}
+        </div>
+      ))}
+      {(smiAdmin || smiModerovat) && <div style={{ marginBottom: 24 }}>
+        <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-color, #94a3b8)', margin: '0 0 8px 12px', fontWeight: 600 }}>Administrace</h3>
+        <section className="settings-card"><button type="button" className="settings-accordion-hlava" onClick={() => otevri('administrace')}>
+          <span className="settings-card-icon amber" aria-hidden="true">🛠️</span><div><h2 className="settings-card-title">{smiAdmin ? 'Administrace' : 'Moderace'}</h2><p className="settings-card-sub">{smiAdmin ? 'Přehled a nástroje aplikace' : 'Hlášení od uživatelů'}</p></div><span className="settings-accordion-sipka" aria-hidden="true">›</span>
+        </button></section>
+      </div>}
+      <section className="settings-card"><button className="settings-danger-btn" disabled={odhlasujiSe} onClick={() => setConfirmation({
+        title: 'Odhlásit se?', description: 'Buddy nejdřív odešle poslední změny k synchronizaci.', confirmLabel: 'Odhlásit se', action: handleLogout,
+      })}>{odhlasujiSe ? 'Odesílám poslední změny…' : '🚪 Odhlásit se'}</button></section>
       {toast && <div className="settings-toast" role="status">{toast}</div>}
       {confirmation && <BuddyConfirm surfaceId="settings" confirmation={confirmation} onClose={() => setConfirmation(null)} />}
     </BuddyPage>
-  }
-
-  return <BuddyPage className="settings-page" surfaceId="settings" title="Nastavení" backLabel="Zpět na profil" onBack={() => navigate('/profil')}>
-    {MENU_SKUPINY.map((skupina) => <div key={skupina.skupinaNazev} style={{ marginBottom: 24 }}>
-      <h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-color, #94a3b8)', margin: '0 0 8px 12px', fontWeight: 600 }}>{skupina.skupinaNazev}</h3>
-      {skupina.polozky.map((p) => <section key={p.id} className="settings-card" style={{ marginBottom: 8 }}><button type="button" className="settings-accordion-hlava" onClick={() => otevri(p.id)}>
-        <span className={`settings-card-icon ${p.barva !== 'gradient' ? p.barva : ''}`} style={p.barva === 'gradient' ? { background: 'linear-gradient(135deg, #a855f7, #f5c451)' } : undefined} aria-hidden="true">{p.ikona}</span>
-        <div><h2 className="settings-card-title">{p.nazev}</h2><p className="settings-card-sub">{p.popis}</p></div><span className="settings-accordion-sipka" aria-hidden="true">›</span>
-      </button></section>)}
-    </div>)}
-    {(smiAdmin || smiModerovat) && <div style={{ marginBottom: 24 }}><h3 style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--muted-color, #94a3b8)', margin: '0 0 8px 12px', fontWeight: 600 }}>Administrace</h3>
-      <section className="settings-card"><button type="button" className="settings-accordion-hlava" onClick={() => otevri('administrace')}><span className="settings-card-icon amber" aria-hidden="true">🛠️</span><div><h2 className="settings-card-title">{smiAdmin ? 'Administrace' : 'Moderace'}</h2><p className="settings-card-sub">{smiAdmin ? 'Přehled a nástroje aplikace' : 'Hlášení od uživatelů'}</p></div><span className="settings-accordion-sipka" aria-hidden="true">›</span></button></section>
-    </div>}
-    <section className="settings-card"><button className="settings-danger-btn" disabled={odhlasujiSe} onClick={() => setConfirmation({ title: 'Odhlásit se?', description: 'Buddy nejdřív odešle poslední změny k synchronizaci.', confirmLabel: 'Odhlásit se', action: handleLogout })}>{odhlasujiSe ? 'Odesílám poslední změny…' : '🚪 Odhlásit se'}</button></section>
-    {toast && <div className="settings-toast" role="status">{toast}</div>}
-    {confirmation && <BuddyConfirm surfaceId="settings" confirmation={confirmation} onClose={() => setConfirmation(null)} />}
-  </BuddyPage>
+  )
 }
+
 export default SettingsModule
