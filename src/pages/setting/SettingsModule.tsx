@@ -53,14 +53,37 @@ import './SettingsModule.css'
 
 type Sekce = 'osobni' | 'zvuk' | 'jazyk' | 'vzhled' | 'zabezpeceni' | 'soukromi' | 'tutorial'
 
-const MENU_POLOZKY: { id: Sekce; ikona: string; barva: string; nazev: string; popis: string }[] = [
-  { id: 'osobni', ikona: '👤', barva: 'blue', nazev: 'Osobní údaje', popis: 'Jméno, e-mail a motto na profilu' },
-  { id: 'zvuk', ikona: '🔊', barva: 'blue', nazev: 'Zvuk', popis: 'Hlasitost appky, Buddyho, hry a Music Studia' },
-  { id: 'jazyk', ikona: '🇨🇿', barva: 'blue', nazev: 'Jazyk', popis: 'Jazyk aplikace — zatím jen čeština' },
-  { id: 'vzhled', ikona: '🎨', barva: 'gradient', nazev: 'Vzhled a rámečky', popis: 'Barva appky a rámeček avatáru' },
-  { id: 'zabezpeceni', ikona: '🛡️', barva: 'purple', nazev: 'Zabezpečení', popis: 'Přihlášení a ochrana účtu' },
-  { id: 'soukromi', ikona: '🔒', barva: 'purple', nazev: 'Soukromí a Social', popis: 'Kdo tě vidí, blokovaní lidé, nahlášený obsah' },
-  { id: 'tutorial', ikona: '🔮', barva: 'red', nazev: 'První kroky', popis: 'Jak začít s Rooms, Plánovačem a Pomodorem' },
+interface MenuPolozka {
+  id: Sekce
+  ikona: string
+  barva: string
+  nazev: string
+  popis: string
+}
+
+interface MenuSkupina {
+  skupinaNazev: string
+  polozky: MenuPolozka[]
+}
+
+const MENU_SKUPINY: MenuSkupina[] = [
+  {
+    skupinaNazev: 'Můj účet',
+    polozky: [
+      { id: 'osobni', ikona: '👤', barva: 'blue', nazev: 'Osobní údaje', popis: 'Jméno, e-mail a motto na profilu' },
+      { id: 'zabezpeceni', ikona: '🛡️', barva: 'purple', nazev: 'Zabezpečení', popis: 'Přihlášení a ochrana účtu' },
+      { id: 'soukromi', ikona: '🔒', barva: 'purple', nazev: 'Soukromí a Social', popis: 'Kdo tě vidí, blokovaní lidé, nahlášený obsah' },
+    ],
+  },
+  {
+    skupinaNazev: 'Aplikace a vzhled',
+    polozky: [
+      { id: 'zvuk', ikona: '🔊', barva: 'blue', nazev: 'Zvuk', popis: 'Hlasitost appky, Buddyho, hry a Music Studia' },
+      { id: 'jazyk', ikona: '🇨🇿', barva: 'blue', nazev: 'Jazyk', popis: 'Jazyk aplikace — zatím jen čeština' },
+      { id: 'vzhled', ikona: '🎨', barva: 'gradient', nazev: 'Vzhled a rámečky', popis: 'Barva appky a rámeček avatáru' },
+      { id: 'tutorial', ikona: '🔮', barva: 'red', nazev: 'První kroky', popis: 'Jak začít s Rooms, Plánovačem a Pomodorem' },
+    ],
+  },
 ]
 
 const POVRCHY: Record<Sekce, SurfaceId> = {
@@ -261,7 +284,7 @@ export const SettingsModule: React.FC = () => {
         result.legacy
           ? 'Obnoveno ze starší zálohy (jen seznam aplikací). Načítám znovu…'
           : `Obnoveno (${result.restored.length} částí${
-              obnovenoSouboru > 0 ? `, ${obnovenoSouboru} souborů` : ''
+              ob obnovenoSouboru > 0 ? `, ${obnovenoSouboru} souborů` : ''
             }). Načítám znovu…`
       )
     } catch {
@@ -289,24 +312,40 @@ export const SettingsModule: React.FC = () => {
   return (
     <BuddyPage className="settings-page" surfaceId="settings" title="Nastavení"
       backLabel="Zpět na profil" onBack={() => navigate('/profil')}>
-      {/* Menu — pět položek, každá otevře vlastní podobrazovku výš. */}
-      {MENU_POLOZKY.map((p) => (
-        <section key={p.id} className="settings-card">
-          <button type="button" className="settings-accordion-hlava" onClick={() => setSekce(p.id)}>
-            <span
-              className={`settings-card-icon ${p.barva !== 'gradient' ? p.barva : ''}`}
-              style={p.barva === 'gradient' ? { background: 'linear-gradient(135deg, #a855f7, #f5c451)' } : undefined}
-              aria-hidden="true"
-            >
-              {p.ikona}
-            </span>
-            <div>
-              <h2 className="settings-card-title">{p.nazev}</h2>
-              <p className="settings-card-sub">{p.popis}</p>
-            </div>
-            <span className="settings-accordion-sipka" aria-hidden="true">›</span>
-          </button>
-        </section>
+      
+      {/* Seskupené menu položek */}
+      {MENU_SKUPINY.map((skupina) => (
+        <div key={skupina.skupinaNazev} style={{ marginBottom: '24px' }}>
+          <h3 style={{
+            fontSize: '0.8rem',
+            textTransform: 'uppercase',
+            letterSpacing: '0.08em',
+            color: 'var(--muted-color, #94a3b8)',
+            margin: '0 0 8px 12px',
+            fontWeight: 600
+          }}>
+            {skupina.skupinaNazev}
+          </h3>
+
+          {skupina.polozky.map((p) => (
+            <section key={p.id} className="settings-card" style={{ marginBottom: '8px' }}>
+              <button type="button" className="settings-accordion-hlava" onClick={() => setSekce(p.id)}>
+                <span
+                  className={`settings-card-icon ${p.barva !== 'gradient' ? p.barva : ''}`}
+                  style={p.barva === 'gradient' ? { background: 'linear-gradient(135deg, #a855f7, #f5c451)' } : undefined}
+                  aria-hidden="true"
+                >
+                  {p.ikona}
+                </span>
+                <div>
+                  <h2 className="settings-card-title">{p.nazev}</h2>
+                  <p className="settings-card-sub">{p.popis}</p>
+                </div>
+                <span className="settings-accordion-sipka" aria-hidden="true">›</span>
+              </button>
+            </section>
+          ))}
+        </div>
       ))}
 
       {/* Zálohování dat — přesunuté sem z Hubu, teď jako rozbalovací
@@ -489,7 +528,7 @@ export const SettingsModule: React.FC = () => {
           oprávnění. Tlačítko samo nikoho nechrání (role v prohlížeči
           si jde přepsat), skutečná data za ním si přístup ověřují sama
           v databázi — viz komentář v pages/admin/AdminModule.tsx.
-          AdminModule.tsx sám omezí, co moderátor uvnitř uvidí. */}
+          AdminModule.tsx sám omezí, co moderátor uvidí. */}
       {(smiAdmin || smiModerovat) && (
         <section className="settings-card">
           <div className="settings-card-head">
@@ -518,9 +557,6 @@ export const SettingsModule: React.FC = () => {
           {odhlasujiSe ? 'Odesílám poslední změny…' : '🚪 Odhlásit se'}
         </button>
       </section>
-
-      {/* Fáze 4 Social nav reworku (viz CLAUDE.md) — stejná sdílená
-          lišta jako na Hubu/Apps/Profilu. */}
 
       {toast && <div className="settings-toast" role="status">{toast}</div>}
       {confirmation && <BuddyConfirm surfaceId="settings" confirmation={confirmation} onClose={() => setConfirmation(null)} />}
