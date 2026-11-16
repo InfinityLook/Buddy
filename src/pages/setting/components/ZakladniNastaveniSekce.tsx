@@ -1,13 +1,22 @@
 import React from 'react'
 import { APP_VERSION } from '@/core/utils/registerSW'
-import type { Sekce } from '../SettingsModuleOrganized'
+
+// This component is called from a menu whose section union also includes
+// sections rendered elsewhere. Keep the prop broad, then narrow it before
+// indexing the metadata map so both TypeScript and runtime stay safe.
+type ZakladniSekce =
+  | 'funkce'
+  | 'moduly'
+  | 'oznameni'
+  | 'vychozi'
+  | 'smazat-profil'
+  | 'uloziste'
+  | 'informace'
 
 interface Props {
-  sekce: Sekce
+  sekce: string
   onToast: (message: string) => void
 }
-
-type ZakladniSekce = Extract<Sekce, 'funkce' | 'moduly' | 'oznameni' | 'vychozi' | 'smazat-profil' | 'uloziste' | 'informace'>
 
 const POPIS: Record<ZakladniSekce, { ikona: string; popis: string }> = {
   funkce: { ikona: '🧩', popis: 'Nastavení dostupnosti jednotlivých funkcí Buddyho.' },
@@ -19,15 +28,18 @@ const POPIS: Record<ZakladniSekce, { ikona: string; popis: string }> = {
   informace: { ikona: 'ℹ️', popis: `Buddy, verze ${APP_VERSION}.` },
 }
 
-const ZAKLADNI_SEKCE: readonly ZakladniSekce[] = [
+const ZAKLADNI_SEKCE: readonly string[] = [
   'funkce', 'moduly', 'oznameni', 'vychozi', 'smazat-profil', 'uloziste', 'informace',
 ]
 
-/** Základní obrazovky pro nastavení, pro která zatím není hotová logika. */
-export const ZakladniNastaveniSekce: React.FC<Props> = ({ sekce, onToast }) => {
-  if (!(ZAKLADNI_SEKCE as readonly Sekce[]).includes(sekce)) return null
+const jeZakladniSekce = (sekce: string): sekce is ZakladniSekce =>
+  ZAKLADNI_SEKCE.includes(sekce)
 
-  const info = POPIS[sekce as ZakladniSekce]
+/** Základní obrazovky nastavení, pro která zatím není hotová logika. */
+export const ZakladniNastaveniSekce: React.FC<Props> = ({ sekce, onToast }) => {
+  if (!jeZakladniSekce(sekce)) return null
+
+  const info = POPIS[sekce]
   const nepodporovane = sekce === 'funkce' || sekce === 'moduly' || sekce === 'oznameni' || sekce === 'vychozi' || sekce === 'smazat-profil'
 
   return (
@@ -42,7 +54,7 @@ export const ZakladniNastaveniSekce: React.FC<Props> = ({ sekce, onToast }) => {
         </div>
       </div>
       {sekce === 'uloziste' && <p className="settings-card-sub">
-        {navigator.storage?.estimate
+        {typeof navigator !== 'undefined' && navigator.storage?.estimate
           ? 'Informace o využití úložiště můžeš zobrazit v nastavení prohlížeče.'
           : 'Tento prohlížeč neposkytuje přehled úložiště.'}
       </p>}
