@@ -3,11 +3,13 @@ import { APP_VERSION } from '@/core/utils/registerSW'
 import type { Sekce } from '../SettingsModuleOrganized'
 
 interface Props {
-  sekce: Extract<Sekce, 'funkce' | 'moduly' | 'oznameni' | 'vychozi' | 'smazat-profil' | 'uloziste' | 'informace'>
+  sekce: Sekce
   onToast: (message: string) => void
 }
 
-const POPIS: Record<Props['sekce'], { ikona: string; popis: string }> = {
+type ZakladniSekce = Extract<Sekce, 'funkce' | 'moduly' | 'oznameni' | 'vychozi' | 'smazat-profil' | 'uloziste' | 'informace'>
+
+const POPIS: Record<ZakladniSekce, { ikona: string; popis: string }> = {
   funkce: { ikona: '🧩', popis: 'Nastavení dostupnosti jednotlivých funkcí Buddyho.' },
   moduly: { ikona: '📦', popis: 'Přehled modulů a jejich aktivního stavu.' },
   oznameni: { ikona: '🔔', popis: 'Nastavení upozornění aplikace.' },
@@ -17,9 +19,15 @@ const POPIS: Record<Props['sekce'], { ikona: string; popis: string }> = {
   informace: { ikona: 'ℹ️', popis: `Buddy, verze ${APP_VERSION}.` },
 }
 
+const ZAKLADNI_SEKCE: readonly ZakladniSekce[] = [
+  'funkce', 'moduly', 'oznameni', 'vychozi', 'smazat-profil', 'uloziste', 'informace',
+]
+
 /** Základní obrazovky pro nastavení, pro která zatím není hotová logika. */
 export const ZakladniNastaveniSekce: React.FC<Props> = ({ sekce, onToast }) => {
-  const info = POPIS[sekce]
+  if (!(ZAKLADNI_SEKCE as readonly Sekce[]).includes(sekce)) return null
+
+  const info = POPIS[sekce as ZakladniSekce]
   const nepodporovane = sekce === 'funkce' || sekce === 'moduly' || sekce === 'oznameni' || sekce === 'vychozi' || sekce === 'smazat-profil'
 
   return (
