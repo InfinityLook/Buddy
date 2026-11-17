@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { nactiTextDila, type TextDilo } from '../libraryTextApi'
 import { useLibraryPostup } from '../useLibraryPostup'
+import { useLibraryAnnotations } from '../useLibraryAnnotations'
 import type { KatalogDilo } from '../libraryTypes'
 import { TextovaCtecka, type PostupCteni } from './TextovaCtecka'
 
@@ -11,6 +12,7 @@ export function CtenarDila({ dilo, onBack }: { dilo: KatalogDilo; onBack: () => 
   const [stav, setStav] = useState<Stav>({ faze: 'nacitam' })
   const [pokus, setPokus] = useState(0)
   const ulozPostup = useLibraryPostup((s) => s.ulozPostup)
+  const vsechnyAnotace = useLibraryAnnotations((s) => s.anotace)
 
   useEffect(() => {
     let zruseno = false
@@ -50,6 +52,8 @@ export function CtenarDila({ dilo, onBack }: { dilo: KatalogDilo; onBack: () => 
     ? { kapitolaIdx: ulozeny.chapterPos, blockIdx: ulozeny.blockIdx }
     : { kapitolaIdx: 0, blockIdx: 0 }
 
+  const anotaceDila = vsechnyAnotace.filter((a) => a.workId === dilo.id && !a.deletedAt)
+
   const hlasit = (p: PostupCteni) =>
     ulozPostup(dilo.id, {
       versionId,
@@ -66,6 +70,9 @@ export function CtenarDila({ dilo, onBack }: { dilo: KatalogDilo; onBack: () => 
       kapitoly={kapitoly}
       start={start}
       zacatekSekund={ulozeny?.secondsRead ?? 0}
+      versionId={versionId}
+      zOffline={!!stav.dilo.zOffline}
+      anotace={anotaceDila}
       onProgress={hlasit}
       onBack={onBack}
     />

@@ -1,22 +1,34 @@
 import { supabase } from '@/core/supabase/client'
 import { ocistiBloky, type Kapitola } from './libraryTextTypes'
+import { nactiTextOffline, ulozTextOffline } from './libraryOffline'
 
 // ==========================================
 // Library — načtení textu díla (zveřejněná verze → kapitoly). RLS pustí
-// kapitoly jen k verzi, kterou smím číst. Hotové dílo se drží v paměti,
-// ať se nestahuje při každém otevření (trvalá offline kopie je fáze 5).
+// kapitoly jen k verzi, kterou smím číst. Pořadí: paměť → síť (a uložit
+// offline kopii) → při selhání sítě offline kopie. Bez připojení se jde
+// rovnou do offline kopie, ať otevření není pomalé ani čekající na timeout.
 // ==========================================
 
 export interface TextDilo {
   versionId: string
   kapitoly: Kapitola[]
+  /** Text je z trvalé offline kopie (nepodařilo se ověřit aktuální verzi). */
+  zOffline?: boolean
 }
 
 const cache = new Map<string, TextDilo>()
 
-export async function nactiTextDila(workId: string): Promise<TextDilo | null> {
-  const hotove = cache.get(workId)
-  if (hotove) return hotove
+const jeOnline = (): boolean => typeof navigator === 'undefined' || navigator.onLine !== false
+
+async function zOfflineKopie(workId: string): Promise<TextDilo | null> {
+  const kopie = await nactiTextOffline(workId)
+  if (!kopie) return null
+  const vysledek: TextDilo = { versionId: kopie.versionId, kapitoly: kopie.kapitoly, zOffline: true }
+  cache.set(workId, vysledek)
+  return vysledek
+}
+
+async function stahniZeSite(workId: string): Promise<TextDilo | null> {
   if (!supabase) return null
   try {
     const { data: dilo, error } = await supabase
@@ -39,10 +51,33 @@ export async function nactiTextDila(workId: string): Promise<TextDilo | null> {
       title: r.title,
       bloky: ocistiBloky(r.blocks),
     }))
-    const vysledek = { versionId, kapitoly }
-    cache.set(workId, vysledek)
-    return vysledek
+    return { versionId, kapitoly }
   } catch {
     return null
   }
 }
+
+export async function nactiTextDila(workId: string): Promise<TextDilo | null> {
+  const hotove = cache.get(workId)
+  if (hotove) return hotove
+  if (!jeOnline()) return zOfflineKopie(workId)
+
+  const zeSite = await stahniZeSite(workId)
+  if (zeSite) {
+    cache.set(workId, zeSite)
+    void ulozTextOffline(workId, zeSite.versionId, zeSite.kapitoly)
+    return zeSite
+  }
+  return zOfflineKopie(workId)
+}
+
+/** Stáhne a uloží text pro čtení bez připojení. Vrací true, když je kopie připravená. */
+export async function stahnoutOffline(workId: string): Promise<boolean> {
+  const zeSite = await stahniZeSite(workId)
+  if (!zeSite || zeSite.kapitoly.every((k) => k.bloky.length === 0)) return false
+  cache.set(workId, zeSite)
+  return ulozTextOffline(workId, zeSite.versionId, zeSite.kapitoly)
+}
+
+/** Jen pro testy: zahodí paměťovou cache. */
+export const _vyprazdniCacheTextu = () => cache.clear()

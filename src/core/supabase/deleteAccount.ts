@@ -14,8 +14,8 @@ export interface SmazaniVysledek {
 }
 
 /** Soukromé databáze v IndexedDB, které appka zakládá (obsah souborů, velké
- *  úložiště, historie záloh). */
-const INDEXED_DB_NAZVY = ['schoolbuddy-store-data', 'schoolbuddy-files', 'schoolbuddy-backups']
+ *  úložiště, historie záloh, offline kopie textů Library). */
+const INDEXED_DB_NAZVY = ['schoolbuddy-store-data', 'schoolbuddy-files', 'schoolbuddy-backups', 'schoolbuddy-library-offline']
 
 const smazIndexedDb = (nazev: string): Promise<void> =>
   new Promise((resolve) => {

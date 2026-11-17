@@ -732,3 +732,199 @@
 .buddy-library .library-postup .library-hint {
   margin-top: .3rem;
 }
+
+/* ---------- Poznámky, zvýraznění, záložky ve čtečce ---------- */
+.buddy-library .library-text { position: relative; }
+
+.buddy-library .library-text-skupina {
+  display: flex;
+  gap: .35rem;
+}
+
+.buddy-library .library-text-bar { flex-wrap: wrap; }
+
+.buddy-library .library-text-offline {
+  margin: 0;
+  padding: .35rem .6rem;
+  border-radius: .5rem;
+  font-size: .75rem;
+  color: var(--buddy-muted);
+  background: var(--buddy-glass);
+}
+
+.buddy-library .library-text-toast {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 4.4rem;
+  width: fit-content;
+  max-width: 90%;
+  margin: 0 auto;
+  padding: .4rem .8rem;
+  border-radius: 99px;
+  font-size: .8rem;
+  background: var(--buddy-accent);
+  color: var(--buddy-on-accent);
+  z-index: 6;
+}
+
+.buddy-library .library-text-vyber {
+  position: absolute;
+  inset-inline: 0;
+  bottom: .6rem;
+  width: fit-content;
+  max-width: calc(100% - 1rem);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .5rem .7rem;
+  border: 1px solid var(--library-edge);
+  border-radius: 99px;
+  background: var(--buddy-glass);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 .4rem 1.2rem #051124a6;
+  user-select: none;
+  z-index: 5;
+}
+
+.buddy-library .library-barva {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background: var(--barva);
+  cursor: pointer;
+}
+
+.buddy-library .library-barva[aria-pressed='true'] { border-color: var(--buddy-text); }
+
+.buddy-library [data-barva='zluta'] { --barva: #f2d64b; }
+.buddy-library [data-barva='zelena'] { --barva: #7cd68a; }
+.buddy-library [data-barva='modra'] { --barva: #6db7f2; }
+.buddy-library [data-barva='ruzova'] { --barva: #f28bb5; }
+.buddy-library [data-barva='fialova'] { --barva: #b79cf2; }
+
+.buddy-library .library-text-obsah mark {
+  padding: 0 .08em;
+  border-radius: .2em;
+  color: inherit;
+  background: color-mix(in srgb, var(--barva, #f2d64b) 55%, transparent);
+  cursor: pointer;
+}
+
+.buddy-library .library-text-obsah mark[data-poznamka='1'] {
+  border-bottom: 2px solid var(--barva, #f2d64b);
+}
+
+.buddy-library .library-text-obsah [data-zalozka='1'] {
+  box-shadow: -.55rem 0 0 -.3rem var(--buddy-accent);
+  padding-inline-start: .2rem;
+}
+
+.buddy-library .library-text-editor {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  display: grid;
+  gap: .5rem;
+  padding: .8rem;
+  border: 1px solid var(--library-edge);
+  border-radius: .9rem .9rem 0 0;
+  background: var(--buddy-glass);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 -.4rem 1.4rem #051124a6;
+  z-index: 7;
+}
+
+.buddy-library .library-text-editor blockquote {
+  margin: 0;
+  padding-inline-start: .7rem;
+  border-inline-start: 3px solid var(--buddy-accent);
+  color: var(--buddy-muted);
+  font-size: .85rem;
+  overflow-wrap: anywhere;
+}
+
+.buddy-library .library-text-editor textarea {
+  width: 100%;
+  resize: vertical;
+  padding: .5rem .6rem;
+  border: 1px solid var(--library-edge);
+  border-radius: .6rem;
+  background: transparent;
+  color: var(--buddy-text);
+  font: inherit;
+}
+
+.buddy-library .library-text-poznamky ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: .35rem;
+}
+
+.buddy-library .library-poznamka {
+  display: flex;
+  align-items: stretch;
+  gap: .3rem;
+}
+
+.buddy-library .library-poznamka[data-stara='1'] { opacity: .6; }
+
+.buddy-library .library-poznamka-hlavni {
+  flex: 1;
+  display: flex;
+  gap: .6rem;
+  min-height: 44px;
+  padding: .4rem .5rem;
+  border: 0;
+  border-radius: .5rem;
+  background: transparent;
+  color: var(--buddy-text);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.buddy-library .library-poznamka-hlavni:disabled { cursor: default; }
+
+.buddy-library .library-poznamka-znacka {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-top: .25rem;
+  border-radius: 50%;
+  background: var(--barva, transparent);
+  font-size: .8rem;
+  line-height: 1;
+}
+
+.buddy-library .library-poznamka-znacka[data-barva='zalozka'] {
+  width: auto;
+  height: auto;
+  background: transparent;
+}
+
+.buddy-library .library-poznamka-text {
+  display: grid;
+  gap: .15rem;
+  min-width: 0;
+  font-size: .85rem;
+  overflow-wrap: anywhere;
+}
+
+.buddy-library .library-poznamka-kap {
+  font-size: .7rem;
+  color: var(--buddy-muted);
+}
+
+.buddy-library .library-poznamka-text em { color: var(--buddy-muted); }
+
+.buddy-library .library-offline {
+  display: grid;
+  gap: .3rem;
+  justify-items: start;
+  margin-top: .5rem;
+}

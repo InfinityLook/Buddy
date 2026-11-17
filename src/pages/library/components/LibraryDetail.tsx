@@ -1,7 +1,9 @@
-import type { RefObject } from 'react'
+import { useEffect, useState, type RefObject } from 'react'
 import { AppIcon } from '@/pages/app/components/AppIcon'
 import { SocialIcon } from '@/social/components/SocialIcon'
 import type { PostupZaznam } from '@/core/utils/libraryShelfValidation'
+import { nactiTextOffline, smazTextOffline } from '../libraryOffline'
+import { stahnoutOffline } from '../libraryTextApi'
 import { druhDilaNazev, jeCitelne, licenceNazev, vekNazev, type KatalogDilo } from '../libraryTypes'
 
 interface Props {
@@ -11,6 +13,52 @@ interface Props {
   onUlozit: () => void
   onOtevrit: () => void
   otevritRef: RefObject<HTMLButtonElement>
+}
+
+type OfflineStav = 'zjistuji' | 'ne' | 'stahuji' | 'ano' | 'chyba'
+
+/** Tlačítko pro čtení bez připojení — jen u děl z katalogu (ukázky jsou v appce natvrdo). */
+function OfflineKopie({ workId }: { workId: string }) {
+  const [stav, setStav] = useState<OfflineStav>('zjistuji')
+
+  useEffect(() => {
+    let zruseno = false
+    setStav('zjistuji')
+    void nactiTextOffline(workId).then((k) => {
+      if (!zruseno) setStav(k ? 'ano' : 'ne')
+    })
+    return () => {
+      zruseno = true
+    }
+  }, [workId])
+
+  const stahni = async () => {
+    setStav('stahuji')
+    setStav((await stahnoutOffline(workId)) ? 'ano' : 'chyba')
+  }
+  const smaz = async () => {
+    await smazTextOffline(workId)
+    setStav('ne')
+  }
+
+  if (stav === 'zjistuji') return null
+  return (
+    <div className="library-offline">
+      {stav === 'ano' ? (
+        <>
+          <p className="library-hint">Uloženo pro čtení bez připojení.</p>
+          <button type="button" className="library-secondary" onClick={() => void smaz()}>Smazat offline kopii</button>
+        </>
+      ) : (
+        <>
+          <button type="button" className="library-secondary" onClick={() => void stahni()} disabled={stav === 'stahuji'}>
+            {stav === 'stahuji' ? 'Stahuji…' : 'Stáhnout pro čtení offline'}
+          </button>
+          {stav === 'chyba' && <p className="library-hint" role="alert">Stažení se nepovedlo. Zkontroluj připojení.</p>}
+        </>
+      )}
+    </div>
+  )
 }
 
 export function LibraryDetail({ dilo, postup, naPolici, onUlozit, onOtevrit, otevritRef }: Props) {
@@ -78,6 +126,7 @@ export function LibraryDetail({ dilo, postup, naPolici, onUlozit, onOtevrit, ote
           <p className="library-hint">{dokonceno ? 'Dočteno' : `Přečteno ${Math.round(postup!.percent)} %`}</p>
         </div>
       )}
+      {lzeCist && dilo.zdroj === 'katalog' && <OfflineKopie workId={dilo.id} />}
       {!lzeCist && (
         <p id="library-ctecka-brzy" className="library-hint">
           Dílo si můžeš uložit na polici. Čtení v appce se připravuje.

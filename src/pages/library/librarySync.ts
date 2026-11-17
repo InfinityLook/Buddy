@@ -6,6 +6,10 @@ import {
 import {
   getRawLibraryPostup, setRawLibraryPostup, subscribeLibraryPostup,
 } from './useLibraryPostup'
+import {
+  getRawLibraryAnotace, setRawLibraryAnotace, subscribeLibraryAnotace,
+} from './useLibraryAnnotations'
+import type { AnotaceZaznam } from '@/core/utils/libraryAnnotationsValidation'
 
 // ==========================================
 // Library — synchronizace police a postupu čtení (library_shelf,
@@ -68,12 +72,55 @@ export const postupTabulka: TabulkaSync<PostupZaznam> = {
   }),
 }
 
+export const anotaceTabulka: TabulkaSync<AnotaceZaznam> = {
+  table: 'library_annotations',
+  getLocal: () => getRawLibraryAnotace().anotace.filter((a) => jeIdDilaZDb(a.workId)),
+  // Anotace k místním ukázkám (bez uuid) v DB neexistují, sync je nezná a zachová je.
+  setLocal: (items) =>
+    setRawLibraryAnotace([...items, ...getRawLibraryAnotace().anotace.filter((a) => !jeIdDilaZDb(a.workId))]),
+  toRow: (userId, a) => ({
+    id: a.id,
+    user_id: userId,
+    work_id: a.workId,
+    version_id: a.versionId && jeIdDilaZDb(a.versionId) ? a.versionId : null,
+    kind: a.kind,
+    chapter_pos: a.chapterPos,
+    block_idx: a.blockIdx,
+    char_start: a.charStart,
+    char_end: a.charEnd,
+    page_pos: null,
+    excerpt: a.excerpt || null,
+    note: a.note,
+    color: a.color,
+    created_at: naIso(a.createdAt),
+    updated_at: naIso(a.updatedAt),
+    deleted_at: a.deletedAt ? naIso(a.deletedAt) : null,
+  }),
+  fromRow: (r) => ({
+    id: r.id as string,
+    workId: r.work_id as string,
+    versionId: (r.version_id as string | null) ?? null,
+    kind: r.kind as AnotaceZaznam['kind'],
+    chapterPos: Number(r.chapter_pos) || 0,
+    blockIdx: Number(r.block_idx) || 0,
+    charStart: Number(r.char_start) || 0,
+    charEnd: Number(r.char_end) || 0,
+    excerpt: (r.excerpt as string | null) ?? '',
+    note: (r.note as string | null) ?? null,
+    color: (r.color as AnotaceZaznam['color']) ?? null,
+    createdAt: zIso(r.created_at),
+    updatedAt: zIso(r.updated_at),
+    deletedAt: r.deleted_at ? zIso(r.deleted_at) : null,
+  }),
+}
+
 const { useSyncStatus: useLibrarySyncStatus, syncNow: syncLibraryNow, start: startLibrarySync } = vytvorZaznamovySync(
   'schoolbuddy-library-sync-cursor',
-  () => [policeTabulka, postupTabulka],
+  () => [policeTabulka, postupTabulka, anotaceTabulka],
   (posluchac) => {
     subscribeLibraryShelf(posluchac)
     subscribeLibraryPostup(posluchac)
+    subscribeLibraryAnotace(posluchac)
   },
 )
 
