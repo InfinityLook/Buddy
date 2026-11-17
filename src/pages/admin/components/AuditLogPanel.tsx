@@ -22,6 +22,16 @@ const POPIS_AKCE: Record<string, string> = {
   zalozit_tajny_chat: 'Založení tajného chatu',
   potvrdit_tajny_chat: 'Potvrzení tajného chatu',
   zamitnout_tajny_chat: 'Zamítnutí tajného chatu',
+  knihovna_pridat_dilo: 'Knihovna: přidání díla',
+  knihovna_smazat_dilo: 'Knihovna: smazání díla',
+  knihovna_stav_zverejneno: 'Knihovna: zveřejnění díla',
+  knihovna_stav_skryto: 'Knihovna: skrytí díla',
+  knihovna_stav_koncept: 'Knihovna: dílo vráceno do konceptu',
+  knihovna_stav_ke_schvaleni: 'Knihovna: dílo ke schválení',
+  knihovna_stav_odmitnuto: 'Knihovna: odmítnutí díla',
+  knihovna_doporucit: 'Knihovna: doporučení díla',
+  knihovna_zrusit_doporuceni: 'Knihovna: zrušení doporučení',
+  knihovna_nova_verze: 'Knihovna: nová verze díla',
 }
 
 /** Detail je volný jsonb — zobrazí se jen pár známých klíčů čitelně,

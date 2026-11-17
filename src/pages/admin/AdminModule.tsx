@@ -7,6 +7,7 @@ import { SocialReportPanel } from './components/SocialReportPanel'
 import { NotifikacePanel } from './components/NotifikacePanel'
 import { AuditLogPanel } from './components/AuditLogPanel'
 import { UzivatelePanel } from './components/UzivatelePanel'
+import { KnihovnaPanel } from './components/KnihovnaPanel'
 import { SystemPanel } from './components/SystemPanel'
 import { KonzolePanel } from './components/KonzolePanel'
 import { ADMIN_TABS, AdminTab, AdminTabDef } from './types'
@@ -45,6 +46,7 @@ const POVRCHY: Record<AdminTab, SurfaceId> = {
   notifikace: 'admin-notifications',
   'audit-log': 'admin-audit',
   uzivatele: 'admin-users',
+  knihovna: 'admin-system',
   system: 'admin-system',
   konzole: 'admin-console',
 }
@@ -55,6 +57,7 @@ const PANEL_PODLE_TABU: Record<AdminTab, React.ComponentType> = {
   notifikace: NotifikacePanel,
   'audit-log': AuditLogPanel,
   uzivatele: UzivatelePanel,
+  knihovna: KnihovnaPanel,
   system: SystemPanel,
   konzole: KonzolePanel,
 }

@@ -3208,6 +3208,18 @@ Ověřeno `tsc --noEmit`, `tests/unit/library-katalog.test.ts` (9 případů: va
 
 Ověřeno `tsc`, 2237 unit testy (`library-katalog`, `library-ctecka`), buildem a screenshoty čtečky přes dočasný harness mimo router (autentizované e2e v sandboxu nefunguje).
 
+### Library — fáze 4: správa katalogu a import EPUB (`admin/components/KnihovnaPanel.tsx`, `library/epubImport.ts`)
+
+**Správce plní katalog z admin panelu (sekce „Knihovna“, `admin.panel`): seznam všech děl i konceptů a skrytých, zveřejnit/skrýt, doporučit (⭐), smazat a editor s importem EPUB.** Zápisy jdou přímo do `library_works`/`versions`/`chapters` politikou `jsem_admin()` (žádná nová RPC), takže podvržená role v prohlížeči nic nezmůže. Moderace děl od uživatelů přijde s publikováním z Writer's Room (fáze 7).
+
+**`epubImport.ts` čte EPUB celé v prohlížeči (JSZip + DOMParser) a vrací kapitoly ve smluvním formátu bloků** (odstavec/nadpis/citát/oddělovač, jen holý text, nikdy HTML). Pořadí podle spine, úvodní nadpis stránky se stane titulkem kapitoly, nav a prázdné stránky se přeskočí, kapitola nad 200 000 znaků se rozdělí na části „(2)…“ (sloupec `blocks` má strop 1 MB), kniha nad 4 mil. znaků a soubor nad 30 MB se odmítnou. Obálka se bere z `properties="cover-image"` (EPUB 3) nebo `<meta name="cover">` (EPUB 2). **DRM se odmítne, obfuskace fontů (IDPF `…/2008/embedding`, Adobe `…/pdf/enc#RC`) ne** — první verze měla podmínku „obfuscation v názvu“, která flagovala i legitimní obfuskaci; chytil to test. Obrázky z těla knihy se neimportují (komiksy a obrázkové knihy mají vlastní formát stran, fáze 6).
+
+**`libraryAdminApi.ulozDilo` drží pořadí dílo (koncept) → obálka → verze → kapitoly → až nakonec zveřejnění**, a nově založené dílo se při jakékoli chybě smaže celé (cascade odstraní verzi i kapitoly); verze se vkládá schválená (`reviewed_by` = správce) a kapitoly v dávkách (`rozdelDoDavek`, ≤ 1,2 MB a ≤ 20 řádků na požadavek). Obálka se zmenší na 600 px a nahraje do `library-covers/katalog/<id>/obalka-<čas>.jpg` (čas v názvu = žádná zastaralá CDN cache), stará se smaže. Zveřejnit jde jen dílo s obsahem (CHECK `library_works_zverejneno_ma_verzi` to hlídá i v DB).
+
+**Audit změn katalogu dělá trigger (migrace `20261117180000_library_audit.sql`), ne klient** — stejný vzor (b) jako u hlášení: `library_works_audit()` zapíše do `audit_log` přidání, smazání, změnu stavu, doporučení a výměnu publikované verze, ale jen když změnu dělá přihlášený správce/moderátor (mazání účtu a servisní úklidy se nelogují). `cil_id` nese id DÍLA (sloupec nemá FK), titul je v `detail.text`; `AuditLogPanel` má popisky `knihovna_*`. Funkce je `revoke … from public, anon, authenticated` (ověřeno `has_function_privilege` = false).
+
+**Otevřené / neověřeno**: smazání zveřejněného díla (kaskáda verzí vs. CHECK `zverejneno_ma_verzi`) a samotné zapisování triggeru nebylo proti živé DB spuštěno — `execute_sql` s `delete` vyžaduje interaktivní potvrzení, které v téhle session nepřišlo. Test v rolled-back bloku (`do $$ … raise exception … $$`) stačí spustit s potvrzením. Autentizované e2e v sandboxu nejde (pre-existující), editor a import byly ověřeny screenshotem v harnessu mimo router (EPUB vygenerovaný JSZipem → předvyplněný formulář) a 30 unit testy (`library-epub`, `library-admin`).
+
 ### Path alias
 
 `@/*` resolves to `src/*`, configured in **three places that must stay in sync**: `resolve.alias` in `vite.config.ts` (used at build time), `paths` in `tsconfig.json` (used by `npm run typecheck`), and `resolve.alias` in `vitest.config.ts` (used by `npm run test:unit`). Use `@/...` imports for anything outside a feature's own folder; use relative imports within a miniapp/page's own directory.

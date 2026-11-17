@@ -4,7 +4,7 @@ import type { Permission } from '@/core/role'
 // Tvary dat Admin panelu.
 // ==========================================
 
-export type AdminTab = 'prehled' | 'social-report' | 'notifikace' | 'audit-log' | 'uzivatele' | 'system' | 'konzole'
+export type AdminTab = 'prehled' | 'social-report' | 'notifikace' | 'audit-log' | 'uzivatele' | 'knihovna' | 'system' | 'konzole'
 
 export interface AdminTabDef {
   id: AdminTab
@@ -53,6 +53,13 @@ export const ADMIN_TABS: AdminTabDef[] = [
     label: 'Uživatelé',
     icon: '👥',
     popis: 'Hledat účty a měnit jejich role.',
+    permission: 'admin.panel',
+  },
+  {
+    id: 'knihovna',
+    label: 'Knihovna',
+    icon: '📚',
+    popis: 'Katalog knih a komiksů — přidat dílo, import EPUB, zveřejnit.',
     permission: 'admin.panel',
   },
   {

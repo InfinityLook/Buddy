@@ -33,7 +33,7 @@ export function resolveModuleSurface(pathname: string, view: ModuleViewState = {
       return Object.prototype.hasOwnProperty.call(sections,view.settingsSection ?? '') ? sections[view.settingsSection as string] : 'settings'
     }
     case '/admin': {
-      const sections: Record<string, SurfaceId> = { prehled:'admin-overview','social-report':'admin-reports',notifikace:'admin-notifications','audit-log':'admin-audit',uzivatele:'admin-users',system:'admin-system',konzole:'admin-console' }
+      const sections: Record<string, SurfaceId> = { prehled:'admin-overview','social-report':'admin-reports',notifikace:'admin-notifications','audit-log':'admin-audit',uzivatele:'admin-users',knihovna:'admin-system',system:'admin-system',konzole:'admin-console' }
       return Object.prototype.hasOwnProperty.call(sections,view.adminSection ?? '') ? sections[view.adminSection as string] : 'admin'
     }
     case '/buddy-world': return view.worldView === 'hud' ? 'buddyworld-hud' : view.worldView === 'panel' ? 'buddyworld-panel' : 'buddyworld-entry'
