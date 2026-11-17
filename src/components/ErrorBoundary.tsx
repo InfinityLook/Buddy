@@ -10,13 +10,22 @@ interface Props {
 
 interface State {
   hasError: boolean
+  /** Nenačetl se soubor modulu (typicky po novém nasazení, kdy má zařízení
+   *  ještě starý build). React.lazy si odmítnutý import pamatuje, takže
+   *  pouhé překreslení nepomůže — pomůže jen načíst stránku znovu. */
+  chunkError: boolean
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  public state: State = { hasError: false }
+const jeChybaNacteniModulu = (error: Error): boolean =>
+  /dynamically imported module|Importing a module script failed|Loading chunk|Loading CSS chunk|error loading dynamically/i.test(
+    `${error?.name ?? ''} ${error?.message ?? ''}`
+  )
 
-  public static getDerivedStateFromError(_: Error): State {
-    return { hasError: true }
+export class ErrorBoundary extends Component<Props, State> {
+  public state: State = { hasError: false, chunkError: false }
+
+  public static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, chunkError: jeChybaNacteniModulu(error) }
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -29,7 +38,11 @@ export class ErrorBoundary extends Component<Props, State> {
         <div className="buddy-ui-fallback">
           <div className="buddy-ui-alert" role="alert">
             <h2>{this.props.fallbackTitle || 'Aplikaci se nepodařilo načíst'}</h2>
-            <p>Při otevření této sekce nastala chyba.</p>
+            <p>
+              {this.state.chunkError
+                ? 'Část appky se nepodařilo stáhnout — nejspíš máš starou verzi nebo slabý signál. Načti appku znovu.'
+                : 'Při otevření této sekce nastala chyba.'}
+            </p>
           </div>
           <div className="buddy-ui-fallback-actions">
             {this.props.onBack && (
@@ -37,8 +50,15 @@ export class ErrorBoundary extends Component<Props, State> {
                 Zpět
               </button>
             )}
-            <button type="button" className="buddy-ui-button" onClick={() => this.setState({ hasError: false })}>
-              Zkusit znovu
+            <button
+              type="button"
+              className="buddy-ui-button"
+              onClick={() => {
+                if (this.state.chunkError) window.location.reload()
+                else this.setState({ hasError: false, chunkError: false })
+              }}
+            >
+              {this.state.chunkError ? 'Načíst appku znovu' : 'Zkusit znovu'}
             </button>
           </div>
         </div>
