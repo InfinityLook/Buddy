@@ -410,3 +410,13 @@ dialog.buddy-ui-dialog--sheet.buddy-theme-scope {
 }
 
 .buddy-ui-screen-state > .buddy-ui-card { padding: 1rem; }
+
+/* Text chyby v záložní obrazovce (ErrorBoundary) — na telefonu není konzole. */
+.buddy-ui-error-detail {
+  margin: 0.6rem 0 0;
+  font: 0.72rem/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  opacity: 0.8;
+  word-break: break-word;
+  user-select: text;
+  -webkit-user-select: text;
+}

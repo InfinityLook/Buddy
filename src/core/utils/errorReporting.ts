@@ -23,7 +23,7 @@ let odeslano = 0
 const oriznout = (text: string, max: number): string =>
   text.length > max ? text.slice(0, max) : text
 
-const nahlasit = async (message: string, stack?: string) => {
+export const nahlasit = async (message: string, stack?: string) => {
   if (!supabase || odeslano >= MAX_HLASENI_ZA_RELACI) return
   odeslano += 1
 

@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import '@/components/buddy-ui/buddy-ui.css'
+import { nahlasit } from '@/core/utils/errorReporting'
 
 interface Props {
   children: ReactNode
@@ -10,6 +11,9 @@ interface Props {
 
 interface State {
   hasError: boolean
+  /** Text chyby ukázaný přímo na obrazovce — na telefonu není konzole,
+   *  takže jinak nejde zjistit, co se vlastně rozbilo. */
+  detail: string
   /** Nenačetl se soubor modulu (typicky po novém nasazení, kdy má zařízení
    *  ještě starý build). React.lazy si odmítnutý import pamatuje, takže
    *  pouhé překreslení nepomůže — pomůže jen načíst stránku znovu. */
@@ -22,14 +26,21 @@ const jeChybaNacteniModulu = (error: Error): boolean =>
   )
 
 export class ErrorBoundary extends Component<Props, State> {
-  public state: State = { hasError: false, chunkError: false }
+  public state: State = { hasError: false, detail: '', chunkError: false }
 
   public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, chunkError: jeChybaNacteniModulu(error) }
+    return {
+      hasError: true,
+      detail: `${error?.name ?? 'Error'}: ${error?.message ?? ''}`.slice(0, 400),
+      chunkError: jeChybaNacteniModulu(error),
+    }
   }
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('ErrorBoundary caught an error:', error, errorInfo)
+    // React chybu při vykreslování zachytí sám, takže window 'error' se
+    // nespustí — bez tohohle by se do admin panelu (Systém) nedostala.
+    void nahlasit(`Pád vykreslení: ${error?.message ?? error}`, `${error?.stack ?? ''}\n${errorInfo.componentStack ?? ''}`).catch(() => {})
   }
 
   public render() {
@@ -43,6 +54,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 ? 'Část appky se nepodařilo stáhnout — nejspíš máš starou verzi nebo slabý signál. Načti appku znovu.'
                 : 'Při otevření této sekce nastala chyba.'}
             </p>
+            {this.state.detail && <p className="buddy-ui-error-detail">{this.state.detail}</p>}
           </div>
           <div className="buddy-ui-fallback-actions">
             {this.props.onBack && (
@@ -55,7 +67,7 @@ export class ErrorBoundary extends Component<Props, State> {
               className="buddy-ui-button"
               onClick={() => {
                 if (this.state.chunkError) window.location.reload()
-                else this.setState({ hasError: false, chunkError: false })
+                else this.setState({ hasError: false, detail: '', chunkError: false })
               }}
             >
               {this.state.chunkError ? 'Načíst appku znovu' : 'Zkusit znovu'}
