@@ -3,9 +3,10 @@ import { syncFinanceNow } from '@/miniapps/finance/financeSync'
 import { syncGoalTrackerNow } from '@/miniapps/goal-tracker/goalTrackerSync'
 import { syncWriterNow } from '@/flagships/writer-room/writerSync'
 import { syncSkolaNow } from '@/flagships/school-room/skolaSync'
+import { syncLibraryNow } from '@/pages/library/librarySync'
 
 // ==========================================
-// Vynutí jeden okamžitý (ne debounced) průchod VŠECH pěti
+// Vynutí jeden okamžitý (ne debounced) průchod VŠECH šesti
 // synchronizačních strojů — audit #2+#3, Část A.
 //
 // SettingsModule.tsx's handleLogout tohle volá PŘED signOut(): jakmile
@@ -34,6 +35,7 @@ export const VYCHOZI_SYNCHRONIZACE: SynchronizacniFunkce[] = [
   syncGoalTrackerNow,
   syncWriterNow,
   syncSkolaNow,
+  syncLibraryNow,
 ]
 
 export const FLUSH_TIMEOUT_MS = 5000

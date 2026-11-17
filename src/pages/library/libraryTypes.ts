@@ -66,3 +66,7 @@ export const filtrovatKatalog = (
   if (filtr === 'police') return dila.filter((d) => police.has(d.id))
   return dila.filter((d) => d.druh === filtr)
 }
+
+/** Dá se dílo číst přímo v appce? Ukázky vždy; z katalogu zatím jen knihy (komiks a scénář mají čtečku později). */
+export const jeCitelne = (dilo: KatalogDilo): boolean =>
+  Boolean(dilo.ukazka) || (dilo.zdroj === 'katalog' && dilo.druh === 'kniha')

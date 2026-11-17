@@ -7,9 +7,11 @@ import { SocialIcon } from '@/social/components/SocialIcon'
 import { LibraryShelf } from './components/LibraryShelf'
 import { LibraryDetail } from './components/LibraryDetail'
 import { UkazkaCtecka } from './components/UkazkaCtecka'
+import { CtenarDila } from './components/CtenarDila'
+import { useLibraryPostup } from './useLibraryPostup'
 import { useLibraryKatalog } from './useLibraryKatalog'
-import { useLibraryShelf } from './useLibraryShelf'
-import { filtrovatKatalog, type FiltrKatalogu, type KatalogDilo } from './libraryTypes'
+import { idNaPolici, useLibraryShelf } from './useLibraryShelf'
+import { filtrovatKatalog, jeCitelne, type FiltrKatalogu, type KatalogDilo } from './libraryTypes'
 import './LibraryModule.css'
 
 // ==========================================
@@ -33,9 +35,11 @@ export default function LibraryModule() {
   const navigate = useNavigate()
   const { rootAttributes, variant } = useSurfaceAppearance('hub')
   const { dila, nacitani, ukazkovyRezim } = useLibraryKatalog()
-  const policeIds = useLibraryShelf((s) => s.ids)
+  const zaznamyPolice = useLibraryShelf((s) => s.zaznamy)
+  const policeIds = useMemo(() => idNaPolici(zaznamyPolice), [zaznamyPolice])
   const prepnout = useLibraryShelf((s) => s.prepnout)
   const police = useMemo(() => new Set(policeIds), [policeIds])
+  const postupy = useLibraryPostup((s) => s.postupy)
 
   const [filtr, setFiltr] = useState<FiltrKatalogu>('vse')
   const [vybraneId, setVybraneId] = useState<string | null>(null)
@@ -96,9 +100,11 @@ export default function LibraryModule() {
           onBack={cte ? zavritCtecku : () => navigate('/hub')}
         />
 
-        <main className="library-main" aria-label="Library" aria-busy={nacitani}>
+        <main className={`library-main${cte ? ' library-main--cte' : ''}`} aria-label="Library" aria-busy={nacitani}>
           {cte ? (
-            <UkazkaCtecka key={cte.id} book={cte} onBack={zavritCtecku} />
+            cte.ukazka
+              ? <UkazkaCtecka key={cte.id} book={cte} onBack={zavritCtecku} />
+              : <CtenarDila key={cte.id} dilo={cte} onBack={zavritCtecku} />
           ) : nacitani ? (
             <section className="library-empty">
               <h2>Načítám knihovnu…</h2>
@@ -136,10 +142,11 @@ export default function LibraryModule() {
                     books={zobrazena}
                     selectedId={dilo.id}
                     onSelect={setVybraneId}
-                    onOpen={(d) => (d.ukazka ? setCte(d) : setVybraneId(d.id))}
+                    onOpen={(d) => (jeCitelne(d) ? setCte(d) : setVybraneId(d.id))}
                   />
                   <LibraryDetail
                     dilo={dilo}
+                    postup={postupy.find((p) => p.id === dilo.id)}
                     naPolici={police.has(dilo.id)}
                     onUlozit={() => ulozit(dilo)}
                     onOtevrit={() => setCte(dilo)}

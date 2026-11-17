@@ -27,6 +27,10 @@ export type SoftDeletable = { id: string; updatedAt: number; deletedAt: number |
 
 export interface TabulkaSync<T extends SoftDeletable> {
   table: string
+  /** Sloupce unikátního klíče pro upsert; výchozí `id`. Tabulky bez
+   *  sloupce `id` (např. library_shelf, PK user_id+work_id) tu uvedou
+   *  složený klíč, např. 'user_id,work_id'. */
+  onConflict?: string
   toRow: (userId: string, item: T) => Record<string, unknown>
   fromRow: (row: Record<string, any>) => T
   getLocal: () => T[]
@@ -132,7 +136,7 @@ export const vytvorZaznamovySync = (
     if (kOdeslani.length > 0) {
       const { error } = await supabase.from(cfg.table).upsert(
         kOdeslani.map((item) => cfg.toRow(userId, item)),
-        { onConflict: 'id' }
+        { onConflict: cfg.onConflict ?? 'id' }
       )
       if (error) throw new Error(`${cfg.table}: ${error.message}`)
     }

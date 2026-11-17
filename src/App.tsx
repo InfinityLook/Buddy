@@ -70,6 +70,7 @@ import { setupFinanceRecurringCheck } from '@/miniapps/finance/useFinance'
 import { setupGoalTrackerReminders } from '@/miniapps/goal-tracker/useGoalTracker'
 import { startFinanceSync } from '@/miniapps/finance/financeSync'
 import { startWriterSync } from '@/flagships/writer-room/writerSync'
+import { startLibrarySync } from '@/pages/library/librarySync'
 import { startGoalTrackerSync } from '@/miniapps/goal-tracker/goalTrackerSync'
 import { startSkolaSync } from '@/flagships/school-room/skolaSync'
 import { setupFitnessReminders } from '@/flagships/fitness-room/fitnessReminders'
@@ -132,6 +133,7 @@ export default function App() {
     startWriterSync()
     startGoalTrackerSync()
     startSkolaSync()
+    startLibrarySync()
     setupFitnessReminders()
     setupPitnyRezimReminders()
     setupRozvrhReminders()

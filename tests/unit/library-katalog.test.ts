@@ -5,31 +5,43 @@ import { UKAZKOVA_DILA } from '@/pages/library/libraryCatalog'
 import {
   druhDilaNazev, filtrovatKatalog, foilPodleId, licenceNazev, vekNazev,
 } from '@/pages/library/libraryTypes'
-import { useLibraryShelf } from '@/pages/library/useLibraryShelf'
+import { idNaPolici, useLibraryShelf } from '@/pages/library/useLibraryShelf'
 
 describe('police — validace', () => {
-  it('zahodí nevalidní položky a duplicity', () => {
-    expect(ocistiPolici(['a', 'a', '', 5, null, 'b', 'x'.repeat(101)])).toEqual(['a', 'b'])
+  it('zahodí nevalidní položky a duplicity (starší tvar: holá id)', () => {
+    expect(ocistiPolici(['a', 'a', '', 5, null, 'b', 'x'.repeat(101)], 7)).toEqual([
+      { id: 'a', updatedAt: 7, deletedAt: null }, { id: 'b', updatedAt: 7, deletedAt: null },
+    ])
   })
-  it('nepole vrací prázdnou polici', () => {
+  it('zachová záznamy s tombstonem a čas', () => {
+    expect(ocistiPolici([{ id: 'a', updatedAt: 5, deletedAt: 9 }, { id: '', updatedAt: 1 }], 1))
+      .toEqual([{ id: 'a', updatedAt: 5, deletedAt: 9 }])
+  })
+  it('nepole vrací prázdnou polici; migruje legacy ids', () => {
     expect(ocistiPolici('nic')).toEqual([])
-    expect(validateLibraryShelfData(null)).toEqual({ ids: [] })
-    expect(validateLibraryShelfData({ ids: ['k'] })).toEqual({ ids: ['k'] })
+    expect(validateLibraryShelfData(null)).toEqual({ zaznamy: [] })
+    expect(validateLibraryShelfData({ ids: ['k'] }, 3)).toEqual({ zaznamy: [{ id: 'k', updatedAt: 3, deletedAt: null }] })
   })
-  it('ořízne na MAX_POLICE', () => {
-    const moc = Array.from({ length: MAX_POLICE + 20 }, (_, i) => `id${i}`)
-    expect(ocistiPolici(moc)).toHaveLength(MAX_POLICE)
+  it('ořízne na MAX_POLICE živých záznamů', () => {
+    const moc = Array.from({ length: MAX_POLICE + 20 }, (_, i) => ({ id: `id${i}`, updatedAt: i, deletedAt: null }))
+    const vysledek = ocistiPolici(moc)
+    expect(vysledek).toHaveLength(MAX_POLICE)
+    expect(vysledek.some((z) => z.id === 'id0')).toBe(false)
   })
 })
 
 describe('useLibraryShelf', () => {
-  beforeEach(() => useLibraryShelf.setState({ ids: [] }))
-  it('přidává na začátek a odebírá', () => {
+  beforeEach(() => useLibraryShelf.setState({ zaznamy: [] }))
+  it('přidává, odebírá (tombstone) a znovu přidává', () => {
     expect(useLibraryShelf.getState().prepnout('a')).toBe(true)
     expect(useLibraryShelf.getState().prepnout('b')).toBe(true)
-    expect(useLibraryShelf.getState().ids).toEqual(['b', 'a'])
+    expect(idNaPolici(useLibraryShelf.getState().zaznamy).sort()).toEqual(['a', 'b'])
     expect(useLibraryShelf.getState().prepnout('a')).toBe(false)
-    expect(useLibraryShelf.getState().ids).toEqual(['b'])
+    const a = useLibraryShelf.getState().zaznamy.find((z) => z.id === 'a')
+    expect(a?.deletedAt).not.toBeNull()
+    expect(idNaPolici(useLibraryShelf.getState().zaznamy)).toEqual(['b'])
+    expect(useLibraryShelf.getState().prepnout('a')).toBe(true)
+    expect(useLibraryShelf.getState().zaznamy.filter((z) => z.id === 'a')).toHaveLength(1)
   })
 })
 

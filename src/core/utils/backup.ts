@@ -164,6 +164,8 @@ export const BACKUP_STORES: BackupStore[] = [
   { key: 'schoolbuddy-theme-storage', storage: 'secure', label: 'Vzhled aplikace' },
   { key: 'schoolbuddy-zvuk-storage', storage: 'secure', label: 'Hlasitost zvuku' },
   { key: 'schoolbuddy-library-shelf-storage', storage: 'secure', label: 'Moje police v Library' },
+  { key: 'schoolbuddy-library-postup-storage', storage: 'secure', label: 'Postup čtení v Library' },
+  { key: 'schoolbuddy-library-ctecka-storage', storage: 'secure', label: 'Nastavení čtečky' },
   // Role a kredity stojí (nebo budou stát) peníze. Do zálohy patří, aby
   // byla věrným snímkem, ale zpátky se nikdy nezapisují — jinak by stačilo
   // upravit si vyexportovaný JSON a naimportovat si VIP zadarmo. Rozhodovat

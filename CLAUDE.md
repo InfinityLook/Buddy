@@ -3196,6 +3196,18 @@ Ověřeno typecheckem, 2217 unit testy a buildem. Vizuální kontrola kola a str
 
 Ověřeno `tsc --noEmit`, `tests/unit/library-katalog.test.ts` (9 případů: validace police, store, filtry, popisky, mapování řádku z DB) a screenshoty přes dočasný harness mimo router (autentizované e2e v sandboxu nejde): police s ukázkami, filtr Komiksy s uloženým dílem, čtečka ukázky.
 
+### Library — fáze 3: textová čtečka, synchronizovaná police a postup čtení (`src/pages/library/`)
+
+**Díla z katalogu typu kniha se čtou přímo v appce; police i postup se synchronizují mezi zařízeními přes `core/supabase/recordSync.ts`.** `TextovaCtecka.tsx` čte po kapitolách (obsah, A−/A+, čtyři motivy papír/světlé/sépie/tmavé v `useLibraryCtecka`), pamatuje si polohu (kapitola + první viditelný blok `data-b`), počítá procenta podle znaků (`spoctiProcenta`, kapitoly váží délkou), odhad zbývajícího času (~200 slov/min) a dílo bere za dočtené od 97 % poslední kapitoly. Postup hlásí rodiči (`CtenarDila.tsx`) debounce 1,5 s, při skrytí stránky a při odchodu; čtečka o cloudu nic neví. Pouhé otevření bez čtení (méně než 5 s a bez posunu) se neukládá.
+
+**Kontrakt bloků (`library_chapters.blocks`)**: pole `{typ: 'odstavec'|'nadpis'|'citat'|'oddelovac', text}`; vykresluje se výhradně jako text (nikdy HTML), `ocistiBloky` zahodí cokoli jiného. Import EPUB (fáze 4) i publikování z Writer's Room (fáze 7) musí vyrábět přesně tenhle formát.
+
+**Sync**: `recordSync` dostal volitelné `onConflict` (tabulky s kompozitním PK `user_id,work_id`: `library_shelf`, `library_progress`). `librarySync.ts` synchronizuje jen díla z DB (uuid); ukázky `ukazka-*` zůstanou lokální, protože FK na `library_works` by shodil celou dávku (`getLocal` je filtruje, `setLocal` je zachová). Známé omezení: INSERT policy vyžaduje `library_smi_videt_dilo`, takže záznam police pro dílo, které mezitím přestalo být veřejné, shodí dávku, dokud ho uživatel nedoebere.
+
+**Úložiště**: `useLibraryShelf` (soft delete, `idNaPolici`), `useLibraryPostup`, `useLibraryCtecka`; všechny v `BACKUP_STORES`, validace `core/utils/libraryShelfValidation.ts` (starší tvar s holými id se migruje). Komiks/scénář z katalogu zatím čtečku nemají (`jeCitelne`).
+
+Ověřeno `tsc`, 2237 unit testy (`library-katalog`, `library-ctecka`), buildem a screenshoty čtečky přes dočasný harness mimo router (autentizované e2e v sandboxu nefunguje).
+
 ### Path alias
 
 `@/*` resolves to `src/*`, configured in **three places that must stay in sync**: `resolve.alias` in `vite.config.ts` (used at build time), `paths` in `tsconfig.json` (used by `npm run typecheck`), and `resolve.alias` in `vitest.config.ts` (used by `npm run test:unit`). Use `@/...` imports for anything outside a feature's own folder; use relative imports within a miniapp/page's own directory.
