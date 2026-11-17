@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { BuddyPage } from '@/components/buddy-ui/BuddyPage'
 import { BuddyConfirm, type BuddyConfirmation } from '@/components/buddy-ui/BuddyConfirm'
@@ -20,6 +20,7 @@ import { SoukromiSocialSekce } from './components/SoukromiSocialSekce'
 import { VzhledARamecekSekce } from './components/VzhledARamecekSekce'
 import { ZvukSekce } from './components/ZvukSekce'
 import { JazykSekce } from './components/JazykSekce'
+import { TutorialSekce } from './components/TutorialSekce'
 import { ZakladniNastaveniSekce } from './components/ZakladniNastaveniSekce'
 import { SurfaceThemeScope } from '@/features/appearance/SurfaceAppearance'
 import type { SurfaceId } from '@/features/appearance/themeCatalog'
@@ -30,7 +31,7 @@ export type Sekce =
   | 'vzhled' | 'motivy' | 'ramecky' | 'zvuk' | 'jazyk'
   | 'funkce' | 'moduly' | 'oznameni' | 'vychozi' | 'smazat-profil'
   | 'zalohovani' | 'obnoveni' | 'uloziste' | 'aktualizace' | 'informace'
-  | 'napoveda' | 'podpora' | 'problem' | 'administrace'
+  | 'napoveda' | 'podpora' | 'problem' | 'administrace' | 'tutorial'
 
 interface MenuPolozka { id: Sekce; ikona: string; barva: string; nazev: string; popis: string }
 interface MenuSkupina { skupinaNazev: string; polozky: MenuPolozka[] }
@@ -82,7 +83,7 @@ const NADPISY: Record<Sekce, string> = {
   funkce: 'Správa funkcí', moduly: 'Aktivní moduly', oznameni: 'Oznámení', vychozi: 'Výchozí nastavení',
   'smazat-profil': 'Smazat profil', zalohovani: 'Zálohování', obnoveni: 'Obnovení dat', uloziste: 'Úložiště',
   aktualizace: 'Aktualizace', informace: 'Informace o aplikaci', napoveda: 'Nápověda', podpora: 'Kontakt na podporu',
-  problem: 'Nahlásit problém', administrace: 'Administrace',
+  problem: 'Nahlásit problém', administrace: 'Administrace', tutorial: 'První kroky',
 }
 const CLOUD_LABELS: Record<string, string> = {
   off: 'Cloud není nastavený — data zůstávají jen v tomhle zařízení', connecting: 'Připojuji…',

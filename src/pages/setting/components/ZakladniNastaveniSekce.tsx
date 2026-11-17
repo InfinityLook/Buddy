@@ -70,7 +70,7 @@ export const ZakladniNastaveniSekce: React.FC<Props> = ({ sekce, onToast }) => {
 
       {sekce === 'uloziste' && (
         <p className="settings-card-sub">
-          {navigator.storage?.estimate
+          {typeof navigator.storage?.estimate === 'function'
             ? 'Informace o využití úložiště můžeš zobrazit v nastavení prohlížeče.'
             : 'Tento prohlížeč neposkytuje přehled úložiště.'}
         </p>
