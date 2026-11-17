@@ -66,16 +66,26 @@ const jeSpravce = async (url: string, anonKlic: string, token: string, mojeId: s
 
 const DAVKA = 100
 
-/** Smaže všechny soubory ve složce `<uid>/` daného bucketu (plochá složka). */
+/** Smaže všechny soubory ve složce `<uid>/` daného bucketu, včetně vnořených
+ *  podsložek (knihovna ukládá `<uid>/<dílo>/<verze>/<soubor>`). Storage API
+ *  vrací u složky `id === null`, takže se do ní rekurzivně sestoupí. */
 const smazSlozkuUzivatele = async (admin: SupabaseClient, bucket: string, uid: string): Promise<void> => {
-  for (let pokus = 0; pokus < 200; pokus++) {
-    const { data, error } = await admin.storage.from(bucket).list(uid, { limit: 1000 })
-    if (error) throw error
-    const soubory = (data ?? []).filter((f) => f.id !== null)
-    if (soubory.length === 0) return
-    const { error: errRemove } = await admin.storage.from(bucket).remove(soubory.map((f) => `${uid}/${f.name}`))
-    if (errRemove) throw errRemove
+  const projdi = async (cesta: string, hloubka: number): Promise<void> => {
+    if (hloubka > 6) return
+    for (let pokus = 0; pokus < 200; pokus++) {
+      const { data, error } = await admin.storage.from(bucket).list(cesta, { limit: 1000 })
+      if (error) throw error
+      const polozky = data ?? []
+      if (polozky.length === 0) return
+      const soubory = polozky.filter((f) => f.id !== null)
+      const slozky = polozky.filter((f) => f.id === null)
+      for (const slozka of slozky) await projdi(`${cesta}/${slozka.name}`, hloubka + 1)
+      if (soubory.length === 0) return
+      const { error: errRemove } = await admin.storage.from(bucket).remove(soubory.map((f) => `${cesta}/${f.name}`))
+      if (errRemove) throw errRemove
+    }
   }
+  await projdi(uid, 0)
 }
 
 /** chat-media nemá složku podle uživatele (cesta začíná id chatu), takže
@@ -144,7 +154,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 1) soubory — nejdřív přílohy chatu (cesty se berou ze zpráv, které
     //    krok 2 vymaže), pak složky uživatele.
     await smazPrilohyChatu(admin, uid)
-    for (const bucket of ['avatary', 'posts', 'stories']) {
+    for (const bucket of ['avatary', 'posts', 'stories', 'library-covers', 'library-pages']) {
       await smazSlozkuUzivatele(admin, bucket, uid)
     }
 
