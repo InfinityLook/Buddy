@@ -3186,6 +3186,16 @@ Verified with `npm run typecheck`/`npm run test:unit` (1090 passing, unaffected 
 
 Ověřeno typecheckem, 2217 unit testy a buildem. Vizuální kontrola kola a stránky v prohlížeči nebyla možná: autentizované e2e v sandboxu selhává už na přesměrování po přihlášení (stejně jako nezměněný `auth.spec.ts`).
 
+### Library — fáze 2: katalog a posuvná police (`src/pages/library/`)
+
+**Fáze 2 plánu Library nahradila kostru stránky `/library` skutečným katalogem: filtry (Vše/Knihy/Komiksy/Scénáře/Moje police), posuvná police obálek s 3D náklonem, detail vybraného díla a čtečka ukázky.** Návrh dodal uživatel jako balíček `Buddy_Library_Kody.zip` (`BookMenu`/`BookShelf`/`BookReader`, napsané proti starší verzi `useSurfaceAppearance`/`BuddyPage`); patch z balíčku se NEaplikoval, komponenty se přenesly ručně do stávající kostry (`LibraryModule.tsx` zůstala vlastníkem pozadí, `BuddyHeader` a `AppBottomNav`, `<main className="library-main">` je kontejner pro `cqw`). Obálky ukázek jsou v `public/book-menu/covers/` (PNG, spadají do běžného precache).
+
+**Data: `KatalogDilo` je jediný tvar, který umí vykreslit police i detail, ať dílo přišlo z databáze, nebo je zabudované.** `libraryApi.ts` čte zveřejněná díla z `library_works` (`status = 'zverejneno'`; RLS to hlídá v DB, filtr je navíc) a obálky z veřejného bucketu `library-covers` přes `getPublicUrl`. Selže-li cokoli nebo je katalog prázdný, `useLibraryKatalog` vrátí pět zabudovaných ukázek (`libraryCatalog.ts`, krátké původní texty) a stránka to hlásí bannerem „Zatím jsou tu jen ukázkové tituly“ — police nikdy není prázdná a cloud zůstává doplněk. Ukázky jdou přelistovat hned (`UkazkaCtecka`); díla z katalogu mají v detailu zatím jen „Čtečka přibude brzy“, protože čtečka celých děl je fáze 3.
+
+**Moje police (`useLibraryShelf`, `schoolbuddy-library-shelf-storage`) je zatím jen lokální Zustand store (`secureStorage`, `merge` přes `libraryShelfValidation.ts` — poškozené id se vyřadí, max 500, bez duplicit) a je v `BACKUP_STORES`.** Synchronizace do `library_shelf` je součást fáze 3. Barva rámečku obálky (`foilPodleId`) se odvozuje z id deterministicky, nic se neukládá.
+
+Ověřeno `tsc --noEmit`, `tests/unit/library-katalog.test.ts` (9 případů: validace police, store, filtry, popisky, mapování řádku z DB) a screenshoty přes dočasný harness mimo router (autentizované e2e v sandboxu nejde): police s ukázkami, filtr Komiksy s uloženým dílem, čtečka ukázky.
+
 ### Path alias
 
 `@/*` resolves to `src/*`, configured in **three places that must stay in sync**: `resolve.alias` in `vite.config.ts` (used at build time), `paths` in `tsconfig.json` (used by `npm run typecheck`), and `resolve.alias` in `vitest.config.ts` (used by `npm run test:unit`). Use `@/...` imports for anything outside a feature's own folder; use relative imports within a miniapp/page's own directory.

@@ -163,6 +163,7 @@ export const BACKUP_STORES: BackupStore[] = [
   // vzhledu bez skutečného VIP prostě zůstane nepoužitá, ne aplikovaná.
   { key: 'schoolbuddy-theme-storage', storage: 'secure', label: 'Vzhled aplikace' },
   { key: 'schoolbuddy-zvuk-storage', storage: 'secure', label: 'Hlasitost zvuku' },
+  { key: 'schoolbuddy-library-shelf-storage', storage: 'secure', label: 'Moje police v Library' },
   // Role a kredity stojí (nebo budou stát) peníze. Do zálohy patří, aby
   // byla věrným snímkem, ale zpátky se nikdy nezapisují — jinak by stačilo
   // upravit si vyexportovaný JSON a naimportovat si VIP zadarmo. Rozhodovat
